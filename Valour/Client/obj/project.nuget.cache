@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "cwi9/iDhvRWZA6qQBBg2qR1e+yDK39tvsYsT0caAPMtaWCqAPlBnKLKy//ueOQGhvSQSF4G1IYsaCc2yXeeiRQ==",
+  "dgSpecHash": "Mk2T5I4UxQ2pQ35EAgkjXHnLLhK3c8xk8JuVSANrRjNQZyz2RsjEzfz6BaMi/AD+mt2QTusqOPHt/iI5eXcFoQ==",
   "success": true,
   "projectFilePath": "C:\\Users\\SpikeViper\\source\\repos\\Valour\\Valour\\Client\\Valour.Client.csproj",
   "expectedPackageFiles": [
@@ -32,6 +32,7 @@
     "C:\\Users\\SpikeViper\\.nuget\\packages\\microsoft.extensions.primitives\\3.1.6\\microsoft.extensions.primitives.3.1.6.nupkg.sha512",
     "C:\\Users\\SpikeViper\\.nuget\\packages\\microsoft.jsinterop\\3.1.6\\microsoft.jsinterop.3.1.6.nupkg.sha512",
     "C:\\Users\\SpikeViper\\.nuget\\packages\\microsoft.jsinterop.webassembly\\3.2.1\\microsoft.jsinterop.webassembly.3.2.1.nupkg.sha512",
+    "C:\\Users\\SpikeViper\\.nuget\\packages\\newtonsoft.json\\12.0.3\\newtonsoft.json.12.0.3.nupkg.sha512",
     "C:\\Users\\SpikeViper\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
     "C:\\Users\\SpikeViper\\.nuget\\packages\\system.componentmodel.annotations\\4.7.0\\system.componentmodel.annotations.4.7.0.nupkg.sha512",
     "C:\\Users\\SpikeViper\\.nuget\\packages\\system.memory\\4.5.4\\system.memory.4.5.4.nupkg.sha512",
