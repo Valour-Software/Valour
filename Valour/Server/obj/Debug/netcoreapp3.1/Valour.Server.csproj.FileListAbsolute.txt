@@ -195,8 +195,6 @@ C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Va
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.csprojAssemblyReference.cache
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.AssemblyInfoInputs.cache
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.AssemblyInfo.cs
-C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.csproj.CoreCompileInputs.cache
-C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.RazorAssemblyInfo.cache
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.RazorAssemblyInfo.cs
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.TagHelpers.input.cache
@@ -213,3 +211,12 @@ C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\st
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.dll
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.pdb
 C:\Users\SpikeViper\source\repos\Valour\Valour\Server\obj\Debug\netcoreapp3.1\Valour.Server.genruntimeconfig.cache
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\DBConfig.json
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Microsoft.Bcl.HashCode.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Microsoft.EntityFrameworkCore.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Microsoft.EntityFrameworkCore.Abstractions.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Microsoft.Extensions.Caching.Abstractions.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\Microsoft.Extensions.Caching.Memory.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\System.Collections.Immutable.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Server\bin\Debug\netcoreapp3.1\System.Diagnostics.DiagnosticSource.dll
