@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.AspNetCore.WebSockets</name>
+    </assembly>
+    <members>
+        <member name="F:Microsoft.AspNetCore.WebSockets.HandshakeHelpers.NeededHeaders">
+            <summary>
+            Gets request headers needed process the handshake on the server.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.WebSockets.HandshakeHelpers.IsRequestKeyValid(System.String)">
+            <summary>
+            Validates the Sec-WebSocket-Key request header
+            </summary>
+            <param name="value"></param>
+            <returns></returns>
+        </member>
+        <member name="T:Microsoft.AspNetCore.Builder.WebSocketOptions">
+            <summary>
+            Configuration options for the WebSocketMiddleware
+            </summary>
+        </member>
+        <member name="P:Microsoft.AspNetCore.Builder.WebSocketOptions.KeepAliveInterval">
+            <summary>
+            Gets or sets the frequency at which to send Ping/Pong keep-alive control frames.
+            The default is two minutes.
+            </summary>
+        </member>
+        <member name="P:Microsoft.AspNetCore.Builder.WebSocketOptions.ReceiveBufferSize">
+            <summary>
+            Gets or sets the size of the protocol buffer used to receive and parse frames.
+            The default is 4kb.
+            </summary>
+        </member>
+        <member name="P:Microsoft.AspNetCore.Builder.WebSocketOptions.AllowedOrigins">
+            <summary>
+            Set the Origin header values allowed for WebSocket requests to prevent Cross-Site WebSocket Hijacking.
+            By default all Origins are allowed.
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,4 @@
+﻿<StaticWebAssets Version="1.0">
+  <ContentRoot BasePath="/" Path="C:\Users\SpikeViper\source\repos\Valour\Valour\Client\wwwroot\" />
+  <ContentRoot BasePath="/" Path="C:\Users\SpikeViper\source\repos\Valour\Valour\Client\bin\Debug\netstandard2.1\wwwroot\" />
+</StaticWebAssets>

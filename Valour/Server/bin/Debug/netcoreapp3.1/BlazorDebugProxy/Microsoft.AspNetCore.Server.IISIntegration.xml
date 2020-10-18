@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Microsoft.AspNetCore.Server.IISIntegration</name>
+    </assembly>
+    <members>
+        <member name="P:Microsoft.AspNetCore.Builder.IISOptions.AutomaticAuthentication">
+            <summary>
+            If true the middleware should set HttpContext.User. If false the middleware will only provide an
+            identity when explicitly requested by the AuthenticationScheme.
+            Note Windows Authentication must also be enabled in IIS for this to work.
+            </summary>
+        </member>
+        <member name="P:Microsoft.AspNetCore.Builder.IISOptions.AuthenticationDisplayName">
+            <summary>
+            Sets the display name shown to users on login pages. The default is null.
+            </summary>
+        </member>
+        <member name="P:Microsoft.AspNetCore.Builder.IISOptions.ForwardWindowsAuthentication">
+            <summary>
+            Used to indicate if the authentication handler should be registered. This is only done if ANCM indicates
+            IIS has a non-anonymous authentication enabled, or for back compat with ANCMs that did not provide this information.
+            </summary>
+        </member>
+        <member name="P:Microsoft.AspNetCore.Builder.IISOptions.ForwardClientCertificate">
+            <summary>
+            Populates the ITLSConnectionFeature if the MS-ASPNETCORE-CLIENTCERT request header is present.
+            </summary>
+        </member>
+        <member name="M:Microsoft.AspNetCore.Hosting.WebHostBuilderIISExtensions.UseIISIntegration(Microsoft.AspNetCore.Hosting.IWebHostBuilder)">
+            <summary>
+            Configures the port and base path the server should listen on when running behind AspNetCoreModule.
+            The app will also be configured to capture startup errors.
+            </summary>
+            <param name="hostBuilder"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>

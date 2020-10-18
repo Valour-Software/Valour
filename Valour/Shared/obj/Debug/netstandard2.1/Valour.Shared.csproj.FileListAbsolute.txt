@@ -1,0 +1,9 @@
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\bin\Debug\netstandard2.1\Valour.Shared.deps.json
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\bin\Debug\netstandard2.1\Valour.Shared.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\bin\Debug\netstandard2.1\Valour.Shared.pdb
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\obj\Debug\netstandard2.1\Valour.Shared.csprojAssemblyReference.cache
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\obj\Debug\netstandard2.1\Valour.Shared.AssemblyInfoInputs.cache
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\obj\Debug\netstandard2.1\Valour.Shared.AssemblyInfo.cs
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\obj\Debug\netstandard2.1\Valour.Shared.csproj.CoreCompileInputs.cache
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\obj\Debug\netstandard2.1\Valour.Shared.dll
+C:\Users\SpikeViper\source\repos\Valour\Valour\Shared\obj\Debug\netstandard2.1\Valour.Shared.pdb

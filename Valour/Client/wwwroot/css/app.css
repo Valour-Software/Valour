@@ -1,17 +1,34 @@
 ﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
 
+
+/*
+:root {
+    --primary-color: #040d14;
+    --secondary-color: #aaaaaa;
+    --font-color: #ffffff;
+    --bg-color: #040d14;
+    --heading-color: #040d14;
+    --link-color: #00aaff;
+    --border-color: #303030;
+    --alt-border-color: #666666;
+    --input-color: #000000;
+}
+*/
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #ffffff;
+    background-color: #040d14;
 }
 
 a, .btn-link {
-    color: #0366d6;
+    color: #00aaff;
 }
 
 .btn-primary {
-    color: #fff;
+    color: #ffffff;
     background-color: #1b6ec2;
-    border-color: #1861ac;
+    border-color: #303030;
 }
 
 app {
@@ -31,8 +48,8 @@ app {
 }
 
     .main .top-row {
-        background-color: #f7f7f7;
-        border-bottom: 1px solid #d6d5d5;
+        background-color: #303030;
+        border-bottom: 1px solid #666666;
         justify-content: flex-end;
     }
 
