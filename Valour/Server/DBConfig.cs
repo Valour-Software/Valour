@@ -13,7 +13,7 @@ namespace Valour.Server
         [JsonProperty]
         public string Host { get; set; }
 
-        [JsonProperty]
+        [JsonProperty] 
         public string Password { get; set; }
 
         [JsonProperty]
