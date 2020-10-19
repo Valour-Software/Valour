@@ -12,7 +12,7 @@ namespace Valour.Server
     public class ValourDB : DbContext
     {
 
-        public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database=Valour;uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;";
+        public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;";
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {

@@ -18,5 +18,8 @@ namespace Valour.Server
 
         [JsonProperty]
         public string Username { get; set; }
+
+        [JsonProperty]
+        public string Database { get; set; }
     }
 }
