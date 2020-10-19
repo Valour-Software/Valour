@@ -17,7 +17,7 @@ Properties/
 # See #577
 # Use git add -f to force override .sln when required. Not needed in most cases.
 # git add -f myProj.sln
-*.sln
+#*.sln
 
 Project_Readme.html
 
