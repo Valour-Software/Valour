@@ -1,5 +1,5 @@
 # DB Credentials
-*.json
+DBConfig.json
 
 # The 5 approved on boarding samples that need wwwroot/lib/ can add a local .gitignore that allows wwwroot/lib/.
 # with 2.1 templates and excluding .min & .map -> 27 files and < 1 KB
