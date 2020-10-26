@@ -25,7 +25,7 @@ namespace Valour.Server.Database
         }
 
         // These are the database sets we can access
-        public DbSet<Message> Messages { get; set; }
+        public DbSet<ClientMessage> Messages { get; set; }
         //public DbSet<User> Users { get; set; }
     }
 }

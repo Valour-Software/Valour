@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Valour.Shared.Users;
 
-namespace Valour.Server.Users
+namespace Valour.Server.Messaging
 {
-    public class ServerUser : ClientUser
+    public class ServerMessage
     {
 
     }

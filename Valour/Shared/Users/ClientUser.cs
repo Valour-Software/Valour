@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared.Users
 {
-    public class User
+    public class ClientUser
     {
         // 16 bytes
         /// <summary>
