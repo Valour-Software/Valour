@@ -1,0 +1,34 @@
+﻿<div class="category is-open">
+    <img class="arrow" src="Category-Icon.svg">
+    <p class="@Chosen_CSS">
+        @Name
+    </p>
+    <div class="channel-list">
+        @ChildContent
+    </div>
+</div>
+@code {
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    public string Chosen_CSS
+    {
+        get
+        {
+            if (IsOpen)
+            {
+                return "name-open";
+            }
+            else
+            {
+                return "name";
+            }
+        }
+    }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+}

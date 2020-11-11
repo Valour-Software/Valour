@@ -1,0 +1,70 @@
+﻿<div class="@Chosen_CSS">
+    <img class="pfp" src="@pfp_url">
+    <div class="user-info">
+        <p class="username" style="color: @Role_color">
+            @Username
+        </p>
+        @((MarkupString)BotString)
+        <br>
+        <div class="user-status-state">
+            <div class="active-circle">
+            </div>
+            <p class="state">
+                @State
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+    [Parameter]
+    public string State { get; set; }
+    [Parameter]
+    public string Username { get; set; }
+    [Parameter]
+    public string pfp_url { get; set; }
+    [Parameter]
+    public string Role_color { get; set; }
+    [Parameter]
+    public bool Bot { get; set; }
+    [Parameter]
+    public bool First { get; set; }
+    [Parameter]
+    public bool Last { get; set; }
+    [Parameter]
+    public bool Only { get; set; }
+
+    public string BotString { get
+        {
+            if (Bot)
+            {
+                return "<div class='bot-tag'><p>BOT</p></div>";
+            }
+            else
+            {
+                return "";
+            }
+        }
+    }
+
+    public string Chosen_CSS { get
+        {
+            if (Only)
+            {
+                return "sidebar-user only";
+            }
+            else if (First)
+            {
+                return "sidebar-user first";
+            }
+            else if (Last) {
+                return "sidebar-user last";
+            }
+            else
+            {
+                return "sidebar-user";
+            }
+        }
+    }
+}
