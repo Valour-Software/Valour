@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ using Pomelo.EntityFrameworkCore.MySql.Storage;
 using System;
 using System.Linq;
 using Valour.Server.Database;
+using Valour.Server.Messaging;
 
 namespace Valour.Server
 {
@@ -32,6 +34,7 @@ namespace Valour.Server
                 options.UseMySql(ValourDB.ConnectionString, options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4).ServerVersion(new Version(8, 0, 20), ServerType.MySql));
             });
 
+            services.AddSignalR();
             services.AddControllersWithViews();
             services.AddRazorPages();
         }
@@ -59,10 +62,14 @@ namespace Valour.Server
 
             app.UseEndpoints(endpoints =>
             {
+                //endpoints.MapBlazorHub();
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");
+                endpoints.MapHub<MessageHub>(MessageHub.HubUrl);
             });
+
+            MessageHub.Current = app.ApplicationServices.GetService<IHubContext<MessageHub>>();
         }
     }
 }

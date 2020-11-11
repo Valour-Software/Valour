@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Valour.Server.Models
+namespace Valour.Shared.Messaging
 {
     public class ClientMessage
     {
@@ -43,7 +43,7 @@ namespace Valour.Server.Models
         {
             using (SHA256 sha = SHA256.Create())
             {
-                string conc = $"{UserId}{Content}{TimeSent}{ChannelId}{Index}";
+                string conc = $"{UserId}{Content}{TimeSent}{ChannelId}";
 
                 byte[] buffer = Encoding.Unicode.GetBytes(conc);
 

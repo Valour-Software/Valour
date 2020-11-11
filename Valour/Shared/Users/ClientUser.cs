@@ -27,5 +27,10 @@ namespace Valour.Shared.Users
                 return new Guid(userid_bytes).ToString();
             }
         }
+
+        /// <summary>
+        /// The main display name for the user
+        /// </summary>
+        public string Username { get; set; }
     }
 }
