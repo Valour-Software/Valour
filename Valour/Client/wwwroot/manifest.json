@@ -1,6 +1,6 @@
 {
-  "name": "Valour",
-  "short_name": "Valour",
+  "name": "BlazorApp2",
+  "short_name": "BlazorApp2",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,0 +1,49 @@
+﻿<div class="@Chosen_CSS">
+    <img class="chat-icon" src="Channel-Icon.svg">
+    <p class="channel-name">
+        @Name
+    </p>
+</div>
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+    [Parameter]
+    public string Name { get; set; }
+    [Parameter]
+    public bool Last { get; set; }
+    [Parameter]
+    public bool Open { get; set; }
+    [Parameter]
+    public bool First { get; set; }
+
+    public string Chosen_CSS
+    {
+        get
+        {
+            if (Open && First)
+            {
+                return "channel first open";
+            }
+            if (Open && Last)
+            {
+                return "channel last open";
+            }
+            if (Open)
+            {
+                return "channel open";
+            }
+            else if (Last)
+            {
+                return "channel last";
+            }
+            else if (First)
+            {
+                return "channel first";
+            }
+            else
+            {
+                return "channel";
+            }
+        }
+    }
+}

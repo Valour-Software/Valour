@@ -1,0 +1,18 @@
+﻿<div class="user-info">
+    <img class="pfp" src="@PfpURL">
+    <p class="username" style="color: @RoleColor;">
+        @Username
+    </p>
+    <div class="active">
+    </div>
+    <img class="settings" src="Settings-Icon.svg">
+</div>
+
+@code {
+    [Parameter]
+    public string Username { get; set; }
+    [Parameter]
+    public string RoleColor { get; set; }
+    [Parameter]
+    public string PfpURL { get; set; }
+}

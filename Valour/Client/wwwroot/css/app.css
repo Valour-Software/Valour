@@ -1,50 +1,538 @@
-﻿@import url('open-iconic/font/css/open-iconic-bootstrap.min.css');
-
-html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-}
-
-a, .btn-link {
-    color: #0366d6;
-}
-
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
-.content {
-    padding-top: 1.1rem;
-}
-
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
-
-.invalid {
-    outline: 1px solid red;
-}
-
-.validation-message {
-    color: red;
-}
-
-#blazor-error-ui {
-    background: lightyellow;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
+﻿.message {
     width: 100%;
-    z-index: 1000;
+    margin-top: 27px;
+    padding-bottom: 4px;
 }
 
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
+.ping-box {
+    background: #FD3B3B;
+    transform: matrix(-1, 0, 0, 1, 0, 0);
+    width: 3px;
+    height: 77px;
+}
+
+.message .ping {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 23px;
+}
+
+.textbox {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 15px;
+    height: 69px;
+    margin-top: 40px;
+    width: 95%;
+    height: 68px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.message.ping {
+    background: rgba(253, 59, 59, 0.24);
+}
+
+.message.first {
+    margin-top: 41px;
+}
+
+.message .author-pfp {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    margin-top: 6px;
+    margin-left: 28px;
+}
+
+.message .author-name {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 22px;
+    line-height: 25px;
+    margin: 0px;
+    vertical-align: top;
+}
+
+.message .message-content {
+    display: inline-block;
+    margin-left: 7px;
+    margin-top: 4px;
+    vertical-align: top;
+}
+
+.message .content {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 20px;
+    line-height: 23px;
+    color: #FFFFFF;
+    margin: 0px;
+    margin-left: 76px;
+    margin-top: 6px;
+}
+
+.message .time {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 12px;
+    line-height: 14px;
+    color: #7A7A7A;
+    margin: 0px;
+}
+
+.channel-and-topbar {
+    float: left;
+    margin: 0px;
+    background: #040D14;
+    flex: 1;
+}
+
+.topline {
+    border: 3px solid #FFFFFF;
+    margin-top: 16px;
+    width: 100%;
+}
+
+.topbar {
+    width: fill;
+    height: 115px;
+}
+
+.window {
+    width: 100%;
+}
+
+    .window .welcome-channel-description {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 30px;
+        line-height: 34px;
+        color: #9E9E9E;
+        margin: 0px;
+        margin-left: 34px;
     }
+
+    .window .welcome-divider {
+        border: 2px solid #FFFFFF;
+        margin: 0px;
+        margin-top: 24px;
+        margin-left: 34px;
+    }
+
+    .window .welcome-channel-name {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 50px;
+        line-height: 57px;
+        color: #FFFFFF;
+        margin: 0px;
+        margin-left: 34px;
+    }
+
+    .window .welcome-text {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 20px;
+        line-height: 23px;
+        color: #9E9E9E;
+        margin: 0px;
+        margin-top: 11px;
+        margin-left: 34px;
+    }
+
+    .window .start-chat-icon {
+        margin: 0px;
+        margin-left: 34px;
+        margin-top: 32px;
+    }
+
+.sidebar-2 .user-info {
+    width: 269px;
+    height: 44.53px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 5px;
+    margin: 0px;
+    margin-top: 13px;
+    margin-left: 20px;
+}
+
+    .sidebar-2 .user-info .pfp {
+        width: 32.72px;
+        height: 32.72px;
+        border-radius: 50%;
+        margin-top: 6.36px;
+        margin-bottom: 6.36px;
+        margin-left: 8.18px;
+    }
+
+.sidebar-2 .category .arrow {
+    border-radius: 1px;
+    margin-top: 9px;
+    margin-bottom: 9px;
+    margin-left: 6px;
+}
+
+.sidebar-2 .category .name {
+    margin: 0px;
+    margin-top: 6px;
+    margin-bottom: 7px;
+    margin-left: 12px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 18px;
+    line-height: 21px;
+    color: #FFFFFF;
+}
+
+.sidebar-2 .category .channel.open {
+    background: #232A31;
+}
+
+.sidebar-2 .category .channel.first {
+    margin-top: 17px;
+}
+
+.sidebar-2 .category .channel {
+    width: 257px;
+    height: 31px;
+    margin-left: 6px;
+    margin-bottom: 12px;
+    border-radius: 5px
+}
+
+    .sidebar-2 .category .channel .channel-name {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 18px;
+        line-height: 21px;
+        color: #FFFFFF;
+        margin-left: 8px;
+        margin-top: 5px;
+        vertical-align: top;
+        display: inline-block;
+    }
+
+    .sidebar-2 .category .channel .chat-icon {
+        margin-top: 10px;
+        margin-bottom: 9px;
+        margin-left: 8px
+    }
+
+    .sidebar-2 .category .channel.last {
+        margin-bottom: 24px;
+    }
+
+
+.sidebar-2 .category .channel-list {
+    width: 269px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0px;
+    margin-top: -3px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    overflow: auto;
+}
+
+.sidebar-2 .category .name-open {
+    margin: 0px;
+    margin-top: 6px;
+    margin-bottom: 7px;
+    margin-left: 11px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 18px;
+    line-height: 21px;
+    color: #FFFFFF;
+}
+
+.sidebar-2 .category {
+    width: 269px;
+    height: 33px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 5px;
+    margin-left: 20px;
+    margin-top: 10.47px;
+}
+
+.sidebar-2 .category, .is-open {
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+.sidebar-2 .user-info .settings {
+    display: inline-block;
+    margin: 0px;
+    margin-top: 10.96px;
+    margin-bottom: 10.96px;
+    margin-right: 10.96px;
+    margin-left: 36.4px;
+}
+
+.sidebar-2 .user-info .active {
+    display: inline-block;
+    width: 11.81px;
+    height: 11.81px;
+    background: #05FF00;
+    border-radius: 50%;
+    margin: 0px;
+    vertical-align: top;
+    margin-top: 17.5px;
+    margin-left: 8px;
+}
+
+.sidebar-2 .user-info .username {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 23px;
+    margin: 0px;
+    margin-left: 8.18px;
+    margin-top: 11px;
+    vertical-align: top;
+}
+
+.sidebar-2 {
+    float: left;
+    max-width: 294px;
+    margin: 0px;
+    background: #040D14;
+}
+
+    .sidebar-2 .channel-name {
+        display: inline-block;
+        margin: 0px;
+        margin-top: 5px;
+        margin-left: 3px;
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 27.5px;
+        line-height: 32px;
+        color: #FFFFFF;
+    }
+
+    .sidebar-2 .top-bar {
+        width: 294px;
+        border: 3px solid #FFFFFF;
+    }
+
+    .sidebar-2 .channel-description {
+        font-family: Futura;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 11px;
+        line-height: 15px;
+        color: #9E9E9E;
+    }
+
+    .sidebar-2 .channel-name-plus-pin .pin {
+        display: inline-block;
+        margin: 0px;
+        margin-left: 18px;
+    }
+
+
+    .sidebar-2 .viewing-current-channel {
+        margin-left: 15px;
+    }
+    .sidebar-2 .viewing-current-channel .pfp {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        margin-left: -15px;
+    }
+
+    .sidebar-2 .current-channel-info {
+        margin-top: 16px;
+        margin-left: 16px;
+        height: 115px;
+    }
+
+.mainrow {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+.sidebar {
+    float: left;
+    max-width: 200px;
+    background: #040D14;
+    padding: 5px;
+}
+
+    .sidebar .valour-version {
+        margin: 0px;
+        margin-left: 10px;
+        margin-right: 10px;
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 6px;
+        line-height: 7px;
+        text-align: center;
+        color: #00FAFF;
+    }
+
+    .sidebar .valour-name {
+        margin: 0px;
+        margin-top: 6px;
+        margin-left: 10px;
+        margin-right: 10px;
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 24px;
+        line-height: 28px;
+        text-align: center;
+        color: #00FAFF;
+    }
+
+    .sidebar .valour-logo {
+        width: 87px;
+        height: 87px;
+        margin-left: 30px;
+        margin-top: 14px;
+        margin-right: 31px;
+        margin-bottom: 0px;
+    }
+
+.rolename {
+    margin: 0px;
+    margin-top: 12px;
+    margin-bottom: 5px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 9px;
+    line-height: 10px;
+    text-decoration-line: underline;
+    color: #7A7A7A;
+}
+
+.only {
+    border-radius: 6px;
+}
+
+.sidebar-user {
+    width: 143px;
+    height: 37px;
+    background-color: rgba(255, 255, 255, 0.07);
+    margin: 0px;
+}
+
+    .sidebar-user.first {
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+    }
+
+.last {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.sidebar-user .user-status-state {
+    display: inline-block;
+    position: relative;
+}
+
+.sidebar-user .user-info {
+    display: inline-block;
+}
+
+.sidebar-user .state {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 10px;
+    line-height: 11px;
+    color: #7A7A7A;
+    margin: 0px;
+    position: absolute;
+    top: 0;
+    left: 13px;
+    width: 91px;
+    height: 12px;
+}
+
+.sidebar-user .bot-tag {
+    display: inline-block;
+    width: 17px;
+    height: 9px;
+    background: #FF00E9;
+    border-radius: 2px;
+    margin-top: 9px;
+}
+
+    .sidebar-user .bot-tag p {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 7px;
+        line-height: 8px;
+        margin: 0px;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        /* identical to box height */
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #FFFFFF;
+    }
+
+.sidebar-user .active-circle {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    margin: 0px;
+    margin-bottom: 7px;
+    margin-left: 4px;
+    background: #05FF00;
+}
+
+.sidebar-user .username {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 13px;
+    line-height: 15px;
+    vertical-align: top;
+    margin: 0px;
+    margin-top: 6px;
+    margin-left: 2px;
+}
+
+.sidebar-user .pfp {
+    width: 29px;
+    border-radius: 50%;
+    margin-left: 8px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+body {
+    background-color: #040D14;
+}
