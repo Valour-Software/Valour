@@ -19,19 +19,19 @@ namespace Valour.Server.Controllers
     public class ChannelController
     {
 
-        public static List<ClientMessage> messageCache = new List<ClientMessage>();
+        public static List<ClientPlanetMessage> messageCache = new List<ClientPlanetMessage>();
 
         // TODO: Make this DB-based and not bad
         public static Dictionary<ulong, ulong> channelIndexes = new Dictionary<ulong, ulong>();
 
         [HttpGet]
-        public IEnumerable<ClientMessage> GetMessages(ulong channel_id)
+        public IEnumerable<ClientPlanetMessage> GetMessages(ulong channel_id)
         {
             Console.WriteLine(channel_id);
 
             ulong channelId = 1;
 
-            ClientMessage welcome = new ClientMessage()
+            ClientPlanetMessage welcome = new ClientPlanetMessage()
             {
                 ChannelId = channelId,
                 Content = "Welcome back."
@@ -43,7 +43,7 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<MessagePostResponse> PostMessage(ClientMessage msg)
+        public async Task<MessagePostResponse> PostMessage(ClientPlanetMessage msg)
         {
             //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
 

@@ -16,6 +16,11 @@ namespace Valour.Shared.Users
         [Key]
         public byte[] userid_bytes { get; set; }
 
+        /// <summary>
+        /// Caches the string version of the user id to save future work
+        /// </summary>
+        private string userid_string = null;
+
         // 36 chars (at least 36 bytes)
         /// <summary>
         /// The Id of the user
@@ -24,7 +29,12 @@ namespace Valour.Shared.Users
         {
             get
             {
-                return new Guid(userid_bytes).ToString();
+                if (userid_string == null)
+                {
+                    userid_string = new Guid(userid_bytes).ToString();
+                }
+
+                return userid_string;
             }
         }
 
@@ -32,5 +42,10 @@ namespace Valour.Shared.Users
         /// The main display name for the user
         /// </summary>
         public string Username { get; set; }
+
+        /// <summary>
+        /// The url for the user's profile picture
+        /// </summary>
+        public string Pfp_Url { get; set; }
     }
 }

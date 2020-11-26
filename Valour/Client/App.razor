@@ -1,3 +1,8 @@
+@using Valour.Shared
+@inject HttpClient Http
+@inject NavigationManager navManager
+@using Microsoft.AspNetCore.SignalR.Client;
+
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
         <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
@@ -43,9 +48,17 @@
                     <div class="topline">
                     </div>
                     <div class="window" id="window">
-                        <MessageComponent Time="Today at 12:00 PM" role_color="rgba(0, 255, 163, 1)" content="Test" Name="Superjacobl" pfp_url="https://cdn.discordapp.com/avatars/259004891148582914/161f6a28041310cf0075c95695cec0c7.png?size=512"></MessageComponent>
-                    </div>
-                    <div class="textbox" id="chatbox">
+
+                        @if (messages != null)
+                        {
+                            foreach (ClientPlanetMessage msg in messages)
+                            {
+                                <MessageComponent Message="msg"></MessageComponent>
+                            }
+                        }
+
+
+                        <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput"  @onkeypress="OnChatboxKeypress">
                     </div>
                 </div>
             </div>
@@ -59,3 +72,162 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code{
+
+    /// <summary>
+    /// True if the client has negotiated a channel connection
+    /// </summary>
+    private bool channelConnected;
+
+    /// <summary>
+    /// The input currently within the chatbox, this is bound and any changes will
+    /// be reflected within the box.
+    /// </summary>
+    private string currentInput;
+
+    /// <summary>
+    /// Storage for messages that should be displayed
+    /// </summary>
+    private List<ClientPlanetMessage> messages;
+
+    private HubConnection hubConnection;
+
+    /// <summary>
+    /// The current user
+    /// </summary>
+    private ClientPlanetUser user;
+
+    /// <summary>
+    /// The current channel id
+    /// </summary>
+    private ulong channel_id;
+
+    /// <summary>
+    /// The index of the last sent message
+    /// </summary>
+    private ulong messageIndex;
+
+    // Runs when page is initialized
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Actually get channel id
+        channel_id = 1;
+
+        // TODO: Actually get the current user
+        user = new ClientPlanetUser()
+        {
+
+            Username = "Test User",
+            userid_bytes = new byte[] { 10, 20, 30, 40, 10, 20, 30, 40, 10, 20, 30, 40, 10, 20, 30, 40 },
+            Pfp_Url = "https://SpookVooper.com/media/unity-256.png"
+        };
+
+        await ConnectSignalR();
+        await RefreshMessages();
+
+        
+    }
+
+    public async Task ConnectSignalR()
+    {
+        // Get url for
+        string conUrl = navManager.BaseUri.TrimEnd('/') + "/messagehub";
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(conUrl)
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        // Connect to channel
+        await hubConnection.SendAsync("JoinChannel", channel_id);
+
+        hubConnection.On<string>("Relay", RecieveMessage);
+    }
+
+    public void RecieveMessage(string msg)
+    {
+        Console.WriteLine($"Recieved a message: {msg}");
+
+        ClientPlanetMessage message = new ClientPlanetMessage()
+        {
+            Author = user,
+            ChannelId = channel_id,
+            Content = msg,
+            TimeSent = DateTime.UtcNow
+        };
+
+        messages.Add(message);
+
+        // Flag for UI refresh
+        StateHasChanged();
+    }
+
+    public async Task RefreshMessages()
+    {
+        // Request messages from server
+        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={channel_id}");
+    }
+
+    /// <summary>
+    /// This runs every time a key is pressed when the chatbox is selected
+    /// </summary>
+    public async Task OnChatboxKeypress(KeyboardEventArgs args)
+    {
+        // Debug for key presses
+        // Console.WriteLine(currentInput);
+
+        if (args.Key == "Enter")
+        {
+            // Grab current input
+            string msg = currentInput;
+
+            // Clear input
+            currentInput = "";
+
+            // Post message to server
+            await PostMessage(msg);
+
+            StateHasChanged();
+        }
+    }
+
+    public async Task OnChatboxInput()
+    {
+
+    }
+
+    public async Task PostMessage(string msg)
+    {
+        ClientPlanetMessage message = new ClientPlanetMessage()
+        {
+            ChannelId = channel_id,
+            Content = msg,
+            TimeSent = DateTime.UtcNow,
+            Author = user
+        };
+
+        string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
+
+        Console.WriteLine(json);
+
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
+
+        MessagePostResponse response =
+            Newtonsoft.Json.JsonConvert.DeserializeObject<MessagePostResponse>(await httpresponse.Content.ReadAsStringAsync());
+
+        if (!response.Success)
+        {
+            messages.Add(new ClientPlanetMessage()
+            {
+                TimeSent = DateTime.UtcNow,
+                ChannelId = channel_id,
+                Content = $"Failed to post message: {response.Response}",
+                Index = 0
+            });
+        }
+
+        Console.WriteLine(response.ToString());
+    }
+}

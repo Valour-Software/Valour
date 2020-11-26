@@ -1,28 +1,36 @@
 ﻿<div class="message">
-    <img class="author-pfp" src="@pfp_url" />
+    @if (Message.Author != null)
+    {
+        <img class="author-pfp" src="@Message.Author.Pfp_Url" />
+    }
+    else
+    {
+        <img class="author-pfp" src="~/icon-512.png" />
+    }
     <div class="message-content">
-        <p class="author-name" style="color: @Role_color;">
-            @Name
-        </p>
+        @if (Message.Author != null)
+        {
+            <p class="author-name" style="color: @Message.Author.GetMainRoleColor();">
+                @Message.Author.Username
+            </p>
+        }
+        else
+        {
+            <p class="author-name" style="color: #ffffff;">
+                User not found
+            </p>
+        }
         <p class="time">
-            @Time
+            @Message.TimeSent.ToShortTimeString()
         </p>
     </div>
     <p class="content">
-        @Content
+        @Message.Content
     </p>
 </div>
 
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public string Name { get; set; }
-    [Parameter]
-    public string Content { get; set; }
-    [Parameter]
-    public string Time { get; set; }
-    [Parameter]
-    public string pfp_url { get; set; }
-    [Parameter]
-    public string Role_color { get; set; }
+    public ClientPlanetMessage Message { get; set; }
 }

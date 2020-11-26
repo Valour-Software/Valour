@@ -15,7 +15,7 @@ namespace Valour.Server.Messaging
         /// <summary>
         /// Returns true if the client message matches this server message
         /// </summary>
-        public bool EqualsMessage(ClientMessage message)
+        public bool EqualsMessage(ClientPlanetMessage message)
         {
             return (Hash == message.GetHash());
         }

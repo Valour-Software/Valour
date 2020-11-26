@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using System.Text;
+using Valour.Shared.Users;
 
 namespace Valour.Shared.Messaging
 {

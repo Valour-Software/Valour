@@ -9,7 +9,7 @@
 <!-- These are the chat messages within the channel -->
 @if (messages != null)
 {
-    @foreach (ClientMessage msg in messages)
+    @foreach (ClientPlanetMessage msg in messages)
     {
         <div>
             <p>@msg.Content</p>
@@ -36,7 +36,7 @@
     /// <summary>
     /// Storage for messages that should be displayed
     /// </summary>
-    private List<ClientMessage> messages;
+    private List<ClientPlanetMessage> messages;
 
     private HubConnection hubConnection;
 
@@ -93,7 +93,7 @@
     {
         Console.WriteLine($"Recieved a message: {msg}");
 
-        ClientMessage message = new ClientMessage()
+        ClientPlanetMessage message = new ClientPlanetMessage()
         {
             ChannelId = channel_id,
             Content = msg,
@@ -109,7 +109,7 @@
     public async Task RefreshMessages()
     {
         // Request messages from server
-        messages = await Http.GetFromJsonAsync<List<ClientMessage>>($"Channel/GetMessages?channel_id={channel_id}");
+        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={channel_id}");
     }
 
     /// <summary>
@@ -142,7 +142,7 @@
 
     public async Task PostMessage(string msg)
     {
-        ClientMessage message = new ClientMessage()
+        ClientPlanetMessage message = new ClientPlanetMessage()
         {
             ChannelId = channel_id,
             Content = msg,
@@ -153,14 +153,14 @@
 
         Console.WriteLine(json);
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientMessage>($"Channel/PostMessage", message);
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
 
         MessagePostResponse response =
             Newtonsoft.Json.JsonConvert.DeserializeObject<MessagePostResponse>(await httpresponse.Content.ReadAsStringAsync());
 
         if (!response.Success)
         {
-            messages.Add(new ClientMessage()
+            messages.Add(new ClientPlanetMessage()
             {
                 TimeSent = DateTime.UtcNow,
                 ChannelId = channel_id,
