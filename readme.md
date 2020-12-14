@@ -1,3 +1,5 @@
+![Valour logo](Valour/Client/wwwroot/favicon.ico)
+
 # Valour
 
 ### Valour is an open-source, modern chat client which focuses on privacy and security while implementing features that bring it beyond the norm.
