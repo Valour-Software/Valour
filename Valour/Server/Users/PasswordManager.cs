@@ -30,10 +30,10 @@ namespace Valour.Shared.Users
             }
         }
 
-        public static Regex hasUpper = new Regex(@"/[A-Z]/");
-        public static Regex hasLower = new Regex(@"/[a-z]/");
-        public static Regex hasNumbers = new Regex(@"/\d/");
-        public static Regex hasSymbols = new Regex(@"/\W/");
+        public static Regex hasUpper = new Regex(@"[A-Z]");
+        public static Regex hasLower = new Regex(@"[a-z]");
+        public static Regex hasNumbers = new Regex(@"\d");
+        public static Regex hasSymbols = new Regex(@"\W");
 
         /// <summary>
         /// Returns success if a password meets complexity rules

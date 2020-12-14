@@ -84,7 +84,7 @@ namespace Valour.Server.Controllers
             }
             catch(System.Exception e)
             {
-                return new TaskResult(false, $"Critical error: {e.Message}");
+                return new TaskResult(false, $"A critical error occured.");
             }
 
             return new TaskResult(true, $"Successfully created user {username}");
