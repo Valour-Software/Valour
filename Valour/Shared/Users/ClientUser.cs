@@ -9,12 +9,11 @@ namespace Valour.Shared.Users
 {
     public class ClientUser
     {
-        // 36 chars (at least 36 bytes)
         /// <summary>
         /// The Id of the user
         /// </summary>
         [Key]
-        public string Id { get; set; }
+        public ulong Id { get; set; }
 
         /// <summary>
         /// The main display name for the user
