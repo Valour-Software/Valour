@@ -31,7 +31,7 @@ namespace Valour.Server
         {
             services.AddDbContextPool<ValourDB>(options =>
             {
-                options.UseMySql(ValourDB.ConnectionString, options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4).ServerVersion(new Version(8, 0, 20), ServerType.MySql));
+                options.UseMySql(ValourDB.ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));
             });
 
             services.AddSignalR();
