@@ -24,5 +24,10 @@ namespace Valour.Shared.Users
         /// The url for the user's profile picture
         /// </summary>
         public string Pfp_Url { get; set; }
+
+        /// <summary>
+        /// The Date and Time that the user joined Valour
+        /// </summary>
+        public DateTime Join_DateTime { get; set; }
     }
 }

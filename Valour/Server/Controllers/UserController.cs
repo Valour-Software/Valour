@@ -24,7 +24,7 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Registers a new bot and adds them to the database
         /// </summary>
-        public async Task<string> RegisterBot(string username, string owner_id, string password)
+        public async Task<string> RegisterBot(string username, ulong owner_id, string password)
         {
 
         }
