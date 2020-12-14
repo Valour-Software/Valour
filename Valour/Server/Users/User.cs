@@ -25,6 +25,11 @@ namespace Valour.Server.Users
         public byte[] Salt { get; set; }
 
         /// <summary>
+        /// True if the account has verified an email
+        /// </summary>
+        public bool Verified_Email { get; set; }
+
+        /// <summary>
         /// Will return true if the password is correct for the user
         /// </summary>
         public bool VerifyPassword(string password)
