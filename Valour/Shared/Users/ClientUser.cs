@@ -14,7 +14,7 @@ namespace Valour.Shared.Users
         /// The Id of the user
         /// </summary>
         [Key]
-        public string UserId { get; set; }
+        public string Id { get; set; }
 
         /// <summary>
         /// The main display name for the user
