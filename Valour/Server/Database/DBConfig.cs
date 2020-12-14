@@ -21,5 +21,11 @@ namespace Valour.Server.Database
 
         [JsonProperty]
         public string Database { get; set; }
+
+        public DBConfig()
+        {
+            // Set main instance to the most recently created config
+            instance = this;
+        }
     }
 }

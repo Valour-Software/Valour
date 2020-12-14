@@ -7,9 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using Pomelo.EntityFrameworkCore.MySql.Storage;
 using System;
+using System.IO;
 using System.Linq;
 using Valour.Server.Database;
 using Valour.Server.Messaging;
@@ -25,10 +27,42 @@ namespace Valour.Server
 
         public IConfiguration Configuration { get; }
 
+        public const string DBCONF_LOC = "ValourConfig/";
+        public const string DBCONF_FILE = "DBConfig.json";
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            // Load database settings
+            DBConfig config = null;
+
+            // Create directory if it doesn't exist
+            if (!Directory.Exists(DBCONF_LOC))
+            {
+                Directory.CreateDirectory(DBCONF_LOC);
+            }
+
+            if (File.Exists(DBCONF_LOC + DBCONF_FILE))
+            {
+                // If there is a config, read it
+                config = JsonConvert.DeserializeObject<DBConfig>(File.ReadAllText(DBCONF_LOC + DBCONF_FILE));
+            }
+            else
+            {
+                // Otherwise create a config with default values and write it to the location
+                config = new DBConfig()
+                {
+                    Database = "database",
+                    Host = "host",
+                    Password = "password",
+                    Username = "user"
+                };
+
+                File.WriteAllText(DBCONF_LOC + DBCONF_FILE, JsonConvert.SerializeObject(config));
+                Console.WriteLine("Error: No DB config was found. Creating file...");
+            }
+
             services.AddDbContextPool<ValourDB>(options =>
             {
                 options.UseMySql(ValourDB.ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));
