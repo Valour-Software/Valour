@@ -4,7 +4,7 @@
 <br/>
 
 ## Design
-<hr/>
+
 Valour's messaging system is designed to keep you in control of your messages. When you send a message, it is cached for 24 hours on the Valour backend before being permanently deleted. What is kept is a hash of the message and its metadata.
 <br/><br/>
 This metadata allows a peer-to-peer subsystem to server messages that are not cached on the Valour backend. Users within communities can decide how many cached messages they would like to store to contribute to the server message integrity, and even select entire channels and servers to archive entirely.
