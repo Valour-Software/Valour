@@ -21,10 +21,10 @@ namespace Valour.Shared
         {
             if (Success)
             {
-                return $"Success: {Response}";
+                return $"[SUCC] {Response}";
             }
 
-            return $"Failed: {Response}";
+            return $"[FAIL] {Response}";
         }
     }
 }

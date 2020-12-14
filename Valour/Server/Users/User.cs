@@ -14,7 +14,7 @@ namespace Valour.Server.Users
     {
         /// <summary>
         /// The user password hash. This should NOT be able to be reached by the client,
-        /// and should be 16 bytes (128 bits)
+        /// and should be 32 bytes (256 bits)
         /// </summary>
         public byte[] Password_Hash { get; set; }
 
@@ -28,6 +28,11 @@ namespace Valour.Server.Users
         /// True if the account has verified an email
         /// </summary>
         public bool Verified_Email { get; set; }
+
+        /// <summary>
+        /// The user's email address
+        /// </summary>
+        public string Email { get; set; }
 
         /// <summary>
         /// Will return true if the password is correct for the user
