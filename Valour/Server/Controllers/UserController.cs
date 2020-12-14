@@ -97,5 +97,14 @@ namespace Valour.Server.Controllers
         //{
         //   TODO
         //}
+
+        /// <summary>
+        /// Allows for checking if a password meets standards though API
+        /// </summary>
+        public async Task<TaskResult> TestPasswordComplexity(string password)
+        {
+            // Regex can be slow, so we throw it in another thread
+            return await Task.Run(() => PasswordManager.TestComplexity(password));
+        }
     }
 }
