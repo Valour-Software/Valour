@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Valour.Server.Users
+namespace Valour.Server.Users.Identity
 {
     /*  Valour - A free and secure chat client
      *  Copyright (C) 2020 Vooper Media LLC

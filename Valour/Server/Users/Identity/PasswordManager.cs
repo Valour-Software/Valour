@@ -6,8 +6,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 
-namespace Valour.Shared.Users
+namespace Valour.Shared.Users.Identity
 {
+    /*  Valour - A free and secure chat client
+     *  Copyright (C) 2020 Vooper Media LLC
+     *  This program is subject to the GNU Affero General Public license
+     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+     */
+
     /// <summary>
     /// This class handles password hashing and equality.
     /// The goal is the triple S of Spikeness <^> (A concept that will be in business books by 2077):

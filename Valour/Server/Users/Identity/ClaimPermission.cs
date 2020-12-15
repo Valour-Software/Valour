@@ -3,8 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Valour.Server.Users
+namespace Valour.Server.Users.Identity
 {
+    /*  Valour - A free and secure chat client
+     *  Copyright (C) 2020 Vooper Media LLC
+     *  This program is subject to the GNU Affero General Public license
+     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+     */
+
     /// <summary>
     /// Represent a permission for a claim (this is not for Planet permissions 
     /// but is for low level user management)

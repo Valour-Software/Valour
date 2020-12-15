@@ -2,6 +2,7 @@
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using System.Security.Claims;
 using Valour.Server.Users;
+using Valour.Server.Users.Identity;
 
 namespace Valour.Server.Database
 {
@@ -60,6 +61,11 @@ namespace Valour.Server.Database
         /// The table for claim permission information
         /// </summary>
         public DbSet<ClaimPermission> ClaimPermissions { get; set; }
+
+        /// <summary>
+        /// The table to connect roles with their claim permissions
+        /// </summary>
+        public DbSet<RoleClaimPermission> RoleClaimPermissions { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

@@ -7,11 +7,18 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Oauth;
 using Valour.Shared;
 using Valour.Shared.Users;
 
-namespace Valour.Server.Users
+namespace Valour.Server.Users.Identity
 {
+    /*  Valour - A free and secure chat client
+     *  Copyright (C) 2020 Vooper Media LLC
+     *  This program is subject to the GNU Affero General Public license
+     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+     */
+
     public class UserManager
     {
 
@@ -103,6 +110,25 @@ namespace Valour.Server.Users
                     claims.AddRange()
                 }
             }
+        }
+
+        /// <summary>
+        /// Retuens all user permission claims for a role
+        /// </summary>
+        private async Task<IEnumerable<Claim>> GetUserPermissionClaims(Role role)
+        {
+            List<Claim> claims = new List<Claim>();
+
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            {
+                foreach (RoleClaimPermission rolePerm in context.RoleClaimPermissions.Where(x => x.Role_Id == role.Id))
+                {
+                    ClaimPermission perm = await context.ClaimPermissions.FindAsync(rolePerm.ClaimPermission_Id);
+                    claims.Add(new Claim("Permission", perm.Code));
+                }
+            }
+
+            return claims;
         }
 
         /// <summary>

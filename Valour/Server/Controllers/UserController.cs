@@ -7,8 +7,10 @@ using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Users;
+using Valour.Server.Users.Identity;
 using Valour.Shared;
 using Valour.Shared.Users;
+using Valour.Shared.Users.Identity;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
