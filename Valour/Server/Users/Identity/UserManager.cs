@@ -84,14 +84,35 @@ namespace Valour.Server.Users.Identity
         /// <summary>
         /// Logs the user in 
         /// </summary>
-        public async Task LogInUser(HttpContext http, User user, bool isPersistant = false)
+        public async Task<TaskResult> LogInUser(HttpContext http, User user, bool isPersistant = false)
         {
+            if (user == null)
+            {
+                return new TaskResult(false, "The given user was null!");
+            }
+
             ClaimsIdentity identity = new ClaimsIdentity(await GetUserRoleClaims(user), CookieAuthenticationDefaults.AuthenticationScheme);
             ClaimsPrincipal principal = new ClaimsPrincipal(identity);
 
             await http.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties { IsPersistent = isPersistant }
             );
+
+            return new TaskResult(true, $"Successfully signed in {user.Username}.");
+        }
+
+        /// <summary>
+        /// Signs the user out
+        /// </summary>
+        public async Task<TaskResult> SignOutUser(HttpContext http)
+        {
+            if (http.User == null)
+            {
+                return new TaskResult(false, $"There is no currently signed in user!");
+            }
+
+            await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return new TaskResult(true, $"Successfully signed out.");
         }
 
         /// <summary>
