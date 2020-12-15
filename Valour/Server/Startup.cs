@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -15,6 +17,7 @@ using System.IO;
 using System.Linq;
 using Valour.Server.Database;
 using Valour.Server.Messaging;
+using Microsoft.AspNetCore.Http;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -74,6 +77,9 @@ namespace Valour.Server
                 options.UseMySql(ValourDB.ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));
             });
 
+            // This probably needs to be customized further but the documentation changed
+            services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+
             services.AddSignalR();
             services.AddControllersWithViews();
             services.AddRazorPages();
@@ -99,6 +105,9 @@ namespace Valour.Server
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseAuthorization();
+            app.UseAuthentication();
 
             app.UseEndpoints(endpoints =>
             {
