@@ -18,6 +18,7 @@ using System.Linq;
 using Valour.Server.Database;
 using Valour.Server.Messaging;
 using Microsoft.AspNetCore.Http;
+using Valour.Server.Users.Identity;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -79,6 +80,9 @@ namespace Valour.Server
 
             // This probably needs to be customized further but the documentation changed
             services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // Adds user manager to dependency injection
+            services.AddScoped<UserManager>();
 
             services.AddSignalR();
             services.AddControllersWithViews();
