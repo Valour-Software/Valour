@@ -1,12 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using Pomelo.EntityFrameworkCore.MySql.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Valour.Server.Users;
-using Valour.Shared.Messaging;
 
 namespace Valour.Server.Database
 {
@@ -32,6 +26,11 @@ namespace Valour.Server.Database
         /// Table for Valour users
         /// </summary>
         public DbSet<User> Users { get; set; }
+
+        /// <summary>
+        /// Table for password and login information
+        /// </summary>
+        public DbSet<Credential> Credentials { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

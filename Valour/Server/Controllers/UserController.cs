@@ -75,8 +75,6 @@ namespace Valour.Server.Controllers
             User user = new User()
             {
                 Username = username,
-                Password_Hash = hash,
-                Salt = salt,
                 Join_DateTime = DateTime.UtcNow,
                 Email = email,
                 Verified_Email = false
@@ -88,10 +86,32 @@ namespace Valour.Server.Controllers
                 await context.Users.AddAsync(user);
                 await context.SaveChangesAsync();
             }
-            catch(System.Exception e)
+            catch (System.Exception e)
             {
                 return new TaskResult(false, $"A critical error occured.");
             }
+
+            Credential cred = new Credential()
+            {
+                Credential_Type = CredentialType.PASSWORD,
+                Identifier = email,
+                Salt = salt,
+                Secret = hash,
+                User_Id = user.Id // We need to find what the user's assigned ID is (auto-filled by EF?)
+            };
+
+            // An error here would be really bad so we'll be careful and catch any exceptions
+            try
+            {
+                await context.Credentials.AddAsync(cred);
+                await context.SaveChangesAsync();
+            }
+            catch (System.Exception e)
+            {
+                return new TaskResult(false, $"A critical error occured.");
+            }
+
+
 
             return new TaskResult(true, $"Successfully created user {username}");
         }
