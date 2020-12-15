@@ -78,7 +78,7 @@ namespace Valour.Server
             });
 
             // This probably needs to be customized further but the documentation changed
-            services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+            services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
             services.AddSignalR();
             services.AddControllersWithViews();
