@@ -34,6 +34,8 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<User> Users { get; set; }
 
+        // USER LOGIN AND PERMISSION STUFF //
+
         /// <summary>
         /// Table for password and login information
         /// </summary>
@@ -53,6 +55,11 @@ namespace Valour.Server.Database
         /// The table for user role information
         /// </summary>
         public DbSet<UserRole> UserRoles { get; set; }
+
+        /// <summary>
+        /// The table for claim permission information
+        /// </summary>
+        public DbSet<ClaimPermission> ClaimPermissions { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

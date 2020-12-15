@@ -82,10 +82,27 @@ namespace Valour.Server.Users
         /// <summary>
         /// Returns the role claims for a given user
         /// </summary>
-        private IEnumerable<Claim> GetUserRoleClaims(User user)
+        private async Task<IEnumerable<Claim>> GetUserRoleClaims(User user)
         {
             List<Claim> claims = new List<Claim>();
-            
+
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
+            claims.Add(new Claim(ClaimTypes.Name, user.Username));
+
+        }
+
+        private async Task<IEnumerable<Claim>> GetUserRoleClaims(User user)
+        {
+            List<Claim> claims = new List<Claim>();
+
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions)) {
+                foreach (UserRole userRole in context.UserRoles.Where(x => x.User_Id == user.Id))
+                {
+                    Role role = await context.Roles.FindAsync(userRole.Role_Id);
+                    claims.Add(new Claim(ClaimTypes.Role, role.Code));
+                    claims.AddRange()
+                }
+            }
         }
 
         /// <summary>
