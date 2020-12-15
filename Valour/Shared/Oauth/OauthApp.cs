@@ -13,38 +13,41 @@ namespace Valour.Shared.Oauth
     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
     */
 
-    public class AuthToken
+    /// <summary>
+    /// Oauth apps allow an organization or person to issue tokens on behalf of a user
+    /// which can be easily tracked and revoked
+    /// </summary>
+    public class OauthApp
     {
         /// <summary>
-        /// The ID of the authentification key is also the secret key. Really no need for another random gen.
-        /// (is sha256)
+        /// The ID of the app
         /// </summary>
         [Key]
         public string Id { get; set; }
 
         /// <summary>
-        /// The ID of the app that has been issued this token
+        /// The secret key for the app
         /// </summary>
-        public string App_Id { get; set; }
+        public string Secret { get; set; }
 
         /// <summary>
-        /// The user that this token is valid for
+        /// The ID of the user that created this app
         /// </summary>
-        public string User_Id { get; set; }
+        public ulong Owner_Id { get; set; }
 
         /// <summary>
-        /// The scope of the permissions this token is valid for
+        /// The amount of times this app has been used
         /// </summary>
-        public ulong Scope { get; set; }
+        public int Uses { get; set; }
 
         /// <summary>
-        /// The time that this token was issued
+        /// The public name for this app
         /// </summary>
-        public DateTime Time { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
-        /// The time that this token will expire
+        /// The image used to represent the app
         /// </summary>
-        public DateTime Expires { get; set; }
+        public string Image_Url { get; set; }
     }
 }
