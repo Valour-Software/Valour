@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using System.Security.Claims;
 using Valour.Server.Users;
 
 namespace Valour.Server.Database
@@ -37,6 +38,21 @@ namespace Valour.Server.Database
         /// Table for password and login information
         /// </summary>
         public DbSet<Credential> Credentials { get; set; }
+
+        /// <summary>
+        /// Table for user claim information
+        /// </summary>
+        public DbSet<Claim> UserClaims { get; set; }
+
+        /// <summary>
+        /// Table for user role (auth) information
+        /// </summary>
+        public DbSet<Role> Roles { get; set; }
+
+        /// <summary>
+        /// The table for user role information
+        /// </summary>
+        public DbSet<UserRole> UserRoles { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

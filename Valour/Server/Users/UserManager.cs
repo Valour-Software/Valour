@@ -85,7 +85,89 @@ namespace Valour.Server.Users
         private IEnumerable<Claim> GetUserRoleClaims(User user)
         {
             List<Claim> claims = new List<Claim>();
-            IEnumerable<int> roleIds 
+            
+        }
+
+        /// <summary>
+        /// Adds the given user to the given role
+        /// </summary>
+        public async Task<TaskResult> AddToRole(User user, string roleCode)
+        {
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            {
+                Role role = await context.Roles.FirstOrDefaultAsync(x => x.Code == roleCode);
+
+                if (role == null)
+                {
+                    return new TaskResult(false, $"Could not find role with code {roleCode}.");
+                }
+
+                return await AddToRole(user, role);
+            }
+        }
+
+        /// <summary>
+        /// Adds a user to the given role
+        /// </summary>
+        public async Task<TaskResult> AddToRole(User user, Role role)
+        {
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            {
+                if (await context.UserRoles.AnyAsync(x => x.User_Id == user.Id && x.Role_Id == role.Id))
+                {
+                    return new TaskResult(false, $"User {user.Username} already has role {role.Name}.");
+                }
+
+                UserRole userRole = new UserRole()
+                {
+                    User_Id = user.Id,
+                    Role_Id = role.Id
+                };
+
+                await context.UserRoles.AddAsync(userRole);
+                await context.SaveChangesAsync();
+
+                return new TaskResult(true, "Successfully added to role.");
+            }
+        }
+
+        /// <summary>
+        /// Removes the given user from the given role
+        /// </summary>
+        public async Task<TaskResult> RemoveFromRole(User user, string roleCode)
+        {
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            {
+                Role role = await context.Roles.FirstOrDefaultAsync(x => x.Code == roleCode);
+
+                if (role == null)
+                {
+                    return new TaskResult(false, $"Could not find role with code {roleCode}.");
+                }
+
+                return await RemoveFromRole(user, role);
+            }
+        }
+
+        /// <summary>
+        /// Removes the given user from the given role
+        /// </summary>
+        public async Task<TaskResult> RemoveFromRole(User user, Role role)
+        {
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            {
+                UserRole userRole = await context.UserRoles.FirstOrDefaultAsync(x => x.User_Id == user.Id && x.Role_Id == role.Id);
+
+                if (userRole == null)
+                {
+                    return new TaskResult(false, $"User {user.Username} doesn't have the role {role.Name}.");
+                }
+
+                context.UserRoles.Remove(userRole);
+                await context.SaveChangesAsync();
+
+                return new TaskResult(true, "Successfully removed the role.");
+            }
         }
     }
 }
