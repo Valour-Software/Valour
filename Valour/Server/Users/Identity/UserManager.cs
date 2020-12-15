@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -10,6 +12,7 @@ using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Shared;
 using Valour.Shared.Users;
+using Valour.Shared.Users.Identity;
 
 namespace Valour.Server.Users.Identity
 {
@@ -83,21 +86,31 @@ namespace Valour.Server.Users.Identity
         /// </summary>
         public async Task LogInUser(HttpContext http, User user, bool isPersistant = false)
         {
-            ClaimsIdentity identity = new ClaimsIdentity();
+            ClaimsIdentity identity = new ClaimsIdentity(await GetUserRoleClaims(user), CookieAuthenticationDefaults.AuthenticationScheme);
+            ClaimsPrincipal principal = new ClaimsPrincipal(identity);
+
+            await http.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme, principal, new AuthenticationProperties { IsPersistent = isPersistant }
+            );
         }
 
         /// <summary>
         /// Returns the role claims for a given user
         /// </summary>
-        private async Task<IEnumerable<Claim>> GetUserRoleClaims(User user)
+        private async Task<IEnumerable<Claim>> GetUserClaims(User user)
         {
             List<Claim> claims = new List<Claim>();
 
             claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
             claims.Add(new Claim(ClaimTypes.Name, user.Username));
+            claims.AddRange(await GetUserRoleClaims(user));
 
+            return claims;
         }
 
+        /// <summary>
+        /// Returns all role claims for the given user
+        /// </summary>
         private async Task<IEnumerable<Claim>> GetUserRoleClaims(User user)
         {
             List<Claim> claims = new List<Claim>();
@@ -107,9 +120,11 @@ namespace Valour.Server.Users.Identity
                 {
                     Role role = await context.Roles.FindAsync(userRole.Role_Id);
                     claims.Add(new Claim(ClaimTypes.Role, role.Code));
-                    claims.AddRange()
+                    claims.AddRange(await GetUserPermissionClaims(role));
                 }
             }
+
+            return claims;
         }
 
         /// <summary>
