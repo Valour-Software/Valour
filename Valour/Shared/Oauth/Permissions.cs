@@ -44,7 +44,7 @@ namespace Valour.Server.Oauth
         {
             this.Name = name;
             this.Description = description;
-            this.Value = value;
+            this.Value = value; 
         }
 
         /// <summary>
