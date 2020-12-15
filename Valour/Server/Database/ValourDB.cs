@@ -23,6 +23,12 @@ namespace Valour.Server.Database
         //public DbSet<ClientPlanetMessage> Messages { get; set; }
 
         /// <summary>
+        /// This is only here to fulfill the need of the constructor.
+        /// It does literally nothing at all.
+        /// </summary>
+        public static DbContextOptions DBOptions;
+
+        /// <summary>
         /// Table for Valour users
         /// </summary>
         public DbSet<User> Users { get; set; }
