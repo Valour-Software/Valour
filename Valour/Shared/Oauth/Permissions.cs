@@ -18,6 +18,11 @@ namespace Valour.Server.Oauth
     public class Permission
     {
         /// <summary>
+        /// The master permission which is used for multiple means
+        /// </summary>
+        public static readonly Permission FullControl = new Permission(0x00, "Full Control", "Control every part of your account.");
+
+        /// <summary>
         /// The name of this permission
         /// </summary>
         public string Name { get; set; }
@@ -41,17 +46,6 @@ namespace Valour.Server.Oauth
             this.Description = description;
             this.Value = value;
         }
-    }
-
-    /// <summary>
-    /// This class contains all user permissions and helper methods for working
-    /// with them.
-    /// </summary>
-    public class UserPermissions
-    {
-        public static readonly Permission None = new Permission(0x00, "None", "Only view your account ID when authorized.");
-        public static readonly Permission View = new Permission(0x01, "View", "Access basic information about your account.");
-        public static readonly Permission FullControl = new Permission(0x02, "Full Control", "Control every part of your account.");
 
         /// <summary>
         /// Returns whether the given code includes the given permission
@@ -79,5 +73,17 @@ namespace Valour.Server.Oauth
 
             return code;
         }
+    }
+
+    /// <summary>
+    /// This class contains all user permissions and helper methods for working
+    /// with them.
+    /// </summary>
+    public class UserPermissions
+    {
+        // Use shared full control definition
+        public static readonly Permission FullControl = Permission.FullControl;
+        public static readonly Permission None = new Permission(0x01, "None", "Only view your account ID when authorized.");
+        public static readonly Permission View = new Permission(0x02, "View", "Access basic information about your account.");
     }
 }
