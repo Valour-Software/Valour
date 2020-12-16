@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace Valour.Server.Users.Identity
+namespace Valour.Shared.Oauth
 {
     /*  Valour - A free and secure chat client
      *  Copyright (C) 2020 Vooper Media LLC
@@ -12,22 +13,24 @@ namespace Valour.Server.Users.Identity
      */
 
     /// <summary>
-    /// Used to link a user to a specific role
+    /// A class used to facilitate the transfer of authentication tokens
     /// </summary>
-    public class UserRole
+    public class TokenResponse
     {
         /// <summary>
-        /// The ID of the user
+        /// The result of the operation
         /// </summary>
-        public ulong User_Id { get; set; }
+        public TaskResult Result { get; set; }
 
         /// <summary>
-        /// The ID of the role
+        /// The resulting token
         /// </summary>
-        public int Role_Id { get; set; }
+        public string Token { get; set; }
 
-        // Allows for easy inclusion in DB queries (foreign key)
-        public virtual User User { get; set; }
-        public virtual Role Role { get; set; }
+        public TokenResponse(string token, TaskResult result)
+        {
+            this.Result = result;
+            this.Token = token;
+        }
     }
 }

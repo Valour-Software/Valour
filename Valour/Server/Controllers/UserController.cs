@@ -6,9 +6,11 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Oauth;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared;
+using Valour.Shared.Oauth;
 using Valour.Shared.Users;
 using Valour.Shared.Users.Identity;
 
@@ -30,12 +32,14 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Database context
         /// </summary>
-        private readonly ValourDB context;
+        private readonly ValourDB Context;
+        private readonly UserManager UserManager;
 
         // Dependency injection
-        public UserController(ValourDB context)
+        public UserController(ValourDB context, UserManager userManager)
         {
-            this.context = context;
+            this.Context = context;
+            this.UserManager = userManager;
         }
 
         /// <summary>
@@ -44,13 +48,13 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult> RegisterUser(string username, string email, string password)
         {
             // Ensure unique username
-            if (await context.Users.AnyAsync(x => x.Username.ToLower() == username.ToLower()))
+            if (await Context.Users.AnyAsync(x => x.Username.ToLower() == username.ToLower()))
             {
                 return new TaskResult(false, $"Failed: There was already a user named {username}");
             }
 
             // Ensure unique email
-            if (await context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower()))
+            if (await Context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower()))
             {
                 return new TaskResult(false, $"Failed: There was already a user using the email {email}");
             }
@@ -85,8 +89,8 @@ namespace Valour.Server.Controllers
             // An error here would be really bad so we'll be careful and catch any exceptions
             try
             {
-                await context.Users.AddAsync(user);
-                await context.SaveChangesAsync();
+                await Context.Users.AddAsync(user);
+                await Context.SaveChangesAsync();
             }
             catch (System.Exception e)
             {
@@ -105,8 +109,8 @@ namespace Valour.Server.Controllers
             // An error here would be really bad so we'll be careful and catch any exceptions
             try
             {
-                await context.Credentials.AddAsync(cred);
-                await context.SaveChangesAsync();
+                await Context.Credentials.AddAsync(cred);
+                await Context.SaveChangesAsync();
             }
             catch (System.Exception e)
             {
@@ -133,6 +137,30 @@ namespace Valour.Server.Controllers
         {
             // Regex can be slow, so we throw it in another thread
             return await Task.Run(() => PasswordManager.TestComplexity(password));
+        }
+
+        public async Task<TokenResponse> RequestStandardToken(string email, string password)
+        {
+            var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
+
+            // If the verification failed, forward the failure
+            if (!result.Result.Success)
+            {
+                return new TokenResponse(null, result.Result);
+            }
+
+            // Otherwise, get the user we just verified
+            User user = result.User;
+
+            // We now have to create a token for the user
+            AuthToken token = new AuthToken()
+            {
+                Id = Guid.NewGuid().ToString(),
+                App_Id = "CORE",
+                Expires = DateTime.UtcNow.AddDays(7),
+                Scope = Permission.FullControl,
+
+            }
         }
     }
 }

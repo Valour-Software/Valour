@@ -42,31 +42,6 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<Credential> Credentials { get; set; }
 
-        /// <summary>
-        /// Table for user claim information
-        /// </summary>
-        public DbSet<Claim> UserClaims { get; set; }
-
-        /// <summary>
-        /// Table for user role (auth) information
-        /// </summary>
-        public DbSet<Role> Roles { get; set; }
-
-        /// <summary>
-        /// The table for user role information
-        /// </summary>
-        public DbSet<UserRole> UserRoles { get; set; }
-
-        /// <summary>
-        /// The table for claim permission information
-        /// </summary>
-        public DbSet<ClaimPermission> ClaimPermissions { get; set; }
-
-        /// <summary>
-        /// The table to connect roles with their claim permissions
-        /// </summary>
-        public DbSet<RoleClaimPermission> RoleClaimPermissions { get; set; }
-
         public ValourDB(DbContextOptions options)
         {
 

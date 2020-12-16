@@ -53,7 +53,7 @@ namespace Valour.Server.Oauth
         public static bool HasPermission(ulong code, Permission permission)
         {
             // Case if full control is granted
-            if ((code & FullControl.Value) == FullControl.Value) return true;
+            if (code == FullControl.Value) return true;
 
             // Otherwise check for specific permission
             return (code & permission.Value) == permission.Value;

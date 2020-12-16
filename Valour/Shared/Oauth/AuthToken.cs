@@ -17,7 +17,6 @@ namespace Valour.Shared.Oauth
     {
         /// <summary>
         /// The ID of the authentification key is also the secret key. Really no need for another random gen.
-        /// (is sha256)
         /// </summary>
         [Key]
         public string Id { get; set; }
