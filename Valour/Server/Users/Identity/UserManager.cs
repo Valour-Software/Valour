@@ -62,7 +62,8 @@ namespace Valour.Server.Users.Identity
                 // Use salt to validate secret hash
                 byte[] hash = PasswordManager.GetHashForPassword(secret, credential.Salt);
 
-                if (hash != credential.Secret)
+                // Spike needs to remember how reference types work 
+                if (!hash.SequenceEqual(credential.Secret))
                 {
                     return new ValidateResult(new TaskResult(false, "Secret validation failed."), null);
                 }

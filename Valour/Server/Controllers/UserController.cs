@@ -139,6 +139,9 @@ namespace Valour.Server.Controllers
             return await Task.Run(() => PasswordManager.TestComplexity(password));
         }
 
+        /// <summary>
+        /// Allows a token to be requested using basic login information
+        /// </summary>
         public async Task<TokenResponse> RequestStandardToken(string email, string password)
         {
             var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
@@ -155,12 +158,21 @@ namespace Valour.Server.Controllers
             // We now have to create a token for the user
             AuthToken token = new AuthToken()
             {
+                App_Id = "VALOUR",
                 Id = Guid.NewGuid().ToString(),
-                App_Id = "CORE",
+                Time = DateTime.UtcNow,
                 Expires = DateTime.UtcNow.AddDays(7),
-                Scope = Permission.FullControl,
+                Scope = Permission.FullControl.Value,
+                User_Id = user.Id
+            };
 
+            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            {
+                await context.AuthTokens.AddAsync(token);
+                await context.SaveChangesAsync();
             }
+
+            return new TokenResponse(token.Id, new TaskResult(true, "Successfully verified and retrieved token!"));
         }
     }
 }

@@ -29,7 +29,7 @@ namespace Valour.Shared.Oauth
         /// <summary>
         /// The user that this token is valid for
         /// </summary>
-        public string User_Id { get; set; }
+        public ulong User_Id { get; set; }
 
         /// <summary>
         /// The scope of the permissions this token is valid for

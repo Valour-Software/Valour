@@ -3,6 +3,7 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using System.Security.Claims;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
+using Valour.Shared.Oauth;
 
 namespace Valour.Server.Database
 {
@@ -41,6 +42,11 @@ namespace Valour.Server.Database
         /// Table for password and login information
         /// </summary>
         public DbSet<Credential> Credentials { get; set; }
+
+        /// <summary>
+        /// Table for authentication tokens
+        /// </summary>
+        public DbSet<AuthToken> AuthTokens { get; set; }
 
         public ValourDB(DbContextOptions options)
         {
