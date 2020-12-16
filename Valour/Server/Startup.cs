@@ -22,6 +22,7 @@ using Valour.Server.Messaging;
 using Microsoft.AspNetCore.Http;
 using Valour.Server.Users.Identity;
 using Valour.Server.Users;
+using Valour.Server.Email;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -40,41 +41,15 @@ namespace Valour.Server
 
         public IConfiguration Configuration { get; }
 
-        public const string DBCONF_LOC = "ValourConfig/";
+        public const string CONF_LOC = "ValourConfig/";
         public const string DBCONF_FILE = "DBConfig.json";
+        public const string EMCONF_FILE = "EmailConfig.json";
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            // Load database settings
-            DBConfig config = null;
-
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(DBCONF_LOC))
-            {
-                Directory.CreateDirectory(DBCONF_LOC);
-            }
-
-            if (File.Exists(DBCONF_LOC + DBCONF_FILE))
-            {
-                // If there is a config, read it
-                config = JsonConvert.DeserializeObject<DBConfig>(File.ReadAllText(DBCONF_LOC + DBCONF_FILE));
-            }
-            else
-            {
-                // Otherwise create a config with default values and write it to the location
-                config = new DBConfig()
-                {
-                    Database = "database",
-                    Host = "host",
-                    Password = "password",
-                    Username = "user"
-                };
-
-                File.WriteAllText(DBCONF_LOC + DBCONF_FILE, JsonConvert.SerializeObject(config));
-                Console.WriteLine("Error: No DB config was found. Creating file...");
-            }
+            LoadConfigs();
 
             services.AddDbContextPool<ValourDB>(options =>
             {
@@ -90,6 +65,60 @@ namespace Valour.Server
             services.AddSignalR();
             services.AddControllersWithViews();
             services.AddRazorPages();
+        }
+
+        /// <summary>
+        /// Loads the json configs for services
+        /// </summary>
+        public void LoadConfigs()
+        {
+            // Load database settings
+            DBConfig dbconfig = null;
+
+            // Create directory if it doesn't exist
+            if (!Directory.Exists(CONF_LOC))
+            {
+                Directory.CreateDirectory(CONF_LOC);
+            }
+
+            if (File.Exists(CONF_LOC + DBCONF_FILE))
+            {
+                // If there is a config, read it
+                dbconfig = JsonConvert.DeserializeObject<DBConfig>(File.ReadAllText(CONF_LOC + DBCONF_FILE));
+            }
+            else
+            {
+                // Otherwise create a config with default values and write it to the location
+                dbconfig = new DBConfig()
+                {
+                    Database = "database",
+                    Host = "host",
+                    Password = "password",
+                    Username = "user"
+                };
+
+                File.WriteAllText(CONF_LOC + DBCONF_FILE, JsonConvert.SerializeObject(dbconfig));
+                Console.WriteLine("Error: No DB config was found. Creating file...");
+            }
+
+            EmailConfig emconfig = null;
+
+            if (File.Exists(CONF_LOC + EMCONF_FILE))
+            {
+                // If there is a config, read it
+                emconfig = JsonConvert.DeserializeObject<EmailConfig>(File.ReadAllText(CONF_LOC + EMCONF_FILE));
+            }
+            else
+            {
+                // Otherwise create a config with default values and write it to the location
+                emconfig = new EmailConfig()
+                {
+                    Api_Key = "api_key_goes_here"
+                };
+
+                File.WriteAllText(CONF_LOC + EMCONF_FILE, JsonConvert.SerializeObject(emconfig));
+                Console.WriteLine("Error: No Email config was found. Creating file...");
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
