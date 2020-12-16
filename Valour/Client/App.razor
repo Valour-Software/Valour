@@ -4,7 +4,8 @@
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        @if (ClientUserManager.IsLoggedIn() || true)
+
+        @if (ClientUserManager.IsLoggedIn())
         {
             <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
             <body>
@@ -69,20 +70,15 @@
         }
         else
         {
-            <body>
-                <p style="color:white">
-                    You need to log in!
-                </p>
-            </body>
+            <LoginComponent></LoginComponent>
         }
-        </Found>
+    </Found>
     <NotFound>
         <LayoutView Layout="@typeof(MainLayout)">
             <p>Sorry, there's nothing at this address.</p>
         </LayoutView>
     </NotFound>
 </Router>
-
 
 @code{
 

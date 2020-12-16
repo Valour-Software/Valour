@@ -1,4 +1,73 @@
-﻿.message {
+﻿:root {
+    --primary-color: #040d14;
+    --secondary-color: #aaaaaa;
+    --font-color: #ffffff;
+    --bg-color: #040d14;
+    --heading-color: #040d14;
+    --link-color: #00aaff;
+    --border-color: #303030;
+    --alt-border-color: #666666;
+    --input-color: #000000;
+    --comment-hue: rgba(0, 0, 0, 0.02);
+}
+
+a {
+    color: var(--link-color);
+}
+
+.p-1 {
+    color: var(--font-color);
+}
+
+h1 {
+    color: var(--font-color);
+}
+
+h2 {
+    color: var(--font-color);
+}
+
+h3 {
+    color: var(--font-color);
+}
+
+h4 {
+    color: var(--font-color);
+}
+
+label {
+    color: var(--font-color);
+}
+
+p {
+    color: var(--font-color);
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.form-control {
+    background-color: var(--input-color);
+    border-color: var(--alt-border-color);
+    color: var(--font-color);
+}
+
+.form-control:disabled {
+    background-color: var(--border-color);
+    border-color: var(--alt-border-color);
+    color: var(--font-color);
+}
+
+body {
+    /* Theming */
+    background-color: var(--bg-color);
+    color: var(--font-color);
+}
+
+.message {
     width: 100%;
     margin-top: 4px;
     padding-bottom: 4px;
@@ -71,7 +140,8 @@
     font-size: 16px;
     line-height: 23px;
     color: #FFFFFF;
-    margin: 0px;;
+    margin: 0px;
+    ;
 }
 
 .message .time {
@@ -83,7 +153,6 @@
     color: #7A7A7A;
     margin: 0px;
     margin-left: 24px;
-
 }
 
 .channel-and-topbar {
@@ -353,12 +422,13 @@
     .sidebar-2 .viewing-current-channel {
         margin-left: 15px;
     }
-    .sidebar-2 .viewing-current-channel .pfp {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        margin-left: -15px;
-    }
+
+        .sidebar-2 .viewing-current-channel .pfp {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            margin-left: -15px;
+        }
 
     .sidebar-2 .current-channel-info {
         margin-top: 16px;
@@ -534,4 +604,35 @@
 
 body {
     background-color: #040D14;
+}
+
+.login-box {
+    background-color: #333333;
+    border-radius: 10px;
+    border-color: grey;
+    margin: auto;
+    padding: 50px;
+    max-width: 600px;
+    max-height: 1000px;
+    z-index: 2;
+    box-shadow: 0px 0px 15px #000000;
+    transform: translateY(50%);
+}
+
+.login-background {
+    background-image: url(/media/Spookvooper.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+    margin: 0px;
+    backdrop-filter: blur(5px);
+}
+
+@media screen and (max-width: 992px) {
+    .login-box {
+        max-width: 90%;
+        max-height: 100%;
+        transform: translateY(5%);
+    }
 }

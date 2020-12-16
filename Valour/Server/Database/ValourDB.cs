@@ -48,6 +48,11 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<AuthToken> AuthTokens { get; set; }
 
+        /// <summary>
+        /// Table for email confirmation codes
+        /// </summary>
+        public DbSet<EmailConfirmCode> EmailConfirmCodes { get; set; }
+
         public ValourDB(DbContextOptions options)
         {
 

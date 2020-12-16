@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Email;
 using Valour.Server.Oauth;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
@@ -94,7 +95,7 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
-                return new TaskResult(false, $"A critical error occured.");
+                return new TaskResult(false, $"A critical error occured adding the user.");
             }
 
             Credential cred = new Credential()
@@ -114,10 +115,45 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
-                return new TaskResult(false, $"A critical error occured.");
+                return new TaskResult(false, $"A critical error occured adding the credentials.");
+            }
+
+            string code = Guid.NewGuid().ToString();
+
+            EmailConfirmCode emailConfirm = new EmailConfirmCode()
+            {
+                Code = code,
+                User_Id = user.Id
+            };
+
+            // An error here would be really bad so we'll be careful and catch any exceptions
+            try
+            {
+                await Context.EmailConfirmCodes.AddAsync(emailConfirm);
+                await Context.SaveChangesAsync();
+            }
+            catch (System.Exception e)
+            {
+                return new TaskResult(false, $"A critical error occured adding the email confirmation code.");
             }
 
 
+            // Send registration email
+            string emsg = $@"<body style='background-color:#040D14'>
+                              <h2 style='font-family:Helvetica; color:white'>
+                                Welcome to Valour!
+                              </h2>
+                              <p style='font-family:Helvetica; color:white'>
+                                To verify your new account, please use this code as your password the first time you log in: 
+                              </p>
+                              <p style='font-family:Helvetica; color:#88ffff'>
+                                {code}
+                              </p>
+                            </body>";
+
+            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please use this code as your password the first time you log in:\n{code}";
+
+            await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
 
             return new TaskResult(true, $"Successfully created user {username}");
         }
@@ -157,7 +193,22 @@ namespace Valour.Server.Controllers
 
             if (!user.Verified_Email)
             {
-                return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified!"));
+                EmailConfirmCode confirmCode = await Context.EmailConfirmCodes.FindAsync(password);
+
+                // Someone using another person's verification is a little
+                // worrying, and we don't want them to know it worked, so we'll
+                // send the same error either way.
+                if (confirmCode == null || confirmCode.User_Id != user.Id)
+                {
+                    return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified! Please log in using the code " +
+                        "that was emailed as your password."));
+                }
+
+                // At this point the email has been confirmed
+                user.Verified_Email = true;
+
+                Context.EmailConfirmCodes.Remove(confirmCode);
+                await Context.SaveChangesAsync();
             }
 
             // We now have to create a token for the user
