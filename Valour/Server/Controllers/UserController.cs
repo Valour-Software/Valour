@@ -95,7 +95,7 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
-                return new TaskResult(false, $"A critical error occured.");
+                return new TaskResult(false, $"A critical error occured adding the user.");
             }
 
             Credential cred = new Credential()
@@ -115,10 +115,28 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
-                return new TaskResult(false, $"A critical error occured.");
+                return new TaskResult(false, $"A critical error occured adding the credentials.");
             }
 
             string code = Guid.NewGuid().ToString();
+
+            EmailConfirmCode emailConfirm = new EmailConfirmCode()
+            {
+                Code = code,
+                User_Id = user.Id
+            };
+
+            // An error here would be really bad so we'll be careful and catch any exceptions
+            try
+            {
+                await Context.EmailConfirmCodes.AddAsync(emailConfirm);
+                await Context.SaveChangesAsync();
+            }
+            catch (System.Exception e)
+            {
+                return new TaskResult(false, $"A critical error occured adding the email confirmation code.");
+            }
+
 
             // Send registration email
             string emsg = $@"<body style='background-color:#040D14'>
