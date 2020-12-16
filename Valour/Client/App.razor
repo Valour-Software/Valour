@@ -59,7 +59,9 @@
                             }
 
 
-                            <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress">
+                            <div style="margin-left:32px">
+                                <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress">
+                            </div>
                         </div>
                     </div>
                 </div>
