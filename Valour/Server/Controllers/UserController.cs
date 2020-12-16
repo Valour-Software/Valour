@@ -155,6 +155,11 @@ namespace Valour.Server.Controllers
             // Otherwise, get the user we just verified
             User user = result.User;
 
+            if (!user.Verified_Email)
+            {
+                return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified!"));
+            }
+
             // We now have to create a token for the user
             AuthToken token = new AuthToken()
             {
