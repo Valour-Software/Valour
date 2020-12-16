@@ -20,7 +20,7 @@ namespace Valour.Shared.Users
     {
         public string GetMainRoleColor()
         {
-            return "#ff0000";
+            return "#00FAFF";
         }
 
         public List<PlanetRole> GetPlanetRoles()
