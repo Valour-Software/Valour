@@ -193,7 +193,22 @@ namespace Valour.Server.Controllers
 
             if (!user.Verified_Email)
             {
-                return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified!"));
+                EmailConfirmCode confirmCode = await Context.EmailConfirmCodes.FindAsync(password);
+
+                // Someone using another person's verification is a little
+                // worrying, and we don't want them to know it worked, so we'll
+                // send the same error either way.
+                if (confirmCode == null || confirmCode.User_Id != user.Id)
+                {
+                    return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified! Please log in using the code " +
+                        "that was emailed as your password."));
+                }
+
+                // At this point the email has been confirmed
+                user.Verified_Email = true;
+
+                Context.EmailConfirmCodes.Remove(confirmCode);
+                await Context.SaveChangesAsync();
             }
 
             // We now have to create a token for the user
