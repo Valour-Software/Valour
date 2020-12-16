@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,7 @@ using Valour.Server.Database;
 using Valour.Server.Messaging;
 using Microsoft.AspNetCore.Http;
 using Valour.Server.Users.Identity;
+using Valour.Server.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
