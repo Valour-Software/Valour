@@ -1,6 +1,6 @@
 ﻿.message {
     width: 100%;
-    margin-top: 27px;
+    margin-top: 4px;
     padding-bottom: 4px;
 }
 
@@ -39,7 +39,6 @@
 }
 
 .message .author-pfp {
-    display: inline-block;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -51,10 +50,10 @@
     display: inline-block;
     font-family: Ubuntu;
     font-style: normal;
-    font-weight: bold;
-    font-size: 22px;
+    font-size: 16px;
     line-height: 25px;
     margin: 0px;
+    margin-top: 10px;
     vertical-align: top;
 }
 
@@ -69,12 +68,10 @@
     font-family: Ubuntu;
     font-style: normal;
     font-weight: 300;
-    font-size: 20px;
+    font-size: 16px;
     line-height: 23px;
     color: #FFFFFF;
-    margin: 0px;
-    margin-left: 76px;
-    margin-top: 6px;
+    margin: 0px;;
 }
 
 .message .time {
@@ -85,6 +82,8 @@
     line-height: 14px;
     color: #7A7A7A;
     margin: 0px;
+    margin-left: 24px;
+
 }
 
 .channel-and-topbar {

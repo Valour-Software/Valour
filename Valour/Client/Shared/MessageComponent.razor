@@ -1,12 +1,17 @@
 ﻿<div class="message">
-    @if (Message.Author != null)
-    {
-        <img class="author-pfp" src="@Message.Author.Pfp_Url" />
-    }
-    else
-    {
-        <img class="author-pfp" src="~/icon-512.png" />
-    }
+    <div style="display:inline-block">
+        @if (Message.Author != null)
+        {
+            <img class="author-pfp" src="@Message.Author.Pfp_Url" />
+        }
+        else
+        {
+            <img class="author-pfp" src="~/icon-512.png" />
+        }
+        <p class="time">
+            @Message.TimeSent.ToShortTimeString()
+        </p>
+    </div>
     <div class="message-content">
         @if (Message.Author != null)
         {
@@ -20,13 +25,10 @@
                 User not found
             </p>
         }
-        <p class="time">
-            @Message.TimeSent.ToShortTimeString()
+        <p class="content">
+            @Message.Content
         </p>
     </div>
-    <p class="content">
-        @Message.Content
-    </p>
 </div>
 
 @code {
