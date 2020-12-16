@@ -208,7 +208,7 @@
     width: 257px;
     height: 31px;
     margin-left: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     border-radius: 5px
 }
 
@@ -216,7 +216,7 @@
         font-family: Ubuntu;
         font-style: normal;
         font-weight: normal;
-        font-size: 18px;
+        font-size: 16px;
         line-height: 21px;
         color: #FFFFFF;
         margin-left: 8px;
