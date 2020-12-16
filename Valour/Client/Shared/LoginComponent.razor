@@ -1,0 +1,32 @@
+﻿<body class="login-background">
+    <div class="login-box">
+        <div class="col-md-12">
+            <section>
+                <h2>Log in to Valour</h2>
+                <form>
+                    <h4>Welcome back!</h4>
+                    <hr />
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input class="form-control" />
+                        <span asp-validation-for="Username" class="text-danger"></span>
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>Password</label>
+                        <input class="form-control" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+                    <div class="form-group mt-4" style="display:inline-block">
+                        <button type="submit" class="btn btn-primary mt-2">Log in</button>
+                        <button type="submit" class="btn btn-outline-primary mt-2">Register</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</body>
+
+@code {
+
+}

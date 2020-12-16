@@ -1,0 +1,97 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Ubuntu&display=swap');
+
+div[class~=dab] {
+    position: relative
+}
+
+body, html {
+    height: 100%
+}
+
+.t, div[class~=dab] {
+    width: 87px
+}
+
+.t, div[class~=dab] {
+    margin-left: auto
+}
+
+.t {
+    text-align: center
+}
+
+body, html {
+    -webkit-touch-callout: none
+}
+
+.t {
+    font-weight: 700
+}
+
+body, html {
+    -webkit-user-select: none
+}
+
+.t {
+    font-size: 24px
+}
+
+body, div[class~=dab], .t {
+    margin-bottom: 0
+}
+
+html, body {
+    -khtml-user-select: none
+}
+
+div[class~=dab], .t {
+    margin-right: auto
+}
+
+html, body {
+    -moz-user-select: none
+}
+
+body, .t, div[class~=dab] {
+    margin-top: 0
+}
+
+html, body {
+    -ms-user-select: none
+}
+
+.d {
+    position: absolute
+}
+
+body, html {
+    user-select: none
+}
+
+.d {
+    top: 50%
+}
+
+.d {
+    left: 50%
+}
+
+.d {
+    transform: translate(-50%,-50%)
+}
+
+body {
+    font-family: "Ubuntu",sans-serif
+}
+
+body {
+    background-color: #040d14
+}
+
+body {
+    margin-left: 0
+}
+
+body {
+    margin-right: 0
+}
