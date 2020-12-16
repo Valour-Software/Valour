@@ -4,7 +4,7 @@
 
 <Router AppAssembly="@typeof(Program).Assembly">
     <Found Context="routeData">
-        @if (ClientUserManager.IsLoggedIn())
+        @if (ClientUserManager.IsLoggedIn() || true)
         {
             <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
             <body>
@@ -33,7 +33,7 @@
                         <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
                         <div class="top-bar">
                         </div>
-                        <UserInfoComponent Username="Superjacobl" RoleColor="rgb(0, 255, 158)" PfpURL="https://cdn.discordapp.com/avatars/259004891148582914/161f6a28041310cf0075c95695cec0c7.png?size=512"></UserInfoComponent>
+                        <UserInfoComponent User="@user"></UserInfoComponent>
                         <CategoryComponent Name="Announcements" IsOpen="false"></CategoryComponent>
                         <CategoryComponent Name="General Discussion" IsOpen="true">
                             <ChannelComponent Last="false" Open="true" First="true" Name="General"></ChannelComponent>
