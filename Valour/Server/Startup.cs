@@ -119,6 +119,9 @@ namespace Valour.Server
                 File.WriteAllText(CONF_LOC + EMCONF_FILE, JsonConvert.SerializeObject(emconfig));
                 Console.WriteLine("Error: No Email config was found. Creating file...");
             }
+
+            // Initialize Email Manager
+            EmailManager.SetupClient();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

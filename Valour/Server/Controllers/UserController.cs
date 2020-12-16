@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Email;
 using Valour.Server.Oauth;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
@@ -117,7 +118,24 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, $"A critical error occured.");
             }
 
+            string code = Guid.NewGuid().ToString();
 
+            // Send registration email
+            string emsg = $@"<body style='background-color:#040D14'>
+                              <h2 style='font-family:Helvetica; color:white'>
+                                Welcome to Valour!
+                              </h2>
+                              <p style='font-family:Helvetica; color:white'>
+                                To verify your new account, please use this code as your password the first time you log in: 
+                              </p>
+                              <p style='font-family:Helvetica; color:#88ffff'>
+                                {code}
+                              </p>
+                            </body>";
+
+            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please use this code as your password the first time you log in:\n{code}";
+
+            await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
 
             return new TaskResult(true, $"Successfully created user {username}");
         }

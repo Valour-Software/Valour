@@ -1,4 +1,6 @@
-﻿using System;
+﻿using SendGrid;
+using SendGrid.Helpers.Mail;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,6 +15,38 @@ namespace Valour.Server.Email
 
     public class EmailManager
     {
-        
+        public static SendGridClient client;
+
+        public static void SetupClient()
+        {
+            client = new SendGridClient(EmailConfig.instance.Api_Key);
+        }
+
+        /// <summary>
+        /// Sends an email using SendGrid API
+        /// </summary>
+        public static async Task SendEmailAsync(string address, string subject, string message, string html = null)
+        {
+            // Case if someone doesn't have an HTML version of email
+            if (html == null)
+            {
+                html = message;
+            }
+
+            // Sender and recipient
+            EmailAddress from = new EmailAddress("automated@valour.gg", "Valour AI");
+            EmailAddress to = new EmailAddress(address);
+
+            // Log to console
+            Console.WriteLine($"Sending email to {address}.");
+
+            SendGridMessage email = MailHelper.CreateSingleEmail(from, to, subject, message, html);
+
+            // Privacy
+            email.SetClickTracking(false, false);
+
+            // Send the email
+            await client.SendEmailAsync(email);
+        }
     }
 }
