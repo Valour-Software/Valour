@@ -133,6 +133,7 @@ body {
     margin-left: 7px;
     margin-top: 4px;
     vertical-align: top;
+    width: 90%;
 }
 
 .message .content {
@@ -143,7 +144,7 @@ body {
     line-height: 23px;
     color: #FFFFFF;
     margin: 0px;
-    ;
+    
 }
 
 .message .time {
