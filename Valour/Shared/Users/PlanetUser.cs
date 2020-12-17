@@ -16,7 +16,7 @@ namespace Valour.Shared.Users
     /// <summary>
     /// Represents a user within a planet
     /// </summary>
-    public class ClientPlanetUser : ClientUser
+    public class PlanetUser : User
     {
         public string GetMainRoleColor()
         {

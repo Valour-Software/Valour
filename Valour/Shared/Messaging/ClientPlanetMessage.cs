@@ -13,6 +13,6 @@ namespace Valour.Shared.Messaging
         /// <summary>
         /// The author of this message
         /// </summary>
-        public ClientPlanetUser Author { get; set; }
+        public PlanetUser Author { get; set; }
     }
 }

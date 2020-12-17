@@ -7,10 +7,9 @@ using Valour.Shared.Users;
 namespace Valour.Server.Users
 {
     /// <summary>
-    /// This is the server-side User implementation. It contains all content from the Client-side,
-    /// and includes all hidden fields needed for server functions.
+    /// This is the private User implementation, which should only be held by the server and local client.
     /// </summary>
-    public class User : ClientUser
+    public class ClientUser : User
     {
 
         /// <summary>

@@ -13,7 +13,10 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared.Users
 {
-    public class ClientUser
+    /// <summary>
+    /// This is the base User object, which contains everything needed for public use
+    /// </summary>
+    public class User
     {
         /// <summary>
         /// The Id of the user

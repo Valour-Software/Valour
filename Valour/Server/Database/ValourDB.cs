@@ -34,7 +34,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for Valour users
         /// </summary>
-        public DbSet<User> Users { get; set; }
+        public DbSet<ClientUser> Users { get; set; }
 
         // USER LOGIN AND PERMISSION STUFF //
 

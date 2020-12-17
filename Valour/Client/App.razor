@@ -82,159 +82,159 @@
 
 @code{
 
-        /// <summary>
-        /// True if the client has negotiated a channel connection
-        /// </summary>
-        private bool channelConnected;
+    /// <summary>
+    /// True if the client has negotiated a channel connection
+    /// </summary>
+    private bool channelConnected;
 
-        /// <summary>
-        /// The input currently within the chatbox, this is bound and any changes will
-        /// be reflected within the box.
-        /// </summary>
-        private string currentInput;
+    /// <summary>
+    /// The input currently within the chatbox, this is bound and any changes will
+    /// be reflected within the box.
+    /// </summary>
+    private string currentInput;
 
-        /// <summary>
-        /// Storage for messages that should be displayed
-        /// </summary>
-        private List<ClientPlanetMessage> messages;
+    /// <summary>
+    /// Storage for messages that should be displayed
+    /// </summary>
+    private List<ClientPlanetMessage> messages;
 
-        private HubConnection hubConnection;
+    private HubConnection hubConnection;
 
-        /// <summary>
-        /// The current user
-        /// </summary>
-        private ClientPlanetUser user;
+    /// <summary>
+    /// The current user
+    /// </summary>
+    private PlanetUser user;
 
-        /// <summary>
-        /// The current channel id
-        /// </summary>
-        private ulong channel_id;
+    /// <summary>
+    /// The current channel id
+    /// </summary>
+    private ulong channel_id;
 
-        /// <summary>
-        /// The index of the last sent message
-        /// </summary>
-        private ulong messageIndex;
+    /// <summary>
+    /// The index of the last sent message
+    /// </summary>
+    private ulong messageIndex;
 
-        // Runs when page is initialized
-        protected override async Task OnInitializedAsync()
+    // Runs when page is initialized
+    protected override async Task OnInitializedAsync()
+    {
+        // TODO: Actually get channel id
+        channel_id = 1;
+
+        // TODO: Actually get the current user
+        user = new PlanetUser()
         {
-            // TODO: Actually get channel id
-            channel_id = 1;
 
-            // TODO: Actually get the current user
-            user = new ClientPlanetUser()
-            {
+            Username = "Test User",
+            Id = 0,
+            Pfp_Url = "https://SpookVooper.com/media/unity-256.png"
+        };
 
-                Username = "Test User",
-                Id = 0,
-                Pfp_Url = "https://SpookVooper.com/media/unity-256.png"
-            };
-
-            await ConnectSignalR();
-            await RefreshMessages();
+        await ConnectSignalR();
+        await RefreshMessages();
 
 
-        }
+    }
 
-        public async Task ConnectSignalR()
+    public async Task ConnectSignalR()
+    {
+        // Get url for
+        string conUrl = navManager.BaseUri.TrimEnd('/') + "/messagehub";
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(conUrl)
+            .Build();
+
+        await hubConnection.StartAsync();
+
+        // Connect to channel
+        await hubConnection.SendAsync("JoinChannel", channel_id);
+
+        hubConnection.On<string>("Relay", RecieveMessage);
+    }
+
+    public void RecieveMessage(string msg)
+    {
+        Console.WriteLine($"Recieved a message: {msg}");
+
+        ClientPlanetMessage message = new ClientPlanetMessage()
         {
-            // Get url for
-            string conUrl = navManager.BaseUri.TrimEnd('/') + "/messagehub";
+            Author = user,
+            ChannelId = channel_id,
+            Content = msg,
+            TimeSent = DateTime.UtcNow
+        };
 
-            hubConnection = new HubConnectionBuilder()
-                .WithUrl(conUrl)
-                .Build();
+        messages.Add(message);
 
-            await hubConnection.StartAsync();
+        // Flag for UI refresh
+        StateHasChanged();
+    }
 
-            // Connect to channel
-            await hubConnection.SendAsync("JoinChannel", channel_id);
+    public async Task RefreshMessages()
+    {
+        // Request messages from server
+        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={channel_id}");
+    }
 
-            hubConnection.On<string>("Relay", RecieveMessage);
-        }
+    /// <summary>
+    /// This runs every time a key is pressed when the chatbox is selected
+    /// </summary>
+    public async Task OnChatboxKeypress(KeyboardEventArgs args)
+    {
+        // Debug for key presses
+        // Console.WriteLine(currentInput);
 
-        public void RecieveMessage(string msg)
+        if (args.Key == "Enter")
         {
-            Console.WriteLine($"Recieved a message: {msg}");
+            // Grab current input
+            string msg = currentInput;
 
-            ClientPlanetMessage message = new ClientPlanetMessage()
-            {
-                Author = user,
-                ChannelId = channel_id,
-                Content = msg,
-                TimeSent = DateTime.UtcNow
-            };
+            // Clear input
+            currentInput = "";
 
-            messages.Add(message);
+            // Post message to server
+            await PostMessage(msg);
 
-            // Flag for UI refresh
             StateHasChanged();
         }
+    }
 
-        public async Task RefreshMessages()
+    public async Task OnChatboxInput()
+    {
+
+    }
+
+    public async Task PostMessage(string msg)
+    {
+        ClientPlanetMessage message = new ClientPlanetMessage()
         {
-            // Request messages from server
-            messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={channel_id}");
-        }
+            ChannelId = channel_id,
+            Content = msg,
+            TimeSent = DateTime.UtcNow,
+            Author = user
+        };
 
-        /// <summary>
-        /// This runs every time a key is pressed when the chatbox is selected
-        /// </summary>
-        public async Task OnChatboxKeypress(KeyboardEventArgs args)
+        string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
+
+        Console.WriteLine(json);
+
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
+
+        TaskResult<ulong> response =
+            Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
+
+        if (!response.Success)
         {
-            // Debug for key presses
-            // Console.WriteLine(currentInput);
-
-            if (args.Key == "Enter")
+            messages.Add(new ClientPlanetMessage()
             {
-                // Grab current input
-                string msg = currentInput;
-
-                // Clear input
-                currentInput = "";
-
-                // Post message to server
-                await PostMessage(msg);
-
-                StateHasChanged();
-            }
-        }
-
-        public async Task OnChatboxInput()
-        {
-
-        }
-
-        public async Task PostMessage(string msg)
-        {
-            ClientPlanetMessage message = new ClientPlanetMessage()
-            {
-                ChannelId = channel_id,
-                Content = msg,
                 TimeSent = DateTime.UtcNow,
-                Author = user
-            };
-
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
-
-            Console.WriteLine(json);
-
-            HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
-
-            TaskResult<ulong> response =
-                Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
-
-            if (!response.Success)
-            {
-                messages.Add(new ClientPlanetMessage()
-                {
-                    TimeSent = DateTime.UtcNow,
-                    ChannelId = channel_id,
-                    Content = $"Failed to post message: {response.Message}",
-                    Index = 0
-                });
-            }
-
-            Console.WriteLine(response.ToString());
+                ChannelId = channel_id,
+                Content = $"Failed to post message: {response.Message}",
+                Index = 0
+            });
         }
+
+        Console.WriteLine(response.ToString());
+    }
 }

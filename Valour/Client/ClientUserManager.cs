@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Valour.Shared;
 using Valour.Shared.Users;
 
 namespace Valour.Client
@@ -21,7 +24,7 @@ namespace Valour.Client
         /// <summary>
         /// This is the currently logged in user for the client
         /// </summary>
-        public static ClientUser User { get; set; }
+        public static User User { get; set; }
 
         /// <summary>
         /// This is the token the user is currently using to stay logged in
@@ -40,9 +43,9 @@ namespace Valour.Client
         /// Initializes the user using a valid user token
         /// </summary>
         /// <param name="token"></param>
-        public static async Task InitializeUser(string token)
+        public static async Task InitializeUser(string token, HttpClient http)
         {
-
+            TaskResult<User> = await http.GetFromJsonAsync("$User/GetUserWithToken?token={token}")
         }
     }
 }

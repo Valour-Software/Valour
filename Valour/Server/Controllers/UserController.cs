@@ -79,7 +79,7 @@ namespace Valour.Server.Controllers
             byte[] hash = PasswordManager.GetHashForPassword(password, salt);
 
             // Create user object
-            User user = new User()
+            ClientUser user = new ClientUser()
             {
                 Username = username,
                 Join_DateTime = DateTime.UtcNow,
@@ -180,7 +180,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<string>> RequestStandardToken(string email, string password)
         {
-            User user = await Context.Users.FirstOrDefaultAsync(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
+            ClientUser user = await Context.Users.FirstOrDefaultAsync(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
 
             if (user == null)
             {
@@ -267,14 +267,9 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ClientUser>(false, "Failed to verify token.", null);
             }
 
-            // This is the server-side user, but we don't want to send that.
-            // We want to send just what the client needs.
-            User topUser = await Context.Users.FindAsync(authToken.User_Id);
+            ClientUser user = await Context.Users.FindAsync(authToken.User_Id);
 
-            ClientUser user = new ClientUser()
-            {
-                
-            };
+            return new TaskResult<ClientUser>(true, "Retrieved user.", user);
         }
     }
 }
