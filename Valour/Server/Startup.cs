@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Valour.Server.Users.Identity;
 using Valour.Server.Users;
 using Valour.Server.Email;
+using AutoMapper;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -50,6 +51,8 @@ namespace Valour.Server
         public void ConfigureServices(IServiceCollection services)
         {
             LoadConfigs();
+
+            services.AddAutoMapper(typeof(Startup));
 
             services.AddDbContextPool<ValourDB>(options =>
             {

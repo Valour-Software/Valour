@@ -1,8 +1,8 @@
 ﻿<div class="message">
     <div style="display:inline-block">
-        @if (Message.Author != null)
+        @if (Author != null)
         {
-            <img class="author-pfp" src="@Message.Author.Pfp_Url" />
+            <img class="author-pfp" src="@Author.Pfp_Url" />
         }
         else
         {
@@ -13,10 +13,10 @@
         </p>
     </div>
     <div class="message-content">
-        @if (Message.Author != null)
+        @if (Author != null)
         {
-            <p class="author-name" style="color: @Message.Author.GetMainRoleColor();">
-                @Message.Author.Username
+            <p class="author-name" style="color: @Author.GetMainRoleColor();">
+                @Author.Username
             </p>
         }
         else
@@ -35,4 +35,12 @@
     // Demonstrates how a parent component can supply parameters
     [Parameter]
     public ClientPlanetMessage Message { get; set; }
+
+    private PlanetUser Author;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Author = Message.GetAuthor();
+    }
 }

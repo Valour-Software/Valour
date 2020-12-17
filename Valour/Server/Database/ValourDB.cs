@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared.Oauth;
+using Valour.Shared.Users;
 
 namespace Valour.Server.Database
 {
@@ -34,7 +35,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for Valour users
         /// </summary>
-        public DbSet<User> Users { get; set; }
+        public DbSet<ClientUser> Users { get; set; }
 
         // USER LOGIN AND PERMISSION STUFF //
 

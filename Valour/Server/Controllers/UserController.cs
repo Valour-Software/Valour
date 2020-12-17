@@ -79,7 +79,7 @@ namespace Valour.Server.Controllers
             byte[] hash = PasswordManager.GetHashForPassword(password, salt);
 
             // Create user object
-            User user = new User()
+            ClientUser user = new ClientUser()
             {
                 Username = username,
                 Join_DateTime = DateTime.UtcNow,
@@ -178,18 +178,16 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Allows a token to be requested using basic login information
         /// </summary>
-        public async Task<TokenResponse> RequestStandardToken(string email, string password)
+        public async Task<TaskResult<string>> RequestStandardToken(string email, string password)
         {
-            var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
+            ClientUser user = await Context.Users.FirstOrDefaultAsync(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
 
-            // If the verification failed, forward the failure
-            if (!result.Result.Success)
+            if (user == null)
             {
-                return new TokenResponse(null, result.Result);
+                return new TaskResult<string>(false, "There was no user found with that email.", null);
             }
 
-            // Otherwise, get the user we just verified
-            User user = result.User;
+            bool authorized = false;
 
             if (!user.Verified_Email)
             {
@@ -200,8 +198,8 @@ namespace Valour.Server.Controllers
                 // send the same error either way.
                 if (confirmCode == null || confirmCode.User_Id != user.Id)
                 {
-                    return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified! Please log in using the code " +
-                        "that was emailed as your password."));
+                    return new TaskResult<string>(false, "The email associated with this account needs to be verified! Please log in using the code " +
+                        "that was emailed as your password.", null);
                 }
 
                 // At this point the email has been confirmed
@@ -209,26 +207,88 @@ namespace Valour.Server.Controllers
 
                 Context.EmailConfirmCodes.Remove(confirmCode);
                 await Context.SaveChangesAsync();
+
+                authorized = true;
+            }
+            else
+            {
+
+                var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
+
+                if (result.Data != null && user.Id != result.Data.Id)
+                {
+                    return new TaskResult<string>(false, "A critical error occured. This should not be possible. Seek help immediately.", null);
+                }
+
+                if (!result.Success)
+                {
+                    Console.WriteLine($"Failed password validation for {email}");
+                    return new TaskResult<string>(false, result.Message, null);
+                }
+
+                authorized = true;
             }
 
-            // We now have to create a token for the user
-            AuthToken token = new AuthToken()
+            // If the verification failed, forward the failure
+            if (!authorized)
             {
-                App_Id = "VALOUR",
-                Id = Guid.NewGuid().ToString(),
-                Time = DateTime.UtcNow,
-                Expires = DateTime.UtcNow.AddDays(7),
-                Scope = Permission.FullControl.Value,
-                User_Id = user.Id
-            };
-
-            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
-            {
-                await context.AuthTokens.AddAsync(token);
-                await context.SaveChangesAsync();
+                return new TaskResult<string>(false, "Failed to authorize user.", null);
             }
 
-            return new TokenResponse(token.Id, new TaskResult(true, "Successfully verified and retrieved token!"));
+            // Check if there are any tokens already
+            AuthToken token = null;
+
+            token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == Permission.FullControl.Value);
+
+            if (token == null)
+            {
+                // We now have to create a token for the user
+                token = new AuthToken()
+                {
+                    App_Id = "VALOUR",
+                    Id = Guid.NewGuid().ToString(),
+                    Time = DateTime.UtcNow,
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Scope = Permission.FullControl.Value,
+                    User_Id = user.Id
+                };
+
+                using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+                {
+                    await context.AuthTokens.AddAsync(token);
+                    await context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                token.Time = DateTime.UtcNow;
+                token.Expires = DateTime.UtcNow.AddDays(7);
+
+                using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+                {
+                    context.AuthTokens.Update(token);
+                    await context.SaveChangesAsync();
+                }
+            }
+
+            return new TaskResult<string>(true, "Successfully verified and retrieved token!", token.Id);
+        }
+
+        /// <summary>
+        /// Returns all user data using a token for verification
+        /// </summary>
+        public async Task<TaskResult<ClientUser>> GetUserWithToken(string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult<ClientUser>(false, "Failed to verify token.", null);
+            }
+
+            ClientUser user = await Context.Users.FindAsync(authToken.User_Id);
+
+            return new TaskResult<ClientUser>(true, "Retrieved user.", user);
         }
     }
 }

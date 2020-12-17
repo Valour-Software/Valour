@@ -1,39 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
+using Valour.Shared.Users;
 
 namespace Valour.Shared.Users
 {
-    public class ClientUser
+    /// <summary>
+    /// This is the private User implementation, which should only be held by the server and local client.
+    /// </summary>
+    public class ClientUser : User
     {
-        /// <summary>
-        /// The Id of the user
-        /// </summary>
-        [Key]
-        public ulong Id { get; set; }
 
         /// <summary>
-        /// The main display name for the user
+        /// True if the account has verified an email
         /// </summary>
-        public string Username { get; set; }
+        public bool Verified_Email { get; set; }
 
         /// <summary>
-        /// The url for the user's profile picture
+        /// The user's email address
         /// </summary>
-        public string Pfp_Url { get; set; }
-
-        /// <summary>
-        /// The Date and Time that the user joined Valour
-        /// </summary>
-        public DateTime Join_DateTime { get; set; }
+        public string Email { get; set; }
     }
 }

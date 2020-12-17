@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -12,25 +13,40 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared
 {
-    public class TaskResult
+    public class TaskResult : TaskResult<string>
     {
-        public string Response { get; set; }
+        public TaskResult(bool success, string response) : base(success, response, null)
+        {
+
+        }
+    }
+
+    public class TaskResult<T>
+    {
+        [JsonProperty]
+        public string Message { get; set; }
+
+        [JsonProperty]
         public bool Success { get; set; }
 
-        public TaskResult(bool success, string response)
+        [JsonProperty]
+        public T Data { get; set; }
+
+        public TaskResult(bool success, string response, T data)
         {
             Success = success;
-            Response = response;
+            Message = response;
+            Data = data;
         }
 
         public override string ToString()
         {
             if (Success)
             {
-                return $"[SUCC] {Response}";
+                return $"[SUCC] {Message}";
             }
 
-            return $"[FAIL] {Response}";
+            return $"[FAIL] {Message}";
         }
     }
 }

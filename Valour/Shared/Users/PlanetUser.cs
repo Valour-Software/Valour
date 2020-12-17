@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -10,18 +11,22 @@ using System.Threading.Tasks;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Shared.Messaging
+namespace Valour.Shared.Users
 {
-    public class MessagePostResponse : TaskResult
+    /// <summary>
+    /// Represents a user within a planet
+    /// </summary>
+    public class PlanetUser : User
     {
-        /// <summary>
-        /// The final index of the message that was posted
-        /// </summary>
-        public ulong Index { get; set; }
-
-        public MessagePostResponse(bool success, string response, ulong index) : base(success, response)
+        public string GetMainRoleColor()
         {
-            this.Index = index;
+            return "#00FAFF";
+        }
+
+        public List<PlanetRole> GetPlanetRoles()
+        {
+            // Implement later
+            return null;
         }
     }
 }
