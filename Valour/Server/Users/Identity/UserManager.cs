@@ -59,13 +59,18 @@ namespace Valour.Server.Users.Identity
                     x => string.Equals(credential_type, x.Credential_Type, StringComparison.OrdinalIgnoreCase) &&
                          string.Equals(identifier, x.Identifier, StringComparison.OrdinalIgnoreCase));
 
+                if (credential == null || string.IsNullOrWhiteSpace(secret))
+                {
+                    return new ValidateResult(new TaskResult(false, "The credentials were incorrect."), null);
+                }
+
                 // Use salt to validate secret hash
                 byte[] hash = PasswordManager.GetHashForPassword(secret, credential.Salt);
 
                 // Spike needs to remember how reference types work 
                 if (!hash.SequenceEqual(credential.Secret))
                 {
-                    return new ValidateResult(new TaskResult(false, "Secret validation failed."), null);
+                    return new ValidateResult(new TaskResult(false, "The credentials were incorrect."), null);
                 }
 
                 User user = await context.Users.FindAsync(credential.User_Id);

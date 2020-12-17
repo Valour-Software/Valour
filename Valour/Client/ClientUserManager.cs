@@ -36,6 +36,13 @@ namespace Valour.Client
             return !(User == null);
         }
 
-        
+        /// <summary>
+        /// Initializes the user using a valid user token
+        /// </summary>
+        /// <param name="token"></param>
+        public static void InitializeUser(string token)
+        {
+
+        }
     }
 }

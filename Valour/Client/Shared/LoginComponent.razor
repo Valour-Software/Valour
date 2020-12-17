@@ -1,27 +1,29 @@
-﻿<body class="login-background">
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+
+<body class="login-background">
     <div class="login-box">
         <div class="col-md-12">
             <section>
                 <h2>Log in to Valour</h2>
-                <form>
-                    <h4>Welcome back!</h4>
-                    <hr />
-                    <div asp-validation-summary="All" class="text-danger"></div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input class="form-control" />
-                        <span asp-validation-for="Username" class="text-danger"></span>
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>Password</label>
-                        <input class="form-control" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                    </div>
-                    <div class="form-group mt-4" style="display:inline-block">
-                        <button type="submit" class="btn btn-primary mt-2">Log in</button>
-                        <button type="submit" class="btn btn-outline-primary mt-2">Register</button>
-                    </div>
-                </form>
+
+                <h4>Welcome back!</h4>
+                <hr />
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input class="form-control" @bind-value="@email" />
+                    <span id="email-span" class="text-danger">@emailSpan</span>
+                </div>
+                <div class="form-group mt-2">
+                    <label>Password</label>
+                    <input class="form-control" @bind-value="@password" />
+                    <span id="password-span" class="text-danger">@passwordSpan</span>
+                </div>
+                <div class="form-group mt-4" style="display:inline-block">
+                    <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button>
+                    <button class="btn btn-outline-primary mt-2">Register</button>
+                </div>
             </section>
         </div>
     </div>
@@ -29,4 +31,40 @@
 
 @code {
 
+    public string email;
+    public string password;
+
+    public string emailSpan;
+    public string passwordSpan;
+
+    private async Task OnClickLogin(MouseEventArgs e)
+    {
+        if (email == null || string.IsNullOrWhiteSpace(email))
+        {
+            emailSpan = "Please enter your email.";
+            return;
+        }
+
+        if (password == null || string.IsNullOrWhiteSpace(password))
+        {
+            passwordSpan = "Please enter your password.";
+            return;
+        }
+
+        // Clear spans
+        passwordSpan = "";
+        emailSpan = "";
+
+        string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
+        string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
+
+        TokenResponse loginResult = await Http.GetFromJsonAsync<TokenResponse>($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}");
+
+        passwordSpan = loginResult.Result.ToString();
+
+        if (loginResult.Result.Success)
+        {
+            ClientUserManager.
+        }
+    }
 }

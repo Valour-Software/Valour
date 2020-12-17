@@ -180,16 +180,14 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TokenResponse> RequestStandardToken(string email, string password)
         {
-            var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
+            User user = await Context.Users.FirstOrDefaultAsync(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
 
-            // If the verification failed, forward the failure
-            if (!result.Result.Success)
+            if (user == null)
             {
-                return new TokenResponse(null, result.Result);
+                return new TokenResponse(null, new TaskResult(false, "There was no user found with that email."));
             }
 
-            // Otherwise, get the user we just verified
-            User user = result.User;
+            bool authorized = false;
 
             if (!user.Verified_Email)
             {
@@ -209,6 +207,32 @@ namespace Valour.Server.Controllers
 
                 Context.EmailConfirmCodes.Remove(confirmCode);
                 await Context.SaveChangesAsync();
+
+                authorized = true;
+            }
+            else
+            {
+
+                var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
+
+                if (result.User != null && user.Id != result.User.Id)
+                {
+                    return new TokenResponse(null, new TaskResult(false, "A critical error occured. This should not be possible. Seek help immediately."));
+                }
+
+                if (!result.Result.Success)
+                {
+                    Console.WriteLine($"Failed password validation for {email}");
+                    return new TokenResponse(null, result.Result);
+                }
+
+                authorized = true;
+            }
+
+            // If the verification failed, forward the failure
+            if (!authorized)
+            {
+                return new TokenResponse(null, new TaskResult(false, "Failed to authorize user."));
             }
 
             // We now have to create a token for the user
