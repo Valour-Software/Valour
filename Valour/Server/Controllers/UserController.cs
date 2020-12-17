@@ -235,21 +235,40 @@ namespace Valour.Server.Controllers
                 return new TaskResult<string>(false, "Failed to authorize user.", null);
             }
 
-            // We now have to create a token for the user
-            AuthToken token = new AuthToken()
-            {
-                App_Id = "VALOUR",
-                Id = Guid.NewGuid().ToString(),
-                Time = DateTime.UtcNow,
-                Expires = DateTime.UtcNow.AddDays(7),
-                Scope = Permission.FullControl.Value,
-                User_Id = user.Id
-            };
+            // Check if there are any tokens already
+            AuthToken token = null;
 
-            using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+            token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == Permission.FullControl.Value);
+
+            if (token == null)
             {
-                await context.AuthTokens.AddAsync(token);
-                await context.SaveChangesAsync();
+                // We now have to create a token for the user
+                token = new AuthToken()
+                {
+                    App_Id = "VALOUR",
+                    Id = Guid.NewGuid().ToString(),
+                    Time = DateTime.UtcNow,
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Scope = Permission.FullControl.Value,
+                    User_Id = user.Id
+                };
+
+                using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+                {
+                    await context.AuthTokens.AddAsync(token);
+                    await context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                token.Time = DateTime.UtcNow;
+                token.Expires = DateTime.UtcNow.AddDays(7);
+
+                using (ValourDB context = new ValourDB(ValourDB.DBOptions))
+                {
+                    context.AuthTokens.Update(token);
+                    await context.SaveChangesAsync();
+                }
             }
 
             return new TaskResult<string>(true, "Successfully verified and retrieved token!", token.Id);

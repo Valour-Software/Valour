@@ -23,7 +23,7 @@
                 </div>
                 <div class="form-group mt-4" style="display:inline-block">
                     <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button>
-                    <button class="btn btn-outline-primary mt-2">Register</button>
+                    <button class="btn btn-outline-primary mt-2" @onclick="OnClickRegister">Register</button>
                 </div>
             </section>
         </div>
@@ -75,5 +75,10 @@
                 navManager.NavigateTo("/");
             }
         }
+    }
+
+    private async Task OnClickRegister(MouseEventArgs e)
+    {
+        navManager.NavigateTo("/Register", forceLoad: true);
     }
 }
