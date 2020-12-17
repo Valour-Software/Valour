@@ -256,16 +256,25 @@ namespace Valour.Server.Controllers
         }
 
         /// <summary>
-        /// Returns a user using a token for verification
+        /// Returns all user data using a token for verification
         /// </summary>
-        public async Task<ClientUser> GetUserWithToken(string token)
+        public async Task<TaskResult<ClientUser>> GetUserWithToken(string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
             if (authToken == null)
             {
-
+                return new TaskResult<ClientUser>(false, "Failed to verify token.", null);
             }
+
+            // This is the server-side user, but we don't want to send that.
+            // We want to send just what the client needs.
+            User topUser = await Context.Users.FindAsync(authToken.User_Id);
+
+            ClientUser user = new ClientUser()
+            {
+                
+            };
         }
     }
 }
