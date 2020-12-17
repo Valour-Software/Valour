@@ -1,5 +1,6 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
+@inject LocalStorageService storage
 
 <body class="login-background">
     <div class="login-box">
@@ -17,7 +18,7 @@
                 </div>
                 <div class="form-group mt-2">
                     <label>Password</label>
-                    <input class="form-control" @bind-value="@password" />
+                    <input type="password" class="form-control" @bind-value="@password" />
                     <span id="password-span" class="text-danger">@passwordSpan</span>
                 </div>
                 <div class="form-group mt-4" style="display:inline-block">
@@ -66,7 +67,7 @@
 
         if (loginResult.Success)
         {
-            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, Http);
+            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, Http, storage);
             passwordSpan = result.Message;
 
             if (result.Success)

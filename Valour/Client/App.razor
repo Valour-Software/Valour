@@ -1,84 +1,91 @@
 @using Valour.Shared
 @inject HttpClient Http
 @inject NavigationManager navManager
+@inject LocalStorageService storage
 
-<Router AppAssembly="@typeof(Program).Assembly">
-    <Found Context="routeData">
+@if (triedInitialLogin)
+{
+    <Router AppAssembly="@typeof(Program).Assembly">
+        <Found Context="routeData">
+            @if (ClientUserManager.IsLoggedIn())
+            {
+                <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+                <body>
+                    <div class="mainrow">
+                        <div class="sidebar" id="sidebar1">
+                            <img class="valour-logo" src="https://cdn.discordapp.com/attachments/723728766076977164/768967236806246420/USE_THIS_ONE_Logo.png">
+                            <p class="valour-name">
+                                Valour
+                            </p>
+                            <p class="valour-version">
+                                Valour Platform Version 0.0.1 Pre-Alpha
+                            </p>
+                            <RoleComponent Name="Emperor"></RoleComponent>
+                            <UserComponent Only="true" Username="SpikeViper" Role_color="rgb(0, 250, 255);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/148554809392234497/f9f221695ebe707c9707ecf122440134.png?size=128"></UserComponent>
+                            <RoleComponent Name="Prime Minister"></RoleComponent>
+                            <UserComponent Only="true" Username="Pope Francis" Role_color="rgba(0, 255, 250, 1);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/153555060926840833/240f5eb647299279607c78fa9fb1f835.png?size=128"></UserComponent>
+                            <RoleComponent Name="VoopAI"></RoleComponent>
+                            <UserComponent Only="true" Bot="true" Username="VoopAI" Role_color="rgb(255, 0, 233);" State="Moderating" pfp_url="https://cdn.discordapp.com/avatars/601282518989275177/6b8b49aeae7e5a6c606fb5ebfbaa99d3.png?size=512"></UserComponent>
+                            <RoleComponent Name="Admin"></RoleComponent>
+                            <UserComponent First="true" Username="xbomber125" Role_color="rgb(0, 192, 192);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/212725867757961216/6d2f3798290d41fc2022e0abe2c4dbdc.png?size=128"></UserComponent>
+                            <UserComponent Username="Silly" Role_color="rgb(0, 192, 192);" State="In another server" pfp_url="https://cdn.discordapp.com/avatars/203353033814310912/aad3215a0acdad45294a119d055e33b1.png?size=128"></UserComponent>
+                            <UserComponent Username="Jam" Role_color="rgb(0, 192, 192);" State="In Off Topic" pfp_url="https://cdn.discordapp.com/avatars/474709845895806976/0906d3e1cdacc24ad26b530cca2730b6.png?size=128"></UserComponent>
+                            <UserComponent Last="true" Username="Tyco" Role_color="rgb(0, 192, 192);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/339896226122301440/e635b741ba65cdce0a6de10523002852.png?size=128"></UserComponent>
+                        </div>
+                        <div class="sidebar-2" id="sidebar2">
+                            <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
+                            <div class="top-bar">
+                            </div>
+                            <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
+                            <CategoryComponent Name="Announcements" IsOpen="false"></CategoryComponent>
+                            <CategoryComponent Name="General Discussion" IsOpen="true">
+                                <ChannelComponent Last="false" Open="true" First="true" Name="General"></ChannelComponent>
+                                <ChannelComponent Last="false" Open="false" First="false" Name="Off Topic"></ChannelComponent>
+                                <ChannelComponent Last="false" Open="false" First="false" Name="Current Events"></ChannelComponent>
+                                <ChannelComponent Last="false" Open="false" First="false" Name="Memes"></ChannelComponent>
+                                <ChannelComponent Last="true" Open="false" First="false" Name="Spike's Code Corner"></ChannelComponent>
+                            </CategoryComponent>
+                        </div>
+                        <div class="channel-and-topbar" id="mainwindow">
+                            <div class="topbar">
+                            </div>
+                            <div class="topline">
+                            </div>
+                            <div class="window" id="window">
 
-        @if (ClientUserManager.IsLoggedIn())
-        {
-            <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-            <body>
-                <div class="mainrow">
-                    <div class="sidebar" id="sidebar1">
-                        <img class="valour-logo" src="https://cdn.discordapp.com/attachments/723728766076977164/768967236806246420/USE_THIS_ONE_Logo.png">
-                        <p class="valour-name">
-                            Valour
-                        </p>
-                        <p class="valour-version">
-                            Valour Platform Version 0.0.1 Pre-Alpha
-                        </p>
-                        <RoleComponent Name="Emperor"></RoleComponent>
-                        <UserComponent Only="true" Username="SpikeViper" Role_color="rgb(0, 250, 255);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/148554809392234497/f9f221695ebe707c9707ecf122440134.png?size=128"></UserComponent>
-                        <RoleComponent Name="Prime Minister"></RoleComponent>
-                        <UserComponent Only="true" Username="Pope Francis" Role_color="rgba(0, 255, 250, 1);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/153555060926840833/240f5eb647299279607c78fa9fb1f835.png?size=128"></UserComponent>
-                        <RoleComponent Name="VoopAI"></RoleComponent>
-                        <UserComponent Only="true" Bot="true" Username="VoopAI" Role_color="rgb(255, 0, 233);" State="Moderating" pfp_url="https://cdn.discordapp.com/avatars/601282518989275177/6b8b49aeae7e5a6c606fb5ebfbaa99d3.png?size=512"></UserComponent>
-                        <RoleComponent Name="Admin"></RoleComponent>
-                        <UserComponent First="true" Username="xbomber125" Role_color="rgb(0, 192, 192);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/212725867757961216/6d2f3798290d41fc2022e0abe2c4dbdc.png?size=128"></UserComponent>
-                        <UserComponent Username="Silly" Role_color="rgb(0, 192, 192);" State="In another server" pfp_url="https://cdn.discordapp.com/avatars/203353033814310912/aad3215a0acdad45294a119d055e33b1.png?size=128"></UserComponent>
-                        <UserComponent Username="Jam" Role_color="rgb(0, 192, 192);" State="In Off Topic" pfp_url="https://cdn.discordapp.com/avatars/474709845895806976/0906d3e1cdacc24ad26b530cca2730b6.png?size=128"></UserComponent>
-                        <UserComponent Last="true" Username="Tyco" Role_color="rgb(0, 192, 192);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/339896226122301440/e635b741ba65cdce0a6de10523002852.png?size=128"></UserComponent>
-                    </div>
-                    <div class="sidebar-2" id="sidebar2">
-                        <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
-                        <div class="top-bar">
-                        </div>
-                        <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                        <CategoryComponent Name="Announcements" IsOpen="false"></CategoryComponent>
-                        <CategoryComponent Name="General Discussion" IsOpen="true">
-                            <ChannelComponent Last="false" Open="true" First="true" Name="General"></ChannelComponent>
-                            <ChannelComponent Last="false" Open="false" First="false" Name="Off Topic"></ChannelComponent>
-                            <ChannelComponent Last="false" Open="false" First="false" Name="Current Events"></ChannelComponent>
-                            <ChannelComponent Last="false" Open="false" First="false" Name="Memes"></ChannelComponent>
-                            <ChannelComponent Last="true" Open="false" First="false" Name="Spike's Code Corner"></ChannelComponent>
-                        </CategoryComponent>
-                    </div>
-                    <div class="channel-and-topbar" id="mainwindow">
-                        <div class="topbar">
-                        </div>
-                        <div class="topline">
-                        </div>
-                        <div class="window" id="window">
-
-                            @if (messages != null)
-                            {
-                                foreach (ClientPlanetMessage msg in messages)
+                                @if (messages != null)
                                 {
-                                    <MessageComponent Message="msg"></MessageComponent>
+                                    foreach (ClientPlanetMessage msg in messages)
+                                    {
+                                        <MessageComponent Message="msg"></MessageComponent>
+                                    }
                                 }
-                            }
 
 
-                            <div style="margin-left:32px">
-                                <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress">
+                                <div style="margin-left:32px">
+                                    <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress">
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </body>
-        }
-        else
-        {
-            <LoginComponent></LoginComponent>
-        }
-    </Found>
-    <NotFound>
-        <LayoutView Layout="@typeof(MainLayout)">
-            <p>Sorry, there's nothing at this address.</p>
-        </LayoutView>
-    </NotFound>
-</Router>
+                </body>
+            }
+            else
+            {
+                <LoginComponent></LoginComponent>
+            }
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p>Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+else
+{
+    <Loading></Loading>
+}
 
 @code{
 
@@ -110,9 +117,18 @@
     /// </summary>
     private ulong messageIndex;
 
+    bool triedInitialLogin = false;
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        // Attempt to re-login the user from local token
+        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(Http, storage);
+
+        Console.WriteLine(tokenResult.Message);
+
+        triedInitialLogin = true;
+
         // TODO: Actually get channel id
         channel_id = 1;
 
