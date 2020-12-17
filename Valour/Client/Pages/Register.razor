@@ -49,6 +49,43 @@
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
+        emailSpan = "";
+        passwordSpan = "";
+        usernameSpan = "";
 
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            emailSpan = "Please input an email.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            passwordSpan = "Please input a password.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(username))
+        {
+            usernameSpan = "Please input an username.";
+            return;
+        }
+
+        string encodedUsername = System.Web.HttpUtility.UrlEncode(username);
+        string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
+        string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
+
+        string json = await Http.GetStringAsync($"User/RegisterUser?username={encodedUsername}" +
+                                                                 $"&email={encodedEmail}" +
+                                                                 $"&password={encodedPassword}");
+
+        TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+
+        passwordSpan = result.Message;
+
+        if (result.Success)
+        {
+            navManager.NavigateTo("/");
+        }
     }
 }

@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Email;
@@ -58,6 +60,20 @@ namespace Valour.Server.Controllers
             if (await Context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower()))
             {
                 return new TaskResult(false, $"Failed: There was already a user using the email {email}");
+            }
+
+            TaskResult emailResult = TestEmail(email);
+
+            if (!emailResult.Success)
+            {
+                return emailResult;
+            }
+
+            TaskResult usernameResult = TestUsername(username);
+
+            if (!usernameResult.Success)
+            {
+                return usernameResult;
             }
 
             // Test password complexity
@@ -173,6 +189,39 @@ namespace Valour.Server.Controllers
         {
             // Regex can be slow, so we throw it in another thread
             return await Task.Run(() => PasswordManager.TestComplexity(password));
+        }
+
+        /// <summary>
+        /// Allows checking if a email meets standards
+        /// </summary>
+        public TaskResult TestEmail(string email)
+        {
+            try
+            {
+                MailAddress address = new MailAddress(email);
+                return new TaskResult(true, "Email was valid!");
+            }
+            catch (FormatException e)
+            {
+                return new TaskResult(false, "Email was invalid.");
+            }
+        }
+
+        public Regex usernameRegex = new Regex(@"^[a-zA-Z0-9_-]+$");
+
+        public TaskResult TestUsername(string username)
+        {
+            if (username.Length > 32)
+            {
+                return new TaskResult(false, "That username is too long!");
+            }
+
+            if (!usernameRegex.IsMatch(username))
+            {
+                return new TaskResult(false, "Usernames must be alphanumeric plus underscores and dashes.");
+            }
+
+            return new TaskResult(true, "The given username is valid.");
         }
 
         /// <summary>
