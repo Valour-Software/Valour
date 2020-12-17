@@ -155,8 +155,8 @@
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
 
-        MessagePostResponse response =
-            Newtonsoft.Json.JsonConvert.DeserializeObject<MessagePostResponse>(await httpresponse.Content.ReadAsStringAsync());
+        TaskResult<ulong> response =
+            Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
 
         if (!response.Success)
         {
@@ -164,7 +164,7 @@
             {
                 TimeSent = DateTime.UtcNow,
                 ChannelId = channel_id,
-                Content = $"Failed to post message: {response.Response}",
+                Content = $"Failed to post message: {response.Message}",
                 Index = 0
             });
         }

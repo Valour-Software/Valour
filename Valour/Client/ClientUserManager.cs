@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -24,7 +25,7 @@ namespace Valour.Client
         /// <summary>
         /// This is the currently logged in user for the client
         /// </summary>
-        public static User User { get; set; }
+        public static ClientUser User { get; set; }
 
         /// <summary>
         /// This is the token the user is currently using to stay logged in
@@ -43,9 +44,21 @@ namespace Valour.Client
         /// Initializes the user using a valid user token
         /// </summary>
         /// <param name="token"></param>
-        public static async Task InitializeUser(string token, HttpClient http)
+        public static async Task<TaskResult> InitializeUser(string token, HttpClient http)
         {
-            TaskResult<User> = await http.GetFromJsonAsync("$User/GetUserWithToken?token={token}")
+            string response = await http.GetStringAsync($"User/GetUserWithToken?token={token}");
+
+            TaskResult<ClientUser> result = JsonConvert.DeserializeObject<TaskResult<ClientUser>>(response);
+
+            if (result.Success)
+            {
+                User = result.Data;
+                UserSecretToken = token;
+
+                return new TaskResult(true, "Initialized user successfully!");
+            }
+
+            return new TaskResult(false, "An error occured retrieving the user.");
         }
     }
 }

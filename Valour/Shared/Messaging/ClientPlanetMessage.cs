@@ -13,6 +13,16 @@ namespace Valour.Shared.Messaging
         /// <summary>
         /// The author of this message
         /// </summary>
-        public PlanetUser Author { get; set; }
+        public PlanetUser GetAuthor()
+        {
+            // TODO: Actually fetch author
+            return new PlanetUser()
+            {
+                Id = 0,
+                Username = "Test User"
+            };
+        }
+
+        public ulong Author_Id { get; set; }
     }
 }

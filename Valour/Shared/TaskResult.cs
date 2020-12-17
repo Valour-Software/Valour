@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,8 +23,13 @@ namespace Valour.Shared
 
     public class TaskResult<T>
     {
+        [JsonProperty]
         public string Message { get; set; }
+
+        [JsonProperty]
         public bool Success { get; set; }
+
+        [JsonProperty]
         public T Data { get; set; }
 
         public TaskResult(bool success, string response, T data)

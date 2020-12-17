@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared.Users;
 
-namespace Valour.Server.Users
+namespace Valour.Shared.Users
 {
     /// <summary>
     /// This is the private User implementation, which should only be held by the server and local client.

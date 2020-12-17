@@ -1,6 +1,6 @@
 ﻿<div class="user-info">
     <img class="pfp" src="@User.Pfp_Url">
-    <p class="username" style="color: @User.GetMainRoleColor();">
+    <p class="username">
         @User.Username
     </p>
     <div class="active">
@@ -10,5 +10,5 @@
 
 @code {
     [Parameter]
-    public PlanetUser User { get; set; }
+    public ClientUser User { get; set; }
 }

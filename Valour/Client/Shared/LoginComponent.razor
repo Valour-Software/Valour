@@ -58,13 +58,21 @@
         string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
         string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
 
-        TaskResult<string> loginResult = await Http.GetFromJsonAsync<TaskResult<string>>($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}");
+        string response = await Http.GetStringAsync($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}");
+
+        TaskResult<string> loginResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<string>>(response);
 
         passwordSpan = loginResult.ToString();
 
         if (loginResult.Success)
         {
-            await ClientUserManager.InitializeUser(loginResult.Data);
+            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, Http);
+            passwordSpan = result.Message;
+
+            if (result.Success)
+            {
+                navManager.NavigateTo("/");
+            }
         }
     }
 }

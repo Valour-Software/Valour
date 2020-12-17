@@ -4,6 +4,7 @@ using System.Security.Claims;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared.Oauth;
+using Valour.Shared.Users;
 
 namespace Valour.Server.Database
 {

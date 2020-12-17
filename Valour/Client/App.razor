@@ -34,7 +34,7 @@
                         <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
                         <div class="top-bar">
                         </div>
-                        <UserInfoComponent User="@user"></UserInfoComponent>
+                        <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
                         <CategoryComponent Name="Announcements" IsOpen="false"></CategoryComponent>
                         <CategoryComponent Name="General Discussion" IsOpen="true">
                             <ChannelComponent Last="false" Open="true" First="true" Name="General"></ChannelComponent>
@@ -101,11 +101,6 @@
     private HubConnection hubConnection;
 
     /// <summary>
-    /// The current user
-    /// </summary>
-    private PlanetUser user;
-
-    /// <summary>
     /// The current channel id
     /// </summary>
     private ulong channel_id;
@@ -121,19 +116,8 @@
         // TODO: Actually get channel id
         channel_id = 1;
 
-        // TODO: Actually get the current user
-        user = new PlanetUser()
-        {
-
-            Username = "Test User",
-            Id = 0,
-            Pfp_Url = "https://SpookVooper.com/media/unity-256.png"
-        };
-
         await ConnectSignalR();
         await RefreshMessages();
-
-
     }
 
     public async Task ConnectSignalR()
@@ -157,9 +141,15 @@
     {
         Console.WriteLine($"Recieved a message: {msg}");
 
+        PlanetUser sender = new PlanetUser()
+        {
+            Id = 0,
+            Username = "Test User"
+        };
+
         ClientPlanetMessage message = new ClientPlanetMessage()
         {
-            Author = user,
+            Author_Id = sender.Id,
             ChannelId = channel_id,
             Content = msg,
             TimeSent = DateTime.UtcNow
@@ -212,7 +202,7 @@
             ChannelId = channel_id,
             Content = msg,
             TimeSent = DateTime.UtcNow,
-            Author = user
+            Author_Id = ClientUserManager.User.Id
         };
 
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
