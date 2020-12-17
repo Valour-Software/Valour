@@ -273,14 +273,14 @@ body {
 }
 
 .sidebar-2 .category .channel.first {
-    margin-top: 17px;
+    margin-top: 10px;
 }
 
 .sidebar-2 .category .channel {
     width: 257px;
     height: 31px;
     margin-left: 6px;
-    margin-bottom: 8px;
+    margin-bottom: 2px;
     border-radius: 5px
 }
 
@@ -312,7 +312,7 @@ body {
     width: 269px;
     background: rgba(255, 255, 255, 0.1);
     margin: 0px;
-    margin-top: -4px;
+    margin-top: -1px;
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
     overflow: auto;
