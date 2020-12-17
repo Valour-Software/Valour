@@ -58,13 +58,13 @@
         string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
         string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
 
-        TokenResponse loginResult = await Http.GetFromJsonAsync<TokenResponse>($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}");
+        TaskResult<string> loginResult = await Http.GetFromJsonAsync<TaskResult<string>>($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}");
 
-        passwordSpan = loginResult.Result.ToString();
+        passwordSpan = loginResult.ToString();
 
-        if (loginResult.Result.Success)
+        if (loginResult.Success)
         {
-            ClientUserManager.
+            await ClientUserManager.InitializeUser(loginResult.Data);
         }
     }
 }

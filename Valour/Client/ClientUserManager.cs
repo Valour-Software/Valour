@@ -40,7 +40,7 @@ namespace Valour.Client
         /// Initializes the user using a valid user token
         /// </summary>
         /// <param name="token"></param>
-        public static void InitializeUser(string token)
+        public static async Task InitializeUser(string token)
         {
 
         }

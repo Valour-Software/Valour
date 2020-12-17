@@ -178,13 +178,13 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Allows a token to be requested using basic login information
         /// </summary>
-        public async Task<TokenResponse> RequestStandardToken(string email, string password)
+        public async Task<TaskResult<string>> RequestStandardToken(string email, string password)
         {
             User user = await Context.Users.FirstOrDefaultAsync(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
 
             if (user == null)
             {
-                return new TokenResponse(null, new TaskResult(false, "There was no user found with that email."));
+                return new TaskResult<string>(false, "There was no user found with that email.", null);
             }
 
             bool authorized = false;
@@ -198,8 +198,8 @@ namespace Valour.Server.Controllers
                 // send the same error either way.
                 if (confirmCode == null || confirmCode.User_Id != user.Id)
                 {
-                    return new TokenResponse(null, new TaskResult(false, "The email associated with this account needs to be verified! Please log in using the code " +
-                        "that was emailed as your password."));
+                    return new TaskResult<string>(false, "The email associated with this account needs to be verified! Please log in using the code " +
+                        "that was emailed as your password.", null);
                 }
 
                 // At this point the email has been confirmed
@@ -215,15 +215,15 @@ namespace Valour.Server.Controllers
 
                 var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
 
-                if (result.User != null && user.Id != result.User.Id)
+                if (result.Data != null && user.Id != result.Data.Id)
                 {
-                    return new TokenResponse(null, new TaskResult(false, "A critical error occured. This should not be possible. Seek help immediately."));
+                    return new TaskResult<string>(false, "A critical error occured. This should not be possible. Seek help immediately.", null);
                 }
 
-                if (!result.Result.Success)
+                if (!result.Success)
                 {
                     Console.WriteLine($"Failed password validation for {email}");
-                    return new TokenResponse(null, result.Result);
+                    return new TaskResult<string>(false, result.Message, null);
                 }
 
                 authorized = true;
@@ -232,7 +232,7 @@ namespace Valour.Server.Controllers
             // If the verification failed, forward the failure
             if (!authorized)
             {
-                return new TokenResponse(null, new TaskResult(false, "Failed to authorize user."));
+                return new TaskResult<string>(false, "Failed to authorize user.", null);
             }
 
             // We now have to create a token for the user
@@ -252,7 +252,20 @@ namespace Valour.Server.Controllers
                 await context.SaveChangesAsync();
             }
 
-            return new TokenResponse(token.Id, new TaskResult(true, "Successfully verified and retrieved token!"));
+            return new TaskResult<string>(true, "Successfully verified and retrieved token!", token.Id);
+        }
+
+        /// <summary>
+        /// Returns a user using a token for verification
+        /// </summary>
+        public async Task<ClientUser> GetUserWithToken(string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+
+            }
         }
     }
 }

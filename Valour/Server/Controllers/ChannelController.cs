@@ -49,13 +49,13 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<MessagePostResponse> PostMessage(ClientPlanetMessage msg)
+        public async Task<TaskResult<ulong>> PostMessage(ClientPlanetMessage msg)
         {
             //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
 
             if (msg == null)
             {
-                return new MessagePostResponse(false, "Malformed message.", 0);
+                return new TaskResult<ulong>(false, "Malformed message.", 0);
             }
 
             ulong channel_id = msg.ChannelId;
@@ -75,7 +75,7 @@ namespace Valour.Server.Controllers
 
             await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", msg.Content);
 
-            return new MessagePostResponse(true, "Test", index);
+            return new TaskResult<ulong>(true, "Test", index);
         }
     }
 }
