@@ -1,16 +1,17 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 
-<div class="window" id="window">
+<div class="d-flex flex-column window" style="height:80%;" id="window">
 
-    @if (messages != null)
-    {
-        foreach (ClientPlanetMessage msg in messages)
+    <div class="p-2 mt-auto">
+        @if (messages != null)
         {
-            <MessageComponent Message="msg"></MessageComponent>
+            foreach (ClientPlanetMessage msg in messages)
+            {
+                <MessageComponent Message="msg"></MessageComponent>
+            }
         }
-    }
-
+    </div>
 
     <div style="margin-left:32px">
         <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress">
