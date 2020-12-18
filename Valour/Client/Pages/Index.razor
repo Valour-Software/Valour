@@ -38,11 +38,11 @@
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
                 <CategoryComponent Name="Announcements" IsOpen="false"></CategoryComponent>
                 <CategoryComponent Name="General Discussion" IsOpen="true">
-                    <ChannelComponent Last="false" Open="true" First="true" Name="General"></ChannelComponent>
-                    <ChannelComponent Last="false" Open="false" First="false" Name="Off Topic"></ChannelComponent>
-                    <ChannelComponent Last="false" Open="false" First="false" Name="Current Events"></ChannelComponent>
-                    <ChannelComponent Last="false" Open="false" First="false" Name="Memes"></ChannelComponent>
-                    <ChannelComponent Last="true" Open="false" First="false" Name="Spike's Code Corner"></ChannelComponent>
+                    <ChannelListComponent Last="false" Open="true" First="true" Name="General"></ChannelListComponent>
+                    <ChannelListComponent Last="false" Open="false" First="false" Name="Off Topic"></ChannelListComponent>
+                    <ChannelListComponent Last="false" Open="false" First="false" Name="Current Events"></ChannelListComponent>
+                    <ChannelListComponent Last="false" Open="false" First="false" Name="Memes"></ChannelListComponent>
+                    <ChannelListComponent Last="true" Open="false" First="false" Name="Spike's Code Corner"></ChannelListComponent>
                 </CategoryComponent>
             </div>
             <div class="channel-and-topbar" id="mainwindow">
@@ -50,21 +50,7 @@
                 </div>
                 <div class="topline">
                 </div>
-                <div class="window" id="window">
-
-                    @if (messages != null)
-                    {
-                        foreach (ClientPlanetMessage msg in messages)
-                        {
-                            <MessageComponent Message="msg"></MessageComponent>
-                        }
-                    }
-
-
-                    <div style="margin-left:32px">
-                        <input type="text" class="textbox" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress">
-                    </div>
-                </div>
+                <ChannelWindow></ChannelWindow>
             </div>
         </div>
     </body>
@@ -72,154 +58,4 @@
 else
 {
     <LoginComponent></LoginComponent>
-}
-
-
-@code{
-
-    /// <summary>
-    /// True if the client has negotiated a channel connection
-    /// </summary>
-    private bool channelConnected;
-
-    /// <summary>
-    /// The input currently within the chatbox, this is bound and any changes will
-    /// be reflected within the box.
-    /// </summary>
-    private string currentInput;
-
-    /// <summary>
-    /// Storage for messages that should be displayed
-    /// </summary>
-    private List<ClientPlanetMessage> messages;
-
-    private HubConnection hubConnection;
-
-    /// <summary>
-    /// The current channel id
-    /// </summary>
-    private ulong channel_id;
-
-    /// <summary>
-    /// The index of the last sent message
-    /// </summary>
-    private ulong messageIndex;
-
-    // Runs when page is initialized
-    protected override async Task OnInitializedAsync()
-    {
-        // TODO: Actually get channel id
-        channel_id = 1;
-
-        await ConnectSignalR();
-        await RefreshMessages();
-    }
-
-    public async Task ConnectSignalR()
-    {
-        // Get url for
-        string conUrl = navManager.BaseUri.TrimEnd('/') + "/messagehub";
-
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(conUrl)
-            .Build();
-
-        await hubConnection.StartAsync();
-
-        // Connect to channel
-        await hubConnection.SendAsync("JoinChannel", channel_id);
-
-        hubConnection.On<string>("Relay", RecieveMessage);
-    }
-
-    public void RecieveMessage(string msg)
-    {
-        Console.WriteLine($"Recieved a message: {msg}");
-
-        PlanetUser sender = new PlanetUser()
-        {
-            Id = 0,
-            Username = "Test User"
-        };
-
-        ClientPlanetMessage message = new ClientPlanetMessage()
-        {
-            Author_Id = sender.Id,
-            ChannelId = channel_id,
-            Content = msg,
-            TimeSent = DateTime.UtcNow
-        };
-
-        messages.Add(message);
-
-        // Flag for UI refresh
-        StateHasChanged();
-    }
-
-    public async Task RefreshMessages()
-    {
-        // Request messages from server
-        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={channel_id}");
-    }
-
-    /// <summary>
-    /// This runs every time a key is pressed when the chatbox is selected
-    /// </summary>
-    public async Task OnChatboxKeypress(KeyboardEventArgs args)
-    {
-        // Debug for key presses
-        // Console.WriteLine(currentInput);
-
-        if (args.Key == "Enter")
-        {
-            // Grab current input
-            string msg = currentInput;
-
-            // Clear input
-            currentInput = "";
-
-            // Post message to server
-            await PostMessage(msg);
-
-            StateHasChanged();
-        }
-    }
-
-    public async Task OnChatboxInput()
-    {
-
-    }
-
-    public async Task PostMessage(string msg)
-    {
-        ClientPlanetMessage message = new ClientPlanetMessage()
-        {
-            ChannelId = channel_id,
-            Content = msg,
-            TimeSent = DateTime.UtcNow,
-            Author_Id = ClientUserManager.User.Id
-        };
-
-        string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
-
-        Console.WriteLine(json);
-
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
-
-        TaskResult<ulong> response =
-            Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
-
-        if (!response.Success)
-        {
-            messages.Add(new ClientPlanetMessage()
-            {
-                TimeSent = DateTime.UtcNow,
-                ChannelId = channel_id,
-                Content = $"Failed to post message: {response.Message}",
-                Index = 0
-            });
-        }
-
-        Console.WriteLine(response.ToString());
-    }
 }
