@@ -118,7 +118,7 @@ body {
     height: 36px;
     border-radius: 50%;
     margin-top: 6px;
-    margin-left: 28px;
+    margin-left: 8px;
 }
 
 .message .author-name {
@@ -159,7 +159,7 @@ body {
     line-height: 14px;
     color: #7A7A7A;
     margin: 0px;
-    margin-left: 24px;
+    margin-left: 4px;
 }
 
 .channel-and-topbar {
