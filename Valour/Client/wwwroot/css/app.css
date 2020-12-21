@@ -96,9 +96,13 @@ body {
     height: 69px;
     margin-top: 40px;
     width: 95%;
-    height: 68px;
+    height: 40px;
     margin-left: auto;
     margin-right: auto;
+    color: white;
+    word-break: break-word;
+    overflow-y: scroll;
+    overflow-wrap:break-word;
 }
 
 .message.ping {
@@ -114,7 +118,7 @@ body {
     height: 36px;
     border-radius: 50%;
     margin-top: 6px;
-    margin-left: 28px;
+    margin-left: 8px;
 }
 
 .message .author-name {
@@ -144,7 +148,7 @@ body {
     line-height: 23px;
     color: #FFFFFF;
     margin: 0px;
-    
+    word-break:break-all;
 }
 
 .message .time {
@@ -155,7 +159,7 @@ body {
     line-height: 14px;
     color: #7A7A7A;
     margin: 0px;
-    margin-left: 24px;
+    margin-left: 4px;
 }
 
 .channel-and-topbar {
