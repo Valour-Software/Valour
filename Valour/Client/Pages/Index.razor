@@ -54,7 +54,13 @@
                     Todo: Logic for multiple main windows. 
                     This will be fun.
                 -->
-                <MainWindow></MainWindow>
+
+                <!--
+                    Add dummy window so Jacob doesn't cry    
+                -->
+                @{ ClientChannelManager.AddOpenChatChannel(new PlanetChatChannel()); }
+
+                <MainWindow OpenChatChannel="@ClientChannelManager.GetOpenChatChannel(0)"></MainWindow>
             </div>
         </div>
     </body>

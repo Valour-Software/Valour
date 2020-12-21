@@ -8,7 +8,17 @@
     chosen channel, or otherwise displays the home window
 -->
 
+@if (OpenChatChannel == null)
+{
+    <HomeWindow></HomeWindow>
+}
+else
+{
+    <ChannelWindow></ChannelWindow>
+}
+
 
 @code {
-    public IChat
+    [Parameter]
+    public IChatChannel OpenChatChannel { get; set; }
 }
