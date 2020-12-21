@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared.Planets
 {
-    class Planet
+    public class Planet
     {        
         /// <summary>
         /// The ID of the planet

@@ -5,6 +5,7 @@ using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared.Oauth;
 using Valour.Shared.Users;
+using Valour.Shared.Planets;
 
 namespace Valour.Server.Database
 {
@@ -53,6 +54,11 @@ namespace Valour.Server.Database
         /// Table for email confirmation codes
         /// </summary>
         public DbSet<EmailConfirmCode> EmailConfirmCodes { get; set; }
+
+        /// <summary>
+        /// Table for planet definitions
+        /// </summary>
+        public DbSet<Planet> Planets { get; set; }
 
         public ValourDB(DbContextOptions options)
         {
