@@ -13,7 +13,41 @@ using System.Threading.Tasks;
 namespace Valour.Shared.Planets
 {
     class Planet
-    {
-        
+    {        
+        /// <summary>
+        /// The ID of the planet
+        /// </summary>
+        public ulong Id { get; set; }
+
+        /// <summary>
+        /// The Id of the owner of this planet
+        /// </summary>
+        public ulong Owner_Id { get; set; }
+
+        /// <summary>
+        /// The name of the planet
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The image url for the planet 
+        /// </summary>
+        public string Image_Url { get; set; }
+
+        /// <summary>
+        /// The description of the planet
+        /// </summary>
+        public string Description { get; set; }
+
+        /// <summary>
+        /// If the server requires express allowal to join a planet
+        /// </summary>
+        public bool Public { get; set; }
+
+        /// <summary>
+        /// The amount of members on the planet
+        /// </summary>
+        public uint Member_Count { get; set;}
+
     }
 }
