@@ -65,7 +65,7 @@ namespace Valour.Server.Database
 
         public ValourDB(DbContextOptions options)
         {
-
+            
         }
     }
 }
