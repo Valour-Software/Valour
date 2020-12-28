@@ -9,7 +9,7 @@
             <img class="author-pfp" src="~/icon-512.png" />
         }
         <p class="time">
-            @Message.TimeSent.ToShortTimeString()
+            @Message.TimeSent.ToLocalTime().ToShortTimeString()
         </p>
     </div>
     <div class="message-content">

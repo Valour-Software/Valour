@@ -40,7 +40,8 @@ namespace Valour.Server.Controllers
             ClientPlanetMessage welcome = new ClientPlanetMessage()
             {
                 ChannelId = channelId,
-                Content = "Welcome back."
+                Content = "Welcome back.",
+                TimeSent = DateTime.UtcNow
             };
 
             messageCache.Add(welcome);
