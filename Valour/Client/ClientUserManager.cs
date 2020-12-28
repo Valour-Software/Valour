@@ -100,6 +100,9 @@ namespace Valour.Client
             return new TaskResult(false, "An error occured retrieving the user.");
         }
 
+        /// <summary>
+        /// Retrieves and updates the current planets that the user is a member of
+        /// </summary>
         public static async Task RefreshPlanetsAsync(HttpClient http)
         {
             string json = await http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
