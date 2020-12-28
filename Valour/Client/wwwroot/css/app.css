@@ -645,3 +645,11 @@ body {
         transform: translateY(5%);
     }
 }
+
+.home-server {
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    width: 150px;
+    height: 150px;
+    padding: 10px;
+}

@@ -58,7 +58,8 @@
                 <!--
                     Add dummy window so Jacob doesn't cry    
                 -->
-                @{ ClientChannelManager.AddOpenChatChannel(new PlanetChatChannel()); }
+
+                @{ /*ClientChannelManager.AddOpenChatChannel(new PlanetChatChannel());*/ }
 
                 <MainWindow OpenChatChannel="@ClientChannelManager.GetOpenChatChannel(0)"></MainWindow>
             </div>
