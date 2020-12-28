@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading.Tasks;
 
 /*  Valour - A free and secure chat client
@@ -83,7 +84,12 @@ namespace Valour.Server.Oauth
     {
         // Use shared full control definition
         public static readonly Permission FullControl = Permission.FullControl;
+
+        // Every subsequent permission has double the value (the next bit)
+        // An update should NEVER change the order or value of old permissions
+        // As that would be a massive security issue
         public static readonly Permission None = new Permission(0x01, "None", "Only view your account ID when authorized.");
         public static readonly Permission View = new Permission(0x02, "View", "Access basic information about your account.");
+        public static readonly Permission Membership = new Permission(0x04, "Membership", "View the planets you are a member of.");
     }
 }

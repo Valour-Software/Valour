@@ -5,7 +5,7 @@
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
 
-
+<!-- Check login status -->
 @if (ClientUserManager.IsLoggedIn())
 {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
@@ -50,13 +50,12 @@
                 </div>
                 <div class="topline">
                 </div>
-                <!-- 
-                    Todo: Logic for multiple main windows. 
+                <!--
+                    Todo: Logic for multiple main windows.
                     This will be fun.
                 -->
-
                 <!--
-                    Add dummy window so Jacob doesn't cry    
+                    Add dummy window so Jacob doesn't cry
                 -->
 
                 @{ /*ClientChannelManager.AddOpenChatChannel(new PlanetChatChannel());*/ }

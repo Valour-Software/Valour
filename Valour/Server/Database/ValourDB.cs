@@ -6,6 +6,7 @@ using Valour.Server.Users.Identity;
 using Valour.Shared.Oauth;
 using Valour.Shared.Users;
 using Valour.Shared.Planets;
+using Valour.Server.Planets;
 
 namespace Valour.Server.Database
 {
@@ -60,7 +61,7 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<Planet> Planets { get; set; }
 
-        public DbSet<PlanetUser> PlanetUsers { get; set; }
+        public DbSet<PlanetMember> PlanetMembers { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

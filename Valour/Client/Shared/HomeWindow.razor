@@ -3,6 +3,15 @@
 
 <hr />
 
+@foreach (Planet planet in ClientUserManager.User.Planets)
+{
+    <div class="flex-row flex-wrap m-5">
+        <div class="home-server">
+            <h6 class="text-center">@planet.Name</h6>
+        </div>
+    </div>
+}
+
 <div class="flex-row flex-wrap m-5">
     <div class="home-server">
         <h6 class="text-center">Create a planet</h6>

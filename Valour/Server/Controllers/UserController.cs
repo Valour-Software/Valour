@@ -10,10 +10,12 @@ using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Email;
 using Valour.Server.Oauth;
+using Valour.Server.Planets;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared;
 using Valour.Shared.Oauth;
+using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Shared.Users.Identity;
 
@@ -338,6 +340,45 @@ namespace Valour.Server.Controllers
             ClientUser user = await Context.Users.FindAsync(authToken.User_Id);
 
             return new TaskResult<ClientUser>(true, "Retrieved user.", user);
+        }
+
+        /// <summary>
+        /// Returns the planet membership of a user
+        /// </summary>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public async Task<TaskResult<List<Planet>>> GetPlanetMembership(ulong id, string token)
+        {
+            if (token == null)
+            {
+                return new TaskResult<List<Planet>>(false, "Please supply an authentication token", null);
+            }
+
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken.User_Id != id)
+            {
+                return new TaskResult<List<Planet>>(false, $"Could not authenticate for user {id}", null);
+            }
+
+            if (!Permission.HasPermission(authToken.Scope, UserPermissions.Membership))
+            {
+                return new TaskResult<List<Planet>>(false, $"The given token does not have membership scope", null);
+            }
+
+            List<Planet> membership = new List<Planet>();
+
+            foreach(PlanetMember member in Context.PlanetMembers.Where(x => x.User_Id == id))
+            {
+                Planet planet = await Context.Planets.FindAsync(member.Planet_Id);
+
+                if (planet != null)
+                {
+                    membership.Add(planet);
+                }
+            }
+
+            return new TaskResult<List<Planet>>(true, $"Retrieved {membership.Count} planets", membership);
         }
     }
 }

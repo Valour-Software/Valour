@@ -11,6 +11,8 @@ using Valour.Shared.Users;
 using Valour.Shared.Oauth;
 using System.Security.Cryptography;
 using Blazored.LocalStorage;
+using Valour.Shared.Planets;
+using System.Runtime.CompilerServices;
 
 namespace Valour.Client
 {
@@ -35,6 +37,11 @@ namespace Valour.Client
         /// This is the token the user is currently using to stay logged in
         /// </summary>
         public static string UserSecretToken { get; set; }
+
+        /// <summary>
+        /// Cache for joined planet objects
+        /// </summary>
+        public static List<Planet> Planets = new List<Planet>();
 
         /// <summary>
         /// True if the user is logged in
@@ -84,10 +91,32 @@ namespace Valour.Client
                 // Store token for future use
                 await StoreToken(storage);
 
+                // Refresh user planet membership
+                await RefreshPlanetsAsync(http);
+
                 return new TaskResult(true, "Initialized user successfully!");
             }
 
             return new TaskResult(false, "An error occured retrieving the user.");
+        }
+
+        public static async Task RefreshPlanetsAsync(HttpClient http)
+        {
+            string json = await http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
+
+            TaskResult<List<Planet>> response = JsonConvert.DeserializeObject<TaskResult<List<Planet>>>(json);
+
+            Console.WriteLine(response.Message);
+
+            if (response.Success)
+            {
+                Planets = response.Data;
+            }
+        }
+
+        public static void RefreshPlanets(HttpClient http)
+        {
+            RefreshPlanetsAsync(http).RunSynchronously();
         }
 
         /// <summary>

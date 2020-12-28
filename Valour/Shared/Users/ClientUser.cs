@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
@@ -28,15 +29,5 @@ namespace Valour.Shared.Users
         /// The user's email address
         /// </summary>
         public string Email { get; set; }
-
-        /// <summary>
-        /// Cache for joined planet objects
-        /// </summary>
-        public List<Planet> Planets = new List<Planet>();
-
-        public async Task RefreshPlanets()
-        {
-
-        }
     }
 }

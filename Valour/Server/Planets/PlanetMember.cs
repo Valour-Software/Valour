@@ -19,7 +19,7 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    class PlanetUser
+    public class PlanetMember
     {
         /// <summary>
         /// The user within the planet
