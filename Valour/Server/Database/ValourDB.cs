@@ -60,6 +60,8 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<Planet> Planets { get; set; }
 
+        public DbSet<PlanetUser> PlanetUsers { get; set; }
+
         public ValourDB(DbContextOptions options)
         {
 
