@@ -9,6 +9,11 @@
     --alt-border-color: #666666;
     --input-color: #000000;
     --comment-hue: rgba(0, 0, 0, 0.02);
+    --main-1: #040d14;
+    --main-2: #0b151d;
+    --main-3: #121e27;
+    --main-4: #192630;
+    --main-5: #212f3a;
 }
 
 a {
@@ -166,17 +171,20 @@ body {
     margin: 0px;
     background: #040D14;
     flex: 1;
+    background-color: var(--main-4);
 }
 
 .topline {
-    border: 3px solid #FFFFFF;
-    margin-top: 16px;
+    border-top: 3px solid #FFFFFF;
+    margin-bottom: 16px;
     width: 100%;
+    background-color: var(--main-3);
 }
 
 .topbar {
     width: fill;
     height: 115px;
+    background-color: var(--main-3);
 }
 
 .window {
@@ -237,7 +245,8 @@ body {
     border-radius: 5px;
     margin: 0px;
     margin-top: 13px;
-    margin-left: 20px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
     .sidebar-2 .user-info .pfp {
@@ -341,7 +350,8 @@ body {
     height: 33px;
     background: rgba(255, 255, 255, 0.12);
     border-radius: 5px;
-    margin-left: 20px;
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 10.47px;
 }
 
@@ -388,7 +398,7 @@ body {
     float: left;
     max-width: 294px;
     margin: 0px;
-    background: #040D14;
+    background-color: var(--main-2);
 }
 
     .sidebar-2 .channel-name {
@@ -406,7 +416,7 @@ body {
 
     .sidebar-2 .top-bar {
         width: 294px;
-        border: 3px solid #FFFFFF;
+        border-top: 3px solid #FFFFFF;
     }
 
     .sidebar-2 .channel-description {
@@ -437,7 +447,7 @@ body {
         }
 
     .sidebar-2 .current-channel-info {
-        margin-top: 16px;
+        padding-top: 16px;
         margin-left: 16px;
         height: 115px;
     }
@@ -452,8 +462,8 @@ body {
 .sidebar {
     float: left;
     max-width: 200px;
-    background: #040D14;
     padding: 5px;
+    background-color: var(--main-1);
 }
 
     .sidebar .valour-version {
@@ -513,7 +523,8 @@ body {
     width: 143px;
     height: 37px;
     background-color: rgba(255, 255, 255, 0.07);
-    margin: 0px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
     .sidebar-user.first {
