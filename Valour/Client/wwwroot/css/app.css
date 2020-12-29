@@ -645,11 +645,12 @@ body {
 }
 
 .home-server {
-    border: 1px solid var(--border-color);
+    /*border: 1px solid rgba(255, 255, 255, 0.2);*/
     border-radius: 5px;
     width: 150px;
     height: 160px;
     padding: 10px;
+    background-color: rgba(255, 255, 255, 0.07);
 }
 
 .planet-card-icon {
@@ -660,11 +661,11 @@ body {
     margin-right: auto;
     margin-top: 20px;
     align-self: end;
-    -webkit-transition: -webkit-transform .4s ease-in-out;
-    transition: transform .4s ease-in-out;
+    -webkit-transition: -webkit-transform .2s ease-in-out;
+    transition: transform .2s ease-in-out;
 }
 
 .planet-card-icon:hover {
-    -webkit-transform: rotate(20deg);
-    transform: rotate(20deg) scale(1.1);
+    -webkit-transform: scale(1.05);
+    transform: scale(1.05);
 }
