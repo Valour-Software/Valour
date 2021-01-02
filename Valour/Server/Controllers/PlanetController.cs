@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -148,6 +149,38 @@ namespace Valour.Server.Controllers
             }
 
             return new TaskResult(true, "The given name is valid.");
+        }
+
+        /// <summary>
+        /// Returns a planet object (if permitted)
+        /// </summary>
+        public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, ulong userid, string token)
+        {
+            Planet planet = await Context.Planets.FindAsync(planetid);
+
+            if (planet == null)
+            {
+                return new TaskResult<Planet>(false, "The given planet id does not exist.", null);
+            }
+
+            // Require authorization for private planet info
+            if (!planet.Public)
+            {
+                AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+                if (authToken == null || authToken.User_Id != userid)
+                {
+                    return new TaskResult<Planet>(false, "Failed to authorize user.", null);
+                }
+
+                // If the user is not a member, cancel
+                if (!(await Context.PlanetMembers.AnyAsync(x => x.Planet_Id == planetid && x.User_Id == userid)))
+                {
+                    return new TaskResult<Planet>(false, "User is not a member of planet.", null);
+                }
+            }
+
+            return new TaskResult<Planet>(true, "Successfully retrieved planet.", planet);
         }
     }
 }

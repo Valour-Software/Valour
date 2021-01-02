@@ -48,6 +48,5 @@ namespace Valour.Shared.Planets
         /// The amount of members on the planet
         /// </summary>
         public uint Member_Count { get; set;}
-
     }
 }
