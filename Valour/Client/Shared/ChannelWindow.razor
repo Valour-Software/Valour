@@ -2,9 +2,9 @@
 @inject NavigationManager navManager
 @inject IJSRuntime JS
 
-<div class="d-flex flex-column window" style="height:80%; max-width:100%" id="window">
+<div class="d-flex flex-column window" style="height:80%; max-width:100%; height: calc(100% - 150px);" id="window">
 
-    <div class="p-2 mt-auto">
+    <div class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (messages != null)
         {
             foreach (ClientPlanetMessage msg in messages)
@@ -15,7 +15,9 @@
     </div>
 
     <div class="ml-1">
-        <textarea id="text-input" class="textbox" rows="2" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput">@currentInput</textarea>
+        <center>
+            <textarea id="text-input" class="textbox" rows="2" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput">@currentInput</textarea>
+        </center>
     </div>
 </div>
 
