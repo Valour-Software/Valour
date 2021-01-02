@@ -71,9 +71,9 @@
         string token = ClientUserManager.UserSecretToken;
 
         string json = await Http.GetStringAsync($"Planet/CreatePlanet?name={encodedName}" +
-                                                                 $"&image_url={encodedImageUrl}" +
-                                                                 $"&userid={userid} " +
-                                                                 $"&token={token}");
+                                                                   $"&image_url={encodedImageUrl}" +
+                                                                   $"&userid={userid}" +
+                                                                   $"&token={token}");
 
         TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
 
@@ -87,7 +87,24 @@
         // Send user into planet if successful
         if (result.Success)
         {
+            ulong planetId = result.Data;
 
+            json = await Http.GetStringAsync($"Planet/GetPlanet?planetid={planetId}" +
+                                                               $"&userid={userid}" +
+                                                               $"&token={token}");
+
+            TaskResult<Planet> planetResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<Planet>>(json);
+
+            if (!planetResult.Success)
+            {
+                Console.WriteLine($"Failed to retrieve planet: {planetResult.Message}");
+                imageSpan = "Created planet, but error occured retrieving. Please restart Valour.";
+                return;
+            }
+
+            Planet planet = planetResult.Data;
+
+            
         }
     }
 }

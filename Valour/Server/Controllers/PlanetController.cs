@@ -156,7 +156,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, ulong userid, string token)
         {
-            Planet planet = await Context.Planets.FindAsync(planetid);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planetid);
 
             if (planet == null)
             {
@@ -174,7 +174,7 @@ namespace Valour.Server.Controllers
                 }
 
                 // If the user is not a member, cancel
-                if (!(await Context.PlanetMembers.AnyAsync(x => x.Planet_Id == planetid && x.User_Id == userid)))
+                if (!(await planet.IsMemberAsync(userid)))
                 {
                     return new TaskResult<Planet>(false, "User is not a member of planet.", null);
                 }
