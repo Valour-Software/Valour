@@ -20,5 +20,9 @@
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Lang\" />
+  </ItemGroup>
+
 
 </Project>

@@ -163,24 +163,26 @@ namespace Valour.Server.Controllers
                 return new TaskResult<Planet>(false, "The given planet id does not exist.", null);
             }
 
-            // Require authorization for private planet info
-            if (!planet.Public)
-            {
-                AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-                if (authToken == null || authToken.User_Id != userid)
-                {
-                    return new TaskResult<Planet>(false, "Failed to authorize user.", null);
-                }
-
-                // If the user is not a member, cancel
-                if (!(await planet.IsMemberAsync(userid)))
-                {
-                    return new TaskResult<Planet>(false, "User is not a member of planet.", null);
-                }
+            if (!(await planet.AuthorizedAsync(userid, token))){
+                return new TaskResult<Planet>(false, "You are not authorized to access this planet.", null);
             }
 
             return new TaskResult<Planet>(true, "Successfully retrieved planet.", planet);
+        }
+
+        /// <summary>
+        /// Returns a planet's primary channel
+        /// </summary>
+        public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planetid, ulong userid, string token)
+        {
+            ServerPlanet planet = await ServerPlanet.FindAsync(planetid);
+
+            if (!(await planet.AuthorizedAsync(userid, token)))
+            {
+                return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
+            }
+
+            return new TaskResult<PlanetChatChannel>(true, "Successfully retireved channel.", await planet.GetPrimaryChannelAsync());
         }
     }
 }

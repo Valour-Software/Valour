@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Shared.Channels;
+using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
 
@@ -78,6 +80,46 @@ namespace Valour.Server.Planets
         public bool IsMember(User user)
         {
             return IsMember(user.Id);
+        }
+
+        /// <summary>
+        /// Returns the primary channel for the planet
+        /// </summary>
+        public async Task<PlanetChatChannel> GetPrimaryChannelAsync()
+        {
+            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+            {
+                // TODO: Make a way to choose a primary channel rather than just grabbing the first one
+                return await db.PlanetChatChannels.Where(x => x.Planet_Id == this.Id).FirstAsync();
+            }
+        }
+
+        /// <summary>
+        /// Returns if the given user is authorized to access this planet
+        /// </summary>
+        public async Task<bool> AuthorizedAsync(ulong userid, string token)
+        {
+            // Need to ensure user is a member if not public
+            if (!Public)
+            {
+                using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+                {
+                    AuthToken authToken = await db.AuthTokens.FindAsync(token);
+
+                    if (authToken == null || authToken.User_Id != userid)
+                    {
+                        return false;
+                    }
+
+                    // If the user is not a member, cancel
+                    if (!(await IsMemberAsync(userid)))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

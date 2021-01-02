@@ -44,6 +44,11 @@ namespace Valour.Client
         public static List<Planet> Planets = new List<Planet>();
 
         /// <summary>
+        /// Http client
+        /// </summary>
+        public static HttpClient Http;
+
+        /// <summary>
         /// True if the user is logged in
         /// </summary>
         public static bool IsLoggedIn()
@@ -54,7 +59,7 @@ namespace Valour.Client
         /// <summary>
         /// Tries to initialize the user client by using a local token
         /// </summary>
-        public static async Task<TaskResult> TryInitializeWithLocalToken(HttpClient http, LocalStorageService storage)
+        public static async Task<TaskResult> TryInitializeWithLocalToken(LocalStorageService storage)
         {
             if (User != null)
             {
@@ -69,15 +74,15 @@ namespace Valour.Client
                 return new TaskResult(false, "Failed to retrieve local token.");
             }
 
-            return  await InitializeUser(UserSecretToken, http, storage);
+            return  await InitializeUser(UserSecretToken, storage);
         }
 
         /// <summary>
         /// Initializes the user using a valid user token
         /// </summary>
-        public static async Task<TaskResult> InitializeUser(string token, HttpClient http, LocalStorageService storage)
+        public static async Task<TaskResult> InitializeUser(string token, LocalStorageService storage)
         {
-            string response = await http.GetStringAsync($"User/GetUserWithToken?token={token}");
+            string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
 
             TaskResult<ClientUser> result = JsonConvert.DeserializeObject<TaskResult<ClientUser>>(response);
 
@@ -92,7 +97,7 @@ namespace Valour.Client
                 await StoreToken(storage);
 
                 // Refresh user planet membership
-                await RefreshPlanetsAsync(http);
+                await RefreshPlanetsAsync();
 
                 return new TaskResult(true, "Initialized user successfully!");
             }
@@ -103,9 +108,9 @@ namespace Valour.Client
         /// <summary>
         /// Retrieves and updates the current planets that the user is a member of
         /// </summary>
-        public static async Task RefreshPlanetsAsync(HttpClient http)
+        public static async Task RefreshPlanetsAsync()
         {
-            string json = await http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
+            string json = await Http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
 
             TaskResult<List<Planet>> response = JsonConvert.DeserializeObject<TaskResult<List<Planet>>>(json);
 
@@ -117,9 +122,9 @@ namespace Valour.Client
             }
         }
 
-        public static void RefreshPlanets(HttpClient http)
+        public static void RefreshPlanets()
         {
-            RefreshPlanetsAsync(http).RunSynchronously();
+            RefreshPlanetsAsync().RunSynchronously();
         }
 
         /// <summary>

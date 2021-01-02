@@ -5,6 +5,11 @@
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
 
+@if (ClientUserManager.Http == null)
+{
+    ClientUserManager.Http = Http;
+}
+
 <!-- Check login status -->
 @if (ClientUserManager.IsLoggedIn())
 {
