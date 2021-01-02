@@ -50,6 +50,40 @@
 
     private async Task OnImageInput()
     {
+        // Require a name
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = "Please input a planet name.";
+            return;
+        }
 
+        // Default to valour logo
+        if (string.IsNullOrWhiteSpace(image_url))
+        {
+            image_url = "https://valour.gg/image.png";
+        }
+
+        // Encode non-friendly characters
+        string encodedName = System.Web.HttpUtility.UrlEncode(name);
+        string encodedImageUrl = System.Web.HttpUtility.UrlEncode(image_url);
+
+        ulong userid = ClientUserManager.User.Id;
+        string token = ClientUserManager.UserSecretToken;
+
+        string json = await Http.GetStringAsync($"Planet/CreatePlanet?name={encodedName}" +
+                                                                 $"&image_url={encodedImageUrl}" +
+                                                                 $"&userid={userid} " +
+                                                                 $"&token={token}");
+
+        TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
+
+        if (result == null)
+        {
+            imageSpan = "An error occured retrieving a response. Please try again.";
+        }
+
+        imageSpan = result.Message;
+        
+        // Send user into planet
     }
 }

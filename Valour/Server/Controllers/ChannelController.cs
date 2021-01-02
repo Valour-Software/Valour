@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Server.Database;
 using Valour.Server.Messaging;
 using Valour.Shared;
+using Valour.Shared.Channels;
 using Valour.Shared.Messaging;
 
 /*  Valour - A free and secure chat client
@@ -27,8 +29,16 @@ namespace Valour.Server.Controllers
 
         public static List<ClientPlanetMessage> messageCache = new List<ClientPlanetMessage>();
 
-        // TODO: Make this DB-based and not bad
-        public static Dictionary<ulong, ulong> channelIndexes = new Dictionary<ulong, ulong>();
+        /// <summary>
+        /// Database context
+        /// </summary>
+        private readonly ValourDB Context;
+
+        // Dependency injection
+        public ChannelController(ValourDB context)
+        {
+            this.Context = context;
+        }
 
         [HttpGet]
         public IEnumerable<ClientPlanetMessage> GetMessages(ulong channel_id)
@@ -61,17 +71,15 @@ namespace Valour.Server.Controllers
 
             ulong channel_id = msg.ChannelId;
 
-            if (channelIndexes.ContainsKey(channel_id))
-            {
-                channelIndexes[channel_id] += 1;
-            }
-            else
-            {
-                channelIndexes.Add(channel_id, 0);
-            }
+            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
             // Get index for message
-            ulong index = channelIndexes[channel_id];
+            ulong index = channel.Message_Count;
+
+            // Update message count. May have to queue this in the future to prevent concurrency issues.
+            channel.Message_Count += 1;
+            await Context.SaveChangesAsync();
+
             msg.Index = index;
 
             await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", msg.Content);

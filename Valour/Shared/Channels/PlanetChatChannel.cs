@@ -20,7 +20,7 @@ namespace Valour.Shared.Channels
         /// <summary>
         /// The Id of this channel
         /// </summary>
-        public uint Id { get; set; }
+        public ulong Id { get; set; }
 
         /// <summary>
         /// The name of this channel
@@ -31,5 +31,10 @@ namespace Valour.Shared.Channels
         /// The Id of the planet this channel belongs to
         /// </summary>
         public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The amount of messages ever sent in the channel
+        /// </summary>
+        public ulong Message_Count { get; set; }
     }
 }

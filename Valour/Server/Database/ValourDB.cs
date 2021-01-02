@@ -7,6 +7,7 @@ using Valour.Shared.Oauth;
 using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using Valour.Server.Planets;
+using Valour.Shared.Channels;
 
 namespace Valour.Server.Database
 {
@@ -61,7 +62,15 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<Planet> Planets { get; set; }
 
+        /// <summary>
+        /// Table for all planet membership
+        /// </summary>
         public DbSet<PlanetMember> PlanetMembers { get; set; }
+
+        /// <summary>
+        /// Table for all planet chat channels
+        /// </summary>
+        public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

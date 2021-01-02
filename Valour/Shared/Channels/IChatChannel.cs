@@ -14,7 +14,7 @@ namespace Valour.Shared.Channels
         /// <summary>
         /// The Id of this channel
         /// </summary>
-        public uint Id { get; set; }
+        public ulong Id { get; set; }
 
         /// <summary>
         /// The name of this channel

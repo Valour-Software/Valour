@@ -10,6 +10,7 @@ using Valour.Server.Database;
 using Valour.Server.Messaging;
 using Valour.Server.Planets;
 using Valour.Shared;
+using Valour.Shared.Channels;
 using Valour.Shared.Messaging;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
@@ -57,7 +58,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateServer(string name, string image_url, ulong userid, string token)
+        public async Task<TaskResult<ulong>> CreatePlanet(string name, string image_url, ulong userid, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -109,8 +110,23 @@ namespace Valour.Server.Controllers
 
             // Add the owner to the planet as a member
             await Context.PlanetMembers.AddAsync(member);
+
+
+            // Create general channel
+            PlanetChatChannel channel = new PlanetChatChannel()
+            {
+                Name = "General",
+                Planet_Id = planet.Id,
+                Message_Count = 0
+            };
+
+            // Add channel to database
+            await Context.PlanetChatChannels.AddAsync(channel);
+
+            // Save changes to DB
             await Context.SaveChangesAsync();
 
+            // Return success
             return new TaskResult<ulong>(true, "Successfully created planet.", planet.Id);
         }
 
