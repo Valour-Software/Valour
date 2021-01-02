@@ -8,8 +8,9 @@
 @foreach (Planet planet in ClientUserManager.Planets)
 {
     <div class="flex-row flex-wrap m-5">
-        <div class="home-server">
+        <div class="home-server" style="cursor: pointer">
             <h6 class="text-center">@planet.Name</h6>
+            <img class="planet-card-icon" src="@planet.Image_Url" />
         </div>
     </div>
 }

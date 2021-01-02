@@ -24,6 +24,7 @@ using Valour.Server.Users.Identity;
 using Valour.Server.Users;
 using Valour.Server.Email;
 using AutoMapper;
+using Valour.Server.Mapping;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -52,7 +53,14 @@ namespace Valour.Server
         {
             LoadConfigs();
 
-            services.AddAutoMapper(typeof(Startup));
+            var mapConfig = new MapperConfiguration(x =>
+            {
+                x.AddProfile(new MappingProfile());
+            });
+
+            IMapper mapper = mapConfig.CreateMapper();
+
+            services.AddSingleton(mapper);
 
             services.AddDbContextPool<ValourDB>(options =>
             {

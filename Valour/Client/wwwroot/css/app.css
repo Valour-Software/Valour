@@ -664,8 +664,8 @@ body {
 }
 
 .planet-card-icon {
-    width: 70%;
-    height: 70%;
+    width: 100px;
+    height: 100px;
     display: block;
     margin-left: auto;
     margin-right: auto;
