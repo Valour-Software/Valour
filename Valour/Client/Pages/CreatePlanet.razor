@@ -1,0 +1,55 @@
+﻿@page "/CreatePlanet"
+
+@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+
+<body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
+    <div class="login-box">
+        <div class="col-md-12">
+            <section>
+                <h2>Create a new Planet</h2>
+
+                <h4>The birth of a community!</h4>
+                <hr />
+                <div asp-validation-summary="All" class="text-info"></div>
+                <div class="form-group mt-2">
+                    <label>Community Name</label>
+                    <input class="form-control" @bind-value="@name" />
+                    <span id="name-span" style="color:#888888">@nameSpan</span>
+                </div>
+                <div class="form-group mt-2" style="display: inline-block; width:80%">
+                    <label>Icon Url</label>
+                    <input class="form-control" @bind-value="@image_url" @bind-value:event="oninput" />
+                    <span id="image-span" style="color:#888888">@imageSpan</span>
+                </div>
+                <img class="mt-2" src="@image_url" style="width: 64px; height: 64px; float:right" />
+                <div class="form-group mt-4">
+                    <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+
+@code {
+    // Input fields
+    string name;
+    string image_url = "https://valour.gg/image.png";
+
+    // Spans
+    string nameSpan = "The name of your community";
+    string imageSpan = "The link to your intended planet icon";
+
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+        nameSpan = "";
+        imageSpan = "";
+
+    }
+
+    private async Task OnImageInput()
+    {
+
+    }
+}

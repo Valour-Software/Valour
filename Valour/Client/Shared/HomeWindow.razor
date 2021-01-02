@@ -1,4 +1,6 @@
-﻿
+﻿@inject NavigationManager navManager
+
+
 <h5 class="m-2">Planets and friends</h5>
 
 <hr />
@@ -13,7 +15,7 @@
 }
 
 <div class="flex-row flex-wrap m-5">
-    <div class="home-server">
+    <div class="home-server" @onclick="OnNewPlanetClick" style="cursor: pointer">
         <h6 class="text-center">Create a planet</h6>
         <svg class="planet-card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
             <defs>
@@ -40,5 +42,8 @@
 
 
 @code {
-
+    public async Task OnNewPlanetClick()
+    {
+        navManager.NavigateTo("createplanet");
+    }
 }
