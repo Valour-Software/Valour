@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,9 +21,14 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    [Keyless]
     public class PlanetMember
     {
+        /// <summary>
+        /// The Id of this member object
+        /// </summary>
+        [Key]
+        public ulong Id { get; set; }
+
         /// <summary>
         /// The user within the planet
         /// </summary>

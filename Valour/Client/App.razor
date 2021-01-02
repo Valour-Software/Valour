@@ -3,6 +3,11 @@
 @inject NavigationManager navManager
 @inject LocalStorageService storage
 
+@if (ClientUserManager.Http == null)
+{
+    ClientUserManager.Http = Http;
+}
+
 @if (triedInitialLogin)
 {
 
@@ -31,7 +36,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Attempt to re-login the user from local token
-        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(Http, storage);
+        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage);
 
         Console.WriteLine(tokenResult.Message);
 

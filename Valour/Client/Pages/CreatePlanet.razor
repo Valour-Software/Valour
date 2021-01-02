@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
+@inject AutoMapper.IMapper Mapper 
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="login-box">
@@ -43,13 +44,7 @@
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
-        nameSpan = "";
-        imageSpan = "";
 
-    }
-
-    private async Task OnImageInput()
-    {
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -102,9 +97,19 @@
                 return;
             }
 
-            ClientPlanet planet = (ClientPlanet)planetResult.Data;
+            ClientPlanet planet = ClientPlanet.FromBase(planetResult.Data, Mapper);
 
-            
+            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+
+            ClientChannelManager.AddOpenChatChannel(mainChannel);
+
+            // Return to index
+            navManager.NavigateTo("/");
         }
+    }
+
+    private async Task OnImageInput()
+    {
+
     }
 }

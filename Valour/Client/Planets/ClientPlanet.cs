@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using AutoMapper;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +34,14 @@ namespace Valour.Client.Planets
             {
                 return (Planet)this;
             }
+        }
+
+        /// <summary>
+        /// Returns a ServerPlanet using a Planet as a base
+        /// </summary>
+        public static ClientPlanet FromBase(Planet planet, IMapper mapper)
+        {
+            return mapper.Map<ClientPlanet>(planet);
         }
 
         /// <summary>

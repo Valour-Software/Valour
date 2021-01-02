@@ -67,7 +67,7 @@
 
         if (loginResult.Success)
         {
-            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, Http, storage);
+            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, storage);
             passwordSpan = result.Message;
 
             if (result.Success)

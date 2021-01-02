@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -49,10 +50,16 @@ namespace Valour.Server.Controllers
         /// </summary>
         private readonly ValourDB Context;
 
+        /// <summary>
+        /// Mapper object
+        /// </summary>
+        private readonly IMapper Mapper;
+
         // Dependency injection
-        public PlanetController(ValourDB context)
+        public PlanetController(ValourDB context, IMapper mapper)
         {
             this.Context = context;
+            this.Mapper = mapper;
         }
 
         /// <summary>
@@ -156,7 +163,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, ulong userid, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planetid);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
 
             if (planet == null)
             {
@@ -175,7 +182,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planetid, ulong userid, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planetid);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
 
             if (!(await planet.AuthorizedAsync(userid, token)))
             {

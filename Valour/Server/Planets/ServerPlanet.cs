@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,13 +38,22 @@ namespace Valour.Server.Planets
         }
 
         /// <summary>
+        /// Returns a ServerPlanet using a Planet as a base
+        /// </summary>
+        public static ServerPlanet FromBase(Planet planet, IMapper mapper)
+        {
+            return mapper.Map<ServerPlanet>(planet);
+        }
+
+        /// <summary>
         /// Retrieves a ServerPlanet for the given id
         /// </summary>
-        public static async Task<ServerPlanet> FindAsync(ulong id)
+        public static async Task<ServerPlanet> FindAsync(ulong id, IMapper mapper)
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
-                return (ServerPlanet)(await db.Planets.FindAsync(id));
+                Planet planet = await db.Planets.FindAsync(id);
+                return ServerPlanet.FromBase(planet, mapper);
             }
         }
 
