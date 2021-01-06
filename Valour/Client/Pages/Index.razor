@@ -51,16 +51,23 @@
                 <div class="topline">
                 </div>
                 <!--
-                    Todo: Logic for multiple main windows.
-                    This will be fun.
-                -->
+        Todo: Logic for multiple main windows.
+        This will be fun.
+    -->
                 <!--
-                    Add dummy window so Jacob doesn't cry
-                -->
+        Add dummy window so Jacob doesn't cry
+    -->
 
-                @{ /*ClientChannelManager.AddOpenChatChannel(new PlanetChatChannel());*/ }
+                @if (ClientWindowManager.GetWindowCount() == 0)
+                {
+                    ClientWindowManager.AddWindow(new HomeWindow(0));
+                }
 
-                <MainWindow OpenChatChannel="@ClientChannelManager.GetOpenChatChannel(0)"></MainWindow>
+                @foreach (ClientWindow window in ClientWindowManager.GetWindows())
+                {
+                    <MainWindowComponent Window="window"></MainWindowComponent>
+                }
+
             </div>
         </div>
     </body>

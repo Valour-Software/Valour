@@ -41,10 +41,10 @@
 
     private HubConnection hubConnection;
 
-    /// <summary>
-    /// The current channel id
-    /// </summary>
-    private ulong channel_id;
+    [Parameter]
+    public ChatChannelWindow Window { get; set; }
+
+    public IChatChannel Channel;
 
     /// <summary>
     /// The index of the last sent message
@@ -54,8 +54,7 @@
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
-        // TODO: Actually get channel id
-        channel_id = 1;
+        Channel = Window.Channel;
 
         await ConnectSignalR();
         await RefreshMessages();
@@ -75,7 +74,7 @@
         await hubConnection.StartAsync();
 
         // Connect to channel
-        await hubConnection.SendAsync("JoinChannel", channel_id);
+        await hubConnection.SendAsync("JoinChannel", Channel.Id);
 
         hubConnection.On<string>("Relay", RecieveMessage);
     }
@@ -93,7 +92,7 @@
         ClientPlanetMessage message = new ClientPlanetMessage()
         {
             Author_Id = sender.Id,
-            ChannelId = channel_id,
+            ChannelId = Channel.Id,
             Content = msg,
             TimeSent = DateTime.UtcNow
         };
@@ -107,7 +106,7 @@
     public async Task RefreshMessages()
     {
         // Request messages from server
-        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={channel_id}");
+        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
     }
 
     /// <summary>
@@ -144,7 +143,7 @@
     {
         ClientPlanetMessage message = new ClientPlanetMessage()
         {
-            ChannelId = channel_id,
+            ChannelId = Channel.Id,
             Content = msg,
             TimeSent = DateTime.UtcNow,
             Author_Id = ClientUserManager.User.Id
@@ -164,7 +163,7 @@
             messages.Add(new ClientPlanetMessage()
             {
                 TimeSent = DateTime.UtcNow,
-                ChannelId = channel_id,
+                ChannelId = Channel.Id,
                 Content = $"Failed to post message: {response.Message}",
                 Index = 0
             });

@@ -101,7 +101,8 @@
 
             PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
 
-            ClientChannelManager.AddOpenChatChannel(mainChannel);
+            ClientWindowManager.ClearWindows();
+            ClientWindowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
 
             // Return to index
             navManager.NavigateTo("/");

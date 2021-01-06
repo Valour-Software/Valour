@@ -2,6 +2,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
+@inject AutoMapper.IMapper mapper
 
 @if (ClientUserManager.Http == null)
 {
@@ -36,7 +37,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Attempt to re-login the user from local token
-        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage);
+        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage, mapper);
 
         Console.WriteLine(tokenResult.Message);
 

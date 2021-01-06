@@ -1,6 +1,7 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
+@inject AutoMapper.IMapper mapper
 
 <body class="login-background">
     <div class="login-box">
@@ -67,7 +68,7 @@
 
         if (loginResult.Success)
         {
-            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, storage);
+            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, storage, mapper);
             passwordSpan = result.Message;
 
             if (result.Success)

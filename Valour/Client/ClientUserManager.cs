@@ -13,6 +13,8 @@ using System.Security.Cryptography;
 using Blazored.LocalStorage;
 using Valour.Shared.Planets;
 using System.Runtime.CompilerServices;
+using Valour.Client.Planets;
+using AutoMapper;
 
 namespace Valour.Client
 {
@@ -41,7 +43,7 @@ namespace Valour.Client
         /// <summary>
         /// Cache for joined planet objects
         /// </summary>
-        public static List<Planet> Planets = new List<Planet>();
+        public static List<ClientPlanet> Planets = new List<ClientPlanet>();
 
         /// <summary>
         /// Http client
@@ -59,7 +61,7 @@ namespace Valour.Client
         /// <summary>
         /// Tries to initialize the user client by using a local token
         /// </summary>
-        public static async Task<TaskResult> TryInitializeWithLocalToken(LocalStorageService storage)
+        public static async Task<TaskResult> TryInitializeWithLocalToken(LocalStorageService storage, IMapper mapper)
         {
             if (User != null)
             {
@@ -74,13 +76,13 @@ namespace Valour.Client
                 return new TaskResult(false, "Failed to retrieve local token.");
             }
 
-            return  await InitializeUser(UserSecretToken, storage);
+            return  await InitializeUser(UserSecretToken, storage, mapper);
         }
 
         /// <summary>
         /// Initializes the user using a valid user token
         /// </summary>
-        public static async Task<TaskResult> InitializeUser(string token, LocalStorageService storage)
+        public static async Task<TaskResult> InitializeUser(string token, LocalStorageService storage, IMapper mapper)
         {
             string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
 
@@ -97,7 +99,7 @@ namespace Valour.Client
                 await StoreToken(storage);
 
                 // Refresh user planet membership
-                await RefreshPlanetsAsync();
+                await RefreshPlanetsAsync(mapper);
 
                 return new TaskResult(true, "Initialized user successfully!");
             }
@@ -108,7 +110,7 @@ namespace Valour.Client
         /// <summary>
         /// Retrieves and updates the current planets that the user is a member of
         /// </summary>
-        public static async Task RefreshPlanetsAsync()
+        public static async Task RefreshPlanetsAsync(IMapper mapper)
         {
             string json = await Http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
 
@@ -118,13 +120,16 @@ namespace Valour.Client
 
             if (response.Success)
             {
-                Planets = response.Data;
+                foreach (Planet planet in response.Data)
+                {
+                    Planets.Add(ClientPlanet.FromBase(planet, mapper));
+                }
             }
         }
 
-        public static void RefreshPlanets()
+        public static void RefreshPlanets(IMapper mapper)
         {
-            RefreshPlanetsAsync().RunSynchronously();
+            RefreshPlanetsAsync(mapper).RunSynchronously();
         }
 
         /// <summary>
