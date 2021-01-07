@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -39,12 +40,14 @@ namespace Valour.Server.Controllers
         /// </summary>
         private readonly ValourDB Context;
         private readonly UserManager UserManager;
+        private readonly IMapper Mapper;
 
         // Dependency injection
-        public UserController(ValourDB context, UserManager userManager)
+        public UserController(ValourDB context, UserManager userManager, IMapper mapper)
         {
             this.Context = context;
             this.UserManager = userManager;
+            this.Mapper = mapper;
         }
 
         /// <summary>
@@ -340,6 +343,23 @@ namespace Valour.Server.Controllers
             ClientUser user = await Context.Users.FindAsync(authToken.User_Id);
 
             return new TaskResult<ClientUser>(true, "Retrieved user.", user);
+        }
+
+        /// <summary>
+        /// Returns public user data using an id
+        /// </summary>
+        public async Task<TaskResult<User>> GetUser(ulong id)
+        {
+            // Get user data
+            ClientUser preUser = await Context.Users.FindAsync(id);
+
+            // Null check
+            if (preUser == null) return new TaskResult<User>(false, "The user could not be found.", null);
+
+            // Strip private data
+            User user = Mapper.Map<User>(preUser);
+
+            return new TaskResult<User>(true, "Successfully found user.", user);
         }
 
         /// <summary>

@@ -12,10 +12,10 @@ using Valour.Shared.Planets;
 namespace Valour.Client.Planets
 {
     /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
+     *  Copyright (C) 2020 Vooper Media LLC
+     *  This program is subject to the GNU Affero General Public license
+     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+     */
 
     /// <summary>
     /// This class exists to add client funtionality to the Planet

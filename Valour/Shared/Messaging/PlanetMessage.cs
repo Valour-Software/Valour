@@ -8,21 +8,8 @@
 
 namespace Valour.Shared.Messaging
 {
-    public class ClientPlanetMessage : ClientMessage
+    public class PlanetMessage : Message
     {
-        /// <summary>
-        /// The author of this message
-        /// </summary>
-        public PlanetUser GetAuthor()
-        {
-            // TODO: Actually fetch author
-            return new PlanetUser()
-            {
-                Id = 0,
-                Username = "Test User"
-            };
-        }
-
         public ulong Author_Id { get; set; }
     }
 }

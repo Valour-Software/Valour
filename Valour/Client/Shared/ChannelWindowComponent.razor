@@ -7,7 +7,7 @@
     <div class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (messages != null)
         {
-            foreach (ClientPlanetMessage msg in messages)
+            foreach (PlanetMessage msg in messages)
             {
                 <MessageComponent Message="msg"></MessageComponent>
             }
@@ -37,7 +37,7 @@
     /// <summary>
     /// Storage for messages that should be displayed
     /// </summary>
-    private List<ClientPlanetMessage> messages;
+    private List<PlanetMessage> messages;
 
     private HubConnection hubConnection;
 
@@ -79,23 +79,14 @@
         hubConnection.On<string>("Relay", RecieveMessage);
     }
 
-    public void RecieveMessage(string msg)
+    public async Task RecieveMessage(string data)
     {
-        Console.WriteLine($"Recieved a message: {msg}");
 
-        PlanetUser sender = new PlanetUser()
-        {
-            Id = 0,
-            Username = "Test User"
-        };
+        PlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<PlanetMessage>(data);
 
-        ClientPlanetMessage message = new ClientPlanetMessage()
-        {
-            Author_Id = sender.Id,
-            ChannelId = Channel.Id,
-            Content = msg,
-            TimeSent = DateTime.UtcNow
-        };
+        Console.WriteLine($"Recieved message {message.Index}.");
+
+        User test = await UserCache.GetUserAsync(message.Author_Id);
 
         messages.Add(message);
 
@@ -106,7 +97,7 @@
     public async Task RefreshMessages()
     {
         // Request messages from server
-        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
+        messages = await Http.GetFromJsonAsync<List<PlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
     }
 
     /// <summary>
@@ -141,7 +132,7 @@
 
     public async Task PostMessage(string msg)
     {
-        ClientPlanetMessage message = new ClientPlanetMessage()
+        PlanetMessage message = new PlanetMessage()
         {
             ChannelId = Channel.Id,
             Content = msg,
@@ -153,14 +144,14 @@
 
         Console.WriteLine(json);
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<ClientPlanetMessage>($"Channel/PostMessage", message);
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
 
         TaskResult<ulong> response =
             Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
 
         if (!response.Success)
         {
-            messages.Add(new ClientPlanetMessage()
+            messages.Add(new PlanetMessage()
             {
                 TimeSent = DateTime.UtcNow,
                 ChannelId = Channel.Id,

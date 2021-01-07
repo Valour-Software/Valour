@@ -10,12 +10,12 @@ using System.Text;
 
 namespace Valour.Shared.Messaging
 {
-    public class ClientMessage
+    public class Message
     {
         /// <summary>
         /// The user's ID, which is a GUID
         /// </summary>
-        private Guid UserId { get; set; }
+        private ulong Author_Id { get; set; }
 
         /// <summary>
         /// String representation of message
@@ -44,7 +44,7 @@ namespace Valour.Shared.Messaging
         {
             using (SHA256 sha = SHA256.Create())
             {
-                string conc = $"{UserId}{Content}{TimeSent}{ChannelId}";
+                string conc = $"{Author_Id}{Content}{TimeSent}{ChannelId}";
 
                 byte[] buffer = Encoding.Unicode.GetBytes(conc);
 

@@ -27,7 +27,7 @@ namespace Valour.Server.Controllers
     public class ChannelController
     {
 
-        public static List<ClientPlanetMessage> messageCache = new List<ClientPlanetMessage>();
+        public static List<PlanetMessage> messageCache = new List<PlanetMessage>();
 
         /// <summary>
         /// Database context
@@ -41,13 +41,13 @@ namespace Valour.Server.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<ClientPlanetMessage> GetMessages(ulong channel_id)
+        public IEnumerable<PlanetMessage> GetMessages(ulong channel_id)
         {
             Console.WriteLine(channel_id);
 
             ulong channelId = 1;
 
-            ClientPlanetMessage welcome = new ClientPlanetMessage()
+            PlanetMessage welcome = new PlanetMessage()
             {
                 ChannelId = channelId,
                 Content = "Welcome back.",
@@ -60,7 +60,7 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<TaskResult<ulong>> PostMessage(ClientPlanetMessage msg)
+        public async Task<TaskResult<ulong>> PostMessage(PlanetMessage msg)
         {
             //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
 
@@ -82,9 +82,11 @@ namespace Valour.Server.Controllers
 
             msg.Index = index;
 
-            await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", msg.Content);
+            string json = JsonConvert.SerializeObject(msg);
 
-            return new TaskResult<ulong>(true, "Test", index);
+            await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
+
+            return new TaskResult<ulong>(true, $"Posted message {msg.Index}.", index);
         }
     }
 }
