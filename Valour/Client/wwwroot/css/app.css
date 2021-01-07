@@ -79,6 +79,10 @@ body {
     padding-bottom: 4px;
 }
 
+.message:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 .ping-box {
     background: #FD3B3B;
     transform: matrix(-1, 0, 0, 1, 0, 0);
