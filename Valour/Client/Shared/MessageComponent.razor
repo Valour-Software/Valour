@@ -38,9 +38,12 @@
 
     private PlanetUser Author;
 
-    protected override void OnInitialized()
+    protected override Task OnInitializedAsync()
     {
+        return base.OnInitializedAsync();
+
         base.OnInitialized();
-        Author = Message.GetAuthor();
+        Author = await Message.GetAuthorAsync();
     }
+
 }

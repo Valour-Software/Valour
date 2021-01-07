@@ -398,7 +398,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
             }
 
-            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planetid);
+            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planetid, Mapper);
 
             if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
 
