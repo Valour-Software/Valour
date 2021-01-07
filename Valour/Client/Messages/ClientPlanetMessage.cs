@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Users;
-using Valour.Shared.Messaging;
+using Valour.Shared.Messages;
 using Valour.Shared.Users;
 
 namespace Valour.Client.Messages

@@ -47,18 +47,13 @@ namespace Valour.Client.Users
         /// <param name="userid"></param>
         /// <param name="planetid"></param>
         /// <returns></returns>
-        public static async Task<ClientPlanetUser> GetClientPlanetUserAsync(ulong userid, ulong planetid, IMapper mapper)
+        public static async Task<ClientPlanetUser> GetClientPlanetUserAsync(ulong userid, ulong planetid)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planetid={planetid}");
 
-            PlanetUser result = JsonConvert.DeserializeObject<PlanetUser>(json);
+            ClientPlanetUser result = JsonConvert.DeserializeObject<ClientPlanetUser>(json);
 
-            // Null check
-            if (result == null) return null;
-
-            ClientPlanetUser planetUser = mapper.Map<ClientPlanetUser>(result);
-
-            return planetUser;
+            return result;
         }
     }
 }

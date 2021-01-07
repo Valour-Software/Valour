@@ -7,7 +7,7 @@
     <div class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (messages != null)
         {
-            foreach (PlanetMessage msg in messages)
+            foreach (ClientPlanetMessage msg in messages)
             {
                 <MessageComponent Message="msg"></MessageComponent>
             }
@@ -37,7 +37,7 @@
     /// <summary>
     /// Storage for messages that should be displayed
     /// </summary>
-    private List<PlanetMessage> messages;
+    private List<ClientPlanetMessage> messages;
 
     private HubConnection hubConnection;
 
@@ -82,7 +82,7 @@
     public async Task RecieveMessage(string data)
     {
 
-        PlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<PlanetMessage>(data);
+        ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
 
         Console.WriteLine($"Recieved message {message.Index}.");
 
@@ -97,7 +97,7 @@
     public async Task RefreshMessages()
     {
         // Request messages from server
-        messages = await Http.GetFromJsonAsync<List<PlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
+        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
     }
 
     /// <summary>
@@ -151,7 +151,7 @@
 
         if (!response.Success)
         {
-            messages.Add(new PlanetMessage()
+            messages.Add(new ClientPlanetMessage()
             {
                 TimeSent = DateTime.UtcNow,
                 ChannelId = Channel.Id,

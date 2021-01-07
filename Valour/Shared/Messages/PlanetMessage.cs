@@ -6,7 +6,7 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Shared.Messaging
+namespace Valour.Shared.Messages
 {
     public class PlanetMessage : Message
     {

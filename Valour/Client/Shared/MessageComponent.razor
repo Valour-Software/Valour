@@ -34,15 +34,14 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public PlanetMessage Message { get; set; }
+    public ClientPlanetMessage Message { get; set; }
 
     private PlanetUser Author;
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        return base.OnInitializedAsync();
+        await base.OnInitializedAsync();
 
-        base.OnInitialized();
         Author = await Message.GetAuthorAsync();
     }
 

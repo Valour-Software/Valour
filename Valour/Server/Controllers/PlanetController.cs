@@ -1,22 +1,13 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
-using Valour.Server.Messaging;
 using Valour.Server.Planets;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Messaging;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
-using Valour.Shared.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC

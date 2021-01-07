@@ -9,7 +9,7 @@ using Valour.Server.Database;
 using Valour.Server.Messaging;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Messaging;
+using Valour.Shared.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC

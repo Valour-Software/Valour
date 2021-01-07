@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
@@ -22,14 +23,15 @@ namespace Valour.Server.Email
     public class UserEmail
     {
         /// <summary>
+        /// The user's email address
+        /// </summary>
+        [Key]
+        public string Email { get; set; }
+
+        /// <summary>
         /// True if the email is verified
         /// </summary>
         public bool Verified { get; set; }
-
-        /// <summary>
-        /// The user's email address
-        /// </summary>
-        public string Email { get; set; }
 
         /// <summary>
         /// The user this email belongs to

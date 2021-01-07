@@ -33,9 +33,7 @@ namespace Valour.Client.Users
             }
 
             // Retrieve from server
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planetid={planetid}");
-
-            PlanetUser user = JsonConvert.DeserializeObject<PlanetUser>(json);
+            ClientPlanetUser user = await ClientPlanetUser.GetClientPlanetUserAsync(userid, planetid);
 
             if (user == null)
             {
