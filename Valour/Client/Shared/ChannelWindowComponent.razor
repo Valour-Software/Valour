@@ -44,7 +44,7 @@
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
-    public IChatChannel Channel;
+    public PlanetChatChannel Channel;
 
     /// <summary>
     /// The index of the last sent message
@@ -86,9 +86,13 @@
 
         Console.WriteLine($"Recieved message {message.Index}.");
 
-        User test = await UserCache.GetUserAsync(message.Author_Id);
+        Console.WriteLine(data);
+
+        Console.WriteLine(await message.GetAuthorAsync());
 
         messages.Add(message);
+
+        Console.WriteLine("Added message.");
 
         // Flag for UI refresh
         StateHasChanged();
@@ -137,7 +141,8 @@
             ChannelId = Channel.Id,
             Content = msg,
             TimeSent = DateTime.UtcNow,
-            Author_Id = ClientUserManager.User.Id
+            Author_Id = ClientUserManager.User.Id,
+            Planet_Id = Channel.Planet_Id
         };
 
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);

@@ -76,9 +76,9 @@ namespace Valour.Client
         /// <summary>
         /// The channel this window represents
         /// </summary>
-        public IChatChannel Channel { get; set; }
+        public PlanetChatChannel Channel { get; set; }
 
-        public ChatChannelWindow(int index, IChatChannel channel) : base(index)
+        public ChatChannelWindow(int index, PlanetChatChannel channel) : base(index)
         {
             this.Channel = channel;
         }

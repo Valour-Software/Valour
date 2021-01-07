@@ -19,12 +19,12 @@ namespace Valour.Client.Users
     /// </summary>
     public static class PlanetUserCache
     {
-        private static Dictionary<(ulong, ulong), PlanetUser> Cache = new Dictionary<(ulong, ulong), PlanetUser>();
+        private static Dictionary<(ulong, ulong), ClientPlanetUser> Cache = new Dictionary<(ulong, ulong), ClientPlanetUser>();
 
         /// <summary>
         /// Returns a user from the given id
         /// </summary>
-        public static async Task<PlanetUser> GetPlanetUserAsync(ulong userid, ulong planetid)
+        public static async Task<ClientPlanetUser> GetPlanetUserAsync(ulong userid, ulong planetid)
         {
             // Attempt to retrieve from cache
             if (Cache.ContainsKey((userid, planetid)))
@@ -38,6 +38,7 @@ namespace Valour.Client.Users
             if (user == null)
             {
                 Console.WriteLine($"Failed to fetch planet user with user id {userid} and planet id {planetid}.");
+                return null;
             }
 
             // Add to cache

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Shared;
 using Valour.Shared.Users;
 
 namespace Valour.Client.Users
@@ -25,6 +26,7 @@ namespace Valour.Client.Users
         /// <summary>
         /// Returns the generic planetuser object
         /// </summary>
+        [JsonIgnore]
         public PlanetUser PlanetUser
         {
             get
@@ -42,18 +44,31 @@ namespace Valour.Client.Users
         }
 
         /// <summary>
-        /// Returns a 
+        /// Returns a clientplanetuser by requesting from the server
         /// </summary>
-        /// <param name="userid"></param>
-        /// <param name="planetid"></param>
-        /// <returns></returns>
         public static async Task<ClientPlanetUser> GetClientPlanetUserAsync(ulong userid, ulong planetid)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planetid={planetid}");
+            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planetid={planetid}&auth={ClientUserManager.UserSecretToken}");
 
-            ClientPlanetUser result = JsonConvert.DeserializeObject<ClientPlanetUser>(json);
+            Console.WriteLine("Test 0: " + json);
 
-            return result;
+            TaskResult<ClientPlanetUser> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetUser>>(json);
+
+            Console.WriteLine("Test: " + result.Data);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving a planet user from the server.");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                return null;
+            }
+
+            return result.Data;
         }
     }
 }

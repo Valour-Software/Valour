@@ -46,9 +46,11 @@ namespace Valour.Client.Messages
         /// <summary>
         /// Returns the author of the message
         /// </summary>
-        public async Task<PlanetUser> GetAuthorAsync()
+        public async Task<ClientPlanetUser> GetAuthorAsync()
         {
-            return await PlanetUserCache.GetPlanetUserAsync(Author_Id, Planet_Id); 
+            ClientPlanetUser planetUser = await PlanetUserCache.GetPlanetUserAsync(Author_Id, Planet_Id);
+
+            return planetUser;
         }
     }
 }
