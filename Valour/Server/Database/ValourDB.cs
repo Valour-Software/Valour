@@ -8,6 +8,7 @@ using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using Valour.Server.Planets;
 using Valour.Shared.Channels;
+using Valour.Server.Email;
 
 namespace Valour.Server.Database
 {
@@ -38,7 +39,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for Valour users
         /// </summary>
-        public DbSet<ClientUser> Users { get; set; }
+        public DbSet<User> Users { get; set; }
 
         // USER LOGIN AND PERMISSION STUFF //
 
@@ -46,6 +47,11 @@ namespace Valour.Server.Database
         /// Table for password and login information
         /// </summary>
         public DbSet<Credential> Credentials { get; set; }
+
+        /// <summary>
+        /// Table for email information
+        /// </summary>
+        public DbSet<UserEmail> UserEmails { get; set; }
 
         /// <summary>
         /// Table for authentication tokens

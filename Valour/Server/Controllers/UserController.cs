@@ -363,6 +363,44 @@ namespace Valour.Server.Controllers
         }
 
         /// <summary>
+        /// Returns a planetuser given the user and planet id
+        /// </summary>
+        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planetid, string auth)
+        {
+            // Retrieve planet
+            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planetid), Mapper);
+
+            if (planet == null) return new TaskResult<PlanetUser>(false, "The planet could not be found.", null);
+
+            // Authentication flow
+            AuthToken token = await Context.AuthTokens.FindAsync(auth);
+
+            // If authorizor is not a member of the planet, they do not have authority to get member info
+            if (token == null || !(await planet.IsMemberAsync(token.User_Id))){
+                return new TaskResult<PlanetUser>(false, "Failed to authorize.", null);
+            }
+
+            // At this point the request is authorized
+
+            // Retrieve server data for user
+            ClientUser preUser = await Context.Users.FindAsync(userid);
+
+            // Null check
+            if (preUser == null) return new TaskResult<PlanetUser>(false, "The user could not be found.", null);
+
+            // Strip private data
+            User user = Mapper.Map<User>(preUser);
+
+            // Ensure the user is a member of the planet
+            if (!(await planet.IsMemberAsync(user)))
+            {
+                return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
+            }
+
+
+        }
+
+        /// <summary>
         /// Returns the planet membership of a user
         /// </summary>
         /// <param name="token"></param>
