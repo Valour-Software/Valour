@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Client.Users;
 using Valour.Shared.Messaging;
 using Valour.Shared.Users;
 
@@ -45,12 +46,9 @@ namespace Valour.Client.Messages
         /// <summary>
         /// Returns the author of the message
         /// </summary>
-        public PlanetUser Author
+        public async Task<PlanetUser> GetAuthorAsync()
         {
-            get
-            {
-                return 
-            }
+            return await PlanetUserCache.GetPlanetUserAsync(Author_Id, Planet_Id); 
         }
     }
 }

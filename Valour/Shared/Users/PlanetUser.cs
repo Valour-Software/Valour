@@ -18,6 +18,8 @@ namespace Valour.Shared.Users
     /// </summary>
     public class PlanetUser : User
     {
+        public ulong Planet_Id { get; set; }
+
         public string GetMainRoleColor()
         {
             return "#00FAFF";

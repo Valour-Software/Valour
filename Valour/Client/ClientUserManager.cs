@@ -33,7 +33,7 @@ namespace Valour.Client
         /// <summary>
         /// This is the currently logged in user for the client
         /// </summary>
-        public static ClientUser User { get; set; }
+        public static User User { get; set; }
 
         /// <summary>
         /// This is the token the user is currently using to stay logged in
@@ -86,7 +86,7 @@ namespace Valour.Client
         {
             string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
 
-            TaskResult<ClientUser> result = JsonConvert.DeserializeObject<TaskResult<ClientUser>>(response);
+            TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(response);
 
             if (result.Success)
             {

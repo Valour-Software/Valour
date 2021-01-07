@@ -62,7 +62,7 @@ namespace Valour.Server.Controllers
             }
 
             // Ensure unique email
-            if (await Context.Users.AnyAsync(x => x.Email.ToLower() == email.ToLower()))
+            if (await Context.UserEmails.AnyAsync(x => x.Email.ToLower() == email.ToLower()))
             {
                 return new TaskResult(false, $"Failed: There was already a user using the email {email}");
             }
@@ -100,18 +100,26 @@ namespace Valour.Server.Controllers
             byte[] hash = PasswordManager.GetHashForPassword(password, salt);
 
             // Create user object
-            ClientUser user = new ClientUser()
+            User user = new User()
             {
                 Username = username,
-                Join_DateTime = DateTime.UtcNow,
+                Join_DateTime = DateTime.UtcNow
+            };
+
+            // Create email object
+            UserEmail emailObj = new UserEmail()
+            {
                 Email = email,
-                Verified_Email = false
+                Verified = false
             };
 
             // An error here would be really bad so we'll be careful and catch any exceptions
             try
             {
                 await Context.Users.AddAsync(user);
+                await Context.SaveChangesAsync();
+                // Pray something doesnt break between these
+                await Context.UserEmails.AddAsync(emailObj);
                 await Context.SaveChangesAsync();
             }
             catch (System.Exception e)
@@ -234,16 +242,18 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<string>> RequestStandardToken(string email, string password)
         {
-            ClientUser user = await Context.Users.FirstOrDefaultAsync(x => string.Equals(x.Email, email, StringComparison.OrdinalIgnoreCase));
+            UserEmail emailObj = await Context.UserEmails.FindAsync(email.ToLower());
 
-            if (user == null)
+            if (emailObj == null)
             {
                 return new TaskResult<string>(false, "There was no user found with that email.", null);
             }
 
+            User user = await emailObj.GetUserAsync();
+
             bool authorized = false;
 
-            if (!user.Verified_Email)
+            if (!emailObj.Verified)
             {
                 EmailConfirmCode confirmCode = await Context.EmailConfirmCodes.FindAsync(password);
 
@@ -257,7 +267,7 @@ namespace Valour.Server.Controllers
                 }
 
                 // At this point the email has been confirmed
-                user.Verified_Email = true;
+                emailObj.Verified = true;
 
                 Context.EmailConfirmCodes.Remove(confirmCode);
                 await Context.SaveChangesAsync();
@@ -331,18 +341,18 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns all user data using a token for verification
         /// </summary>
-        public async Task<TaskResult<ClientUser>> GetUserWithToken(string token)
+        public async Task<TaskResult<User>> GetUserWithToken(string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
             if (authToken == null)
             {
-                return new TaskResult<ClientUser>(false, "Failed to verify token.", null);
+                return new TaskResult<User>(false, "Failed to verify token.", null);
             }
 
-            ClientUser user = await Context.Users.FindAsync(authToken.User_Id);
+            User user = await Context.Users.FindAsync(authToken.User_Id);
 
-            return new TaskResult<ClientUser>(true, "Retrieved user.", user);
+            return new TaskResult<User>(true, "Retrieved user.", user);
         }
 
         /// <summary>
@@ -351,13 +361,7 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult<User>> GetUser(ulong id)
         {
             // Get user data
-            ClientUser preUser = await Context.Users.FindAsync(id);
-
-            // Null check
-            if (preUser == null) return new TaskResult<User>(false, "The user could not be found.", null);
-
-            // Strip private data
-            User user = Mapper.Map<User>(preUser);
+            User user = await Context.Users.FindAsync(id);
 
             return new TaskResult<User>(true, "Successfully found user.", user);
         }
@@ -383,13 +387,10 @@ namespace Valour.Server.Controllers
             // At this point the request is authorized
 
             // Retrieve server data for user
-            ClientUser preUser = await Context.Users.FindAsync(userid);
+            User user = await Context.Users.FindAsync(userid);
 
             // Null check
-            if (preUser == null) return new TaskResult<PlanetUser>(false, "The user could not be found.", null);
-
-            // Strip private data
-            User user = Mapper.Map<User>(preUser);
+            if (user == null) return new TaskResult<PlanetUser>(false, "The user could not be found.", null);
 
             // Ensure the user is a member of the planet
             if (!(await planet.IsMemberAsync(user)))
@@ -397,7 +398,11 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
             }
 
+            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planetid);
 
+            if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
+
+            return new TaskResult<PlanetUser>(true, "Successfully retrieved planet user.", planetUser);
         }
 
         /// <summary>

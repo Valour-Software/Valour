@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Planets;
+using Valour.Shared.Planets;
 using Valour.Shared.Users;
 
 namespace Valour.Server.Users
@@ -44,26 +46,39 @@ namespace Valour.Server.Users
         /// <summary>
         /// Creates a PlanetUser instance using a user and planet
         /// </summary>
-        public static async Task<ServerPlanetUser> CreateAsync(User user, PlanetUser planet)
+        public static async Task<ServerPlanetUser> CreateAsync(User user, PlanetUser planet, IMapper mapper)
         {
-            return await CreateAsync(user.Id, planet.Id);
+            return await CreateAsync(user.Id, planet.Id, mapper);
         }
 
         /// <summary>
         /// Creates a PlanetUser instance using a user id and planet id
         /// </summary>
-        public static async Task<ServerPlanetUser> CreateAsync(ulong userid, ulong planetid)
+        public static async Task<ServerPlanetUser> CreateAsync(ulong userid, ulong planetid, IMapper mapper)
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
-                // Find server user data
-                ClientUser preUser = await db.Users.FindAsync(userid);
+                // Retrieve user
+                User user = await db.Users.FindAsync(userid);
 
-                // Null check
-                if (preUser == null) return null;
+                // Retrieve planet
+                ServerPlanet planet = ServerPlanet.FromBase(await db.Planets.FindAsync(planetid), mapper);
 
-                // Clear private info
-                User user = 
+                // TODO: Actually set roles and stuff once roles exist.
+
+                // Ensure user is within planet
+                if (!(await planet.IsMemberAsync(user)))
+                {
+                    return null;
+                }
+
+                // First map the user to a planetUser to copy basic fields
+                ServerPlanetUser planetUser = mapper.Map<ServerPlanetUser>(user);
+
+                // Now copy across planet info
+                planetUser.Planet_Id = planetid;
+
+                return planetUser;
             }
         }
     }
