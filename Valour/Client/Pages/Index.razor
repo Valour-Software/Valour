@@ -12,13 +12,21 @@
     <body>
         <div class="mainrow">
             <div class="sidebar" id="sidebar1">
-                <img class="valour-logo" src="https://cdn.discordapp.com/attachments/723728766076977164/768967236806246420/USE_THIS_ONE_Logo.png">
-                <p class="valour-name">
-                    Valour
-                </p>
-                <p class="valour-version">
-                    Valour Platform Version 0.0.1 Pre-Alpha
-                </p>
+
+                <div style="width: 250px">
+                    <img class="valour-logo" src="icon-512.png">
+
+                    <div style="display:inline-block; vertical-align: middle">
+                        <p class="valour-name">
+                            Valour
+                        </p>
+                        <p class="valour-version">
+                            Valour Platform Version 0.0.1 Pre-Alpha
+                        </p>
+                    </div>
+                </div>
+
+                
                 <RoleComponent Name="Emperor"></RoleComponent>
                 <UserComponent Only="true" Username="SpikeViper" Role_color="rgb(0, 250, 255);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/148554809392234497/f9f221695ebe707c9707ecf122440134.png?size=128"></UserComponent>
                 <RoleComponent Name="Prime Minister"></RoleComponent>
@@ -51,12 +59,12 @@
                 <div class="topline">
                 </div>
                 <!--
-        Todo: Logic for multiple main windows.
-        This will be fun.
-    -->
+                    Todo: Logic for multiple main windows.
+                    This will be fun.
+                -->
                 <!--
-        Add dummy window so Jacob doesn't cry
-    -->
+                    Add dummy window so Jacob doesn't cry
+                -->
 
                 @if (ClientWindowManager.GetWindowCount() == 0)
                 {

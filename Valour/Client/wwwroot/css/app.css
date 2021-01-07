@@ -252,14 +252,14 @@ body {
     margin-right: auto;
 }
 
-    .sidebar-2 .user-info .pfp {
-        width: 32.72px;
-        height: 32.72px;
-        border-radius: 50%;
-        margin-top: 6.36px;
-        margin-bottom: 6.36px;
-        margin-left: 8.18px;
-    }
+.sidebar-2 .user-info .pfp {
+    width: 32.72px;
+    height: 32.72px;
+    border-radius: 50%;
+    margin-top: 6.36px;
+    margin-bottom: 6.36px;
+    margin-left: 8.18px;
+}
 
 .sidebar-2 .category .arrow {
     border-radius: 1px;
@@ -299,28 +299,28 @@ body {
     border-radius: 5px
 }
 
-    .sidebar-2 .category .channel .channel-name {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 16px;
-        line-height: 21px;
-        color: #FFFFFF;
-        margin-left: 8px;
-        margin-top: 5px;
-        vertical-align: top;
-        display: inline-block;
-    }
+.sidebar-2 .category .channel .channel-name {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 21px;
+    color: #FFFFFF;
+    margin-left: 8px;
+    margin-top: 5px;
+    vertical-align: top;
+    display: inline-block;
+}
 
-    .sidebar-2 .category .channel .chat-icon {
-        margin-top: 10px;
-        margin-bottom: 9px;
-        margin-left: 8px
-    }
+.sidebar-2 .category .channel .chat-icon {
+    margin-top: 10px;
+    margin-bottom: 9px;
+    margin-left: 8px
+}
 
-    .sidebar-2 .category .channel.last {
-        margin-bottom: 24px;
-    }
+.sidebar-2 .category .channel.last {
+    margin-bottom: 24px;
+}
 
 
 .sidebar-2 .category .channel-list {
@@ -402,58 +402,59 @@ body {
     max-width: 294px;
     margin: 0px;
     background-color: var(--main-2);
+    z-index: 1;
 }
 
-    .sidebar-2 .channel-name {
-        display: inline-block;
-        margin: 0px;
-        margin-top: 5px;
-        margin-left: 3px;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 27.5px;
-        line-height: 32px;
-        color: #FFFFFF;
-    }
+.sidebar-2 .channel-name {
+    display: inline-block;
+    margin: 0px;
+    margin-top: 5px;
+    margin-left: 3px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 27.5px;
+    line-height: 32px;
+    color: #FFFFFF;
+}
 
-    .sidebar-2 .top-bar {
-        width: 294px;
-        border-top: 3px solid #FFFFFF;
-    }
+.sidebar-2 .top-bar {
+    width: 294px;
+    border-top: 3px solid #FFFFFF;
+}
 
-    .sidebar-2 .channel-description {
-        font-family: Futura;
-        font-style: normal;
-        font-weight: 500;
-        font-size: 11px;
-        line-height: 15px;
-        color: #9E9E9E;
-    }
+.sidebar-2 .channel-description {
+    font-family: Futura;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 15px;
+    color: #9E9E9E;
+}
 
-    .sidebar-2 .channel-name-plus-pin .pin {
-        display: inline-block;
-        margin: 0px;
-        margin-left: 18px;
-    }
+.sidebar-2 .channel-name-plus-pin .pin {
+    display: inline-block;
+    margin: 0px;
+    margin-left: 18px;
+}
 
 
-    .sidebar-2 .viewing-current-channel {
-        margin-left: 15px;
-    }
+.sidebar-2 .viewing-current-channel {
+    margin-left: 15px;
+}
 
-        .sidebar-2 .viewing-current-channel .pfp {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            margin-left: -15px;
-        }
+.sidebar-2 .viewing-current-channel .pfp {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    margin-left: -15px;
+}
 
-    .sidebar-2 .current-channel-info {
-        padding-top: 16px;
-        margin-left: 16px;
-        height: 115px;
-    }
+.sidebar-2 .current-channel-info {
+    padding-top: 16px;
+    margin-left: 16px;
+    height: 115px;
+}
 
 .mainrow {
     width: 100%;
@@ -464,10 +465,17 @@ body {
 
 .sidebar {
     float: left;
-    max-width: 200px;
+    width: 64px;
     padding: 5px;
     background-color: var(--main-1);
+    transition: width ease-in-out .2s;
+    z-index: 0;
 }
+
+.sidebar:hover {
+    width: 250px;
+}
+
 
     .sidebar .valour-version {
         margin: 0px;
@@ -497,12 +505,12 @@ body {
     }
 
     .sidebar .valour-logo {
-        width: 87px;
-        height: 87px;
-        margin-left: 30px;
-        margin-top: 14px;
-        margin-right: 31px;
+        width: 50px;
+        margin-left: 5px;
+        margin-top: 5px;
+        margin-right: 5px;
         margin-bottom: 0px;
+        display: inline-block;
     }
 
 .rolename {
@@ -512,10 +520,14 @@ body {
     font-family: Ubuntu;
     font-style: normal;
     font-weight: 500;
-    font-size: 9px;
+    font-size: 14px;
     line-height: 10px;
     text-decoration-line: underline;
     color: #7A7A7A;
+    text-wrap: none;
+    white-space: nowrap;
+    text-align: center;
+    width: 250px;
 }
 
 .only {
@@ -523,17 +535,16 @@ body {
 }
 
 .sidebar-user {
-    width: 143px;
-    height: 37px;
+    width: 240px;
+    height: 55px;
     background-color: rgba(255, 255, 255, 0.07);
-    margin-left: auto;
     margin-right: auto;
 }
 
-    .sidebar-user.first {
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
-    }
+.sidebar-user.first {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
 
 .last {
     border-bottom-left-radius: 6px;
@@ -547,6 +558,8 @@ body {
 
 .sidebar-user .user-info {
     display: inline-block;
+    vertical-align: top;
+    margin-top: 6px;
 }
 
 .sidebar-user .state {
@@ -605,22 +618,23 @@ body {
     display: inline-block;
     font-family: Ubuntu;
     font-style: normal;
-    font-weight: bold;
-    font-size: 13px;
+    font-weight: normal;
+    font-size: 15px;
     line-height: 15px;
     vertical-align: top;
     margin: 0px;
-    margin-top: 6px;
-    margin-left: 2px;
+    margin: 5px;
 }
 
 .sidebar-user .pfp {
-    width: 29px;
+    min-width: 45px;
+    max-width: 45px;
     border-radius: 50%;
     margin-left: 8px;
     margin-top: 4px;
     margin-bottom: 4px;
     vertical-align: unset;
+    display: inline-block;
 }
 
 body {
@@ -665,6 +679,7 @@ body {
     height: 160px;
     padding: 10px;
     background-color: rgba(255, 255, 255, 0.07);
+    display: inline-block;
 }
 
 .planet-card-icon {

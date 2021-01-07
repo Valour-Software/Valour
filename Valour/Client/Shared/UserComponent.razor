@@ -1,5 +1,5 @@
 ﻿<div class="@Chosen_CSS">
-    <img class="pfp" src="@pfp_url">
+    <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
     <div class="user-info">
         <p class="username" style="color: @Role_color">
             @Username
@@ -66,5 +66,26 @@
                 return "sidebar-user";
             }
         }
+    }
+
+    public string pfpurl = "/icon-512.png";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (!string.IsNullOrWhiteSpace(pfp_url))
+        {
+            pfpurl = pfp_url;
+        }
+    }
+
+    protected async Task OnPfpError()
+    {
+        pfpurl = "/icon-512.png";
+
+        Console.WriteLine("pfp error caught");
+
+        StateHasChanged();
     }
 }

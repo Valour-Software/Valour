@@ -1,5 +1,5 @@
 ﻿<div class="user-info">
-    <img class="pfp" src="@User.Pfp_Url">
+    <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
     <p class="username">
         @User.Username
     </p>
@@ -11,4 +11,25 @@
 @code {
     [Parameter]
     public User User { get; set; }
+
+    public string pfpurl = "/icon-512.png";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (User != null && !string.IsNullOrWhiteSpace(User.Pfp_Url))
+        {
+            pfpurl = User.Pfp_Url;
+        }
+    }
+
+    protected async Task OnPfpError()
+    {
+        pfpurl = "/icon-512.png";
+
+        Console.WriteLine("pfp error caught");
+
+        StateHasChanged();
+    }
 }

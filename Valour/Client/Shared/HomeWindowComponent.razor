@@ -5,18 +5,17 @@
 
 <hr />
 
-@foreach (ClientPlanet planet in ClientUserManager.Planets)
-{
-    <div class="flex-row flex-wrap m-5">
-        <div class="home-server" style="cursor: pointer" @onclick="(e => OnPlanetClick(planet))">
+<div class="flex-row flex-wrap m-5">
+    @foreach (ClientPlanet planet in ClientUserManager.Planets)
+    {
+
+        <div class="home-server m-2" style="cursor: pointer" @onclick="(e => OnPlanetClick(planet))">
             <h6 class="text-center">@planet.Name</h6>
             <img class="planet-card-icon" src="@planet.Image_Url" />
         </div>
-    </div>
-}
+    }
 
-<div class="flex-row flex-wrap m-5">
-    <div class="home-server" @onclick="OnNewPlanetClick" style="cursor: pointer">
+    <div class="home-server m-2" @onclick="OnNewPlanetClick" style="cursor: pointer">
         <h6 class="text-center">Create a planet</h6>
         <svg class="planet-card-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
             <defs>
@@ -24,12 +23,15 @@
                     .cls-1, .cls-3 {
                         fill: #fff;
                     }
+
                     .cls-1 {
                         opacity: 0.1;
                     }
+
                     .cls-2 {
                         opacity: 0.2;
                     }
+
                     .cls-4 {
                         fill: #05ff00;
                     }
