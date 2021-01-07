@@ -1,13 +1,6 @@
 ﻿<div class="message">
     <div style="display:inline-block">
-        @if (Author != null)
-        {
-            <img class="author-pfp" src="@Author.Pfp_Url" />
-        }
-        else
-        {
-            <img class="author-pfp" src="~/icon-512.png" />
-        }
+        <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
         <p class="time">
             @Message.TimeSent.ToLocalTime().ToShortTimeString()
         </p>
@@ -38,11 +31,27 @@
 
     private PlanetUser Author;
 
+    string pfpurl = "/icon-512.png";
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
         Author = await Message.GetAuthorAsync();
+
+        if (Author != null && !string.IsNullOrWhiteSpace(Author.Pfp_Url))
+        {
+            pfpurl = Author.Pfp_Url;
+        }
+    }
+
+    protected async Task OnPfpError()
+    {
+        pfpurl = "/icon-512.png";
+
+        Console.WriteLine("pfp error caught");
+
+        StateHasChanged();
     }
 
 }
