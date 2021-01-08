@@ -8,15 +8,16 @@
     chosen channel, or otherwise displays the home window
 -->
 
-@if (Window is HomeWindow)
-{
-    <HomeWindowComponent Window="@((HomeWindow)Window)"  RefreshWindow="RefreshWindow"></HomeWindowComponent>
-}
-else if (Window is ChatChannelWindow)
-{
-    <ChannelWindowComponent Window="@((ChatChannelWindow)Window)"></ChannelWindowComponent>
-}
-
+<div id="window-@Window.Index" class="main-window">
+    @if (Window is HomeWindow)
+    {
+        <HomeWindowComponent Window="@((HomeWindow)Window)" RefreshWindow="RefreshWindow"></HomeWindowComponent>
+    }
+    else if (Window is ChatChannelWindow)
+    {
+        <ChannelWindowComponent Window="@((ChatChannelWindow)Window)"></ChannelWindowComponent>
+    }
+</div>
 
 @code {
     [Parameter]

@@ -4,12 +4,13 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
+@inject IJSRuntime JS
 
 <!-- Check login status -->
 @if (ClientUserManager.IsLoggedIn())
 {
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-    <body>
+    <body style="height: 100%">
         <div class="mainrow">
             <div class="sidebar" id="sidebar1">
 
@@ -26,7 +27,7 @@
                     </div>
                 </div>
 
-                
+
                 <RoleComponent Name="Emperor"></RoleComponent>
                 <UserComponent Only="true" Username="SpikeViper" Role_color="rgb(0, 250, 255);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/148554809392234497/f9f221695ebe707c9707ecf122440134.png?size=128"></UserComponent>
                 <RoleComponent Name="Prime Minister"></RoleComponent>
@@ -69,12 +70,49 @@
                 @if (ClientWindowManager.GetWindowCount() == 0)
                 {
                     ClientWindowManager.AddWindow(new HomeWindow(0));
+                    ClientWindowManager.AddWindow(new HomeWindow(0));
+                    ClientWindowManager.AddWindow(new HomeWindow(0));
+                    ClientWindowManager.AddWindow(new HomeWindow(0));
                 }
 
-                @foreach (ClientWindow window in ClientWindowManager.GetWindows())
+            <div id="window-man" class="window-grid">
+
+                @if (ClientWindowManager.GetWindowCount() == 1)
                 {
-                    <MainWindowComponent Window="window"></MainWindowComponent>
+                    <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
                 }
+                else if (ClientWindowManager.GetWindowCount() == 2)
+                {
+                    <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
+                    <MainWindowComponent Window="ClientWindowManager.GetWindow(1)"></MainWindowComponent>
+                }
+                else if (ClientWindowManager.GetWindowCount() == 3)
+                {
+                    <div id="window-col1" class="window-col">
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(1)"></MainWindowComponent>
+                    </div>
+                    <div id="window-col2" class="window-col">
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(2)"></MainWindowComponent>
+                    </div>
+                }
+                else if (ClientWindowManager.GetWindowCount() == 4)
+                {
+                    <div id="window-col1" class="window-col">
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(1)"></MainWindowComponent>
+                    </div>
+                    <div id="window-col2" class="window-col">
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(2)"></MainWindowComponent>
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(3)"></MainWindowComponent>
+                    </div>
+                }
+
+                @foreach (ClientWindow Window in ClientWindowManager.GetWindows())
+                {
+
+                }
+            </div>
 
             </div>
         </div>
@@ -83,4 +121,21 @@
 else
 {
     <LoginComponent></LoginComponent>
+}
+
+@code{
+
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        await SetupWindows();
+    }
+
+    private async Task SetupWindows()
+    {
+        await JS.InvokeVoidAsync("SizeEnable");
+    }
 }

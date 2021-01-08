@@ -103,6 +103,7 @@ body {
     border-radius: 15px;
     height: 69px;
     margin-top: 40px;
+    margin-bottom: 20px;
     width: 95%;
     height: 40px;
     margin-left: auto;
@@ -145,7 +146,6 @@ body {
     margin-left: 7px;
     margin-top: 4px;
     vertical-align: top;
-    width: 90%;
 }
 
 .message .content {
@@ -171,11 +171,13 @@ body {
 }
 
 .channel-and-topbar {
-    float: left;
+    display: flex;
     margin: 0px;
     background: #040D14;
     flex: 1;
     background-color: var(--main-4);
+    flex-direction: column;
+    height: 100%;
 }
 
 .topline {
@@ -187,6 +189,7 @@ body {
 
 .topbar {
     height: 115px;
+    min-height: 115px;
     background-color: var(--main-3);
 }
 
@@ -698,3 +701,23 @@ body {
     -webkit-transform: scale(1.05);
     transform: scale(1.05);
 }
+
+.window-grid {
+    display: flex;
+    flex: 2;
+    flex-grow: 1;
+    justify-content: space-between;
+    height: calc(100% - (115px + 16px));
+}
+
+.main-window {
+    border: 1px dashed white;
+    resize: both;
+    width: 100%;
+    height: 50%;
+}
+
+.window-col {
+    width: 50%;
+}
+
