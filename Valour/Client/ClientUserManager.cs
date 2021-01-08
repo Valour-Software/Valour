@@ -51,6 +51,11 @@ namespace Valour.Client
         public static HttpClient Http;
 
         /// <summary>
+        /// Random helper
+        /// </summary>
+        public static Random Random = new Random();
+
+        /// <summary>
         /// True if the user is logged in
         /// </summary>
         public static bool IsLoggedIn()
