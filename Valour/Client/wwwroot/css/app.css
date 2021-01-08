@@ -175,7 +175,7 @@ body {
     margin: 0px;
     background: #040D14;
     flex: 1;
-    background-color: var(--main-4);
+    background-color: var(--main-1);
     flex-direction: column;
     height: 100%;
 }
@@ -708,16 +708,31 @@ body {
     flex-grow: 1;
     justify-content: space-between;
     height: calc(100% - (115px + 16px));
+    padding: 0px;
 }
 
 .main-window {
-    border: 1px dashed white;
-    resize: both;
+    background-color: var(--main-4);
     width: 100%;
     height: 50%;
+    overflow-y: auto;
 }
 
 .window-col {
     width: 50%;
 }
 
+/* Scrollbar */
+*::-webkit-scrollbar {
+    width: 12px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--main-1);
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: white;
+    border-radius: 20px;
+    border: 3px solid black;
+}
