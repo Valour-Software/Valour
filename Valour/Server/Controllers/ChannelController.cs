@@ -112,6 +112,25 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "The given name is valid.");
         }
+        
+        public async Task<IEnumerable<ulong>> GetPlanetChannelIdsAsync(ulong planet_id)
+        {
+            Console.WriteLine(planet_id);
+
+            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
+
+            return channels;
+        }
+
+        [HttpGet]
+        public async Task<IEnumerable<PlanetChatChannel>> GetPlanetChannelsAsync(ulong planet_id)
+        {
+            Console.WriteLine(planet_id);
+
+            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
+
+            return channels;
+        }
 
         [HttpGet]
         public IEnumerable<PlanetMessage> GetMessages(ulong channel_id)
