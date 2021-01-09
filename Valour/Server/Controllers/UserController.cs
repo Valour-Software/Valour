@@ -106,25 +106,34 @@ namespace Valour.Server.Controllers
                 Join_DateTime = DateTime.UtcNow
             };
 
-            // Create email object
-            UserEmail emailObj = new UserEmail()
-            {
-                Email = email,
-                Verified = false
-            };
-
             // An error here would be really bad so we'll be careful and catch any exceptions
             try
             {
                 await Context.Users.AddAsync(user);
                 await Context.SaveChangesAsync();
+            }
+            catch (System.Exception e)
+            {
+                return new TaskResult(false, $"A critical error occured adding the user.");
+            }
+
+            // Create email object
+            UserEmail emailObj = new UserEmail()
+            {
+                Email = email,
+                Verified = false,
+                User_Id = user.Id
+            };
+
+            try
+            {
                 // Pray something doesnt break between these
                 await Context.UserEmails.AddAsync(emailObj);
                 await Context.SaveChangesAsync();
             }
             catch (System.Exception e)
             {
-                return new TaskResult(false, $"A critical error occured adding the user.");
+                return new TaskResult(false, $"A critical error occured adding the email.");
             }
 
             Credential cred = new Credential()

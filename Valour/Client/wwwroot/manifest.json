@@ -1,10 +1,10 @@
 {
-  "name": "BlazorApp2",
-  "short_name": "BlazorApp2",
+  "name": "Valour",
+  "short_name": "Valour",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#03173d",
+  "background_color": "#040d14",
+  "theme_color": "#00ffff",
   "icons": [
     {
       "src": "icon-512.png",
