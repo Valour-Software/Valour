@@ -21,6 +21,8 @@ namespace Valour.Client.Users
     {
         private static Dictionary<(ulong, ulong), ClientPlanetUser> Cache = new Dictionary<(ulong, ulong), ClientPlanetUser>();
 
+        private static object _lock;
+
         /// <summary>
         /// Returns a user from the given id
         /// </summary>
@@ -45,6 +47,7 @@ namespace Valour.Client.Users
             Cache.Add((userid, planetid), user);
 
             return user;
+
         }
     }
 }

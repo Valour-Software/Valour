@@ -91,9 +91,11 @@
 
         Console.WriteLine($"Recieved message {message.Index}.");
 
-        Console.WriteLine(data);
+        //Console.WriteLine(data);
 
-        Console.WriteLine(await message.GetAuthorAsync());
+        //Console.WriteLine(await message.GetAuthorAsync());
+
+        await JS.InvokeVoidAsync("SetScrollState", Window.Index);
 
         messages.Add(message);
 
@@ -102,7 +104,7 @@
         // Flag for UI refresh
         StateHasChanged();
 
-        await JS.InvokeVoidAsync("ScrollWindowBottom", $"innerwindow-{Window.Index}");
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }
 
     public async Task RefreshMessages()

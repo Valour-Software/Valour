@@ -45,11 +45,26 @@ function SizeEnable() {
     }
 }
 
+var scrollStates = [1, 1, 1, 1];
+
+function SetScrollState(index) {
+    var window = $("#innerwindow-" + index);
+    if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
+                 Math.abs(window.outerHeight()))
+                 < 25) {
+
+        scrollStates[index] = 1;
+    }
+    else {
+        scrollStates[index] = 0;
+    }
+}
+
 // Automagically scroll windows down
-function ScrollWindowBottom(windowid) {
-    var window = $("#" + windowid);
+function ScrollWindowBottom(index) {
+    var window = $("#innerwindow-" + index);
 
-    console.log("Scrolling " + windowid);
-
-    window.scrollTop(window.prop("scrollHeight"));
+    if (scrollStates[index] === 1) {
+        window.scrollTop(window.prop("scrollHeight"));
+    }
 }

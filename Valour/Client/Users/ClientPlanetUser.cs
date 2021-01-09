@@ -50,11 +50,7 @@ namespace Valour.Client.Users
         {
             string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planetid={planetid}&auth={ClientUserManager.UserSecretToken}");
 
-            Console.WriteLine("Test 0: " + json);
-
             TaskResult<ClientPlanetUser> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetUser>>(json);
-
-            Console.WriteLine("Test: " + result.Data);
 
             if (result == null)
             {
