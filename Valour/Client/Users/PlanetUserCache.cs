@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace Valour.Client.Users
     /// </summary>
     public static class PlanetUserCache
     {
-        private static Dictionary<(ulong, ulong), ClientPlanetUser> Cache = new Dictionary<(ulong, ulong), ClientPlanetUser>();
+        private static ConcurrentDictionary<(ulong, ulong), ClientPlanetUser> Cache = new ConcurrentDictionary<(ulong, ulong), ClientPlanetUser>();
 
         private static object _lock;
 
@@ -28,6 +29,17 @@ namespace Valour.Client.Users
         /// </summary>
         public static async Task<ClientPlanetUser> GetPlanetUserAsync(ulong userid, ulong planetid)
         {
+            if (userid == 0)
+            {
+                return new ClientPlanetUser()
+                {
+                    Id = 0,
+                    Join_DateTime = DateTime.UtcNow,
+                    Planet_Id = planetid,
+                    Username = "Valour AI"
+                };
+            }
+
             // Attempt to retrieve from cache
             if (Cache.ContainsKey((userid, planetid)))
             {
@@ -44,7 +56,7 @@ namespace Valour.Client.Users
             }
 
             // Add to cache
-            Cache.Add((userid, planetid), user);
+            Cache.TryAdd((userid, planetid), user);
 
             return user;
 
