@@ -44,3 +44,12 @@ function SizeEnable() {
         }
     }
 }
+
+// Automagically scroll windows down
+function ScrollWindowBottom(windowid) {
+    var window = $("#" + windowid);
+
+    console.log("Scrolling " + windowid);
+
+    window.scrollTop(window.prop("scrollHeight"));
+}

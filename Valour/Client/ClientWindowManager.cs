@@ -15,6 +15,7 @@ namespace Valour.Client
 
         public static void AddWindow(ClientWindow window)
         {
+            window.Index = OpenWindows.Count;
             OpenWindows.Add(window);
         }
 
@@ -45,6 +46,7 @@ namespace Valour.Client
 
         public static void SetWindow(int index, ClientWindow window)
         {
+            window.Index = index;
             OpenWindows.RemoveAt(index);
             OpenWindows.Insert(index, window);
         }

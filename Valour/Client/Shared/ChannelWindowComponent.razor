@@ -4,7 +4,7 @@
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window">
 
-    <div class="p-2 mt-auto" style="overflow-y: scroll;">
+    <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (messages != null)
         {
             foreach (ClientPlanetMessage msg in messages)
@@ -62,6 +62,11 @@
         await JS.InvokeVoidAsync("OnChannelLoad", null);
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     public async Task ConnectSignalR()
     {
         // Get url for
@@ -96,6 +101,8 @@
 
         // Flag for UI refresh
         StateHasChanged();
+
+        await JS.InvokeVoidAsync("ScrollWindowBottom", $"innerwindow-{Window.Index}");
     }
 
     public async Task RefreshMessages()
