@@ -47,7 +47,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong userid, string token, string planetid)
+        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong userid, ulong planetid, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -70,16 +70,12 @@ namespace Valour.Server.Controllers
 
             // User is verified and given channel info is valid by this point
 
-            // Converts planetid into a ulong
-            
-            ulong planetId = Convert.ToUInt64(planetid);
-
             // Creates the channel channel
 
             PlanetChatChannel channel = new PlanetChatChannel()
             {
                 Name = name,
-                Planet_Id = planetId,
+                Planet_Id = planetid,
                 Message_Count = 0
             };
 
@@ -115,8 +111,6 @@ namespace Valour.Server.Controllers
         
         public async Task<IEnumerable<ulong>> GetPlanetChannelIdsAsync(ulong planet_id)
         {
-            Console.WriteLine(planet_id);
-
             IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
 
             return channels;
@@ -125,8 +119,6 @@ namespace Valour.Server.Controllers
         [HttpGet]
         public async Task<IEnumerable<PlanetChatChannel>> GetPlanetChannelsAsync(ulong planet_id)
         {
-            Console.WriteLine(planet_id);
-
             IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
 
             return channels;
@@ -135,8 +127,6 @@ namespace Valour.Server.Controllers
         [HttpGet]
         public IEnumerable<PlanetMessage> GetMessages(ulong channel_id)
         {
-            Console.WriteLine(channel_id);
-
             ulong channelId = 1;
 
             PlanetMessage welcome = new PlanetMessage()

@@ -8,7 +8,8 @@
     chosen channel, or otherwise displays the home window
 -->
 
-<div id="window-@Window.Index" class="main-window">
+<div id="window-@Window.Index" class="@StyleClass">
+
     @if (Window is HomeWindow)
     {
         <HomeWindowComponent Window="@((HomeWindow)Window)" RefreshWindow="RefreshWindow"></HomeWindowComponent>
@@ -22,6 +23,9 @@
 @code {
     [Parameter]
     public ClientWindow Window { get; set; }
+
+    [Parameter]
+    public string StyleClass { get; set; }
 
     public void RefreshWindow(ClientWindow window)
     {

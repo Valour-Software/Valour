@@ -60,54 +60,58 @@
                 <div class="topline">
                 </div>
                 <!--
-                    Todo: Logic for multiple main windows.
-                    This will be fun.
-                -->
+        Todo: Logic for multiple main windows.
+        This will be fun.
+    -->
                 <!--
-                    Add dummy window so Jacob doesn't cry
-                -->
+        Add dummy window so Jacob doesn't cry
+    -->
 
                 @if (ClientWindowManager.GetWindowCount() == 0)
                 {
                     ClientWindowManager.AddWindow(new HomeWindow(0));
-                    ClientWindowManager.AddWindow(new HomeWindow(0));
-                    ClientWindowManager.AddWindow(new HomeWindow(0));
-                    ClientWindowManager.AddWindow(new HomeWindow(0));
                 }
 
-            <div id="window-man" class="window-grid">
+                @if (ClientWindowManager.GetWindowCount() < 4)
+                {
+                    <div class="add-window-button" @onclick="@OnAddWindow">
 
-                @if (ClientWindowManager.GetWindowCount() == 1)
-                {
-                    <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
-                }
-                else if (ClientWindowManager.GetWindowCount() == 2)
-                {
-                    <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
-                    <MainWindowComponent Window="ClientWindowManager.GetWindow(1)"></MainWindowComponent>
-                }
-                else if (ClientWindowManager.GetWindowCount() == 3)
-                {
-                    <div id="window-col1" class="window-col">
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(1)"></MainWindowComponent>
-                    </div>
-                    <div id="window-col2" class="window-col">
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(2)"></MainWindowComponent>
                     </div>
                 }
-                else if (ClientWindowManager.GetWindowCount() == 4)
-                {
-                    <div id="window-col1" class="window-col">
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)"></MainWindowComponent>
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(1)"></MainWindowComponent>
-                    </div>
-                    <div id="window-col2" class="window-col">
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(2)"></MainWindowComponent>
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(3)"></MainWindowComponent>
-                    </div>
-                }
-            </div>
+
+                <div id="window-man" class="window-grid">
+
+                    @if (ClientWindowManager.GetWindowCount() == 1)
+                    {
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                    }
+                    else if (ClientWindowManager.GetWindowCount() == 2)
+                    {
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent Window="ClientWindowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
+                    }
+                    else if (ClientWindowManager.GetWindowCount() == 3)
+                    {
+                        <div id="window-col1" class="window-col">
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        </div>
+                        <div id="window-col2" class="window-col">
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                        </div>
+                    }
+                    else if (ClientWindowManager.GetWindowCount() == 4)
+                    {
+                        <div id="window-col1" class="window-col">
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                        </div>
+                        <div id="window-col2" class="window-col">
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="ClientWindowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
+                        </div>
+                    }
+                </div>
 
             </div>
         </div>
@@ -132,5 +136,17 @@ else
     private async Task SetupWindows()
     {
         await JS.InvokeVoidAsync("SizeEnable");
+    }
+
+    private async Task OnAddWindow()
+    {
+        if (ClientWindowManager.GetWindowCount() == 4)
+        {
+            return;
+        }
+
+        ClientWindowManager.AddWindow(new HomeWindow(ClientWindowManager.GetWindowCount() - 1));
+
+        StateHasChanged();
     }
 }
