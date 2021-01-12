@@ -127,12 +127,12 @@ else
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        planetManager.OnPlanetChange += UpdateUsers;
+        planetManager.OnPlanetChange += OnPlanetChange;
     }
 
     public void Dispose()
     {
-        planetManager.OnPlanetChange -= UpdateUsers;
+        planetManager.OnPlanetChange -= OnPlanetChange;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -159,7 +159,7 @@ else
         StateHasChanged();
     }
 
-    public async Task UpdateUsers()
+    public async Task OnPlanetChange()
     {
         if (planetManager.GetCurrent() == null) return;
 
