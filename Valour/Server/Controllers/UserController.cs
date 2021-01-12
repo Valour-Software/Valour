@@ -260,6 +260,11 @@ namespace Valour.Server.Controllers
 
             User user = await emailObj.GetUserAsync();
 
+            if (user.Disabled)
+            {
+                return new TaskResult<string>(false, "Your account has been disabled.", null);
+            }
+
             bool authorized = false;
 
             if (!emailObj.Verified)

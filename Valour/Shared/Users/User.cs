@@ -43,5 +43,10 @@ namespace Valour.Shared.Users
         /// True if the user is a bot
         /// </summary>
         public bool Bot { get; set; }
+
+        /// <summary>
+        /// True if the account has been disabled
+        /// </summary>
+        public bool Disabled { get; set; }
     }
 }

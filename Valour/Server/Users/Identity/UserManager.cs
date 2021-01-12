@@ -54,6 +54,11 @@ namespace Valour.Server.Users.Identity
 
                 User user = await context.Users.FindAsync(credential.User_Id);
 
+                if (user.Disabled)
+                {
+                    return new TaskResult<User>(false, "This account has been disabled", null);
+                }
+
                 return new TaskResult<User>(true, "Succeeded", user);
             }
         }
