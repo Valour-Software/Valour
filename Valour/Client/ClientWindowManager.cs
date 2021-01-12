@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Client.Channels;
 using Valour.Shared.Channels;
 
 namespace Valour.Client
@@ -78,9 +79,9 @@ namespace Valour.Client
         /// <summary>
         /// The channel this window represents
         /// </summary>
-        public PlanetChatChannel Channel { get; set; }
+        public ClientPlanetChatChannel Channel { get; set; }
 
-        public ChatChannelWindow(int index, PlanetChatChannel channel) : base(index)
+        public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
         {
             this.Channel = channel;
         }

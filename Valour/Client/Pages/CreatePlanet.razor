@@ -99,10 +99,13 @@
 
             ClientPlanet planet = ClientPlanet.FromBase(planetResult.Data, Mapper);
 
-            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync(Mapper);
 
             ClientWindowManager.ClearWindows();
-            ClientWindowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
+
+            ClientPlanetChatChannel channel = ClientPlanetChatChannel.FromBase(mainChannel, Mapper);
+
+            ClientWindowManager.AddWindow(new ChatChannelWindow(0, channel));
 
             // Return to index
             navManager.NavigateTo("/");

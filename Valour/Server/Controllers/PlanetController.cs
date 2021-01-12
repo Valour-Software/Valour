@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
@@ -83,6 +85,11 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
+            if (await Context.Planets.CountAsync(x => x.Owner_Id == userid) > MAX_OWNED_PLANETS - 1)
+            {
+                return new TaskResult<ulong>(false, "You have hit your maximum planets!", 0);
+            }
+
             // User is verified and given planet info is valid by this point
             // We don't actually need the user object which is cool
 
@@ -152,7 +159,7 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planet object (if permitted)
         /// </summary>
-        public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, ulong userid, string token)
+        public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, string token)
         {
             ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
 
@@ -161,7 +168,9 @@ namespace Valour.Server.Controllers
                 return new TaskResult<Planet>(false, "The given planet id does not exist.", null);
             }
 
-            if (!(await planet.AuthorizedAsync(userid, token))){
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (!(await planet.AuthorizedAsync(authToken))){
                 return new TaskResult<Planet>(false, "You are not authorized to access this planet.", null);
             }
 
@@ -175,7 +184,7 @@ namespace Valour.Server.Controllers
         {
             ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
 
-            if (!(await planet.AuthorizedAsync(userid, token)))
+            if (!(await planet.AuthorizedAsync(token)))
             {
                 return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
             }

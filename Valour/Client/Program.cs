@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Valour.Client.Mapping;
 using Microsoft.JSInterop;
+using Valour.Client.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -26,6 +27,7 @@ namespace Valour.Client
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddScoped<LocalStorageService>();
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddSingleton<ClientPlanetManager>();
 
             var mapConfig = new MapperConfiguration(x =>
             {

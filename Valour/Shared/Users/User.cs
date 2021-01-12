@@ -38,5 +38,10 @@ namespace Valour.Shared.Users
         /// The Date and Time that the user joined Valour
         /// </summary>
         public DateTime Join_DateTime { get; set; }
+
+        /// <summary>
+        /// True if the user is a bot
+        /// </summary>
+        public bool Bot { get; set; }
     }
 }

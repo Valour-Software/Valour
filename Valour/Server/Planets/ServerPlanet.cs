@@ -107,25 +107,34 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if the given user is authorized to access this planet
         /// </summary>
-        public async Task<bool> AuthorizedAsync(ulong userid, string token)
+        public async Task<bool> AuthorizedAsync(string token)
         {
-            // Need to ensure user is a member if not public
+            if (Public) return true;
+
+            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+            {
+                AuthToken authToken = await db.AuthTokens.FindAsync(token);
+
+                return await AuthorizedAsync(authToken);
+            }
+        }
+
+        /// <summary>
+        /// Returns if the given user is authorized to access this planet
+        /// </summary>
+        public async Task<bool> AuthorizedAsync(AuthToken authToken)
+        {
             if (!Public)
             {
-                using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+                if (authToken == null)
                 {
-                    AuthToken authToken = await db.AuthTokens.FindAsync(token);
+                    return false;
+                }
 
-                    if (authToken == null || authToken.User_Id != userid)
-                    {
-                        return false;
-                    }
-
-                    // If the user is not a member, cancel
-                    if (!(await IsMemberAsync(userid)))
-                    {
-                        return false;
-                    }
+                // If the user is not a member, cancel
+                if (!(await IsMemberAsync(authToken.User_Id)))
+                {
+                    return false;
                 }
             }
 

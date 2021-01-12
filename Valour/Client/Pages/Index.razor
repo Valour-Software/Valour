@@ -5,6 +5,7 @@
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JS
+@inject ClientPlanetManager planetManager
 
 <!-- Check login status -->
 @if (ClientUserManager.IsLoggedIn())
@@ -27,18 +28,15 @@
                     </div>
                 </div>
 
+                @if (planetManager.GetCurrent() != null)
+                {
 
-                <RoleComponent Name="Emperor"></RoleComponent>
-                <UserComponent Only="true" Username="SpikeViper" Role_color="rgb(0, 250, 255);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/148554809392234497/f9f221695ebe707c9707ecf122440134.png?size=128"></UserComponent>
-                <RoleComponent Name="Prime Minister"></RoleComponent>
-                <UserComponent Only="true" Username="Pope Francis" Role_color="rgba(0, 255, 250, 1);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/153555060926840833/240f5eb647299279607c78fa9fb1f835.png?size=128"></UserComponent>
-                <RoleComponent Name="VoopAI"></RoleComponent>
-                <UserComponent Only="true" Bot="true" Username="VoopAI" Role_color="rgb(255, 0, 233);" State="Moderating" pfp_url="https://cdn.discordapp.com/avatars/601282518989275177/6b8b49aeae7e5a6c606fb5ebfbaa99d3.png?size=512"></UserComponent>
-                <RoleComponent Name="Admin"></RoleComponent>
-                <UserComponent First="true" Username="xbomber125" Role_color="rgb(0, 192, 192);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/212725867757961216/6d2f3798290d41fc2022e0abe2c4dbdc.png?size=128"></UserComponent>
-                <UserComponent Username="Silly" Role_color="rgb(0, 192, 192);" State="In another server" pfp_url="https://cdn.discordapp.com/avatars/203353033814310912/aad3215a0acdad45294a119d055e33b1.png?size=128"></UserComponent>
-                <UserComponent Username="Jam" Role_color="rgb(0, 192, 192);" State="In Off Topic" pfp_url="https://cdn.discordapp.com/avatars/474709845895806976/0906d3e1cdacc24ad26b530cca2730b6.png?size=128"></UserComponent>
-                <UserComponent Last="true" Username="Tyco" Role_color="rgb(0, 192, 192);" State="In General" pfp_url="https://cdn.discordapp.com/avatars/339896226122301440/e635b741ba65cdce0a6de10523002852.png?size=128"></UserComponent>
+                    foreach (var user in planetUserList)
+                    {
+                        <RoleComponent Name="Emperor"></RoleComponent>
+                        <UserComponent Only="true" User="@user"></UserComponent>
+                    }
+                }
             </div>
             <div class="sidebar-2" id="sidebar2">
                 <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
@@ -124,7 +122,18 @@ else
 
 @code{
 
+    public ConcurrentBag<ClientPlanetUser> planetUserList = new ConcurrentBag<ClientPlanetUser>();
 
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        planetManager.OnPlanetChange += UpdateUsers;
+    }
+
+    public void Dispose()
+    {
+        planetManager.OnPlanetChange -= UpdateUsers;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -146,6 +155,20 @@ else
         }
 
         ClientWindowManager.AddWindow(new HomeWindow(ClientWindowManager.GetWindowCount() - 1));
+
+        StateHasChanged();
+    }
+
+    public async Task UpdateUsers()
+    {
+        if (planetManager.GetCurrent() == null) return;
+
+        ClientPlanetUser self = await PlanetUserCache.GetPlanetUserAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+
+        if (!planetUserList.Contains(self))
+        {
+            planetUserList.Add(self);
+        }
 
         StateHasChanged();
     }

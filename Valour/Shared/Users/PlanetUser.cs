@@ -21,6 +21,11 @@ namespace Valour.Shared.Users
     {
         public ulong Planet_Id { get; set; }
 
+        public string GetState()
+        {
+            return "Currently browsing";
+        }
+
         public string GetMainRoleColor()
         {
             return "#00FAFF";

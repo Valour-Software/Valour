@@ -1,8 +1,9 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 @inject IJSRuntime JS
+@inject ClientPlanetManager planetManager
 
-<div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window">
+<div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (messages != null)
@@ -44,7 +45,7 @@
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
-    public PlanetChatChannel Channel;
+    public ClientPlanetChatChannel Channel;
 
     /// <summary>
     /// The index of the last sent message
@@ -55,6 +56,8 @@
     protected override async Task OnInitializedAsync()
     {
         Channel = Window.Channel;
+
+        await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
         await ConnectSignalR();
         await RefreshMessages();
@@ -141,6 +144,13 @@
     public async Task OnChatboxInput()
     {
 
+    }
+
+    public async Task OnClickWindow()
+    {
+        Console.WriteLine($"Setting active planet to {Channel.Planet_Id}");
+        ClientPlanet planet = await ClientPlanetCache.GetPlanetAsync(Channel.Planet_Id);
+        await planetManager.SetCurrentPlanet(planet);
     }
 
     public async Task PostMessage(string msg)

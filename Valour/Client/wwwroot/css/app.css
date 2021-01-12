@@ -571,14 +571,14 @@ body {
     font-family: Ubuntu;
     font-style: normal;
     font-weight: normal;
-    font-size: 10px;
+    font-size: 14px;
     line-height: 11px;
     color: #7A7A7A;
     margin: 0px;
     position: absolute;
     top: 0;
-    left: 13px;
-    width: 91px;
+    left: 15px;
+    width: 250px;
     height: 12px;
 }
 

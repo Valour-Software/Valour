@@ -22,8 +22,6 @@ namespace Valour.Client.Users
     {
         private static ConcurrentDictionary<(ulong, ulong), ClientPlanetUser> Cache = new ConcurrentDictionary<(ulong, ulong), ClientPlanetUser>();
 
-        private static object _lock;
-
         /// <summary>
         /// Returns a user from the given id
         /// </summary>

@@ -2,9 +2,11 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Valour.Client.Channels;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Planets;
@@ -47,7 +49,7 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Returns the primary channel of the planet
         /// </summary>
-        public async Task<PlanetChatChannel> GetPrimaryChannelAsync()
+        public async Task<ClientPlanetChatChannel> GetPrimaryChannelAsync(IMapper mapper)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPrimaryChannel?planetid={Id}" +
                                                                                               $"&userid={ClientUserManager.User.Id}" +
@@ -66,7 +68,34 @@ namespace Valour.Client.Planets
                 Console.WriteLine($"Failed to retrieve primary channel for planet {Id}: {channelResult.Message}");
             }
 
-            return channelResult.Data;
+            // Map to new
+            ClientPlanetChatChannel channel = mapper.Map<ClientPlanetChatChannel>(channelResult.Data);
+
+            return channel;
+        }
+
+        /// <summary>
+        /// Retrieves and returns a client planet by requesting from the server
+        /// </summary>
+        public static async Task<ClientPlanet> GetClientPlanetAsync(ulong id)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanet?planetid={id}&auth={ClientUserManager.UserSecretToken}");
+
+            TaskResult<ClientPlanet> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanet>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving a planet from the server.");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                return null;
+            }
+
+            return result.Data;
         }
     }
 }

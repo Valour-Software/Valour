@@ -1,4 +1,5 @@
 ﻿@inject NavigationManager navManager
+@inject AutoMapper.IMapper Mapper
 
 
 <h5 class="m-2">Planets and friends</h5>
@@ -59,7 +60,7 @@
 
     public async Task OnPlanetClick(ClientPlanet planet)
     {
-        PlanetChatChannel channel = await planet.GetPrimaryChannelAsync();
+        ClientPlanetChatChannel channel = await planet.GetPrimaryChannelAsync(Mapper);
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
         ClientWindowManager.SetWindow(Window.Index, new ChatChannelWindow(Window.Index, channel));
