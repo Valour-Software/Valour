@@ -7,17 +7,14 @@ namespace json_api
     {
         static void Main()
         {
-            string path = @"D:\plang\python\pythonapi\python-sharp-api\teste.json"; //the absolute path for the json file
-            Console.WriteLine(jsonify("reject:'humanity',returnTo:'monke'", true, path)); // "jsonify" the string, true for writing in a file and the filepath
-            Console.WriteLine("[{0}]",string.Join(" ", readJson(path, 1))); // return the keys of the json file in path
-            Console.WriteLine("[{0}]",string.Join(" ", readJson(path, 2))); // return the value of the json file in path
-            Console.WriteLine("[{0}]",string.Join(" ", readJson(path, 3))); // return the keys and the values of the json file in path {"key: value", "key: value"}
+            string jsonName = @"api.json"
+            string path = Path.getFullPath(jsonName); //the absolute path for the json file
         }
         static string jsonify(string stringToJsonify = "", bool makeFile = false, string fileNameWithPath = "")
         {
             /* uses key-value like json, accepts null does accept itself
             * example:
-            * api.jsonify("num:123,string:'value2', nullValue: null) ->(string) {\nkey1: value1,\nkey2: value2}
+            * api.jsonify("num:123,string:'value2', nullValue: null) ->(string) {\n key1: value1,\n key2: value2}
             * obs: spaces are not ignored
             */
 
@@ -127,7 +124,7 @@ namespace json_api
             }
 
         }
-        
+
         static string[] readJson(string filenameWithPath, int get)
         {
             /*
@@ -154,7 +151,7 @@ namespace json_api
                         skipNext = false;
                         continue;
                     }
-                    
+
                     if (":".Contains(charAt))
                     {
                         getValue = false;
@@ -167,7 +164,7 @@ namespace json_api
                         subJsonValue += charAt;
                         continue;
                     }
-                    
+
                     else if (",\n".Contains(charAt) && !getValue)
                     {
                         getValue = true;
@@ -177,7 +174,7 @@ namespace json_api
                 }
                 return jsonFinal;
             } else if (get == 2) {
-                
+
                 bool getValue = false;
                 bool skipNext = false;
                 foreach (char charAt in jsonFile)
@@ -199,7 +196,7 @@ namespace json_api
                     if (getValue){
                         subJsonValue += charAt;
                     }
-                    
+
                     else if (":".Contains(charAt) && !getValue)
                     {
                         getValue = true;
@@ -249,7 +246,7 @@ namespace json_api
                 }
                 result[newCounter] = array[i];
                 newCounter++;
-            }  
+            }
 
             return result;
         }

@@ -1,0 +1,5 @@
+{
+    "user": "name",
+    "date": "hh:mm:ss dd:mm:yyyy",
+    "System/planet": "(systemName)-(PlanetName)"
+}
