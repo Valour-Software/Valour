@@ -1,38 +1,34 @@
-﻿@page "/CreatePlanet"
-
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
-@inject AutoMapper.IMapper Mapper
+@inject AutoMapper.IMapper Mapper 
 @inject ClientWindowManager windowManager
 
-<body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
-    <div class="login-box">
-        <div class="col-md-12">
-            <section>
-                <h2>Create a new Planet</h2>
+<div class="login-box">
+    <div class="col-md-12">
+        <section>
+            <h2>Create a new Planet</h2>
 
-                <h4>The birth of a community!</h4>
-                <hr />
-                <div asp-validation-summary="All" class="text-info"></div>
-                <div class="form-group mt-2">
-                    <label>Community Name</label>
-                    <input class="form-control" @bind-value="@name" />
-                    <span id="name-span" style="color:#888888">@nameSpan</span>
-                </div>
-                <div class="form-group mt-2" style="display: inline-block; width:80%">
-                    <label>Icon Url</label>
-                    <input class="form-control" @bind-value="@image_url" @bind-value:event="oninput" />
-                    <span id="image-span" style="color:#888888">@imageSpan</span>
-                </div>
-                <img class="mt-2" src="@image_url" style="width: 64px; height: 64px; float:right" />
-                <div class="form-group mt-4">
-                    <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
-                </div>
-            </section>
-        </div>
+            <h4>The birth of a community!</h4>
+            <hr />
+            <div asp-validation-summary="All" class="text-info"></div>
+            <div class="form-group mt-2">
+                <label>Community Name</label>
+                <input class="form-control" @bind-value="@name" />
+                <span id="name-span" style="color:#888888">@nameSpan</span>
+            </div>
+            <div class="form-group mt-2" style="display: inline-block; width:80%">
+                <label>Icon Url</label>
+                <input class="form-control" @bind-value="@image_url" @bind-value:event="oninput" />
+                <span id="image-span" style="color:#888888">@imageSpan</span>
+            </div>
+            <img class="mt-2" src="@image_url" style="width: 64px; height: 64px; float:right" />
+            <div class="form-group mt-4">
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
+            </div>
+        </section>
     </div>
-</body>
+</div>
 
 @code {
     // Input fields
@@ -107,10 +103,12 @@
             ClientPlanetChatChannel channel = ClientPlanetChatChannel.FromBase(mainChannel, Mapper);
 
             windowManager.AddWindow(new ChatChannelWindow(0, channel));
+
             await windowManager.SetSelectedWindow(0);
 
             // Return to index
-            navManager.NavigateTo("/");
+            navManager.NavigateTo("/", true);
+
         }
     }
 

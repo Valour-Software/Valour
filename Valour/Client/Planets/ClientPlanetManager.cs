@@ -16,17 +16,25 @@ namespace Valour.Client.Planets
 
         public event Func<Task> OnPlanetChange;
 
+        public event Func<Task> OnChannelsUpdate;
+
+        public async Task RefreshChannels() {
+            await OnChannelsUpdate.Invoke();
+        }
+
         public async Task SetCurrentPlanet(ClientPlanet planet)
         {
-            if (planet == null || Current != null && Current.Id == planet.Id) return;
+            if (planet == null || (Current != null && Current.Id == planet.Id)) return;
 
             Current = planet;
 
             Console.WriteLine($"Set current planet to {planet.Id}");
 
-            await OnPlanetChange.Invoke();
-
-            Console.WriteLine($"Invoking event");
+            if (OnPlanetChange != null)
+            {
+                Console.WriteLine($"Invoking planet change event");
+                await OnPlanetChange?.Invoke();
+            }
         }
 
         public ClientPlanet GetCurrent()

@@ -121,5 +121,13 @@ namespace Valour.Client.Planets
 
             return result.Data;
         }
+
+        /// <summary>
+        /// Deserializes json
+        /// </summary>
+        public static ClientPlanet Deserialize(string json)
+        {
+            return JsonConvert.DeserializeObject<ClientPlanet>(json);
+        }
     }
 }
