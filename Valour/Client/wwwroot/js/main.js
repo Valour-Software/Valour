@@ -93,3 +93,24 @@ function ScrollWindowBottom(index) {
         window.scrollTop(window.prop("scrollHeight"));
     }
 }
+
+// When the user clicks the button, open the modal 
+function AddPlanetButtonFunction(element) {
+    var modal = document.getElementById("AddPlanetModel");
+    modal.style.display = "block";
+}
+
+// When the user clicks on <span> (x), close the modal
+function AddPlanetModelCloseFunction(element)
+{
+    var modal = document.getElementById("AddPlanetModel");
+    modal.style.display = "none";
+}
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+    var modal = document.getElementById("AddPlanetModel");
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}

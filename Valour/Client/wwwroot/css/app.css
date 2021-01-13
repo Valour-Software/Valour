@@ -766,3 +766,45 @@ body {
     border-radius: 20px;
     border: 3px solid black;
 }
+
+.modal-content-CreatePlanet .login-box{
+    transform: none;
+    border-radius: 0%;
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+  }
+  
+  /* Modal Content */
+  .modal-content-CreatePlanet {
+    background-color: #fefefe;
+    margin: auto;
+    padding: 0px;
+    max-width: 418px;
+  }
+  
+.AddChannelButton {
+    margin: 0px;
+    margin-top: 3px;
+    margin-right: 8px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    text-align: right;
+    font-size: 24px;
+    float: right;
+}
