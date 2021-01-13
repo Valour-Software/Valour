@@ -36,5 +36,15 @@ namespace Valour.Shared.Channels
         /// The amount of messages ever sent in the channel
         /// </summary>
         public ulong Message_Count { get; set; }
+
+        /// <summary>
+        /// The id of the parent category, is null if theres no parent
+        /// </summary>
+        public ulong Category_Id { get; set;}
+
+        /// <summary>
+        /// Is the position in the category/channel list
+        /// </summary>
+        public ushort Position { get; set; }
     }
 }
