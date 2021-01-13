@@ -30,9 +30,11 @@ namespace Valour.Client.Planets
 
             Console.WriteLine($"Set current planet to {planet.Id}");
 
-            await OnPlanetChange?.Invoke();
-
-            Console.WriteLine($"Invoking event");
+            if (OnPlanetChange != null)
+            {
+                Console.WriteLine($"Invoking planet change event");
+                await OnPlanetChange?.Invoke();
+            }
         }
 
         public ClientPlanet GetCurrent()

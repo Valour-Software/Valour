@@ -33,6 +33,7 @@ namespace Valour.Client
 
             if (OnWindowSelect != null)
             {
+                Console.WriteLine($"Invoking window change event");
                 await OnWindowSelect?.Invoke();
             }
         }
