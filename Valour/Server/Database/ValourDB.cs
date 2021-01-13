@@ -8,6 +8,7 @@ using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using Valour.Server.Planets;
 using Valour.Shared.Channels;
+using Valour.Shared.Categories;
 using Valour.Server.Email;
 
 namespace Valour.Server.Database
@@ -77,6 +78,11 @@ namespace Valour.Server.Database
         /// Table for all planet chat channels
         /// </summary>
         public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
+
+        /// <summary>
+        /// Table for all planet chat categories
+        /// </summary>
+        public DbSet<PlanetCategory> PlanetCategories { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

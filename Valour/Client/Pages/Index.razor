@@ -43,13 +43,15 @@
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                <CategoryComponent Name="Announcements" IsOpen="false"></CategoryComponent>
                 <CategoryComponent Name="General Discussion" IsOpen="true">
-                    <ChannelListComponent Last="false" Open="true" First="true" Name="General"></ChannelListComponent>
-                    <ChannelListComponent Last="false" Open="false" First="false" Name="Off Topic"></ChannelListComponent>
-                    <ChannelListComponent Last="false" Open="false" First="false" Name="Current Events"></ChannelListComponent>
-                    <ChannelListComponent Last="false" Open="false" First="false" Name="Memes"></ChannelListComponent>
-                    <ChannelListComponent Last="true" Open="false" First="false" Name="Spike's Code Corner"></ChannelListComponent>
+                    @if (planetManager.GetCurrent() != null)
+                    {
+                        Planet planet = planetManager.GetCurrent();
+                        @foreach(PlanetChatChannel channel in PlanetChannelList)
+                        {
+                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                        }
+                    }
                 </CategoryComponent>
             </div>
             <div class="channel-and-topbar" id="mainwindow">
@@ -124,6 +126,8 @@ else
 
     public ConcurrentBag<ClientPlanetUser> planetUserList = new ConcurrentBag<ClientPlanetUser>();
 
+    public ConcurrentBag<PlanetChatChannel> PlanetChannelList = new ConcurrentBag<PlanetChatChannel>();
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -168,6 +172,15 @@ else
         if (!planetUserList.Contains(self))
         {
             planetUserList.Add(self);
+        }
+
+        ClientPlanet dummy = new ClientPlanet();
+
+        Planet planet = planetManager.GetCurrent();
+
+        foreach (PlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
+        {
+            PlanetChannelList.Add(channel);
         }
 
         StateHasChanged();

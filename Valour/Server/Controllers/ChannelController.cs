@@ -109,19 +109,19 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "The given name is valid.");
         }
         
-        public async Task<IEnumerable<ulong>> GetPlanetChannelIdsAsync(ulong planet_id)
+        public async Task<TaskResult<IEnumerable<ulong>>> GetPlanetChannelIdsAsync(ulong planetid)
         {
-            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
+            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).Select(c => c.Id).ToList());
 
-            return channels;
+            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retireved channels.", channels);;
         }
 
         [HttpGet]
-        public async Task<IEnumerable<PlanetChatChannel>> GetPlanetChannelsAsync(ulong planet_id)
+        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planetid)
         {
-            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
+            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).ToList());
 
-            return channels;
+            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retireved channels.", channels);
         }
 
         [HttpGet]

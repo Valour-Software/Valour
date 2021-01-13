@@ -77,6 +77,30 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Retrieves and returns a client planet by requesting from the server
         /// </summary>
+        public async Task<IEnumerable<ClientPlanetChatChannel>> GetClientPlanetChannelsAsync(ulong id)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planetid={id}");
+
+            TaskResult<IEnumerable<ClientPlanetChatChannel>> result = JsonConvert.DeserializeObject<TaskResult<IEnumerable<ClientPlanetChatChannel>>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving a planet from the server.");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                return null;
+            }
+
+            return result.Data;
+        }
+
+        /// <summary>
+        /// Retrieves and returns a client planet by requesting from the server
+        /// </summary>
         public static async Task<ClientPlanet> GetClientPlanetAsync(ulong id)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanet?planetid={id}&auth={ClientUserManager.UserSecretToken}");

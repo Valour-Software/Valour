@@ -291,7 +291,7 @@ body {
     background: #232A31;
 }
 
-.sidebar-2 .category .channel.first {
+.sidebar-2 .category .channel:nth-child(1) {
     margin-top: 10px;
 }
 
@@ -322,7 +322,7 @@ body {
     margin-left: 8px
 }
 
-.sidebar-2 .category .channel.last {
+.sidebar-2 .category .channel:nth-last-child(1) {
     margin-bottom: 24px;
 }
 
