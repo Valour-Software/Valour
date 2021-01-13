@@ -8,7 +8,9 @@
     chosen channel, or otherwise displays the home window
 -->
 
-<div id="window-@Window.Index" class="@StyleClass">
+@inject ClientWindowManager windowManager
+
+<div id="window-@Window.Index" class="@StyleClass" @onclick="OnWindowClick">
 
     @if (Window is HomeWindow)
     {
@@ -31,5 +33,10 @@
     {
         Window = window;
         StateHasChanged();
+    }
+
+    public async Task OnWindowClick()
+    {
+        await windowManager.SetSelectedWindow(Window);
     }
 }

@@ -3,7 +3,8 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
-@inject AutoMapper.IMapper Mapper 
+@inject AutoMapper.IMapper Mapper
+@inject ClientWindowManager windowManager
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="login-box">
@@ -101,11 +102,12 @@
 
             PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync(Mapper);
 
-            ClientWindowManager.ClearWindows();
+            windowManager.ClearWindows();
 
             ClientPlanetChatChannel channel = ClientPlanetChatChannel.FromBase(mainChannel, Mapper);
 
-            ClientWindowManager.AddWindow(new ChatChannelWindow(0, channel));
+            windowManager.AddWindow(new ChatChannelWindow(0, channel));
+            await windowManager.SetSelectedWindow(0);
 
             // Return to index
             navManager.NavigateTo("/");

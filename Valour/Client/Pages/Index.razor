@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
 
 <!-- Check login status -->
 @if (ClientUserManager.IsLoggedIn())
@@ -67,12 +68,12 @@
         Add dummy window so Jacob doesn't cry
     -->
 
-                @if (ClientWindowManager.GetWindowCount() == 0)
+                @if (windowManager.GetWindowCount() == 0)
                 {
-                    ClientWindowManager.AddWindow(new HomeWindow(0));
+                    windowManager.AddWindow(new HomeWindow(0));
                 }
 
-                @if (ClientWindowManager.GetWindowCount() < 4)
+                @if (windowManager.GetWindowCount() < 4)
                 {
                     <div class="add-window-button" @onclick="@OnAddWindow">
                         <NewWindowComponent></NewWindowComponent>
@@ -81,34 +82,34 @@
 
                 <div id="window-man" class="window-grid">
 
-                    @if (ClientWindowManager.GetWindowCount() == 1)
+                    @if (windowManager.GetWindowCount() == 1)
                     {
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
                     }
-                    else if (ClientWindowManager.GetWindowCount() == 2)
+                    else if (windowManager.GetWindowCount() == 2)
                     {
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-                        <MainWindowComponent Window="ClientWindowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
                     }
-                    else if (ClientWindowManager.GetWindowCount() == 3)
+                    else if (windowManager.GetWindowCount() == 3)
                     {
                         <div id="window-col1" class="window-col">
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
                         </div>
                         <div id="window-col2" class="window-col">
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                     }
-                    else if (ClientWindowManager.GetWindowCount() == 4)
+                    else if (windowManager.GetWindowCount() == 4)
                     {
                         <div id="window-col1" class="window-col">
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                         <div id="window-col2" class="window-col">
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="ClientWindowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                     }
                 </div>
@@ -153,12 +154,12 @@ else
 
     private async Task OnAddWindow()
     {
-        if (ClientWindowManager.GetWindowCount() == 4)
+        if (windowManager.GetWindowCount() == 4)
         {
             return;
         }
 
-        ClientWindowManager.AddWindow(new HomeWindow(ClientWindowManager.GetWindowCount() - 1));
+        windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
 
         StateHasChanged();
     }

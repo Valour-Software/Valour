@@ -10,22 +10,50 @@ namespace Valour.Client
     /// <summary>
     /// This tracks and manages the open windows for the client
     /// </summary>
-    public static class ClientWindowManager
+    public class ClientWindowManager
     {
-        private static List<ClientWindow> OpenWindows = new List<ClientWindow>();
+        private List<ClientWindow> OpenWindows = new List<ClientWindow>();
 
-        public static void AddWindow(ClientWindow window)
+        private ClientWindow SelectedWindow;
+
+        public Func<Task> OnWindowSelect;
+
+        public async Task SetSelectedWindow(int index)
+        {
+            await SetSelectedWindow(OpenWindows[index]);
+        }
+
+        public async Task SetSelectedWindow(ClientWindow window)
+        {
+            if (window == null || (SelectedWindow == window)) return;
+
+            SelectedWindow = window;
+
+            Console.WriteLine($"Set active window to {window.Index}");
+
+            if (OnWindowSelect != null)
+            {
+                await OnWindowSelect?.Invoke();
+            }
+        }
+
+        public ClientWindow GetSelectedWindow()
+        {
+            return SelectedWindow;
+        }
+
+        public void AddWindow(ClientWindow window)
         {
             window.Index = OpenWindows.Count;
             OpenWindows.Add(window);
         }
 
-        public static int GetWindowCount()
+        public int GetWindowCount()
         {
             return OpenWindows.Count;
         }
 
-        public static ClientWindow GetWindow(int index)
+        public ClientWindow GetWindow(int index)
         {
             if (index > OpenWindows.Count - 1)
             {
@@ -35,17 +63,17 @@ namespace Valour.Client
             return OpenWindows[index];
         }
 
-        public static IEnumerable<ClientWindow> GetWindows()
+        public IEnumerable<ClientWindow> GetWindows()
         {
             return OpenWindows;
         }
 
-        public static void ClearWindows()
+        public void ClearWindows()
         {
             OpenWindows.Clear();
         }
 
-        public static void SetWindow(int index, ClientWindow window)
+        public void SetWindow(int index, ClientWindow window)
         {
             window.Index = index;
             OpenWindows.RemoveAt(index);

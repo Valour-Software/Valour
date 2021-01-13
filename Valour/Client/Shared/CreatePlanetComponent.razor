@@ -2,6 +2,7 @@
 @inject NavigationManager navManager
 @inject LocalStorageService storage
 @inject AutoMapper.IMapper Mapper 
+@inject ClientWindowManager windowManager
 
 <div class="login-box">
     <div class="col-md-12">
@@ -97,11 +98,13 @@
 
             PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync(Mapper);
 
-            ClientWindowManager.ClearWindows();
+            windowManager.ClearWindows();
 
             ClientPlanetChatChannel channel = ClientPlanetChatChannel.FromBase(mainChannel, Mapper);
 
-            ClientWindowManager.AddWindow(new ChatChannelWindow(0, channel));
+            windowManager.AddWindow(new ChatChannelWindow(0, channel));
+
+            await windowManager.SetSelectedWindow(0);
 
             // Return to index
             navManager.NavigateTo("/", true);

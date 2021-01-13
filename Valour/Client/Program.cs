@@ -28,6 +28,7 @@ namespace Valour.Client
             builder.Services.AddScoped<LocalStorageService>();
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddSingleton<ClientPlanetManager>();
+            builder.Services.AddSingleton<ClientWindowManager>();
 
             var mapConfig = new MapperConfiguration(x =>
             {
