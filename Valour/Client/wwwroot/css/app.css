@@ -732,6 +732,7 @@ body {
     position: absolute;
     left: calc(100% - 64px);
     top: 200px;
+    cursor: pointer;
 }
 
 /* Scrollbar */
@@ -804,7 +805,7 @@ body {
     backdrop-filter: blur(5px);
 }
   
-.AddChannelButton {
+.add-channel-button {
     margin: 0px;
     margin-top: 3px;
     margin-right: 8px;
@@ -816,4 +817,5 @@ body {
     text-align: right;
     font-size: 24px;
     float: right;
+    cursor: pointer;
 }
