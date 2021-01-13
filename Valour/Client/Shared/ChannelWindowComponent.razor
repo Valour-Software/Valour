@@ -2,6 +2,7 @@
 @inject NavigationManager navManager
 @inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
@@ -63,6 +64,19 @@
         await RefreshMessages();
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
+
+        windowManager.OnWindowChannelChange += OnWindowChannelChange;
+    }
+
+    public async Task OnWindowChannelChange()
+    {
+        if (Channel != Window.Channel){
+            await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+            Channel = Window.Channel;
+            await hubConnection.SendAsync("JoinChannel", Channel.Id);
+            await RefreshMessages();
+            StateHasChanged();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

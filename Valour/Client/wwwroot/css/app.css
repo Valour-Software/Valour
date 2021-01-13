@@ -288,7 +288,7 @@ body {
 }
 
 .sidebar-2 .category .channel.open {
-    background: #232A31;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-2 .category .channel:nth-child(1) {

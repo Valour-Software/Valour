@@ -18,6 +18,12 @@ namespace Valour.Client.Planets
 
         public event Func<Task> OnChannelsUpdate;
 
+        public event Func<Task> OnChannelWindowUpdate;
+
+        public async Task RefreshOpenedChannels() {
+            await OnChannelWindowUpdate.Invoke();
+        }
+
         public async Task RefreshChannels() {
             await OnChannelsUpdate.Invoke();
         }
