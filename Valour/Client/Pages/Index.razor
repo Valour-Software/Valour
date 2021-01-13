@@ -177,6 +177,8 @@ else
 
         Planet planet = planetManager.GetCurrent();
 
+        PlanetChannelList.Clear();
+
         foreach (PlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
         {
             PlanetChannelList.Add(channel);
