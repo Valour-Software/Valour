@@ -163,12 +163,11 @@ else
     {
         if (planetManager.GetCurrent() == null) return;
 
+        planetUserList.Clear();
+
         ClientPlanetUser self = await PlanetUserCache.GetPlanetUserAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
 
-        if (!planetUserList.Contains(self))
-        {
-            planetUserList.Add(self);
-        }
+        planetUserList.Add(self);
 
         StateHasChanged();
     }
