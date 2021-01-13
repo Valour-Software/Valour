@@ -3,6 +3,17 @@
     <p class="@Chosen_CSS">
         @Name
     </p>
+    <p class="AddChannelButton" id="AddChannelButton" onclick="AddChannelButtonFunction(this)">
+        +
+    </p>
+        <!-- The Modal -->
+    <div id="AddChannelModel" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content-CreateChannel">
+            <CreateChannelComponent></CreateChannelComponent>
+        </div>
+    </div>
     <div class="channel-list">
         @ChildContent
     </div>

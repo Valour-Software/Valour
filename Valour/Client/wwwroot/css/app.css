@@ -794,6 +794,12 @@ body {
     padding: 0px;
     max-width: 418px;
   }
+
+  .modal-content-CreateChannel {
+    margin: auto;
+    padding: 0px;
+    max-width: 418px;
+  }
   
 .AddChannelButton {
     margin: 0px;
