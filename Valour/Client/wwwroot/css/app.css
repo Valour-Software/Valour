@@ -711,6 +711,11 @@ body {
     transition: transform .2s ease-in-out;
 }
 
+.planet-create-icon:hover {
+    -webkit-transform: scale(1.05);
+    transform: scale(1.05);
+}
+
 .planet-card-icon:hover {
     -webkit-transform: scale(1.05);
     transform: scale(1.05);
