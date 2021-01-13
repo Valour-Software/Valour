@@ -645,29 +645,6 @@ body {
     background-color: #040D14;
 }
 
-.login-box {
-    background-color: #333333;
-    border-radius: 10px;
-    border-color: grey;
-    margin: auto;
-    padding: 50px;
-    max-width: 600px;
-    max-height: 1000px;
-    z-index: 2;
-    box-shadow: 0px 0px 15px #000000;
-    transform: translateY(50%);
-}
-
-.login-background {
-    background-image: url(/media/Spookvooper.jpg);
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-position: center;
-    height: 100vh;
-    margin: 0px;
-    backdrop-filter: blur(5px);
-}
-
 @media screen and (max-width: 992px) {
     .login-box {
         max-width: 90%;
@@ -772,9 +749,9 @@ body {
     border: 3px solid black;
 }
 
-.modal-content-CreatePlanet .login-box{
+.modal-content-CreatePlanet .login-box {
     transform: none;
-    border-radius: 0%;
+    border-radius: 10px;
 }
 
 /* The Modal (background) */
@@ -792,13 +769,34 @@ body {
     background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
   }
   
-  /* Modal Content */
-  .modal-content-CreatePlanet {
-    background-color: #fefefe;
+/* Modal Content */
+.modal-content-CreatePlanet {
     margin: auto;
     padding: 0px;
     max-width: 418px;
-  }
+}
+
+.login-box {
+    background-color: #333333;
+    border-radius: 10px;
+    border-color: grey;
+    padding: 50px;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    box-shadow: 0px 0px 15px #000000;
+    margin: 0px;
+}
+
+.login-background {
+    background-image: url(/media/Spookvooper.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    height: 100vh;
+    margin: 0px;
+    backdrop-filter: blur(5px);
+}
   
 .AddChannelButton {
     margin: 0px;
