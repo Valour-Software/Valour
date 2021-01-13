@@ -24,7 +24,7 @@ namespace Valour.Client.Planets
 
         public async Task SetCurrentPlanet(ClientPlanet planet)
         {
-            if (planet == null || Current != null && Current.Id == planet.Id) return;
+            if (planet == null || (Current != null && Current.Id == planet.Id)) return;
 
             Current = planet;
 
