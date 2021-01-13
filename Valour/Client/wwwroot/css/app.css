@@ -774,7 +774,13 @@ body {
     margin: auto;
     padding: 0px;
     max-width: 418px;
-}
+  }
+
+  .modal-content-CreateChannel {
+    margin: auto;
+    padding: 0px;
+    max-width: 418px;
+  }
 
 .login-box {
     background-color: #333333;

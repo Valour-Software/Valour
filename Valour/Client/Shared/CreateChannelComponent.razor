@@ -1,0 +1,80 @@
+@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+@inject AutoMapper.IMapper Mapper 
+@inject ClientPlanetManager planetManager
+
+<div class="login-box">
+    <div class="col-md-12">
+        <section>
+            <h2>Create a new Channel</h2>
+
+            <hr />
+            <div asp-validation-summary="All" class="text-info"></div>
+            <div class="form-group mt-2">
+                <label>Channel Name</label>
+                <input class="form-control" @bind-value="@name" />
+                <span id="name-span" style="color:#888888">@nameSpan</span>
+            </div>
+            <span id="image-span" style="color:#888888">@imageSpan</span>
+            <div class="form-group mt-4">
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+@code {
+    // Input fields
+    string name;
+
+    // Spans
+    string nameSpan = "The name of the channel";
+    string imageSpan = "";
+
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+
+        // Require a name
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            name = "Please input a planet name.";
+            return;
+        }
+
+
+        // Encode non-friendly characters
+        string encodedName = System.Web.HttpUtility.UrlEncode(name);
+
+        ulong userid = ClientUserManager.User.Id;
+        string token = ClientUserManager.UserSecretToken;
+
+        string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
+                                                                   $"&planetid={planetManager.GetCurrent().Id}" +
+                                                                   $"&userid={userid}" +
+                                                                   $"&token={token}");
+
+        TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
+
+        if (result == null)
+        {
+            imageSpan = "An error occured retrieving a response. Please try again.";
+        }
+
+        imageSpan = result.Message;
+
+        // Send user into planet if successful
+        if (result.Success)
+        {
+            ulong planetId = result.Data;
+
+            await planetManager.RefreshChannels();
+
+        }
+    }
+
+    private async Task OnImageInput()
+    {
+
+    }
+}

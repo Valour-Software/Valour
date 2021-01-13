@@ -133,11 +133,13 @@ else
     {
         await base.OnInitializedAsync();
         planetManager.OnPlanetChange += OnPlanetChange;
+        planetManager.OnChannelsUpdate += OnChannelsUpdate;
     }
 
     public void Dispose()
     {
         planetManager.OnPlanetChange -= OnPlanetChange;
+        planetManager.OnChannelsUpdate -= OnChannelsUpdate;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -160,6 +162,22 @@ else
         }
 
         windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
+
+        StateHasChanged();
+    }
+
+    public async Task OnChannelsUpdate()
+    {
+        ClientPlanet dummy = new ClientPlanet();
+
+        Planet planet = planetManager.GetCurrent();
+
+        PlanetChannelList.Clear();
+
+        foreach (PlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
+        {
+            PlanetChannelList.Add(channel);
+        }
 
         StateHasChanged();
     }
