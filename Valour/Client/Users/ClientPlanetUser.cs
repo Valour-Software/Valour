@@ -66,5 +66,13 @@ namespace Valour.Client.Users
 
             return result.Data;
         }
+
+        /// <summary>
+        /// Deserializes json
+        /// </summary>
+        public static ClientPlanetUser Deserialize(string json)
+        {
+            return JsonConvert.DeserializeObject<ClientPlanetUser>(json);
+        }
     }
 }
