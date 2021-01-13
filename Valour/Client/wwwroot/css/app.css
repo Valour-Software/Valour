@@ -728,7 +728,7 @@ body {
 .add-window-button {
     width: 64px;
     height: 64px;
-    background-color: red;
+    padding: 8px;
     position: absolute;
     left: calc(100% - 64px);
     top: 200px;
