@@ -12,7 +12,7 @@
 
 ## General Behavior
 - Users will not engage in targetted harassment of other users
-- Users will not post unsolicited advterising for products or services
+- Users will not post unsolicited advertising for products or services
 - Users will not spam or raid communities
 
 # Offensive Content
