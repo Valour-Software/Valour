@@ -25,6 +25,7 @@ using Valour.Server.Users;
 using Valour.Server.Email;
 using AutoMapper;
 using Valour.Server.Mapping;
+using Valour.Server.Workers;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -76,6 +77,7 @@ namespace Valour.Server
             services.AddSignalR();
             services.AddControllersWithViews();
             services.AddRazorPages();
+            services.AddHostedService<MessageCacheWorker>();
         }
 
         /// <summary>
@@ -169,6 +171,12 @@ namespace Valour.Server
             });
 
             MessageHub.Current = app.ApplicationServices.GetService<IHubContext<MessageHub>>();
+
+            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
+            {
+                var context = serviceScope.ServiceProvider.GetRequiredService<ValourDB>();
+                context.Database.EnsureCreated();
+            }
         }
     }
 }

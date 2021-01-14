@@ -109,7 +109,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "The given name is valid.");
         }
         
-        public async Task<TaskResult<IEnumerable<ulong>>> GetPlanetChannelIdsAsync(ulong planetid)
+        public async Task<TaskResult<IEnumerable<ulong>>> GetPlanetChannel_IdsAsync(ulong planetid)
         {
             IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).Select(c => c.Id).ToList());
 
@@ -125,20 +125,12 @@ namespace Valour.Server.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<PlanetMessage> GetMessages(ulong channel_id)
+        public async Task<IEnumerable<CacheMessage>> GetMessages(ulong channel_id)
         {
-            ulong channelId = 1;
 
-            PlanetMessage welcome = new PlanetMessage()
-            {
-                Channel_Id = channelId,
-                Content = "Welcome back.",
-                TimeSent = DateTime.UtcNow
-            };
+            IEnumerable<CacheMessage> messages = await Task.Run(() => Context.Messages.Where(x => x.Channel_Id == channel_id).ToList());
 
-            messageCache.Add(welcome);
-
-            return messageCache.TakeLast(10).ToList();
+            return messages;
         }
 
         [HttpPost]
@@ -167,7 +159,19 @@ namespace Valour.Server.Controllers
             string json = JsonConvert.SerializeObject(msg);
 
             await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
+            
+            CacheMessage cachemsg = new CacheMessage();
+            
+            cachemsg.Channel_Id = msg.Channel_Id;
+            cachemsg.Content = msg.Content;
+            cachemsg.Message_Index = msg.Message_Index;
+            cachemsg.TimeSent = msg.TimeSent;
+            cachemsg.Author_Id = msg.Author_Id;
 
+            await Context.Messages.AddAsync(cachemsg);
+
+            await Context.SaveChangesAsync();
+            
             return new TaskResult<ulong>(true, $"Posted message {msg.Message_Index}.", index);
         }
     }

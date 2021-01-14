@@ -38,12 +38,12 @@ namespace Valour.Server.Messaging
         /// <summary>
         /// Id of the channel this message belonged to
         /// </summary>
-        public ulong ChannelId { get; set; }
+        public ulong Channel_Id { get; set; }
 
         /// <summary>
         /// Index of the message
         /// </summary>
-        public ulong Index { get; set; }
+        public ulong Message_Index { get; set; }
 
         /// <summary>
         /// Returns the hash for a message. Cannot be used in browser/client!
@@ -52,7 +52,7 @@ namespace Valour.Server.Messaging
         {
             using (SHA256 sha = SHA256.Create())
             {
-                string conc = $"{Author_Id}{Content}{TimeSent}{ChannelId}";
+                string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}";
 
                 byte[] buffer = Encoding.Unicode.GetBytes(conc);
 
