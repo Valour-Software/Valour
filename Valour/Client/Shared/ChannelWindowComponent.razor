@@ -7,13 +7,7 @@
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
-        @if (messages != null)
-        {
-            foreach (ClientPlanetMessage msg in messages)
-            {
-                <MessageComponent Message="msg"></MessageComponent>
-            }
-        }
+        <!-- This has been moved into main.js -->
     </div>
 
     <div class="ml-1">
@@ -36,11 +30,6 @@
     /// </summary>
     private string currentInput;
 
-    /// <summary>
-    /// Storage for messages that should be displayed
-    /// </summary>
-    private List<ClientPlanetMessage> messages;
-
     private HubConnection hubConnection;
 
     [Parameter]
@@ -61,7 +50,6 @@
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
         await ConnectSignalR();
-        await RefreshMessages();
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
@@ -74,7 +62,6 @@
             await hubConnection.SendAsync("LeaveChannel", Channel.Id);
             Channel = Window.Channel;
             await hubConnection.SendAsync("JoinChannel", Channel.Id);
-            await RefreshMessages();
             StateHasChanged();
         }
     }
@@ -126,6 +113,7 @@
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }
 
+    /* Replaced by main.js
     public async Task RefreshMessages()
     {
         // Request messages from server
@@ -138,6 +126,7 @@
 
         StateHasChanged();
     }
+    */
 
     /// <summary>
     /// This runs every time a key is pressed when the chatbox is selected
@@ -206,18 +195,6 @@
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
 
         TaskResult<ulong> response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
-
-        if (!response.Success)
-        {
-            messages.Add(new ClientPlanetMessage()
-            {
-                TimeSent = DateTime.UtcNow,
-                Channel_Id = Channel.Id,
-                Content = $"Failed to post message: {response.Message}",
-                Message_Index = 0
-            });
-            StateHasChanged();
-        }
 
         Console.WriteLine(response.ToString());
     }
