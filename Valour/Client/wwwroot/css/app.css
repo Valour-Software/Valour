@@ -374,6 +374,7 @@ body {
     margin-bottom: 10.96px;
     margin-right: 10.96px;
     margin-left: 36.4px;
+    float: right;
 }
 
 .sidebar-2 .user-info .active {
