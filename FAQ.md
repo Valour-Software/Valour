@@ -8,11 +8,11 @@ If you have an suggestion it is reeccomended you use #suggestions on the current
 ## On the Valour website there is only a logo! Is this supposed to happen?
 Yes. Valour is not in a state ready enough to be live publicly.
 ## When do you think Valour will come out?
-We plan on having a early alpha by the end of January 2020.
+We plan on having an early alpha by the end of January 2021.
 ## Will Valour have a Voice Chat?
 It is not planned to have a voice chat due to the high cost of hosting until there is a minimum viable product and or funding
 ### *Why couldn't you just make people host the voice chats locally?*
-Local hosting would not be secure for people as the person hosting it could steal their data. Even if it was encrypted Valour would have to process and proxy it which would cost money.
+Local hosting would not be secure for people as the person hosting it could steal their data. Even if it was encrypted, Valour would have to process and proxy it which would cost money.
 ## I have a SpookVooper account, will I have to make a Valour account?
 All SpookVooper accounts will be migrated to Valour accounts once Valour is in a viable state. After this SpookVooper will use Valour as logins.
 ## Will Valour have a mobile version?
