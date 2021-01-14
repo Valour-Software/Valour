@@ -1,6 +1,6 @@
-﻿<div class="category is-open">
-    <img class="arrow" src="media/Category-Icon.svg">
-    <p class="@Chosen_CSS">
+﻿<div class="@Chosen_CSS">
+    <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
+    <p class="name">
         @Name
     </p>
     <p class="add-channel-button" id="AddChannelButton" onclick="AddChannelButtonFunction(this)">
@@ -14,9 +14,11 @@
             <CreateChannelComponent></CreateChannelComponent>
         </div>
     </div>
-    <div class="channel-list">
-        @ChildContent
-    </div>
+    @if (IsOpen) {
+        <div class="channel-list">
+            @ChildContent
+        </div>
+    }
 </div>
 @code {
     [Parameter]
@@ -25,21 +27,45 @@
     [Parameter]
     public bool IsOpen { get; set; }
 
+    public string ArrowStyle 
+    { 
+        get
+        {
+            if (IsOpen) {
+                return "transform: rotate(90deg);";
+            }   
+            else {
+                return "";
+            }
+        }
+    }
+
     public string Chosen_CSS
     {
         get
         {
             if (IsOpen)
             {
-                return "name-open";
+                return "category is-open";
             }
             else
             {
-                return "name";
+                return "category";
             }
         }
     }
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    public void OnClick()
+    {
+        if (IsOpen) {
+            IsOpen = false;
+        }
+        else {
+            IsOpen = true;
+        }
+        StateHasChanged();
+    }
 }

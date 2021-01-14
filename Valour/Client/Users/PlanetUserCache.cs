@@ -53,6 +53,8 @@ namespace Valour.Client.Users
                 return null;
             }
 
+            Console.WriteLine($"Fetched planet user {userid} for planet {planetid}");
+
             // Add to cache
             Cache.TryAdd((userid, planetid), user);
 

@@ -18,6 +18,8 @@ namespace Valour.Client
 
         public Func<Task> OnWindowSelect;
 
+        public Func<Task> OnWindowChannelChange;
+
         public async Task SetSelectedWindow(int index)
         {
             await SetSelectedWindow(OpenWindows[index]);

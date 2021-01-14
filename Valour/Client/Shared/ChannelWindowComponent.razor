@@ -2,6 +2,7 @@
 @inject NavigationManager navManager
 @inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
@@ -63,6 +64,19 @@
         await RefreshMessages();
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
+
+        windowManager.OnWindowChannelChange += OnWindowChannelChange;
+    }
+
+    public async Task OnWindowChannelChange()
+    {
+        if (Channel != Window.Channel){
+            await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+            Channel = Window.Channel;
+            await hubConnection.SendAsync("JoinChannel", Channel.Id);
+            await RefreshMessages();
+            StateHasChanged();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -92,7 +106,7 @@
 
         ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
 
-        Console.WriteLine($"Recieved message {message.Index}.");
+        Console.WriteLine($"Recieved message {message.Message_Index}.");
 
         //Console.WriteLine(data);
 
@@ -114,6 +128,13 @@
     {
         // Request messages from server
         messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
+        
+        foreach (ClientPlanetMessage message in messages)
+        {
+            message.Planet_Id = planetManager.GetCurrent().Id;
+        }
+        
+        StateHasChanged();
     }
 
     /// <summary>
@@ -129,15 +150,28 @@
             // Grab current input
             string msg = currentInput;
 
-            // Clear input
-            currentInput = "";
+            Console.WriteLine(currentInput);
 
-            // Post message to server
-            await PostMessage(msg);
+            string temp = msg;
 
-            StateHasChanged();
+            temp = temp.Replace("\n","");
 
-            currentInput = "";
+            if (temp != "")
+            {
+
+                // Clear input
+                currentInput = "";
+
+                // Post message to server
+                StateHasChanged();
+                await PostMessage(msg);
+
+                currentInput = "";
+            }
+            else
+            {
+                currentInput = "";
+            }
         }
     }
 
@@ -156,7 +190,7 @@
     {
         PlanetMessage message = new PlanetMessage()
         {
-            ChannelId = Channel.Id,
+            Channel_Id = Channel.Id,
             Content = msg,
             TimeSent = DateTime.UtcNow,
             Author_Id = ClientUserManager.User.Id,
@@ -169,18 +203,18 @@
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
 
-        TaskResult<ulong> response =
-            Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
+        TaskResult<ulong> response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
 
         if (!response.Success)
         {
             messages.Add(new ClientPlanetMessage()
             {
                 TimeSent = DateTime.UtcNow,
-                ChannelId = Channel.Id,
+                Channel_Id = Channel.Id,
                 Content = $"Failed to post message: {response.Message}",
-                Index = 0
+                Message_Index = 0
             });
+            StateHasChanged();
         }
 
         Console.WriteLine(response.ToString());

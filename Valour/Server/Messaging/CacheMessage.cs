@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Threading.Tasks;
+using Valour.Shared.Messages;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -9,14 +13,10 @@ using System.Text;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Shared.Messages
+namespace Valour.Server.Messaging
 {
-    public class Message
+    public class CacheMessage
     {
-
-        /// <summary>
-        /// The Id of the message
-        /// </summary>
         [Key]
         public ulong Id { get; set; }
 

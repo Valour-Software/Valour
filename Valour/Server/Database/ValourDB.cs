@@ -10,6 +10,7 @@ using Valour.Server.Planets;
 using Valour.Shared.Channels;
 using Valour.Shared.Categories;
 using Valour.Server.Email;
+using Valour.Server.Messaging;
 
 namespace Valour.Server.Database
 {
@@ -36,6 +37,11 @@ namespace Valour.Server.Database
         /// It does literally nothing at all.
         /// </summary>
         public static DbContextOptions DBOptions;
+
+        /// <summary>
+        /// Table for message cache
+        /// </summary>
+        public DbSet<CacheMessage> Messages { get; set; }
 
         /// <summary>
         /// Table for Valour users

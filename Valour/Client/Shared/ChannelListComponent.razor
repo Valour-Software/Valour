@@ -1,4 +1,7 @@
-﻿<div class="@Chosen_CSS">
+﻿@inject ClientWindowManager windowManager
+@inject ClientPlanetManager planetManager
+
+<div class="@Chosen_CSS" @onclick="OnClick">
     <img class="chat-icon" src="media/Channel-Icon.svg">
     <p class="channel-name">
         @Channel.Name
@@ -8,7 +11,7 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public PlanetChatChannel Channel { get; set; }
+    public ClientPlanetChatChannel Channel { get; set; }
     [Parameter]
     public bool Open { get; set; }
     public string Chosen_CSS
@@ -25,4 +28,26 @@
             }
         }
     }
+
+    public async Task OnClick()
+    {
+        ClientWindow window = windowManager.GetSelectedWindow();
+        
+        Console.WriteLine(window.Index);
+
+        if (window is ChatChannelWindow)
+        {
+            Console.WriteLine("TRUE");
+            ChatChannelWindow channelWindow = (ChatChannelWindow)window;
+            if (channelWindow != null)
+            {
+                Console.WriteLine("TRUE");
+                channelWindow.Channel = Channel;
+                windowManager.OnWindowChannelChange?.Invoke();
+                await planetManager.RefreshOpenedChannels();
+            }
+        }
+
+    }
+
 }

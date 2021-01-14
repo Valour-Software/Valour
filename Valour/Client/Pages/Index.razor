@@ -47,10 +47,18 @@
                 <CategoryComponent Name="General Discussion" IsOpen="true">
                     @if (planetManager.GetCurrent() != null)
                     {
+                        ClientWindow window = windowManager.GetSelectedWindow();
+                        ChatChannelWindow channelWindow = (ChatChannelWindow)window;
                         Planet planet = planetManager.GetCurrent();
-                        @foreach(PlanetChatChannel channel in PlanetChannelList)
+                        @foreach(ClientPlanetChatChannel channel in PlanetChannelList)
                         {
-                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                            if (channel.Id == channelWindow.Channel.Id) {
+                                <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                            }
+                            else
+                            {
+                                <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                            }
                         }
                     }
                 </CategoryComponent>
@@ -127,19 +135,21 @@ else
 
     public ConcurrentBag<ClientPlanetUser> planetUserList = new ConcurrentBag<ClientPlanetUser>();
 
-    public ConcurrentBag<PlanetChatChannel> PlanetChannelList = new ConcurrentBag<PlanetChatChannel>();
+    public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         planetManager.OnPlanetChange += OnPlanetChange;
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
+        planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
     }
 
     public void Dispose()
     {
         planetManager.OnPlanetChange -= OnPlanetChange;
         planetManager.OnChannelsUpdate -= OnChannelsUpdate;
+        planetManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -166,6 +176,11 @@ else
         StateHasChanged();
     }
 
+    public async Task OnChannelWindowUpdate()
+    {
+        StateHasChanged();
+    }
+
     public async Task OnChannelsUpdate()
     {
         ClientPlanet dummy = new ClientPlanet();
@@ -174,7 +189,7 @@ else
 
         PlanetChannelList.Clear();
 
-        foreach (PlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
+        foreach (ClientPlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
         {
             PlanetChannelList.Add(channel);
         }
@@ -192,16 +207,7 @@ else
 
         planetUserList.Add(self);
 
-        ClientPlanet dummy = new ClientPlanet();
-
-        Planet planet = planetManager.GetCurrent();
-
-        PlanetChannelList.Clear();
-
-        foreach (PlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
-        {
-            PlanetChannelList.Add(channel);
-        }
+        await OnChannelsUpdate();
 
         StateHasChanged();
     }
