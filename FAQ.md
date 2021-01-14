@@ -3,6 +3,8 @@
 ## How can I help?
 You can support Valour on our [patreon](https://www.patreon.com/valourapp)!
 In the future we will also have a gofundme for initial funding such as legal advice, infrastructure and voice chat support.
+## I have a issue/suggestion!
+If you have an suggestion it is reeccomended you use #suggestions on the current [Valour discord](https://discord.gg/3yhzm2hHr6) and also check the [Development Board](https://github.com/SpikeViper/Valour/projects/1). If you have a bug/issue you should also check the [Bug Triage Board](https://github.com/SpikeViper/Valour/projects/2) before raising the issue.
 ## On the Valour website there is only a logo! Is this supposed to happen?
 Yes. Valour is not in a state ready enough to be live publicly.
 ## When do you think Valour will come out?
