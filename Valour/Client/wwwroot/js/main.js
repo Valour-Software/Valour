@@ -139,4 +139,6 @@ function AddMessage(json, windowIndex) {
 
     // This is the inner window messages go into
     var channelObj = $("#innerwindow-" + windowIndex);
+
+    // NOTE: Honk please no spleen stealing in this method
 }
