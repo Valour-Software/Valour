@@ -1,6 +1,6 @@
-﻿<div class="category is-open">
+﻿<div class="@Chosen_CSS">
     <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
-    <p class="@Chosen_CSS">
+    <p class="name">
         @Name
     </p>
     <p class="add-channel-button" id="AddChannelButton" onclick="AddChannelButtonFunction(this)">
@@ -46,11 +46,11 @@
         {
             if (IsOpen)
             {
-                return "name-open";
+                return "category is-open";
             }
             else
             {
-                return "name";
+                return "category";
             }
         }
     }

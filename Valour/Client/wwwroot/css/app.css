@@ -362,7 +362,7 @@ body {
     margin-top: 10.47px;
 }
 
-.sidebar-2 .category, .is-open {
+.sidebar-2 .category .is-open {
     border-bottom-right-radius: 0px;
     border-bottom-left-radius: 0px;
 }
