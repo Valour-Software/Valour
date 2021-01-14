@@ -134,6 +134,9 @@ function AddChannelModelCloseFunction(element)
 }
 
 function AddMessage(json, windowIndex) {
-    console.log("Revieved message");
+    console.log("Recieved message");
     console.log(json);
+
+    // This is the inner window messages go into
+    var channelObj = $("#innerwindow-" + windowIndex);
 }
