@@ -250,6 +250,9 @@ responsible for protecting those rights. You agree that this license includes
 the right for Us to make Your Content available to other users of the Service,
 who may also use Your Content subject to these Terms.
 
+By posting Content to the Service, You also agree to the terms within the
+platform rules located at [Platform Rules](https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md)
+
 You represent and warrant that: (i) the Content is Yours (You own it) or You
 have the right to use it and grant Us the rights and license as provided in
 these Terms, and (ii) the posting of Your Content on or through the Service
