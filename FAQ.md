@@ -17,7 +17,7 @@ Local hosting would not be secure for people as the person hosting it could stea
 All SpookVooper accounts will be migrated to Valour accounts once Valour is in a viable state. After this SpookVooper will use Valour as logins.
 ## Will Valour have a mobile version?
 Valour will eventually have a mobile version once there is a minimum viable product.
-## Is their going to be a linux version?
+## Is there going to be a linux version?
 Linux version will be developed once a viable product is achieved. Until then linux users can use the browser app.
 ## Is there anything I have to worry about if I make something for Valour?
 Due to Valour's AGPL3 license, you can modify or use Valour however you want however it must be opensource. For more info visit [LICENSE](https://github.com/SpikeViper/Valour/blob/main/LICENSE).
