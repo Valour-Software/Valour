@@ -2,8 +2,13 @@
 
 ## How can I help?
 You can support Valour on our [patreon](https://www.patreon.com/valourapp)!
+In the future we will also have a gofundme for initial funding such as legal advice, infrastructure and voice chat support.
+## I have a issue/suggestion!
+If you have an suggestion it is reeccomended you use #suggestions on the current [Valour discord](https://discord.gg/3yhzm2hHr6) and also check the [Development Board](https://github.com/SpikeViper/Valour/projects/1). If you have a bug/issue you should also check the [Bug Triage Board](https://github.com/SpikeViper/Valour/projects/2) before raising the issue.
 ## On the Valour website there is only a logo! Is this supposed to happen?
 Yes. Valour is not in a state ready enough to be live publicly.
+## When do you think Valour will come out?
+We plan on having a early alpha by the end of January 2020.
 ## Will Valour have a Voice Chat?
 It is not planned to have a voice chat due to the high cost of hosting until there is a minimum viable product and or funding
 ### *Why couldn't you just make people host the voice chats locally?*
@@ -22,8 +27,7 @@ Planets are where your community will be on. There will be chat rooms and catago
 System roles would be applied to every planet within the system. This would also apply the permission the system user has onto the planet and planets would have their own roles as well. This means if someone was a system admin they would also be an admin on planets within the system.
 ## Can I have sub-catagories?
 Yes you can have as many as you want in your planet.
+## How will Valour be monetized?
+In the future Valour will be monetized using a subscription for communities and possibly one for specific users as well.
 ## How will Valour handle user reports?
 Valour will priorities user reports that break the law such as doxxing, illegal material, extortion, etc... We will also confirm if a user did send certain messages. Valour will not punish people for being offensive however and only assure safety and law.
-
-# Unanswered questions:
-## How will Valour be monetized?
