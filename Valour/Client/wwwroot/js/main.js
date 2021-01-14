@@ -134,5 +134,6 @@ function AddChannelModelCloseFunction(element)
 }
 
 function AddMessage(json, windowIndex) {
-
+    console.log("Revieved message");
+    console.log(json);
 }
