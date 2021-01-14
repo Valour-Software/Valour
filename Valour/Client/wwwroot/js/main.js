@@ -132,3 +132,7 @@ function AddChannelModelCloseFunction(element)
     var modal = document.getElementById("AddChannelModel");
     modal.style.display = "none";
 }
+
+function AddMessage(json, windowIndex) {
+
+}

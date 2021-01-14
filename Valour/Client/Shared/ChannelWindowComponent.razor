@@ -104,9 +104,9 @@
     public async Task RecieveMessage(string data)
     {
 
-        ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
+        //ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
 
-        Console.WriteLine($"Recieved message {message.Message_Index}.");
+        //Console.WriteLine($"Recieved message {message.Message_Index}.");
 
         //Console.WriteLine(data);
 
@@ -114,7 +114,9 @@
 
         await JS.InvokeVoidAsync("SetScrollState", Window.Index);
 
-        messages.Add(message);
+        await JS.InvokeVoidAsync("AddMessage", Window.Index);
+
+        //messages.Add(message);
 
         Console.WriteLine("Added message.");
 
@@ -128,12 +130,12 @@
     {
         // Request messages from server
         messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
-        
+
         foreach (ClientPlanetMessage message in messages)
         {
             message.Planet_Id = planetManager.GetCurrent().Id;
         }
-        
+
         StateHasChanged();
     }
 
