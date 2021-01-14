@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -12,10 +13,17 @@ namespace Valour.Shared.Messages
 {
     public class Message
     {
+
+        /// <summary>
+        /// The Id of the message
+        /// </summary>
+        [Key]
+        public ulong Id { get; set; }
+
         /// <summary>
         /// The user's ID, which is a GUID
         /// </summary>
-        private ulong Author_Id { get; set; }
+        public ulong Author_Id { get; set; }
 
         /// <summary>
         /// String representation of message
@@ -30,12 +38,12 @@ namespace Valour.Shared.Messages
         /// <summary>
         /// Id of the channel this message belonged to
         /// </summary>
-        public ulong ChannelId { get; set; }
+        public ulong Channel_Id { get; set; }
 
         /// <summary>
         /// Index of the message
         /// </summary>
-        public ulong Index { get; set; }
+        public ulong Message_Index { get; set; }
 
         /// <summary>
         /// Returns the hash for a message. Cannot be used in browser/client!
@@ -44,7 +52,7 @@ namespace Valour.Shared.Messages
         {
             using (SHA256 sha = SHA256.Create())
             {
-                string conc = $"{Author_Id}{Content}{TimeSent}{ChannelId}";
+                string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}";
 
                 byte[] buffer = Encoding.Unicode.GetBytes(conc);
 

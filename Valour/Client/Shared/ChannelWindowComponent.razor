@@ -106,7 +106,7 @@
 
         ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
 
-        Console.WriteLine($"Recieved message {message.Index}.");
+        Console.WriteLine($"Recieved message {message.Message_Index}.");
 
         //Console.WriteLine(data);
 
@@ -148,29 +148,7 @@
 
             // Post message to server
             await PostMessage(msg);
-
-            StateHasChanged();
-
-            currentInput = "";
-        }
-    }
-
-    public async Task OnChatboxInput()
-    {
-
-    }
-
-    public async Task OnClickWindow()
-    {
-        ClientPlanet planet = await ClientPlanetCache.GetPlanetAsync(Channel.Planet_Id);
-        await planetManager.SetCurrentPlanet(planet);
-    }
-
-    public async Task PostMessage(string msg)
-    {
-        PlanetMessage message = new PlanetMessage()
-        {
-            ChannelId = Channel.Id,
+            _Id = Channel.Id,
             Content = msg,
             TimeSent = DateTime.UtcNow,
             Author_Id = ClientUserManager.User.Id,
@@ -180,6 +158,18 @@
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
 
         Console.WriteLine(json);
+
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
+
+        TaskResult<ulong> response =
+            Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
+
+        if (!response.Success)
+        {
+            messages.Add(new ClientPlanetMessage()
+            {
+                TimeSent = DateTime.UtcNow,
+                Channel_eLine(json);
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
 

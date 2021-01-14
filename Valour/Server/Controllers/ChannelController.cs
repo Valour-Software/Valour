@@ -131,7 +131,7 @@ namespace Valour.Server.Controllers
 
             PlanetMessage welcome = new PlanetMessage()
             {
-                ChannelId = channelId,
+                Channel_Id = channelId,
                 Content = "Welcome back.",
                 TimeSent = DateTime.UtcNow
             };
@@ -151,7 +151,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, "Malformed message.", 0);
             }
 
-            ulong channel_id = msg.ChannelId;
+            ulong channel_id = msg.Channel_Id;
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
@@ -162,13 +162,13 @@ namespace Valour.Server.Controllers
             channel.Message_Count += 1;
             await Context.SaveChangesAsync();
 
-            msg.Index = index;
+            msg.Message_Index = index;
 
             string json = JsonConvert.SerializeObject(msg);
 
             await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
 
-            return new TaskResult<ulong>(true, $"Posted message {msg.Index}.", index);
+            return new TaskResult<ulong>(true, $"Posted message {msg.Message_Index}.", index);
         }
     }
 }
