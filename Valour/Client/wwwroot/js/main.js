@@ -118,10 +118,14 @@ window.onclick = function(event) {
     if (event.target == modal) {
         modal.style.display = "none";
     }
+    var modal = document.getElementById("AddChannelButton");
+    if (event.target != modal) {
+        var modal = document.getElementById("AddChannelCategoryContextMenu");
+        modal.style.display = "none";
+    }
 }
 
-// When the user clicks the button, open the modal 
-function AddChannelButtonFunction(element) {
+function AddChannelButtonFunction() {
     var modal = document.getElementById("AddChannelModel");
     modal.style.display = "block";
 }
@@ -131,4 +135,20 @@ function AddChannelModelCloseFunction(element)
 {
     var modal = document.getElementById("AddChannelModel");
     modal.style.display = "none";
+    HideContextMenuForChannelCategory();
+}
+
+function HideContextMenuForChannelCategory(){
+    var modal = document.getElementById("AddChannelCategoryContextMenu");
+    modal.style.display = "none";
+}
+
+// When the user clicks the button, open the modal 
+function AddChannelCategoryContextMenu(event) {
+    var modal = document.getElementById("AddChannelCategoryContextMenu");
+    modal.style.display = "block";
+    x = event.clientX;
+    y = event.clientY;
+    modal.style.left = `${x}px`;
+    modal.style.top = `${y}px`;
 }

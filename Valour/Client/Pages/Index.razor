@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @using Valour.Shared
+@using Valour.Shared.Categories;
 @inject HttpClient Http
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
@@ -124,6 +125,18 @@
 
             </div>
         </div>
+        <div class="context-menu" id="AddChannelCategoryContextMenu">
+            <div class="context-menu-item" onclick="AddChannelButtonFunction()">
+                <p class="context-menu-item-text">
+                Add Channel
+                </p>
+            </div>
+            <div class="context-menu-item">
+                <p class="context-menu-item-text">
+                Add Category
+                </p>
+            </div>
+        </div>
     </body>
 }
 else
@@ -136,6 +149,8 @@ else
     public ConcurrentBag<ClientPlanetUser> planetUserList = new ConcurrentBag<ClientPlanetUser>();
 
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
+
+    public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<PlanetCategory>();
 
     protected override async Task OnInitializedAsync()
     {

@@ -3,27 +3,21 @@
 @inject LocalStorageService storage
 @inject AutoMapper.IMapper Mapper 
 @inject ClientPlanetManager planetManager
+<section>
+    <h2>Create a new Channel</h2>
 
-<div class="login-box">
-    <div class="col-md-12">
-        <section>
-            <h2>Create a new Channel</h2>
-
-            <hr />
-            <div asp-validation-summary="All" class="text-info"></div>
-            <div class="form-group mt-2">
-                <label>Channel Name</label>
-                <input class="form-control" @bind-value="@name" />
-                <span id="name-span" style="color:#888888">@nameSpan</span>
-            </div>
-            <span id="image-span" style="color:#888888">@imageSpan</span>
-            <div class="form-group mt-4">
-                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
-            </div>
-        </section>
+    <hr />
+    <div asp-validation-summary="All" class="text-info"></div>
+    <div class="form-group mt-2">
+        <label>Channel Name</label>
+        <input class="form-control" @bind-value="@name" />
+        <span id="name-span" style="color:#888888">@nameSpan</span>
     </div>
-</div>
-
+    <span id="image-span" style="color:#888888">@imageSpan</span>
+    <div class="form-group mt-4">
+        <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
+    </div>
+</section>
 @code {
     // Input fields
     string name;
@@ -38,7 +32,7 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
-            name = "Please input a planet name.";
+            name = "Please input a channel name.";
             return;
         }
 
