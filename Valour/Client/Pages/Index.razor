@@ -45,24 +45,16 @@
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                <CategoryComponent Name="General Discussion" IsOpen="true">
-                    @if (planetManager.GetCurrent() != null)
+                @if (planetManager.GetCurrent() != null) {
+                    ClientWindow window = windowManager.GetSelectedWindow();
+                    ChatChannelWindow channelWindow = (ChatChannelWindow)window;
+                    Planet planet = planetManager.GetCurrent();
+                    @foreach(PlanetCategory category in PlanetCategoryChannelList)
                     {
-                        ClientWindow window = windowManager.GetSelectedWindow();
-                        ChatChannelWindow channelWindow = (ChatChannelWindow)window;
-                        Planet planet = planetManager.GetCurrent();
-                        @foreach(ClientPlanetChatChannel channel in PlanetChannelList)
-                        {
-                            if (channel.Id == channelWindow.Channel.Id) {
-                                <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
-                            }
-                            else
-                            {
-                                <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
-                            }
-                        }
+                        <CategoryComponent Category="@category" IsOpen="true" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                        </CategoryComponent>
                     }
-                </CategoryComponent>
+                }
             </div>
             <div class="channel-and-topbar" id="mainwindow">
                 <div class="topbar">
@@ -125,14 +117,14 @@
 
             </div>
         </div>
-        <div class="context-menu" id="AddChannelCategoryContextMenu">
+        <div class="context-menu AddChannelCategoryContextMenu" id="" style="display:none;">
             <div class="context-menu-item" onclick="AddChannelButtonFunction()">
                 <p class="context-menu-item-text">
                 Add Channel
                 </p>
             </div>
             <div class="context-menu-item">
-                <p class="context-menu-item-text">
+                <p class="context-menu-item-text" onclick="AddCategoryButtonFunction()">
                 Add Category
                 </p>
             </div>
@@ -158,6 +150,7 @@ else
         planetManager.OnPlanetChange += OnPlanetChange;
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
     }
 
     public void Dispose()
@@ -165,6 +158,7 @@ else
         planetManager.OnPlanetChange -= OnPlanetChange;
         planetManager.OnChannelsUpdate -= OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
+        planetManager.OnCategoriesUpdate -= OnCategoriesUpdate;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -196,6 +190,22 @@ else
         StateHasChanged();
     }
 
+    public async Task OnCategoriesUpdate()
+    {
+        ClientPlanet dummy = new ClientPlanet();
+
+        Planet planet = planetManager.GetCurrent();
+
+        PlanetCategoryChannelList.Clear();
+
+        foreach (PlanetCategory category in await dummy.GetClientPlanetCategoriesAsync(planet.Id))
+        {
+            PlanetCategoryChannelList.Add(category);
+        }
+
+        StateHasChanged();
+    }
+
     public async Task OnChannelsUpdate()
     {
         ClientPlanet dummy = new ClientPlanet();
@@ -223,6 +233,8 @@ else
         planetUserList.Add(self);
 
         await OnChannelsUpdate();
+
+        await OnCategoriesUpdate();
 
         StateHasChanged();
     }

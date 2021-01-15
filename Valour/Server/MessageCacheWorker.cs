@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity;
 using Valour.Server.Database;
+using Valour.Shared.Messages;
 
 namespace Valour.Server.Workers
 {
@@ -35,7 +36,7 @@ namespace Valour.Server.Workers
                             {
                                 ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
                                 DateTime now = DateTime.UtcNow;
-                                foreach (Messaging.CacheMessage message in context.Messages)
+                                foreach (Message message in context.Messages)
                                 {
                                     if (message.TimeSent.AddHours(24) < now)
                                     {
