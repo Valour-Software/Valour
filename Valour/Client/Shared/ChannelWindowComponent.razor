@@ -7,7 +7,13 @@
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
-        <!-- This has been moved into main.js -->
+        @if (messages != null)
+        {
+            foreach (ClientPlanetMessage msg in messages)
+            {
+                <MessageComponent Message="msg"></MessageComponent>
+            }
+        }
     </div>
 
     <div class="ml-1">
@@ -35,6 +41,11 @@
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
+    /// <summary>
+    /// Storage for messages that should be displayed
+    /// </summary>
+    private List<ClientPlanetMessage> messages;
+
     public ClientPlanetChatChannel Channel;
 
     /// <summary>
@@ -51,6 +62,8 @@
 
         await ConnectSignalR();
 
+        await RefreshMessages();
+
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
         windowManager.OnWindowChannelChange += OnWindowChannelChange;
@@ -62,6 +75,7 @@
             await hubConnection.SendAsync("LeaveChannel", Channel.Id);
             Channel = Window.Channel;
             await hubConnection.SendAsync("JoinChannel", Channel.Id);
+            await RefreshMessages();
             StateHasChanged();
         }
     }
@@ -91,9 +105,9 @@
     public async Task RecieveMessage(string data)
     {
 
-        //ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
+        ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
 
-        //Console.WriteLine($"Recieved message {message.Message_Index}.");
+        Console.WriteLine($"Recieved message {message.Message_Index}.");
 
         //Console.WriteLine(data);
 
@@ -103,17 +117,16 @@
 
         await JS.InvokeVoidAsync("AddMessage", Window.Index);
 
-        //messages.Add(message);
+        messages.Add(message);
 
         Console.WriteLine("Added message.");
 
         // Flag for UI refresh
-        //StateHasChanged();
+        StateHasChanged();
 
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }
 
-    /* Replaced by main.js
     public async Task RefreshMessages()
     {
         // Request messages from server
@@ -126,7 +139,6 @@
 
         StateHasChanged();
     }
-    */
 
     /// <summary>
     /// This runs every time a key is pressed when the chatbox is selected
