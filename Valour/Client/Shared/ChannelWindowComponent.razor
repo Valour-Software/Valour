@@ -66,6 +66,8 @@
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
+        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+
         windowManager.OnWindowChannelChange += OnWindowChannelChange;
     }
 
@@ -115,7 +117,7 @@
 
         await JS.InvokeVoidAsync("SetScrollState", Window.Index);
 
-        await JS.InvokeVoidAsync("AddMessage", Window.Index);
+        //await JS.InvokeVoidAsync("AddMessage", Window.Index);
 
         messages.Add(message);
 

@@ -87,11 +87,25 @@ function SetScrollState(index) {
 
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
-    var window = $("#innerwindow-" + index);
+    
 
     if (scrollStates[index] === 1) {
         window.scrollTop(window.prop("scrollHeight"));
     }
+}
+
+function SetupWindow(index) {
+    console.log("Setting up window " + index);
+    var window = $("#innerwindow-" + index);
+
+    window.scroll(function () {
+        //console.log("Height: " + window.scrollTop());
+
+        // User has reached top of scroll
+        if (window.scrollTop() == 0) {
+
+        }
+    });
 }
 
 // When the user clicks the button, open the modal 
@@ -163,14 +177,4 @@ function AddChannelCategoryContextMenu(event, element) {
     y = event.clientY;
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
-}
-
-function AddMessage(json, windowIndex) {
-    console.log("Recieved message");
-    console.log(json);
-
-    // This is the inner window messages go into
-    var channelObj = $("#innerwindow-" + windowIndex);
-
-    // NOTE: Honk please no spleen stealing in this method
 }
