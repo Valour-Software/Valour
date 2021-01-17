@@ -12,6 +12,7 @@ using Valour.Shared.Channels;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Valour.Shared.Categories;
 using System.Text.RegularExpressions;
 
 /*  Valour - A free and secure chat client
@@ -27,10 +28,8 @@ namespace Valour.Server.Controllers
     /// </summary>
     [ApiController]
     [Route("[controller]/[action]")]
-    public class ChannelController
+    public class CategoryController
     {
-
-        public static List<PlanetMessage> messageCache = new List<PlanetMessage>();
 
         /// <summary>
         /// Database context
@@ -38,7 +37,7 @@ namespace Valour.Server.Controllers
         private readonly ValourDB Context;
 
         // Dependency injection
-        public ChannelController(ValourDB context)
+        public CategoryController(ValourDB context)
         {
             this.Context = context;
         }
@@ -47,7 +46,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planetid, ulong userid, ulong parentid, string token)
+        public async Task<TaskResult<ulong>> CreateCategory(string name, ulong userid, ulong parentid, ulong planetid, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -72,22 +71,21 @@ namespace Valour.Server.Controllers
 
             // Creates the channel channel
 
-            PlanetChatChannel channel = new PlanetChatChannel()
+            PlanetCategory category = new PlanetCategory()
             {
                 Name = name,
                 Planet_Id = planetid,
-                Category_Id = parentid,
-                Message_Count = 0
+                Category_Id = parentid
             };
 
             // Add channel to database
-            await Context.PlanetChatChannels.AddAsync(channel);
+            await Context.PlanetCategories.AddAsync(category);
 
             // Save changes to DB
             await Context.SaveChangesAsync();
 
             // Return success
-            return new TaskResult<ulong>(true, "Successfully created channel.", channel.Id);
+            return new TaskResult<ulong>(true, "Successfully created category.", category.Id);
         }
 
         public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -118,61 +116,21 @@ namespace Valour.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planetid)
+        public async Task<TaskResult<IEnumerable<PlanetCategory>>> GetPlanetCategoriesAsync(ulong planetid)
         {
-            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).ToList());
+            IEnumerable<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planetid).ToList());
 
-            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retireved channels.", channels);
-        }
-
-        [HttpGet]
-        public async Task<IEnumerable<Message>> GetMessages(ulong channel_id)
-        {
-
-            IEnumerable<Message> messages = await Task.Run(() => Context.Messages.Where(x => x.Channel_Id == channel_id).ToList());
-
-            return messages;
-        }
-        [HttpPost]
-        public async Task<TaskResult<ulong>> PostMessage(PlanetMessage msg)
-        {
-            //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
-
-            if (msg == null)
-            {
-                return new TaskResult<ulong>(false, "Malformed message.", 0);
+            // in case theres 0 categories or "General" does not exist
+            if (categories.Count() == 0 || !(categories.Any(x => x.Name == "General"))) {
+                PlanetCategory category = new PlanetCategory();
+                category.Name = "General";
+                category.Planet_Id = planetid;
+                await Context.PlanetCategories.AddAsync(category);
+                await Context.SaveChangesAsync();
+                categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planetid).ToList());
             }
 
-            ulong channel_id = msg.Channel_Id;
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
-
-            // Get index for message
-            ulong index = channel.Message_Count;
-
-            // Update message count. May have to queue this in the future to prevent concurrency issues.
-            channel.Message_Count += 1;
-            await Context.SaveChangesAsync();
-
-            msg.Message_Index = index;
-
-            string json = JsonConvert.SerializeObject(msg);
-
-            await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
-            
-            Message cachemsg = new Message();
-            
-            cachemsg.Channel_Id = msg.Channel_Id;
-            cachemsg.Content = msg.Content;
-            cachemsg.Message_Index = msg.Message_Index;
-            cachemsg.TimeSent = msg.TimeSent;
-            cachemsg.Author_Id = msg.Author_Id;
-
-            await Context.Messages.AddAsync(cachemsg);
-
-            await Context.SaveChangesAsync();
-            
-            return new TaskResult<ulong>(true, $"Posted message {msg.Message_Index}.", index);
+            return new TaskResult<IEnumerable<PlanetCategory>>(true, "Successfully retireved Categories.", categories);
         }
     }
 }

@@ -297,7 +297,6 @@ body {
 
 .sidebar-2 .category .channel {
     width: 257px;
-    height: 31px;
     margin-left: 6px;
     margin-bottom: 2px;
     border-radius: 5px
@@ -329,7 +328,6 @@ body {
 
 .sidebar-2 .category .channel-list {
     width: 269px;
-    background: rgba(255, 255, 255, 0.1);
     margin: 0px;
     margin-top: -1px;
     border-bottom-left-radius: 5px;
@@ -354,7 +352,6 @@ body {
 
 .sidebar-2 .category {
     width: 269px;
-    height: 33px;
     background: rgba(255, 255, 255, 0.12);
     border-radius: 5px;
     margin-left: auto;

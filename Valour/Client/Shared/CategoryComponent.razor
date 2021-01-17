@@ -1,35 +1,79 @@
-﻿<div class="@Chosen_CSS">
+﻿@using Valour.Shared.Categories
+@inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
+
+
+<div class="@Chosen_CSS" id="@category.Id">
     <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
     <p class="name">
-        @Name
+        @category.Name
     </p>
-    <p class="add-channel-button" id="AddChannelButton" onclick="AddChannelCategoryContextMenu(event)">
+    <p class="add-channel-button" id="@category.Id" onclick="AddChannelCategoryContextMenu(event, this)">
         +
     </p>
         <!-- The Modal -->
-    <div id="AddChannelModel" class="modal">
+    <div class="modal channelmodel" id="@category.Id">
 
         <!-- Modal content -->
         <div class="modal-content-CreateChannel">
             <div class="login-box">
                 <div class="col-md-12">
-                    <CreateChannelComponent></CreateChannelComponent>
+                    <CreateChannelComponent Category="@category"></CreateChannelComponent>   
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="AddCategoryModel" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content-CreateChannel">
+            <div class="login-box">
+                <div class="col-md-12">
+                    <CreateCategoryComponent Category="@category"></CreateCategoryComponent>
                 </div>
             </div>
         </div>
     </div>
     @if (IsOpen) {
         <div class="channel-list">
-            @ChildContent
+            @foreach(ClientPlanetChatChannel channel in PlanetChannelList) {
+                if (channel.Category_Id == null && category.Name == "General") {
+                    if (channel.Id == channelWindow.Channel.Id) {
+                        <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                    }
+                    else
+                    {
+                        <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                    }
+                }
+                if (channel.Category_Id == category.Id) {
+                    if (channel.Id == channelWindow.Channel.Id) {
+                        <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                    }
+                    else
+                    {
+                        <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                    }
+                }
+            }
         </div>
     }
 </div>
 @code {
     [Parameter]
-    public string Name { get; set; }
+    public PlanetCategory category { get; set; }
+
+    [Parameter]
+    public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList { get; set; }
+
+    [Parameter]
+    public ChatChannelWindow channelWindow { get; set; }
+
+    [Parameter]
+    public Planet planet { get; set; }
 
     [Parameter]
     public bool IsOpen { get; set; }
+
     public string ArrowStyle 
     { 
         get

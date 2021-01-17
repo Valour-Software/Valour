@@ -115,37 +115,49 @@ window.onclick = function(event) {
     }
 
     var modal = document.getElementById("AddChannelModel");
-    if (event.target == modal) {
+    var x = document.getElementsByClassName("channelmodel")
+    for (id in x) {
+        item = x[id]
+        if (event.target == item) {
+            item.style.display = "none";
+        }
+    }
+    var modal = document.getElementById("AddCategoryModel");
+    if (event.target.id == modal.id) {
         modal.style.display = "none";
     }
-    var modal = document.getElementById("AddChannelButton");
-    if (event.target != modal) {
-        var modal = document.getElementById("AddChannelCategoryContextMenu");
+    var modal = document.getElementsByClassName("add-channel-button");
+    if (event.target.className != "add-channel-button") {
+        var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
         modal.style.display = "none";
     }
 }
 
-function AddChannelButtonFunction() {
-    var modal = document.getElementById("AddChannelModel");
+function AddChannelButtonFunction(element) {
+    menu = document.getElementsByClassName("AddChannelCategoryContextMenu")[0]
+    var x = document.getElementsByClassName("channelmodel")
+    for (id in x) {
+        item = x[id]
+        if (menu.id == item.id) {
+            item.style.display = "block";
+        }
+    }
+}
+
+function AddCategoryButtonFunction() {
+    var modal = document.getElementById("AddCategoryModel");
     modal.style.display = "block";
 }
 
-// When the user clicks on <span> (x), close the modal
-function AddChannelModelCloseFunction(element)
-{
-    var modal = document.getElementById("AddChannelModel");
-    modal.style.display = "none";
-    HideContextMenuForChannelCategory();
-}
-
 function HideContextMenuForChannelCategory(){
-    var modal = document.getElementById("AddChannelCategoryContextMenu");
+    var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
     modal.style.display = "none";
 }
 
 // When the user clicks the button, open the modal 
-function AddChannelCategoryContextMenu(event) {
-    var modal = document.getElementById("AddChannelCategoryContextMenu");
+function AddChannelCategoryContextMenu(event, element) {
+    var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
+    modal.id = element.id
     modal.style.display = "block";
     x = event.clientX;
     y = event.clientY;

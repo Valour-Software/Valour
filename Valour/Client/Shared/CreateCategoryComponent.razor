@@ -6,12 +6,12 @@
 @using Valour.Shared.Categories
 
 <section>
-    <h2>Create a new Channel</h2>
+    <h2>Create a new Category</h2>
 
     <hr />
     <div asp-validation-summary="All" class="text-info"></div>
     <div class="form-group mt-2">
-        <label>Channel Name</label>
+        <label>Category Name</label>
         <input class="form-control" @bind-value="@name" />
         <span id="name-span" style="color:#888888">@nameSpan</span>
     </div>
@@ -20,16 +20,18 @@
         <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
     </div>
 </section>
+
 @code {
+
+    [Parameter]
+    public PlanetCategory Category { get; set; }
+
     // Input fields
     string name;
 
     // Spans
-    string nameSpan = "The name of the channel";
+    string nameSpan = "The name of the category";
     string imageSpan = "";
-
-    [Parameter]
-    public PlanetCategory Category { get; set; }
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
@@ -37,7 +39,7 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
-            name = "Please input a channel name.";
+            name = "Please input a category name.";
             return;
         }
 
@@ -50,6 +52,8 @@
 
         ulong parentid = 0;
 
+        Console.WriteLine($"Category Id: {Category.Id}");
+
         if (Category == null) {
             parentid = 0;
         }
@@ -57,7 +61,9 @@
             parentid = Category.Id;
         }
 
-        string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
+        Console.WriteLine($"Parent Id: {parentid}");
+
+        string json = await Http.GetStringAsync($"Category/CreateCategory?name={encodedName}" +
                                                                    $"&planetid={planetManager.GetCurrent().Id}" +
                                                                    $"&userid={userid}" +
                                                                    $"&parentid={parentid}" +
