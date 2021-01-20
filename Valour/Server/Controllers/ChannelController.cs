@@ -136,7 +136,7 @@ namespace Valour.Server.Controllers
             }
 
             IEnumerable<PlanetMessage> messages = await Task.Run(() =>
-            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index <= index)
+            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
                                   .OrderByDescending(x => x.Message_Index)
                                   .Take(count)
                                   .Reverse()

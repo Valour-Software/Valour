@@ -91,7 +91,7 @@ function SetupWindow(index) {
 
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
-            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke');
+            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', index);
         }
 
         if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -

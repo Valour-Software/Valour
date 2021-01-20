@@ -7,9 +7,9 @@
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
-        @if (messages != null)
+        @if (Window.messages != null)
         {
-            foreach (ClientPlanetMessage msg in messages)
+            foreach (ClientPlanetMessage msg in Window.messages)
             {
                 <MessageComponent Message="msg"></MessageComponent>
             }
@@ -41,24 +41,16 @@
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
-    /// <summary>
-    /// Storage for messages that should be displayed
-    /// </summary>
-    private List<ClientPlanetMessage> messages;
-
     public ClientPlanetChatChannel Channel;
-
-    /// <summary>
-    /// The index of the last sent message
-    /// </summary>
-    private ulong messageIndex;
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
         Channel = Window.Channel;
 
-        messages = new List<ClientPlanetMessage>();
+        Window.messages = new List<ClientPlanetMessage>();
+
+        Window.RefreshWindowState += SetStateChanged;
 
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
@@ -71,7 +63,12 @@
         windowManager.OnWindowChannelChange += OnWindowChannelChange;
 
         // Request messages from server
-        messages.AddRange(await Channel.GetLastMessagesAsync(20));
+        Window.messages.AddRange(await Channel.GetLastMessagesAsync(20));
+
+        if (Window.messages.Count > 0)
+        {
+            Window.firstMessageIndex = Window.messages[0].Message_Index;
+        }
     }
 
     public async Task OnWindowChannelChange()
@@ -119,7 +116,9 @@
 
         //await JS.InvokeVoidAsync("AddMessage", Window.Index);
 
-        messages.Add(message);
+        Window.messages.Add(message);
+
+        Window.messageIndex = message.Message_Index;
 
         Console.WriteLine("Added message.");
 
@@ -127,6 +126,11 @@
         StateHasChanged();
 
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+    }
+
+    public async Task SetStateChanged()
+    {
+        StateHasChanged();
     }
 
     /// <summary>
@@ -194,8 +198,31 @@
     }
 
     [JSInvokable("OnScrollTopInvoke")]
-    public static async Task OnScrollTop()
+    public static async Task OnScrollTop(int index)
     {
-        Console.WriteLine("Activated.");
+        ChatChannelWindow Window = ClientWindowManager.Instance.GetWindow(index) as ChatChannelWindow;
+
+        if (Window == null)
+        {
+            Console.WriteLine("Channel window is null in OnScrollTop!");
+            return;
+        }
+
+        Console.WriteLine($"Fetching older messages from index {Window.firstMessageIndex} for window {Window.Index}");
+
+        var messages = await Window.Channel.GetMessagesAsync(Window.firstMessageIndex, 10);
+
+        if (messages == null || messages.Count() == 0)
+        {
+            return;
+        }
+
+        Window.messages.InsertRange(0, messages);
+        Window.firstMessageIndex = messages.ElementAt(0).Message_Index;
+
+        if (Window.RefreshWindowState != null)
+        {
+            await Window.RefreshWindowState.Invoke();
+        }
     }
 }
