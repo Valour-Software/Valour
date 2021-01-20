@@ -47,10 +47,9 @@
     protected override async Task OnInitializedAsync()
     {
         Channel = Window.Channel;
+        Window.Component = this;
 
         Window.messages = new List<ClientPlanetMessage>();
-
-        Window.RefreshWindowState += SetStateChanged;
 
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
@@ -128,11 +127,6 @@
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }
 
-    public async Task SetStateChanged()
-    {
-        StateHasChanged();
-    }
-
     /// <summary>
     /// This runs every time a key is pressed when the chatbox is selected
     /// </summary>
@@ -197,6 +191,16 @@
         Console.WriteLine(response.ToString());
     }
 
+    public async Task UpdateScrollPosition()
+    {
+        await JS.InvokeVoidAsync("UpdateScrollPosition", Window.Index);
+    }
+
+    public async Task ScaleScrollPosition()
+    {
+        await JS.InvokeVoidAsync("ScaleScrollPosition", Window.Index);
+    }
+
     [JSInvokable("OnScrollTopInvoke")]
     public static async Task OnScrollTop(int index)
     {
@@ -217,12 +221,10 @@
             return;
         }
 
+        await Window.Component.UpdateScrollPosition();
         Window.messages.InsertRange(0, messages);
         Window.firstMessageIndex = messages.ElementAt(0).Message_Index;
-
-        if (Window.RefreshWindowState != null)
-        {
-            await Window.RefreshWindowState.Invoke();
-        }
+        Window.Component.StateHasChanged();
+        await Window.Component.ScaleScrollPosition();
     }
 }

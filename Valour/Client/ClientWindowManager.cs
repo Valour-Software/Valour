@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Channels;
 using Valour.Client.Messages;
+using Valour.Client.Shared;
 using Valour.Shared.Channels;
 
 namespace Valour.Client
@@ -121,6 +122,11 @@ namespace Valour.Client
         public ClientPlanetChatChannel Channel { get; set; }
 
         /// <summary>
+        /// The component that belongs to this window
+        /// </summary>
+        public ChannelWindowComponent Component { get; set; }
+
+        /// <summary>
         /// Storage for messages that should be displayed
         /// </summary>
         public List<ClientPlanetMessage> messages;
@@ -134,11 +140,6 @@ namespace Valour.Client
         /// The index of the earliest recieved message
         /// </summary>
         public ulong firstMessageIndex;
-
-        /// <summary>
-        /// Ued to force the window to refresh
-        /// </summary>
-        public Func<Task> RefreshWindowState;
 
         public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
         {

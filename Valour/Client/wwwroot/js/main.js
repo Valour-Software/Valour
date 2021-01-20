@@ -71,6 +71,22 @@ function SizeEnable() {
 }
 
 var scrollStates = [1, 1, 1, 1];
+var oldScrollSize = [0, 0, 0, 0];
+
+// Automagically scroll windows down
+function UpdateScrollPosition(index) {
+    var window = $("#innerwindow-" + index);
+
+    oldScrollSize[index] = window.prop("scrollHeight");
+
+    console.log("Saving scroll state " + oldScrollSize[index]);
+}
+
+function ScaleScrollPosition(index) {
+    var window = $("#innerwindow-" + index);
+
+    window.scrollTop(window.prop("scrollHeight") - oldScrollSize[index]);
+}
 
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
