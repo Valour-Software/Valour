@@ -28,6 +28,11 @@
                     <input type="password" class="form-control" @bind-value="@password" />
                     <span id="password-span" class="text-danger">@passwordSpan</span>
                 </div>
+                <div class="form-group mt-2">
+                    <label>Confirm Password</label>
+                    <input type="password" class="form-control" @bind-value="@passwordConf" />
+                    <span id="password-conf-span" class="text-danger">@passwordConfSpan</span>
+                </div>
                 <div class="form-group mt-4" style="display:inline-block">
                     <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
                 </div>
@@ -40,18 +45,21 @@
     // Input fields
     string email;
     string password;
+    string passwordConf;
     string username;
 
     // Spans
     string emailSpan;
     string passwordSpan;
     string usernameSpan;
+    string passwordConfSpan;
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
         emailSpan = "";
         passwordSpan = "";
         usernameSpan = "";
+        passwordConfSpan = "";
 
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -63,6 +71,11 @@
         {
             passwordSpan = "Please input a password.";
             return;
+        }
+
+        if (!string.Equals(password, passwordConf))
+        {
+            passwordConfSpan = "Passwords do not match";
         }
 
         if (string.IsNullOrWhiteSpace(username))
