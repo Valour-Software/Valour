@@ -83,6 +83,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }
 
     public async Task ConnectSignalR()
