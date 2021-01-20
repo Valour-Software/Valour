@@ -6,13 +6,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
-using Valour.Server.Messaging;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using System.Text.RegularExpressions;
+using System.Collections.Specialized;
+using Valour.Server.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -47,7 +48,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planetid, ulong userid, ulong parentid, string token)
+        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planet_id, ulong userid, ulong parentid, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -75,7 +76,7 @@ namespace Valour.Server.Controllers
             PlanetChatChannel channel = new PlanetChatChannel()
             {
                 Name = name,
-                Planet_Id = planetid,
+                Planet_Id = planet_id,
                 Category_Id = parentid,
                 Message_Count = 0
             };
@@ -110,29 +111,59 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "The given name is valid.");
         }
         
-        public async Task<TaskResult<IEnumerable<ulong>>> GetPlanetChannel_IdsAsync(ulong planetid)
+        public async Task<TaskResult<IEnumerable<ulong>>> GetChannelIdsAsync(ulong planet_id)
         {
-            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).Select(c => c.Id).ToList());
+            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
 
             return new TaskResult<IEnumerable<ulong>>(true, "Successfully retireved channels.", channels);;
         }
 
         [HttpGet]
-        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planetid)
+        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planet_id)
         {
-            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).ToList());
+            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
 
             return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retireved channels.", channels);
         }
 
         [HttpGet]
-        public async Task<IEnumerable<Message>> GetMessages(ulong channel_id)
+        public async Task<IEnumerable<PlanetMessage>> GetMessages(ulong channel_id, ulong index = ulong.MaxValue, int count = 10)
         {
+            // Prevent requesting a ridiculous amount of messages
+            if (count > 64)
+            {
+                count = 64;
+            }
 
-            IEnumerable<Message> messages = await Task.Run(() => Context.Messages.Where(x => x.Channel_Id == channel_id).ToList());
+            IEnumerable<PlanetMessage> messages = await Task.Run(() =>
+            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index <= index)
+                                  .OrderByDescending(x => x.Message_Index)
+                                  .Take(count)
+                                  .Reverse()
+                                  .ToList());
 
             return messages;
         }
+
+        [HttpGet]
+        public async Task<IEnumerable<PlanetMessage>> GetLastMessages(ulong channel_id, int count = 10)
+        {
+            // Prevent requesting a ridiculous amount of messages
+            if (count > 64)
+            {
+                count = 64;
+            }
+
+            IEnumerable<PlanetMessage> messages = await Task.Run(() => 
+            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id)
+                                  .OrderByDescending(x => x.Message_Index)
+                                  .Take(count)
+                                  .Reverse()
+                                  .ToList());
+
+            return messages;
+        }
+
         [HttpPost]
         public async Task<TaskResult<ulong>> PostMessage(PlanetMessage msg)
         {
@@ -159,16 +190,8 @@ namespace Valour.Server.Controllers
             string json = JsonConvert.SerializeObject(msg);
 
             await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
-            
-            Message cachemsg = new Message();
-            
-            cachemsg.Channel_Id = msg.Channel_Id;
-            cachemsg.Content = msg.Content;
-            cachemsg.Message_Index = msg.Message_Index;
-            cachemsg.TimeSent = msg.TimeSent;
-            cachemsg.Author_Id = msg.Author_Id;
 
-            await Context.Messages.AddAsync(cachemsg);
+            await Context.PlanetMessages.AddAsync(msg);
 
             await Context.SaveChangesAsync();
             

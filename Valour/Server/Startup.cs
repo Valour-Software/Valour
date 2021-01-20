@@ -18,7 +18,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Valour.Server.Database;
-using Valour.Server.Messaging;
+using Valour.Server.Messages;
 using Microsoft.AspNetCore.Http;
 using Valour.Server.Users.Identity;
 using Valour.Server.Users;

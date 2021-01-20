@@ -10,7 +10,7 @@ using System.Threading.Tasks;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Messaging
+namespace Valour.Server.Messages
 {
     public class MessageHub : Hub
     {

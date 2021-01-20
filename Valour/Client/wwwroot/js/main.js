@@ -72,24 +72,12 @@ function SizeEnable() {
 
 var scrollStates = [1, 1, 1, 1];
 
-function SetScrollState(index) {
-    var window = $("#innerwindow-" + index);
-    if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
-        Math.abs(window.outerHeight()))
-        < 25) {
-
-        scrollStates[index] = 1;
-    }
-    else {
-        scrollStates[index] = 0;
-    }
-}
-
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
-    
+    var window = $("#innerwindow-" + index);
 
     if (scrollStates[index] === 1) {
+        console.log("hi there");
         window.scrollTop(window.prop("scrollHeight"));
     }
 }
@@ -104,6 +92,17 @@ function SetupWindow(index) {
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
             DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke');
+        }
+
+        if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
+            Math.abs(window.outerHeight()))
+            < 25) {
+
+            scrollStates[index] = 1;
+            console.log("Within snap range.");
+        }
+        else {
+            scrollStates[index] = 0;
         }
     });
 }

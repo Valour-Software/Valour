@@ -10,8 +10,6 @@ namespace Valour.Shared.Messages
 {
     public class PlanetMessage : Message
     {
-        public ulong Author_Id { get; set; }
-
         public ulong Planet_Id { get; set; }
     }
 }

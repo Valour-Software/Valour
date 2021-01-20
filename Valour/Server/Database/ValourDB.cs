@@ -10,7 +10,6 @@ using Valour.Server.Planets;
 using Valour.Shared.Channels;
 using Valour.Shared.Categories;
 using Valour.Server.Email;
-using Valour.Server.Messaging;
 using Valour.Shared.Messages;
 
 namespace Valour.Server.Database
@@ -42,7 +41,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for message cache
         /// </summary>
-        public DbSet<Message> Messages { get; set; }
+        public DbSet<PlanetMessage> PlanetMessages { get; set; }
 
         /// <summary>
         /// Table for Valour users

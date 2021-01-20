@@ -25,7 +25,7 @@ namespace Valour.Client.Users
         /// <summary>
         /// Returns a user from the given id
         /// </summary>
-        public static async Task<ClientPlanetUser> GetPlanetUserAsync(ulong userid, ulong planetid)
+        public static async Task<ClientPlanetUser> GetPlanetUserAsync(ulong userid, ulong planet_id)
         {
             if (userid == 0)
             {
@@ -33,30 +33,30 @@ namespace Valour.Client.Users
                 {
                     Id = 0,
                     Join_DateTime = DateTime.UtcNow,
-                    Planet_Id = planetid,
+                    Planet_Id = planet_id,
                     Username = "Valour AI"
                 };
             }
 
             // Attempt to retrieve from cache
-            if (Cache.ContainsKey((userid, planetid)))
+            if (Cache.ContainsKey((userid, planet_id)))
             {
-                return Cache[(userid, planetid)];
+                return Cache[(userid, planet_id)];
             }
 
             // Retrieve from server
-            ClientPlanetUser user = await ClientPlanetUser.GetClientPlanetUserAsync(userid, planetid);
+            ClientPlanetUser user = await ClientPlanetUser.GetClientPlanetUserAsync(userid, planet_id);
 
             if (user == null)
             {
-                Console.WriteLine($"Failed to fetch planet user with user id {userid} and planet id {planetid}.");
+                Console.WriteLine($"Failed to fetch planet user with user id {userid} and planet id {planet_id}.");
                 return null;
             }
 
-            Console.WriteLine($"Fetched planet user {userid} for planet {planetid}");
+            Console.WriteLine($"Fetched planet user {userid} for planet {planet_id}");
 
             // Add to cache
-            Cache.TryAdd((userid, planetid), user);
+            Cache.TryAdd((userid, planet_id), user);
 
             return user;
 

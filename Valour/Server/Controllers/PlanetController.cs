@@ -159,9 +159,9 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planet object (if permitted)
         /// </summary>
-        public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, string token)
+        public async Task<TaskResult<Planet>> GetPlanet(ulong planet_id, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
             if (planet == null)
             {
@@ -180,9 +180,9 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planet's primary channel
         /// </summary>
-        public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planetid, ulong userid, string token)
+        public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong userid, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
             if (!(await planet.AuthorizedAsync(token)))
             {

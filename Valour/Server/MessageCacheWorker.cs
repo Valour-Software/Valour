@@ -36,11 +36,11 @@ namespace Valour.Server.Workers
                             {
                                 ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
                                 DateTime now = DateTime.UtcNow;
-                                foreach (Message message in context.Messages)
+                                foreach (PlanetMessage message in context.PlanetMessages)
                                 {
                                     if (message.TimeSent.AddHours(24) < now)
                                     {
-                                        context.Messages.Remove(message);
+                                        context.PlanetMessages.Remove(message);
                                     }
                                     await context.SaveChangesAsync();
                                 }

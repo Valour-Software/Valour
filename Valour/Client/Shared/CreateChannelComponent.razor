@@ -58,7 +58,7 @@
         }
 
         string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
-                                                                   $"&planetid={planetManager.GetCurrent().Id}" +
+                                                                   $"&planet_id={planetManager.GetCurrent().Id}" +
                                                                    $"&userid={userid}" +
                                                                    $"&parentid={parentid}" +
                                                                    $"&token={token}");
@@ -75,7 +75,7 @@
         // Send user into planet if successful
         if (result.Success)
         {
-            ulong planetId = result.Data;
+            ulong planet_id = result.Data;
 
             await planetManager.RefreshChannels();
 

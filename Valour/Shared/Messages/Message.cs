@@ -21,7 +21,7 @@ namespace Valour.Shared.Messages
         public ulong Id { get; set; }
 
         /// <summary>
-        /// The user's ID, which is a GUID
+        /// The user's ID
         /// </summary>
         public ulong Author_Id { get; set; }
 

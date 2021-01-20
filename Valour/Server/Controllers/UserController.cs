@@ -383,10 +383,10 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planetuser given the user and planet id
         /// </summary>
-        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planetid, string auth)
+        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planet_id, string auth)
         {
             // Retrieve planet
-            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planetid), Mapper);
+            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planet_id), Mapper);
 
             if (planet == null) return new TaskResult<PlanetUser>(false, "The planet could not be found.", null);
 
@@ -412,7 +412,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
             }
 
-            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planetid, Mapper);
+            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id, Mapper);
 
             if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
 

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
-using Valour.Server.Messaging;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Messages;
@@ -46,7 +45,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateCategory(string name, ulong userid, ulong parentid, ulong planetid, string token)
+        public async Task<TaskResult<ulong>> CreateCategory(string name, ulong userid, ulong parentid, ulong planet_id, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -74,7 +73,7 @@ namespace Valour.Server.Controllers
             PlanetCategory category = new PlanetCategory()
             {
                 Name = name,
-                Planet_Id = planetid,
+                Planet_Id = planet_id,
                 Category_Id = parentid
             };
 
@@ -107,30 +106,23 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "The given name is valid.");
         }
-        
-        public async Task<TaskResult<IEnumerable<ulong>>> GetPlanetChannel_IdsAsync(ulong planetid)
-        {
-            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planetid).Select(c => c.Id).ToList());
-
-            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retireved channels.", channels);;
-        }
 
         [HttpGet]
-        public async Task<TaskResult<IEnumerable<PlanetCategory>>> GetPlanetCategoriesAsync(ulong planetid)
+        public async Task<TaskResult<IEnumerable<PlanetCategory>>> GetPlanetCategoriesAsync(ulong planet_id)
         {
-            IEnumerable<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planetid).ToList());
+            IEnumerable<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planet_id).ToList());
 
             // in case theres 0 categories or "General" does not exist
             if (categories.Count() == 0 || !(categories.Any(x => x.Name == "General"))) {
                 PlanetCategory category = new PlanetCategory();
                 category.Name = "General";
-                category.Planet_Id = planetid;
+                category.Planet_Id = planet_id;
                 await Context.PlanetCategories.AddAsync(category);
                 await Context.SaveChangesAsync();
-                categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planetid).ToList());
+                categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planet_id).ToList());
             }
 
-            return new TaskResult<IEnumerable<PlanetCategory>>(true, "Successfully retireved Categories.", categories);
+            return new TaskResult<IEnumerable<PlanetCategory>>(true, "Successfully retrieved Categories.", categories);
         }
     }
 }
