@@ -103,7 +103,7 @@ function SetupWindow(index) {
 
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
-
+            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke');
         }
     });
 }

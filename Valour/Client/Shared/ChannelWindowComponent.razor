@@ -150,7 +150,7 @@
         // Debug for key presses
         // Console.WriteLine(currentInput);
 
-        if (args.Key == "Enter")
+        if (args.Key == "Enter" && !args.ShiftKey)
         {
             // Grab current input
             string msg = currentInput;
@@ -159,23 +159,16 @@
 
             string temp = msg;
 
-            temp = temp.Replace("\n","");
+            temp = temp.TrimEnd('\n');
+
+            currentInput = "";
 
             if (temp != "")
             {
-
-                // Clear input
-                currentInput = "";
-
                 // Post message to server
                 StateHasChanged();
                 await PostMessage(msg);
-
-                currentInput = "";
-            }
-            else
-            {
-                currentInput = "";
+                currentInput = currentInput.TrimStart('\n'); // Fix odd bug
             }
         }
     }
@@ -211,5 +204,11 @@
         TaskResult<ulong> response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
 
         Console.WriteLine(response.ToString());
+    }
+
+    [JSInvokable("OnScrollTopInvoke")]
+    public static async Task OnScrollTop()
+    {
+        Console.WriteLine("Activated.");
     }
 }
