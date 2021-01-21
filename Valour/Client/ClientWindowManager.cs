@@ -20,8 +20,6 @@ namespace Valour.Client
 
         public Func<Task> OnWindowSelect;
 
-        public Func<Task> OnWindowChannelChange;
-
         public static ClientWindowManager Instance;
 
         public ClientWindowManager()

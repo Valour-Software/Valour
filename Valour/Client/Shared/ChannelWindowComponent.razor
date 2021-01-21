@@ -9,9 +9,20 @@
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (Window.messages != null)
         {
+            ulong lastAuthorId = 0;
+
             foreach (ClientPlanetMessage msg in Window.messages)
             {
-                <MessageComponent Message="msg"></MessageComponent>
+                if (msg.Author_Id != lastAuthorId)
+                {
+                    <MessageComponent Message="msg"></MessageComponent>
+                }
+                else
+                {
+                    <MultiMessageComponent Message="msg"></MultiMessageComponent>
+                }
+
+                lastAuthorId = msg.Author_Id;
             }
         }
     </div>
@@ -59,7 +70,12 @@
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        windowManager.OnWindowChannelChange += OnWindowChannelChange;
+        await SetupNewChannelAsync();
+    }
+
+    public async Task SetupNewChannelAsync()
+    {
+        Window.messages.Clear();
 
         // Request messages from server
         Window.messages.AddRange(await Channel.GetLastMessagesAsync(20));
@@ -67,17 +83,20 @@
         if (Window.messages.Count > 0)
         {
             Window.firstMessageIndex = Window.messages[0].Message_Index;
+            Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
     }
 
-    public async Task OnWindowChannelChange()
+    public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
     {
-        if (Channel != Window.Channel){
-            await hubConnection.SendAsync("LeaveChannel", Channel.Id);
-            Channel = Window.Channel;
-            await hubConnection.SendAsync("JoinChannel", Channel.Id);
-            StateHasChanged();
-        }
+        await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+        Window.Channel = newchannel;
+        Channel = newchannel;
+        await hubConnection.SendAsync("JoinChannel", Channel.Id);
+
+        await SetupNewChannelAsync();
+
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -222,10 +241,10 @@
             return;
         }
 
-        await Window.Component.UpdateScrollPosition();
+        await Window.Component.UpdateScrollPosition(); // This saves the scroll position
         Window.messages.InsertRange(0, messages);
         Window.firstMessageIndex = messages.ElementAt(0).Message_Index;
         Window.Component.StateHasChanged();
-        await Window.Component.ScaleScrollPosition();
+        await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly
     }
 }

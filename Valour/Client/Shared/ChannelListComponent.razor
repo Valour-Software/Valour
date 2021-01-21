@@ -32,18 +32,22 @@
     public async Task OnClick()
     {
         ClientWindow window = windowManager.GetSelectedWindow();
-        
+
         Console.WriteLine(window.Index);
 
         if (window is ChatChannelWindow)
         {
-            Console.WriteLine("TRUE");
             ChatChannelWindow channelWindow = (ChatChannelWindow)window;
             if (channelWindow != null)
             {
-                Console.WriteLine("TRUE");
-                channelWindow.Channel = Channel;
-                windowManager.OnWindowChannelChange?.Invoke();
+                // It's the same channel, cancel
+                if (channelWindow.Channel.Id == Channel.Id)
+                {
+                    return;
+                }
+
+                Console.WriteLine(Channel.Name);
+                await channelWindow.Component.OnWindowChannelChange(Channel);
                 await planetManager.RefreshOpenedChannels();
             }
         }
