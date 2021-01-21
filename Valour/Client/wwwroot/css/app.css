@@ -401,12 +401,11 @@ body {
 
 
 .sidebar-2 .category .channel-list {
-    width: 269px;
     margin: 0px;
     margin-top: -1px;
     border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
-    overflow: auto;
+    overflow: hidden;
 }
 
 .sidebar-2 .category .name-open {
@@ -426,7 +425,7 @@ body {
 
 .sidebar-2 .category {
     width: 269px;
-    background: rgba(255, 255, 255, 0.12);
+    background: rgb(41, 49, 56);
     border-radius: 5px;
     margin-left: auto;
     margin-right: auto;

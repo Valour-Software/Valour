@@ -51,8 +51,10 @@
                     Planet planet = planetManager.GetCurrent();
                     @foreach(PlanetCategory category in PlanetCategoryChannelList)
                     {
-                        <CategoryComponent Category="@category" IsOpen="true" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
-                        </CategoryComponent>
+                        @if (category.Parent_Id == null) {
+                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" IsOpen="false" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                            </CategoryComponent>
+                        }
                     }
                 }
             </div>

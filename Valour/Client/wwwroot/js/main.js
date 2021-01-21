@@ -143,7 +143,6 @@ window.onclick = function(event) {
         modal.style.display = "none";
     }
 
-    var modal = document.getElementById("AddChannelModel");
     var x = document.getElementsByClassName("channelmodel")
     for (id in x) {
         item = x[id]
@@ -151,9 +150,12 @@ window.onclick = function(event) {
             item.style.display = "none";
         }
     }
-    var modal = document.getElementById("AddCategoryModel");
-    if (event.target.id == modal.id) {
-        modal.style.display = "none";
+    var x = document.getElementsByClassName("categorymodel")
+    for (id in x) {
+        item = x[id]
+        if (event.target == item) {
+            item.style.display = "none";
+        }
     }
     var modal = document.getElementsByClassName("add-channel-button");
     if (event.target.className != "add-channel-button") {
@@ -174,8 +176,14 @@ function AddChannelButtonFunction(element) {
 }
 
 function AddCategoryButtonFunction() {
-    var modal = document.getElementById("AddCategoryModel");
-    modal.style.display = "block";
+    menu = document.getElementsByClassName("AddChannelCategoryContextMenu")[0]
+    var x = document.getElementsByClassName("categorymodel")
+    for (id in x) {
+        item = x[id]
+        if (menu.id == item.id) {
+            item.style.display = "block";
+        }
+    }
 }
 
 function HideContextMenuForChannelCategory(){
