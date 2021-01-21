@@ -153,13 +153,13 @@ body {
     font-size: 16px;
     line-height: 25px;
     margin: 0px;
-    margin-top: 10px;
+    margin-top: 0px;
     vertical-align: top;
 }
 
 .message .message-content {
     display: inline-block;
-    margin-left: 7px;
+    margin-left: 11px;
     margin-top: 4px;
     vertical-align: top;
 }
@@ -205,6 +205,22 @@ body {
     color: #7A7A7A;
     margin: 0px;
     margin-left: 4px;
+    display: none;
+}
+
+.message:hover .time {
+    display: block;
+}
+
+.message:hover .author-pfp {
+    width: 30px;
+    height: 30px;
+    margin-left: 11px;
+    margin-right: 7px;
+}
+
+.message:hover .message-content {
+    margin-left: 7px;
 }
 
 .multi-message:hover .time {
