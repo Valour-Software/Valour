@@ -424,12 +424,12 @@ body {
 }
 
 .sidebar-2 .category {
-    width: 269px;
+    max-width: 269px;
     background: rgb(41, 49, 56);
     border-radius: 5px;
-    margin-left: auto;
     margin-right: auto;
     margin-top: 10.47px;
+    margin-left: 10px;
 }
 
 .sidebar-2 .category .is-open {
