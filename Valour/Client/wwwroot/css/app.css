@@ -158,6 +158,15 @@ body {
     vertical-align: top;
 }
 
+.message .role-name {
+    color: #ffffff;
+    opacity: 0.3;
+    font-style: italic;
+    display: inline-block;
+    margin: 0px;
+    margin-top: 4px;
+}
+
 .message .message-content {
     display: inline-block;
     margin-left: 7px;
