@@ -78,7 +78,7 @@
         Window.messages.Clear();
 
         // Request messages from server
-        Window.messages.AddRange(await Channel.GetLastMessagesAsync(20));
+        Window.messages.AddRange(await Channel.GetLastMessagesAsync(64));
 
         if (Window.messages.Count > 0)
         {

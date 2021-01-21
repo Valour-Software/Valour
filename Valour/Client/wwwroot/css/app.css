@@ -143,7 +143,8 @@ body {
     height: 36px;
     border-radius: 50%;
     margin-top: 6px;
-    margin-left: 8px;
+    margin-left: 6px;
+    margin-right: 6px;
 }
 
 .message .author-name {
@@ -159,7 +160,7 @@ body {
 
 .message .message-content {
     display: inline-block;
-    margin-left: 11px;
+    margin-left: 7px;
     margin-top: 4px;
     vertical-align: top;
 }
@@ -196,16 +197,24 @@ body {
     user-select: text;
 }
 
+.message .time-container {
+    min-width: 48px;
+}
+
+.multi-message .time-container {
+    min-width: 48px;
+}
+
 .message .time {
     font-family: Ubuntu;
     font-style: normal;
     font-weight: normal;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 14px;
     color: #7A7A7A;
     margin: 0px;
-    margin-left: 4px;
     display: none;
+    text-align: center;
 }
 
 .message:hover .time {
@@ -215,12 +224,8 @@ body {
 .message:hover .author-pfp {
     width: 30px;
     height: 30px;
-    margin-left: 11px;
-    margin-right: 7px;
-}
-
-.message:hover .message-content {
-    margin-left: 7px;
+    margin-left: 9px;
+    margin-right: 9px;
 }
 
 .multi-message:hover .time {
@@ -231,13 +236,13 @@ body {
     font-family: Ubuntu;
     font-style: normal;
     font-weight: normal;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 14px;
     color: #7A7A7A;
     margin: 0px;
-    margin-left: 4px;
     margin-top: 8px;
     visibility: hidden;
+    text-align: center;
 }
 
 .channel-and-topbar {

@@ -1,8 +1,10 @@
 ﻿<div id="m-@Message.Channel_Id-@Message.Message_Index" class="multi-message">
     <div style="display:inline-block">
-        <p class="time">
-            @Message.TimeSent.ToLocalTime().ToShortTimeString()
-        </p>
+        <div class="time-container">
+            <p class="time">
+                @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+            </p>
+        </div>
     </div>
     <div class="message-content">
         <p class="content">
