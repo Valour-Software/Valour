@@ -23,7 +23,7 @@
             </div>
         </div>
     </div>
-    <div id="AddCategoryModel" class="modal">
+    <div class="modal categorymodel" id="@category.Id">
         <!-- Modal content -->
         <div class="modal-content-CreateChannel">
             <div class="login-box">
@@ -36,7 +36,7 @@
     @if (IsOpen) {
         <div class="channel-list">
             @foreach(ClientPlanetChatChannel channel in PlanetChannelList) {
-                if (channel.Category_Id == null && category.Name == "General") {
+                if (channel.Parent_Id == null && category.Name == "General") {
                     if (channel.Id == channelWindow.Channel.Id) {
                         <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
                     }
@@ -45,7 +45,7 @@
                         <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
                     }
                 }
-                if (channel.Category_Id == category.Id) {
+                if (channel.Parent_Id == category.Id) {
                     if (channel.Id == channelWindow.Channel.Id) {
                         <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
                     }
@@ -53,6 +53,13 @@
                     {
                         <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
                     }
+                }
+            }
+            @foreach(PlanetCategory planetcategory in PlanetCategoryChannelList)
+            {
+                @if (planetcategory.Parent_Id == category.Id) {
+                    <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" IsOpen="false" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                    </CategoryComponent>
                 }
             }
         </div>
@@ -64,6 +71,9 @@
 
     [Parameter]
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList { get; set; }
+
+    [Parameter]
+    public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList { get; set; }
 
     [Parameter]
     public ChatChannelWindow channelWindow { get; set; }

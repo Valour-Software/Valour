@@ -40,7 +40,7 @@ namespace Valour.Shared.Channels
         /// <summary>
         /// The id of the parent category, is null if theres no parent
         /// </summary>
-        public ulong? Category_Id { get; set;}
+        public ulong? Parent_Id { get; set;}
 
         /// <summary>
         /// Is the position in the category/channel list

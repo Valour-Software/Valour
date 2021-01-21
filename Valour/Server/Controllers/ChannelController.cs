@@ -77,7 +77,7 @@ namespace Valour.Server.Controllers
             {
                 Name = name,
                 Planet_Id = planet_id,
-                Category_Id = parentid,
+                Parent_Id = parentid,
                 Message_Count = 0
             };
 
