@@ -181,6 +181,10 @@ body {
     vertical-align: top;
 }
 
+.content p {
+    margin: 0px;
+}
+
 .multi-message .content {
     font-family: Ubuntu;
     font-style: normal;
