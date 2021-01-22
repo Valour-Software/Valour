@@ -1,6 +1,7 @@
 ﻿@using Valour.Shared.Categories
 @inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
+@inject ClientCategoryManager categoryManager
 
 
 <div class="@Chosen_CSS" id="@category.Id">
@@ -58,7 +59,7 @@
             @foreach(PlanetCategory planetcategory in PlanetCategoryChannelList)
             {
                 @if (planetcategory.Parent_Id == category.Id) {
-                    <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" IsOpen="false" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                    <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
                     </CategoryComponent>
                 }
             }
@@ -81,16 +82,22 @@
     [Parameter]
     public Planet planet { get; set; }
 
-    [Parameter]
     public bool IsOpen { get; set; }
 
-    public string ArrowStyle 
-    { 
+    protected override Task OnInitializedAsync()
+    {
+        IsOpen = categoryManager.IsOpen(category);
+
+        return base.OnInitializedAsync();
+    }
+
+    public string ArrowStyle
+    {
         get
         {
             if (IsOpen) {
                 return "transform: rotate(90deg);";
-            }   
+            }
             else {
                 return "";
             }
@@ -116,12 +123,10 @@
     public RenderFragment ChildContent { get; set; }
     public void OnClick()
     {
-        if (IsOpen) {
-            IsOpen = false;
-        }
-        else {
-            IsOpen = true;
-        }
+        IsOpen = !IsOpen;
+
+        categoryManager.SetOpen(category, IsOpen);
+
         StateHasChanged();
     }
 }

@@ -93,7 +93,7 @@ function ScrollWindowBottom(index) {
     var window = $("#innerwindow-" + index);
 
     if (scrollStates[index] === 1) {
-        console.log("hi there");
+        //console.log("hi there");
         window.scrollTop(window.prop("scrollHeight"));
     }
 }

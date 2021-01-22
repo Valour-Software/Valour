@@ -52,7 +52,7 @@
                     @foreach(PlanetCategory category in PlanetCategoryChannelList)
                     {
                         @if (category.Parent_Id == null) {
-                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" IsOpen="false" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
                             </CategoryComponent>
                         }
                     }
