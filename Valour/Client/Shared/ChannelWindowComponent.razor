@@ -122,6 +122,13 @@
         hubConnection.On<string>("Relay", RecieveMessage);
     }
 
+    public async Task OnWindowClosed()
+    {
+        await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+        await hubConnection.DisposeAsync();
+        Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
+    }
+
     public async Task RecieveMessage(string data)
     {
 

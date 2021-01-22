@@ -377,6 +377,7 @@ body {
     margin-top: 9px;
     margin-bottom: 9px;
     margin-left: 6px;
+    cursor: pointer;
 }
 
 .sidebar-2 .category .name {
@@ -398,6 +399,10 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
+.sidebar-2 .category .channel.open:hover {
+    background: rgba(255, 255, 255, 0.125);
+}
+
 .sidebar-2 .category .channel:nth-child(1) {
     margin-top: 10px;
 }
@@ -406,7 +411,12 @@ body {
     width: 257px;
     margin-left: 6px;
     margin-bottom: 2px;
-    border-radius: 5px
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sidebar-2 .category .channel:hover {
+    background: rgba(255, 255, 255, 0.075);
 }
 
 .sidebar-2 .category .channel .channel-name {
@@ -845,7 +855,7 @@ body {
 }
 
 *::-webkit-scrollbar-track {
-    background: var(--main-1);
+    background: var(--main-4);
 }
 
 *::-webkit-scrollbar-thumb {

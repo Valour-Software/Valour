@@ -80,12 +80,23 @@ namespace Valour.Client
 
         public void ClearWindows()
         {
+            foreach (ClientWindow window in OpenWindows)
+            {
+                window.OnClosed();
+            }
+
             OpenWindows.Clear();
         }
 
         public void SetWindow(int index, ClientWindow window)
         {
+            if (OpenWindows[index] == window)
+            {
+                return;
+            }
+
             window.Index = index;
+            OpenWindows[index].OnClosed();
             OpenWindows.RemoveAt(index);
             OpenWindows.Insert(index, window);
         }
@@ -101,6 +112,11 @@ namespace Valour.Client
         public ClientWindow(int index)
         {
             this.Index = index;
+        }
+
+        public virtual void OnClosed()
+        {
+
         }
     }
 
@@ -142,6 +158,16 @@ namespace Valour.Client
         public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
         {
             this.Channel = channel;
+        }
+
+        public override void OnClosed()
+        {
+            base.OnClosed();
+
+            Task.Run(async () =>
+            {
+                await Component.OnWindowClosed();
+            });
         }
     }
 }
