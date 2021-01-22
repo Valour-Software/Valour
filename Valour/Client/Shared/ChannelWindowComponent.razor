@@ -6,6 +6,18 @@
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
+    <div class="channel-info">
+        <h3 style="display:inline-block">
+            @Channel.Name - 
+        </h3>
+        <h4 style="display:inline-block">
+            @if (Planet != null)
+            {
+                @Planet.Name
+            }
+        </h4>
+    </div>
+
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
         @if (Window.messages != null)
         {
@@ -54,10 +66,17 @@
 
     public ClientPlanetChatChannel Channel;
 
+    public ClientPlanet Planet;
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
         Channel = Window.Channel;
+
+        Planet = await Window.Channel.GetPlanetAsync();
+
+        StateHasChanged();
+
         Window.Component = this;
 
         Window.messages = new List<ClientPlanetMessage>();

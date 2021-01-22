@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Channels;
 using Valour.Client.Messages;
+using Valour.Client.Planets;
 using Valour.Client.Shared;
 using Valour.Shared.Channels;
 

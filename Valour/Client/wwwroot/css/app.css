@@ -980,3 +980,9 @@ body {
   
     mix-blend-mode: normal;
   }
+
+  .channel-info {
+      padding: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--main-5);
+  }
