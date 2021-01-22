@@ -185,6 +185,17 @@ body {
     margin: 0px;
 }
 
+.content code {
+    margin: 0px;
+}
+
+.content pre {
+    margin: 0px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+
 .multi-message .content {
     font-family: Ubuntu;
     font-style: normal;
