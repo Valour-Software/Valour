@@ -21,7 +21,7 @@ namespace Valour.Server.Oauth
         /// <summary>
         /// The master permission which is used for multiple means
         /// </summary>
-        public static readonly Permission FullControl = new Permission(0x00, "Full Control", "Control every part of your account.");
+        public static readonly Permission FullControl = new Permission(0xFFFFFFFFFFFFFFFF, "Full Control", "Control every part of your account.");
 
         /// <summary>
         /// The name of this permission
@@ -88,9 +88,9 @@ namespace Valour.Server.Oauth
         // Every subsequent permission has double the value (the next bit)
         // An update should NEVER change the order or value of old permissions
         // As that would be a massive security issue
-        public static readonly Permission Minimum = new Permission(0x01, "Minimum", "Only view your account ID when authorized.");
-        public static readonly Permission View = new Permission(0x02, "View", "Access basic information about your account.");
-        public static readonly Permission Membership = new Permission(0x04, "Membership", "View the planets you are a member of.");
+        public static readonly Permission Minimum = new Permission(0x01, "Minimum", "Allows this app to only view your account ID when authorized.");
+        public static readonly Permission View = new Permission(0x02, "View", "Allows this app to access basic information about your account.");
+        public static readonly Permission Membership = new Permission(0x04, "Membership", "Allows this app to view the planets you are a member of.");
     }
 
     /// <summary>
@@ -99,6 +99,10 @@ namespace Valour.Server.Oauth
     /// </summary>
     public class ChannelPermissions
     {
+
+        public static readonly ulong Default =
+            Permission.CreateCode(View, ViewMessages, PostMessages);
+
         // Use shared full control definition
         public static readonly Permission FullControl = Permission.FullControl;
 
@@ -117,10 +121,14 @@ namespace Valour.Server.Oauth
     /// </summary>
     public class PlanetPermissions
     {
+        public static readonly ulong Default = 
+            Permission.CreateCode(View);
+
         // Use shared full control definition
         public static readonly Permission FullControl = Permission.FullControl;
 
-        public static readonly Permission View = new Permission(0x01, "View", "View the planet."); // Implicitly granted to members
-        public static readonly Permission Invite = new Permission(0x02, "Invite", "Invite to the planet.");
+        public static readonly Permission View = new Permission(0x01, "View", "Allow members to view the planet. This is implicitly granted to members."); // Implicitly granted to members
+        public static readonly Permission Invite = new Permission(0x02, "Invite", "Allow members to send invites to the planet.");
+        public static readonly Permission DisplayRole = new Permission(0x04, "Display Role", "Enables a role to be displayed seperately in the role list.");
     }
 }

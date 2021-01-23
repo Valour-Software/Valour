@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,23 +11,37 @@ using System.Threading.Tasks;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Shared.Planets
+namespace Valour.Shared.Roles
 {
     public class PlanetRole
     {
+        [JsonIgnore]
+        public static PlanetRole DefaultRole = new PlanetRole()
+        {
+            Name = "Default",
+            Id = ulong.MaxValue,
+            Authority = 0,
+            Planet_Id = ulong.MaxValue
+        };
+
+        /// <summary>
+        /// The unique Id of this role
+        /// </summary>
+        public ulong Id { get; set; }
+
         /// <summary>
         /// The name of the role
         /// </summary>
-        string Name { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         /// The authority of this role: Higher authority is more powerful
         /// </summary>
-        int Authority { get; set; }
+        public int Authority { get; set; }
 
         /// <summary>
-        /// The ID of the planet this role belongs to
+        /// The ID of the planet or system this role belongs to
         /// </summary>
-        public byte[] Planet_Id { get; set; }
+        public ulong Planet_Id { get; set; }
     }
 }
