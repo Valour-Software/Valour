@@ -48,5 +48,12 @@ namespace Valour.Shared.Users
         /// True if the account has been disabled
         /// </summary>
         public bool Disabled { get; set; }
+
+        /// <summary>
+        /// True if this user is a member of the Valour official staff team. Falsely modifying this 
+        /// through a client modification to present non-official staff as staff is a breach of our
+        /// license. Don't do that.
+        /// </summary>
+        public bool Valour_Staff { get; set; }
     }
 }
