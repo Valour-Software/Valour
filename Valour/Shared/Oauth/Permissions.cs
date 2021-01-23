@@ -82,6 +82,16 @@ namespace Valour.Server.Oauth
     /// </summary>
     public class UserPermissions
     {
+        /// <summary>
+        /// Contains every user permission
+        /// </summary>
+        public static readonly Permission[] Permissions = new Permission[]
+        {
+            Minimum,
+            View,
+            Membership
+        };
+
         // Use shared full control definition
         public static readonly Permission FullControl = Permission.FullControl;
 
@@ -103,14 +113,28 @@ namespace Valour.Server.Oauth
         public static readonly ulong Default =
             Permission.CreateCode(View, ViewMessages, PostMessages);
 
+        /// <summary>
+        /// Contains every channel permission
+        /// </summary>
+        public static readonly Permission[] Permissions = new Permission[]
+        {
+            View,
+            ViewMessages,
+            PostMessages,
+            ManageChannel,
+            ManagePermissions,
+            Embed,
+            AttachContent
+        };
+
         // Use shared full control definition
         public static readonly Permission FullControl = Permission.FullControl;
 
         public static readonly Permission View = new Permission(0x01, "View", "Allow members to view this channel in the channel list.");
         public static readonly Permission ViewMessages = new Permission(0x02, "View Messages", "Allow members to view the messages within this channel.");
         public static readonly Permission PostMessages = new Permission(0x04, "Post", "Allow members to post messages to this channel.");
-        public static readonly Permission Manage = new Permission(0x08, "Manage", "Allow members to manage this channel's details.");
-        public static readonly Permission Permissions = new Permission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+        public static readonly Permission ManageChannel = new Permission(0x08, "Manage", "Allow members to manage this channel's details.");
+        public static readonly Permission ManagePermissions = new Permission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
         public static readonly Permission Embed = new Permission(0x20, "Embed", "Allow members to post embedded content to this channel.");
         public static readonly Permission AttachContent = new Permission(0x40, "Attach Content", "Allow members to upload files to this channel.");
     }
@@ -123,6 +147,16 @@ namespace Valour.Server.Oauth
     {
         public static readonly ulong Default = 
             Permission.CreateCode(View);
+
+        /// <summary>
+        /// Contains every planet permission
+        /// </summary>
+        public static readonly Permission[] Permissions = new Permission[]
+        {
+            View,
+            Invite,
+            DisplayRole
+        };
 
         // Use shared full control definition
         public static readonly Permission FullControl = Permission.FullControl;
