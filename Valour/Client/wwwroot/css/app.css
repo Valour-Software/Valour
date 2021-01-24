@@ -1044,3 +1044,7 @@ body {
     display: inline-block;
     font-size: 20px;
 }
+
+.tri-button {
+    margin: 5px;
+}
