@@ -1,0 +1,78 @@
+﻿@page "/AgeVeri"
+
+@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+
+<body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
+    <div class="login-box">
+        <div class="col-md-12">
+            <section>
+                <h2>Age Verification</h2>
+
+                <h4>To ensure both of our safety! (And the law)</h4>
+                <hr />
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="form-group mt-2">
+                    <label>Birthday</label>
+                    <input class="form-control" type="date" @bind-value="@date" />
+                    <span id="date-span" class="text-danger">@dateSpan</span>
+                </div>
+                <div class="form-group mt-4">
+                    <div style="display: inline-block">
+                        <p>
+                            <input type="checkbox" @bind-value="@agreed" /> &nbsp; By checking this box, you acknowledge that the given age is truthful and that any attempt to provide misleading or false information will lead to account disablement.
+                        </p>
+                    </div>
+                    <span id="agreed-span" class="text-danger">@agreedSpan</span>
+                </div>
+                <div class="form-group mt-4" style="display:inline-block">
+                    <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+
+@code {
+    // Input fields
+    DateTime date;
+
+    // Spans
+    string dateSpan;
+
+    // Agreeance
+    bool agreed;
+    string agreedSpan = "";
+
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+
+        dateSpan = "";
+        agreedSpan = "";
+
+        if (!agreed)
+        {
+            agreedSpan = "You must acknowledge the truth statement to continue.";
+            return;
+        }
+
+        int years = DateTime.Now.Subtract(date).Days / 365;
+
+        if (years < 13)
+        {
+            dateSpan = "You must be 13 years of age or older to use Valour.";
+            return;
+        }
+
+        if (years > 120)
+        {
+            dateSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
+            return;
+        }
+
+        string dateString = Newtonsoft.Json.JsonConvert.SerializeObject(date);
+
+        navManager.NavigateTo($"/Register/{dateString}");
+    }
+}
