@@ -7,15 +7,15 @@
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
     <div class="channel-info">
-        <h3 style="display:inline-block">
-            @Channel.Name - 
+        <h3 class="title">
+            @Channel.Name
         </h3>
-        <h4 style="display:inline-block">
-            @if (Planet != null)
-            {
-                @Planet.Name
-            }
-        </h4>
+        @if (!string.IsNullOrWhiteSpace(Channel.Description))
+        {
+            <p class="description">
+                @Channel.Description
+            </p>
+        }
     </div>
 
     <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">

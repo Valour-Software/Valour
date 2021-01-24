@@ -1,0 +1,15 @@
+﻿<div class="current-planet-info">
+    @if (Planet != null)
+    {
+        <div>
+            <h2 class="planet-name">@Planet.Name</h2>
+            <img class="settings" src="Media/Settings-Icon.svg">
+        </div>
+        <h5>@Planet.Description</h5>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+}

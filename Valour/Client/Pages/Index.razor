@@ -41,7 +41,7 @@
                 }
             </div>
             <div class="sidebar-2" id="sidebar2">
-                <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
+                <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
