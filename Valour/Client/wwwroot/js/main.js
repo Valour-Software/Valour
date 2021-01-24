@@ -201,3 +201,32 @@ function AddChannelCategoryContextMenu(event, element) {
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
 }
+
+
+// Code for Reordering categories and channels
+const setDraggedOver = (e) => {
+      e.preventDefault();
+      draggedOver = e.target
+    }
+    
+    const setDragging = (e) =>{
+        dragging = e.target
+    }
+    
+    const Drop = (e) =>{
+        e.preventDefault();
+        target = e.target
+        beforeelement = null
+        while (target.className.includes("channel-list") == false) {
+            if (target.className.includes("channel open")) {
+                beforeelement = target
+            }
+            target = target.parentNode
+            if (target == null) {
+                break
+            }
+        }
+        node = target.parentNode
+        dragging.parentNode.removeChild(dragging);
+        target.insertBefore(dragging, beforeelement);
+    }

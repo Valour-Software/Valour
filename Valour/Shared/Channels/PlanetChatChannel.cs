@@ -15,7 +15,7 @@ namespace Valour.Shared.Channels
     /// <summary>
     /// Represents a single chat channel within a planet
     /// </summary>
-    public class PlanetChatChannel : IChatChannel
+    public class PlanetChatChannel : Valour.Shared.Planets.PlanetListItem, IChatChannel
     {
         /// <summary>
         /// The Id of this channel

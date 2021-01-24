@@ -16,7 +16,7 @@ namespace Valour.Shared.Categories
     /// <summary>
     /// Represents a single chat Category within a planet
     /// </summary>
-    public class PlanetCategory
+    public class PlanetCategory : Valour.Shared.Planets.PlanetListItem
     {
         /// <summary>
         /// The Id of this category
