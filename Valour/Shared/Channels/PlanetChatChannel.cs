@@ -46,5 +46,10 @@ namespace Valour.Shared.Channels
         /// Is the position in the category/channel list
         /// </summary>
         public ushort Position { get; set; }
+
+        /// <summary>
+        /// The description of the channel
+        /// </summary>
+        public string Description { get; set; }
     }
 }

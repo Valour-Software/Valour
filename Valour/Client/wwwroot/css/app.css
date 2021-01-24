@@ -55,16 +55,17 @@ p {
 }
 
 .form-control {
-    background-color: var(--input-color);
-    border-color: var(--alt-border-color);
+    margin-top: 5px;
+    background-color: var(--main-1);
+    border-color: var(--main-5);
     color: var(--font-color);
 }
 
-    .form-control:disabled {
-        background-color: var(--border-color);
-        border-color: var(--alt-border-color);
-        color: var(--font-color);
-    }
+.form-control:disabled {
+    background-color: var(--border-color);
+    border-color: var(--alt-border-color);
+    color: var(--font-color);
+}
 
 body {
     /* Theming */
@@ -768,6 +769,28 @@ body {
     }
 }
 
+.login-box {
+    background-color: var(--main-4);
+    border-radius: 10px;
+    border-color: grey;
+    padding: 50px;
+    width: 400px;
+    min-height: 400px;
+    z-index: 2;
+    box-shadow: 0px 0px 15px #000000;
+    margin: auto;
+    transform: translateY(20vh);
+}
+
+.modal-content-CreatePlanet .login-box {
+    transform: none;
+    border-radius: 10px;
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    transform: translateY(0%);
+}
+
 .home-server {
     /*border: 1px solid rgba(255, 255, 255, 0.2);*/
     border-radius: 5px;
@@ -865,11 +888,6 @@ body {
     border: 3px solid black;
 }
 
-.modal-content-CreatePlanet .login-box {
-    transform: none;
-    border-radius: 10px;
-}
-
 /* The Modal (background) */
 .modal {
     display: none; /* Hidden by default */
@@ -897,18 +915,6 @@ body {
     padding: 0px;
     max-width: 418px;
   }
-
-.login-box {
-    background-color: #333333;
-    border-radius: 10px;
-    border-color: grey;
-    padding: 50px;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    box-shadow: 0px 0px 15px #000000;
-    margin: 0px;
-}
 
 .login-background {
     background-image: url(/media/Spookvooper.jpg);
@@ -945,13 +951,13 @@ body {
     border-radius: 6px;
     position: absolute;
     z-index: 2000;
-  }
+}
   
-  .context-menu-item:hover {
-    background: #192630;
-  }
+.context-menu-item:hover {
+    
+}
   
-  .context-menu-item {
+.context-menu-item {
     border-radius: 6px;
     margin: 0px;
     margin-top: 0px;
@@ -959,13 +965,13 @@ body {
     margin-right: 10px;
     height: 35px;
     cursor: pointer;
-  }
+}
   
-  .context-menu-item:nth-last-child(1) {
-    margin-bottom: 10px;
-  }
+.context-menu-item:nth-last-child(1) {
+    
+}
   
-  .context-menu-item-text {
+.context-menu-item-text {
     font-family: Ubuntu;
     font-style: normal;
     font-weight: normal;
@@ -980,10 +986,65 @@ body {
     color: #FFFFFF;
   
     mix-blend-mode: normal;
-  }
+}
 
-  .channel-info {
-      padding: 10px;
-      padding-bottom: 5px;
-      border-bottom: 1px solid var(--main-5);
-  }
+.channel-info {
+    padding: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--main-5);
+}
+
+.edit-planet-col-left {
+    border-right: solid 1px var(--main-5);
+}
+
+.edit-planet-col-right {
+
+}
+
+.current-planet-info {
+    padding-top: 16px;
+    margin-left: 16px;
+    height: 115px;
+}
+
+.current-planet-info .planet-name {
+    display: inline-block;
+}
+
+.current-planet-info .settings {
+    display: inline-block;
+    margin: 0px;
+    margin-top: 10.96px;
+    margin-bottom: 10.96px;
+    margin-right: 10.96px;
+    margin-left: 36.4px;
+    float: right;
+}
+
+.channel-info .description {
+    display: inline-block;
+    width: 50%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+    margin-left: 16px;
+    margin-bottom: 8px;
+}
+
+.channel-info:hover .description {
+    white-space: pre-wrap;
+    overflow: visible;
+    margin-bottom: 8px;
+}
+
+.channel-info .title {
+    vertical-align: top;
+    display: inline-block;
+    font-size: 20px;
+}
+
+.tri-button {
+    margin: 5px;
+}

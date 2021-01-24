@@ -160,7 +160,10 @@ window.onclick = function(event) {
     var modal = document.getElementsByClassName("add-channel-button");
     if (event.target.className != "add-channel-button") {
         var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
-        modal.style.display = "none";
+
+        if (modal != null) {
+            modal.style.display = "none";
+        }
     }
 }
 

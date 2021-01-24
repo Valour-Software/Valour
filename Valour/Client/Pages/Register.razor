@@ -1,4 +1,5 @@
-﻿@page "/Register"
+﻿@page "/Register/{birthDayString}"
+@page "/Register"
 
 @inject HttpClient Http
 @inject NavigationManager navManager
@@ -33,6 +34,15 @@
                     <input type="password" class="form-control" @bind-value="@passwordConf" />
                     <span id="password-conf-span" class="text-danger">@passwordConfSpan</span>
                 </div>
+                <div class="form-group mt-4">
+                    <div style="display: inline-block">
+                        <p>
+                            <input type="checkbox" @bind-value="@agreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
+                            and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules. </a>
+                        </p>
+                    </div>
+                    <span id="agreed-span" class="text-danger">@agreedSpan</span>
+                </div>
                 <div class="form-group mt-4" style="display:inline-block">
                     <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
                 </div>
@@ -42,6 +52,12 @@
 </body>
 
 @code {
+
+    [Parameter]
+    public string birthDayString { get; set; }
+
+    public DateTime birthDay;
+
     // Input fields
     string email;
     string password;
@@ -54,12 +70,52 @@
     string usernameSpan;
     string passwordConfSpan;
 
+    // Agreeance
+    bool agreed;
+    string agreedSpan = "";
+
+    protected async override Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(birthDayString))
+        {
+            navManager.NavigateTo("/AgeVeri");
+        }
+
+        birthDay = Newtonsoft.Json.JsonConvert.DeserializeObject<DateTime>(birthDayString);
+
+        if (birthDay == null)
+        {
+            navManager.NavigateTo("/AgeVeri");
+        }
+
+        int years = DateTime.Now.Subtract(birthDay).Days / 365;
+
+        if (years < 13)
+        {
+            agreedSpan = "You must be 13 years of age or older to use Valour.";
+            navManager.NavigateTo("/AgeVeri");
+        }
+
+        if (years > 120)
+        {
+            agreedSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
+            navManager.NavigateTo("/AgeVeri");
+        }
+    }
+
     private async Task OnClickSubmit(MouseEventArgs e)
     {
         emailSpan = "";
         passwordSpan = "";
         usernameSpan = "";
         passwordConfSpan = "";
+        agreedSpan = "";
+
+        if (!agreed)
+        {
+            agreedSpan = "You must read and accept the Terms of Service and Platform Rules to use Valour.";
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(email))
         {
