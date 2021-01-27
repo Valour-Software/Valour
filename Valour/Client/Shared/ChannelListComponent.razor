@@ -1,7 +1,7 @@
 ﻿@inject ClientWindowManager windowManager
 @inject ClientPlanetManager planetManager
 
-<div class="@Chosen_CSS" @onclick="OnClick" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)" id="@Channel.Position"> 
+<div class="@Chosen_CSS" @onclick="OnClick" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)" id="@Channel.Id"> 
     <img class="chat-icon" src="media/Channel-Icon.svg">
     <p class="channel-name">
         @Channel.Name

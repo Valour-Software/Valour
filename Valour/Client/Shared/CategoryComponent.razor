@@ -5,7 +5,7 @@
 @using Valour.Shared.Planets
 
 
-<div class="@Chosen_CSS" id="@category.Id">
+<div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
     <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
     <p class="name">
         @category.Name
@@ -95,15 +95,30 @@
     {
         IsOpen = categoryManager.IsOpen(category);
 
-        var channels = PlanetChannelList.Where(x => x.Parent_Id == category.Id);
+        var channels = PlanetChannelList.Where(x => x.Parent_Id == category.Id).ToList();
 
-        ItemList.AddRange(channels);
+        foreach(ClientPlanetChatChannel channel in channels) {
+            ItemList.Add(channel);
+            Console.WriteLine($"Id: {channel.Id}");
+        }
 
-        var categories = PlanetCategoryChannelList.Where(x => x.Parent_Id == category.Id);
+        var categories = PlanetCategoryChannelList.Where(x => x.Parent_Id == category.Id).ToList();
 
         ItemList.AddRange(categories);
 
-        ItemList = ItemList.OrderBy(x => x.Position).ToList();
+        foreach(PlanetListItem item in ItemList) {
+             ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+             if (channel != null) {
+                 item.Position = channel.Position;
+             }
+             else {
+               PlanetCategory planetcategory = item as PlanetCategory;
+               item.Position = planetcategory.Position;
+             }
+
+        }
+
+        ItemList.Sort((x,y) => x.Position.CompareTo(y.Position));
 
         foreach(PlanetListItem item in ItemList) {
             Console.WriteLine(item.Position);

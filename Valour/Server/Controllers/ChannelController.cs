@@ -78,7 +78,9 @@ namespace Valour.Server.Controllers
                 Name = name,
                 Planet_Id = planet_id,
                 Parent_Id = parentid,
-                Message_Count = 0
+                Message_Count = 0,
+                Description = "A chat channel",
+                Position = Convert.ToUInt16(Context.PlanetChatChannels.Count())
             };
 
             // Add channel to database
