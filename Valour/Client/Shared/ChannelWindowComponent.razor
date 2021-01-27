@@ -89,6 +89,8 @@
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
+        await JS.InvokeVoidAsync("SetSercetKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id);
+
         await SetupNewChannelAsync();
     }
 

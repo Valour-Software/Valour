@@ -226,3 +226,85 @@ function AddChannelCategoryContextMenu(event, element) {
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
 }
+
+
+// Code for Reordering categories and channels
+const setDraggedOver = (e) => {
+      e.preventDefault();
+      draggedOver = e.target
+}
+    
+const setDragging = (e) =>{
+    dragging = e.target
+    while (true) {
+        if (dragging.className.includes("channel") == true | dragging.className.includes("category") == true) {
+            break
+        }
+        dragging = dragging.parentNode
+        if (dragging == null) {
+            return null;
+        }
+    }
+}
+
+async function postData(url = '', data = {}) {
+    // Default options are marked with *
+    const response = await fetch(url, {
+      method: 'POST', // *GET, POST, PUT, DELETE, etc.
+      headers: {
+        'Accept': 'application/json, text/plain',
+        'Content-Type': 'application/json;charset=UTF-8'
+        },
+      body:  JSON.stringify(data) // body data type must match "Content-Type" header
+    });
+    return response.json(); // parses JSON response into native JavaScript objects
+  }
+
+const Drop = (e) =>{
+    e.preventDefault();
+    target = e.target
+    beforeelement = null
+    while (target.className.includes("channel-list") == false) {
+        if (target.className.includes("channel") | target.className.includes("category")) {
+            beforeelement = target
+        }
+        target = target.parentNode
+        if (target == null) {
+            return null;
+        }
+    }
+    node = target.parentNode
+    if (target == null) {
+        return null;
+    }
+    if (beforeelement == dragging) {
+        return null;
+    }
+    dragging.parentNode.removeChild(dragging);
+    target.insertBefore(dragging, beforeelement);
+    index = 0
+    var data = {}
+    for (i in target.children) {
+        item = target.children[i]
+        if (item.className == null) {
+            continue
+        }
+        if (item.className.includes("channel")) {
+            data[index] = [parseInt(item.id), 0]
+            index += 1
+        }
+        if (item.className.includes("category")) {
+            data[index] = [parseInt(item.id), 1]
+            index += 1
+        }
+    }
+    postData(`/Planet/UpdateOrder?token=${SercetKey}&userid=${userid}`, data)
+        .then(out => {
+            console.log(out)
+        })
+}
+
+function SetSercetKey(key, id) {
+    SercetKey = key
+    userid = id
+}

@@ -2,9 +2,10 @@
 @inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject ClientCategoryManager categoryManager
+@using Valour.Shared.Planets
 
 
-<div class="@Chosen_CSS" id="@category.Id">
+<div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
     <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
     <p class="name">
         @category.Name
@@ -35,37 +36,41 @@
     </div>
     @if (IsOpen) {
         <div class="channel-list">
-            @foreach(ClientPlanetChatChannel channel in PlanetChannelList) {
-                if (channel.Parent_Id == null && category.Name == "General") {
-                    if (channel.Id == channelWindow.Channel.Id) {
-                        <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+            @foreach(PlanetListItem item in ItemList) {
+                ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+                if (channel != null) {
+                    if (channel.Parent_Id == null && category.Name == "General") {
+                        if (channel.Id == channelWindow.Channel.Id) {
+                            <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                        }
+                        else
+                        {
+                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                        }
                     }
-                    else
-                    {
-                        <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                    if (channel.Parent_Id == category.Id) {
+                        if (channel.Id == channelWindow.Channel.Id) {
+                            <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                        }
+                        else
+                        {
+                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                        }
                     }
                 }
-                if (channel.Parent_Id == category.Id) {
-                    if (channel.Id == channelWindow.Channel.Id) {
-                        <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                else {
+                    PlanetCategory planetcategory = item as PlanetCategory;
+                    @if (planetcategory.Parent_Id == category.Id) {
+                        <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                        </CategoryComponent>
                     }
-                    else
-                    {
-                        <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
-                    }
-                }
-            }
-            @foreach(PlanetCategory planetcategory in PlanetCategoryChannelList)
-            {
-                @if (planetcategory.Parent_Id == category.Id) {
-                    <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
-                    </CategoryComponent>
                 }
             }
         </div>
     }
 </div>
 @code {
+
     [Parameter]
     public PlanetCategory category { get; set; }
 
@@ -83,9 +88,41 @@
 
     public bool IsOpen { get; set; }
 
+    public List<PlanetListItem> ItemList = new List<PlanetListItem>();
+
     protected override Task OnInitializedAsync()
     {
         IsOpen = categoryManager.IsOpen(category);
+
+        var channels = PlanetChannelList.Where(x => x.Parent_Id == category.Id).ToList();
+
+        foreach(ClientPlanetChatChannel channel in channels) {
+            ItemList.Add(channel);
+            Console.WriteLine($"Id: {channel.Id}");
+        }
+
+        var categories = PlanetCategoryChannelList.Where(x => x.Parent_Id == category.Id).ToList();
+
+        ItemList.AddRange(categories);
+
+        foreach(PlanetListItem item in ItemList) {
+             ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+             if (channel != null) {
+                 item.Position = channel.Position;
+             }
+             else {
+               PlanetCategory planetcategory = item as PlanetCategory;
+               item.Position = planetcategory.Position;
+             }
+
+        }
+
+        ItemList.Sort((x,y) => x.Position.CompareTo(y.Position));
+
+        foreach(PlanetListItem item in ItemList) {
+            Console.WriteLine(item.Position);
+            Console.WriteLine(item.Name);
+        }
 
         return base.OnInitializedAsync();
     }
