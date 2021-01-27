@@ -280,6 +280,23 @@ const Drop = (e) =>{
     if (beforeelement == dragging) {
         return null;
     }
+    parentid = dragging.parentNode
+    parentid = parentid.parentNode.id
+    categoryid = target.parentNode.id
+    if (categoryid != parentid) {
+        if (dragging.className.includes("channel")) {
+            fetch(`/Channel/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+            .then(data => {
+                console.log(data)
+            })
+        }
+        else {
+            fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+            .then(data => {
+                console.log(data)
+            })
+        }
+    }
     dragging.parentNode.removeChild(dragging);
     target.insertBefore(dragging, beforeelement);
     index = 0

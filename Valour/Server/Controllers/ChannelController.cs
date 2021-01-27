@@ -14,6 +14,7 @@ using Valour.Shared.Planets;
 using System.Text.RegularExpressions;
 using System.Collections.Specialized;
 using Valour.Server.Messages;
+using Microsoft.EntityFrameworkCore;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -44,6 +45,29 @@ namespace Valour.Server.Controllers
             this.Context = context;
         }
         
+        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != userid)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            channel.Parent_Id = parentId;
+
+            await Context.SaveChangesAsync();
+            
+            return null;
+        }
+
         /// <summary>
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
