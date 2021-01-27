@@ -42,16 +42,33 @@
             </div>
             <div class="sidebar-2" id="sidebar2">
                 <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
+                @if (planetManager.GetCurrent() != null)
+                {
+                    <!-- The Modal -->
+                    <div class="modal edit-planet-modal" id="EditPlanetModal">
+                        <!-- Modal content -->
+                        <div class="modal-content-EditPlanet">
+                            <div class="login-box">
+                                <div class="col-md-12" style="height: 100%; width: 100%;">
+                                    <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                @if (planetManager.GetCurrent() != null) {
+                @if (planetManager.GetCurrent() != null)
+                {
                     ClientWindow window = windowManager.GetSelectedWindow();
                     ChatChannelWindow channelWindow = (ChatChannelWindow)window;
                     Planet planet = planetManager.GetCurrent();
-                    @foreach(PlanetCategory category in PlanetCategoryChannelList)
+                    @foreach (PlanetCategory category in PlanetCategoryChannelList)
                     {
-                        @if (category.Parent_Id == null) {
+                        @if (category.Parent_Id == null)
+                        {
                             <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
                             </CategoryComponent>
                         }

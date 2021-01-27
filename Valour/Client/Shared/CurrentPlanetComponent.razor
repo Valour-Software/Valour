@@ -1,9 +1,11 @@
-﻿<div class="current-planet-info">
+﻿@inject NavigationManager navManager
+
+<div class="current-planet-info">
     @if (Planet != null)
     {
         <div>
             <h2 class="planet-name">@Planet.Name</h2>
-            <img class="settings" src="Media/Settings-Icon.svg">
+            <img class="settings" src="Media/Settings-Icon.svg" onclick="OpenEditPlanetModal()">
         </div>
         <h5>@Planet.Description</h5>
     }

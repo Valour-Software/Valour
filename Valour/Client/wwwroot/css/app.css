@@ -490,6 +490,7 @@ body {
     margin-right: 10.96px;
     margin-left: 36.4px;
     float: right;
+    cursor: pointer;
 }
 
 .sidebar-2 .user-info .active {
@@ -791,6 +792,22 @@ body {
     transform: translateY(0%);
 }
 
+.modal-content-EditPlanet {
+    width: 70%;
+    height: 70%;
+    margin: auto;
+}
+
+.modal-content-EditPlanet .login-box {
+    transform: none;
+    border-radius: 10px;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    transform: translateY(0%);
+    background-color: var(--main-2);
+}
+
 .home-server {
     /*border: 1px solid rgba(255, 255, 255, 0.2);*/
     border-radius: 5px;
@@ -910,11 +927,11 @@ body {
     max-width: 418px;
   }
 
-  .modal-content-CreateChannel {
+.modal-content-CreateChannel {
     margin: auto;
     padding: 0px;
     max-width: 418px;
-  }
+}
 
 .login-background {
     background-image: url(/media/Spookvooper.jpg);
@@ -994,12 +1011,37 @@ body {
     border-bottom: 1px solid var(--main-5);
 }
 
+.edit-planet-body {
+    background-color: var(--main-2);
+    height: 100%;
+    width: 100%;
+}
+
+.edit-planet-body .container {
+    height: 100%;
+    width: 100%;
+}
+
+.edit-planet-body .row {
+    height: 100%;
+}
+
+
 .edit-planet-col-left {
-    border-right: solid 1px var(--main-5);
+    height: 100%;
+    border-left: solid 1px var(--main-5);
+    background-color: var(--main-2);
 }
 
 .edit-planet-col-right {
+    height: 100%;
+    border-right: solid 1px var(--main-5);
+    background-color: var(--main-2);
+}
 
+.modal-content-EditPlanet .login-box {
+    height: 100%;
+    width: 100%;
 }
 
 .current-planet-info {
@@ -1020,6 +1062,7 @@ body {
     margin-right: 10.96px;
     margin-left: 36.4px;
     float: right;
+    cursor: pointer;
 }
 
 .channel-info .description {
