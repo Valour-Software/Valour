@@ -9,6 +9,12 @@
             <div class="row">
                 <div class="col-3 edit-planet-col-left">
                     <b>@Planet.Name</b>
+                    <hr />
+                    <SettingsButtonComponent Title="Info" Active="@buttonStates[0]" OnStateChange="(async (val) => OnButtonStateChange(val, 0))"></SettingsButtonComponent>
+                    <SettingsButtonComponent Title="Invites" Active="@buttonStates[1]" OnStateChange="(async (val) => OnButtonStateChange(val, 1))"></SettingsButtonComponent>
+                    <SettingsButtonComponent Title="Users" Active="@buttonStates[2]" OnStateChange="(async (val) => OnButtonStateChange(val, 2))"></SettingsButtonComponent>
+                    <SettingsButtonComponent Title="Bans" Active="@buttonStates[3]" OnStateChange="(async (val) => OnButtonStateChange(val, 3))"></SettingsButtonComponent>
+                    <SettingsButtonComponent Title="Roles" Active="@buttonStates[4]" OnStateChange="(async (val) => OnButtonStateChange(val, 4))"></SettingsButtonComponent>
                 </div>
                 <div class="col-9 edit-planet-col-right">
 
@@ -26,8 +32,40 @@ else
     [Parameter]
     public ClientPlanet Planet { get; set; }
 
+    public bool[] buttonStates = new bool[5]
+    {
+        true, false, false, false, false
+    };
+
+    public int selected = 0;
+
     protected override async Task OnInitializedAsync()
     {
 
+    }
+
+    public void OnButtonStateChange(bool value, int tab)
+    {
+        // Prevent unselecting already selected button
+        if (tab == selected) return;
+
+        if (value)
+        {
+            SetSelectedTab(tab);
+        }
+    }
+
+    public void SetSelectedTab(int tab)
+    {
+        for (int i = 0; i < buttonStates.Length; i++)
+        {
+            buttonStates[i] = false;
+        }
+
+        buttonStates[tab] = true;
+
+        selected = tab;
+
+        StateHasChanged();
     }
 }

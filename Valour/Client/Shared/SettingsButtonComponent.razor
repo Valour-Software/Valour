@@ -1,0 +1,45 @@
+﻿<div class="@style" @onclick="OnClick">@Title</div>
+
+@code {
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public bool Active { get; set; }
+
+    [Parameter]
+    public Func<bool, Task> OnStateChange { get; set; }
+
+    public string style = "settings-button";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateState();
+    }
+
+    public async Task OnClick()
+    {
+        Active = !Active;
+        await UpdateState();
+    }
+
+    public async Task UpdateState()
+    {
+        if (Active)
+        {
+            style = "settings-button active";
+        }
+        else
+        {
+            style = "settings-button";
+        }
+
+        if (OnStateChange != null)
+        {
+            await OnStateChange.Invoke(Active);
+        }
+
+        StateHasChanged();
+    }
+}
