@@ -352,7 +352,7 @@ const Drop = (e) =>{
         if (target.className.includes("channel")) {
             beforeelement = target
         }
-        if (target.className.includes("category") == false && dragging.className.includes("category") == true) {
+        if (target.className.includes("category-list") == false && dragging.className.includes("category") == true) {
             beforeelement = target
         }
         target = target.parentNode
@@ -367,13 +367,39 @@ const Drop = (e) =>{
     if (target.className.includes("category") == true && dragging.className.includes("category") == false) {
         return null;
     }
+    TopLevel = false
     if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
         id = dragging.id 
         fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=0`)
         .then(data => {
                 console.log(data)
         })
-        return null;
+        TopLevel = true
+    }
+    else {
+        if (target == null) {
+            return null;
+        }
+        if (beforeelement == dragging) {
+            return null;
+        }
+        parentid = dragging.parentNode
+        parentid = parentid.parentNode.id
+        categoryid = target.parentNode.id
+        if (categoryid != parentid) {
+            if (dragging.className.includes("channel")) {
+                fetch(`/Channel/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                .then(data => {
+                    console.log(data)
+                })
+            }
+            else {
+                fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                .then(data => {
+                    console.log(data)
+                })
+            }
+        }
     }
     if (target == null) {
         return null;
@@ -381,25 +407,11 @@ const Drop = (e) =>{
     if (beforeelement == dragging) {
         return null;
     }
+   // dragging.parentNode.removeChild(dragging);
     parentid = dragging.parentNode
     parentid = parentid.parentNode.id
     categoryid = target.parentNode.id
-    if (categoryid != parentid) {
-        if (dragging.className.includes("channel")) {
-            fetch(`/Channel/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-            .then(data => {
-                console.log(data)
-            })
-        }
-        else {
-            fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-            .then(data => {
-                console.log(data)
-            })
-        }
-    }
-   // dragging.parentNode.removeChild(dragging);
-    if (categoryid == parentid) {
+    if (categoryid == parentid || TopLevel) {
         list = Array.prototype.slice.call( target.children )
         var index1 = list.indexOf(dragging);
         var index2 = list.indexOf(beforeelement);

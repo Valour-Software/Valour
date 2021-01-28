@@ -66,13 +66,10 @@
                         ClientWindow window = windowManager.GetSelectedWindow();
                         ChatChannelWindow channelWindow = (ChatChannelWindow)window;
                         Planet planet = planetManager.GetCurrent();
-                        @foreach (PlanetCategory category in PlanetCategoryChannelList)
+                        @foreach (PlanetCategory category in GetTopLevelCategories())
                         {
-                            @if (category.Parent_Id == null)
-                            {
-                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
-                                </CategoryComponent>
-                            }
+                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
+                            </CategoryComponent>
                         }
                     }
                 </div>
@@ -273,6 +270,12 @@ else
         }
 
         StateHasChanged();
+    }
+
+    public List<PlanetCategory> GetTopLevelCategories() {
+        List<PlanetCategory> list = PlanetCategoryChannelList.Where(x => x.Parent_Id == null).ToList();
+        list.Sort((x,y) => x.Position.CompareTo(y.Position));
+        return list;
     }
 
     public async Task OnChannelsUpdate()
