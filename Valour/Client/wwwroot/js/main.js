@@ -343,6 +343,9 @@ async function postData(url = '', data = {}) {
 
 const Drop = (e) =>{
     e.preventDefault();
+    if (dragging == null) {
+        return null
+    }
     target = e.target
     beforeelement = null
     while (target.className.includes("channel-list") == false && target.className.includes("category-list") == false ) {
@@ -439,6 +442,8 @@ const Drop = (e) =>{
         .then(out => {
             console.log(out)
         })
+    dragging = null
+    return null;
 }
 
 function SetSercetKey(key, id) {
