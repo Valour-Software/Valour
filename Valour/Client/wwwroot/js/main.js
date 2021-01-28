@@ -161,6 +161,7 @@ window.onclick = function(event) {
         if (event.target == item) {
             item.style.display = "none";
         }
+
     }
 
     var modal = document.getElementsByClassName("add-channel-button");
@@ -170,6 +171,16 @@ window.onclick = function(event) {
         if (modal != null) {
             modal.style.display = "none";
         }
+    }
+
+    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
+    if (event.target != modal) {
+        modal.style.display = "none";
+    }
+
+    var modal = document.getElementsByClassName("UserContextMenu")[0];
+    if (event.target != modal) {
+        modal.style.display = "none";
     }
 
 
@@ -189,26 +200,14 @@ function OpenEditPlanetModal() {
     }
 }
 
-function AddChannelButtonFunction(element) {
-    menu = document.getElementsByClassName("AddChannelCategoryContextMenu")[0]
-    var x = document.getElementsByClassName("channelmodel")
-    for (id in x) {
-        item = x[id]
-        if (menu.id == item.id) {
-            item.style.display = "block";
-        }
-    }
+function AddChannelButtonFunction() {
+    x = document.getElementById("CreateChannel")
+    x.style.display = "block"
 }
 
 function AddCategoryButtonFunction() {
-    menu = document.getElementsByClassName("AddChannelCategoryContextMenu")[0]
-    var x = document.getElementsByClassName("categorymodel")
-    for (id in x) {
-        item = x[id]
-        if (menu.id == item.id) {
-            item.style.display = "block";
-        }
-    }
+    x = document.getElementById("CreateCategory")
+    x.style.display = "block"
 }
 
 function HideContextMenuForChannelCategory(){
@@ -225,6 +224,88 @@ function AddChannelCategoryContextMenu(event, element) {
     y = event.clientY;
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
+    ParentIdForModel = element.id
+}
+
+function GetParentId() {
+    return parseInt(ParentIdForModel)
+}
+
+function UserContextMenu(event, element) {
+    var modal = document.getElementsByClassName("UserContextMenu")[0];
+    modal.style.display = "block";
+    x = event.clientX;
+    y = event.clientY;
+    modal.style.left = `${x}px`;
+    modal.style.top = `${y}px`;
+    data = element.id.split(",")
+    SelectedUserId = parseInt(data[0])
+    PlanetId = parseInt(data[1])
+}
+
+function HideUserContextMenu(){
+    var modal = document.getElementsByClassName("UserContextMenu")[0];
+    modal.style.display = "none";
+}
+
+function KickUser() {
+    fetch(`/User/KickUser?token=${SercetKey}&Planet_Id=${PlanetId}&userid=${userid}&id=${parseInt(SelectedUserId)}`)
+        .then(data => {
+            console.log(data)
+        })
+            
+
+}
+
+function ChannelListItemContextMenu(event, element) {
+    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
+    modal.id = element.id
+    modal.style.display = "block";
+    x = event.clientX;
+    y = event.clientY;
+    modal.style.left = `${x}px`;
+    modal.style.top = `${y}px`;
+    ChannelListItemId = element.id
+    while (true) {
+        if (element.className.includes("channel") == true | element.className.includes("category") == true) {
+            break
+        }
+        element = element.parentNode
+        if (element == null) {
+            return null;
+        }
+    }
+    if (element.className.includes("channel")) {
+        IsCategory = false
+    }
+    if (element.className.includes("category")){
+        IsCategory = true
+    }
+}
+
+function HideContextMenuForChanneListItem(){
+    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
+    modal.style.display = "none";
+}
+
+function DeleteChannelListItem() {
+    console.log(`Id: ${ChannelListItemId} IsCategory: ${IsCategory}`)
+
+    if (IsCategory === false) {
+        fetch(`/Channel/Delete?token=${SercetKey}&userid=${userid}&id=${parseInt(ChannelListItemId)}`)
+            .then(data => {
+                console.log(data)
+            })
+        
+    }
+    else {
+        fetch(`/Category/Delete?token=${SercetKey}&userid=${userid}&id=${parseInt(ChannelListItemId)}`)
+            .then(data => {
+                console.log(data)
+            })
+            
+    }
+
 }
 
 
@@ -264,8 +345,11 @@ const Drop = (e) =>{
     e.preventDefault();
     target = e.target
     beforeelement = null
-    while (target.className.includes("channel-list") == false) {
-        if (target.className.includes("channel") | target.className.includes("category")) {
+    while (target.className.includes("channel-list") == false && target.className.includes("category-list") == false ) {
+        if (target.className.includes("channel")) {
+            beforeelement = target
+        }
+        if (target.className.includes("category") == false && dragging.className.includes("category") == true) {
             beforeelement = target
         }
         target = target.parentNode
@@ -273,15 +357,68 @@ const Drop = (e) =>{
             return null;
         }
     }
+    if (target.className.includes("channel-list") == false && target.className.includes("category-list") == false) {
+        beforeelement = null;
+    }
     node = target.parentNode
+    if (target.className.includes("category") == true && dragging.className.includes("category") == false) {
+        return null;
+    }
+    if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
+        id = dragging.id 
+        fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=0`)
+        .then(data => {
+                console.log(data)
+        })
+        return null;
+    }
     if (target == null) {
         return null;
     }
     if (beforeelement == dragging) {
         return null;
     }
-    dragging.parentNode.removeChild(dragging);
-    target.insertBefore(dragging, beforeelement);
+    parentid = dragging.parentNode
+    parentid = parentid.parentNode.id
+    categoryid = target.parentNode.id
+    if (categoryid != parentid) {
+        if (dragging.className.includes("channel")) {
+            fetch(`/Channel/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+            .then(data => {
+                console.log(data)
+            })
+        }
+        else {
+            fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+            .then(data => {
+                console.log(data)
+            })
+        }
+    }
+   // dragging.parentNode.removeChild(dragging);
+    if (categoryid == parentid) {
+        list = Array.prototype.slice.call( target.children )
+        var index1 = list.indexOf(dragging);
+        var index2 = list.indexOf(beforeelement);
+        list.splice(index1, 1)
+        list.splice(index2, 0, dragging)
+        target.innerHTML = ""
+        for (i in list) {
+            item = list[i]
+            target.append(item)
+        }
+    }
+    else {
+        dragging.parentNode.removeChild(dragging);
+        list = Array.prototype.slice.call( target.children )
+        var index2 = list.indexOf(beforeelement);
+        list.splice(index2, 0, dragging)
+        target.innerHTML = ""
+        for (i in list) {
+            item = list[i]
+            target.append(item)
+        }
+    }
     index = 0
     var data = {}
     for (i in target.children) {

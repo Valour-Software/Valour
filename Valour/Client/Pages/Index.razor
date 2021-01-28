@@ -60,20 +60,23 @@
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                @if (planetManager.GetCurrent() != null)
-                {
-                    ClientWindow window = windowManager.GetSelectedWindow();
-                    ChatChannelWindow channelWindow = (ChatChannelWindow)window;
-                    Planet planet = planetManager.GetCurrent();
-                    @foreach (PlanetCategory category in PlanetCategoryChannelList)
+                <div class="category-list" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
+                    @if (planetManager.GetCurrent() != null)
                     {
-                        @if (category.Parent_Id == null)
+                        ClientWindow window = windowManager.GetSelectedWindow();
+                        ChatChannelWindow channelWindow = (ChatChannelWindow)window;
+                        Planet planet = planetManager.GetCurrent();
+                        @foreach (PlanetCategory category in PlanetCategoryChannelList)
                         {
-                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
-                            </CategoryComponent>
+                            @if (category.Parent_Id == null)
+                            {
+                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
+                                </CategoryComponent>
+                            }
                         }
                     }
-                }
+                </div>
+
             </div>
             <div class="channel-and-topbar" id="mainwindow">
                 <div class="topbar">
@@ -148,6 +151,53 @@
                 </p>
             </div>
         </div>
+
+        <div class="context-menu ChannelListItemContextMenu" id="" style="display:none;">
+            <div class="context-menu-item" onclick="">
+                <p class="context-menu-item-text">
+                Edit
+                </p>
+            </div>
+            <div class="context-menu-item delete-context-menu-item" onclick="DeleteChannelListItem()">
+                <p class="context-menu-item-text">
+                Delete
+                </p>
+            </div>
+        </div>
+
+        <div class="context-menu UserContextMenu" id="" style="display:none;">
+            <div class="context-menu-item delete-context-menu-item" onclick="KickUser()">
+                <p class="context-menu-item-text">
+                Kick
+                </p>
+            </div>
+            <div class="context-menu-item delete-context-menu-item" onclick="">
+                <p class="context-menu-item-text">
+                Ban
+                </p>
+            </div>
+        </div>
+        <div class="modal channelmodel" id="CreateChannel">
+        <!-- Modal content -->
+            <div class="modal-content-CreateChannel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <CreateChannelComponent></CreateChannelComponent>   
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal categorymodel" id='CreateCategory'>
+            <!-- Modal content -->
+            <div class="modal-content-CreateChannel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <CreateCategoryComponent></CreateCategoryComponent>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </body>
 }
 else
