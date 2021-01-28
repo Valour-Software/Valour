@@ -10,14 +10,34 @@
                 <div class="col-3 edit-planet-col-left">
                     <b>@Planet.Name</b>
                     <hr />
-                    <SettingsButtonComponent Title="Info" Active="@buttonStates[0]" OnStateChange="(async (val) => OnButtonStateChange(val, 0))"></SettingsButtonComponent>
-                    <SettingsButtonComponent Title="Invites" Active="@buttonStates[1]" OnStateChange="(async (val) => OnButtonStateChange(val, 1))"></SettingsButtonComponent>
-                    <SettingsButtonComponent Title="Users" Active="@buttonStates[2]" OnStateChange="(async (val) => OnButtonStateChange(val, 2))"></SettingsButtonComponent>
-                    <SettingsButtonComponent Title="Bans" Active="@buttonStates[3]" OnStateChange="(async (val) => OnButtonStateChange(val, 3))"></SettingsButtonComponent>
-                    <SettingsButtonComponent Title="Roles" Active="@buttonStates[4]" OnStateChange="(async (val) => OnButtonStateChange(val, 4))"></SettingsButtonComponent>
+                    <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+                    <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Invites</div>
+                    <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
+                    <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
+                    <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
                 </div>
                 <div class="col-9 edit-planet-col-right">
+                    @switch (selected)
+                    {
+                        case 0:
+                            <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
+                            break;
+                        case 1:
+                            <EditPlanetInvitesComponent></EditPlanetInvitesComponent>
+                            break;
+                        case 2:
+                            <EditPlanetUsersComponent></EditPlanetUsersComponent>
+                            break;
+                        case 3:
+                            <EditPlanetBansComponent></EditPlanetBansComponent>
+                            break;
+                        case 4:
+                            <EditPlanetRolesComponent></EditPlanetRolesComponent>
+                            break;
+                        default:
+                            break;
 
+                    }
                 </div>
             </div>
         </div>
@@ -32,6 +52,16 @@ else
     [Parameter]
     public ClientPlanet Planet { get; set; }
 
+    public string GetButtonClass(int tab)
+    {
+        if (buttonStates[tab])
+        {
+            return "settings-button active";
+        }
+
+        return "settings-button";
+    }
+
     public bool[] buttonStates = new bool[5]
     {
         true, false, false, false, false
@@ -44,19 +74,10 @@ else
 
     }
 
-    public void OnButtonStateChange(bool value, int tab)
-    {
-        // Prevent unselecting already selected button
-        if (tab == selected) return;
-
-        if (value)
-        {
-            SetSelectedTab(tab);
-        }
-    }
-
     public void SetSelectedTab(int tab)
     {
+        Console.WriteLine("Set selected to " + tab);
+
         for (int i = 0; i < buttonStates.Length; i++)
         {
             buttonStates[i] = false;

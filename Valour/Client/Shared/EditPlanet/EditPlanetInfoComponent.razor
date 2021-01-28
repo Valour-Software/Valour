@@ -1,0 +1,15 @@
+﻿<h3>Basic Planet Information</h3>
+<hr />
+<br />
+
+<p>Name</p>
+<input class="form-control" type="text" value="@Planet.Name" />
+
+<p>Description</p>
+<input class="form-control" type="text" value="@Planet.Description" />
+
+@code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+}
