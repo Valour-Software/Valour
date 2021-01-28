@@ -45,6 +45,52 @@ namespace Valour.Server.Controllers
             this.Context = context;
         }
         
+        public async Task<TaskResult> SetDescription(string description, ulong id, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != userid)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            channel.Description = description;
+
+            await Context.SaveChangesAsync();
+
+            return null;
+        }
+
+        public async Task<TaskResult> SetName(string name, ulong id, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != userid)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            channel.Name = name;
+
+            await Context.SaveChangesAsync();
+
+            return null;
+        }
+
         public async Task<TaskResult> Delete(ulong id, ulong userid, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
