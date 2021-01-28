@@ -59,6 +59,12 @@
 
         int years = DateTime.Now.Subtract(date).Days / 365;
 
+        if (years < 0)
+        {
+            dateSpan = "You must exist use Valour.";
+            return;
+        }
+
         if (years < 13)
         {
             dateSpan = "You must be 13 years of age or older to use Valour.";
