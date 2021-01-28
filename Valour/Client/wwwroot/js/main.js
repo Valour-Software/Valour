@@ -177,6 +177,11 @@ window.onclick = function(event) {
         modal.style.display = "none";
     }
 
+    var modal = document.getElementsByClassName("UserContextMenu")[0];
+    if (event.target != modal) {
+        modal.style.display = "none";
+    }
+
 
 }
 
@@ -230,6 +235,32 @@ function AddChannelCategoryContextMenu(event, element) {
     y = event.clientY;
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
+}
+
+function UserContextMenu(event, element) {
+    var modal = document.getElementsByClassName("UserContextMenu")[0];
+    modal.style.display = "block";
+    x = event.clientX;
+    y = event.clientY;
+    modal.style.left = `${x}px`;
+    modal.style.top = `${y}px`;
+    data = element.id.split(",")
+    SelectedUserId = parseInt(data[0])
+    PlanetId = parseInt(data[1])
+}
+
+function HideUserContextMenu(){
+    var modal = document.getElementsByClassName("UserContextMenu")[0];
+    modal.style.display = "none";
+}
+
+function KickUser() {
+    fetch(`/User/KickUser?token=${SercetKey}&Planet_Id=${PlanetId}&userid=${userid}&id=${parseInt(SelectedUserId)}`)
+        .then(data => {
+            console.log(data)
+        })
+            
+
 }
 
 function ChannelListItemContextMenu(event, element) {

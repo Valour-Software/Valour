@@ -1,4 +1,6 @@
-﻿<div id="m-@Message.Channel_Id-@Message.Message_Index" class="message">
+﻿@inject ClientPlanetManager planetManager
+
+<div id="m-@Message.Channel_Id-@Message.Message_Index" class="message">
     <div style="display:inline-block; position: absolute">
         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
         <div class="time-container">
@@ -10,7 +12,7 @@
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @Author.GetMainRoleColor();">
+            <p class="author-name" style="color: @Author.GetMainRoleColor();" id="@Author.Id,@Author.Planet_Id" oncontextmenu="UserContextMenu(event, this)">
                 @Author.Username
             </p>
 
