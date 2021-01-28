@@ -16,26 +16,6 @@
         </p>
     </div>
     <!-- The Modal -->
-    <div class="modal channelmodel" id="@category.Id">
-        <!-- Modal content -->
-        <div class="modal-content-CreateChannel">
-            <div class="login-box">
-                <div class="col-md-12">
-                    <CreateChannelComponent Category="@category"></CreateChannelComponent>   
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="modal categorymodel" id="@category.Id">
-        <!-- Modal content -->
-        <div class="modal-content-CreateChannel">
-            <div class="login-box">
-                <div class="col-md-12">
-                    <CreateCategoryComponent Category="@category"></CreateCategoryComponent>
-                </div>
-            </div>
-        </div>
-    </div>
     @if (IsOpen) {
         <div class="channel-list">
             @if(ItemList.Count() == 0) {

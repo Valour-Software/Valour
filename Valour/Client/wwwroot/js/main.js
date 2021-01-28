@@ -161,6 +161,7 @@ window.onclick = function(event) {
         if (event.target == item) {
             item.style.display = "none";
         }
+
     }
 
     var modal = document.getElementsByClassName("add-channel-button");
@@ -199,26 +200,14 @@ function OpenEditPlanetModal() {
     }
 }
 
-function AddChannelButtonFunction(element) {
-    menu = document.getElementsByClassName("AddChannelCategoryContextMenu")[0]
-    var x = document.getElementsByClassName("channelmodel")
-    for (id in x) {
-        item = x[id]
-        if (menu.id == item.id) {
-            item.style.display = "block";
-        }
-    }
+function AddChannelButtonFunction() {
+    x = document.getElementById("CreateChannel")
+    x.style.display = "block"
 }
 
 function AddCategoryButtonFunction() {
-    menu = document.getElementsByClassName("AddChannelCategoryContextMenu")[0]
-    var x = document.getElementsByClassName("categorymodel")
-    for (id in x) {
-        item = x[id]
-        if (menu.id == item.id) {
-            item.style.display = "block";
-        }
-    }
+    x = document.getElementById("CreateCategory")
+    x.style.display = "block"
 }
 
 function HideContextMenuForChannelCategory(){
@@ -235,6 +224,11 @@ function AddChannelCategoryContextMenu(event, element) {
     y = event.clientY;
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
+    ParentIdForModel = element.id
+}
+
+function GetParentId() {
+    return parseInt(ParentIdForModel)
 }
 
 function UserContextMenu(event, element) {
@@ -368,6 +362,14 @@ const Drop = (e) =>{
     }
     node = target.parentNode
     if (target.className.includes("category") == true && dragging.className.includes("category") == false) {
+        return null;
+    }
+    if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
+        id = dragging.id 
+        fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=0`)
+        .then(data => {
+                console.log(data)
+        })
         return null;
     }
     if (target == null) {

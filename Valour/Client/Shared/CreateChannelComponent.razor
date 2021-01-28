@@ -3,6 +3,7 @@
 @inject LocalStorageService storage
 @inject AutoMapper.IMapper Mapper 
 @inject ClientPlanetManager planetManager
+@inject IJSRuntime JS
 @using Valour.Shared.Categories
 
 <section>
@@ -28,9 +29,6 @@
     string nameSpan = "The name of the channel";
     string imageSpan = "";
 
-    [Parameter]
-    public PlanetCategory Category { get; set; }
-
     private async Task OnClickSubmit(MouseEventArgs e)
     {
 
@@ -48,14 +46,7 @@
         ulong userid = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        ulong parentid = 0;
-
-        if (Category == null) {
-            parentid = 0;
-        }
-        else {
-            parentid = Category.Id;
-        }
+        ulong parentid = await JS.InvokeAsync<ulong>("GetParentId");
 
         string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
                                                                    $"&planet_id={planetManager.GetCurrent().Id}" +

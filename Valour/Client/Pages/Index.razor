@@ -60,7 +60,7 @@
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                <div class="category-list" style="padding-bottom:80px">
+                <div class="category-list" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
                     @if (planetManager.GetCurrent() != null)
                     {
                         ClientWindow window = windowManager.GetSelectedWindow();
@@ -76,6 +76,7 @@
                         }
                     }
                 </div>
+
             </div>
             <div class="channel-and-topbar" id="mainwindow">
                 <div class="topbar">
@@ -174,6 +175,26 @@
                 <p class="context-menu-item-text">
                 Ban
                 </p>
+            </div>
+        </div>
+        <div class="modal channelmodel" id="CreateChannel">
+        <!-- Modal content -->
+            <div class="modal-content-CreateChannel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <CreateChannelComponent></CreateChannelComponent>   
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal categorymodel" id='CreateCategory'>
+            <!-- Modal content -->
+            <div class="modal-content-CreateChannel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <CreateCategoryComponent></CreateCategoryComponent>
+                    </div>
+                </div>
             </div>
         </div>
 

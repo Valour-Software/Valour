@@ -3,6 +3,7 @@
 @inject LocalStorageService storage
 @inject AutoMapper.IMapper Mapper 
 @inject ClientPlanetManager planetManager
+@inject IJSRuntime JS
 @using Valour.Shared.Categories
 
 <section>
@@ -23,9 +24,6 @@
 
 @code {
 
-    [Parameter]
-    public PlanetCategory Category { get; set; }
-
     // Input fields
     string name;
 
@@ -43,23 +41,12 @@
             return;
         }
 
-
+        ulong parentid = await JS.InvokeAsync<ulong>("GetParentId");
         // Encode non-friendly characters
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
 
         ulong userid = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
-
-        ulong parentid = 0;
-
-        Console.WriteLine($"Category Id: {Category.Id}");
-
-        if (Category == null) {
-            parentid = 0;
-        }
-        else {
-            parentid = Category.Id;
-        }
 
         Console.WriteLine($"Parent Id: {parentid}");
 

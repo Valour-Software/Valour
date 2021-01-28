@@ -102,7 +102,12 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            category.Parent_Id = parentId;
+            if (parentId == 0) {
+                category.Parent_Id = null;
+            }
+            else {
+                category.Parent_Id = parentId;
+            }
 
             await Context.SaveChangesAsync();
             
