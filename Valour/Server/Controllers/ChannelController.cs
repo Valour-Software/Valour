@@ -65,7 +65,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            return null;
+            return new TaskResult(true, "Successfully set description.");
         }
 
         public async Task<TaskResult> SetName(string name, ulong id, ulong userid, string token)
@@ -88,7 +88,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            return null;
+            return new TaskResult(true, "Successfully set name.");
         }
 
         public async Task<TaskResult> Delete(ulong id, ulong userid, string token)
@@ -111,7 +111,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            return null;
+            return new TaskResult(true, "Successfully deleted.");
         }
 
         public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong userid, string token)
@@ -134,7 +134,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
             
-            return null;
+            return new TaskResult(true, "Successfully set parentid.");
         }
 
         /// <summary>
