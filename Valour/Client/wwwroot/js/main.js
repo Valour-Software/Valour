@@ -172,6 +172,11 @@ window.onclick = function(event) {
         }
     }
 
+    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
+    if (event.target != modal) {
+        modal.style.display = "none";
+    }
+
 
 }
 
@@ -225,6 +230,57 @@ function AddChannelCategoryContextMenu(event, element) {
     y = event.clientY;
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
+}
+
+function ChannelListItemContextMenu(event, element) {
+    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
+    modal.id = element.id
+    modal.style.display = "block";
+    x = event.clientX;
+    y = event.clientY;
+    modal.style.left = `${x}px`;
+    modal.style.top = `${y}px`;
+    ChannelListItemId = element.id
+    while (true) {
+        if (element.className.includes("channel") == true | element.className.includes("category") == true) {
+            break
+        }
+        element = element.parentNode
+        if (element == null) {
+            return null;
+        }
+    }
+    if (element.className.includes("channel")) {
+        IsCategory = false
+    }
+    if (element.className.includes("category")){
+        IsCategory = true
+    }
+}
+
+function HideContextMenuForChanneListItem(){
+    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
+    modal.style.display = "none";
+}
+
+function DeleteChannelListItem() {
+    console.log(`Id: ${ChannelListItemId} IsCategory: ${IsCategory}`)
+
+    if (IsCategory === false) {
+        fetch(`/Channel/Delete?token=${SercetKey}&userid=${userid}&id=${parseInt(ChannelListItemId)}`)
+            .then(data => {
+                console.log(data)
+            })
+        
+    }
+    else {
+        fetch(`/Category/Delete?token=${SercetKey}&userid=${userid}&id=${parseInt(ChannelListItemId)}`)
+            .then(data => {
+                console.log(data)
+            })
+            
+    }
+
 }
 
 

@@ -5,14 +5,16 @@
 @using Valour.Shared.Planets
 
 
-<div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
-    <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
-    <p class="name">
-        @category.Name
-    </p>
-    <p class="add-channel-button" id="@category.Id" onclick="AddChannelCategoryContextMenu(event, this)">
-        +
-    </p>
+<div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)">
+    <div id="@category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" oncontextmenu="ChannelListItemContextMenu(event,this)">
+        <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
+        <p class="name">
+            @category.Name
+        </p>
+        <p class="add-channel-button" id="@category.Id" onclick="AddChannelCategoryContextMenu(event, this)">
+            +
+        </p>
+    </div>
     <!-- The Modal -->
     <div class="modal channelmodel" id="@category.Id">
         <!-- Modal content -->
