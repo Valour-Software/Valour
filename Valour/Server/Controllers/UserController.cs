@@ -19,6 +19,7 @@ using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Shared.Users.Identity;
+using Newtonsoft.Json;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -48,6 +49,29 @@ namespace Valour.Server.Controllers
             this.Context = context;
             this.UserManager = userManager;
             this.Mapper = mapper;
+        }
+
+        public async Task<TaskResult> KickUser(ulong id, ulong Planet_Id, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != userid)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            PlanetMember member = await Context.PlanetMembers.Where(x => x.User_Id == id && x.Planet_Id == Planet_Id).FirstOrDefaultAsync();
+
+            Context.PlanetMembers.Remove(member);
+
+            await Context.SaveChangesAsync();
+
+            return null;
         }
 
         /// <summary>
@@ -383,10 +407,10 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planetuser given the user and planet id
         /// </summary>
-        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planetid, string auth)
+        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planet_id, string auth)
         {
             // Retrieve planet
-            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planetid), Mapper);
+            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planet_id), Mapper);
 
             if (planet == null) return new TaskResult<PlanetUser>(false, "The planet could not be found.", null);
 
@@ -412,7 +436,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
             }
 
-            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planetid, Mapper);
+            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id, Mapper);
 
             if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
 

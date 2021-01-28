@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Channels;
+using Valour.Client.Messages;
+using Valour.Client.Planets;
+using Valour.Client.Shared;
 using Valour.Shared.Channels;
 
 namespace Valour.Client
@@ -18,7 +21,12 @@ namespace Valour.Client
 
         public Func<Task> OnWindowSelect;
 
-        public Func<Task> OnWindowChannelChange;
+        public static ClientWindowManager Instance;
+
+        public ClientWindowManager()
+        {
+            Instance = this;
+        }
 
         public async Task SetSelectedWindow(int index)
         {
@@ -73,12 +81,23 @@ namespace Valour.Client
 
         public void ClearWindows()
         {
+            foreach (ClientWindow window in OpenWindows)
+            {
+                window.OnClosed();
+            }
+
             OpenWindows.Clear();
         }
 
         public void SetWindow(int index, ClientWindow window)
         {
+            if (OpenWindows[index] == window)
+            {
+                return;
+            }
+
             window.Index = index;
+            OpenWindows[index].OnClosed();
             OpenWindows.RemoveAt(index);
             OpenWindows.Insert(index, window);
         }
@@ -94,6 +113,11 @@ namespace Valour.Client
         public ClientWindow(int index)
         {
             this.Index = index;
+        }
+
+        public virtual void OnClosed()
+        {
+
         }
     }
 
@@ -112,9 +136,39 @@ namespace Valour.Client
         /// </summary>
         public ClientPlanetChatChannel Channel { get; set; }
 
+        /// <summary>
+        /// The component that belongs to this window
+        /// </summary>
+        public ChannelWindowComponent Component { get; set; }
+
+        /// <summary>
+        /// Storage for messages that should be displayed
+        /// </summary>
+        public List<ClientPlanetMessage> messages;
+
+        /// <summary>
+        /// The index of the last recieved message
+        /// </summary>
+        public ulong messageIndex;
+
+        /// <summary>
+        /// The index of the earliest recieved message
+        /// </summary>
+        public ulong firstMessageIndex;
+
         public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
         {
             this.Channel = channel;
+        }
+
+        public override void OnClosed()
+        {
+            base.OnClosed();
+
+            Task.Run(async () =>
+            {
+                await Component.OnWindowClosed();
+            });
         }
     }
 }

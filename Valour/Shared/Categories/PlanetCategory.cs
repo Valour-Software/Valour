@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Channels;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -15,7 +16,7 @@ namespace Valour.Shared.Categories
     /// <summary>
     /// Represents a single chat Category within a planet
     /// </summary>
-    public class PlanetCategory
+    public class PlanetCategory : Valour.Shared.Planets.PlanetListItem
     {
         /// <summary>
         /// The Id of this category
@@ -35,7 +36,7 @@ namespace Valour.Shared.Categories
         /// <summary>
         /// The id of the parent category, is null if theres no parent
         /// </summary>
-        public ulong Category_Id { get; set;}
+        public ulong? Parent_Id { get; set;}
 
         /// <summary>
         /// Is the position in the category/channel list

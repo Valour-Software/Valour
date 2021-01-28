@@ -1,39 +1,127 @@
-﻿<div class="@Chosen_CSS">
-    <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
-    <p class="name">
-        @Name
-    </p>
-    <p class="add-channel-button" id="AddChannelButton" onclick="AddChannelButtonFunction(this)">
-        +
-    </p>
-        <!-- The Modal -->
-    <div id="AddChannelModel" class="modal">
+﻿@using Valour.Shared.Categories
+@inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
+@inject ClientCategoryManager categoryManager
+@using Valour.Shared.Planets
 
-        <!-- Modal content -->
-        <div class="modal-content-CreateChannel">
-            <CreateChannelComponent></CreateChannelComponent>
-        </div>
+
+<div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)">
+    <div id="@category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" oncontextmenu="ChannelListItemContextMenu(event,this)">
+        <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
+        <p class="name">
+            @category.Name
+        </p>
+        <p class="add-channel-button" id="@category.Id" onclick="AddChannelCategoryContextMenu(event, this)">
+            +
+        </p>
     </div>
+    <!-- The Modal -->
     @if (IsOpen) {
         <div class="channel-list">
-            @ChildContent
+            @if(ItemList.Count() == 0) {
+                <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
+            }
+            @foreach(PlanetListItem item in ItemList) {
+                ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+                if (channel != null) {
+                    if (channel.Parent_Id == null && category.Name == "General") {
+                        if (channel.Id == channelWindow.Channel.Id) {
+                            <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                        }
+                        else
+                        {
+                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                        }
+                    }
+                    if (channel.Parent_Id == category.Id) {
+                        if (channel.Id == channelWindow.Channel.Id) {
+                            <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
+                        }
+                        else
+                        {
+                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                        }
+                    }
+                }
+                else {
+                    PlanetCategory planetcategory = item as PlanetCategory;
+                    @if (planetcategory.Parent_Id == category.Id) {
+                        <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                        </CategoryComponent>
+                    }
+                }
+            }
         </div>
     }
 </div>
 @code {
+    
     [Parameter]
-    public string Name { get; set; }
+    public bool IsTopLevel {get; set;}
 
     [Parameter]
+    public PlanetCategory category { get; set; }
+
+    [Parameter]
+    public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList { get; set; }
+
+    [Parameter]
+    public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList { get; set; }
+
+    [Parameter]
+    public ChatChannelWindow channelWindow { get; set; }
+
+    [Parameter]
+    public Planet planet { get; set; }
+
     public bool IsOpen { get; set; }
 
-    public string ArrowStyle 
-    { 
+    public List<PlanetListItem> ItemList = new List<PlanetListItem>();
+
+    protected override Task OnInitializedAsync()
+    {
+        IsOpen = categoryManager.IsOpen(category);
+
+        var channels = PlanetChannelList.Where(x => x.Parent_Id == category.Id).ToList();
+
+        foreach(ClientPlanetChatChannel channel in channels) {
+            ItemList.Add(channel);
+            Console.WriteLine($"Id: {channel.Id}");
+        }
+
+        var categories = PlanetCategoryChannelList.Where(x => x.Parent_Id == category.Id).ToList();
+
+        ItemList.AddRange(categories);
+
+        foreach(PlanetListItem item in ItemList) {
+             ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+             if (channel != null) {
+                 item.Position = channel.Position;
+             }
+             else {
+               PlanetCategory planetcategory = item as PlanetCategory;
+               item.Position = planetcategory.Position;
+             }
+
+        }
+
+        ItemList.Sort((x,y) => x.Position.CompareTo(y.Position));
+
+        foreach(PlanetListItem item in ItemList) {
+            Console.WriteLine(item.Position);
+            Console.WriteLine(item.Name);
+        }
+
+        return base.OnInitializedAsync();
+    }
+
+    public string ArrowStyle
+    {
         get
         {
             if (IsOpen) {
                 return "transform: rotate(90deg);";
-            }   
+            }
             else {
                 return "";
             }
@@ -46,6 +134,9 @@
         {
             if (IsOpen)
             {
+                if (IsTopLevel) {
+                    return "category is-open top-level-category";
+                }
                 return "category is-open";
             }
             else
@@ -57,15 +148,12 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
-
     public void OnClick()
     {
-        if (IsOpen) {
-            IsOpen = false;
-        }
-        else {
-            IsOpen = true;
-        }
+        IsOpen = !IsOpen;
+
+        categoryManager.SetOpen(category, IsOpen);
+
         StateHasChanged();
     }
 }

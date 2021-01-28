@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @using Valour.Shared
+@using Valour.Shared.Categories;
 @inject HttpClient Http
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
@@ -40,28 +41,42 @@
                 }
             </div>
             <div class="sidebar-2" id="sidebar2">
-                <CurrentChannelComponent Name="General" Description="General chat for legitimate conversations"></CurrentChannelComponent>
+                <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
+                @if (planetManager.GetCurrent() != null)
+                {
+                    <!-- The Modal -->
+                    <div class="modal edit-planet-modal" id="EditPlanetModal">
+                        <!-- Modal content -->
+                        <div class="modal-content-EditPlanet">
+                            <div class="login-box">
+                                <div class="col-md-12" style="height: 100%; width: 100%;">
+                                    <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                <CategoryComponent Name="General Discussion" IsOpen="true">
+                <div class="category-list" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
                     @if (planetManager.GetCurrent() != null)
                     {
                         ClientWindow window = windowManager.GetSelectedWindow();
                         ChatChannelWindow channelWindow = (ChatChannelWindow)window;
                         Planet planet = planetManager.GetCurrent();
-                        @foreach(ClientPlanetChatChannel channel in PlanetChannelList)
+                        @foreach (PlanetCategory category in PlanetCategoryChannelList)
                         {
-                            if (channel.Id == channelWindow.Channel.Id) {
-                                <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
-                            }
-                            else
+                            @if (category.Parent_Id == null)
                             {
-                                <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
+                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
+                                </CategoryComponent>
                             }
                         }
                     }
-                </CategoryComponent>
+                </div>
+
             </div>
             <div class="channel-and-topbar" id="mainwindow">
                 <div class="topbar">
@@ -124,6 +139,65 @@
 
             </div>
         </div>
+        <div class="context-menu AddChannelCategoryContextMenu" id="" style="display:none;">
+            <div class="context-menu-item" onclick="AddChannelButtonFunction()">
+                <p class="context-menu-item-text">
+                Add Channel
+                </p>
+            </div>
+            <div class="context-menu-item">
+                <p class="context-menu-item-text" onclick="AddCategoryButtonFunction()">
+                Add Category
+                </p>
+            </div>
+        </div>
+
+        <div class="context-menu ChannelListItemContextMenu" id="" style="display:none;">
+            <div class="context-menu-item" onclick="">
+                <p class="context-menu-item-text">
+                Edit
+                </p>
+            </div>
+            <div class="context-menu-item delete-context-menu-item" onclick="DeleteChannelListItem()">
+                <p class="context-menu-item-text">
+                Delete
+                </p>
+            </div>
+        </div>
+
+        <div class="context-menu UserContextMenu" id="" style="display:none;">
+            <div class="context-menu-item delete-context-menu-item" onclick="KickUser()">
+                <p class="context-menu-item-text">
+                Kick
+                </p>
+            </div>
+            <div class="context-menu-item delete-context-menu-item" onclick="">
+                <p class="context-menu-item-text">
+                Ban
+                </p>
+            </div>
+        </div>
+        <div class="modal channelmodel" id="CreateChannel">
+        <!-- Modal content -->
+            <div class="modal-content-CreateChannel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <CreateChannelComponent></CreateChannelComponent>   
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal categorymodel" id='CreateCategory'>
+            <!-- Modal content -->
+            <div class="modal-content-CreateChannel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <CreateCategoryComponent></CreateCategoryComponent>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </body>
 }
 else
@@ -137,12 +211,15 @@ else
 
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
 
+    public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<PlanetCategory>();
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         planetManager.OnPlanetChange += OnPlanetChange;
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
     }
 
     public void Dispose()
@@ -150,6 +227,7 @@ else
         planetManager.OnPlanetChange -= OnPlanetChange;
         planetManager.OnChannelsUpdate -= OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
+        planetManager.OnCategoriesUpdate -= OnCategoriesUpdate;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -181,6 +259,22 @@ else
         StateHasChanged();
     }
 
+    public async Task OnCategoriesUpdate()
+    {
+        ClientPlanet dummy = new ClientPlanet();
+
+        Planet planet = planetManager.GetCurrent();
+
+        PlanetCategoryChannelList.Clear();
+
+        foreach (PlanetCategory category in await dummy.GetClientPlanetCategoriesAsync(planet.Id))
+        {
+            PlanetCategoryChannelList.Add(category);
+        }
+
+        StateHasChanged();
+    }
+
     public async Task OnChannelsUpdate()
     {
         ClientPlanet dummy = new ClientPlanet();
@@ -208,6 +302,8 @@ else
         planetUserList.Add(self);
 
         await OnChannelsUpdate();
+
+        await OnCategoriesUpdate();
 
         StateHasChanged();
     }

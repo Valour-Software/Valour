@@ -1,0 +1,33 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+
+@if (Planet != null)
+{
+    <body class="edit-planet-body">
+        <div class="container">
+            <div class="row">
+                <div class="col-3 edit-planet-col-left">
+                    <b>@Planet.Name</b>
+                </div>
+                <div class="col-9 edit-planet-col-right">
+
+                </div>
+            </div>
+        </div>
+    </body>
+}
+else
+{
+    <h5>Loading planet details...</h5>
+}
+
+@code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+}

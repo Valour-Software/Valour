@@ -7,12 +7,12 @@
 @using Valour.Shared.Categories
 
 <section>
-    <h2>Create a new Channel</h2>
+    <h2>Create a new Category</h2>
 
     <hr />
     <div asp-validation-summary="All" class="text-info"></div>
     <div class="form-group mt-2">
-        <label>Channel Name</label>
+        <label>Category Name</label>
         <input class="form-control" @bind-value="@name" />
         <span id="name-span" style="color:#888888">@nameSpan</span>
     </div>
@@ -21,12 +21,14 @@
         <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
     </div>
 </section>
+
 @code {
+
     // Input fields
     string name;
 
     // Spans
-    string nameSpan = "The name of the channel";
+    string nameSpan = "The name of the category";
     string imageSpan = "";
 
     private async Task OnClickSubmit(MouseEventArgs e)
@@ -35,20 +37,20 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
-            name = "Please input a channel name.";
+            name = "Please input a category name.";
             return;
         }
 
-
+        ulong parentid = await JS.InvokeAsync<ulong>("GetParentId");
         // Encode non-friendly characters
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
 
         ulong userid = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        ulong parentid = await JS.InvokeAsync<ulong>("GetParentId");
+        Console.WriteLine($"Parent Id: {parentid}");
 
-        string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
+        string json = await Http.GetStringAsync($"Category/CreateCategory?name={encodedName}" +
                                                                    $"&planet_id={planetManager.GetCurrent().Id}" +
                                                                    $"&userid={userid}" +
                                                                    $"&parentid={parentid}" +
@@ -69,6 +71,8 @@
             ulong planet_id = result.Data;
 
             await planetManager.RefreshChannels();
+
+            await planetManager.RefreshCategories();
 
         }
     }

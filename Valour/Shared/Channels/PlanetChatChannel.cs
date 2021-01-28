@@ -15,7 +15,7 @@ namespace Valour.Shared.Channels
     /// <summary>
     /// Represents a single chat channel within a planet
     /// </summary>
-    public class PlanetChatChannel : IChatChannel
+    public class PlanetChatChannel : Valour.Shared.Planets.PlanetListItem, IChatChannel
     {
         /// <summary>
         /// The Id of this channel
@@ -40,11 +40,16 @@ namespace Valour.Shared.Channels
         /// <summary>
         /// The id of the parent category, is null if theres no parent
         /// </summary>
-        public ulong? Category_Id { get; set;}
+        public ulong? Parent_Id { get; set;}
 
         /// <summary>
         /// Is the position in the category/channel list
         /// </summary>
         public ushort Position { get; set; }
+
+        /// <summary>
+        /// The description of the channel
+        /// </summary>
+        public string Description { get; set; }
     }
 }

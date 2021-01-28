@@ -6,12 +6,35 @@
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
-    <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
-        @if (messages != null)
+    <div class="channel-info">
+        <h3 class="title">
+            @Channel.Name
+        </h3>
+        @if (!string.IsNullOrWhiteSpace(Channel.Description))
         {
-            foreach (ClientPlanetMessage msg in messages)
+            <p class="description">
+                @Channel.Description
+            </p>
+        }
+    </div>
+
+    <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
+        @if (Window.messages != null)
+        {
+            ulong lastAuthorId = 0;
+
+            foreach (ClientPlanetMessage msg in Window.messages)
             {
-                <MessageComponent Message="msg"></MessageComponent>
+                if (msg.Author_Id != lastAuthorId)
+                {
+                    <MessageComponent Message="msg"></MessageComponent>
+                }
+                else
+                {
+                    <MultiMessageComponent Message="msg"></MultiMessageComponent>
+                }
+
+                lastAuthorId = msg.Author_Id;
             }
         }
     </div>
@@ -36,11 +59,6 @@
     /// </summary>
     private string currentInput;
 
-    /// <summary>
-    /// Storage for messages that should be displayed
-    /// </summary>
-    private List<ClientPlanetMessage> messages;
-
     private HubConnection hubConnection;
 
     [Parameter]
@@ -48,40 +66,64 @@
 
     public ClientPlanetChatChannel Channel;
 
-    /// <summary>
-    /// The index of the last sent message
-    /// </summary>
-    private ulong messageIndex;
+    public ClientPlanet Planet;
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
         Channel = Window.Channel;
 
+        Planet = await Window.Channel.GetPlanetAsync();
+
+        StateHasChanged();
+
+        Window.Component = this;
+
+        Window.messages = new List<ClientPlanetMessage>();
+
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
         await ConnectSignalR();
-        await RefreshMessages();
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
-        windowManager.OnWindowChannelChange += OnWindowChannelChange;
+        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+
+        await JS.InvokeVoidAsync("SetSercetKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id);
+
+        await SetupNewChannelAsync();
     }
 
-    public async Task OnWindowChannelChange()
+    public async Task SetupNewChannelAsync()
     {
-        if (Channel != Window.Channel){
-            await hubConnection.SendAsync("LeaveChannel", Channel.Id);
-            Channel = Window.Channel;
-            await hubConnection.SendAsync("JoinChannel", Channel.Id);
-            await RefreshMessages();
-            StateHasChanged();
+        Window.messages.Clear();
+
+        // Request messages from server
+        Window.messages.AddRange(await Channel.GetLastMessagesAsync(64));
+
+        if (Window.messages.Count > 0)
+        {
+            Window.firstMessageIndex = Window.messages[0].Message_Index;
+            Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
+    }
+
+    public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
+    {
+        await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+        Window.Channel = newchannel;
+        Channel = newchannel;
+        await hubConnection.SendAsync("JoinChannel", Channel.Id);
+
+        await SetupNewChannelAsync();
+
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }
 
     public async Task ConnectSignalR()
@@ -101,6 +143,13 @@
         hubConnection.On<string>("Relay", RecieveMessage);
     }
 
+    public async Task OnWindowClosed()
+    {
+        await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+        await hubConnection.DisposeAsync();
+        Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
+    }
+
     public async Task RecieveMessage(string data)
     {
 
@@ -112,9 +161,11 @@
 
         //Console.WriteLine(await message.GetAuthorAsync());
 
-        await JS.InvokeVoidAsync("SetScrollState", Window.Index);
+        //await JS.InvokeVoidAsync("AddMessage", Window.Index);
 
-        messages.Add(message);
+        Window.messages.Add(message);
+
+        Window.messageIndex = message.Message_Index;
 
         Console.WriteLine("Added message.");
 
@@ -122,19 +173,6 @@
         StateHasChanged();
 
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
-    }
-
-    public async Task RefreshMessages()
-    {
-        // Request messages from server
-        messages = await Http.GetFromJsonAsync<List<ClientPlanetMessage>>($"Channel/GetMessages?channel_id={Channel.Id}");
-        
-        foreach (ClientPlanetMessage message in messages)
-        {
-            message.Planet_Id = planetManager.GetCurrent().Id;
-        }
-        
-        StateHasChanged();
     }
 
     /// <summary>
@@ -145,7 +183,7 @@
         // Debug for key presses
         // Console.WriteLine(currentInput);
 
-        if (args.Key == "Enter")
+        if (args.Key == "Enter" && !args.ShiftKey)
         {
             // Grab current input
             string msg = currentInput;
@@ -154,23 +192,16 @@
 
             string temp = msg;
 
-            temp = temp.Replace("\n","");
+            temp = temp.TrimEnd('\n');
+
+            currentInput = "";
 
             if (temp != "")
             {
-
-                // Clear input
-                currentInput = "";
-
                 // Post message to server
                 StateHasChanged();
                 await PostMessage(msg);
-
-                currentInput = "";
-            }
-            else
-            {
-                currentInput = "";
+                currentInput = currentInput.TrimStart('\n'); // Fix odd bug
             }
         }
     }
@@ -199,24 +230,49 @@
 
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
 
-        Console.WriteLine(json);
+        Console.WriteLine("SEND: \n" + json);
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
 
         TaskResult<ulong> response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
 
-        if (!response.Success)
+        Console.WriteLine(response.ToString());
+    }
+
+    public async Task UpdateScrollPosition()
+    {
+        await JS.InvokeVoidAsync("UpdateScrollPosition", Window.Index);
+    }
+
+    public async Task ScaleScrollPosition()
+    {
+        await JS.InvokeVoidAsync("ScaleScrollPosition", Window.Index);
+    }
+
+    [JSInvokable("OnScrollTopInvoke")]
+    public static async Task OnScrollTop(int index)
+    {
+        ChatChannelWindow Window = ClientWindowManager.Instance.GetWindow(index) as ChatChannelWindow;
+
+        if (Window == null)
         {
-            messages.Add(new ClientPlanetMessage()
-            {
-                TimeSent = DateTime.UtcNow,
-                Channel_Id = Channel.Id,
-                Content = $"Failed to post message: {response.Message}",
-                Message_Index = 0
-            });
-            StateHasChanged();
+            Console.WriteLine("Channel window is null in OnScrollTop!");
+            return;
         }
 
-        Console.WriteLine(response.ToString());
+        Console.WriteLine($"Fetching older messages from index {Window.firstMessageIndex} for window {Window.Index}");
+
+        var messages = await Window.Channel.GetMessagesAsync(Window.firstMessageIndex, 10);
+
+        if (messages == null || messages.Count() == 0)
+        {
+            return;
+        }
+
+        await Window.Component.UpdateScrollPosition(); // This saves the scroll position
+        Window.messages.InsertRange(0, messages);
+        Window.firstMessageIndex = messages.ElementAt(0).Message_Index;
+        Window.Component.StateHasChanged();
+        await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly
     }
 }

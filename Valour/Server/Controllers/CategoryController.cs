@@ -11,9 +11,8 @@ using Valour.Shared.Channels;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Valour.Shared.Categories;
 using System.Text.RegularExpressions;
-using System.Collections.Specialized;
-using Valour.Server.Messages;
 using Microsoft.EntityFrameworkCore;
 
 /*  Valour - A free and secure chat client
@@ -29,10 +28,8 @@ namespace Valour.Server.Controllers
     /// </summary>
     [ApiController]
     [Route("[controller]/[action]")]
-    public class ChannelController
+    public class CategoryController
     {
-
-        public static List<PlanetMessage> messageCache = new List<PlanetMessage>();
 
         /// <summary>
         /// Database context
@@ -40,32 +37,9 @@ namespace Valour.Server.Controllers
         private readonly ValourDB Context;
 
         // Dependency injection
-        public ChannelController(ValourDB context)
+        public CategoryController(ValourDB context)
         {
             this.Context = context;
-        }
-        
-        public async Task<TaskResult> SetDescription(string description, ulong id, ulong userid, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
-
-            channel.Description = description;
-
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, "Successfully set description.");
         }
 
         public async Task<TaskResult> SetName(string name, ulong id, ulong userid, string token)
@@ -82,9 +56,9 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+            PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            channel.Name = name;
+            category.Name = name;
 
             await Context.SaveChangesAsync();
 
@@ -105,9 +79,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
-
-            Context.PlanetChatChannels.Remove(channel);
+            await Context.Delete(Context, id);
 
             await Context.SaveChangesAsync();
 
@@ -128,20 +100,25 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+            PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            channel.Parent_Id = parentId;
+            if (parentId == 0) {
+                category.Parent_Id = null;
+            }
+            else {
+                category.Parent_Id = parentId;
+            }
 
             await Context.SaveChangesAsync();
             
-            return new TaskResult(true, "Successfully set parentid.");
+            return new TaskResult(true, "Successfully set parent id.");
         }
 
         /// <summary>
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planet_id, ulong userid, ulong parentid, string token)
+        public async Task<TaskResult<ulong>> CreateCategory(string name, ulong userid, ulong parentid, ulong planet_id, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -166,24 +143,21 @@ namespace Valour.Server.Controllers
 
             // Creates the channel channel
 
-            PlanetChatChannel channel = new PlanetChatChannel()
+            PlanetCategory category = new PlanetCategory()
             {
                 Name = name,
                 Planet_Id = planet_id,
-                Parent_Id = parentid,
-                Message_Count = 0,
-                Description = "A chat channel",
-                Position = Convert.ToUInt16(Context.PlanetChatChannels.Count())
+                Parent_Id = parentid
             };
 
             // Add channel to database
-            await Context.PlanetChatChannels.AddAsync(channel);
+            await Context.PlanetCategories.AddAsync(category);
 
             // Save changes to DB
             await Context.SaveChangesAsync();
 
             // Return success
-            return new TaskResult<ulong>(true, "Successfully created channel.", channel.Id);
+            return new TaskResult<ulong>(true, "Successfully created category.", category.Id);
         }
 
         public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -205,92 +179,23 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "The given name is valid.");
         }
-        
-        public async Task<TaskResult<IEnumerable<ulong>>> GetChannelIdsAsync(ulong planet_id)
-        {
-            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
-
-            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retireved channels.", channels);;
-        }
 
         [HttpGet]
-        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planet_id)
+        public async Task<TaskResult<IEnumerable<PlanetCategory>>> GetPlanetCategoriesAsync(ulong planet_id)
         {
-            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
+            IEnumerable<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planet_id).ToList());
 
-            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retireved channels.", channels);
-        }
-
-        [HttpGet]
-        public async Task<IEnumerable<PlanetMessage>> GetMessages(ulong channel_id, ulong index = ulong.MaxValue, int count = 10)
-        {
-            // Prevent requesting a ridiculous amount of messages
-            if (count > 64)
-            {
-                count = 64;
+            // in case theres 0 categories or "General" does not exist
+            if (categories.Count() == 0 || !(categories.Any(x => x.Name == "General"))) {
+                PlanetCategory category = new PlanetCategory();
+                category.Name = "General";
+                category.Planet_Id = planet_id;
+                await Context.PlanetCategories.AddAsync(category);
+                await Context.SaveChangesAsync();
+                categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planet_id).ToList());
             }
 
-            IEnumerable<PlanetMessage> messages = await Task.Run(() =>
-            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
-                                  .OrderByDescending(x => x.Message_Index)
-                                  .Take(count)
-                                  .Reverse()
-                                  .ToList());
-
-            return messages;
-        }
-
-        [HttpGet]
-        public async Task<IEnumerable<PlanetMessage>> GetLastMessages(ulong channel_id, int count = 10)
-        {
-            // Prevent requesting a ridiculous amount of messages
-            if (count > 64)
-            {
-                count = 64;
-            }
-
-            IEnumerable<PlanetMessage> messages = await Task.Run(() => 
-            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id)
-                                  .OrderByDescending(x => x.Message_Index)
-                                  .Take(count)
-                                  .Reverse()
-                                  .ToList());
-
-            return messages;
-        }
-
-        [HttpPost]
-        public async Task<TaskResult<ulong>> PostMessage(PlanetMessage msg)
-        {
-            //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
-
-            if (msg == null)
-            {
-                return new TaskResult<ulong>(false, "Malformed message.", 0);
-            }
-
-            ulong channel_id = msg.Channel_Id;
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
-
-            // Get index for message
-            ulong index = channel.Message_Count;
-
-            // Update message count. May have to queue this in the future to prevent concurrency issues.
-            channel.Message_Count += 1;
-            await Context.SaveChangesAsync();
-
-            msg.Message_Index = index;
-
-            string json = JsonConvert.SerializeObject(msg);
-
-            await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
-
-            await Context.PlanetMessages.AddAsync(msg);
-
-            await Context.SaveChangesAsync();
-            
-            return new TaskResult<ulong>(true, $"Posted message {msg.Message_Index}.", index);
+            return new TaskResult<IEnumerable<PlanetCategory>>(true, "Successfully retrieved Categories.", categories);
         }
     }
 }

@@ -83,9 +83,9 @@
         // Send user into planet if successful
         if (result.Success)
         {
-            ulong planetId = result.Data;
+            ulong planet_id = result.Data;
 
-            json = await Http.GetStringAsync($"Planet/GetPlanet?planetid={planetId}" +
+            json = await Http.GetStringAsync($"Planet/GetPlanet?planet_id={planet_id}" +
                                                                $"&userid={userid}" +
                                                                $"&token={token}");
 

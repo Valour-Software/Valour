@@ -10,7 +10,12 @@ using Valour.Server.Planets;
 using Valour.Shared.Channels;
 using Valour.Shared.Categories;
 using Valour.Server.Email;
-using Valour.Server.Messaging;
+using Valour.Shared.Messages;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Valour.Shared;
 
 namespace Valour.Server.Database
 {
@@ -41,7 +46,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for message cache
         /// </summary>
-        public DbSet<CacheMessage> Messages { get; set; }
+        public DbSet<PlanetMessage> PlanetMessages { get; set; }
 
         /// <summary>
         /// Table for Valour users
@@ -93,6 +98,26 @@ namespace Valour.Server.Database
         public ValourDB(DbContextOptions options)
         {
             
+        }
+        public async Task<TaskResult> Delete(ValourDB Context, ulong id) {
+            List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
+
+            foreach(PlanetCategory Category in categories)
+            {
+                await this.Delete(Context, Category.Id);
+                
+            }
+            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
+
+            foreach(PlanetChatChannel channel in channels) {
+                Context.PlanetChatChannels.Remove(channel);
+            }
+
+            PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            Context.PlanetCategories.Remove(category);
+
+            return null;
         }
     }
 }

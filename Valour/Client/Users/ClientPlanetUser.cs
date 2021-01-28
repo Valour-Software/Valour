@@ -46,9 +46,9 @@ namespace Valour.Client.Users
         /// <summary>
         /// Returns a clientplanetuser by requesting from the server
         /// </summary>
-        public static async Task<ClientPlanetUser> GetClientPlanetUserAsync(ulong userid, ulong planetid)
+        public static async Task<ClientPlanetUser> GetClientPlanetUserAsync(ulong userid, ulong planet_id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planetid={planetid}&auth={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUser?userid={userid}&planet_id={planet_id}&auth={ClientUserManager.UserSecretToken}");
 
             TaskResult<ClientPlanetUser> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetUser>>(json);
 

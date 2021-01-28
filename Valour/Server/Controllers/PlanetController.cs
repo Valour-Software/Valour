@@ -8,8 +8,15 @@ using Valour.Server.Database;
 using Valour.Server.Planets;
 using Valour.Shared;
 using Valour.Shared.Channels;
+using Valour.Shared.Categories;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using System.Linq;
+
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -54,6 +61,44 @@ namespace Valour.Server.Controllers
             this.Context = context;
             this.Mapper = mapper;
         }
+
+        [HttpPost]
+        public async Task<TaskResult> UpdateOrder([FromBody]Dictionary<ushort, List<ulong>> json, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != userid)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+            Console.WriteLine(json);
+            var values = json;//JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(data);
+            foreach(var value in values) {
+                ushort position = value.Key;
+                ulong id = value.Value[0];
+
+            //checks if item is a channel
+                Console.WriteLine(value.Value[0]);
+                if (value.Value[1] == 0) {
+                    PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+                    channel.Position = position;
+                }
+                if (value.Value[1] == 1) {
+                    PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
+                    category.Position = position;
+                }
+
+               Console.WriteLine(value);
+            }
+            await Context.SaveChangesAsync();
+            return new TaskResult(true, "Updated Order!");
+        }
+
 
         /// <summary>
         /// Creates a server and if successful returns a task result with the created
@@ -159,9 +204,9 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planet object (if permitted)
         /// </summary>
-        public async Task<TaskResult<Planet>> GetPlanet(ulong planetid, string token)
+        public async Task<TaskResult<Planet>> GetPlanet(ulong planet_id, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
             if (planet == null)
             {
@@ -180,9 +225,9 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planet's primary channel
         /// </summary>
-        public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planetid, ulong userid, string token)
+        public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong userid, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planetid, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
             if (!(await planet.AuthorizedAsync(token)))
             {

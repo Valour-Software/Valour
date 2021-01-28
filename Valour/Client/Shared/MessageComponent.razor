@@ -1,15 +1,23 @@
-﻿<div class="message">
-    <div style="display:inline-block">
+﻿@inject ClientPlanetManager planetManager
+
+<div id="m-@Message.Channel_Id-@Message.Message_Index" class="message">
+    <div style="display:inline-block; position: absolute">
         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
-        <p class="time">
-            @Message.TimeSent.ToLocalTime().ToShortTimeString()
-        </p>
+        <div class="time-container">
+            <p class="time">
+                @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+            </p>
+        </div>
     </div>
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @Author.GetMainRoleColor();">
+            <p class="author-name" style="color: @Author.GetMainRoleColor();" id="@Author.Id,@Author.Planet_Id" oncontextmenu="UserContextMenu(event, this)">
                 @Author.Username
+            </p>
+
+            <p class="role-name">
+                &nbsp;- Emperor
             </p>
         }
         else
@@ -19,7 +27,7 @@
             </p>
         }
         <p class="content">
-            @Message.Content
+            @((MarkupString)Markdig.Markdown.ToHtml(Message.Content, MarkdownManager.pipeline))
         </p>
     </div>
 </div>

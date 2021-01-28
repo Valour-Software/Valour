@@ -10,6 +10,7 @@ using Valour.Client.Channels;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Planets;
+using Valour.Shared.Categories;
 
 namespace Valour.Client.Planets
 {
@@ -51,7 +52,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<ClientPlanetChatChannel> GetPrimaryChannelAsync(IMapper mapper)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPrimaryChannel?planetid={Id}" +
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPrimaryChannel?planet_id={Id}" +
                                                                                               $"&userid={ClientUserManager.User.Id}" +
                                                                                               $"&token={ClientUserManager.UserSecretToken}");
 
@@ -75,11 +76,35 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
-        /// Retrieves and returns a client planet by requesting from the server
+        /// Retrieves and returns categories of a planet by requesting from the server
+        /// </summary>
+        public async Task<IEnumerable<PlanetCategory>> GetClientPlanetCategoriesAsync(ulong id)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Category/GetPlanetCategories?planet_id={id}");
+
+            TaskResult<IEnumerable<PlanetCategory>> result = JsonConvert.DeserializeObject<TaskResult<IEnumerable<PlanetCategory>>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving a planet from the server.");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                return null;
+            }
+
+            return result.Data;
+        }
+
+        /// <summary>
+        /// Retrieves and returns channels of a planet by requesting from the server
         /// </summary>
         public async Task<IEnumerable<ClientPlanetChatChannel>> GetClientPlanetChannelsAsync(ulong id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planetid={id}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planet_id={id}");
 
             TaskResult<IEnumerable<ClientPlanetChatChannel>> result = JsonConvert.DeserializeObject<TaskResult<IEnumerable<ClientPlanetChatChannel>>>(json);
 
@@ -103,7 +128,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public static async Task<ClientPlanet> GetClientPlanetAsync(ulong id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanet?planetid={id}&auth={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanet?planet_id={id}&auth={ClientUserManager.UserSecretToken}");
 
             TaskResult<ClientPlanet> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanet>>(json);
 

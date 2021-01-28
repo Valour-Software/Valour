@@ -1,0 +1,20 @@
+﻿<div id="m-@Message.Channel_Id-@Message.Message_Index" class="multi-message">
+    <div class="time-container">
+        <p class="time">
+            @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+        </p>
+    </div>
+    <div class="message-content">
+        <p class="content">
+            @((MarkupString)Markdig.Markdown.ToHtml(Message.Content, MarkdownManager.pipeline))
+        </p>
+    </div>
+</div>
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+    [Parameter]
+    public ClientPlanetMessage Message { get; set; }
+
+    private PlanetUser Author;
+}

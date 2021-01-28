@@ -54,7 +54,7 @@ namespace Valour.Server.Users
         /// <summary>
         /// Creates a PlanetUser instance using a user id and planet id
         /// </summary>
-        public static async Task<ServerPlanetUser> CreateAsync(ulong userid, ulong planetid, IMapper mapper)
+        public static async Task<ServerPlanetUser> CreateAsync(ulong userid, ulong planet_id, IMapper mapper)
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
@@ -62,7 +62,7 @@ namespace Valour.Server.Users
                 User user = await db.Users.FindAsync(userid);
 
                 // Retrieve planet
-                ServerPlanet planet = ServerPlanet.FromBase(await db.Planets.FindAsync(planetid), mapper);
+                ServerPlanet planet = ServerPlanet.FromBase(await db.Planets.FindAsync(planet_id), mapper);
 
                 // TODO: Actually set roles and stuff once roles exist.
 
@@ -76,7 +76,7 @@ namespace Valour.Server.Users
                 ServerPlanetUser planetUser = mapper.Map<ServerPlanetUser>(user);
 
                 // Now copy across planet info
-                planetUser.Planet_Id = planetid;
+                planetUser.Planet_Id = planet_id;
 
                 return planetUser;
             }
