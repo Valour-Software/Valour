@@ -38,6 +38,9 @@
     </div>
     @if (IsOpen) {
         <div class="channel-list">
+            @if(ItemList.Count() == 0) {
+                <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
+            }
             @foreach(PlanetListItem item in ItemList) {
                 ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
                 if (channel != null) {
@@ -72,6 +75,9 @@
     }
 </div>
 @code {
+    
+    [Parameter]
+    public bool IsTopLevel {get; set;}
 
     [Parameter]
     public PlanetCategory category { get; set; }
@@ -148,6 +154,9 @@
         {
             if (IsOpen)
             {
+                if (IsTopLevel) {
+                    return "category is-open top-level-category";
+                }
                 return "category is-open";
             }
             else

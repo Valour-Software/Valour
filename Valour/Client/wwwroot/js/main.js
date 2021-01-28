@@ -351,8 +351,11 @@ const Drop = (e) =>{
     e.preventDefault();
     target = e.target
     beforeelement = null
-    while (target.className.includes("channel-list") == false) {
-        if (target.className.includes("channel") | target.className.includes("category")) {
+    while (target.className.includes("channel-list") == false && target.className.includes("category-list") == false ) {
+        if (target.className.includes("channel")) {
+            beforeelement = target
+        }
+        if (target.className.includes("category") == false && dragging.className.includes("category") == true) {
             beforeelement = target
         }
         target = target.parentNode
@@ -360,7 +363,13 @@ const Drop = (e) =>{
             return null;
         }
     }
+    if (target.className.includes("channel-list") == false && target.className.includes("category-list") == false) {
+        beforeelement = null;
+    }
     node = target.parentNode
+    if (target.className.includes("category") == true && dragging.className.includes("category") == false) {
+        return null;
+    }
     if (target == null) {
         return null;
     }
@@ -384,8 +393,30 @@ const Drop = (e) =>{
             })
         }
     }
-    dragging.parentNode.removeChild(dragging);
-    target.insertBefore(dragging, beforeelement);
+   // dragging.parentNode.removeChild(dragging);
+    if (categoryid == parentid) {
+        list = Array.prototype.slice.call( target.children )
+        var index1 = list.indexOf(dragging);
+        var index2 = list.indexOf(beforeelement);
+        list.splice(index1, 1)
+        list.splice(index2, 0, dragging)
+        target.innerHTML = ""
+        for (i in list) {
+            item = list[i]
+            target.append(item)
+        }
+    }
+    else {
+        dragging.parentNode.removeChild(dragging);
+        list = Array.prototype.slice.call( target.children )
+        var index2 = list.indexOf(beforeelement);
+        list.splice(index2, 0, dragging)
+        target.innerHTML = ""
+        for (i in list) {
+            item = list[i]
+            target.append(item)
+        }
+    }
     index = 0
     var data = {}
     for (i in target.children) {

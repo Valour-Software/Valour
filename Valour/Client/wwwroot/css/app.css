@@ -437,8 +437,8 @@ body {
     margin-left: 8px
 }
 
-.sidebar-2 .category .channel:nth-last-child(1) {
-    margin-bottom: 24px;
+.top-level-category {
+    padding-bottom: 24px;
 }
 
 

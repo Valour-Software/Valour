@@ -60,20 +60,22 @@
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                @if (planetManager.GetCurrent() != null)
-                {
-                    ClientWindow window = windowManager.GetSelectedWindow();
-                    ChatChannelWindow channelWindow = (ChatChannelWindow)window;
-                    Planet planet = planetManager.GetCurrent();
-                    @foreach (PlanetCategory category in PlanetCategoryChannelList)
+                <div class="category-list" style="padding-bottom:80px">
+                    @if (planetManager.GetCurrent() != null)
                     {
-                        @if (category.Parent_Id == null)
+                        ClientWindow window = windowManager.GetSelectedWindow();
+                        ChatChannelWindow channelWindow = (ChatChannelWindow)window;
+                        Planet planet = planetManager.GetCurrent();
+                        @foreach (PlanetCategory category in PlanetCategoryChannelList)
                         {
-                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
-                            </CategoryComponent>
+                            @if (category.Parent_Id == null)
+                            {
+                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
+                                </CategoryComponent>
+                            }
                         }
                     }
-                }
+                </div>
             </div>
             <div class="channel-and-topbar" id="mainwindow">
                 <div class="topbar">
