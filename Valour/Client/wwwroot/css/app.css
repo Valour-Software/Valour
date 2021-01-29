@@ -1115,15 +1115,40 @@ body {
 }
 
 .invite-tab-holder .settings-button {
-
+    display: inline-block;
+    width: 45%;
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
-.invite-tab-holder .settings-button .left {
-
+.invite-tab-holder .settings-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
-.invite-tab-holder .settings-button .right {
+.invite-tab-holder .settings-button.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
 
+.invite-tab-holder .settings-button:hover.active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.invite-tab-holder .settings-button.left {
+    border-radius: 5px 0px 0px 0px;
+    margin-right: 0px;
+    float:left;
+}
+
+.invite-tab-holder .settings-button.right {
+    border-radius: 0px 5px 0px 0px;
+    margin-left: 0px;
+    float: left;
+}
+
+.invite-list {
+    width: 90%;
+    height: 60%;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    margin-top: 35px;
 }
 
 .settings-button:hover {
