@@ -458,7 +458,7 @@ const Drop = (e) =>{
     return null;
 }
 
-function SetSercetKey(key, id) {
+function SetSecretKey(key, id) {
     SercetKey = key
     userid = id
 }

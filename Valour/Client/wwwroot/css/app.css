@@ -1180,7 +1180,9 @@ body {
     word-wrap: break-word;
     display: block;
     max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
-    font-size: 18px;
+    font-size: 16px;
+    margin: 0px;
+    width: 100%;
 }
 
 .current-planet-info .planet-title {
@@ -1188,7 +1190,7 @@ body {
     white-space: nowrap;
     text-overflow: ellipsis;
     word-wrap: break-word;
-    display: block;
+    display: inline-block;
     max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
     font-size: 24px;
 }

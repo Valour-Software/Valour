@@ -168,5 +168,7 @@ namespace Valour.Server.Oauth
         public static readonly Permission Invite = new Permission(0x02, "Invite", "Allow members to send invites to the planet.");
         public static readonly Permission DisplayRole = new Permission(0x04, "Display Role", "Enables a role to be displayed seperately in the role list.");
         public static readonly Permission Manage = new Permission(0x08, "Manage Planet", "Allow members to modify base planet settings.");
+        public static readonly Permission Kick = new Permission(0x10, "Kick Members", "Allow members to kick other members.");
+        public static readonly Permission Ban = new Permission(0x20, "Ban Members", "Allow members to ban other members.");
     }
 }
