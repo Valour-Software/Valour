@@ -95,6 +95,11 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<PlanetCategory> PlanetCategories { get; set; }
 
+        /// <summary>
+        /// Table for all banned members
+        /// </summary>
+        public DbSet<BannedMember> BannedMembers { get; set; }
+
         public ValourDB(DbContextOptions options)
         {
             
