@@ -42,6 +42,19 @@
 - Any depiction of a minor in sexual acts, including simulation or art, will be treated as underage sexual content
 - Sexual content must always be within a properly flagged NSFW channel
 
+# Bots and API Usage
+
+## API Usage
+- You agree to not overwhelm the API system with unnecessary requests
+- You agree to not use the API for any illegal acts, including distributing or coordinating illegal materials or activity
+
+## Bot Usage
+- You agree to include a publically-available Privacy Policy on any public bots that is accurate
+- You agree to never sell user information provided by the Valour API or network to third parties
+- You agree to maintain a secure environment for user details and to not share them without user consent
+- You agree to follow GDPR and other local and international data regulations
+- You agree to follow COPPA and similar international data regulations
+
 # You agree by using Valour
 ## - To follow the rules outlined above
 ## - To follow any future variants or versions of these rules
