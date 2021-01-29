@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Client.Users;
 using Valour.Server.Database;
+using Valour.Server.Oauth;
 using Valour.Shared.Channels;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
@@ -107,38 +109,53 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if the given user is authorized to access this planet
         /// </summary>
-        public async Task<bool> AuthorizedAsync(string token)
+        public async Task<bool> AuthorizedAsync(string token, Permission permission)
         {
-            if (Public) return true;
+            if (permission.Value == PlanetPermissions.View.Value)
+            {
+                if (Public) return true;
+            }
 
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
                 AuthToken authToken = await db.AuthTokens.FindAsync(token);
 
-                return await AuthorizedAsync(authToken);
+                return await AuthorizedAsync(authToken, permission);
             }
         }
 
         /// <summary>
         /// Returns if the given user is authorized to access this planet
         /// </summary>
-        public async Task<bool> AuthorizedAsync(AuthToken authToken)
+        public async Task<bool> AuthorizedAsync(AuthToken authToken, Permission permission)
         {
-            if (!Public)
+            if (permission.Value == PlanetPermissions.View.Value)
             {
-                if (authToken == null)
+                if (Public || (await IsMemberAsync(authToken.User_Id)))
                 {
-                    return false;
+                    return true;
                 }
-
-                // If the user is not a member, cancel
-                if (!(await IsMemberAsync(authToken.User_Id)))
-                {
-                    return false;
-                }
+                
             }
 
-            return true;
+            if (authToken == null)
+            {
+                return false;
+            }
+            else
+            {
+
+                // Owner has all permissions
+                if (authToken.User_Id == Owner_Id)
+                {
+                    return true;
+                }
+
+                // In the future we do role magic here
+                PlanetUser user = await PlanetUserCache.GetPlanetUserAsync(authToken.User_Id, Id);
+            }
+
+            return false;
         }
     }
 }

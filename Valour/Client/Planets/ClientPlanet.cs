@@ -124,6 +124,40 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
+        /// Attempts to set the name of the planet
+        /// </summary>
+        public async Task<TaskResult> SetName(string name)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/SetName?planet_id={Id}&name={name}&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result.Success)
+            {
+                Name = name;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Attempts to set the description of the planet
+        /// </summary>
+        public async Task<TaskResult> SetDescription(string description)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/SetDescription?planet_id={Id}&description={description}&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result.Success)
+            {
+                Description = description;
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Retrieves and returns a client planet by requesting from the server
         /// </summary>
         public static async Task<ClientPlanet> GetClientPlanetAsync(ulong id)

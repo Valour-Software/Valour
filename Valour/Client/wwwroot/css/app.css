@@ -1129,3 +1129,14 @@ body {
 .settings-button:hover.active {
     background-color: var(--main-5);
 }
+
+.settings-inner {
+    position: relative;
+    height: 100%;
+}
+
+.settings-save-button {
+    position: absolute;
+    right: 10px;
+    bottom: 80px;
+}

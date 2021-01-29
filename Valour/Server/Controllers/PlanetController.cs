@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
+using Valour.Server.Oauth;
 
 
 /*  Valour - A free and secure chat client
@@ -188,6 +189,11 @@ namespace Valour.Server.Controllers
         /// </summary>
         public TaskResult ValidateName(string name)
         {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new TaskResult(false, "Planet names cannot be empty.");
+            }
+
             if (name.Length > 32)
             {
                 return new TaskResult(false, "Planet names must be 32 characters or less.");
@@ -215,7 +221,7 @@ namespace Valour.Server.Controllers
 
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            if (!(await planet.AuthorizedAsync(authToken))){
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.View))){
                 return new TaskResult<Planet>(false, "You are not authorized to access this planet.", null);
             }
 
@@ -229,12 +235,53 @@ namespace Valour.Server.Controllers
         {
             ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
-            if (!(await planet.AuthorizedAsync(token)))
+            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.View)))
             {
                 return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
             }
 
             return new TaskResult<PlanetChatChannel>(true, "Successfully retireved channel.", await planet.GetPrimaryChannelAsync());
+        }
+
+        public async Task<TaskResult> SetName(ulong planet_id, string name, string token)
+        {
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            {
+                return new TaskResult(false, "You are not authorized to access this planet.");
+            }
+
+            TaskResult validation = ValidateName(name);
+
+            if (!validation.Success)
+            {
+                return validation;
+            }
+
+            planet.Name = name;
+
+            Context.Planets.Update(planet);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Changed name successfully");
+        }
+
+        public async Task<TaskResult> SetDescription(ulong planet_id, string description, string token)
+        {
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            {
+                return new TaskResult(false, "You are not authorized to access this planet.");
+            }
+
+            planet.Description = description;
+
+            Context.Planets.Update(planet);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Changed description successfully");
         }
     }
 }

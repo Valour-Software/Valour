@@ -1,5 +1,36 @@
-﻿<h3>EditPlanetInvitesComponent</h3>
+﻿@inject HttpClient http
+
+<h3>Planet Invitations</h3>
+<hr />
+<br />
+
+<div class="settings-inner">
+    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+</div>
 
 @code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+    public bool publicValue;
+
+    public bool publicSpan;
+
+    protected override async Task OnInitializedAsync()
+    {
+        publicValue = Planet.Public;
+
+        StateHasChanged();
+    }
+
+    public async Task OnSaveChanges()
+    {
+        if (publicValue != Planet.Public)
+        {
+            
+        }
+
+        StateHasChanged();
+    }
 
 }

@@ -69,7 +69,10 @@ namespace Valour.Server.Oauth
 
             foreach (Permission permission in permissions)
             {
-                code |= permission.Value;
+                if (permission != null)
+                {
+                    code |= permission.Value;
+                }
             }
 
             return code;
@@ -164,5 +167,6 @@ namespace Valour.Server.Oauth
         public static readonly Permission View = new Permission(0x01, "View", "Allow members to view the planet. This is implicitly granted to members."); // Implicitly granted to members
         public static readonly Permission Invite = new Permission(0x02, "Invite", "Allow members to send invites to the planet.");
         public static readonly Permission DisplayRole = new Permission(0x04, "Display Role", "Enables a role to be displayed seperately in the role list.");
+        public static readonly Permission Manage = new Permission(0x08, "Manage Planet", "Allow members to modify base planet settings.");
     }
 }
