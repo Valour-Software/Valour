@@ -7,13 +7,17 @@
 <div class="settings-inner">
     <p>Public</p>
     <p>
-        <input type="checkbox" @bind-value="@publicValue" /> &nbsp; Setting a server to public will allow any user to join
+        <input type="checkbox" @bind="publicValue" /> &nbsp; Setting a server to public will allow any user to join
         through an invite link.
     </p>
     <span class="text-danger">@publicSpan</span>
     <br />
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+
+    <div class="invite-tab-holder">
+        <div class="settings-button"
+    </div>
 </div>
 
 @code {
@@ -27,6 +31,8 @@
     protected override async Task OnInitializedAsync()
     {
         publicValue = Planet.Public;
+
+        Console.WriteLine(Planet.Public);
 
         StateHasChanged();
     }

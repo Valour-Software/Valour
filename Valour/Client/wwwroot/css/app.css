@@ -1114,6 +1114,18 @@ body {
     vertical-align: central;
 }
 
+.invite-tab-holder .settings-button {
+
+}
+
+.invite-tab-holder .settings-button .left {
+
+}
+
+.invite-tab-holder .settings-button .right {
+
+}
+
 .settings-button:hover {
     background-color: var(--main-4);
 }
