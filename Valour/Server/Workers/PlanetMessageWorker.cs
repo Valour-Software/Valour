@@ -28,8 +28,13 @@ namespace Valour.Server.Workers
             _scopeFactory = scopeFactory;
         }
 
-        private static BlockingCollection<PlanetMessage> MessageQueue = 
+        private static BlockingCollection<PlanetMessage> MessageQueue =
             new BlockingCollection<PlanetMessage>(new ConcurrentQueue<PlanetMessage>());
+
+        private static BlockingCollection<PlanetMessage> MessageDBChunk =
+            new BlockingCollection<PlanetMessage>(new ConcurrentBag<PlanetMessage>());
+
+        private static ValourDB Context;
 
         public static void AddToQueue(PlanetMessage message)
         {
@@ -45,30 +50,30 @@ namespace Valour.Server.Workers
                     //try
                     //{
 
-                        using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
-                        {
-                            foreach (PlanetMessage Message in MessageQueue.GetConsumingEnumerable())
-                            {
-                                ulong channel_id = Message.Channel_Id;
+                    Context = new ValourDB(ValourDB.DBOptions);
 
-                                PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
+                    // This is a stream and will run forever
+                    foreach (PlanetMessage Message in MessageQueue.GetConsumingEnumerable())
+                    {
+                        ulong channel_id = Message.Channel_Id;
 
-                                // Get index for message
-                                ulong index = channel.Message_Count;
+                        PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
-                                // Update message count. May have to queue this in the future to prevent concurrency issues (done).
-                                channel.Message_Count += 1;
-                                Message.Message_Index = index;
+                        // Get index for message
+                        ulong index = channel.Message_Count;
 
-                                string json = JsonConvert.SerializeObject(Message);
+                        // Update message count. May have to queue this in the future to prevent concurrency issues (done).
+                        channel.Message_Count += 1;
+                        Message.Message_Index = index;
 
-                                // This is not awaited on purpose
-                                MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
+                        string json = JsonConvert.SerializeObject(Message);
 
-                                await Context.PlanetMessages.AddAsync(Message);
-                                await Context.SaveChangesAsync();
-                            }
-                        }
+                        // This is not awaited on purpose
+                        MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
+
+                        MessageDBChunk.Add(Message);
+                    }
+
 
                     //}
                     //catch (System.Exception e)
@@ -80,11 +85,24 @@ namespace Valour.Server.Workers
 
                 while (!task.IsCompleted)
                 {
-                    _logger.LogInformation("Message Worker running at: {time}", DateTimeOffset.Now);
-                    await Task.Delay(60000, stoppingToken);
+                    _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now}");
+                    _logger.LogInformation($"Queue size: {MessageQueue.Count}");
+                    _logger.LogInformation($"Saving {MessageDBChunk.Count} messages to DB.");
+
+                    if (Context != null)
+                    {
+                        await Context.PlanetMessages.AddRangeAsync(MessageDBChunk);
+                        await Context.SaveChangesAsync();
+                        _logger.LogInformation($"Saved successfully.");
+                    }
+
+                    // Save to DB
+
+
+                    await Task.Delay(30000, stoppingToken);
                 }
 
-                _logger.LogInformation("Message Worker task stopped at: {time}", DateTimeOffset.Now);
+                _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now);
                 _logger.LogInformation("Restarting.", DateTimeOffset.Now);
             }
         }
