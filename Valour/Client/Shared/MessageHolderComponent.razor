@@ -1,0 +1,42 @@
+﻿<div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
+    @if (Messages != null)
+    {
+        ulong lastAuthorId = 0;
+
+        currentTop = Messages[0].Message_Index;
+        currentBottom = Messages[Messages.Count - 1].Message_Index;
+
+        foreach (ClientPlanetMessage msg in Messages)
+        {
+            if (msg.Author_Id != lastAuthorId)
+            {
+                <MessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MessageComponent>
+            }
+            else
+            {
+                <MultiMessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MultiMessageComponent>
+            }
+
+            lastAuthorId = msg.Author_Id;
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ClientWindow Window { get; set; }
+
+    [Parameter]
+    public List<ClientPlanetMessage> Messages { get; set; }
+
+    public ulong currentTop;
+    public ulong currentBottom;
+
+    protected override bool ShouldRender()
+    {
+        ulong newTop = Messages[0].Message_Index;
+        ulong newBottom = Messages[Messages.Count - 1].Message_Index;
+
+        return !(currentTop == newTop && currentBottom == newBottom);
+    }
+}
