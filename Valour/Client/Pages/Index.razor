@@ -33,11 +33,13 @@
                 @if (planetManager.GetCurrent() != null)
                 {
 
-                    foreach (var user in planetUserList)
-                    {
-                        <RoleComponent Name="Emperor"></RoleComponent>
-                        <UserComponent Only="true" User="@user"></UserComponent>
-                    }
+                    <RoleComponent Name="Emperor"></RoleComponent>
+                    <div class="UserList">
+                        @foreach (var user in planetUserList)
+                        {
+                            <UserComponent Only="true" User="@user"></UserComponent>
+                        }
+                    </div>
                 }
             </div>
             <div class="sidebar-2" id="sidebar2">
@@ -300,9 +302,9 @@ else
 
         planetUserList.Clear();
 
-        ClientPlanetUser self = await PlanetUserCache.GetPlanetUserAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
-
-        planetUserList.Add(self);
+        foreach(ClientPlanetUser user in await PlanetUserCache.GetPlanetsUsers(planetManager.GetCurrent().Id)) {
+            planetUserList.Add(user);
+        }
 
         await OnChannelsUpdate();
 
