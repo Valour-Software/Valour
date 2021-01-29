@@ -34,6 +34,8 @@
 
     protected override bool ShouldRender()
     {
+        if (Messages == null || Messages.Count == 0) return false;
+
         ulong newTop = Messages[0].Message_Index;
         ulong newBottom = Messages[Messages.Count - 1].Message_Index;
 
