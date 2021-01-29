@@ -249,7 +249,7 @@ function HideUserContextMenu(){
 }
 
 function KickUser() {
-    fetch(`/User/KickUser?token=${SercetKey}&Planet_Id=${PlanetId}&userid=${userid}&id=${parseInt(SelectedUserId)}`)
+    fetch(`/User/KickUser?token=${SecretKey}&Planet_Id=${PlanetId}&UserId=${UserId}&id=${parseInt(SelectedUserId)}`)
         .then(data => {
             console.log(data)
         })
@@ -292,14 +292,14 @@ function DeleteChannelListItem() {
     console.log(`Id: ${ChannelListItemId} IsCategory: ${IsCategory}`)
 
     if (IsCategory === false) {
-        fetch(`/Channel/Delete?token=${SercetKey}&userid=${userid}&id=${parseInt(ChannelListItemId)}`)
+        fetch(`/Channel/Delete?token=${SecretKey}&UserId=${UserId}&id=${parseInt(ChannelListItemId)}`)
             .then(data => {
                 console.log(data)
             })
         
     }
     else {
-        fetch(`/Category/Delete?token=${SercetKey}&userid=${userid}&id=${parseInt(ChannelListItemId)}`)
+        fetch(`/Category/Delete?token=${SecretKey}&UserId=${UserId}&id=${parseInt(ChannelListItemId)}`)
             .then(data => {
                 console.log(data)
             })
@@ -370,7 +370,7 @@ const Drop = (e) =>{
     TopLevel = false
     if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
         id = dragging.id 
-        fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=0`)
+        fetch(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=0`)
         .then(data => {
                 console.log(data)
         })
@@ -388,13 +388,13 @@ const Drop = (e) =>{
         categoryid = target.parentNode.id
         if (categoryid != parentid) {
             if (dragging.className.includes("channel")) {
-                fetch(`/Channel/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                fetch(`/Channel/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
                 .then(data => {
                     console.log(data)
                 })
             }
             else {
-                fetch(`/Category/SetParentId?token=${SercetKey}&userid=${userid}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                fetch(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
                 .then(data => {
                     console.log(data)
                 })
@@ -450,7 +450,7 @@ const Drop = (e) =>{
             index += 1
         }
     }
-    postData(`/Planet/UpdateOrder?token=${SercetKey}&userid=${userid}`, data)
+    postData(`/Planet/UpdateOrder?token=${SecretKey}&UserId=${UserId}`, data)
         .then(out => {
             console.log(out)
         })
@@ -459,6 +459,6 @@ const Drop = (e) =>{
 }
 
 function SetSecretKey(key, id) {
-    SercetKey = key
-    userid = id
+    SecretKey = key
+    UserId = id
 }
