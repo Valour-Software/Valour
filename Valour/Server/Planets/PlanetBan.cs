@@ -21,7 +21,7 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class BannedMember
+    public class PlanetBan
     {
         /// <summary>
         /// The Id of this member object
