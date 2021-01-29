@@ -48,5 +48,10 @@ namespace Valour.Server.Planets
         /// The reason for the ban
         /// </summary>
         public string Reason { get; set; }
+
+        /// <summary>
+        /// The time the ban was placed
+        /// </summary>
+        public DateTime Time { get; set; }
     }
 }
