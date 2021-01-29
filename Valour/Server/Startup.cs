@@ -78,6 +78,7 @@ namespace Valour.Server
             services.AddControllersWithViews();
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
+            services.AddHostedService<PlanetMessageWorker>();
         }
 
         /// <summary>
