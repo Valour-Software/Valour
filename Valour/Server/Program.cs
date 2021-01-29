@@ -21,6 +21,7 @@ namespace Valour.Server
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>();
+                    webBuilder.UseUrls("http://localhost:3000", "https://localhost:3001");
                 });
     }
 }
