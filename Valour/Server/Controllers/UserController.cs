@@ -481,5 +481,22 @@ namespace Valour.Server.Controllers
 
             return new TaskResult<List<Planet>>(true, $"Retrieved {membership.Count} planets", membership);
         }
+
+        public async Task<TaskResult<List<ulong>>> GetPlantUserIds(ulong Planet_Id, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken.User_Id != userid)
+            {
+                return new TaskResult<List<ulong>>(false, $"Could not authenticate for user {userid}", null);
+            }
+            List<PlanetMember> list = await Task.Run(() => Context.PlanetMembers.Where(x => x.Planet_Id == Planet_Id).ToList());
+            List<ulong> ids = new List<ulong>();
+            foreach(PlanetMember member in list) {
+                ids.Add(member.User_Id);
+            }
+
+            return new TaskResult<List<ulong>>(true, $"Retrieved {ids.Count()} users", ids);
+        }
     }
 }

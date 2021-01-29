@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared.Users;
+using Valour.Shared;
 
 namespace Valour.Client.Users
 {
@@ -21,6 +22,23 @@ namespace Valour.Client.Users
     public static class PlanetUserCache
     {
         private static ConcurrentDictionary<(ulong, ulong), ClientPlanetUser> Cache = new ConcurrentDictionary<(ulong, ulong), ClientPlanetUser>();
+
+        public static async Task<List<ClientPlanetUser>> GetPlanetsUsers(ulong planet_id)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlantUserIds?Planet_Id={planet_id}&token={ClientUserManager.UserSecretToken}&userid={ClientUserManager.User.Id}");
+
+            TaskResult<List<ulong>> result = JsonConvert.DeserializeObject<TaskResult<List<ulong>>>(json);
+
+            List<ClientPlanetUser> users = new List<ClientPlanetUser>();
+
+            List<ulong> ids = result.Data;
+
+            foreach(ulong id in ids) {
+                users.Add(await GetPlanetUserAsync(id, planet_id));
+            }
+            
+            return users;
+   }
 
         /// <summary>
         /// Returns a user from the given id

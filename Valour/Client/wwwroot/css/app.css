@@ -652,10 +652,6 @@ body {
     width: 250px;
 }
 
-.only {
-    border-radius: 6px;
-}
-
 .sidebar-user {
     width: 240px;
     height: 55px;
@@ -663,12 +659,12 @@ body {
     margin-right: auto;
 }
 
-.sidebar-user.first {
+.sidebar-user:first-child {
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
 }
 
-.last {
+.sidebar-user:last-child {
     border-bottom-left-radius: 6px;
     border-bottom-right-radius: 6px;
 }
