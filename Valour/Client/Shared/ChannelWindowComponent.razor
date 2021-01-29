@@ -18,26 +18,7 @@
         }
     </div>
 
-    <div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
-        @if (Window.messages != null)
-        {
-            ulong lastAuthorId = 0;
-
-            foreach (ClientPlanetMessage msg in Window.messages)
-            {
-                if (msg.Author_Id != lastAuthorId)
-                {
-                    <MessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MessageComponent>
-                }
-                else
-                {
-                    <MultiMessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MultiMessageComponent>
-                }
-
-                lastAuthorId = msg.Author_Id;
-            }
-        }
-    </div>
+    <MessageHolderComponent Window="Window" Messages="Window.messages"></MessageHolderComponent>
 
     <div class="ml-1">
         <center>
@@ -107,9 +88,9 @@
             Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
 
-        //while (true){
-        //    await PostMessage(Guid.NewGuid().ToString());
-        //}
+        while (true){
+            await PostMessage(Guid.NewGuid().ToString());
+        }
     }
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)

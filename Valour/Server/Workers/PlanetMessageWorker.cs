@@ -31,8 +31,8 @@ namespace Valour.Server.Workers
         private static BlockingCollection<PlanetMessage> MessageQueue =
             new BlockingCollection<PlanetMessage>(new ConcurrentQueue<PlanetMessage>());
 
-        private static BlockingCollection<PlanetMessage> MessageDBChunk =
-            new BlockingCollection<PlanetMessage>(new ConcurrentBag<PlanetMessage>());
+        private static ConcurrentBag<PlanetMessage> MessageDBChunk =
+            new ConcurrentBag<PlanetMessage>();
 
         private static ValourDB Context;
 
@@ -92,6 +92,7 @@ namespace Valour.Server.Workers
                     if (Context != null)
                     {
                         await Context.PlanetMessages.AddRangeAsync(MessageDBChunk);
+                        MessageDBChunk.Clear();
                         await Context.SaveChangesAsync();
                         _logger.LogInformation($"Saved successfully.");
                     }
