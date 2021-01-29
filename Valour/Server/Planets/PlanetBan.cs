@@ -53,5 +53,15 @@ namespace Valour.Server.Planets
         /// The time the ban was placed
         /// </summary>
         public DateTime Time { get; set; }
+
+        /// <summary>
+        /// The length of the ban
+        /// </summary>
+        public uint Minutes { get; set; }
+
+        /// <summary>
+        /// True if the ban never expires
+        /// </summary>
+        public bool Permanent { get; set; }
     }
 }
