@@ -27,11 +27,11 @@
             {
                 if (msg.Author_Id != lastAuthorId)
                 {
-                    <MessageComponent Message="msg"></MessageComponent>
+                    <MessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MessageComponent>
                 }
                 else
                 {
-                    <MultiMessageComponent Message="msg"></MultiMessageComponent>
+                    <MultiMessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MultiMessageComponent>
                 }
 
                 lastAuthorId = msg.Author_Id;
@@ -234,7 +234,7 @@
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
 
-        TaskResult<ulong> response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(await httpresponse.Content.ReadAsStringAsync());
+        TaskResult response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(await httpresponse.Content.ReadAsStringAsync());
 
         Console.WriteLine(response.ToString());
     }

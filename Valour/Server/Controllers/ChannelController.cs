@@ -15,6 +15,8 @@ using System.Text.RegularExpressions;
 using System.Collections.Specialized;
 using Valour.Server.Messages;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
+using Valour.Server.Workers;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -260,37 +262,18 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<TaskResult<ulong>> PostMessage(PlanetMessage msg)
+        public async Task<TaskResult> PostMessage(PlanetMessage msg)
         {
             //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
 
             if (msg == null)
             {
-                return new TaskResult<ulong>(false, "Malformed message.", 0);
+                return new TaskResult(false, "Malformed message.");
             }
 
-            ulong channel_id = msg.Channel_Id;
+            PlanetMessageWorker.AddToQueue(msg);
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
-
-            // Get index for message
-            ulong index = channel.Message_Count;
-
-            // Update message count. May have to queue this in the future to prevent concurrency issues.
-            channel.Message_Count += 1;
-            await Context.SaveChangesAsync();
-
-            msg.Message_Index = index;
-
-            string json = JsonConvert.SerializeObject(msg);
-
-            await MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
-
-            await Context.PlanetMessages.AddAsync(msg);
-
-            await Context.SaveChangesAsync();
-            
-            return new TaskResult<ulong>(true, $"Posted message {msg.Message_Index}.", index);
+            return new TaskResult(true, "Added message to post queue.");
         }
     }
 }
