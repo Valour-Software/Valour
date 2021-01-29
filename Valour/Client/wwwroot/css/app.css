@@ -1136,3 +1136,22 @@ body {
     right: 10px;
     bottom: 80px;
 }
+
+.current-planet-info .planet-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    display: block;
+    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
+    font-size: 18px;
+}
+
+.current-planet-info .planet-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    display: block;
+    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
+    font-size: 24px;
+}

@@ -4,10 +4,12 @@
     @if (Planet != null)
     {
         <div>
-            <h2 class="planet-name">@Planet.Name</h2>
+            <h2 class="planet-title">@Planet.Name</h2>
             <img class="settings" src="Media/Settings-Icon.svg" onclick="OpenEditPlanetModal()">
         </div>
-        <h5>@Planet.Description</h5>
+        <div style="width:100%; height: 36px;">
+            <p class="planet-desc">@Planet.Description</p>
+        </div>
     }
 </div>
 

@@ -243,13 +243,16 @@ namespace Valour.Server.Controllers
             return new TaskResult<PlanetChatChannel>(true, "Successfully retireved channel.", await planet.GetPrimaryChannelAsync());
         }
 
+        /// <summary>
+        /// Sets the name of a planet
+        /// </summary>
         public async Task<TaskResult> SetName(ulong planet_id, string name, string token)
         {
             ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
-                return new TaskResult(false, "You are not authorized to access this planet.");
+                return new TaskResult(false, "You are not authorized to manage this planet.");
             }
 
             TaskResult validation = ValidateName(name);
@@ -267,13 +270,16 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Changed name successfully");
         }
 
+        /// <summary>
+        /// Sets the description of a planet
+        /// </summary>
         public async Task<TaskResult> SetDescription(ulong planet_id, string description, string token)
         {
             ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
-                return new TaskResult(false, "You are not authorized to access this planet.");
+                return new TaskResult(false, "You are not authorized to manage this planet.");
             }
 
             planet.Description = description;
@@ -282,6 +288,26 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             return new TaskResult(true, "Changed description successfully");
+        }
+
+        /// <summary>
+        /// Sets the description of a planet
+        /// </summary>
+        public async Task<TaskResult> SetPublic(ulong planet_id, bool ispublic, string token)
+        {
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            {
+                return new TaskResult(false, "You are not authorized to manage this planet.");
+            }
+
+            planet.Public = ispublic;
+
+            Context.Planets.Update(planet);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Changed public value successfully");
         }
     }
 }

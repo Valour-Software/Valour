@@ -47,7 +47,7 @@
 
         if (descValue != Planet.Description)
         {
-            TaskResult result = await Planet.SetDescription(nameValue);
+            TaskResult result = await Planet.SetDescription(descValue);
             descSpan = result.Message;
         }
 

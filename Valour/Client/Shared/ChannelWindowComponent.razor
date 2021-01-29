@@ -262,7 +262,7 @@
 
         Console.WriteLine($"Fetching older messages from index {Window.firstMessageIndex} for window {Window.Index}");
 
-        var messages = await Window.Channel.GetMessagesAsync(Window.firstMessageIndex, 10);
+        var messages = await Window.Channel.GetMessagesAsync(Window.firstMessageIndex, 32);
 
         if (messages == null || messages.Count() == 0)
         {

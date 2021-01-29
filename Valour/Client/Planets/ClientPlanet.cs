@@ -158,6 +158,23 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
+        /// Attempts to set the public value of the planet
+        /// </summary>
+        public async Task<TaskResult> SetPublic(bool ispublic)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/SetPublic?planet_id={Id}&ispublic={ispublic}&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result.Success)
+            {
+                Public = ispublic;
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Retrieves and returns a client planet by requesting from the server
         /// </summary>
         public static async Task<ClientPlanet> GetClientPlanetAsync(ulong id)
