@@ -106,6 +106,10 @@
             Window.firstMessageIndex = Window.messages[0].Message_Index;
             Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
+
+        //while (true){
+        //    await PostMessage(Guid.NewGuid().ToString());
+        //}
     }
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
