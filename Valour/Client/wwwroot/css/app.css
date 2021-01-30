@@ -75,6 +75,7 @@ body {
     margin-top: 4px;
     padding-bottom: 0px;
     position: relative;
+    min-height: 51.333px;
 }
 
 .multi-message {
@@ -206,6 +207,7 @@ body {
     max-width:  300px;
     max-height: 300px;
     margin-bottom: 10px;
+    display: block;
 }
 
 .message:hover .content img {
