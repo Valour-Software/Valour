@@ -168,7 +168,10 @@ namespace Valour.Server
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");
-                endpoints.MapHub<MessageHub>(MessageHub.HubUrl);
+                endpoints.MapHub<MessageHub>(MessageHub.HubUrl, options =>
+                {
+                    options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
+                });
             });
 
             MessageHub.Current = app.ApplicationServices.GetService<IHubContext<MessageHub>>();
