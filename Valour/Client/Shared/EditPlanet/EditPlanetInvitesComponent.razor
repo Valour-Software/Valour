@@ -16,8 +16,8 @@
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 
     <div class="invite-tab-holder">
-        <div class="settings-button left">Invite Links</div>
-        <div class="settings-button right">Invited Users</div>
+        <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
+        <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
     </div>
     <div class="invite-list">
 
@@ -31,6 +31,30 @@
     public bool publicValue;
 
     public string publicSpan;
+
+    public bool linksChosen = true;
+
+    public string linksButtonStyle = "settings-button left active";
+    public string usersButtonStyle = "settings-button right";
+
+    public async Task OnSwitchTab(bool links)
+    {
+        linksChosen = links;
+
+        if (links)
+        {
+            linksButtonStyle = "settings-button left active";
+            usersButtonStyle = "settings-button right";
+        }
+        else
+        {
+            linksButtonStyle = "settings-button left";
+            usersButtonStyle = "settings-button right active";
+        }
+
+        StateHasChanged();
+    }
+
 
     protected override async Task OnInitializedAsync()
     {

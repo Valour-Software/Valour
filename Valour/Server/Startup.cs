@@ -26,6 +26,7 @@ using Valour.Server.Email;
 using AutoMapper;
 using Valour.Server.Mapping;
 using Valour.Server.Workers;
+using Valour.Server.MSP;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -47,6 +48,7 @@ namespace Valour.Server
         public const string CONF_LOC = "ValourConfig/";
         public const string DBCONF_FILE = "DBConfig.json";
         public const string EMCONF_FILE = "EmailConfig.json";
+        public const string MSPCONF_FILE = "MSPConfig.json";
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -136,6 +138,25 @@ namespace Valour.Server
 
             // Initialize Email Manager
             EmailManager.SetupClient();
+
+            MSPConfig mspconfig = null;
+
+            if (File.Exists(CONF_LOC + MSPCONF_FILE))
+            {
+                // If there is a config, read it
+                mspconfig = JsonConvert.DeserializeObject<MSPConfig>(File.ReadAllText(CONF_LOC + MSPCONF_FILE));
+            }
+            else
+            {
+                // Otherwise create a config with default values and write it to the location
+                mspconfig = new MSPConfig()
+                {
+                    Api_Key = "api_key_goes_here"
+                };
+
+                File.WriteAllText(CONF_LOC + MSPCONF_FILE, JsonConvert.SerializeObject(mspconfig));
+                Console.WriteLine("Error: No MSP config was found. Creating file...");
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
