@@ -27,7 +27,7 @@
             </p>
         }
         <p class="content">
-            @((MarkupString)Markdig.Markdown.ToHtml(Message.Content, MarkdownManager.pipeline))
+            @MarkdownManager.GetHtml(Message.Content)
         </p>
     </div>
 </div>

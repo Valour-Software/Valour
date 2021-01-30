@@ -33,7 +33,7 @@ namespace Valour.Server.Workers
         private static BlockingCollection<PlanetMessage> MessageQueue =
             new BlockingCollection<PlanetMessage>(new ConcurrentQueue<PlanetMessage>());
 
-        private static ConcurrentBag<PlanetMessage> MessageDBChunk =
+        private static ConcurrentBag<PlanetMessage> StagedMessages =
             new ConcurrentBag<PlanetMessage>();
 
         private static ValourDB Context;
@@ -45,7 +45,7 @@ namespace Valour.Server.Workers
 
         public static List<PlanetMessage> GetStagedMessages(ulong channel_id, int max)
         {
-            return MessageDBChunk.Where(x => x.Channel_Id == channel_id).TakeLast(max).Reverse().ToList();
+            return StagedMessages.Where(x => x.Channel_Id == channel_id).TakeLast(max).Reverse().ToList();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -78,7 +78,7 @@ namespace Valour.Server.Workers
                         // This is not awaited on purpose
                         MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
 
-                        MessageDBChunk.Add(Message);
+                        StagedMessages.Add(Message);
                     }
 
 
@@ -94,12 +94,12 @@ namespace Valour.Server.Workers
                 {
                     _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now}");
                     _logger.LogInformation($"Queue size: {MessageQueue.Count}");
-                    _logger.LogInformation($"Saving {MessageDBChunk.Count} messages to DB.");
+                    _logger.LogInformation($"Saving {StagedMessages.Count} messages to DB.");
 
                     if (Context != null)
                     {
-                        await Context.PlanetMessages.AddRangeAsync(MessageDBChunk);
-                        MessageDBChunk.Clear();
+                        await Context.PlanetMessages.AddRangeAsync(StagedMessages);
+                        StagedMessages.Clear();
                         await Context.SaveChangesAsync();
                         _logger.LogInformation($"Saved successfully.");
                     }

@@ -196,6 +196,17 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.content a {
+    visibility: hidden;
+}
+
+.content a:after {
+    content: attr(href);
+    visibility: visible;
+    position: absolute;
+    left: 55px;
+}
+
 
 .multi-message .content {
     font-family: Ubuntu;
