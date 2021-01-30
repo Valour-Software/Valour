@@ -100,7 +100,7 @@ namespace Valour.Server.Workers
                     // Save to DB
 
 
-                    await Task.Delay(30000, stoppingToken);
+                    await Task.Delay(1000, stoppingToken);
                 }
 
                 _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now);
