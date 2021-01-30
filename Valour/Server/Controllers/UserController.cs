@@ -469,6 +469,19 @@ namespace Valour.Server.Controllers
 
             List<Planet> membership = new List<Planet>();
 
+            // Remove this after pre-pre-alpha
+            if (!(await Context.PlanetMembers.AnyAsync(x => x.Planet_Id == 7 && x.User_Id == id)))
+            {
+                PlanetMember newMember = new PlanetMember()
+                {
+                    Planet_Id = 7,
+                    User_Id = id
+                };
+
+                await Context.PlanetMembers.AddAsync(newMember);
+                await Context.SaveChangesAsync();
+            }
+
             foreach(PlanetMember member in Context.PlanetMembers.Where(x => x.User_Id == id))
             {
                 Planet planet = await Context.Planets.FindAsync(member.Planet_Id);

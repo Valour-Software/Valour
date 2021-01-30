@@ -170,5 +170,7 @@ namespace Valour.Server.Oauth
         public static readonly Permission Manage = new Permission(0x08, "Manage Planet", "Allow members to modify base planet settings.");
         public static readonly Permission Kick = new Permission(0x10, "Kick Members", "Allow members to kick other members.");
         public static readonly Permission Ban = new Permission(0x20, "Ban Members", "Allow members to ban other members.");
+        public static readonly Permission ManageCategories = new Permission(0x40, "Manage Categories", "Allow members to manage categories.");
+        public static readonly Permission ManageChannels = new Permission(0x80, "Manage Categories", "Allow members to manage channels.");
     }
 }

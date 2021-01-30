@@ -17,6 +17,9 @@ using Valour.Server.Messages;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using Valour.Server.Workers;
+using Valour.Server.Planets;
+using AutoMapper;
+using Valour.Server.Oauth;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -41,10 +44,13 @@ namespace Valour.Server.Controllers
         /// </summary>
         private readonly ValourDB Context;
 
+        private readonly IMapper Mapper;
+
         // Dependency injection
-        public ChannelController(ValourDB context)
+        public ChannelController(ValourDB context, IMapper mapper)
         {
             this.Context = context;
+            this.Mapper = mapper;
         }
         
         public async Task<TaskResult> SetDescription(string description, ulong id, ulong userid, string token)
@@ -62,6 +68,13 @@ namespace Valour.Server.Controllers
             }
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
 
             channel.Description = description;
 
@@ -84,7 +97,15 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
+
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
 
             channel.Name = name;
 
@@ -109,6 +130,14 @@ namespace Valour.Server.Controllers
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
 
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
+
+
             Context.PlanetChatChannels.Remove(channel);
 
             await Context.SaveChangesAsync();
@@ -131,6 +160,13 @@ namespace Valour.Server.Controllers
             }
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
 
             channel.Parent_Id = parentId;
 
@@ -162,6 +198,13 @@ namespace Valour.Server.Controllers
             if (authToken == null || authToken.User_Id != userid)
             {
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
+            }
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult<ulong>(false, "You are not authorized to do this.", 0);
             }
 
             // User is verified and given channel info is valid by this point

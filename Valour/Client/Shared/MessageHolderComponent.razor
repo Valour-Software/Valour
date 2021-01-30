@@ -32,6 +32,11 @@
     public ulong currentTop;
     public ulong currentBottom;
 
+    protected override async Task OnInitializedAsync()
+    {
+        StateHasChanged();
+    }
+
     protected override bool ShouldRender()
     {
         if (Messages == null || Messages.Count == 0) return false;
