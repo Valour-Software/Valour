@@ -89,12 +89,7 @@ function ScaleScrollPosition(index) {
 }
 
 function IsAtBottom(index) {
-   if (scrollStates[index] == 1) {
-    return true
-   }
-   else {
-       return false
-   }
+    return (scrollStates[index] === 1);
 }
 
 // Automagically scroll windows down
