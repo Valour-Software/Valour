@@ -88,6 +88,15 @@ function ScaleScrollPosition(index) {
     window.scrollTop(window.prop("scrollHeight") - oldScrollSize[index]);
 }
 
+function IsAtBottom(index) {
+   if (scrollStates[index] == 1) {
+    return true
+   }
+   else {
+       return false
+   }
+}
+
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
     var window = $("#innerwindow-" + index);
