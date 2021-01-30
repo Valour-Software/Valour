@@ -209,6 +209,7 @@ body {
     max-height: 300px;
     margin-bottom: 10px;
     display: block;
+    transition: max-width .5s ease;
 }
 
 .message:hover .content img {
