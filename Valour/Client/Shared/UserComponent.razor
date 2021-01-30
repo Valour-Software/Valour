@@ -2,7 +2,12 @@
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@style">
     <div class="user-info">
         <p class="username" style="color: @User.GetMainRoleColor()">
-            @User.Username
+            @if (User.Username.Length > 16) {
+                @User.Username.Substring(0, 15)
+            }
+            else {
+                @User.Username
+            }
         </p>
         @((MarkupString)BotString)
         <br>

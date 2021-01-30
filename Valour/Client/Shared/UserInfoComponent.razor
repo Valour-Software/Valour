@@ -1,7 +1,14 @@
 ﻿<div class="user-info">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
     <p class="username">
-        @User.Username
+        @if (User.Username.Length > 16) {
+            @User.Username.Substring(0, 15)
+            Console.WriteLine("rfj349r 98u8rw jie iu98b0980 b0984 ");
+            Console.WriteLine(User.Username.Substring(0, 15));
+        }
+        else {
+            @User.Username
+        }
     </p>
     <div class="active">
     </div>
