@@ -10,11 +10,11 @@
         {
             if (msg.Author_Id != lastAuthorId)
             {
-                <MessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MessageComponent>
+                <MessageComponent Message="msg"></MessageComponent>
             }
             else
             {
-                <MultiMessageComponent Message="msg" @key='$"{msg.Channel_Id}-{msg.Message_Index}"'></MultiMessageComponent>
+                <MultiMessageComponent Message="msg"></MultiMessageComponent>
             }
 
             lastAuthorId = msg.Author_Id;
