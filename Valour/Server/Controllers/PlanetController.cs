@@ -169,7 +169,8 @@ namespace Valour.Server.Controllers
             {
                 Name = "General",
                 Planet_Id = planet.Id,
-                Message_Count = 0
+                Message_Count = 0,
+                Description = "General chat channel"
             };
 
             // Add channel to database
