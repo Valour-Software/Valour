@@ -482,9 +482,35 @@ namespace Valour.Server.Controllers
                 await Context.SaveChangesAsync();
             }
 
+            List<PlanetBan> bans = await Task.Run(() => Context.PlanetBans.Where(x => x.User_Id == id).ToList());
+            
+            foreach(PlanetBan ban in bans) {
+                if (ban.Permanent == false) {
+                    if (DateTime.UtcNow > ban.Time.AddMinutes((double)ban.Minutes)) {
+                        PlanetMember newMember = new PlanetMember()
+                        
+                        {
+                            Planet_Id = ban.Planet_Id,
+                            User_Id = ban.User_Id
+                        };
+
+                        await Context.PlanetMembers.AddAsync(newMember);
+
+                        Context.PlanetBans.Remove(ban);
+
+                        await Context.SaveChangesAsync();
+                    }
+                }
+            }
+
             foreach(PlanetMember member in Context.PlanetMembers.Where(x => x.User_Id == id))
             {
                 Planet planet = await Context.Planets.FindAsync(member.Planet_Id);
+
+                if (await member.IsBanned(Context, planet.Id)) {
+                    Context.PlanetMembers.Remove(member);
+                    await Context.SaveChangesAsync();
+                }
 
                 if (planet != null)
                 {
