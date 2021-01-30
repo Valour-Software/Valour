@@ -77,6 +77,13 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Ban)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
+
             PlanetBan ban = new PlanetBan()
             {
                 Reason = reason,
