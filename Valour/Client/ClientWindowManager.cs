@@ -110,6 +110,11 @@ namespace Valour.Client
         /// </summary>
         public int Index { get; set; }
 
+        /// <summary>
+        /// True if a render is needed
+        /// </summary>
+        public bool NeedsRender { get; set; }
+
         public ClientWindow(int index)
         {
             this.Index = index;
