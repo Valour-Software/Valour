@@ -1205,6 +1205,7 @@ body {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
 .UserList {
     overflow-y: scroll;
     overflow-x: hidden;
