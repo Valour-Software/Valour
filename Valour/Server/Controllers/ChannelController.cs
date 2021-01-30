@@ -305,8 +305,21 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<TaskResult> PostMessage(PlanetMessage msg)
+        public async Task<TaskResult> PostMessage(PlanetMessage msg, string token)
         {
+
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != msg.Author_Id)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
             //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
 
             if (msg == null)

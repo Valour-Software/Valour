@@ -224,7 +224,7 @@
 
         Console.WriteLine("SEND: \n" + json);
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage", message);
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage?token={ClientUserManager.UserSecretToken}", message);
 
         TaskResult response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(await httpresponse.Content.ReadAsStringAsync());
 
