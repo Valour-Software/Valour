@@ -29,11 +29,13 @@
     [Parameter]
     public List<ClientPlanetMessage> Messages { get; set; }
 
-    [Parameter]
-    public bool ForceRender { get; set; }
-
     public ulong currentTop;
     public ulong currentBottom;
+
+    protected override async Task OnInitializedAsync()
+    {
+        StateHasChanged();
+    }
 
     protected override bool ShouldRender()
     {
