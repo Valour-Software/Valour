@@ -12,7 +12,7 @@
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @Author.GetMainRoleColor();" id="@Author.Id,@Author.Planet_Id" oncontextmenu="UserContextMenu(event, this)">
+            <p class="author-name" style="color: @Author.GetMainRoleColor();" id="@Author.Id,@planetManager.GetCurrent().Id" oncontextmenu="UserContextMenu(event, this)">
                 @Author.Username
             </p>
 
