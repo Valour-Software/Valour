@@ -7,9 +7,7 @@ EmailConfig.json
 # 3.0 templates should be even less
 # wwwroot/lib/
 # When wwwroot/lib/ is commented out, excluse .min and .map files
-*.min.css
-*.min.js
-*.map
+
 
 _build/
 _site/
