@@ -97,8 +97,8 @@
         ForceMessageRefresh = false;
 
         //while (true){
-      //      PostMessage(Guid.NewGuid().ToString());
-     //   }
+        //      PostMessage(Guid.NewGuid().ToString());
+        //   }
     }
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
@@ -159,11 +159,13 @@
 
         //Get current window scroll pos
 
-        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);        
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
 
         // check if theres too many messages
         if (IsAtBottom) {
             Window.messages.RemoveRange(0, Window.messages.Count- 120);
+            Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
+            Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
 
         Window.messageIndex = message.Message_Index;
