@@ -157,6 +157,15 @@
 
         Window.messages.Add(message);
 
+        //Get current window scroll pos
+
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);        
+
+        // check if theres too many messages
+        if (IsAtBottom) {
+            Window.messages.RemoveRange(0, Window.messages.Count- 120);
+        }
+
         Window.messageIndex = message.Message_Index;
 
         Console.WriteLine("Added message.");
