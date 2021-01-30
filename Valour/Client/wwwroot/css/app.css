@@ -203,7 +203,8 @@ body {
 }
 
 .content img {
-
+    max-width:  300px;
+    max-height: 300px;
 }
 
 .content a {
@@ -211,6 +212,9 @@ body {
     white-space: nowrap;
     content: attr(href);
     display: block;
+    max-width: 100%;
+    word-break: break-all;
+    white-space: break-spaces;
 }
 
 

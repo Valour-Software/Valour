@@ -20,6 +20,7 @@ using Valour.Server.Workers;
 using Valour.Server.Planets;
 using AutoMapper;
 using Valour.Server.Oauth;
+using Valour.Server.MSP;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -362,6 +363,9 @@ namespace Valour.Server.Controllers
             {
                 return new TaskResult(false, "Malformed message.");
             }
+
+            // Media proxy layer
+            msg.Content = await MSPManager.HandleUrls(msg.Content);
 
             PlanetMessageWorker.AddToQueue(msg);
 
