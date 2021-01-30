@@ -124,6 +124,7 @@
 
         hubConnection = new HubConnectionBuilder()
             .WithUrl(conUrl)
+            .WithAutomaticReconnect()
             .Build();
 
         await hubConnection.StartAsync();
