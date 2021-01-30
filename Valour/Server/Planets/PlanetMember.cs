@@ -85,6 +85,10 @@ namespace Valour.Server.Planets
                 return false;
             }
 
+            if (ban == null) {
+                return false;
+            }
+
             else {
                 return true;
             }
