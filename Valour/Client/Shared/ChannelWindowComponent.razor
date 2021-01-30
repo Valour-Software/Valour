@@ -158,20 +158,19 @@
         //await JS.InvokeVoidAsync("AddMessage", Window.Index);
 
         Window.messages.Add(message);
+        Window.messageIndex = message.Message_Index;
 
         //Get current window scroll pos
 
-        //bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
 
         //Console.WriteLine("Bottom: " + IsAtBottom);
 
         // check if theres too many messages
-        //if (IsAtBottom) {
-        //    Window.messages.RemoveRange(0, Window.messages.Count - 120);
-        //    Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
-        //}
-
-        Window.messageIndex = message.Message_Index;
+        if (IsAtBottom) {
+            Window.messages.RemoveRange(0, Window.messages.Count - 120);
+            Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
+        }
 
         Console.WriteLine("Added message.");
 

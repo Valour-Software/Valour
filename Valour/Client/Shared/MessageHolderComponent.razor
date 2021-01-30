@@ -3,9 +3,6 @@
     {
         ulong lastAuthorId = 0;
 
-        currentTop = Messages[0].Message_Index;
-        currentBottom = Messages[Messages.Count - 1].Message_Index;
-
         foreach (ClientPlanetMessage msg in Messages)
         {
             if (msg.Author_Id != lastAuthorId)
@@ -24,13 +21,33 @@
 
 @code {
     [Parameter]
-    public ClientWindow Window { get; set; }
+    public ChatChannelWindow Window { get; set; }
 
     [Parameter]
     public List<ClientPlanetMessage> Messages { get; set; }
 
-    public ulong currentTop;
-    public ulong currentBottom;
+    public bool shouldRender;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Messages == null || Messages.Count == 0)
+        {
+            shouldRender = false;
+            return;
+        }
+
+        Console.WriteLine($"{Window.messageIndex} | {Window.messageIndexRendered}");
+
+        if ((Window.messageIndex != Window.messageIndexRendered) || (Window.firstMessageIndex != Window.firstMessageIndexRendered))
+        {
+            Window.messageIndexRendered = Window.messageIndex;
+            Window.firstMessageIndexRendered = Window.firstMessageIndex;
+            shouldRender = true;
+            return;
+        }
+
+        shouldRender = false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,11 +56,6 @@
 
     protected override bool ShouldRender()
     {
-        if (Messages == null || Messages.Count == 0) return false;
-
-        ulong newTop = Messages[0].Message_Index;
-        ulong newBottom = Messages[Messages.Count - 1].Message_Index;
-
-        return !(currentTop == newTop && currentBottom == newBottom);
+        return shouldRender;
     }
 }

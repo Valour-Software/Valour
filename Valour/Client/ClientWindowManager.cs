@@ -161,6 +161,9 @@ namespace Valour.Client
         /// </summary>
         public ulong firstMessageIndex;
 
+        public ulong messageIndexRendered;
+        public ulong firstMessageIndexRendered;
+
         public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
         {
             this.Channel = channel;
