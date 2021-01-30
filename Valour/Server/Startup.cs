@@ -56,6 +56,8 @@ namespace Valour.Server
         {
             LoadConfigs();
 
+            services.AddSignalR();
+
             var mapConfig = new MapperConfiguration(x =>
             {
                 x.AddProfile(new MappingProfile());
@@ -75,8 +77,6 @@ namespace Valour.Server
 
             // Adds user manager to dependency injection
             services.AddScoped<UserManager>();
-
-            services.AddSignalR();
             services.AddControllersWithViews();
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
@@ -173,6 +173,8 @@ namespace Valour.Server
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
+            app.UseWebSockets();
 
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
