@@ -165,7 +165,6 @@
         if (IsAtBottom) {
             Window.messages.RemoveRange(0, Window.messages.Count- 120);
             Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
-            Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
 
         Window.messageIndex = message.Message_Index;
