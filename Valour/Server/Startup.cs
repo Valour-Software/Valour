@@ -194,7 +194,7 @@ namespace Valour.Server
                 endpoints.MapHub<MessageHub>(MessageHub.HubUrl, options =>
                 {
                     options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
-                });
+                }); 
             });
 
             MessageHub.Current = app.ApplicationServices.GetService<IHubContext<MessageHub>>();
