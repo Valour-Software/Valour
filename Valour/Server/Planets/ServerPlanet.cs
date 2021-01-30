@@ -152,7 +152,6 @@ namespace Valour.Server.Planets
                 }
 
                 // In the future we do role magic here
-                PlanetUser user = await PlanetUserCache.GetPlanetUserAsync(authToken.User_Id, Id);
             }
 
             return false;
