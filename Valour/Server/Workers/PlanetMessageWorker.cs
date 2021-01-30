@@ -13,6 +13,8 @@ using Newtonsoft.Json;
 using Valour.Server.Messages;
 using Microsoft.AspNetCore.SignalR;
 using Valour.Shared;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Valour.Server.Workers
 {
@@ -39,6 +41,11 @@ namespace Valour.Server.Workers
         public static void AddToQueue(PlanetMessage message)
         {
             MessageQueue.Add(message);
+        }
+
+        public static List<PlanetMessage> GetStagedMessages(ulong channel_id, int max)
+        {
+            return MessageDBChunk.Where(x => x.Channel_Id == channel_id).TakeLast(max).Reverse().ToList();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -100,7 +107,7 @@ namespace Valour.Server.Workers
                     // Save to DB
 
 
-                    await Task.Delay(1000, stoppingToken);
+                    await Task.Delay(30000, stoppingToken);
                 }
 
                 _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now);

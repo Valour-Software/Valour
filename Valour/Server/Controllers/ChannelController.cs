@@ -285,12 +285,25 @@ namespace Valour.Server.Controllers
                 count = 64;
             }
 
-            IEnumerable<PlanetMessage> messages = await Task.Run(() =>
-            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
-                                  .OrderByDescending(x => x.Message_Index)
-                                  .Take(count)
-                                  .Reverse()
-                                  .ToList());
+            List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel_id, count);
+            List<PlanetMessage> messages = null;
+
+            count = count - staged.Count;
+
+            if (count > 0)
+            {
+                await Task.Run(() =>
+                {
+                    messages =
+                    Context.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
+                                          .OrderByDescending(x => x.Message_Index)
+                                          .Take(count)
+                                          .Reverse()
+                                          .ToList();
+                });
+
+                messages.AddRange(staged);
+            }
 
             return messages;
         }
@@ -304,12 +317,25 @@ namespace Valour.Server.Controllers
                 count = 64;
             }
 
-            IEnumerable<PlanetMessage> messages = await Task.Run(() => 
-            Context.PlanetMessages.Where(x => x.Channel_Id == channel_id)
-                                  .OrderByDescending(x => x.Message_Index)
-                                  .Take(count)
-                                  .Reverse()
-                                  .ToList());
+            List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel_id, count);
+            List<PlanetMessage> messages = null;
+
+            count = count - staged.Count;
+
+            if (count > 0)
+            {
+                await Task.Run(() =>
+                {
+                    messages =
+                    Context.PlanetMessages.Where(x => x.Channel_Id == channel_id)
+                                          .OrderByDescending(x => x.Message_Index)
+                                          .Take(count)
+                                          .Reverse()
+                                          .ToList();
+                });
+
+                messages.AddRange(staged);
+            }
 
             return messages;
         }
