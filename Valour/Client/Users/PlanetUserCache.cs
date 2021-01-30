@@ -30,6 +30,12 @@ namespace Valour.Client.Users
             TaskResult<List<ClientPlanetUser>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetUser>>>(json);
 
             List<ClientPlanetUser> list = result.Data;
+
+            foreach(ClientPlanetUser user in list) {
+                if (Cache.ContainsKey((user.Id, planet_id)) == false) {
+                    Cache.TryAdd((user.Id, planet_id), user);
+                }
+            }
             
             return list;
    }
