@@ -14,6 +14,9 @@ using Valour.Shared.Planets;
 using Valour.Shared.Categories;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Valour.Server.Planets;
+using Valour.Server.Oauth;
+using AutoMapper;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -36,10 +39,13 @@ namespace Valour.Server.Controllers
         /// </summary>
         private readonly ValourDB Context;
 
+        private readonly IMapper Mapper;
+
         // Dependency injection
-        public CategoryController(ValourDB context)
+        public ChannelController(ValourDB context, IMapper mapper)
         {
             this.Context = context;
+            this.Mapper = mapper;
         }
 
         public async Task<TaskResult> SetName(string name, ulong id, ulong userid, string token)
@@ -57,6 +63,13 @@ namespace Valour.Server.Controllers
             }
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
 
             category.Name = name;
 
@@ -79,8 +92,16 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            await Context.Delete(Context, id);
+            PlanetCategory category = await Context.PlanetCategories.FindAsync(id);
 
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
+
+            Context.PlanetCategories.Remove(category);
             await Context.SaveChangesAsync();
 
             return new TaskResult(true, "Successfully deleted.");
@@ -101,6 +122,13 @@ namespace Valour.Server.Controllers
             }
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
 
             if (parentId == 0) {
                 category.Parent_Id = null;
@@ -137,6 +165,13 @@ namespace Valour.Server.Controllers
             if (authToken == null || authToken.User_Id != userid)
             {
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
+            }
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult<ulong>(false, "You are not authorized to do this.", 0);
             }
 
             // User is verified and given channel info is valid by this point
