@@ -64,4 +64,5 @@ namespace Valour.Server.Planets
         /// </summary>
         public bool Permanent { get; set; }
     }
+
 }

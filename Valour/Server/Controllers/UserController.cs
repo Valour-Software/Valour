@@ -51,46 +51,6 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
 
-        public async Task<TaskResult> BanUser(ulong id, ulong Planet_Id, string reason, ulong time, ulong userid, string token, uint minutes)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            PlanetBan ban = new PlanetBan()
-            {
-                Reason = reason,
-                Planet_Id = Planet_Id,
-                User_Id = id,
-                Banner_Id = userid,
-                Time = DateTime.UtcNow,
-                Permanent = false
-            };
-            
-            if (minutes == 0) {
-                ban.Permanent = true;
-            }
-            else {
-                ban.Minutes = minutes;
-            }
-
-            // Add channel to database
-            await Context.PlanetBans.AddAsync(ban);
-
-            // Save changes to DB
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, $"Successfully banned user {id}");
-        }
-
         public async Task<TaskResult> KickUser(ulong id, ulong Planet_Id, ulong userid, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
