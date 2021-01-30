@@ -128,9 +128,19 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
+
+            if (channel == null)
+            {
+                return new TaskResult(false, "That channel does not exist.");
+            }
 
             ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+
+            if (planet == null)
+            {
+                return new TaskResult(false, "Could not find the planet.");
+            }
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
