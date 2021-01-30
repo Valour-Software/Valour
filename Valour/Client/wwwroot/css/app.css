@@ -205,6 +205,17 @@ body {
 .content img {
     max-width:  300px;
     max-height: 300px;
+    margin-bottom: 10px;
+}
+
+.message:hover .content img {
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.multi-message:hover .content img {
+    max-width: 90%;
+    max-height: 90%;
 }
 
 .content a {
