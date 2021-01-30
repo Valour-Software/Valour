@@ -25,19 +25,19 @@ namespace Valour.Client.Users
 
         public static async Task<List<ClientPlanetUser>> GetPlanetsUsers(ulong planet_id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlantUserIds?Planet_Id={planet_id}&token={ClientUserManager.UserSecretToken}&userid={ClientUserManager.User.Id}");
+            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUsers?Planet_Id={planet_id}&token={ClientUserManager.UserSecretToken}&userid={ClientUserManager.User.Id}");
 
-            TaskResult<List<ulong>> result = JsonConvert.DeserializeObject<TaskResult<List<ulong>>>(json);
+            TaskResult<List<ClientPlanetUser>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetUser>>>(json);
 
-            List<ClientPlanetUser> users = new List<ClientPlanetUser>();
+            List<ClientPlanetUser> list = result.Data;
 
-            List<ulong> ids = result.Data;
-
-            foreach(ulong id in ids) {
-                users.Add(await GetPlanetUserAsync(id, planet_id));
+            foreach(ClientPlanetUser user in list) {
+                if (Cache.ContainsKey((user.Id, planet_id)) == false) {
+                    Cache.TryAdd((user.Id, planet_id), user);
+                }
             }
             
-            return users;
+            return list;
    }
 
         /// <summary>

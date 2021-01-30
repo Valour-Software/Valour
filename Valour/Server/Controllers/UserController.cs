@@ -18,6 +18,7 @@ using Valour.Shared;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
+using Valour.Client.Users;
 using Valour.Shared.Users.Identity;
 using Newtonsoft.Json;
 
@@ -536,6 +537,29 @@ namespace Valour.Server.Controllers
             }
 
             return new TaskResult<List<ulong>>(true, $"Retrieved {ids.Count()} users", ids);
+        }
+
+        public async Task<TaskResult<List<User>>> GetPlanetUsers(ulong Planet_Id, ulong userid, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken.User_Id != userid)
+            {
+                return new TaskResult<List<User>>(false, $"Could not authenticate for user {userid}", null);
+            }
+            List<PlanetMember> list = await Task.Run(() => Context.PlanetMembers.Where(x => x.Planet_Id == Planet_Id).ToList());
+
+            List<User> UsersToReturn = new List<User>();
+
+            List<User> Users = Context.Users.ToList();
+
+            foreach(PlanetMember member in list)
+            {
+                User u = Users.Where(x => x.Id == member.User_Id).FirstOrDefault();
+                UsersToReturn.Add(u);
+            }
+
+            return new TaskResult<List<User>>(true, $"Retrieved {list.Count()} users", UsersToReturn);
         }
     }
 }
