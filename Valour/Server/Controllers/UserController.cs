@@ -68,6 +68,10 @@ namespace Valour.Server.Controllers
 
             PlanetMember member = await Context.PlanetMembers.Where(x => x.User_Id == id && x.Planet_Id == Planet_Id).FirstOrDefaultAsync();
 
+            if (member == null) {
+                return new TaskResult(true, $"Could not find PlanetMember {id}");
+            }
+
             Context.PlanetMembers.Remove(member);
 
             await Context.SaveChangesAsync();
