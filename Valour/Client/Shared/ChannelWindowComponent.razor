@@ -18,7 +18,7 @@
         }
     </div>
 
-    <MessageHolderComponent Window="Window" Messages="Window.messages"></MessageHolderComponent>
+    <MessageHolderComponent Window="Window" Messages="Window.messages" ForceRender="ForceMessageRefresh"></MessageHolderComponent>
 
     <div class="ml-1">
         <center>
@@ -48,6 +48,8 @@
     public ClientPlanetChatChannel Channel;
 
     public ClientPlanet Planet;
+
+    public bool ForceMessageRefresh;
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -88,6 +90,12 @@
             Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
         }
 
+        ForceMessageRefresh = true;
+
+        StateHasChanged();
+
+        ForceMessageRefresh = false;
+
         //while (true){
       //      PostMessage(Guid.NewGuid().ToString());
      //   }
@@ -101,8 +109,6 @@
         await hubConnection.SendAsync("JoinChannel", Channel.Id);
 
         await SetupNewChannelAsync();
-
-        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

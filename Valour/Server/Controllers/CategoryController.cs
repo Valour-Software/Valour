@@ -42,7 +42,7 @@ namespace Valour.Server.Controllers
         private readonly IMapper Mapper;
 
         // Dependency injection
-        public ChannelController(ValourDB context, IMapper mapper)
+        public CategoryController(ValourDB context, IMapper mapper)
         {
             this.Context = context;
             this.Mapper = mapper;
