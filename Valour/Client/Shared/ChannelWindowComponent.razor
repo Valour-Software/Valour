@@ -18,7 +18,7 @@
         }
     </div>
 
-    <MessageHolderComponent Window="Window" Messages="Window.messages"></MessageHolderComponent>
+    <MessageHolderComponent Window="Window" Messages="Window.messages" @ref="MessageHolder"></MessageHolderComponent>
 
     <div class="ml-1">
         <center>
@@ -52,6 +52,8 @@
     public Func<Task> ForceRefreshMessages;
 
     public bool ForceMessageRefresh;
+
+    public MessageHolderComponent MessageHolder { get; set; }
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -176,6 +178,7 @@
 
         // Flag for UI refresh
         StateHasChanged();
+        MessageHolder.ForceRefresh();
 
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
     }

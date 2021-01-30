@@ -26,28 +26,15 @@
     [Parameter]
     public List<ClientPlanetMessage> Messages { get; set; }
 
-    public bool shouldRender;
-
-    protected override async Task OnParametersSetAsync()
+    public void ForceRefresh()
     {
-        if (Messages == null || Messages.Count == 0)
-        {
-            shouldRender = false;
-            return;
-        }
-
-        Console.WriteLine($"{Window.messageIndex} | {Window.messageIndexRendered}");
-
-        if ((Window.messageIndex != Window.messageIndexRendered) || (Window.firstMessageIndex != Window.firstMessageIndexRendered))
-        {
-            Window.messageIndexRendered = Window.messageIndex;
-            Window.firstMessageIndexRendered = Window.firstMessageIndex;
-            shouldRender = true;
-            return;
-        }
-
-        shouldRender = false;
+        StateHasChanged();
     }
+
+    //protected override async Task OnParametersSetAsync()
+    //{
+
+    //}
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,6 +43,20 @@
 
     protected override bool ShouldRender()
     {
-        return shouldRender;
+        if (Messages == null || Messages.Count == 0)
+        { 
+            return false;
+        }
+
+        Console.WriteLine($"{Window.messageIndex} | {Window.messageIndexRendered}");
+
+        if ((Window.messageIndex != Window.messageIndexRendered) || (Window.firstMessageIndex != Window.firstMessageIndexRendered))
+        {
+            Window.messageIndexRendered = Window.messageIndex;
+            Window.firstMessageIndexRendered = Window.firstMessageIndex;
+            return true;
+        }
+
+        return false;
     }
 }
