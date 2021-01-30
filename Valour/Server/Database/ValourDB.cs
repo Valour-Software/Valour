@@ -104,25 +104,5 @@ namespace Valour.Server.Database
         {
             
         }
-        public async Task<TaskResult> Delete(ValourDB Context, ulong id) {
-            List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
-
-            foreach(PlanetCategory Category in categories)
-            {
-                await this.Delete(Context, Category.Id);
-                
-            }
-            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
-
-            foreach(PlanetChatChannel channel in channels) {
-                Context.PlanetChatChannels.Remove(channel);
-            }
-
-            PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
-
-            Context.PlanetCategories.Remove(category);
-
-            return null;
-        }
     }
 }

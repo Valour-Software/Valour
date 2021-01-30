@@ -34,7 +34,7 @@
                 {
 
                     <RoleComponent Name="Emperor"></RoleComponent>
-                    <div class="UserList">
+                    <div class="UserList keep-scrolling">
                         @foreach (var user in planetUserList)
                         {
                             <UserComponent Only="true" User="@user"></UserComponent>
@@ -170,10 +170,20 @@
                 Kick
                 </p>
             </div>
-            <div class="context-menu-item delete-context-menu-item" onclick="">
+            <div class="context-menu-item delete-context-menu-item" onclick="BanUser()">
                 <p class="context-menu-item-text">
                 Ban
                 </p>
+            </div>
+        </div>
+        <div class="modal BanModel" id="BanModel">
+        <!-- Modal content -->
+            <div class="modal-content-BanModel">
+                <div class="login-box">
+                    <div class="col-md-12">
+                        <BanUserComponent></BanUserComponent>   
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal channelmodel" id="CreateChannel">

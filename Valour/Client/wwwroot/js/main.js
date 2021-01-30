@@ -183,6 +183,11 @@ window.onclick = function(event) {
         modal.style.display = "none";
     }
 
+    var modal = document.getElementsByClassName("BanModel")[0];
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+
 
 }
 
@@ -253,8 +258,15 @@ function KickUser() {
         .then(data => {
             console.log(data)
         })
-            
+}
 
+function BanUser() {
+    x = document.getElementById("BanModel")
+    x.style.display = "block"
+}
+
+function GetSelectedUserId() {
+    return parseInt(SelectedUserId)
 }
 
 function ChannelListItemContextMenu(event, element) {

@@ -76,5 +76,19 @@ namespace Valour.Server.Planets
         {
             return GetPlanetAsync().Result;
         }
+
+        public async Task<bool> IsBanned(ValourDB Context, ulong planetid)
+        {
+            PlanetBan ban = await Context.PlanetBans.Where(x => x.Planet_Id == planetid && x.User_Id == this.User_Id).FirstOrDefaultAsync();
+
+            if (ban == null) {
+                return false;
+            }
+
+            else {
+                return true;
+            }
+
+        }
     }
 }

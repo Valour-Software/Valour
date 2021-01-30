@@ -1194,3 +1194,18 @@ body {
     max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
     font-size: 24px;
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.keep-scrolling::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.keep-scrolling {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.UserList {
+    overflow-y: scroll;
+    overflow-x: hidden;
+}

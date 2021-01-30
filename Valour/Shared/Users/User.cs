@@ -56,4 +56,5 @@ namespace Valour.Shared.Users
         /// </summary>
         public bool Valour_Staff { get; set; }
     }
+
 }

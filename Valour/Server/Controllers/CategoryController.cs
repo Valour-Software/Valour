@@ -101,6 +101,21 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
+            List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
+
+            foreach(PlanetCategory Category in categories)
+            {
+                Category.Parent_Id = null;
+                
+            }
+            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
+
+            foreach(PlanetChatChannel channel in channels) {
+                Context.PlanetChatChannels.Remove(channel);
+            }
+
+            Context.PlanetCategories.Remove(category);
+
             Context.PlanetCategories.Remove(category);
             await Context.SaveChangesAsync();
 
