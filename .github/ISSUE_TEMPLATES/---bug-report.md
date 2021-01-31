@@ -7,21 +7,22 @@ assignees: ''
 
 ---
 
-**Describe the bug**
+**Describe the bug**  
 A clear and concise description of what the bug is.
 
-**To Reproduce**
+**To Reproduce**  
 Steps to reproduce the behavior:
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
 4. See error
 
-**Expected behavior**
+**Expected behavior**  
 A clear and concise description of what you expected to happen.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Screenshots**  
+If applicable, add screenshots to help explain your problem.  
+**PLEASE MAKE SURE TO NOT EXPOSE ANY SECRETS (tokens, IP adresses, etc.)**
 
 **System Information:**
  - OS: [e.g. iOS]
@@ -29,5 +30,5 @@ If applicable, add screenshots to help explain your problem.
      - Browser: [e.g. chrome, safari] **Only answer when saying you use Web**
      - Discord Version: [e.g. Stable 72162, Canary 72162] **Only answer when saying you use the mobile or desktop app** (Can be found within the settings menu)
 
-**Additional context**
+**Additional context**  
 Add any other context about the problem here.
