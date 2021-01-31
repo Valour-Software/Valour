@@ -204,32 +204,20 @@ body {
     visibility: visible;
 }
 
-.message .content img {
-    max-width: 300px;
-    max-height: 300px;
-    margin-bottom: 10px;
-    display: block; 
-    transition: max-width 0.125s ease-in;
-    transition-delay: 0.5s;
-}
-
-.multi-message .content img {
+.content img {
     max-width: 300px;
     max-height: 300px;
     margin-bottom: 10px;
     display: block;
-    transition: max-width 0.125s ease-in;
+    transition: all 0.125s ease;
+    transition-delay: 0s;
+}
+
+.content img:hover {
+    max-width: 500px;
+    max-height: 500px;
+    transition: all 0.125s ease;
     transition-delay: 0.5s;
-}
-
-.message .content img:hover {
-    max-width: 500px;
-    max-height: 500px;
-}
-
-.multi-message .content img:hover {
-    max-width: 500px;
-    max-height: 500px;
 }
 
 .content a {
