@@ -208,6 +208,15 @@ body {
     max-width: 300px;
     max-height: 300px;
     margin-bottom: 10px;
+    display: block; 
+    transition: max-width 0.125s ease-in;
+    transition-delay: 0.5s;
+}
+
+.multi-message .content img {
+    max-width: 300px;
+    max-height: 300px;
+    margin-bottom: 10px;
     display: block;
     transition: max-width 0.125s ease-in;
     transition-delay: 0.5s;
