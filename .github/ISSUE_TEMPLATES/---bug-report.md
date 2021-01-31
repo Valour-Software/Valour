@@ -25,9 +25,8 @@ If applicable, add screenshots to help explain your problem.
 
 **System Information:**
  - OS: [e.g. iOS]
- - Discord Platform: [e.g. Web, Mobile App, Desktop App]
+ - Valour Platform: [e.g. Web, Mobile App, Desktop App]
      - Browser: [e.g. chrome, safari] **Only answer when saying you use Web**
-     - Discord Version: [e.g. Stable 72162, Canary 72162] **Only answer when saying you use the mobile or desktop app** (Can be found within the settings menu)
 
 **Additional context**
 Add any other context about the problem here.
