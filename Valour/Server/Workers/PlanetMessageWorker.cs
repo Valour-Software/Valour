@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.SignalR;
 using Valour.Shared;
 using System.Collections.Generic;
 using System.Linq;
+using Valour.Server.Planets;
 
 namespace Valour.Server.Workers
 {
@@ -76,7 +77,7 @@ namespace Valour.Server.Workers
                         string json = JsonConvert.SerializeObject(Message);
 
                         // This is not awaited on purpose
-                        MessageHub.Current.Clients.Group(channel_id.ToString()).SendAsync("Relay", json);
+                        PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", json);
 
                         StagedMessages.Add(Message);
                     }
