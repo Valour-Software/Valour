@@ -52,7 +52,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// The length of the invite before its invaild
         /// </summary>
-        public int? hours { get; set; }
+        public int? Hours { get; set; }
 
         /// <summary>
         /// True if the invite never expires
