@@ -54,10 +54,9 @@ namespace Valour.Server.Planets
         /// </summary>
         public int? Hours { get; set; }
 
-        /// <summary>
-        /// True if the invite never expires
-        /// </summary>
-        public bool Permanent { get; set; }
+        public bool IsPermanent() {
+            return (Hours == null);
+        }
 
         public string GetCode() {
             return RandomString(8);
