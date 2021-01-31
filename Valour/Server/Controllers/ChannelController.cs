@@ -369,7 +369,7 @@ namespace Valour.Server.Controllers
             ServerPlanet curPlanet = await ServerPlanet.FindAsync(msg.Channel_Id, Mapper);
             if (msg.Content.Length > curPlanet.Message_Char_Limit)
             {
-                return new TaskResult(false, $"Message greater than {curPlanet} chars.");
+                return new TaskResult(false, $"Message greater than {curPlanet.Message_Char_Limit} chars.");
             }
 
             // Media proxy layer
