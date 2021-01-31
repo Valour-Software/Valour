@@ -60,7 +60,7 @@ namespace Valour.Server.Planets
         public bool Permanent { get; set; }
 
         public string GetCode() {
-            return RandomString(9);
+            return RandomString(8);
         }
 
         private static Random random = new Random();
