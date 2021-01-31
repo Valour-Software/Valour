@@ -1,15 +1,10 @@
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Valour.Server.Database;
-using Valour.Shared.Planets;
-using Valour.Shared.Users;
 
-namespace Valour.Server.Planets
+namespace Valour.Shared.Planets
 {
     /*  Valour - A free and secure chat client
      *  Copyright (C) 2020 Vooper Media LLC
@@ -21,12 +16,11 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class PlanetInvite
+    public class ClientPlanetInvite
     {
         /// <summary>
         /// The Id of this object
         /// </summary>
-        [Key]
         public ulong Id { get; set; }
 
         /// <summary>
@@ -58,17 +52,5 @@ namespace Valour.Server.Planets
         /// True if the invite never expires
         /// </summary>
         public bool Permanent { get; set; }
-
-        public string GetCode() {
-            return RandomString(9);
-        }
-
-        private static Random random = new Random();
-        public static string RandomString(int length)
-        {
-            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
     }
 }
