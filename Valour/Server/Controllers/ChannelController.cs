@@ -364,6 +364,12 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Malformed message.");
             }
 
+            // Stop people from sending insanely large messages
+            if (msg.Content.Length > 1000)
+            {
+                return new TaskResult(false, "Message greater than 1000 chars.");
+            }
+
             // Media proxy layer
             msg.Content = await MSPManager.HandleUrls(msg.Content);
 

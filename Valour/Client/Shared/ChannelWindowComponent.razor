@@ -198,6 +198,14 @@
 
             Console.WriteLine(currentInput);
 
+            // Stop people from sending insanely large messages
+            if (msg.Length > 1000)
+            {
+                // Just return for now?
+                // Not sure what would else to return as
+                return;
+            }
+
             string temp = msg;
 
             temp = temp.TrimEnd('\n');
