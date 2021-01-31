@@ -40,8 +40,6 @@
     /// </summary>
     private string currentInput;
 
-    private HubConnection hubConnection;
-
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
@@ -61,8 +59,6 @@
         Channel = Window.Channel;
 
         Planet = await Window.Channel.GetPlanetAsync();
-
-        StateHasChanged();
 
         Window.Component = this;
 
@@ -84,6 +80,8 @@
     public async Task SetupNewChannelAsync()
     {
         Window.messages.Clear();
+
+        await planetManager.OpenPlanetChatChannel(this);
 
         // Request messages from server
         Window.messages.AddRange(await Channel.GetLastMessagesAsync(64));
@@ -107,10 +105,9 @@
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
     {
-        await hubConnection.SendAsync("LeaveChannel", Channel.Id);
+        await planetManager.ClosePlanetChatChannel(this);
         Window.Channel = newchannel;
         Channel = newchannel;
-        await hubConnection.SendAsync("JoinChannel", Channel.Id);
 
         await SetupNewChannelAsync();
     }
@@ -123,42 +120,17 @@
 
     public async Task ConnectSignalR()
     {
-        // Get url for
-        string conUrl = navManager.BaseUri.TrimEnd('/') + "/messagehub";
 
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(conUrl)
-            .WithAutomaticReconnect()
-            .Build();
-
-        await hubConnection.StartAsync();
-
-        // Connect to channel
-        await hubConnection.SendAsync("JoinChannel", Channel.Id);
-
-        hubConnection.On<string>("Relay", RecieveMessage);
     }
 
     public async Task OnWindowClosed()
     {
-        await hubConnection.SendAsync("LeaveChannel", Channel.Id);
-        await hubConnection.DisposeAsync();
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
+        await planetManager.ClosePlanetChatChannel(this);
     }
 
-    public async Task RecieveMessage(string data)
+    public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
-
-        ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(data);
-
-        Console.WriteLine($"Recieved message {message.Message_Index}.");
-
-        //Console.WriteLine(data);
-
-        //Console.WriteLine(await message.GetAuthorAsync());
-
-        //await JS.InvokeVoidAsync("AddMessage", Window.Index);
-
         Window.messages.Add(message);
         Window.messageIndex = message.Message_Index;
 

@@ -15,6 +15,7 @@
                     <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
                     <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
                     <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
+                    <div class="@GetButtonClass(5)" @onclick="(async () => SetSelectedTab(5))">Create Invite</div>
                 </div>
                 <div class="col-9 edit-planet-col-right">
                     @switch (selected)
@@ -33,6 +34,9 @@
                             break;
                         case 4:
                             <EditPlanetRolesComponent></EditPlanetRolesComponent>
+                            break;
+                        case 5:
+                            <CreateInviteLink></CreateInviteLink>
                             break;
                         default:
                             break;
@@ -62,9 +66,9 @@ else
         return "settings-button";
     }
 
-    public bool[] buttonStates = new bool[5]
+    public bool[] buttonStates = new bool[6]
     {
-        true, false, false, false, false
+        true, false, false, false, false, false
     };
 
     public int selected = 0;

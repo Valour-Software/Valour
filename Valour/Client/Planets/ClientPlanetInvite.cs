@@ -1,15 +1,12 @@
-using Microsoft.EntityFrameworkCore;
 using System;
+using AutoMapper;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Valour.Server.Database;
-using Valour.Shared.Planets;
-using Valour.Shared.Users;
+using Valour.Shared;
 
-namespace Valour.Server.Planets
+namespace Valour.Shared.Planets
 {
     /*  Valour - A free and secure chat client
      *  Copyright (C) 2020 Vooper Media LLC
@@ -21,12 +18,11 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class PlanetInvite
+    public class ClientPlanetInvite : PlanetInvite
     {
         /// <summary>
         /// The Id of this object
         /// </summary>
-        [Key]
         public ulong Id { get; set; }
 
         /// <summary>
@@ -58,16 +54,11 @@ namespace Valour.Server.Planets
             return (Hours == null);
         }
 
-        public string GetCode() {
-            return RandomString(8);
-        }
+        public string PlanetName {get; set;}
 
-        private static Random random = new Random();
-        public static string RandomString(int length)
+        public static ClientPlanetInvite FromBase(PlanetInvite invite, IMapper mapper)
         {
-            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
+            return mapper.Map<ClientPlanetInvite>(invite);
         }
     }
 }

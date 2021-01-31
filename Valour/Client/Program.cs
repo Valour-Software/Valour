@@ -9,6 +9,7 @@ using Valour.Client.Mapping;
 using Microsoft.JSInterop;
 using Valour.Client.Planets;
 using Valour.Client.Categories;
+using Microsoft.AspNetCore.Components;
 
 
 /*  Valour - A free and secure chat client
@@ -29,10 +30,10 @@ namespace Valour.Client
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddScoped<LocalStorageService>();
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddSingleton<SignalRManager>();
             builder.Services.AddSingleton<ClientPlanetManager>();
             builder.Services.AddSingleton<ClientWindowManager>();
             builder.Services.AddSingleton<ClientCategoryManager>();
-
 
             var mapConfig = new MapperConfiguration(x =>
             {
@@ -43,7 +44,14 @@ namespace Valour.Client
 
             builder.Services.AddSingleton(mapper);
 
-            await builder.Build().RunAsync();
+            var host = builder.Build();
+
+            var navService = host.Services.GetRequiredService<NavigationManager>();
+            var signalRService = host.Services.GetRequiredService<SignalRManager>();
+
+            await signalRService.ConnectPlanetHub();
+
+            await host.RunAsync();
         }
     }
 } 

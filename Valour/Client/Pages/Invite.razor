@@ -1,0 +1,57 @@
+﻿@page "/I/{code}"
+
+@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+
+<body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
+    <div class="login-box">
+        <div class="col-md-12">
+            <section>
+                <h2>Do you want to join @PlanetName</h2>
+
+                <center>
+                    <a href=@InviteLink <button class="btn btn-primary mt-2">Join</button></a>
+                </center>
+            </section>
+        </div>
+    </div>
+</body>
+
+@code {
+
+    [Parameter]
+    public string code {get; set;}
+
+    string PlanetName = "";
+    string InviteLink = "/Invite/Join/";
+
+
+    protected async override Task OnInitializedAsync()
+    {
+
+        if (ClientUserManager.IsLoggedIn() != true) {
+            navManager.NavigateTo("/");
+        }
+        
+        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}");
+
+        TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
+        
+        if (result.Success == false) {
+            navManager.NavigateTo("/");
+        }
+
+        PlanetName = result.Data.PlanetName;
+
+        ulong userid = ClientUserManager.User.Id;
+        string token = ClientUserManager.UserSecretToken;
+
+        InviteLink = $"/Invite/Join?code={result.Data.Code}&userid={userid}&token={token}";
+
+        Console.WriteLine(InviteLink);
+
+        StateHasChanged();
+    }
+
+}
