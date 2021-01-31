@@ -32,7 +32,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// the invite code
         /// </summary>
-        public string code { get; set; }
+        public string Code { get; set; }
 
         /// <summary>
         /// The planet the invite is for
@@ -47,7 +47,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// The length of the invite before its invaild
         /// </summary>
-        public int? hours { get; set; }
+        public int? Hours { get; set; }
 
         /// <summary>
         /// True if the invite never expires
