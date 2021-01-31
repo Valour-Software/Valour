@@ -42,7 +42,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// The user that created the invite
         /// </summary>
-        public ulong User_Id { get; set; }
+        public ulong Issuer_Id { get; set; }
 
         /// <summary>
         /// The time the invite was created
