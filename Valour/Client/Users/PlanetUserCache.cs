@@ -21,7 +21,7 @@ namespace Valour.Client.Users
     /// </summary>
     public static class PlanetUserCache
     {
-        private static ConcurrentDictionary<(ulong, ulong), ClientPlanetUser> Cache = new ConcurrentDictionary<(ulong, ulong), ClientPlanetUser>();
+        private static ConcurrentDictionary<string, ClientPlanetUser> Cache = new ConcurrentDictionary<string, ClientPlanetUser>();
 
         public static async Task<List<ClientPlanetUser>> GetPlanetsUsers(ulong planet_id)
         {
@@ -32,8 +32,11 @@ namespace Valour.Client.Users
             List<ClientPlanetUser> list = result.Data;
 
             foreach(ClientPlanetUser user in list) {
-                if (Cache.ContainsKey((user.Id, planet_id)) == false) {
-                    Cache.TryAdd((user.Id, planet_id), user);
+
+                string key = $"{planet_id}-{user.Id}";
+
+                if (Cache.ContainsKey(key) == false) {
+                    Cache.TryAdd(key, user);
                 }
             }
             
@@ -56,10 +59,12 @@ namespace Valour.Client.Users
                 };
             }
 
+            string key = $"{planet_id}-{userid}";
+
             // Attempt to retrieve from cache
-            if (Cache.ContainsKey((userid, planet_id)))
+            if (Cache.ContainsKey(key))
             {
-                return Cache[(userid, planet_id)];
+                return Cache[key];
             }
 
             // Retrieve from server
@@ -74,7 +79,7 @@ namespace Valour.Client.Users
             Console.WriteLine($"Fetched planet user {userid} for planet {planet_id}");
 
             // Add to cache
-            Cache.TryAdd((userid, planet_id), user);
+            Cache.TryAdd(key, user);
 
             return user;
 
