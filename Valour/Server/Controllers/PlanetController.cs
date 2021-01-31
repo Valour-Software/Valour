@@ -195,7 +195,8 @@ namespace Valour.Server.Controllers
                 Description = "A Valour server.",
                 Image_Url = image_url,
                 Public = true,
-                Owner_Id = userid
+                Owner_Id = userid,
+                Message_Char_Limit = 4000
             };
 
             await Context.Planets.AddAsync(planet);
@@ -358,6 +359,25 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             return new TaskResult(true, "Changed public value successfully");
+        }
+
+        /// <summary>
+        /// Sets the maximum characters per message of a planet
+        /// </summary>
+        public async Task<TaskResult> SetMessageCharLimit(ulong planet_id, uint char_limit, string token)
+        {
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            {
+                return new TaskResult(false, "You are not authorized to manage this planet.");
+            }
+
+            planet.Message_Char_Limit = char_limit;
+
+            Context.Planets.Update(planet);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Changed char limit value successfully");
         }
     }
 }

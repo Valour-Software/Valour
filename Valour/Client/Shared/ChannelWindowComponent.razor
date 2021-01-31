@@ -198,8 +198,8 @@
 
             Console.WriteLine(currentInput);
 
-            // Stop people from sending insanely large messages
-            if (msg.Length > 1000)
+            // Checks if message is larger than the allowed current planet limit
+            if (msg.Length > Planet.Message_Char_Limit)
             {
                 // Just return for now?
                 // Not sure what would else to return as

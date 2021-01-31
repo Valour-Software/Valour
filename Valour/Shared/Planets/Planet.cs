@@ -48,5 +48,10 @@ namespace Valour.Shared.Planets
         /// The amount of members on the planet
         /// </summary>
         public uint Member_Count { get; set;}
+
+        /// <summary>
+        /// The amount of characters a single message contain (Defaults to 4000)
+        /// </summary>
+        public uint Message_Char_Limit { get; set; }
     }
 }
