@@ -58,6 +58,14 @@ namespace Valour.Client
 
                 Console.WriteLine("Reconnecting to Planet Hub");
             }
+            else
+            {
+                Console.WriteLine("SignalR has closed without error.");
+
+                await hubConnection.StartAsync();
+
+                Console.WriteLine("Reconnecting to Planet Hub");
+            }
         }
     }
 }
