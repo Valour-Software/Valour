@@ -18,7 +18,7 @@
         }
     </div>
 
-    <MessageHolderComponent Window="Window" Messages="Window.messages" @ref="MessageHolder"></MessageHolderComponent>
+    <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" Messages="Window.messages" @ref="MessageHolder"></MessageHolderComponent>
 
     <div class="ml-1">
         <center>
@@ -56,13 +56,13 @@
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        Window.messages = new List<ClientPlanetMessage>();
+
         Channel = Window.Channel;
 
         Planet = await Window.Channel.GetPlanetAsync();
 
         Window.Component = this;
-
-        Window.messages = new List<ClientPlanetMessage>();
 
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
@@ -79,7 +79,14 @@
 
     public async Task SetupNewChannelAsync()
     {
-        Window.messages.Clear();
+        if (Window.messages == null)
+        {
+            Window.messages = new List<ClientPlanetMessage>();
+        }
+        else
+        {
+            Window.messages.Clear();
+        }
 
         await planetManager.OpenPlanetChatChannel(this);
 
@@ -179,7 +186,7 @@
             if (temp != "")
             {
                 // Post message to server
-                StateHasChanged();
+                //StateHasChanged();
                 await PostMessage(msg);
                 currentInput = currentInput.TrimStart('\n'); // Fix odd bug
             }
