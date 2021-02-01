@@ -28,15 +28,17 @@ namespace Valour.Client
             Console.WriteLine(navManager.BaseUri);
 
             // Get url for
-            string conUrl = "https://valour.gg/planethub";
+            string conUrl = navManager.BaseUri.TrimEnd('/') + "/planethub";
+            //string conUrl = "https://valour.gg/planethub";
 
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(conUrl)
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);
+            //hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);
             hubConnection.Closed += OnClosed;
+            hubConnection.Reconnected += OnReconnect;
 
             await hubConnection.StartAsync();
         }
@@ -66,6 +68,12 @@ namespace Valour.Client
 
                 Console.WriteLine("Reconnecting to Planet Hub");
             }
+        }
+
+        public async Task OnReconnect(string data)
+        {
+            Console.WriteLine("SignalR has reconnected: ");
+            Console.WriteLine(data);
         }
     }
 }

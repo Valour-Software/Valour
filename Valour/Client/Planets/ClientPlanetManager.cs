@@ -153,7 +153,7 @@ namespace Valour.Client.Planets
         {
             ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(json);
 
-                        Console.WriteLine("RECIEVE: ");
+            Console.WriteLine("RECIEVE: ");
             Console.WriteLine(json);
 
             Console.WriteLine($"Recieved message {message.Message_Index} from channel {message.Channel_Id}.");
