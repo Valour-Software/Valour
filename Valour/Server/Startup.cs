@@ -56,6 +56,30 @@ namespace Valour.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", builder =>
+                {
+
+                    builder
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .SetIsOriginAllowed(_ => true)
+                        .AllowCredentials()
+                        .WithOrigins(
+                        "https://www.valour.gg",
+                        "http://www.valour.gg",
+                        "https://valour.gg",
+                        "http://valour.gg",
+                        "https://api.valour.gg",
+                        "http://api.valour.gg",
+                        "http://localhost:3000",
+                        "https://localhost:3000",
+                        "http://localhost:3001",
+                        "https://localhost:3001");
+                });
+            });
+
             LoadConfigs();
 
             services.AddSignalR();
