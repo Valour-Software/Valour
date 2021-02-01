@@ -1,7 +1,16 @@
 ﻿
 // Code for resizeable main windows
 
-document.addEventListener('contextmenu', event => event.preventDefault());
+document.addEventListener('contextmenu', event => EventForContextMenu(event));
+
+function EventForContextMenu(event) {
+    if (event.target.className.includes("EnableRightCLick")) {
+        return;
+    }
+    else {
+        event.preventDefault()
+    }
+}
 
 var splitStates = [null, null, null];
 
