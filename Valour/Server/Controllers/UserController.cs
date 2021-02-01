@@ -96,12 +96,15 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, $"Failed: There was already a user using the email {email}");
             }
 
-            TaskResult emailResult = TestEmail(email);
+            TaskResult<string> emailResult = TestEmail(email);
 
             if (!emailResult.Success)
             {
-                return emailResult;
+                return new TaskResult(false, emailResult.Message);
             }
+
+            // This may fix broken email formatting
+            email = emailResult.Data;
 
             TaskResult usernameResult = TestUsername(username);
 
@@ -206,14 +209,14 @@ namespace Valour.Server.Controllers
 
 
             // Send registration email
-            string emsg = $@"<body style='background-color:#040D14'>
-                              <h2 style='font-family:Helvetica; color:white'>
+            string emsg = $@"<body>
+                              <h2 style='font-family:Helvetica;'>
                                 Welcome to Valour!
                               </h2>
-                              <p style='font-family:Helvetica; color:white'>
+                              <p style='font-family:Helvetica;>
                                 To verify your new account, please use this code as your password the first time you log in: 
                               </p>
-                              <p style='font-family:Helvetica; color:#88ffff'>
+                              <p style='font-family:Helvetica;'>
                                 {code}
                               </p>
                             </body>";
@@ -245,12 +248,15 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Allows checking if a email meets standards
         /// </summary>
-        public TaskResult TestEmail(string email)
+        public TaskResult<string> TestEmail(string email)
         {
             try
             {
                 MailAddress address = new MailAddress(email);
-                return new TaskResult(true, "Email was valid!");
+
+                Console.WriteLine($"Email address: <{address.Address}>");
+
+                return new TaskResult<string>(true, "Email was valid!", address.Address);
             }
             catch (FormatException e)
             {
