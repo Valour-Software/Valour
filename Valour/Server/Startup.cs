@@ -184,7 +184,7 @@ namespace Valour.Server
             app.UseStaticFiles(new StaticFileOptions { 
                 OnPrepareResponse = x =>
                 {
-                    x.Context.Response.Headers[HeaderNames.CacheControl] = "no-cache";
+                    x.Context.Response.Headers[HeaderNames.CacheControl] = "no-store";
                 }
             });
 
