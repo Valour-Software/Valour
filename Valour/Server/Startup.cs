@@ -28,6 +28,7 @@ using Valour.Server.Mapping;
 using Valour.Server.Workers;
 using Valour.Server.MSP;
 using Valour.Server.Planets;
+using Microsoft.Net.Http.Headers;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2020 Vooper Media LLC
@@ -179,7 +180,13 @@ namespace Valour.Server
 
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
-            app.UseStaticFiles();
+       
+            app.UseStaticFiles(new StaticFileOptions { 
+                OnPrepareResponse = x =>
+                {
+                    x.Context.Response.Headers[HeaderNames.CacheControl] = "no-cache";
+                }
+            });
 
             app.UseRouting();
 
