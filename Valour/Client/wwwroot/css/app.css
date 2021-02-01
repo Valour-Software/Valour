@@ -1245,3 +1245,8 @@ body {
     overflow-x: hidden;
     height: calc(99.5% - 80px);
 }
+
+.category-list {
+    max-height: calc(90% - 90px);
+    overflow-y: scroll;
+}
