@@ -227,7 +227,7 @@ namespace Valour.Server
                 endpoints.MapFallbackToFile("index.html");
                 endpoints.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
                 {
-                    options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
+                    //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
                 }); 
             });
 
