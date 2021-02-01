@@ -365,11 +365,9 @@ namespace Valour.Server.Controllers
             }
 
             // Stop people from sending insanely large messages
-            // Get current planet
-            ServerPlanet curPlanet = await ServerPlanet.FindAsync(msg.Channel_Id, Mapper);
-            if (msg.Content.Length > curPlanet.Message_Char_Limit)
+            if (msg.Content.Length > 2048)
             {
-                return new TaskResult(false, $"Message greater than {curPlanet.Message_Char_Limit} chars.");
+                return new TaskResult(false, "Message is longer than 2048 chars.");
             }
 
             // Media proxy layer

@@ -1,0 +1,66 @@
+﻿@inject HttpClient http
+@inject NavigationManager navManager
+@inject ClientPlanetManager planetManager
+@using Valour.Shared
+@inject HttpClient Http
+
+<h3>Create Invite</h3>
+<hr />
+<br />
+
+<div class="settings-inner">
+    <p>How long will this invite last, in hours. (put 0 to make invite permanent)</p>
+    <input class="form-control" type="text" @bind-value="@nameValue" />
+    <span class="text-danger">Invite Link: <a href="@nameSpan" class="EnableRightCLick">@nameSpan</a></span>
+
+    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+</div>
+
+
+@code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+    public string nameValue;
+
+    public string nameSpan;
+
+    protected override async Task OnInitializedAsync()
+    {
+        nameValue = "0";
+
+        StateHasChanged();
+    }
+
+    public async Task OnSaveChanges()
+    {
+
+        ulong planet_id = planetManager.GetCurrent().Id;
+
+        ulong userid = ClientUserManager.User.Id;
+        string token = ClientUserManager.UserSecretToken;
+
+        string json = await Http.GetStringAsync($"Invite/CreateInvite?planet_id={planet_id}" +
+                                                               $"&userid={userid}" +
+                                                               $"&hours={nameValue}" +
+                                                               $"&token={token}");
+
+        TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
+
+        if (!result.Success)
+        {
+            Console.WriteLine($"Failed to retrieve planet: {result.Message}");
+            nameSpan = "Created planet, but error occured retrieving. Please restart Valour.";
+            return;
+        }
+
+        string link = navManager.BaseUri.TrimEnd('/') + "/I/" + result.Data.Code;
+
+        nameSpan = link;
+        
+        Console.WriteLine(link);
+
+        StateHasChanged();
+    }
+
+}

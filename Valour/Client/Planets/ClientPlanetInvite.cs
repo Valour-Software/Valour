@@ -1,8 +1,10 @@
 using System;
+using AutoMapper;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared;
 
 namespace Valour.Shared.Planets
 {
@@ -16,7 +18,7 @@ namespace Valour.Shared.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class ClientPlanetInvite
+    public class ClientPlanetInvite : PlanetInvite
     {
         /// <summary>
         /// The Id of this object
@@ -36,7 +38,7 @@ namespace Valour.Shared.Planets
         /// <summary>
         /// The user that created the invite
         /// </summary>
-        public ulong User_Id { get; set; }
+        public ulong Issuer_Id { get; set; }
 
         /// <summary>
         /// The time the invite was created
@@ -46,11 +48,17 @@ namespace Valour.Shared.Planets
         /// <summary>
         /// The length of the invite before its invaild
         /// </summary>
-        public int? hours { get; set; }
+        public int? Hours { get; set; }
 
-        /// <summary>
-        /// True if the invite never expires
-        /// </summary>
-        public bool Permanent { get; set; }
+        public bool IsPermanent() {
+            return (Hours == null);
+        }
+
+        public string PlanetName {get; set;}
+
+        public static ClientPlanetInvite FromBase(PlanetInvite invite, IMapper mapper)
+        {
+            return mapper.Map<ClientPlanetInvite>(invite);
+        }
     }
 }

@@ -22,6 +22,8 @@ namespace Valour.Server.Mapping
 
             CreateMap<User, PlanetUser>();
             CreateMap<PlanetUser, User>();
+
+            CreateMap<PlanetInvite, ClientPlanetInvite>();
         }
     }
 }
