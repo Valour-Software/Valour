@@ -43,9 +43,14 @@
 
     protected override bool ShouldRender()
     {
-        if (Messages == null || Messages.Count == 0)
-        { 
+        if (Messages == null)
+        {
             return false;
+        }
+
+        if (Messages.Count == 0)
+        {
+            return true;
         }
 
         Console.WriteLine($"{Window.messageIndex} | {Window.messageIndexRendered}");
