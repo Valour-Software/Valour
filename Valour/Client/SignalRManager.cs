@@ -28,7 +28,7 @@ namespace Valour.Client
             Console.WriteLine(navManager.BaseUri);
 
             // Get url for
-            string conUrl = navManager.BaseUri.TrimEnd('/') + "/planethub";
+            string conUrl = "https://valour.gg/planethub";
 
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(conUrl)
