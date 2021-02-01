@@ -62,7 +62,7 @@
                 <div class="top-bar">
                 </div>
                 <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                <div class="category-list" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
+                <div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
                     @if (planetManager.GetCurrent() != null)
                     {
                         ClientWindow window = windowManager.GetSelectedWindow();
