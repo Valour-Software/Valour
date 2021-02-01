@@ -56,6 +56,30 @@ namespace Valour.Server
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll", builder =>
+                {
+
+                    builder
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
+                        .SetIsOriginAllowed(_ => true)
+                        .AllowCredentials()
+                        .WithOrigins(
+                        "https://www.valour.gg",
+                        "http://www.valour.gg",
+                        "https://valour.gg",
+                        "http://valour.gg",
+                        "https://api.valour.gg",
+                        "http://api.valour.gg",
+                        "http://localhost:3000",
+                        "https://localhost:3000",
+                        "http://localhost:3001",
+                        "https://localhost:3001");
+                });
+            });
+
             LoadConfigs();
 
             services.AddSignalR();
@@ -164,6 +188,8 @@ namespace Valour.Server
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            app.UseCors("AllowAll");
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -201,7 +227,7 @@ namespace Valour.Server
                 endpoints.MapFallbackToFile("index.html");
                 endpoints.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
                 {
-                    options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
+                    //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
                 }); 
             });
 
