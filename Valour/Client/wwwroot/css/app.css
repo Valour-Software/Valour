@@ -239,6 +239,10 @@ body {
     white-space: break-spaces;
 }
 
+.content .youtube {
+    max-width: 90%;
+}
+
 
 .multi-message .content {
     font-family: Ubuntu;
