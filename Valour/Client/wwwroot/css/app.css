@@ -676,41 +676,41 @@ body {
 }
 
 
-    .sidebar .valour-version {
-        margin: 0px;
-        margin-left: 10px;
-        margin-right: 10px;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 6px;
-        line-height: 7px;
-        text-align: center;
-        color: #00FAFF;
-    }
+.sidebar .valour-version {
+    margin: 0px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 10px;
+    line-height: 7px;
+    text-align: center;
+    color: #00FAFF;
+}
 
-    .sidebar .valour-name {
-        margin: 0px;
-        margin-top: 6px;
-        margin-left: 10px;
-        margin-right: 10px;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: bold;
-        font-size: 24px;
-        line-height: 28px;
-        text-align: center;
-        color: #00FAFF;
-    }
+.sidebar .valour-name {
+    margin: 0px;
+    margin-top: 6px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 24px;
+    line-height: 28px;
+    text-align: center;
+    color: #00FAFF;
+}
 
-    .sidebar .valour-logo {
-        width: 50px;
-        margin-left: 5px;
-        margin-top: 5px;
-        margin-right: 5px;
-        margin-bottom: 0px;
-        display: inline-block;
-    }
+.sidebar .valour-logo {
+    width: 50px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-right: 5px;
+    margin-bottom: 0px;
+    display: inline-block;
+}
 
 .rolename {
     margin: 0px;
