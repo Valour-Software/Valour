@@ -234,13 +234,15 @@ body {
 }
 
 .content a {
+    font-size: 0px;
+}
+
+.content a:after {
     font-size: 16px;
-    white-space: nowrap;
     content: attr(href);
-    display: block;
-    max-width: 100%;
-    white-space: break-spaces;
-    word-break: break-word;
+    visibility: visible;
+    left: 55px;
+    vertical-align: central;
 }
 
 .content .youtube {
