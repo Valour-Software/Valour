@@ -87,4 +87,9 @@
 
         navManager.NavigateTo($"/Register/{dateString}");
     }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        JS.InvokeVoidAsync("SetDate");
+    }
 }

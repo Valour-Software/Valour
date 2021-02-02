@@ -633,6 +633,6 @@ function SetSecretKey(key, id) {
     UserId = id
 }
 
-if (document.getElementById('ageVeriInput')) {
-  document.getElementById('ageVeriInput').valueAsDate = new Date()
+function SetDate () {
+    if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
 }
