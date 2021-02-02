@@ -325,6 +325,7 @@ else
 
     protected override void OnAfterRender(bool firstRender)
     {
+        JS.InvokeVoidAsync("FixClip");
         JS.InvokeVoidAsync("FitMobile");
     }
 }
