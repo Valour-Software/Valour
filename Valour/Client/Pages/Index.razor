@@ -322,4 +322,9 @@ else
 
         StateHasChanged();
     }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        JS.InvokeVoidAsync("FitMobile");
+    }
 }
