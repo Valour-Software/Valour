@@ -53,6 +53,7 @@ label {
     color: var(--font-color);
 }
 
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
@@ -1293,4 +1294,8 @@ body {
 .category-list {
     max-height: calc(90% - 90px);
     overflow-y: scroll;
+}
+
+#text-input{
+    outline: none
 }
