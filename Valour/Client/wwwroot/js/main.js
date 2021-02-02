@@ -86,11 +86,11 @@ function handleTouchMove(evt) {
     var yDiff = yDown - yUp;
 
     if (Math.abs(xDiff) > Math.abs(yDiff)) {/*most significant*/
-        if (xDiff > 10) {
+        if (xDiff > 5) {
             /* left swipe */
             OnLeftSwipe();
         }
-        else if (xDiff < -10) {
+        else if (xDiff < -5) {
             /* right swipe */
             OnRightSwipe();
         }
