@@ -49,7 +49,13 @@ namespace Valour.Client
             var navService = host.Services.GetRequiredService<NavigationManager>();
             var signalRService = host.Services.GetRequiredService<SignalRManager>();
 
+            SignalRManager.Current = signalRService;
+
             await signalRService.ConnectPlanetHub();
+
+            var planetMan = host.Services.GetRequiredService<ClientPlanetManager>();
+
+            ClientPlanetManager.Current = planetMan;
 
             await host.RunAsync();
         }
