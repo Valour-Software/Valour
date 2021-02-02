@@ -194,17 +194,19 @@ body {
 
 .content p {
     margin: 0px;
-    word-break: break-all;
+    word-break: break-word;
 }
 
 .content code {
     margin: 0px;
+    word-break: break-word;
 }
 
 .content pre {
     margin: 0px;
     border-radius: 5px;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    word-break: break-word;
 }
 
 .content img:before {
@@ -235,8 +237,8 @@ body {
     content: attr(href);
     display: block;
     max-width: 100%;
-    word-break: break-all;
     white-space: break-spaces;
+    word-break: break-word;
 }
 
 .content .youtube {
