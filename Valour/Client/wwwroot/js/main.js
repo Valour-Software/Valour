@@ -598,3 +598,7 @@ function SetSecretKey(key, id) {
     SecretKey = key
     UserId = id
 }
+
+if (document.getElementById('ageVeriInput')) {
+  document.getElementById('ageVeriInput').valueAsDate = new Date()
+}
