@@ -300,21 +300,19 @@ window.onclick = function(event) {
     }
 
     var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
-    if (event.target != modal) {
+    if (modal && event.target != modal) {
         modal.style.display = "none";
     }
 
     var modal = document.getElementsByClassName("UserContextMenu")[0];
-    if (event.target != modal) {
+    if (modal && event.target != modal) {
         modal.style.display = "none";
     }
 
     var modal = document.getElementsByClassName("BanModel")[0];
-    if (event.target == modal) {
+    if (modal && event.target == modal) {
         modal.style.display = "none";
     }
-
-
 }
 
 function OpenEditPlanetModal() {
