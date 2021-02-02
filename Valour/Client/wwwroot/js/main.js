@@ -16,6 +16,11 @@ var splitStates = [null, null, null];
 
 var mobile = false;
 
+function FixClip() {
+    $("html").addClass("full-screen");
+    $("body").addClass("full-screen");
+}
+
 function FitMobile() {
     var sidebar1 = $(".sidebar");
     var sidebar2 = $(".sidebar-2");
