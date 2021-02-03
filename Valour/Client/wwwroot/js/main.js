@@ -638,3 +638,17 @@ function SetSecretKey(key, id) {
 function SetDate() {
     if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
 }
+
+window.blazorFuncs = {
+    registerClient: function (caller) {
+        window['updateAvailable']
+            .then(isAvailable => {
+                if (isAvailable) {
+                    caller.invokeMethodAsync("OnServiceUpdateAvailable").then(r => console.log(r));
+                }
+                else {
+                    caller.invokeMethodAsync("OnServiceUpdateUnvailable");
+                }
+            });
+    }
+};
