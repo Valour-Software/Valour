@@ -93,25 +93,25 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, $"Incorrect token!");
             }
 
-            PlanetInvite invite = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
+            PlanetInvite invite = await Context.PlanetInvites.FindAsync(code);
 
             if (invite == null) {
                 return new TaskResult(false, $"Code is not found!");
             }
 
-            PlanetBan ban = await Context.PlanetBans.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+            PlanetBan ban = await Context.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
 
             if (ban != null) {
                 return new TaskResult(false, $"User is banned from this planet!");
             }
 
-            PlanetMember mem = await Context.PlanetMembers.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+            PlanetMember mem = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
 
             if (mem != null) {
                 return new TaskResult(false, $"User is already in this planet!");
             }
 
-            Planet planet = await Context.Planets.Where(x => x.Id == invite.Planet_Id).FirstOrDefaultAsync();
+            Planet planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == invite.Planet_Id);
 
             if (!planet.Public) {
                 return new TaskResult(false, $"Planet is set to private!");
@@ -134,7 +134,8 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult<ClientPlanetInvite>> GetInvite(string code, ulong userid)
         {
 
-            PlanetInvite invite = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
+            PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
+
 
             if (invite.IsPermanent() == false) {
                 if (DateTime.UtcNow > invite.Time.AddMinutes((double)invite.Hours)) {
@@ -148,13 +149,13 @@ namespace Valour.Server.Controllers
                 }
             }
 
-            PlanetBan ban = await Context.PlanetBans.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+            PlanetBan ban = await Context.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
 
             if (ban != null) {
                 return new TaskResult<ClientPlanetInvite>(false, $"User is banned from this planet!", null);
             }
             
-            PlanetMember member = await Context.PlanetMembers.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+            PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
 
             if (member != null) {
                 return new TaskResult<ClientPlanetInvite>(false, $"User is already in this planet!", null);
@@ -162,7 +163,7 @@ namespace Valour.Server.Controllers
 
             ClientPlanetInvite clientinvite = ClientPlanetInvite.FromBase(invite, Mapper);
 
-            Planet planet = await Context.Planets.Where(x => x.Id == invite.Planet_Id).FirstOrDefaultAsync();
+            Planet planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == invite.Planet_Id);
 
             if (!planet.Public) {
                 return new TaskResult<ClientPlanetInvite>(false, $"Planet is set to private!", null);
@@ -207,7 +208,8 @@ namespace Valour.Server.Controllers
             
             string code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
            
-            PlanetInvite test = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
+            PlanetInvite test = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
+            
             while (test != null) {
                 code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
                 test = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
