@@ -258,6 +258,7 @@ body {
 
 .content .youtube {
     max-width: 90%;
+    display:block;
 }
 
 
