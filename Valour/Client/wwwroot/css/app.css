@@ -233,6 +233,17 @@ body {
     transition-delay: 0.5s;
 }
 
+@media screen and (max-width: 992px) {
+    .content img {
+        max-width: 90%;
+        max-height: 90%;
+    }
+
+    .content img:hover {
+
+    }
+}
+
 .content a {
     font-size: 0px;
 }
