@@ -1329,3 +1329,16 @@ body {
     padding: 0px;
     cursor: pointer;
 }
+
+#window-0:focus{
+    outline: 2px solid var(--main5);
+}
+#window-1:focus{
+    outline: 2px solid var(--main5);
+}
+#window-2:focus{
+    outline: 2px solid var(--main5);
+}
+#window-3:focus{
+    outline: 2px solid var(--main5);
+}
