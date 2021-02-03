@@ -66,8 +66,6 @@
 
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
-        await ConnectSignalR();
-
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
@@ -123,11 +121,6 @@
     {
         await base.OnAfterRenderAsync(firstRender);
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
-    }
-
-    public async Task ConnectSignalR()
-    {
-
     }
 
     public async Task OnWindowClosed()

@@ -84,6 +84,11 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> RegisterUser(string username, string email, string password)
         {
+            if (username != null)
+            {
+                username = username.TrimEnd();
+            }
+
             // Ensure unique username
             if (await Context.Users.AnyAsync(x => x.Username.ToLower() == username.ToLower()))
             {

@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
 using Valour.Server.Oauth;
+using Valour.Server.MSP;
 
 
 /*  Valour - A free and secure chat client
@@ -163,11 +164,6 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, nameValid.Message, 0);
             }
 
-            if (image_url.Length > 255)
-            {
-                return new TaskResult<ulong>(false, "Image url must be under 255 characters.", 0);
-            }
-
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
             // Return the same if the token is for the wrong user to prevent someone
@@ -187,6 +183,20 @@ namespace Valour.Server.Controllers
 
             // User is verified and given planet info is valid by this point
             // We don't actually need the user object which is cool
+
+            // Use MSP for proxying image
+
+            MSPResponse proxyResponse = await MSPManager.GetProxy(image_url);
+
+            if (string.IsNullOrWhiteSpace(proxyResponse.Url) ||!proxyResponse.Is_Media)
+            {
+                image_url = "https://valour.gg/image.png";
+            }
+            else
+            {
+                image_url = proxyResponse.Url;
+            }
+            
 
             Planet planet = new Planet()
             {
