@@ -576,5 +576,16 @@ namespace Valour.Server.Controllers
 
             return new TaskResult<List<User>>(true, $"Retrieved {list.Count()} users", UsersToReturn);
         }
+
+        /// <summary>
+        /// Returns the current latest client version
+        /// </summary>
+        public async Task<TaskResult<string>> GetCurrentVersion()
+        {
+            // This uses magic to work
+            ClientPlanetUser user = new ClientPlanetUser();
+            string version = user.GetType().Assembly.GetName().Version.ToString();
+            return new TaskResult<string>(true, "Success", version);
+        }
     }
 }

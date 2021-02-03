@@ -1,8 +1,9 @@
-@using Valour.Shared
+﻿@using Valour.Shared
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
 @inject AutoMapper.IMapper mapper
+@inject IJSRuntime JS
 
 @if (ClientUserManager.Http == null)
 {
@@ -28,10 +29,29 @@ else
     <Loading></Loading>
 }
 
+@if (!hideUpdate)
+{
+<div class="update-footer">
+    <p class="update-text">There is a new version of Valour available! Refresh to blast into new features! 🚀🚀🚀</p>
+    <p style="display: inline-block" class="update-text">Current version:&nbsp;</p>
+    <p style="color:red; display:inline-block" class="update-text">@GetType().Assembly.GetName().Version.ToString()</p>
+    <p style="display: inline-block" class="update-text">&nbsp;|&nbsp;</p>
+    <p style="display: inline-block" class="update-text">New version:&nbsp;</p>
+    <p style="color:lawngreen; display:inline-block" class="update-text">@newVersion</p>
+
+    <a class="btn-update" @onclick="(() => { hideUpdate = true; StateHasChanged(); })">Ok</a>
+</div>
+}
+
+
 
 @code{
 
+    string newVersion = "(Pinging server)";
+
     bool triedInitialLogin;
+
+    bool hideUpdate = true;
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -42,5 +62,30 @@ else
         Console.WriteLine(tokenResult.Message);
 
         triedInitialLogin = true;
+
+        await JS.InvokeAsync<object>(
+          "blazorFuncs.registerClient",
+          DotNetObjectReference.Create(this)
+        );
+    }
+
+    [JSInvokable("OnServiceUpdateAvailable")]
+    public async Task<string> AppUpdate()
+    {
+        // Get latest version number
+        var response = await ClientUserManager.Http.GetAsync("User/GetCurrentVersion");
+        TaskResult<string> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<string>>(await response.Content.ReadAsStringAsync());
+        newVersion = result.Data;
+
+        Console.WriteLine("New version available");
+        hideUpdate = false;
+        StateHasChanged();
+        return await Task.FromResult("Alerted client");
+    }
+
+    [JSInvokable("OnServiceUpdateUnavailable")]
+    public async Task AppNotUpdate()
+    {
+        Console.WriteLine("New version not available");
     }
 }

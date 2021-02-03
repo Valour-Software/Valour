@@ -334,19 +334,21 @@ window.onclick = function(event) {
     }
 
     var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
-    if (modal && event.target != modal) {
+    if (event.target != modal) {
         modal.style.display = "none";
     }
 
     var modal = document.getElementsByClassName("UserContextMenu")[0];
-    if (modal && event.target != modal) {
+    if (event.target != modal) {
         modal.style.display = "none";
     }
 
     var modal = document.getElementsByClassName("BanModel")[0];
-    if (modal && event.target == modal) {
+    if (event.target == modal) {
         modal.style.display = "none";
     }
+
+
 }
 
 function OpenEditPlanetModal() {
@@ -636,3 +638,17 @@ function SetSecretKey(key, id) {
 function SetDate() {
     if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
 }
+
+window.blazorFuncs = {
+    registerClient: function (caller) {
+        window['updateAvailable']
+            .then(isAvailable => {
+                if (isAvailable) {
+                    caller.invokeMethodAsync("OnServiceUpdateAvailable").then(r => console.log(r));
+                }
+                else {
+                    caller.invokeMethodAsync("OnServiceUpdateUnvailable");
+                }
+            });
+    }
+};
