@@ -51,7 +51,34 @@ namespace Valour.Server.Controllers
             this.UserManager = userManager;
             this.Mapper = mapper;
         }
-        public async Task<LocalRedirectResult> Join(string code, ulong userid, string token)
+
+        public async Task<TaskResult<List<PlanetInvite>>> GetInvites(ulong userid, string token, ulong planet_id)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            // Return the same if the token is for the wrong user to prevent someone
+            // from knowing if they cracked another user's token. This is basically 
+            // impossible to happen by chance but better safe than sorry in the case that
+            // the literal impossible odds occur, more likely someone gets a stolen token
+            // but is not aware of the owner but I'll shut up now - Spike
+            if (authToken == null || authToken.User_Id != userid)
+            {
+                return new TaskResult<List<PlanetInvite>>(false, "Failed to authorize user.", null);
+            }
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
+            {
+                return new TaskResult<List<PlanetInvite>>(false, "You are not authorized to do this.", null);
+            }
+
+            List<PlanetInvite> invites = await Task.Run(() => Context.PlanetInvites.Where(x => x.Planet_Id == planet_id).ToList());
+        
+            return new TaskResult<List<PlanetInvite>>(true, $"Retrieved {invites.Count} invites", invites);
+        }
+
+        public async Task<TaskResult> Join(string code, ulong userid, string token)
         {
 
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
@@ -63,19 +90,31 @@ namespace Valour.Server.Controllers
             // but is not aware of the owner but I'll shut up now - Spike
             if (authToken == null || authToken.User_Id != userid)
             {
-                return new LocalRedirectResult("/");
+                return new TaskResult(false, $"Incorrect token!");
             }
 
             PlanetInvite invite = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
 
             if (invite == null) {
-                return new LocalRedirectResult("/");
+                return new TaskResult(false, $"Code is not found!");
+            }
+
+            PlanetBan ban = await Context.PlanetBans.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+
+            if (ban != null) {
+                return new TaskResult(false, $"User is banned from this planet!");
             }
 
             PlanetMember mem = await Context.PlanetMembers.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
 
             if (mem != null) {
-                return new LocalRedirectResult("/");
+                return new TaskResult(false, $"User is already in this planet!");
+            }
+
+            Planet planet = await Context.Planets.Where(x => x.Id == invite.Planet_Id).FirstOrDefaultAsync();
+
+            if (!planet.Public) {
+                return new TaskResult(false, $"Planet is set to private!");
             }
 
             PlanetMember member = new PlanetMember()
@@ -88,11 +127,11 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            return new LocalRedirectResult("/");
+            return new TaskResult(true, $"Joined Planet");
 
         }
 
-        public async Task<TaskResult<ClientPlanetInvite>> GetInvite(string code)
+        public async Task<TaskResult<ClientPlanetInvite>> GetInvite(string code, ulong userid)
         {
 
             PlanetInvite invite = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
@@ -109,9 +148,25 @@ namespace Valour.Server.Controllers
                 }
             }
 
+            PlanetBan ban = await Context.PlanetBans.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+
+            if (ban != null) {
+                return new TaskResult<ClientPlanetInvite>(false, $"User is banned from this planet!", null);
+            }
+            
+            PlanetMember member = await Context.PlanetMembers.Where(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id).FirstOrDefaultAsync();
+
+            if (member != null) {
+                return new TaskResult<ClientPlanetInvite>(false, $"User is already in this planet!", null);
+            }
+
             ClientPlanetInvite clientinvite = ClientPlanetInvite.FromBase(invite, Mapper);
 
             Planet planet = await Context.Planets.Where(x => x.Id == invite.Planet_Id).FirstOrDefaultAsync();
+
+            if (!planet.Public) {
+                return new TaskResult<ClientPlanetInvite>(false, $"Planet is set to private!", null);
+            }
 
             clientinvite.PlanetName = planet.Name;
 
