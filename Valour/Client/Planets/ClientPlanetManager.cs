@@ -65,6 +65,11 @@ namespace Valour.Client.Planets
                 await signalRManager.hubConnection.SendAsync("JoinChannel", channel.Id, ClientUserManager.UserSecretToken);
                 Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
             }
+
+            foreach (ChannelWindowComponent window in OpenPlanetChatWindows)
+            {
+                await window.SetupNewChannelAsync();
+            }
         }
 
         public async Task OpenPlanet(ClientPlanet planet)
