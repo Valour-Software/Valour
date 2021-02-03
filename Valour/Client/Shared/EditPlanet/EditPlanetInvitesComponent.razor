@@ -14,8 +14,6 @@
     <span class="text-danger">@publicSpan</span>
     <br />
 
-    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
-
     <div class="invite-tab-holder">
         <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
         <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
