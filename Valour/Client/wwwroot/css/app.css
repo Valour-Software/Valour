@@ -1198,6 +1198,7 @@ body {
     height: 60%;
     border: 2px solid rgba(255, 255, 255, 0.05);
     margin-top: 35px;
+    overflow-y: scroll;
 }
 
 .settings-button:hover {
@@ -1215,6 +1216,7 @@ body {
 .settings-inner {
     position: relative;
     height: 100%;
+    overflow-y: scroll;
 }
 
 .settings-save-button {
@@ -1265,3 +1267,15 @@ body {
     max-height: calc(90% - 90px);
     overflow-y: scroll;
 }
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+  
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+  
