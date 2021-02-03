@@ -11,10 +11,17 @@ namespace Valour.Client.Planets
 {
     public class ClientPlanetManager
     {
+        public static ClientPlanetManager Current;
+
+        public ClientPlanetManager()
+        {
+            Current = this;
+        }
+
         /// <summary>
         /// The currently focused planet
         /// </summary>
-        private ClientPlanet Current { get; set; }
+        private ClientPlanet CurrentPlanet { get; set; }
 
         private Dictionary<ulong, ClientPlanet> OpenPlanets = new Dictionary<ulong, ClientPlanet>();
         private Dictionary<ulong, ClientPlanetChatChannel> OpenPlanetChatChannels = new Dictionary<ulong, ClientPlanetChatChannel>();
@@ -40,6 +47,29 @@ namespace Valour.Client.Planets
         public List<ClientPlanet> GetOpenPlanets()
         {
             return OpenPlanets.Values.ToList();
+        }
+
+        /// <summary>
+        /// Attempts to rejoin all lost connections during a reconnect
+        /// </summary>
+        public async Task HandleReconnect()
+        {
+            foreach (ClientPlanet planet in OpenPlanets.Values)
+            {
+                await signalRManager.hubConnection.SendAsync("JoinPlanet", planet.Id, ClientUserManager.UserSecretToken);
+                Console.WriteLine($"Rejoined SignalR group for planet {planet.Id}");
+            }
+
+            foreach (ClientPlanetChatChannel channel in OpenPlanetChatChannels.Values)
+            {
+                await signalRManager.hubConnection.SendAsync("JoinChannel", channel.Id, ClientUserManager.UserSecretToken);
+                Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
+            }
+
+            foreach (ChannelWindowComponent window in OpenPlanetChatWindows)
+            {
+                await window.SetupNewChannelAsync();
+            }
         }
 
         public async Task OpenPlanet(ClientPlanet planet)
@@ -126,9 +156,9 @@ namespace Valour.Client.Planets
 
         public async Task SetCurrentPlanet(ClientPlanet planet)
         {
-            if (planet == null || (Current != null && Current.Id == planet.Id)) return;
+            if (planet == null || (CurrentPlanet != null && CurrentPlanet.Id == planet.Id)) return;
 
-            Current = planet;
+            CurrentPlanet = planet;
 
             Console.WriteLine($"Set current planet to {planet.Id}");
 
@@ -141,12 +171,12 @@ namespace Valour.Client.Planets
 
         public ClientPlanet GetCurrent()
         {
-            return Current;
+            return CurrentPlanet;
         }
 
         public override string ToString()
         {
-            return $"Planet: {Current.Id}";
+            return $"Planet: {CurrentPlanet.Id}";
         }
 
         public async Task OnMessageRecieve(string json)

@@ -44,6 +44,32 @@ namespace Valour.Client
         }
 
         /// <summary>
+        /// Forces SignalR to refresh the underlying connection
+        /// </summary>
+        public async Task ForceRefresh()
+        {
+            Console.WriteLine("Forcing SignalR refresh.");
+
+            if (hubConnection.State == HubConnectionState.Disconnected)
+            {
+                Console.WriteLine("Disconnected.");
+                await Reconnect();
+            }
+        }
+
+        /// <summary>
+        /// Reconnects the SignalR connection
+        /// </summary>
+        public async Task Reconnect()
+        {
+            // Reconnect
+            await hubConnection.StartAsync();
+            Console.WriteLine("Reconnecting to Planet Hub");
+
+            await OnReconnect("");
+        }
+
+        /// <summary>
         /// Attempt to recover the connection if it is lost
         /// </summary>
         public async Task OnClosed(Exception e)
@@ -55,18 +81,13 @@ namespace Valour.Client
                 Console.WriteLine("Exception: " + e.Message);
                 Console.WriteLine("Stacktrace: " + e.StackTrace);
 
-                // Reconnect
-                await hubConnection.StartAsync();
-
-                Console.WriteLine("Reconnecting to Planet Hub");
+                await Reconnect();
             }
             else
             {
                 Console.WriteLine("SignalR has closed without error.");
 
-                await hubConnection.StartAsync();
-
-                Console.WriteLine("Reconnecting to Planet Hub");
+                await Reconnect();
             }
         }
 
@@ -74,6 +95,8 @@ namespace Valour.Client
         {
             Console.WriteLine("SignalR has reconnected: ");
             Console.WriteLine(data);
+
+            await Planets.ClientPlanetManager.Current.HandleReconnect();
         }
     }
 }

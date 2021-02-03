@@ -8,6 +8,7 @@
 @inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
+@inject SignalRManager signalRManager
 
 <!-- Check login status -->
 @if (ClientUserManager.IsLoggedIn())
@@ -25,7 +26,7 @@
                             Valour
                         </p>
                         <p class="valour-version">
-                            Valour Platform Version 0.0.1 Pre-Alpha
+                            Version @GetType().Assembly.GetName().Version.ToString() Pre-Pre-Alpha
                         </p>
                     </div>
                 </div>
@@ -325,6 +326,14 @@ else
 
     protected override void OnAfterRender(bool firstRender)
     {
+        JS.InvokeVoidAsync("FixClip");
         JS.InvokeVoidAsync("FitMobile");
+    }
+
+    [JSInvokable("OnRefocus")]
+    public static async Task OnRefocus()
+    {
+        Console.WriteLine("Detected refocus event.");
+        await SignalRManager.Current.ForceRefresh();
     }
 }

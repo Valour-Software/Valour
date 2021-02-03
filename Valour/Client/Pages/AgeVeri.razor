@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
+@inject IJSRuntime JS
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="login-box">
@@ -15,7 +16,7 @@
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="form-group mt-2">
                     <label>Birthday</label>
-                    <input class="form-control" type="date" @bind-value="@date" />
+                    <input class="form-control" id="ageVeriInput" type="date" @bind-value="@date" />
                     <span id="date-span" class="text-danger">@dateSpan</span>
                 </div>
                 <div class="form-group mt-4">
@@ -35,56 +36,65 @@
 </body>
 
 @code {
-    // Input fields
-    DateTime date;
+        // Input fields
+        DateTime date;
 
-    // Spans
-    string dateSpan;
+        // Spans
+        string dateSpan;
 
-    // Agreeance
-    bool agreed;
-    string agreedSpan = "";
+        // Agreeance
+        bool agreed;
+        string agreedSpan = "";
 
-    private async Task OnClickSubmit(MouseEventArgs e)
-    {
-
-        dateSpan = "";
-        agreedSpan = "";
-
-        if (!agreed)
+        private async Task OnClickSubmit(MouseEventArgs e)
         {
-            agreedSpan = "You must acknowledge the truth statement to continue.";
-            return;
+
+            dateSpan = "";
+            agreedSpan = "";
+
+            if (!agreed)
+            {
+                agreedSpan = "You must acknowledge the truth statement to continue.";
+                return;
+            }
+
+            int years = DateTime.Now.Subtract(date).Days / 365;
+
+            if (years == 0)
+            {
+                dateSpan = "Welcome to life newborn! We may not know how you even wrote the date but unfortunately you are going to have to wait till 13 years to use Valour.";
+                return;
+            }
+
+            if (years < 0)
+            {
+                dateSpan = $"Congratulations on not being born! Maybe try again when you are born in {Math.Abs(years)} years?";
+                return;
+            }
+
+            if (years < 13)
+            {
+                dateSpan = "You must be 13 years of age or older to use Valour.";
+                return;
+            }
+
+            if (years > 120)
+            {
+                dateSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
+                return;
+            }
+
+            string dateString = Newtonsoft.Json.JsonConvert.SerializeObject(date);
+
+            navManager.NavigateTo($"/Register/{dateString}");
         }
 
-        int years = DateTime.Now.Subtract(date).Days / 365;
-
-        if (years == 0)
+        protected override void OnAfterRender(bool firstRender)
         {
-            dateSpan = "Welcome to life newborn! We may not know how you even wrote the date but unfortunately you are going to have to wait till 13 years to use Valour.";
-            return;
+            if (firstRender)
+            {
+                JS.InvokeVoidAsync("SetDate");
+            }
         }
 
-        if (years < 0)
-        {
-            dateSpan = $"Congratulations on not being born! Maybe try again when you are born in {Math.Abs(years)} years?";
-            return;
-        }
-
-        if (years < 13)
-        {
-            dateSpan = "You must be 13 years of age or older to use Valour.";
-            return;
-        }
-
-        if (years > 120)
-        {
-            dateSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
-            return;
-        }
-
-        string dateString = Newtonsoft.Json.JsonConvert.SerializeObject(date);
-
-        navManager.NavigateTo($"/Register/{dateString}");
-    }
 }
