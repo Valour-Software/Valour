@@ -16,7 +16,7 @@
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="form-group mt-2">
                     <label>Birthday</label>
-                    <input class="form-control" type="date" @bind-value="@date" />
+                    <input class="form-control" id="ageVeriInput" type="date" @bind-value="@date" />
                     <span id="date-span" class="text-danger">@dateSpan</span>
                 </div>
                 <div class="form-group mt-4">
@@ -96,4 +96,5 @@
                 JS.InvokeVoidAsync("SetDate");
             }
         }
+
 }
