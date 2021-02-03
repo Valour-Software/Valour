@@ -4,18 +4,24 @@
 @using Valour.Shared
 @inject HttpClient Http
 
-<h3>Create Invite</h3>
-<hr />
 <br />
-
-<div class="settings-inner">
+<div style="margin-bottom: 12%;margin-top:25px;">
+    <center><h3>Create Invite</h3></center>
     <p>How long will this invite last, in hours. (put 0 to make invite permanent)</p>
-    <input class="form-control" type="text" @bind-value="@nameValue" />
-    <span class="text-danger">Invite Link: <a href="@nameSpan" class="EnableRightCLick">@nameSpan</a></span>
+    <center><input class="form-control" type="text" @bind-value="@nameValue" style="width:15%;" /></center>
 
-    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+    <center>
+        @if (!Failed) {
+            <p style="margin-top:10px;">Invite Link: <a href="@nameSpan" class="EnableRightCLick">@nameSpan</a></p>
+        }
+        else {
+            <p style="margin-top:10px;color:red;">@nameSpan</p>
+        }
+        <br>
+
+        <div class="btn btn-outline-primary" @onclick="OnSaveChanges">Create Invite</div>
+    </center>
 </div>
-
 
 @code {
     [Parameter]
@@ -24,6 +30,8 @@
     public string nameValue;
 
     public string nameSpan;
+    
+    public bool Failed = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,8 +57,9 @@
 
         if (!result.Success)
         {
-            Console.WriteLine($"Failed to retrieve planet: {result.Message}");
-            nameSpan = "Created planet, but error occured retrieving. Please restart Valour.";
+            nameSpan = result.Message;
+            Failed = true;
+            StateHasChanged();
             return;
         }
 

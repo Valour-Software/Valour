@@ -8,10 +8,17 @@
     <div class="login-box">
         <div class="col-md-12">
             <section>
-                <h2>Do you want to join @PlanetName</h2>
+                <h2>@PlanetSpan</h2>
+
+                <span style="@style">@infoSpan</span>
 
                 <center>
-                    <a href=@InviteLink <button class="btn btn-primary mt-2">Join</button></a>
+                    @if (Clicked) {
+                        <a href="/"><button class="btn btn-primary mt-2">Close</button></a>
+                    }
+                    else {
+                        <button class="btn btn-primary mt-2" @onclick="Joined">Join</button>
+                    }
                 </center>
             </section>
         </div>
@@ -26,32 +33,81 @@
     string PlanetName = "";
     string InviteLink = "/Invite/Join/";
 
+    string PlanetSpan = "Do you want to join";
+
+    string infoSpan = "";
+
+    string style = "";
+
+    string InviteCode = "";
+
+    bool Clicked = false;
+
 
     protected async override Task OnInitializedAsync()
     {
+
+        ulong userid = ClientUserManager.User.Id;
 
         if (ClientUserManager.IsLoggedIn() != true) {
             navManager.NavigateTo("/");
         }
         
-        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}");
+        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}&userid={userid}");
 
         TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
-        
+
         if (result.Success == false) {
-            navManager.NavigateTo("/");
+            style = "color:red;";
+            infoSpan = "[Fail] "+result.Message;
+            Clicked = true;
+            PlanetSpan = "";
+            StateHasChanged();
+            return;
         }
 
         PlanetName = result.Data.PlanetName;
 
-        ulong userid = ClientUserManager.User.Id;
+        PlanetSpan = $"Do you want to join {PlanetName}?";
         string token = ClientUserManager.UserSecretToken;
 
-        InviteLink = $"/Invite/Join?code={result.Data.Code}&userid={userid}&token={token}";
+        InviteCode = result.Data.Code;
+
+        InviteLink = $"/Invite/Join?code={InviteCode}&userid={userid}&token={token}";
 
         Console.WriteLine(InviteLink);
 
         StateHasChanged();
+
+    }
+
+    public async Task Joined()
+    {
+
+        ulong userid = ClientUserManager.User.Id;
+        string token = ClientUserManager.UserSecretToken;
+
+        string link = $"/Invite/Join?code={InviteCode}&userid={userid}&token={token}";
+
+        string json = await Http.GetStringAsync(link);
+
+        TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+
+        if (result.Success) {
+            style = "color:green;";
+            infoSpan = "[Succ] "+result.Message;
+        }
+        else {
+            style = "color:red;";
+            infoSpan = "[Fail] "+result.Message;
+        }
+
+        Clicked = true;
+
+        StateHasChanged();
+
+        
+
     }
 
 }
