@@ -1329,7 +1329,9 @@ body {
     padding: 0px;
     cursor: pointer;
 }
-
+.sidebar-user > img{
+    padding-right: 4px;
+}
 #window-0:focus{
     outline: 2px solid var(--main5);
 }
