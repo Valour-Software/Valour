@@ -53,7 +53,6 @@ label {
     color: var(--font-color);
 }
 
-
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;
@@ -259,6 +258,7 @@ body {
 
 .content .youtube {
     max-width: 90%;
+    display:block;
 }
 
 
@@ -1307,9 +1307,29 @@ body {
     overflow-y: scroll;
 }
 
-#text-input{
-    outline: none
+.update-footer {
+    position: absolute;
+    top: 0px;
+    z-index: 5;
+    width: 100%;
+    background-color: var(--main-5);
+    opacity: 0.8;
+    padding: 10px;
 }
+
+.update-text {
+    margin: 2px;
+}
+
+.btn-update {
+    width: 32px;
+    height: 20px;
+    display: inline-block;
+    margin-left: 10px;
+    padding: 0px;
+    cursor: pointer;
+}
+
 #window-0:focus{
     outline: 2px solid var(--main5);
 }
