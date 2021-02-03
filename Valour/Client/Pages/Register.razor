@@ -132,6 +132,7 @@
         if (!string.Equals(password, passwordConf))
         {
             passwordConfSpan = "Passwords do not match";
+            return;
         }
 
         if (string.IsNullOrWhiteSpace(username))
