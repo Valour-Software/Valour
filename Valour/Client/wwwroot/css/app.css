@@ -13,9 +13,7 @@
     --main-2: #0b151d;
     --main-3: #121e27;
     --main-4: #192630;
-    --main-5: #212f3a;
-}
-
+    --main
 .full-screen {
     width: 100%;
     height: 100%;
@@ -1250,8 +1248,9 @@ body {
 .invite-list {
     width: 90%;
     height: 60%;
-    border: 2px solid rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(78, 71, 71, 0.05);
     margin-top: 35px;
+    overflow-y: scroll;
 }
 
 .settings-button:hover {
@@ -1269,6 +1268,7 @@ body {
 .settings-inner {
     position: relative;
     height: 100%;
+    overflow-y: scroll;
 }
 
 .settings-save-button {
@@ -1367,3 +1367,63 @@ td, th {
     text-align: left;
     padding: 8px;
 }
+ings-save-button {
+    position: absolute;
+    right: 10px;
+    bottom: 80px;
+}
+
+.current-planet-info .planet-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    display: block;
+    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
+    font-size: 16px;
+    margin: 0px;
+    width: 100%;
+}
+
+.current-planet-info .planet-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    display: inline-block;
+    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
+    font-size: 24px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.keep-scrolling::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.keep-scrolling {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.UserList {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: calc(99.5% - 80px);
+}
+
+.category-list {
+    max-height: calc(90% - 90px);
+    overflow-y: scroll;
+}
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+  
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+  
