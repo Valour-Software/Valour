@@ -115,8 +115,7 @@ namespace Valour.Server.Controllers
             }
 
             Context.PlanetCategories.Remove(category);
-
-            Context.PlanetCategories.Remove(category);
+            
             await Context.SaveChangesAsync();
 
             return new TaskResult(true, "Successfully deleted.");
