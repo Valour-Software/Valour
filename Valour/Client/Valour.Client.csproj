@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-    <Version>0.0.6.43</Version>
+    <Version>0.0.6.44</Version>
   </PropertyGroup>
 
   <ItemGroup>
