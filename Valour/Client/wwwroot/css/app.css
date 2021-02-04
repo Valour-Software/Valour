@@ -1249,6 +1249,7 @@ body {
     height: 60%;
     border: 2px solid rgba(255, 255, 255, 0.05);
     margin-top: 35px;
+    overflow-y: scroll;
 }
 
 .settings-button:hover {
@@ -1266,6 +1267,7 @@ body {
 .settings-inner {
     position: relative;
     height: 100%;
+    overflow-y: scroll;
 }
 
 .settings-save-button {
