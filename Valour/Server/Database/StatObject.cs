@@ -35,6 +35,8 @@ namespace Valour.Server.Database
         public int channelCount { get; set;}
         public int categoryCount { get; set;}
 
+        public int message24hCount { get; set;}
+
         public DateTime Time { get; set;}
 
         public StatObject() {
