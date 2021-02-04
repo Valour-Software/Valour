@@ -7,11 +7,11 @@
         {
             if (msg.Author_Id != lastAuthorId)
             {
-                <MessageComponent Message="msg" @key='$"{msg.Message_Index}-{msg.TimeSent}"'></MessageComponent>
+                <MessageComponent Message="msg" @key='$"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}"'></MessageComponent>
             }
             else
             {
-                <MultiMessageComponent Message="msg" @key='$"{msg.Message_Index}-{msg.TimeSent}"'></MultiMessageComponent>
+                <MultiMessageComponent Message="msg" @key='$"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}"'></MultiMessageComponent>
             }
 
             lastAuthorId = msg.Author_Id;
