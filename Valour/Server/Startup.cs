@@ -107,6 +107,7 @@ namespace Valour.Server
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
+            services.AddHostedService<StatWorker>();
         }
 
         /// <summary>
@@ -232,12 +233,6 @@ namespace Valour.Server
             });
 
             PlanetHub.Current = app.ApplicationServices.GetService<IHubContext<PlanetHub>>();
-
-            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
-            {
-                var context = serviceScope.ServiceProvider.GetRequiredService<ValourDB>();
-                context.Database.EnsureCreated();
-            }
         }
     }
 }

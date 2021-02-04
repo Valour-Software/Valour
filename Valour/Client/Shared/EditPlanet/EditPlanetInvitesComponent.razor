@@ -1,4 +1,5 @@
 ﻿@inject HttpClient http
+@inject ClientPlanetManager planetManager
 
 <h3>Planet Invitations</h3>
 <hr />
@@ -13,15 +14,27 @@
     <span class="text-danger">@publicSpan</span>
     <br />
 
-    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
-
     <div class="invite-tab-holder">
         <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
         <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
     </div>
     <div class="invite-list">
-
+        @if (linksChosen) {
+            <table>
+                <tr>
+                    <th style="width: 110px;">Invite Code</th>
+                    <th style="width: 300px;">Created By</th>
+                    <th style="width: 125px;">Created</th>
+                    <th style="width: 125px;">Expires</th>
+                </tr>
+                @foreach(PlanetInvite invite in Invites) {
+                    <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
+                }
+            </table>
+        }
     </div>
+
+    <CreateInviteLink></CreateInviteLink>
 </div>
 
 @code {
@@ -33,6 +46,8 @@
     public string publicSpan;
 
     public bool linksChosen = true;
+
+    public List<PlanetInvite> Invites = new List<PlanetInvite>();
 
     public string linksButtonStyle = "settings-button left active";
     public string usersButtonStyle = "settings-button right";
@@ -61,6 +76,26 @@
         publicValue = Planet.Public;
 
         Console.WriteLine(Planet.Public);
+
+        StateHasChanged();
+
+        ulong planet_id = planetManager.GetCurrent().Id;
+
+        ulong userid = ClientUserManager.User.Id;
+        string token = ClientUserManager.UserSecretToken;
+
+        string json = await http.GetStringAsync($"Invite/GetInvites?planet_id={planet_id}" +
+                                                               $"&userid={userid}" +
+                                                               $"&token={token}");
+
+        TaskResult<List<PlanetInvite>> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<List<PlanetInvite>>>(json);
+
+        if (!result.Success)
+        {
+            return;
+        }
+
+        Invites = result.Data;
 
         StateHasChanged();
     }

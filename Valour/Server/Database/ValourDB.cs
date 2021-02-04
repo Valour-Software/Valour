@@ -105,6 +105,11 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<PlanetInvite> PlanetInvites { get; set; }
 
+        /// <summary>
+        /// Table for planet invites
+        /// </summary>
+        public DbSet<StatObject> Stats { get; set; }
+
         public ValourDB(DbContextOptions options)
         {
             
