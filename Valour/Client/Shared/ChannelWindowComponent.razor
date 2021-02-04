@@ -131,7 +131,14 @@
 
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
-        Window.messages.Add(message);
+        if (!Window.messages.Any(x => x.Message_Index == message.Message_Index)){
+            Window.messages.Add(message);
+        }
+        //else
+        //{
+        //    Console.WriteLine("Prevented egg error");
+        //}
+
         Window.messageIndex = message.Message_Index;
 
         //Get current window scroll pos

@@ -22,7 +22,6 @@ namespace Valour.Client.Channels
     /// </summary>
     public class ClientPlanetChatChannel : PlanetChatChannel
     {
-
         /// <summary>
         /// Converts to a client version of planet chat channel
         /// </summary>
