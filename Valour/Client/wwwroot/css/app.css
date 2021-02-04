@@ -16,7 +16,7 @@
     --main-5: #212f3a;
 }
 
-html, body {
+.full-screen {
     width: 100%;
     height: 100%;
     margin: 0px;
@@ -207,6 +207,8 @@ body {
     border-radius: 5px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     word-break: break-word;
+    max-width: 90%;
+    padding: 5px;
 }
 
 .content img:before {
@@ -231,18 +233,32 @@ body {
     transition-delay: 0.5s;
 }
 
+@media screen and (max-width: 992px) {
+    .content img {
+        max-width: 90%;
+        max-height: 90%;
+    }
+
+    .content img:hover {
+
+    }
+}
+
 .content a {
+    font-size: 0px;
+}
+
+.content a:after {
     font-size: 16px;
-    white-space: nowrap;
     content: attr(href);
-    display: block;
-    max-width: 100%;
-    white-space: break-spaces;
-    word-break: break-word;
+    visibility: visible;
+    left: 55px;
+    vertical-align: central;
 }
 
 .content .youtube {
     max-width: 90%;
+    display:block;
 }
 
 
@@ -323,16 +339,6 @@ body {
     margin-top: 8px;
     visibility: hidden;
     text-align: center;
-}
-
-.channel-and-topbar {
-    display: flex;
-    margin: 0px;
-    background: #040D14;
-    flex: 1;
-    background-color: var(--main-1);
-    flex-direction: column;
-    height: 100%;
 }
 
 .topline {
@@ -576,6 +582,21 @@ body {
     z-index: 1;
 }
 
+.channel-and-topbar {
+    display: flex;
+    margin: 0px;
+    background: #040D14;
+    flex: 1;
+    background-color: var(--main-1);
+    flex-direction: column;
+    height: 100%;
+}
+
+.channel-and-topbar-mobile {
+    transform: translateX(-358px);
+    flex: 0;
+}
+
 .sidebar-2 .channel-name {
     display: inline-block;
     margin: 0px;
@@ -640,49 +661,81 @@ body {
     padding: 5px;
     background-color: var(--main-1);
     transition: width ease-in-out .2s;
-    z-index: 0;
+    z-index: 1;
 }
+
+.sidebar-menu {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+.sidebar-menu-mobile {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    transform: translateX(-358px);
+    transition: transform 0.5s ease-in-out;
+    z-index: 1;
+}
+
+.sidebar-menu-mobile-active {
+    transform: translate(0px);
+}
+
+.sidebar-mobile {
+    float: left;
+    width: 64px;
+    padding: 5px;
+    background-color: var(--main-1);
+    z-index: 1;
+    transition: width 0.5s ease-in-out;
+}
+
+.sidebar-mobile-expanded {
+    width: 250px;
+}
+
 
 .sidebar:hover {
     width: 250px;
 }
 
+.valour-version {
+    margin: 0px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 10px;
+    line-height: 7px;
+    text-align: center;
+    color: #00FAFF;
+}
 
-    .sidebar .valour-version {
-        margin: 0px;
-        margin-left: 10px;
-        margin-right: 10px;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 10px;
-        line-height: 7px;
-        text-align: center;
-        color: #00FAFF;
-    }
+.valour-name {
+    margin: 0px;
+    margin-top: 6px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 24px;
+    line-height: 28px;
+    text-align: center;
+    color: #00FAFF;
+}
 
-    .sidebar .valour-name {
-        margin: 0px;
-        margin-top: 6px;
-        margin-left: 10px;
-        margin-right: 10px;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: bold;
-        font-size: 24px;
-        line-height: 28px;
-        text-align: center;
-        color: #00FAFF;
-    }
-
-    .sidebar .valour-logo {
-        width: 50px;
-        margin-left: 5px;
-        margin-top: 5px;
-        margin-right: 5px;
-        margin-bottom: 0px;
-        display: inline-block;
-    }
+.valour-logo {
+    width: 50px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-right: 5px;
+    margin-bottom: 0px;
+    display: inline-block;
+}
 
 .rolename {
     margin: 0px;
@@ -827,6 +880,7 @@ body {
     box-shadow: 0px 0px 15px #000000;
     margin: auto;
     transform: translateY(20vh);
+    margin-bottom: 50px;
 }
 
 .modal-content-CreatePlanet .login-box {
@@ -1198,7 +1252,6 @@ body {
     height: 60%;
     border: 2px solid rgba(255, 255, 255, 0.05);
     margin-top: 35px;
-    overflow-y: scroll;
 }
 
 .settings-button:hover {
@@ -1216,7 +1269,6 @@ body {
 .settings-inner {
     position: relative;
     height: 100%;
-    overflow-y: scroll;
 }
 
 .settings-save-button {
@@ -1268,6 +1320,42 @@ body {
     overflow-y: scroll;
 }
 
+.update-footer {
+    position: absolute;
+    top: 0px;
+    z-index: 5;
+    width: 100%;
+    background-color: var(--main-5);
+    opacity: 0.8;
+    padding: 10px;
+}
+
+.update-text {
+    margin: 2px;
+}
+
+.btn-update {
+    width: 32px;
+    height: 20px;
+    display: inline-block;
+    margin-left: 10px;
+    padding: 0px;
+    cursor: pointer;
+}
+
+#window-0:focus{
+    outline: 2px solid var(--main5);
+}
+#window-1:focus{
+    outline: 2px solid var(--main5);
+}
+#window-2:focus{
+    outline: 2px solid var(--main5);
+}
+#window-3:focus{
+    outline: 2px solid var(--main5);
+}
+
 table {
     font-family: arial, sans-serif;
     border-collapse: collapse;
@@ -1278,4 +1366,4 @@ td, th {
     border: 1px solid #dddddd;
     text-align: left;
     padding: 8px;
-  
+}
