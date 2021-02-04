@@ -34,8 +34,8 @@ Yes, there will be bots. You can use your account for self-botting as well if yo
 Yes, you can have as many as you want on your planet.
 ### How will Valour be monetized?
 In the future, Valour will be monetized using a subscription for communities and possibly one for specific users as well.
-### I have a SpookVooper account, will I have to make a Valour account?
-Yes, they will be migrated.
+### What will happen to my SpookVooper account?
+You will still have to make a Valour account even if you have a SV account. In the future you might be able to use your Valour account to sign into SV.
 ### How will Valour handle user reports?
 Valour will prioritize reports of activity that breaks the law, such as doxxing, illegal material and extortion. Valour will not punish people for being offensive and only assure safety and law.
 ### Would Valour see my messages?
