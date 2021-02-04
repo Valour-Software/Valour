@@ -582,15 +582,6 @@ body {
     z-index: 1;
 }
 
-.sidebar-2-mobile {
-    transform: translateX(-358px);
-    transition: transform 0.5s ease-in-out;
-}
-
-.sidebar-2-mobile-active {
-    transform: translate(0px);
-}
-
 .channel-and-topbar {
     display: flex;
     margin: 0px;
@@ -673,13 +664,36 @@ body {
     z-index: 1;
 }
 
-.sidebar-mobile {
-    transform: translateX(-358px);
-    transition: transform 0.5s ease-in-out;
+.sidebar-menu {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
 }
 
-.sidebar-mobile-active {
+.sidebar-menu-mobile {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    transform: translateX(-358px);
+    transition: transform 0.5s ease-in-out;
+    z-index: 1;
+}
+
+.sidebar-menu-mobile-active {
     transform: translate(0px);
+}
+
+.sidebar-mobile {
+    float: left;
+    width: 64px;
+    padding: 5px;
+    background-color: var(--main-1);
+    z-index: 1;
+    transition: width 0.5s ease-in-out;
+}
+
+.sidebar-mobile-expanded {
+    width: 250px;
 }
 
 
@@ -687,8 +701,7 @@ body {
     width: 250px;
 }
 
-
-.sidebar .valour-version {
+.valour-version {
     margin: 0px;
     margin-left: 10px;
     margin-right: 10px;
@@ -701,7 +714,7 @@ body {
     color: #00FAFF;
 }
 
-.sidebar .valour-name {
+.valour-name {
     margin: 0px;
     margin-top: 6px;
     margin-left: 10px;
@@ -715,7 +728,7 @@ body {
     color: #00FAFF;
 }
 
-.sidebar .valour-logo {
+.valour-logo {
     width: 50px;
     margin-left: 5px;
     margin-top: 5px;

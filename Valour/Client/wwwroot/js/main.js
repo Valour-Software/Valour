@@ -21,9 +21,13 @@ function FixClip() {
     $("body").addClass("full-screen");
 }
 
+var swipeState = 0;
+
 function FitMobile() {
     var sidebar1 = $(".sidebar");
     var sidebar2 = $(".sidebar-2");
+    var sidebarMenu = $(".sidebar-menu");
+
     var channel = $(".channel-and-topbar");
     var topbar = $(".topbar");
 
@@ -39,8 +43,10 @@ function FitMobile() {
 
     $(".add-window-button").toggle(false);
 
+    sidebarMenu.removeClass("sidebar-menu");
+    sidebarMenu.addClass("sidebar-menu-mobile");
+    sidebar1.removeClass("sidebar");
     sidebar1.addClass("sidebar-mobile");
-    sidebar2.addClass("sidebar-2-mobile");
     channel.addClass("channel-and-topbar-mobile");
 
     channel.css("min-width", screen.width);
@@ -49,31 +55,47 @@ function FitMobile() {
     topbar.toggle(false);
 }
 
+function HandleSwipeState() {
+
+    var sidebar1 = $(".sidebar-mobile");
+    var sidebarMenu = $(".sidebar-menu-mobile");
+
+    console.log("Swipe state is now " + swipeState);
+
+    if (swipeState === 0) {
+        sidebarMenu.removeClass("sidebar-menu-mobile-active");
+    }
+    else if (swipeState === 1) {
+        sidebar1.removeClass("sidebar-mobile-expanded");
+        sidebarMenu.addClass("sidebar-menu-mobile-active");
+
+    }
+    else if (swipeState === 2) {
+        sidebar1.addClass("sidebar-mobile-expanded");
+    }
+}
+
 function OnRightSwipe() {
     if (mobile) {
 
-        var sidebar1 = $(".sidebar");
-        var sidebar2 = $(".sidebar-2");
+        swipeState++;
+        if (swipeState > 2) {
+            swipeState = 2;
+        }
 
-        sidebar1.addClass("sidebar-mobile-active");
-        sidebar2.addClass("sidebar-2-mobile-active");
-
-        //sidebar1.toggle(true);
+        HandleSwipeState();
     }
 }
 
 function OnLeftSwipe() {
+
+    swipeState--;
+    if (swipeState < 0) {
+        swipeState = 0;
+    }
+
     if (mobile) {
-
-        var sidebar1 = $(".sidebar");
-        var sidebar2 = $(".sidebar-2");
-
-        var w1 = sidebar1.width();
-        var w2 = sidebar2.width();
-
-        //sidebar1.toggle(false);
-        sidebar1.removeClass("sidebar-mobile-active");
-        sidebar2.removeClass("sidebar-2-mobile-active");
+        HandleSwipeState();
     }
 }
 
