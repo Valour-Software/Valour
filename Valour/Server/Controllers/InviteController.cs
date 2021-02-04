@@ -93,7 +93,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, $"Incorrect token!");
             }
 
-            PlanetInvite invite = await Context.PlanetInvites.FindAsync(code);
+            PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
 
             if (invite == null) {
                 return new TaskResult(false, $"Code is not found!");

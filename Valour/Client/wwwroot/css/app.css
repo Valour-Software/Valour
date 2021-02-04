@@ -13,7 +13,7 @@
     --main-2: #0b151d;
     --main-3: #121e27;
     --main-4: #192630;
-    --main
+}
 .full-screen {
     width: 100%;
     height: 100%;
@@ -1426,4 +1426,4 @@ td, th {
     border: 1px solid #dddddd;
     text-align: left;
     padding: 8px;
-  
+}
