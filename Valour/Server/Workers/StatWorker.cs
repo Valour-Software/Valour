@@ -54,7 +54,7 @@ namespace Valour.Server.Workers
 
                     Context = new ValourDB(ValourDB.DBOptions);
 
-                    if (Context != null && System.Diagnostics.Debugger.IsAttached == false)
+                    if (Context != null)// && System.Diagnostics.Debugger.IsAttached == false)
                     {
                         stats.Time = DateTime.UtcNow;
                         stats.userCount = Context.Users.Count();
@@ -62,6 +62,7 @@ namespace Valour.Server.Workers
                         stats.planetmemberCount = Context.PlanetMembers.Count();
                         stats.channelCount = Context.PlanetChatChannels.Count();
                         stats.categoryCount = Context.PlanetCategories.Count();
+                        stats.message24hCount = Context.PlanetMessages.Count();
                         await Context.Stats.AddAsync(stats);
                         await Context.SaveChangesAsync(); 
                         stats = new StatObject();
