@@ -242,7 +242,7 @@ namespace Valour.Server.Controllers
             return new TaskResult<ulong>(true, "Successfully created planet.", planet.Id);
         }
 
-        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9_-]+$");
+        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
         /// <summary>
         /// Validates that a given name is allowable for a server
