@@ -375,6 +375,8 @@ namespace Valour.Server.Controllers
 
             PlanetMessageWorker.AddToQueue(msg);
 
+            StatWorker.IncreaseMessageCount();
+
             return new TaskResult(true, "Added message to post queue.");
         }
     }
