@@ -11,6 +11,7 @@
 
             if (!currentRendered.Contains(key))
             {
+                currentRendered.Add(key);
 
                 if (msg.Author_Id != lastAuthorId)
                 {
@@ -20,8 +21,6 @@
                 {
                 <MultiMessageComponent Message="msg" @key='key'></MultiMessageComponent>
                 }
-
-                currentRendered.Add(key);
             }
             else
             {
