@@ -1124,6 +1124,11 @@ body {
     float: right;
 }
 
+.home-buttons {
+    float: right;
+    margin-top: 15px;
+}
+
 .channel-buttons .channel-home {
     display: inline-block;
     margin-right: 10px;
@@ -1131,6 +1136,12 @@ body {
 }
 
 .channel-buttons .channel-close {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.home-buttons .home-close {
     display: inline-block;
     margin-right: 10px;
     cursor: pointer;
