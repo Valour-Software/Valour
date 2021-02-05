@@ -232,6 +232,38 @@ else
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
         planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
+        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
+    }
+
+    public async Task OnRefreshChannelList(string data)
+    {
+
+        ClientPlanet dummy = new ClientPlanet();
+
+        Planet planet = planetManager.GetCurrent();
+
+        IEnumerable<ClientPlanetChatChannel> channels = await dummy.GetClientPlanetChannelsAsync(planet.Id);
+
+        IEnumerable<PlanetCategory> categories = await dummy.GetClientPlanetCategoriesAsync(planet.Id);
+
+        PlanetCategoryChannelList.Clear();
+
+        PlanetChannelList.Clear();
+
+        StateHasChanged();
+
+        foreach (ClientPlanetChatChannel channel in channels)
+        {
+            PlanetChannelList.Add(channel);
+        }
+
+        foreach (PlanetCategory category in categories)
+        {
+            PlanetCategoryChannelList.Add(category);
+        }
+
+        StateHasChanged();
+
     }
 
     public void Dispose()

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Sockets;
+using Microsoft.AspNetCore.SignalR;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
@@ -129,6 +130,9 @@ namespace Valour.Server.Controllers
             }
             Console.WriteLine(json);
             var values = json;//JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(data);
+            
+            ulong PlanetId = 0;
+            
             foreach(var value in values) {
                 ushort position = value.Key;
                 ulong id = value.Value[0];
@@ -138,15 +142,19 @@ namespace Valour.Server.Controllers
                 if (value.Value[1] == 0) {
                     PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
                     channel.Position = position;
+                    PlanetId = channel.Planet_Id;
                 }
                 if (value.Value[1] == 1) {
                     PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
                     category.Position = position;
+                    PlanetId = category.Planet_Id;
                 }
 
                Console.WriteLine(value);
             }
             await Context.SaveChangesAsync();
+
+            await PlanetHub.Current.Clients.Group($"p-{PlanetId}").SendAsync("RefreshChannelList", "");
             return new TaskResult(true, "Updated Order!");
         }
 

@@ -112,6 +112,8 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
+            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
+
             return new TaskResult(true, "Successfully set name.");
         }
 
@@ -153,6 +155,8 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
+            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
+
             return new TaskResult(true, "Successfully deleted.");
         }
 
@@ -182,6 +186,8 @@ namespace Valour.Server.Controllers
             channel.Parent_Id = parentId;
 
             await Context.SaveChangesAsync();
+
+            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
             
             return new TaskResult(true, "Successfully set parentid.");
         }
@@ -237,6 +243,8 @@ namespace Valour.Server.Controllers
 
             // Save changes to DB
             await Context.SaveChangesAsync();
+            
+            await PlanetHub.Current.Clients.Group($"p-{planet_id}").SendAsync("RefreshChannelList", "");
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created channel.", channel.Id);
