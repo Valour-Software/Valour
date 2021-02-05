@@ -57,6 +57,8 @@ namespace Valour.Client
         {
             window.Index = OpenWindows.Count;
             OpenWindows.Add(window);
+
+            ForceChatRefresh();
         }
 
         public int GetWindowCount()
@@ -97,9 +99,32 @@ namespace Valour.Client
             }
 
             window.Index = index;
+            CloseWindow(index);
+            OpenWindows.Insert(index, window);
+
+            ForceChatRefresh();
+        }
+
+        public void CloseWindow(int index)
+        {
             OpenWindows[index].OnClosed();
             OpenWindows.RemoveAt(index);
-            OpenWindows.Insert(index, window);
+
+            ForceChatRefresh();
+        }
+
+        public void ForceChatRefresh()
+        {
+            foreach (ClientWindow window in OpenWindows)
+            {
+                ChatChannelWindow chat = window as ChatChannelWindow;
+
+                if (chat != null)
+                {
+                    // Force window refresh
+                    chat.firstMessageIndexRendered = ulong.MaxValue;
+                }
+            }
         }
     }
 

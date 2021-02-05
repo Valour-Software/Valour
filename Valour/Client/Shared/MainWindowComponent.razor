@@ -18,13 +18,16 @@
     }
     else if (Window is ChatChannelWindow)
     {
-        <ChannelWindowComponent Window="@((ChatChannelWindow)Window)"></ChannelWindowComponent>
+        <ChannelWindowComponent MainWindow="this" Window="@((ChatChannelWindow)Window)" IndexPage="IndexPage"></ChannelWindowComponent>
     }
 </div>
 
 @code {
     [Parameter]
     public ClientWindow Window { get; set; }
+
+    [Parameter]
+    public Valour.Client.Pages.Index IndexPage { get; set; }
 
     [Parameter]
     public string StyleClass { get; set; }
