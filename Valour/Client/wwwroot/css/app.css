@@ -1120,6 +1120,22 @@ body {
     border-bottom: 1px solid var(--main-5);
 }
 
+.channel-info .channel-buttons {
+    float: right;
+}
+
+.channel-buttons .channel-home {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.channel-buttons .channel-close {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
 .edit-planet-body {
     background-color: var(--main-2);
     height: 100%;

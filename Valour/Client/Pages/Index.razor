@@ -109,32 +109,32 @@
 
                     @if (windowManager.GetWindowCount() == 1)
                     {
-                        <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
                     }
                     else if (windowManager.GetWindowCount() == 2)
                     {
-                        <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-                        <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
                     }
                     else if (windowManager.GetWindowCount() == 3)
                     {
                         <div id="window-col1" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
                         </div>
                         <div id="window-col2" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                     }
                     else if (windowManager.GetWindowCount() == 4)
                     {
                         <div id="window-col1" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                         <div id="window-col2" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                     }
                 </div>
@@ -337,5 +337,10 @@ else
     {
         Console.WriteLine("Detected refocus event.");
         await SignalRManager.Current.ForceRefresh();
+    }
+
+    public async Task ForceRefresh()
+    {
+        StateHasChanged();
     }
 }
