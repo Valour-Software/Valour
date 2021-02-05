@@ -3,6 +3,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject LocalStorageService storage
+@inject ClientPlanetManager planetManager
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="login-box">
@@ -14,7 +15,7 @@
 
                 <center>
                     @if (Clicked) {
-                        <a href="/"><button class="btn btn-primary mt-2">Close</button></a>
+                        <button class="btn btn-primary mt-2" @onclick="OnClose">Close</button>
                     }
                     else {
                         <button class="btn btn-primary mt-2" @onclick="Joined">Join</button>
@@ -79,6 +80,11 @@
 
         StateHasChanged();
 
+    }
+
+    public async Task OnClose()
+    {
+        navManager.NavigateTo("/");
     }
 
     public async Task Joined()
