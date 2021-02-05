@@ -994,6 +994,7 @@ body {
     left: calc(100% - 64px);
     top: 200px;
     cursor: pointer;
+    z-index: 6;
 }
 
 /* Scrollbar */
