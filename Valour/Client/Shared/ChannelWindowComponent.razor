@@ -59,6 +59,9 @@
     [Parameter]
     public Valour.Client.Pages.Index IndexPage { get; set; }
 
+    [Parameter]
+    public MainWindowComponent MainWindow { get; set; }
+
     public ClientPlanetChatChannel Channel;
 
     public ClientPlanet Planet;
@@ -101,7 +104,11 @@
     public async Task ReturnHome()
     {
         await planetManager.ClosePlanetChatChannel(this);
-        windowManager.SetWindow(Window.Index, new HomeWindow(Window.Index));
+
+        HomeWindow newWindow = new HomeWindow(Window.Index);
+
+        windowManager.SetWindow(Window.Index, newWindow);
+        MainWindow.RefreshWindow(newWindow);
     }
 
     public async Task SetupNewChannelAsync()

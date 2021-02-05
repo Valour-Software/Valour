@@ -18,7 +18,7 @@
     }
     else if (Window is ChatChannelWindow)
     {
-        <ChannelWindowComponent Window="@((ChatChannelWindow)Window)" IndexPage="IndexPage"></ChannelWindowComponent>
+        <ChannelWindowComponent MainWindow="this" Window="@((ChatChannelWindow)Window)" IndexPage="IndexPage"></ChannelWindowComponent>
     }
 </div>
 
