@@ -72,9 +72,8 @@
                             Planet planet = planetManager.GetCurrent();
                             @foreach (PlanetCategory category in GetTopLevelCategories())
                             {
-                                <CategoryComponent @ref="categorycomponent" PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
+                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
                                 </CategoryComponent>
-                                components.Append(categorycomponent);
                             }
                         }
                     </div>
@@ -226,10 +225,6 @@ else
 
     public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<PlanetCategory>();
 
-    public List<CategoryComponent> components = new List<CategoryComponent>();
-
-    public CategoryComponent categorycomponent;
-
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -237,10 +232,10 @@ else
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
         planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
-        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefershChannelList);
+        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
     }
 
-    public async Task OnRefershChannelList(string l)
+    public async Task OnRefreshChannelList(string data)
     {
 
         ClientPlanet dummy = new ClientPlanet();
