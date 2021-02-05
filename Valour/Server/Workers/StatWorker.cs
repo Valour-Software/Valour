@@ -54,7 +54,7 @@ namespace Valour.Server.Workers
 
                     Context = new ValourDB(ValourDB.DBOptions);
 
-                    if (Context != null)// && System.Diagnostics.Debugger.IsAttached == false)
+                    if (Context != null && System.Diagnostics.Debugger.IsAttached == false)
                     {
                         stats.Time = DateTime.UtcNow;
                         stats.userCount = Context.Users.Count();
