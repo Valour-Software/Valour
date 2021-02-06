@@ -3,8 +3,17 @@
 @inject ClientWindowManager windowManager
 
 
-<h5 class="m-2">Planets and friends</h5>
-
+<div>
+    <h5 style="display: inline-block" class="m-2">Planets and friends</h5>
+    <div class="home-buttons">
+        @if (windowManager.GetWindowCount() > 1)
+        {
+            <div class="home-close" @onclick="CloseWindow">
+                X
+            </div>
+        }
+    </div>
+</div>
 <hr />
 
 <div class="flex-row flex-wrap m-5">
@@ -63,6 +72,9 @@
     [Parameter]
     public EventCallback<ClientWindow> RefreshWindow { get; set; }
 
+    [Parameter]
+    public Valour.Client.Pages.Index IndexPage { get; set; }
+
     public async Task OnNewPlanetClick()
     {
         navManager.NavigateTo("createplanet");
@@ -79,5 +91,11 @@
         StateHasChanged();
 
         await RefreshWindow.InvokeAsync(windowManager.GetWindow(Window.Index));
+    }
+
+    public async Task CloseWindow()
+    {
+        windowManager.CloseWindow(Window.Index);
+        await IndexPage.ForceRefresh();
     }
 }

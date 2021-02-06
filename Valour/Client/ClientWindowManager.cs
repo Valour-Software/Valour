@@ -110,6 +110,14 @@ namespace Valour.Client
             OpenWindows[index].OnClosed();
             OpenWindows.RemoveAt(index);
 
+            int newInd = 0;
+
+            foreach (ClientWindow window in OpenWindows)
+            {
+                window.Index = newInd;
+                newInd++;
+            }
+
             ForceChatRefresh();
         }
 
