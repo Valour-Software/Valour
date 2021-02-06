@@ -115,7 +115,7 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<TaskResult> UpdateOrder([FromBody]Dictionary<ushort, List<ulong>> json, ulong userid, string token)
+        public async Task<TaskResult> UpdateOrder([FromBody]Dictionary<ushort, List<ulong>> json, ulong userid, string token, ulong Planet_Id)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -128,10 +128,16 @@ namespace Valour.Server.Controllers
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
+
             Console.WriteLine(json);
             var values = json;//JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(data);
-            
-            ulong PlanetId = 0;
             
             foreach(var value in values) {
                 ushort position = value.Key;
@@ -142,19 +148,17 @@ namespace Valour.Server.Controllers
                 if (value.Value[1] == 0) {
                     PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
                     channel.Position = position;
-                    PlanetId = channel.Planet_Id;
                 }
                 if (value.Value[1] == 1) {
                     PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
                     category.Position = position;
-                    PlanetId = category.Planet_Id;
                 }
 
                Console.WriteLine(value);
             }
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{PlanetId}").SendAsync("RefreshChannelList", "");
+            await PlanetHub.Current.Clients.Group($"p-{Planet_Id}").SendAsync("RefreshChannelList", "");
             return new TaskResult(true, "Updated Order!");
         }
 

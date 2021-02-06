@@ -89,11 +89,11 @@
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id);
+        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, planetManager.GetCurrent().Id);
 
         await SetupNewChannelAsync();
     }
-
+    
     public async Task CloseWindow()
     {
         await planetManager.ClosePlanetChatChannel(this);
