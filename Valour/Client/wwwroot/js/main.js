@@ -535,6 +535,14 @@ async function postData(url = '', data = {}) {
     return response.json(); // parses JSON response into native JavaScript objects
   }
 
+  function httpGet(theUrl)
+  {
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+      xmlHttp.send( null );
+      return JSON.parse(xmlHttp.responseText);
+  }
+
 const Drop = (e) =>{
     e.preventDefault();
     if (dragging == null) {
@@ -564,10 +572,11 @@ const Drop = (e) =>{
     TopLevel = false
     if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
         id = dragging.id 
-        fetch(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=0`)
-        .then(data => {
-                console.log(data)
-        })
+        data = httpGet(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=0`)
+        console.log(data)
+        if (out["success"] == false) {
+            return null;
+        }
         TopLevel = true
     }
     else {
@@ -582,16 +591,18 @@ const Drop = (e) =>{
         categoryid = target.parentNode.id
         if (categoryid != parentid) {
             if (dragging.className.includes("channel")) {
-                fetch(`/Channel/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-                .then(data => {
-                    console.log(data)
-                })
+                data = httpGet(`/Channel/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                console.log(data)
+                if (data["success"] == false) {
+                    return null;
+                }
             }
             else {
-                fetch(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-                .then(data => {
-                    console.log(data)
-                })
+                data = httpGet(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                console.log(data)
+                if (data["success"] == false) {
+                    return null;
+                }
             }
         }
     }
@@ -605,6 +616,7 @@ const Drop = (e) =>{
     parentid = dragging.parentNode
     parentid = parentid.parentNode.id
     categoryid = target.parentNode.id
+    oldlist = Array.from(target.children)
     if (categoryid == parentid || TopLevel) {
         list = Array.prototype.slice.call( target.children )
         var index1 = list.indexOf(dragging);
@@ -644,17 +656,26 @@ const Drop = (e) =>{
             index += 1
         }
     }
-    postData(`/Planet/UpdateOrder?token=${SecretKey}&UserId=${UserId}`, data)
+    postData(`/Planet/UpdateOrder?token=${SecretKey}&UserId=${UserId}&Planet_Id=${Planet_Id}`, data)
         .then(out => {
+            if (out["success"] == false) {
+                target.innerHTML = ""
+                for (i in oldlist) {
+                    item = oldlist[i]
+                    target.append(item)
+
+                }
+            }
             console.log(out)
         })
     dragging = null
     return null;
 }
 
-function SetSecretKey(key, id) {
+function SetSecretKey(key, id, planetid) {
     SecretKey = key
     UserId = id
+    Planet_Id = planetid
 }
 
 function SetDate() {
