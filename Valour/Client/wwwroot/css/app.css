@@ -81,6 +81,7 @@ body {
 
 .message {
     width: 100%;
+    max-width: 100%;
     margin-top: 4px;
     padding-bottom: 0px;
     position: relative;
@@ -89,6 +90,7 @@ body {
 
 .multi-message {
     width: 100%;
+    max-width: 100%;
     margin-top: 0px;
     margin-bottom: 0px;
     position: relative;
@@ -183,6 +185,7 @@ body {
     margin-top: 4px;
     vertical-align: top;
     padding-left: 52px;
+    max-width: 100%;
 }
 
 .multi-message .message-content {
@@ -190,6 +193,7 @@ body {
     margin-left: 7px;
     margin-top: 4px;
     vertical-align: top;
+    max-width: 100%;
 }
 
 .content p {
@@ -260,6 +264,11 @@ body {
     display: block;
 }
 
+.content .table {
+    max-width: 90%;
+    display: block;
+}
+
 
 .multi-message .content {
     font-family: Ubuntu;
@@ -273,6 +282,8 @@ body {
     word-break: break-all;
     user-select: text;
     padding-left: 48px;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .message .content {
@@ -285,6 +296,8 @@ body {
     margin: 0px;
     word-break: break-all;
     user-select: text;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .message .time-container {
