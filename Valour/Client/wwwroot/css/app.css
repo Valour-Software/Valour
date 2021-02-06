@@ -994,6 +994,7 @@ body {
     left: calc(100% - 64px);
     top: 200px;
     cursor: pointer;
+    z-index: 6;
 }
 
 /* Scrollbar */
@@ -1117,6 +1118,22 @@ body {
     padding: 10px;
     padding-bottom: 5px;
     border-bottom: 1px solid var(--main-5);
+}
+
+.channel-info .channel-buttons {
+    float: right;
+}
+
+.channel-buttons .channel-home {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.channel-buttons .channel-close {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
 }
 
 .edit-planet-body {
