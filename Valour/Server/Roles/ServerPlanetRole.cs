@@ -16,9 +16,9 @@ namespace Valour.Server.Roles
     public class ServerPlanetRole : PlanetRole
     {
 
-        public List<ChannelPermissionsNode> GetAllChannelNodes()
-        {
+        //public List<ChannelPermissionsNode> GetAllChannelNodes()
+        //{
             
-        }
+        //}
     }
 }

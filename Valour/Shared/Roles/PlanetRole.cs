@@ -52,6 +52,11 @@ namespace Valour.Shared.Roles
 
         public byte Color_Blue { get; set; }
 
+        // Formatting options
+        public bool Bold { get; set; }
+
+        public bool Italics { get; set; }
+
         public Color GetColor()
         {
             return Color.FromArgb(Color_Red, Color_Green, Color_Blue);
