@@ -48,5 +48,10 @@ namespace Valour.Shared.Planets
         /// The amount of members on the planet
         /// </summary>
         public uint Member_Count { get; set;}
+
+        /// <summary>
+        /// The default role for the planet
+        /// </summary>
+        public ulong? Default_Role_Id { get; set; }
     }
 }

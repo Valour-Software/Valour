@@ -19,6 +19,11 @@ namespace Valour.Shared.Roles
     public class ChannelPermissionsNode
     {
         /// <summary>
+        /// The ID of this permission node
+        /// </summary>
+        public ulong Id { get; set; }
+
+        /// <summary>
         /// The permission code that this node has set
         /// </summary>
         public ulong Code { get; set; }
@@ -27,5 +32,15 @@ namespace Valour.Shared.Roles
         /// The channel this node applies to
         /// </summary>
         public ulong Channel_Id { get; set; }
+
+        /// <summary>
+        /// The planet this node applies to
+        /// </summary>
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The role this permissions node belongs to
+        /// </summary>
+        public ulong Role_Id { get; set; }
     }
 }
