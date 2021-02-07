@@ -602,11 +602,13 @@ body {
     background-color: var(--main-1);
     flex-direction: column;
     height: 100%;
+    max-width: calc(100% - (64px + 294px));
 }
 
 .channel-and-topbar-mobile {
     transform: translateX(-358px);
     flex: 0;
+    max-width: 100%;
 }
 
 .sidebar-2 .channel-name {
