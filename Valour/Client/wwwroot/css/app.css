@@ -669,7 +669,7 @@ body {
 
 .sidebar {
     float: left;
-    width: 64px;
+    width: 68px;
     padding: 5px;
     background-color: var(--main-1);
     transition: width ease-in-out .2s;
