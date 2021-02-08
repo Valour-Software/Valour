@@ -185,7 +185,7 @@ body {
     margin-top: 4px;
     vertical-align: top;
     padding-left: 52px;
-    max-width: 100%;
+    width: 100%;
 }
 
 .multi-message .message-content {
@@ -193,7 +193,7 @@ body {
     margin-left: 7px;
     margin-top: 4px;
     vertical-align: top;
-    max-width: 100%;
+    width: 100%;
 }
 
 .content p {
@@ -282,7 +282,7 @@ body {
     word-break: break-all;
     user-select: text;
     padding-left: 48px;
-    max-width: 100%;
+    width: 100%;
     overflow: hidden;
 }
 
@@ -296,7 +296,7 @@ body {
     margin: 0px;
     word-break: break-all;
     user-select: text;
-    max-width: 100%;
+    width: 100%;
     overflow: hidden;
 }
 
@@ -602,11 +602,13 @@ body {
     background-color: var(--main-1);
     flex-direction: column;
     height: 100%;
+    max-width: calc(100% - (64px + 294px));
 }
 
 .channel-and-topbar-mobile {
     transform: translateX(-358px);
     flex: 0;
+    max-width: 100%;
 }
 
 .sidebar-2 .channel-name {
