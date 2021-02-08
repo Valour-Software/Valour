@@ -16,67 +16,69 @@
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
     <body style="height: 100%">
         <div class="mainrow">
-            <div class="sidebar" id="sidebar1">
+            <div class="sidebar-menu">
+                <div class="sidebar" id="sidebar1">
 
-                <div style="width: 250px">
-                    <img class="valour-logo" src="icon-512.png">
+                    <div style="width: 250px">
+                        <img class="valour-logo" src="icon-512.png">
 
-                    <div style="display:inline-block; vertical-align: middle">
-                        <p class="valour-name">
-                            Valour
-                        </p>
-                        <p class="valour-version">
-                            Version @GetType().Assembly.GetName().Version.ToString() Pre-Pre-Alpha
-                        </p>
+                        <div style="display:inline-block; vertical-align: middle">
+                            <p class="valour-name">
+                                Valour
+                            </p>
+                            <p class="valour-version">
+                                Version @GetType().Assembly.GetName().Version.ToString() Pre-Pre-Alpha
+                            </p>
+                        </div>
                     </div>
+
+                    @if (planetManager.GetCurrent() != null)
+                    {
+
+                        <RoleComponent Name="Emperor"></RoleComponent>
+                        <div class="UserList keep-scrolling">
+                            @foreach (var user in planetUserList)
+                            {
+                                <UserComponent Only="true" User="@user"></UserComponent>
+                            }
+                        </div>
+                    }
                 </div>
-
-                @if (planetManager.GetCurrent() != null)
-                {
-
-                    <RoleComponent Name="Emperor"></RoleComponent>
-                    <div class="UserList keep-scrolling">
-                        @foreach (var user in planetUserList)
-                        {
-                            <UserComponent Only="true" User="@user"></UserComponent>
-                        }
-                    </div>
-                }
-            </div>
-            <div class="sidebar-2" id="sidebar2">
-                <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
-                @if (planetManager.GetCurrent() != null)
-                {
-                    <!-- The Modal -->
-                    <div class="modal edit-planet-modal" id="EditPlanetModal">
-                        <!-- Modal content -->
-                        <div class="modal-content-EditPlanet">
-                            <div class="login-box">
-                                <div class="col-md-12" style="height: 100%; width: 100%;">
-                                    <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
+                <div class="sidebar-2" id="sidebar2">
+                    <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
+                    @if (planetManager.GetCurrent() != null)
+                    {
+                        <!-- The Modal -->
+                        <div class="modal edit-planet-modal" id="EditPlanetModal">
+                            <!-- Modal content -->
+                            <div class="modal-content-EditPlanet">
+                                <div class="login-box">
+                                    <div class="col-md-12" style="height: 100%; width: 100%;">
+                                        <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                }
-
-                <div class="top-bar">
-                </div>
-                <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                <div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
-                    @if (planetManager.GetCurrent() != null)
-                    {
-                        ClientWindow window = windowManager.GetSelectedWindow();
-                        ChatChannelWindow channelWindow = (ChatChannelWindow)window;
-                        Planet planet = planetManager.GetCurrent();
-                        @foreach (PlanetCategory category in GetTopLevelCategories())
-                        {
-                            <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
-                            </CategoryComponent>
-                        }
                     }
-                </div>
 
+                    <div class="top-bar">
+                    </div>
+                    <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
+                    <div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
+                        @if (planetManager.GetCurrent() != null)
+                        {
+                            ClientWindow window = windowManager.GetSelectedWindow();
+                            ChatChannelWindow channelWindow = (ChatChannelWindow)window;
+                            Planet planet = planetManager.GetCurrent();
+                            @foreach (PlanetCategory category in GetTopLevelCategories())
+                            {
+                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
+                                </CategoryComponent>
+                            }
+                        }
+                    </div>
+
+                </div>
             </div>
             <div class="channel-and-topbar" id="mainwindow">
                 <div class="topbar">
@@ -107,32 +109,32 @@
 
                     @if (windowManager.GetWindowCount() == 1)
                     {
-                        <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
                     }
                     else if (windowManager.GetWindowCount() == 2)
                     {
-                        <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-                        <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
                     }
                     else if (windowManager.GetWindowCount() == 3)
                     {
                         <div id="window-col1" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
                         </div>
                         <div id="window-col2" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                     }
                     else if (windowManager.GetWindowCount() == 4)
                     {
                         <div id="window-col1" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                         <div id="window-col2" class="window-col">
-                            <MainWindowComponent Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
                         </div>
                     }
                 </div>
@@ -230,6 +232,38 @@ else
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
         planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
+        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
+    }
+
+    public async Task OnRefreshChannelList(string data)
+    {
+
+        ClientPlanet dummy = new ClientPlanet();
+
+        Planet planet = planetManager.GetCurrent();
+
+        IEnumerable<ClientPlanetChatChannel> channels = await dummy.GetClientPlanetChannelsAsync(planet.Id);
+
+        IEnumerable<PlanetCategory> categories = await dummy.GetClientPlanetCategoriesAsync(planet.Id);
+
+        PlanetCategoryChannelList.Clear();
+
+        PlanetChannelList.Clear();
+
+        StateHasChanged();
+
+        foreach (ClientPlanetChatChannel channel in channels)
+        {
+            PlanetChannelList.Add(channel);
+        }
+
+        foreach (PlanetCategory category in categories)
+        {
+            PlanetCategoryChannelList.Add(category);
+        }
+
+        StateHasChanged();
+
     }
 
     public void Dispose()
@@ -335,5 +369,10 @@ else
     {
         Console.WriteLine("Detected refocus event.");
         await SignalRManager.Current.ForceRefresh();
+    }
+
+    public async Task ForceRefresh()
+    {
+        StateHasChanged();
     }
 }

@@ -24,8 +24,8 @@
 
 ## Breach of Law
 - All content must follow US laws and the law of whatever region it is posted from
-- Content showing a breach of law is not permitted on the platform
-- Admission or description of crime is not permitted on the platform
+- Content showing a breach of law by users is not permitted on the platform
+- Admission or instruction for the committing of crime is not permitted on the platform
 - Planning or organizing crime is not permitted on the platform
 - Calls to violence or inciting violence is not permitted on the platform
 - Any discussion of ways to obtain, distribute, or sell illegal material is not permitted on the platform

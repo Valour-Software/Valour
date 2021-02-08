@@ -137,6 +137,8 @@ Personally identifiable information may include, but is not limited to:
   * Phone number
 
   * Address, State, Province, ZIP/Postal code, City
+  
+  * IP Address (for Consumers who post image or video data to ensure compliance with NCMEC and similar organizations)
 
   * Usage Data
 
@@ -569,7 +571,7 @@ collected if You provided such personal information directly to Us.
     Examples: Audio, electronic, visual, thermal, olfactory, or similar
     information.
 
-    Collected: No.
+    Collected: Yes.
 
   * Category I: Professional or employment-related information.
 
@@ -670,6 +672,7 @@ commercial purposes:
     Customer Records statute (Cal. Civ. Code § 1798.80(e))
   * Category D: Commercial information
   * Category F: Internet or other similar network activity
+  * Category H: Sensory data.
 
 Please note that the categories listed above are those defined in the CCPA.
 This does not mean that all examples of that category of personal information
@@ -702,11 +705,7 @@ and may have been shared for value in return.
 We may sell and may have sold in the last twelve (12) months the following
 categories of personal information:
 
-  * Category A: Identifiers
-  * Category B: Personal information categories listed in the California
-    Customer Records statute (Cal. Civ. Code § 1798.80(e))
-  * Category D: Commercial information
-  * Category F: Internet or other similar network activity
+* We do not sell user data
 
 Share of Personal Information  
 -----------------------------

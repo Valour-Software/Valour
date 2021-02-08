@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Sockets;
+using Microsoft.AspNetCore.SignalR;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
@@ -21,7 +22,7 @@ using Valour.Server.MSP;
 
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -114,7 +115,7 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<TaskResult> UpdateOrder([FromBody]Dictionary<ushort, List<ulong>> json, ulong userid, string token)
+        public async Task<TaskResult> UpdateOrder([FromBody]Dictionary<ushort, List<ulong>> json, ulong userid, string token, ulong Planet_Id)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -127,8 +128,17 @@ namespace Valour.Server.Controllers
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+
+            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You are not authorized to do this.");
+            }
+
             Console.WriteLine(json);
             var values = json;//JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(data);
+            
             foreach(var value in values) {
                 ushort position = value.Key;
                 ulong id = value.Value[0];
@@ -147,6 +157,8 @@ namespace Valour.Server.Controllers
                Console.WriteLine(value);
             }
             await Context.SaveChangesAsync();
+
+            await PlanetHub.Current.Clients.Group($"p-{Planet_Id}").SendAsync("RefreshChannelList", "");
             return new TaskResult(true, "Updated Order!");
         }
 
@@ -242,7 +254,7 @@ namespace Valour.Server.Controllers
             return new TaskResult<ulong>(true, "Successfully created planet.", planet.Id);
         }
 
-        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9_-]+$");
+        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
         /// <summary>
         /// Validates that a given name is allowable for a server

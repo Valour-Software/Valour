@@ -62,15 +62,6 @@
         }
 
         imageSpan = result.Message;
-
-        // Send user into planet if successful
-        if (result.Success)
-        {
-            ulong planet_id = result.Data;
-
-            await planetManager.RefreshChannels();
-
-        }
     }
 
     private async Task OnImageInput()

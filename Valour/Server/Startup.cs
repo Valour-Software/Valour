@@ -31,7 +31,7 @@ using Valour.Server.Planets;
 using Microsoft.Net.Http.Headers;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -107,6 +107,7 @@ namespace Valour.Server
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
+            services.AddHostedService<StatWorker>();
         }
 
         /// <summary>
@@ -232,12 +233,6 @@ namespace Valour.Server
             });
 
             PlanetHub.Current = app.ApplicationServices.GetService<IHubContext<PlanetHub>>();
-
-            using (var serviceScope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope())
-            {
-                var context = serviceScope.ServiceProvider.GetRequiredService<ValourDB>();
-                context.Database.EnsureCreated();
-            }
         }
     }
 }
