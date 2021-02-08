@@ -19,7 +19,7 @@ using Valour.Server.Oauth;
 using AutoMapper;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -75,6 +75,8 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
+            await PlanetHub.Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("RefreshChannelList", "");
+
             return new TaskResult(true, "Successfully set name.");
         }
 
@@ -115,9 +117,10 @@ namespace Valour.Server.Controllers
             }
 
             Context.PlanetCategories.Remove(category);
-
-            Context.PlanetCategories.Remove(category);
+            
             await Context.SaveChangesAsync();
+
+            await PlanetHub.Current.Clients.Group($"p-{category.Parent_Id}").SendAsync("RefreshChannelList", "");
 
             return new TaskResult(true, "Successfully deleted.");
         }
@@ -153,8 +156,11 @@ namespace Valour.Server.Controllers
             }
 
             await Context.SaveChangesAsync();
+
+            await PlanetHub.Current.Clients.Group($"p-{planet.Id}").SendAsync("RefreshChannelList", "");
             
             return new TaskResult(true, "Successfully set parent id.");
+            
         }
 
         /// <summary>
@@ -205,6 +211,8 @@ namespace Valour.Server.Controllers
 
             // Save changes to DB
             await Context.SaveChangesAsync();
+
+            await PlanetHub.Current.Clients.Group($"p-{planet_id}").SendAsync("RefreshChannelList", "");
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created category.", category.Id);

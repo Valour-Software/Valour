@@ -25,6 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **System Information:**
  - OS: [e.g. iOS]
+ - Valour Version [e.g 0.0.6.4]
  - Valour Platform: [e.g. Web, Mobile App, Desktop App]
      - Browser: [e.g. chrome, safari] **Only answer when saying you use Web**
 

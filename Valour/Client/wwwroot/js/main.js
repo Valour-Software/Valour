@@ -21,9 +21,13 @@ function FixClip() {
     $("body").addClass("full-screen");
 }
 
+var swipeState = 0;
+
 function FitMobile() {
     var sidebar1 = $(".sidebar");
     var sidebar2 = $(".sidebar-2");
+    var sidebarMenu = $(".sidebar-menu");
+
     var channel = $(".channel-and-topbar");
     var topbar = $(".topbar");
 
@@ -39,8 +43,10 @@ function FitMobile() {
 
     $(".add-window-button").toggle(false);
 
+    sidebarMenu.removeClass("sidebar-menu");
+    sidebarMenu.addClass("sidebar-menu-mobile");
+    sidebar1.removeClass("sidebar");
     sidebar1.addClass("sidebar-mobile");
-    sidebar2.addClass("sidebar-2-mobile");
     channel.addClass("channel-and-topbar-mobile");
 
     channel.css("min-width", screen.width);
@@ -49,31 +55,47 @@ function FitMobile() {
     topbar.toggle(false);
 }
 
+function HandleSwipeState() {
+
+    var sidebar1 = $(".sidebar-mobile");
+    var sidebarMenu = $(".sidebar-menu-mobile");
+
+    console.log("Swipe state is now " + swipeState);
+
+    if (swipeState === 0) {
+        sidebarMenu.removeClass("sidebar-menu-mobile-active");
+    }
+    else if (swipeState === 1) {
+        sidebar1.removeClass("sidebar-mobile-expanded");
+        sidebarMenu.addClass("sidebar-menu-mobile-active");
+
+    }
+    else if (swipeState === 2) {
+        sidebar1.addClass("sidebar-mobile-expanded");
+    }
+}
+
 function OnRightSwipe() {
     if (mobile) {
 
-        var sidebar1 = $(".sidebar");
-        var sidebar2 = $(".sidebar-2");
+        swipeState++;
+        if (swipeState > 2) {
+            swipeState = 2;
+        }
 
-        sidebar1.addClass("sidebar-mobile-active");
-        sidebar2.addClass("sidebar-2-mobile-active");
-
-        //sidebar1.toggle(true);
+        HandleSwipeState();
     }
 }
 
 function OnLeftSwipe() {
+
+    swipeState--;
+    if (swipeState < 0) {
+        swipeState = 0;
+    }
+
     if (mobile) {
-
-        var sidebar1 = $(".sidebar");
-        var sidebar2 = $(".sidebar-2");
-
-        var w1 = sidebar1.width();
-        var w2 = sidebar2.width();
-
-        //sidebar1.toggle(false);
-        sidebar1.removeClass("sidebar-mobile-active");
-        sidebar2.removeClass("sidebar-2-mobile-active");
+        HandleSwipeState();
     }
 }
 
@@ -513,6 +535,14 @@ async function postData(url = '', data = {}) {
     return response.json(); // parses JSON response into native JavaScript objects
   }
 
+  function httpGet(theUrl)
+  {
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+      xmlHttp.send( null );
+      return JSON.parse(xmlHttp.responseText);
+  }
+
 const Drop = (e) =>{
     e.preventDefault();
     if (dragging == null) {
@@ -542,10 +572,11 @@ const Drop = (e) =>{
     TopLevel = false
     if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
         id = dragging.id 
-        fetch(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=0`)
-        .then(data => {
-                console.log(data)
-        })
+        data = httpGet(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=0`)
+        console.log(data)
+        if (out["success"] == false) {
+            return null;
+        }
         TopLevel = true
     }
     else {
@@ -560,16 +591,18 @@ const Drop = (e) =>{
         categoryid = target.parentNode.id
         if (categoryid != parentid) {
             if (dragging.className.includes("channel")) {
-                fetch(`/Channel/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-                .then(data => {
-                    console.log(data)
-                })
+                data = httpGet(`/Channel/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                console.log(data)
+                if (data["success"] == false) {
+                    return null;
+                }
             }
             else {
-                fetch(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-                .then(data => {
-                    console.log(data)
-                })
+                data = httpGet(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                console.log(data)
+                if (data["success"] == false) {
+                    return null;
+                }
             }
         }
     }
@@ -583,6 +616,7 @@ const Drop = (e) =>{
     parentid = dragging.parentNode
     parentid = parentid.parentNode.id
     categoryid = target.parentNode.id
+    oldlist = Array.from(target.children)
     if (categoryid == parentid || TopLevel) {
         list = Array.prototype.slice.call( target.children )
         var index1 = list.indexOf(dragging);
@@ -622,17 +656,26 @@ const Drop = (e) =>{
             index += 1
         }
     }
-    postData(`/Planet/UpdateOrder?token=${SecretKey}&UserId=${UserId}`, data)
+    postData(`/Planet/UpdateOrder?token=${SecretKey}&UserId=${UserId}&Planet_Id=${Planet_Id}`, data)
         .then(out => {
+            if (out["success"] == false) {
+                target.innerHTML = ""
+                for (i in oldlist) {
+                    item = oldlist[i]
+                    target.append(item)
+
+                }
+            }
             console.log(out)
         })
     dragging = null
     return null;
 }
 
-function SetSecretKey(key, id) {
+function SetSecretKey(key, id, planetid) {
     SecretKey = key
     UserId = id
+    Planet_Id = planetid
 }
 
 function SetDate() {

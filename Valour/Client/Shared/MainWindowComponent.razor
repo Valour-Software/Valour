@@ -1,5 +1,5 @@
 ﻿<!--  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 -->
@@ -14,17 +14,20 @@
 
     @if (Window is HomeWindow)
     {
-        <HomeWindowComponent Window="@((HomeWindow)Window)" RefreshWindow="RefreshWindow"></HomeWindowComponent>
+        <HomeWindowComponent Window="@((HomeWindow)Window)" IndexPage="IndexPage" RefreshWindow="RefreshWindow"></HomeWindowComponent>
     }
     else if (Window is ChatChannelWindow)
     {
-        <ChannelWindowComponent Window="@((ChatChannelWindow)Window)"></ChannelWindowComponent>
+        <ChannelWindowComponent MainWindow="this" Window="@((ChatChannelWindow)Window)" IndexPage="IndexPage"></ChannelWindowComponent>
     }
 </div>
 
 @code {
     [Parameter]
     public ClientWindow Window { get; set; }
+
+    [Parameter]
+    public Valour.Client.Pages.Index IndexPage { get; set; }
 
     [Parameter]
     public string StyleClass { get; set; }

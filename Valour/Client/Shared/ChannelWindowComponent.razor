@@ -16,6 +16,19 @@
                 @Channel.Description
             </p>
         }
+
+        <div class="channel-buttons">
+            <div class="channel-home" @onclick="ReturnHome">
+                Home
+            </div>
+            @if (windowManager.GetWindowCount() > 1)
+            {
+            <div class="channel-close" @onclick="CloseWindow">
+                X
+            </div>
+            }
+        </div>
+
     </div>
 
     <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" Messages="Window.messages" @ref="MessageHolder"></MessageHolderComponent>
@@ -42,6 +55,12 @@
 
     [Parameter]
     public ChatChannelWindow Window { get; set; }
+
+    [Parameter]
+    public Valour.Client.Pages.Index IndexPage { get; set; }
+
+    [Parameter]
+    public MainWindowComponent MainWindow { get; set; }
 
     public ClientPlanetChatChannel Channel;
 
@@ -70,9 +89,26 @@
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id);
+        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, planetManager.GetCurrent().Id);
 
         await SetupNewChannelAsync();
+    }
+    
+    public async Task CloseWindow()
+    {
+        await planetManager.ClosePlanetChatChannel(this);
+        windowManager.CloseWindow(Window.Index);
+        await IndexPage.ForceRefresh();
+    }
+
+    public async Task ReturnHome()
+    {
+        await planetManager.ClosePlanetChatChannel(this);
+
+        HomeWindow newWindow = new HomeWindow(Window.Index);
+
+        windowManager.SetWindow(Window.Index, newWindow);
+        MainWindow.RefreshWindow(newWindow);
     }
 
     public async Task SetupNewChannelAsync()
@@ -131,7 +167,14 @@
 
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
-        Window.messages.Add(message);
+        if (!Window.messages.Any(x => x.Message_Index == message.Message_Index)){
+            Window.messages.Add(message);
+        }
+        //else
+        //{
+        //    Console.WriteLine("Prevented egg error");
+        //}
+
         Window.messageIndex = message.Message_Index;
 
         //Get current window scroll pos
