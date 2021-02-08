@@ -103,6 +103,12 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
+            List<PlanetCategory> cate = await Task.Run(() => Context.PlanetCategories.Where(x => x.Planet_Id == category.Planet_Id).ToList());
+
+            if (cate.Count == 1) {
+                return new TaskResult(false, "You can not delete your last category!");
+            }
+
             List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
 
             foreach(PlanetCategory Category in categories)

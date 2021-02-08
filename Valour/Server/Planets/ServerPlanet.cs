@@ -102,7 +102,7 @@ namespace Valour.Server.Planets
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
                 // TODO: Make a way to choose a primary channel rather than just grabbing the first one
-                return await db.PlanetChatChannels.Where(x => x.Planet_Id == this.Id).FirstAsync();
+                return await db.PlanetChatChannels.Where(x => x.Planet_Id == this.Id && x.Parent_Id != null).FirstOrDefaultAsync();
             }
         }
 
