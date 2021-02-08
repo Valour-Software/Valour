@@ -195,10 +195,7 @@
         StateHasChanged();
         //MessageHolder.ForceRefresh();
 
-        if (IsAtBottom)
-        {
-            await ScrollToBottom();
-        }
+        await ScrollToBottom();
     }
 
     public async Task ScrollToBottom()
