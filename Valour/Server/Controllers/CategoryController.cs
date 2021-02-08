@@ -64,7 +64,7 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {
@@ -96,11 +96,17 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.FindAsync(id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {
                 return new TaskResult(false, "You are not authorized to do this.");
+            }
+
+            List<PlanetCategory> cate = await Task.Run(() => Context.PlanetCategories.Where(x => x.Planet_Id == category.Planet_Id).ToList());
+
+            if (cate.Count == 1) {
+                return new TaskResult(false, "You can not delete your last category!");
             }
 
             List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
@@ -141,7 +147,7 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {
@@ -188,7 +194,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {

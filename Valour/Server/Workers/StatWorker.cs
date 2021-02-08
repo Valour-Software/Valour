@@ -38,7 +38,7 @@ namespace Valour.Server.Workers
 
         public static void IncreaseMessageCount()
         {
-            stats.messagesSent += 1;
+            stats.MessagesSent += 1;
         }
 
         public static IHostingEnvironment env;
@@ -57,12 +57,12 @@ namespace Valour.Server.Workers
                     if (Context != null && System.Diagnostics.Debugger.IsAttached == false)
                     {
                         stats.Time = DateTime.UtcNow;
-                        stats.userCount = Context.Users.Count();
-                        stats.planetCount = Context.Planets.Count();
-                        stats.planetmemberCount = Context.PlanetMembers.Count();
-                        stats.channelCount = Context.PlanetChatChannels.Count();
-                        stats.categoryCount = Context.PlanetCategories.Count();
-                        stats.message24hCount = Context.PlanetMessages.Count();
+                        stats.UserCount = Context.Users.Count();
+                        stats.PlanetCount = Context.Planets.Count();
+                        stats.PlanetMemberCount = Context.PlanetMembers.Count();
+                        stats.ChannelCount = Context.PlanetChatChannels.Count();
+                        stats.CategoryCount = Context.PlanetCategories.Count();
+                        stats.Message24hCount = Context.PlanetMessages.Count();
                         await Context.Stats.AddAsync(stats);
                         await Context.SaveChangesAsync(); 
                         stats = new StatObject();

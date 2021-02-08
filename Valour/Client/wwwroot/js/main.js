@@ -273,11 +273,12 @@ function IsAtBottom(index) {
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
     var window = $("#innerwindow-" + index);
+    window.scrollTop(window.prop("scrollHeight"));
+}
 
-    if (scrollStates[index] === 1) {
-        //console.log("hi there");
-        window.scrollTop(window.prop("scrollHeight"));
-    }
+function ScrollWindowBottomAnim(index) {
+    var window = $("#innerwindow-" + index);
+    window.animate({ scrollTop: window.prop("scrollHeight") }, "fast");
 }
 
 function SetupWindow(index) {
@@ -695,3 +696,9 @@ window.blazorFuncs = {
             });
     }
 };
+
+window.onresize = function () {
+    document.body.height = window.innerHeight;
+}
+
+window.onresize(); // called to initially set the height.

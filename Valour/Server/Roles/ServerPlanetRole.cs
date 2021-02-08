@@ -1,7 +1,15 @@
-﻿using System;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Server.Database;
+using Valour.Server.Mapping;
+using Valour.Server.Oauth;
+using Valour.Server.Users;
+using Valour.Shared.Channels;
 using Valour.Shared.Roles;
 
 /*  Valour - A free and secure chat client
@@ -15,10 +23,45 @@ namespace Valour.Server.Roles
 {
     public class ServerPlanetRole : PlanetRole
     {
+        /// <summary>
+        /// Returns the generic planetrole object
+        /// </summary>
+        public PlanetRole PlanetUser
+        {
+            get
+            {
+                return (PlanetRole)this;
+            }
+        }
 
-        //public List<ChannelPermissionsNode> GetAllChannelNodes()
-        //{
-            
-        //}
+        /// <summary>
+        /// Returns a ServerPlanetRole using a PlanetRole as a base
+        /// </summary>
+        public static ServerPlanetRole FromBase(PlanetRole planetrole)
+        {
+            return MappingManager.Mapper.Map<ServerPlanetRole>(planetrole);
+        }
+
+        public List<ChannelPermissionsNode> GetAllChannelNodes()
+        {
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            {
+                return Context.ChannelPermissionsNodes.Where(x => x.Planet_Id == Planet_Id).ToList();
+            }           
+        }
+
+        public async Task<PermissionState> GetPermissionState(Permission permission, PlanetChatChannel channel)
+        {
+            return await GetPermissionState(permission, channel.Id);
+        }
+
+        public async Task<PermissionState> GetPermissionState(Permission permission, ulong channel_id)
+        {
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            {
+                ChannelPermissionsNode node = await Context.ChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Channel_Id == channel_id);
+                return node.GetPermissionState(permission);
+            }
+        }
     }
 }

@@ -79,7 +79,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Ban)))
             {
@@ -129,7 +129,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -235,11 +235,25 @@ namespace Valour.Server.Controllers
             await Context.PlanetMembers.AddAsync(member);
 
 
+            PlanetCategory category = new PlanetCategory()
+            {
+                Name = "General",
+                Planet_Id = planet.Id,
+                Parent_Id = null,
+                Position = 0
+            };
+
+            // Add channel to database
+            await Context.PlanetCategories.AddAsync(category);
+
+            await Context.SaveChangesAsync();
+
             // Create general channel
             PlanetChatChannel channel = new PlanetChatChannel()
             {
                 Name = "General",
                 Planet_Id = planet.Id,
+                Parent_Id = category.Id,
                 Message_Count = 0,
                 Description = "General chat channel"
             };
@@ -284,7 +298,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<Planet>> GetPlanet(ulong planet_id, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (planet == null)
             {
@@ -305,14 +319,49 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong userid, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.View)))
             {
                 return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
             }
 
-            return new TaskResult<PlanetChatChannel>(true, "Successfully retireved channel.", await planet.GetPrimaryChannelAsync());
+            PlanetChatChannel PrimaryChannel = await planet.GetPrimaryChannelAsync();
+
+            if (PrimaryChannel == null) {
+                PlanetCategory category = new PlanetCategory()
+                {
+                    Name = "General",
+                    Planet_Id = planet.Id,
+                    Parent_Id = null,
+                    Position = 0
+                };
+
+                // Add channel to database
+                await Context.PlanetCategories.AddAsync(category);
+
+                await Context.SaveChangesAsync();
+
+                // Create general channel
+                PlanetChatChannel channel = new PlanetChatChannel()
+                {
+                    Name = "General",
+                    Planet_Id = planet.Id,
+                    Parent_Id = category.Id,
+                    Message_Count = 0,
+                    Description = "General chat channel"
+                };
+
+                // Add channel to database
+                await Context.PlanetChatChannels.AddAsync(channel);
+
+                // Save changes to DB
+                await Context.SaveChangesAsync();
+
+                PrimaryChannel = (PlanetChatChannel)channel;
+            }
+
+            return new TaskResult<PlanetChatChannel>(true, "Successfully retireved channel.", PrimaryChannel);
         }
 
         /// <summary>
@@ -320,7 +369,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetName(ulong planet_id, string name, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
@@ -347,7 +396,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetDescription(ulong planet_id, string description, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
@@ -367,7 +416,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetPublic(ulong planet_id, bool ispublic, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {

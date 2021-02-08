@@ -6,10 +6,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Users;
 using Valour.Server.Database;
+using Valour.Server.Mapping;
 using Valour.Server.Oauth;
+using Valour.Server.Roles;
 using Valour.Shared.Channels;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Valour.Shared.Roles;
 using Valour.Shared.Users;
 
 namespace Valour.Server.Planets
@@ -42,20 +45,20 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base
         /// </summary>
-        public static ServerPlanet FromBase(Planet planet, IMapper mapper)
+        public static ServerPlanet FromBase(Planet planet)
         {
-            return mapper.Map<ServerPlanet>(planet);
+            return MappingManager.Mapper.Map<ServerPlanet>(planet);
         }
 
         /// <summary>
         /// Retrieves a ServerPlanet for the given id
         /// </summary>
-        public static async Task<ServerPlanet> FindAsync(ulong id, IMapper mapper)
+        public static async Task<ServerPlanet> FindAsync(ulong id)
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
                 Planet planet = await db.Planets.FindAsync(id);
-                return ServerPlanet.FromBase(planet, mapper);
+                return ServerPlanet.FromBase(planet);
             }
         }
 
@@ -102,7 +105,7 @@ namespace Valour.Server.Planets
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
                 // TODO: Make a way to choose a primary channel rather than just grabbing the first one
-                return await db.PlanetChatChannels.Where(x => x.Planet_Id == this.Id).FirstAsync();
+                return await db.PlanetChatChannels.Where(x => x.Planet_Id == this.Id && x.Parent_Id != null).FirstOrDefaultAsync();
             }
         }
 
@@ -155,6 +158,22 @@ namespace Valour.Server.Planets
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Returns the default role for the planet
+        /// </summary>
+        public async Task<ServerPlanetRole> GetDefaultRole()
+        {
+            if (Default_Role_Id == null)
+            {
+                return ServerPlanetRole.FromBase(PlanetRole.DefaultRole);
+            }
+
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            {
+                return ServerPlanetRole.FromBase(await Context.PlanetRoles.FindAsync(Default_Role_Id));
+            }
         }
     }
 }
