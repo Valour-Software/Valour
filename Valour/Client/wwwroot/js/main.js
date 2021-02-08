@@ -273,7 +273,9 @@ function IsAtBottom(index) {
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
     var window = $("#innerwindow-" + index);
-    window.scrollTop(window.prop("scrollHeight"));
+    if (scrollStates[index] === 1) {
+        window.scrollTop(window.prop("scrollHeight"));
+    }
 }
 
 function ScrollWindowBottomAnim(index) {
