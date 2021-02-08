@@ -50,7 +50,8 @@ namespace Valour.Server.Roles
                 {
 
                 }
-                
+
+                return true;
             }
         }
     }

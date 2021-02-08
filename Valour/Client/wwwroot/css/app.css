@@ -142,6 +142,11 @@ body {
     resize: none;
 }
 
+.textbox-holder {
+    position: absolute;
+    bottom: 0px;
+}
+
 .message.ping {
     background: rgba(253, 59, 59, 0.24);
 }
