@@ -66,7 +66,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<List<PlanetInvite>>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
             {
@@ -188,7 +188,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetInvite>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
             {

@@ -70,7 +70,7 @@ namespace Valour.Server.Controllers
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -101,7 +101,7 @@ namespace Valour.Server.Controllers
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -138,7 +138,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "That channel does not exist.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (planet == null)
             {
@@ -176,7 +176,7 @@ namespace Valour.Server.Controllers
 
             PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -217,7 +217,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {

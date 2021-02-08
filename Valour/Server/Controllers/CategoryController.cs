@@ -64,7 +64,7 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {
@@ -96,7 +96,7 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.FindAsync(id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {
@@ -141,7 +141,7 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {
@@ -188,7 +188,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
             {

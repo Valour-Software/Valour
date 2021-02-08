@@ -82,7 +82,7 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Registers a new user and adds them to the database
         /// </summary>
-        public async Task<TaskResult> RegisterUser(string username, string email, string password)
+        public async Task<TaskResult> RegisterUser(string username, string email, string password, string referrer = null)
         {
             if (username != null)
             {
@@ -125,6 +125,23 @@ namespace Valour.Server.Controllers
             if (!passwordResult.Success)
             {
                 return passwordResult;
+            }
+
+            Referral refer = null;
+
+            if (!string.IsNullOrWhiteSpace(referrer))
+            {
+                User referUser = await Context.Users.FirstOrDefaultAsync(x => x.Username == referrer);
+
+                if (referUser == null)
+                {
+                    return new TaskResult(false, $"Failed: Could not find referrer {referrer}");
+                }
+
+                refer = new Referral()
+                {
+                    Referrer_Id = referUser.Id
+                };
             }
 
             // At this point the safety checks are complete
@@ -201,6 +218,13 @@ namespace Valour.Server.Controllers
                 User_Id = user.Id
             };
 
+            if (refer != null)
+            {
+                refer.User_Id = user.Id;
+                await Context.Referrals.AddAsync(refer);
+                await Context.SaveChangesAsync();
+            }
+
             // An error here would be really bad so we'll be careful and catch any exceptions
             try
             {
@@ -211,7 +235,6 @@ namespace Valour.Server.Controllers
             {
                 return new TaskResult(false, $"A critical error occured adding the email confirmation code.");
             }
-
 
             // Send registration email
             string emsg = $@"<body>
@@ -426,7 +449,7 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planet_id, string auth)
         {
             // Retrieve planet
-            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planet_id), Mapper);
+            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planet_id));
 
             if (planet == null) return new TaskResult<PlanetUser>(false, "The planet could not be found.", null);
 
@@ -452,7 +475,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
             }
 
-            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id, Mapper);
+            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id);
 
             if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
 
