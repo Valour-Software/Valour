@@ -131,7 +131,7 @@ namespace Valour.Server.Controllers
 
             if (!string.IsNullOrWhiteSpace(referrer))
             {
-                User referUser = await Context.Users.FirstOrDefaultAsync(x => x.Username == referrer);
+                User referUser = await Context.Users.FirstOrDefaultAsync(x => x.Username.ToLower() == referrer.ToLower());
 
                 if (referUser == null)
                 {
