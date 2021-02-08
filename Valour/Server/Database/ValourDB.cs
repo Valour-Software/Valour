@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared;
+using Valour.Shared.Roles;
 
 namespace Valour.Server.Database
 {
@@ -109,6 +110,20 @@ namespace Valour.Server.Database
         /// Table for planet invites
         /// </summary>
         public DbSet<StatObject> Stats { get; set; }
+
+        /// <summary>
+        /// Table for referrals
+        /// </summary>
+        public DbSet<Referral> Referrals { get; set; }
+
+        /// <summary>
+        /// Table for members of planet roles
+        /// </summary>
+        public DbSet<PlanetRoleMember> PlanetRoleMembers { get; set; }
+
+        public DbSet<ChannelPermissionsNode> ChannelPermissionsNodes { get; set; }
+
+        public DbSet<PlanetRole> PlanetRoles { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

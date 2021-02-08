@@ -79,7 +79,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Ban)))
             {
@@ -129,7 +129,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -298,7 +298,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<Planet>> GetPlanet(ulong planet_id, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (planet == null)
             {
@@ -319,7 +319,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong userid, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.View)))
             {
@@ -369,7 +369,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetName(ulong planet_id, string name, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
@@ -396,7 +396,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetDescription(ulong planet_id, string description, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
@@ -416,7 +416,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetPublic(ulong planet_id, bool ispublic, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
             {
