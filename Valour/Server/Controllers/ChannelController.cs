@@ -150,6 +150,12 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
+            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Planet_Id == channel.Planet_Id).ToList());
+
+            if (channels.Count == 1) {
+                return new TaskResult(false, "You can not delete your last channel!");
+            }
+
 
             Context.PlanetChatChannels.Remove(channel);
 
