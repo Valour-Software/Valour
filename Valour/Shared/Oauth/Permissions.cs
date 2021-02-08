@@ -173,4 +173,45 @@ namespace Valour.Server.Oauth
         public static readonly Permission ManageCategories = new Permission(0x40, "Manage Categories", "Allow members to manage categories.");
         public static readonly Permission ManageChannels = new Permission(0x80, "Manage Categories", "Allow members to manage channels.");
     }
+
+    public enum PermissionState
+    {
+        Undefined, True, False
+    }
+
+    /// <summary>
+    /// Permission codes use two ulongs to represent
+    /// three possible states for every permission
+    /// </summary>
+    public struct PermissionNodeCode
+    {
+        // Just for reference,
+        // If the mask bit is 0, then it is always undefined
+        // If the mask but is 1, then if the code bit is 1 it is true. Otherwise it is false.
+        // This basically compresses 64 booleans (64 bytes) into 2 ulongs (16 bytes)
+
+        public ulong Code { get; set; }
+        public ulong Mask { get; set; }
+
+        public PermissionNodeCode(ulong code, ulong mask)
+        {
+            this.Code = code;
+            this.Mask = mask;
+        }
+
+        public PermissionState GetState(Permission permission)
+        {
+            if ((Mask & permission.Value) == 0x00)
+            {
+                return PermissionState.Undefined;
+            }
+
+            if ((Code & permission.Value) == 0x00)
+            {
+                return PermissionState.False;
+            }
+
+            return PermissionState.True;
+        }
+    }
 }

@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using Valour.Server.Oauth;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -29,6 +31,11 @@ namespace Valour.Shared.Roles
         public ulong Code { get; set; }
 
         /// <summary>
+        /// A mask used to determine if code bits are disabled
+        /// </summary>
+        public ulong Code_Mask { get; set; }
+
+        /// <summary>
         /// The channel this node applies to
         /// </summary>
         public ulong Channel_Id { get; set; }
@@ -42,5 +49,22 @@ namespace Valour.Shared.Roles
         /// The role this permissions node belongs to
         /// </summary>
         public ulong Role_Id { get; set; }
+
+
+        /// <summary>
+        /// Returns the node code for this permission node
+        /// </summary>
+        public PermissionNodeCode GetNodeCode()
+        {
+            return new PermissionNodeCode(Code, Code_Mask);
+        }
+
+        /// <summary>
+        /// Returns the permission state for a given permission
+        /// </summary>
+        public PermissionState GetPermissionState(Permission perm)
+        {
+            return GetNodeCode().GetState(perm);
+        }
     }
 }

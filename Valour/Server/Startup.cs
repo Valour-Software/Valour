@@ -93,6 +93,8 @@ namespace Valour.Server
 
             services.AddSingleton(mapper);
 
+            MappingManager.Mapper = mapper;
+
             services.AddDbContextPool<ValourDB>(options =>
             {
                 options.UseMySql(ValourDB.ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));

@@ -1,11 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Mapping;
 using Valour.Server.Oauth;
+using Valour.Server.Users;
 using Valour.Shared.Channels;
 using Valour.Shared.Roles;
 
@@ -20,6 +23,25 @@ namespace Valour.Server.Roles
 {
     public class ServerPlanetRole : PlanetRole
     {
+        /// <summary>
+        /// Returns the generic planetrole object
+        /// </summary>
+        public PlanetRole PlanetUser
+        {
+            get
+            {
+                return (PlanetRole)this;
+            }
+        }
+
+        /// <summary>
+        /// Returns a ServerPlanetRole using a PlanetRole as a base
+        /// </summary>
+        public static ServerPlanetRole FromBase(PlanetRole planetrole)
+        {
+            return MappingManager.Mapper.Map<ServerPlanetRole>(planetrole);
+        }
+
         public List<ChannelPermissionsNode> GetAllChannelNodes()
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
@@ -28,30 +50,17 @@ namespace Valour.Server.Roles
             }           
         }
 
-        public async Task<bool> HasChannelPermission(Permission permission, PlanetChatChannel channel)
+        public async Task<PermissionState> GetPermissionState(Permission permission, PlanetChatChannel channel)
         {
-            return await HasChannelPermission(permission, channel.Id);
+            return await GetPermissionState(permission, channel.Id);
         }
 
-        public async Task<bool> HasChannelPermission(Permission permission, ulong channel_id)
+        public async Task<PermissionState> GetPermissionState(Permission permission, ulong channel_id)
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
-                ulong perms = 0x00;
-
                 ChannelPermissionsNode node = await Context.ChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Channel_Id == channel_id);
-
-                if (node != null)
-                {
-                    perms = node.Code;
-                }
-                // Use default permissions
-                else
-                {
-
-                }
-
-                return true;
+                return node.GetPermissionState(permission);
             }
         }
     }
