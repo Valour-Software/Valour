@@ -35,7 +35,14 @@ namespace Valour.Server.MSP
             "https://vimeo.com",
             "https://tenor.com",
             "https://i.imgur.com",
-            "https://youtu.be"
+            "https://youtu.be",
+
+            "http://youtube.com/watch",
+            "http://cdn.discordapp.com",
+            "http://vimeo.com",
+            "http://tenor.com",
+            "http://i.imgur.com",
+            "http://youtu.be",
         };
 
         public static async Task<string> HandleUrls(string content)
