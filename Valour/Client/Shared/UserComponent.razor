@@ -9,6 +9,7 @@
                 @User.Username
             }
         </p>
+        @((MarkupString)StaffString)
         @((MarkupString)BotString)
         <br>
         <div class="user-status-state">
@@ -33,6 +34,19 @@
     public bool Last { get; set; }
     [Parameter]
     public bool Only { get; set; }
+
+    public string StaffString { get
+        {
+            if (User.Valour_Staff)
+            {
+                return "<div class='staff-tag'><p>STAFF</p></div>";
+            }
+            else
+            {
+                return "";
+            }
+        }
+    }
 
     public string BotString { get
         {
