@@ -25,7 +25,11 @@ namespace Valour.Client.Users
 
         public static async Task<List<ClientPlanetUser>> GetPlanetsUsers(ulong planet_id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUsers?Planet_Id={planet_id}&token={ClientUserManager.UserSecretToken}&userid={ClientUserManager.User.Id}");
+            Console.WriteLine("hello?");
+
+            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUsers?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine(json);
 
             TaskResult<List<ClientPlanetUser>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetUser>>>(json);
 

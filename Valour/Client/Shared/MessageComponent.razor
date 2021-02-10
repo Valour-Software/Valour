@@ -12,7 +12,7 @@
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @Author.GetMainRoleColor();" id="@Author.Id,@planetManager.GetCurrent().Id" oncontextmenu="UserContextMenu(event, this)">
+            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id" oncontextmenu="UserContextMenu(event, this)">
                 @Author.Username
             </p>
 
@@ -37,7 +37,9 @@
     [Parameter]
     public ClientPlanetMessage Message { get; set; }
 
-    private PlanetUser Author;
+    private ClientPlanetUser Author;
+
+    string roleColor = "#ffffff";
 
     string pfpurl = "/icon-512.png";
 
@@ -46,6 +48,8 @@
         await base.OnInitializedAsync();
 
         Author = await Message.GetAuthorAsync();
+
+        roleColor = await Author.GetColorHexAsync();
 
         if (Author != null && !string.IsNullOrWhiteSpace(Author.Pfp_Url))
         {

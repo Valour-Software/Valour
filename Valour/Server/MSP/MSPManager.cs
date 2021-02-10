@@ -31,18 +31,18 @@ namespace Valour.Server.MSP
         public static List<string> Media_Bypass = new List<string>()
         {
             "https://youtube.com/watch",
-            "https://cdn.discordapp.com",
-            "https://vimeo.com",
-            "https://tenor.com",
-            "https://i.imgur.com",
-            "https://youtu.be",
+            "https://cdn.discordapp.com/",
+            "https://vimeo.com/",
+            "https://tenor.com/",
+            "https://i.imgur.com/",
+            "https://youtu.be/",
 
             "http://youtube.com/watch",
-            "http://cdn.discordapp.com",
-            "http://vimeo.com",
-            "http://tenor.com",
-            "http://i.imgur.com",
-            "http://youtu.be",
+            "http://cdn.discordapp.com/",
+            "http://vimeo.com/",
+            "http://tenor.com/",
+            "http://i.imgur.com/",
+            "http://youtu.be/",
         };
 
         public static async Task<string> HandleUrls(string content)
@@ -53,9 +53,9 @@ namespace Valour.Server.MSP
             {
                 bool bypass = false;
 
-                foreach(string s in Media_Bypass)
+                foreach (string s in Media_Bypass)
                 {
-                    if (match.Value.ToLower().StartsWith(s))
+                    if (match.Value.ToLower().Replace("www.", "").StartsWith(s))
                     {
                         bypass = true;
                         content = content.Replace(match.Value, $"![]({match.Value})");

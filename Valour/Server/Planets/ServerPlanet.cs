@@ -167,7 +167,7 @@ namespace Valour.Server.Planets
         {
             if (Default_Role_Id == null)
             {
-                return ServerPlanetRole.FromBase(PlanetRole.DefaultRole);
+                return ServerPlanetRole.FromBase(PlanetRole.GetDefault(Id));
             }
 
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))

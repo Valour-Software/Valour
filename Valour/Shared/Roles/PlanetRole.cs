@@ -16,14 +16,16 @@ namespace Valour.Shared.Roles
 {
     public class PlanetRole
     {
-        [JsonIgnore]
-        public static PlanetRole DefaultRole = new PlanetRole()
+        public static PlanetRole GetDefault(ulong planet_id)
         {
-            Name = "Default",
-            Id = ulong.MaxValue,
-            Authority = 0,
-            Planet_Id = ulong.MaxValue
-        };
+            return new PlanetRole()
+            {
+                Name = "Default",
+                Id = ulong.MaxValue,
+                Authority = 0,
+                Planet_Id = planet_id
+            };
+        }
 
         /// <summary>
         /// The unique Id of this role

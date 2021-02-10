@@ -21,6 +21,7 @@ using Valour.Shared.Users;
 using Valour.Client.Users;
 using Valour.Shared.Users.Identity;
 using Newtonsoft.Json;
+using Valour.Server.Roles;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -379,7 +380,7 @@ namespace Valour.Server.Controllers
             // Check if there are any tokens already
             AuthToken token = null;
 
-            token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == Permission.FullControl.Value);
+            token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == UserPermissions.FullControl.Value);
 
             if (token == null)
             {
@@ -390,7 +391,7 @@ namespace Valour.Server.Controllers
                     Id = Guid.NewGuid().ToString(),
                     Time = DateTime.UtcNow,
                     Expires = DateTime.UtcNow.AddDays(7),
-                    Scope = Permission.FullControl.Value,
+                    Scope = UserPermissions.FullControl.Value,
                     User_Id = user.Id
                 };
 
@@ -446,19 +447,19 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns a planetuser given the user and planet id
         /// </summary>
-        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planet_id, string auth)
+        public async Task<TaskResult<ServerPlanetUser>> GetPlanetUser(ulong userid, ulong planet_id, string auth)
         {
             // Retrieve planet
             ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planet_id));
 
-            if (planet == null) return new TaskResult<PlanetUser>(false, "The planet could not be found.", null);
+            if (planet == null) return new TaskResult<ServerPlanetUser>(false, "The planet could not be found.", null);
 
             // Authentication flow
             AuthToken token = await Context.AuthTokens.FindAsync(auth);
 
             // If authorizor is not a member of the planet, they do not have authority to get member info
             if (token == null || !(await planet.IsMemberAsync(token.User_Id))){
-                return new TaskResult<PlanetUser>(false, "Failed to authorize.", null);
+                return new TaskResult<ServerPlanetUser>(false, "Failed to authorize.", null);
             }
 
             // At this point the request is authorized
@@ -467,19 +468,36 @@ namespace Valour.Server.Controllers
             User user = await Context.Users.FindAsync(userid);
 
             // Null check
-            if (user == null) return new TaskResult<PlanetUser>(false, "The user could not be found.", null);
+            if (user == null) return new TaskResult<ServerPlanetUser>(false, "The user could not be found.", null);
 
             // Ensure the user is a member of the planet
             if (!(await planet.IsMemberAsync(user)))
             {
-                return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
+                return new TaskResult<ServerPlanetUser>(false, "The target user is not a member of the planet.", null);
             }
 
-            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id);
+            ServerPlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id);
 
-            if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
+            if (planetUser == null) return new TaskResult<ServerPlanetUser>(false, "Could not create planet user: Fatal error.", null);
 
-            return new TaskResult<PlanetUser>(true, "Successfully retrieved planet user.", planetUser);
+            return new TaskResult<ServerPlanetUser>(true, "Successfully retrieved planet user.", planetUser);
+        }
+
+        /// <summary>
+        /// Returns a planetuser's roles given the user and planet id
+        /// </summary>
+        public async Task<TaskResult<List<ServerPlanetRole>>> GetPlanetUserRoles(ulong userid, ulong planet_id, string auth)
+        {
+            TaskResult<ServerPlanetUser> planetUserResult = await GetPlanetUser(userid, planet_id, auth);
+
+            if (!planetUserResult.Success)
+            {
+                return new TaskResult<List<ServerPlanetRole>>(false, planetUserResult.Message, null);
+            }
+
+            var roles = await planetUserResult.Data.GetRolesAsync();
+
+            return new TaskResult<List<ServerPlanetRole>>(true, $"Retrieved {roles.Count} roles.", roles);
         }
 
         /// <summary>
@@ -560,44 +578,52 @@ namespace Valour.Server.Controllers
             return new TaskResult<List<Planet>>(true, $"Retrieved {membership.Count} planets", membership);
         }
 
-        public async Task<TaskResult<List<ulong>>> GetPlantUserIds(ulong Planet_Id, ulong userid, string token)
+        public async Task<TaskResult<List<ulong>>> GetPlanetUserIds(ulong planet_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            if (authToken.User_Id != userid)
+            // If not a member of planet
+            if (authToken == null || !(await Context.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id)))
             {
-                return new TaskResult<List<ulong>>(false, $"Could not authenticate for user {userid}", null);
-            }
-            List<PlanetMember> list = await Task.Run(() => Context.PlanetMembers.Where(x => x.Planet_Id == Planet_Id).ToList());
-            List<ulong> ids = new List<ulong>();
-            foreach(PlanetMember member in list) {
-                ids.Add(member.User_Id);
+                return new TaskResult<List<ulong>>(false, $"Could not authenticate.", null);
             }
 
-            return new TaskResult<List<ulong>>(true, $"Retrieved {ids.Count()} users", ids);
+            var list = Context.PlanetMembers.Where(x => x.Planet_Id == planet_id).Select(x => x.User_Id).ToList();
+
+            return new TaskResult<List<ulong>>(true, $"Retrieved {list.Count()} users", list);
         }
 
-        public async Task<TaskResult<List<User>>> GetPlanetUsers(ulong Planet_Id, ulong userid, string token)
+        public async Task<TaskResult<List<PlanetUser>>> GetPlanetUsers(ulong planet_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            TaskResult<List<ulong>> idResponse = await GetPlanetUserIds(planet_id, token);
 
-            if (authToken.User_Id != userid)
+            if (!idResponse.Success)
             {
-                return new TaskResult<List<User>>(false, $"Could not authenticate for user {userid}", null);
-            }
-            List<PlanetMember> list = await Task.Run(() => Context.PlanetMembers.Where(x => x.Planet_Id == Planet_Id).ToList());
-
-            List<User> UsersToReturn = new List<User>();
-
-            List<User> Users = Context.Users.ToList();
-
-            foreach(PlanetMember member in list)
-            {
-                User u = Users.Where(x => x.Id == member.User_Id).FirstOrDefault();
-                UsersToReturn.Add(u);
+                return new TaskResult<List<PlanetUser>>(false, idResponse.Message, null);
             }
 
-            return new TaskResult<List<User>>(true, $"Retrieved {list.Count()} users", UsersToReturn);
+            List<PlanetUser> users = new List<PlanetUser>();
+
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+
+            if (planet == null)
+            {
+                return new TaskResult<List<PlanetUser>>(false, $"Could not find planet {planet_id}", null);
+            }
+
+            foreach(ulong id in idResponse.Data)
+            {
+                User user = await Context.Users.FindAsync(id);
+
+                var obj = await PlanetUser.CreateAsync(user, planet);
+
+                if (obj != null)
+                {
+                    users.Add(obj);
+                }
+            }
+
+            return new TaskResult<List<PlanetUser>>(true, $"Retrieved {users.Count()} users", users);
         }
 
         /// <summary>

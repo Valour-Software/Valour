@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Planets;
+using Valour.Server.Roles;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
@@ -92,13 +93,33 @@ namespace Valour.Server.Users
         }
 
         /// <summary>
+        /// Creates a PlanetUser instance using a user id and planet id
+        /// </summary>
+        public static async Task<ServerPlanetUser> CreateAsync(User user, ServerPlanet planet)
+        {
+            // Ensure user is within planet
+            if (!(await planet.IsMemberAsync(user)))
+            {
+                return null;
+            }
+
+            // First map the user to a planetUser to copy basic fields
+            ServerPlanetUser planetUser = MappingManager.Mapper.Map<ServerPlanetUser>(user);
+
+            // Now copy across planet info
+            planetUser.Planet_Id = planet.Id;
+
+            return planetUser;
+        }
+
+        /// <summary>
         /// Returns all of the roles for a planet user
         /// </summary>
-        public async Task<List<PlanetRole>> GetRolesAsync()
+        public async Task<List<ServerPlanetRole>> GetRolesAsync()
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
-                List<PlanetRole> roles = new List<PlanetRole>();
+                List<ServerPlanetRole> roles = new List<ServerPlanetRole>();
 
                 // Add default role
                 ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
@@ -110,11 +131,14 @@ namespace Valour.Server.Users
                 {
                     PlanetRole role = await Context.PlanetRoles.FindAsync(member.Role_Id);
 
-                    if (role != null)
+                    if (role != null && !roles.Contains(role))
                     {
-                        roles.Add(role);
+                        roles.Add(ServerPlanetRole.FromBase(role));
                     }
                 }
+
+                // Put most important roles at start
+                roles.OrderByDescending(x => x.Authority);
 
                 return roles;
             }

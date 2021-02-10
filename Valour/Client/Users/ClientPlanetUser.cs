@@ -3,8 +3,10 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Valour.Shared;
+using Valour.Shared.Roles;
 using Valour.Shared.Users;
 
 namespace Valour.Client.Users
@@ -65,6 +67,72 @@ namespace Valour.Client.Users
             }
 
             return result.Data;
+        }
+
+        /// <summary>
+        /// Cached roles
+        /// </summary>
+        public List<PlanetRole> Roles = null;
+
+        /// <summary>
+        /// Loads the user roles into cache, or reloads them if called again
+        /// </summary>
+        public async Task LoadRolesAsync()
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"User/GetPlanetUserRoles?userid={Id}&planet_id={Planet_Id}&auth={ClientUserManager.UserSecretToken}");
+
+            TaskResult<List<PlanetRole>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetRole>>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving planet user roles from the server.");
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+            }
+
+            Roles = result.Data;
+        }
+
+        /// <summary>
+        /// Returns the top role for the planet user
+        /// </summary>
+        public async Task<PlanetRole> GetPrimaryRoleAsync()
+        {
+            if (Roles == null)
+            {
+                await LoadRolesAsync();
+            }
+
+            return Roles[0];
+        }
+
+        public string State = null;
+
+        public async Task LoadStateAsync()
+        {
+            // TODO: Make work
+            State = "Currently browsing";
+        }
+
+        /// <summary>
+        /// Returns the state of the planet user
+        /// </summary>
+        public async Task<string> GetStateAsync()
+        {
+            if (State == null)
+            {
+                await LoadStateAsync();
+            }
+
+            return State;
+        }
+
+        public async Task<string> GetColorHexAsync()
+        {
+            return (await GetPrimaryRoleAsync()).GetColorHex();
         }
 
         /// <summary>

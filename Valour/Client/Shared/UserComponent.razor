@@ -1,7 +1,7 @@
 ﻿<div class="@Chosen_CSS">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@style">
     <div class="user-info">
-        <p class="username" style="color: @User.GetMainRoleColor()">
+        <p class="username" style="color: @roleColor">
             @if (User.Username.Length > 16) {
                 @User.Username.Substring(0, 15)
             }
@@ -15,7 +15,7 @@
             <div class="active-circle">
             </div>
             <p class="state">
-                @User.GetState()
+                @state
             </p>
         </div>
     </div>
@@ -25,7 +25,7 @@
     // Demonstrates how a parent component can supply parameters
 
     [Parameter]
-    public PlanetUser User { get; set; }
+    public ClientPlanetUser User { get; set; }
 
     [Parameter]
     public bool First { get; set; }
@@ -33,6 +33,10 @@
     public bool Last { get; set; }
     [Parameter]
     public bool Only { get; set; }
+
+    public string roleColor = "#ffffff";
+
+    public string state = "";
 
     public string BotString { get
         {
@@ -73,6 +77,10 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+
+        roleColor = await User.GetColorHexAsync();
+
+        state = await User.GetStateAsync();
 
         if (!string.IsNullOrWhiteSpace(User.Pfp_Url))
         {
