@@ -1,13 +1,14 @@
 # Valour Frequently Asked Questions
 
-| Content                                           |
-| ------------------------------------------------- |
-| [Supporting Valour](#supporting-valour)           |
-| [Issues](#issues)                                 |
-| [Valour App](#valour-app)                         |
-| [Features](#features)                             |
-| [Platform Compatibility](#platform-compatibility) |
-| [Miscellaneous](#miscellaneous)                   |
+| Content                                               |
+| ----------------------------------------------------- |
+| [Supporting Valour](#supporting-valour)               |
+| [Platform Compatibility](#platform-compatibility)     |
+| [Issues](#issues)                                     |
+| [Valour App](#valour-app)                             |
+| [Features](#features)                                 |
+| [Making Valour Applications](#platform-compatibility) |
+| [Miscellaneous](#miscellaneous)                       |
 
 ## Supporting Valour
 
@@ -37,6 +38,10 @@ If you have a bug/suggestions it is recommended you use the [Valour Github Issue
 
 ### I want to contribute to the Valour source code!
 If you are working on [Vooper-Media-LLC/Valour](https://github.com/Vooper-Media-LLC/Valour) it is required that you sign commits. Documentation for signed commits can be found [here](https://docs.github.com/en/github/authenticating-to-github/managing-commit-signature-verification).
+
+## Platform Compatibility
+
+Valour does not have an official app for any platform currently and is officially only supported on the website valour.gg. If you to wish to have a valour app feel you can add it is a shortcut for chrome (and possibly install it as a PWA although it may not be supported) or other browsers like Safari and Edge.
 
 ## Issues
 
@@ -134,7 +139,7 @@ Yes, you can have as many as you want on your planets.
 ### How can I set my profile picture?
 Currently there is no way to have a profile picture unless done manually by a developer of Valour. However in the future you will be able to do it yourself.
 
-## Valour Applications
+## Making Valour Applications
 
 <!-- Add when more questions are added to category 
 <details>
@@ -155,10 +160,6 @@ Due to Valour's AGPL3 license, you can modify and use Valour however you want, b
 
 ### Will there be bots/automated accounts?
 Yes, there will be bots. You can use your account for self-botting as well if you wish. The only requirement needed for making bots is that you ensure they use the AGPL license. Refer to '[*Is there anything I have to worry about if I make something for Valour?*](#is-there-anything-i-have-to-worry-about-if-i-make-something-for-valour)' for more details.
-
-## Platform Compatibility
-
-Valour does not have an official app for any platform currently and is officially only supported on the website valour.gg. If you to wish to have a valour app feel you can add it is a shortcut for chrome (and possibly install it as a PWA although it may not be supported) or other browsers like Safari and Edge.
 
 ## Miscellaneous
 
