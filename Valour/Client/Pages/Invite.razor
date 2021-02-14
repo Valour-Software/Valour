@@ -67,7 +67,7 @@
             return;
         }
 
-        PlanetName = result.Data.PlanetName;
+        PlanetName = await result.Data.GetPlanetName();
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
         string token = ClientUserManager.UserSecretToken;

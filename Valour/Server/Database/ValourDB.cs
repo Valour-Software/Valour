@@ -80,7 +80,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for planet definitions
         /// </summary>
-        public DbSet<Planet> Planets { get; set; }
+        public DbSet<ServerPlanet> Planets { get; set; }
 
         /// <summary>
         /// Table for all planet membership

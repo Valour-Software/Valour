@@ -22,6 +22,7 @@ using Valour.Server.MSP;
 using Valour.Server.Roles;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
+using Valour.Server.Users;
 
 
 /*  Valour - A free and secure chat client
@@ -642,6 +643,35 @@ namespace Valour.Server.Controllers
             }
 
             return new TaskResult<PlanetRole>(true, $"Retrieved role.", role);
+        }
+
+        /// <summary>
+        /// Returns the planet name
+        /// </summary>
+        public async Task<TaskResult<string>> GetPlanetName(ulong planet_id, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult<string>(false, "Failed to authorize user.", null);
+            }
+
+            ServerPlanet planet = await Context.Planets.FindAsync(planet_id);
+
+            if (planet == null)
+            {
+                return new TaskResult<string>(false, $"Could not find planet {planet_id}", null);
+            }
+
+            ServerUser user = await Context.Users.FindAsync(authToken.User_Id);
+
+            if (!(await planet.IsMemberAsync(authToken.User_Id, Context)))
+            {
+                return new TaskResult<string>(false, "You are not a member.", null);
+            }
+
+            return new TaskResult<string>(true, $"Success", planet.Name);
         }
     }
 }

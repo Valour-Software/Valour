@@ -113,7 +113,7 @@ namespace Valour.Server.Controllers
 
         }
 
-        public async Task<TaskResult<ClientPlanetInvite>> GetInvite(string code, ulong user_id)
+        public async Task<TaskResult<PlanetInvite>> GetInvite(string code, ulong user_id)
         {
 
             PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
@@ -127,33 +127,29 @@ namespace Valour.Server.Controllers
 
                     await Context.SaveChangesAsync();
 
-                    return new TaskResult<ClientPlanetInvite>(false, $"Invite is expired", null);
+                    return new TaskResult<PlanetInvite>(false, $"Invite is expired", null);
                 }
             }
 
             PlanetBan ban = await Context.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id);
 
             if (ban != null) {
-                return new TaskResult<ClientPlanetInvite>(false, $"User is banned from this planet!", null);
+                return new TaskResult<PlanetInvite>(false, $"User is banned from this planet!", null);
             }
             
             PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id);
 
             if (member != null) {
-                return new TaskResult<ClientPlanetInvite>(false, $"User is already in this planet!", null);
+                return new TaskResult<PlanetInvite>(false, $"User is already in this planet!", null);
             }
-
-            ClientPlanetInvite clientinvite = ClientPlanetInvite.FromBase(invite, Mapper);
 
             Planet planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == invite.Planet_Id);
 
             if (!planet.Public) {
-                return new TaskResult<ClientPlanetInvite>(false, $"Planet is set to private!", null);
+                return new TaskResult<PlanetInvite>(false, $"Planet is set to private!", null);
             }
 
-            clientinvite.PlanetName = planet.Name;
-
-            return new TaskResult<ClientPlanetInvite>(true, $"Successfully got invite", clientinvite);
+            return new TaskResult<PlanetInvite>(true, $"Successfully got invite", invite);
         }
 
         public async Task<TaskResult<PlanetInvite>> CreateInvite(ulong Planet_Id, string token, int hours)
@@ -205,6 +201,28 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             return new TaskResult<PlanetInvite>(true, $"Successfully created invite", invite);
+        }
+
+        /// <summary>
+        /// Returns the planet name using an invite code as authorization
+        /// </summary>
+        public async Task<TaskResult<string>> GetPlanetName(string invite_code)
+        {
+            PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == invite_code);
+
+            if (invite == null)
+            {
+                return new TaskResult<string>(false, "Could not find invite.", null);
+            }
+
+            ServerPlanet planet = await Context.Planets.FindAsync(invite.Planet_Id);
+
+            if (planet == null)
+            {
+                return new TaskResult<string>(false, $"Could not find planet {invite.Planet_Id}", null);
+            }
+
+            return new TaskResult<string>(true, $"Success", planet.Name);
         }
     }
 }
