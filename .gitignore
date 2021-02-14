@@ -228,3 +228,8 @@ __pycache__/
 
 # Windows thumbnail cache files
 Thumbs.db
+.idea/.idea.Valour/.idea/encodings.xml
+.idea/.idea.Valour/.idea/indexLayout.xml
+.idea/.idea.Valour/.idea/vcs.xml
+.idea/.idea.Valour/.idea/riderModule.iml
+/.idea/
