@@ -45,11 +45,10 @@
 
         ulong planet_id = planetManager.GetCurrent().Id;
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
         string json = await Http.GetStringAsync($"Invite/CreateInvite?planet_id={planet_id}" +
-                                                               $"&userid={userid}" +
                                                                $"&hours={nameValue}" +
                                                                $"&token={token}");
 

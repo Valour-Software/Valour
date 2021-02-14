@@ -117,7 +117,7 @@ namespace Valour.Client
         /// </summary>
         public static async Task RefreshPlanetsAsync(IMapper mapper)
         {
-            string json = await Http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
+            string json = await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
 
             TaskResult<List<Planet>> response = JsonConvert.DeserializeObject<TaskResult<List<Planet>>>(json);
 

@@ -37,9 +37,9 @@
 
                         <RoleComponent Name="Emperor"></RoleComponent>
                         <div class="UserList keep-scrolling">
-                            @foreach (var user in planetUserList)
+                            @foreach (var member in planetMemberList)
                             {
-                                <UserComponent Only="true" User="@user"></UserComponent>
+                                <MemberComponent Only="true" Member="@member"></MemberComponent>
                             }
                         </div>
                     }
@@ -219,7 +219,7 @@ else
 
 @code{
 
-    public ConcurrentBag<ClientPlanetUser> planetUserList = new ConcurrentBag<ClientPlanetUser>();
+    public ConcurrentBag<ClientPlanetMember> planetMemberList = new ConcurrentBag<ClientPlanetMember>();
 
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
 
@@ -345,10 +345,10 @@ else
     {
         if (planetManager.GetCurrent() == null) return;
 
-        planetUserList.Clear();
+        planetMemberList.Clear();
 
-        foreach(ClientPlanetUser user in await PlanetUserCache.GetPlanetsUsers(planetManager.GetCurrent().Id)) {
-            planetUserList.Add(user);
+        foreach(var member in await planetManager.GetCurrent().GetAllMembers()) {
+            planetMemberList.Add(member);
         }
 
         await OnChannelsUpdate();

@@ -42,6 +42,8 @@ namespace Valour.Client
 
             IMapper mapper = mapConfig.CreateMapper();
 
+            MappingManager.Mapper = mapper;
+
             builder.Services.AddSingleton(mapper);
 
             var host = builder.Build();

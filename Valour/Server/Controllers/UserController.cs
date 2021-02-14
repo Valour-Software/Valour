@@ -21,6 +21,8 @@ using Valour.Shared.Users;
 using Valour.Client.Users;
 using Valour.Shared.Users.Identity;
 using Newtonsoft.Json;
+using Valour.Server.Roles;
+using Valour.Client.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -50,33 +52,6 @@ namespace Valour.Server.Controllers
             this.Context = context;
             this.UserManager = userManager;
             this.Mapper = mapper;
-        }
-
-        public async Task<TaskResult> KickUser(ulong id, ulong Planet_Id, ulong userid, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            PlanetMember member = await Context.PlanetMembers.Where(x => x.User_Id == id && x.Planet_Id == Planet_Id).FirstOrDefaultAsync();
-
-            if (member == null) {
-                return new TaskResult(true, $"Could not find PlanetMember {id}");
-            }
-
-            Context.PlanetMembers.Remove(member);
-
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, $"Successfully kicked user {id}");
         }
 
         /// <summary>
@@ -154,8 +129,9 @@ namespace Valour.Server.Controllers
             byte[] hash = PasswordManager.GetHashForPassword(password, salt);
 
             // Create user object
-            User user = new User()
+            ServerUser user = new ServerUser()
             {
+                Id = IdManager.Generate(),
                 Username = username,
                 Join_DateTime = DateTime.UtcNow
             };
@@ -242,14 +218,14 @@ namespace Valour.Server.Controllers
                                 Welcome to Valour!
                               </h2>
                               <p style='font-family:Helvetica;>
-                                To verify your new account, please use this code as your password the first time you log in: 
+                                To verify your new account, please use the following link: 
                               </p>
                               <p style='font-family:Helvetica;'>
-                                {code}
+                                <a href='https://valour.gg/VerifyEmail/{code}'>Verify</a>
                               </p>
                             </body>";
 
-            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please use this code as your password the first time you log in:\n{code}";
+            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/VerifyEmail/{code}";
 
             await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
 
@@ -314,14 +290,14 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<string>> RequestStandardToken(string email, string password)
         {
-            UserEmail emailObj = await Context.UserEmails.FindAsync(email.ToLower());
+            UserEmail emailObj = await Context.UserEmails.Include(x => x.User).FirstOrDefaultAsync(x => x.Email == email.ToLower());
 
             if (emailObj == null)
             {
                 return new TaskResult<string>(false, "There was no user found with that email.", null);
             }
 
-            User user = await emailObj.GetUserAsync();
+            ServerUser user = emailObj.User;
 
             if (user.Disabled)
             {
@@ -332,43 +308,24 @@ namespace Valour.Server.Controllers
 
             if (!emailObj.Verified)
             {
-                EmailConfirmCode confirmCode = await Context.EmailConfirmCodes.FindAsync(password);
-
-                // Someone using another person's verification is a little
-                // worrying, and we don't want them to know it worked, so we'll
-                // send the same error either way.
-                if (confirmCode == null || confirmCode.User_Id != user.Id)
-                {
-                    return new TaskResult<string>(false, "The email associated with this account needs to be verified! Please log in using the code " +
-                        "that was emailed as your password.", null);
-                }
-
-                // At this point the email has been confirmed
-                emailObj.Verified = true;
-
-                Context.EmailConfirmCodes.Remove(confirmCode);
-                await Context.SaveChangesAsync();
-
-                authorized = true;
+                return new TaskResult<string>(false, "The email associated with this account needs to be verified! Please use the link that was emailed.", null);
             }
-            else
+
+            var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
+
+            if (result.Data != null && user.Id != result.Data.Id)
             {
-
-                var result = await UserManager.ValidateAsync(CredentialType.PASSWORD, email, password);
-
-                if (result.Data != null && user.Id != result.Data.Id)
-                {
-                    return new TaskResult<string>(false, "A critical error occured. This should not be possible. Seek help immediately.", null);
-                }
-
-                if (!result.Success)
-                {
-                    Console.WriteLine($"Failed password validation for {email}");
-                    return new TaskResult<string>(false, result.Message, null);
-                }
-
-                authorized = true;
+                return new TaskResult<string>(false, "A critical error occured. This should not be possible. Seek help immediately.", null);
             }
+
+            if (!result.Success)
+            {
+                Console.WriteLine($"Failed password validation for {email}");
+                return new TaskResult<string>(false, result.Message, null);
+            }
+
+            authorized = true;
+
 
             // If the verification failed, forward the failure
             if (!authorized)
@@ -379,7 +336,7 @@ namespace Valour.Server.Controllers
             // Check if there are any tokens already
             AuthToken token = null;
 
-            token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == Permission.FullControl.Value);
+            token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == UserPermissions.FullControl.Value);
 
             if (token == null)
             {
@@ -390,7 +347,7 @@ namespace Valour.Server.Controllers
                     Id = Guid.NewGuid().ToString(),
                     Time = DateTime.UtcNow,
                     Expires = DateTime.UtcNow.AddDays(7),
-                    Scope = Permission.FullControl.Value,
+                    Scope = UserPermissions.FullControl.Value,
                     User_Id = user.Id
                 };
 
@@ -427,7 +384,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<User>(false, "Failed to verify token.", null);
             }
 
-            User user = await Context.Users.FindAsync(authToken.User_Id);
+            ServerUser user = await Context.Users.FindAsync(authToken.User_Id);
 
             return new TaskResult<User>(true, "Retrieved user.", user);
         }
@@ -437,167 +394,23 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<User>> GetUser(ulong id)
         {
-            // Get user data
-            User user = await Context.Users.FindAsync(id);
+            User user = null;
+
+            if (id == 0)
+            {
+                user = new User()
+                {
+                    Join_DateTime = DateTime.UtcNow,
+                    Username = "Valour AI",
+                    Bot = true
+                };
+            }
+            else
+            {
+                user = await Context.Users.FindAsync(id);
+            }
 
             return new TaskResult<User>(true, "Successfully found user.", user);
-        }
-
-        /// <summary>
-        /// Returns a planetuser given the user and planet id
-        /// </summary>
-        public async Task<TaskResult<PlanetUser>> GetPlanetUser(ulong userid, ulong planet_id, string auth)
-        {
-            // Retrieve planet
-            ServerPlanet planet = ServerPlanet.FromBase(await Context.Planets.FindAsync(planet_id));
-
-            if (planet == null) return new TaskResult<PlanetUser>(false, "The planet could not be found.", null);
-
-            // Authentication flow
-            AuthToken token = await Context.AuthTokens.FindAsync(auth);
-
-            // If authorizor is not a member of the planet, they do not have authority to get member info
-            if (token == null || !(await planet.IsMemberAsync(token.User_Id))){
-                return new TaskResult<PlanetUser>(false, "Failed to authorize.", null);
-            }
-
-            // At this point the request is authorized
-
-            // Retrieve server data for user
-            User user = await Context.Users.FindAsync(userid);
-
-            // Null check
-            if (user == null) return new TaskResult<PlanetUser>(false, "The user could not be found.", null);
-
-            // Ensure the user is a member of the planet
-            if (!(await planet.IsMemberAsync(user)))
-            {
-                return new TaskResult<PlanetUser>(false, "The target user is not a member of the planet.", null);
-            }
-
-            PlanetUser planetUser = await ServerPlanetUser.CreateAsync(userid, planet_id);
-
-            if (planetUser == null) return new TaskResult<PlanetUser>(false, "Could not create planet user: Fatal error.", null);
-
-            return new TaskResult<PlanetUser>(true, "Successfully retrieved planet user.", planetUser);
-        }
-
-        /// <summary>
-        /// Returns the planet membership of a user
-        /// </summary>
-        /// <param name="token"></param>
-        /// <returns></returns>
-        public async Task<TaskResult<List<Planet>>> GetPlanetMembership(ulong id, string token)
-        {
-            if (token == null)
-            {
-                return new TaskResult<List<Planet>>(false, "Please supply an authentication token", null);
-            }
-
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            if (authToken.User_Id != id)
-            {
-                return new TaskResult<List<Planet>>(false, $"Could not authenticate for user {id}", null);
-            }
-
-            if (!Permission.HasPermission(authToken.Scope, UserPermissions.Membership))
-            {
-                return new TaskResult<List<Planet>>(false, $"The given token does not have membership scope", null);
-            }
-
-            List<Planet> membership = new List<Planet>();
-
-            // Remove this after pre-pre-alpha
-            if (!(await Context.PlanetMembers.AnyAsync(x => x.Planet_Id == 7 && x.User_Id == id)))
-            {
-                PlanetMember newMember = new PlanetMember()
-                {
-                    Planet_Id = 7,
-                    User_Id = id
-                };
-
-                await Context.PlanetMembers.AddAsync(newMember);
-                await Context.SaveChangesAsync();
-            }
-
-            List<PlanetBan> bans = await Task.Run(() => Context.PlanetBans.Where(x => x.User_Id == id).ToList());
-            
-            foreach(PlanetBan ban in bans) {
-                if (ban.Permanent == false) {
-                    if (DateTime.UtcNow > ban.Time.AddMinutes((double)ban.Minutes)) {
-                        PlanetMember newMember = new PlanetMember()
-                        
-                        {
-                            Planet_Id = ban.Planet_Id,
-                            User_Id = ban.User_Id
-                        };
-
-                        await Context.PlanetMembers.AddAsync(newMember);
-
-                        Context.PlanetBans.Remove(ban);
-
-                        await Context.SaveChangesAsync();
-                    }
-                }
-            }
-
-            foreach(PlanetMember member in Context.PlanetMembers.Where(x => x.User_Id == id))
-            {
-                Planet planet = await Context.Planets.FindAsync(member.Planet_Id);
-
-                if (await member.IsBanned(Context, planet.Id)) {
-                    Context.PlanetMembers.Remove(member);
-                    await Context.SaveChangesAsync();
-                }
-
-                if (planet != null)
-                {
-                    membership.Add(planet);
-                }
-            }
-
-            return new TaskResult<List<Planet>>(true, $"Retrieved {membership.Count} planets", membership);
-        }
-
-        public async Task<TaskResult<List<ulong>>> GetPlantUserIds(ulong Planet_Id, ulong userid, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            if (authToken.User_Id != userid)
-            {
-                return new TaskResult<List<ulong>>(false, $"Could not authenticate for user {userid}", null);
-            }
-            List<PlanetMember> list = await Task.Run(() => Context.PlanetMembers.Where(x => x.Planet_Id == Planet_Id).ToList());
-            List<ulong> ids = new List<ulong>();
-            foreach(PlanetMember member in list) {
-                ids.Add(member.User_Id);
-            }
-
-            return new TaskResult<List<ulong>>(true, $"Retrieved {ids.Count()} users", ids);
-        }
-
-        public async Task<TaskResult<List<User>>> GetPlanetUsers(ulong Planet_Id, ulong userid, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            if (authToken.User_Id != userid)
-            {
-                return new TaskResult<List<User>>(false, $"Could not authenticate for user {userid}", null);
-            }
-            List<PlanetMember> list = await Task.Run(() => Context.PlanetMembers.Where(x => x.Planet_Id == Planet_Id).ToList());
-
-            List<User> UsersToReturn = new List<User>();
-
-            List<User> Users = Context.Users.ToList();
-
-            foreach(PlanetMember member in list)
-            {
-                User u = Users.Where(x => x.Id == member.User_Id).FirstOrDefault();
-                UsersToReturn.Add(u);
-            }
-
-            return new TaskResult<List<User>>(true, $"Retrieved {list.Count()} users", UsersToReturn);
         }
 
         /// <summary>
@@ -606,9 +419,32 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult<string>> GetCurrentVersion()
         {
             // This uses magic to work
-            ClientPlanetUser user = new ClientPlanetUser();
+            ClientPlanetMember user = new ClientPlanetMember();
             string version = user.GetType().Assembly.GetName().Version.ToString();
             return new TaskResult<string>(true, "Success", version);
+        }
+
+        /// <summary>
+        /// Verifies the user email
+        /// </summary>
+        public async Task<TaskResult> VerifyEmail(string code)
+        {
+            EmailConfirmCode confirmCode = await Context.EmailConfirmCodes.Include(x => x.User).ThenInclude(x => x.Email).FirstOrDefaultAsync(x => x.Code == code);
+
+            if (confirmCode == null)
+            {
+                return new TaskResult(false, "Could not find a valid code!");
+            }
+
+            var emailObj = confirmCode.User.Email;
+
+            // At this point the email has been confirmed
+            emailObj.Verified = true;
+
+            Context.EmailConfirmCodes.Remove(confirmCode);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Successfully verified email.");
         }
     }
 }

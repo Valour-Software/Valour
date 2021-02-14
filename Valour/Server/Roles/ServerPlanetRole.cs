@@ -26,12 +26,9 @@ namespace Valour.Server.Roles
         /// <summary>
         /// Returns the generic planetrole object
         /// </summary>
-        public PlanetRole PlanetUser
+        public PlanetRole GetPlanetRole()
         {
-            get
-            {
-                return (PlanetRole)this;
-            }
+            return (PlanetRole)this;
         }
 
         /// <summary>
@@ -50,12 +47,21 @@ namespace Valour.Server.Roles
             }           
         }
 
-        public async Task<PermissionState> GetPermissionState(Permission permission, PlanetChatChannel channel)
+        public async Task<ChannelPermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel)
         {
-            return await GetPermissionState(permission, channel.Id);
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            {
+                return await Context.ChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Channel_Id == channel.Id &&
+                                                                                      x.Role_Id == Id);
+            }
         }
 
-        public async Task<PermissionState> GetPermissionState(Permission permission, ulong channel_id)
+        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel)
+        {
+            return await GetPermissionStateAsync(permission, channel.Id);
+        }
+
+        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channel_id)
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {

@@ -35,7 +35,7 @@ namespace Valour.Client.Channels
         /// </summary>
         public async Task<ClientPlanet> GetPlanetAsync()
         {
-            return await ClientPlanetCache.GetPlanetAsync(Planet_Id);
+            return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
 
         /// <summary>

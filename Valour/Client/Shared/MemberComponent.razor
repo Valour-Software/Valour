@@ -1,12 +1,14 @@
 ﻿<div class="@Chosen_CSS">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@style">
     <div class="user-info">
-        <p class="username" style="color: @User.GetMainRoleColor()">
-            @if (User.Username.Length > 16) {
-                @User.Username.Substring(0, 15)
+        <p class="username" style="color: @roleColor">
+            @if (Member.Nickname.Length > 16)
+            {
+                @Member.Nickname.Substring(0, 15)
             }
-            else {
-                @User.Username
+            else
+            {
+                @Member.Nickname
             }
         </p>
         @((MarkupString)BotString)
@@ -15,7 +17,7 @@
             <div class="active-circle">
             </div>
             <p class="state">
-                @User.GetState()
+                @state
             </p>
         </div>
     </div>
@@ -25,7 +27,7 @@
     // Demonstrates how a parent component can supply parameters
 
     [Parameter]
-    public PlanetUser User { get; set; }
+    public ClientPlanetMember Member { get; set; }
 
     [Parameter]
     public bool First { get; set; }
@@ -34,20 +36,17 @@
     [Parameter]
     public bool Only { get; set; }
 
-    public string BotString { get
-        {
-            if (User.Bot)
-            {
-                return "<div class='bot-tag'><p>BOT</p></div>";
-            }
-            else
-            {
-                return "";
-            }
-        }
-    }
+    public string roleColor = "#ffffff";
 
-    public string Chosen_CSS { get
+    public string state = "";
+
+    public string BotString = "";
+
+    public string name = "";
+
+    public string Chosen_CSS
+    {
+        get
         {
             if (Only)
             {
@@ -57,7 +56,8 @@
             {
                 return "sidebar-user first";
             }
-            else if (Last) {
+            else if (Last)
+            {
                 return "sidebar-user last";
             }
             else
@@ -74,9 +74,22 @@
     {
         await base.OnInitializedAsync();
 
-        if (!string.IsNullOrWhiteSpace(User.Pfp_Url))
+        if ((await Member.GetUserAsync()).Bot)
         {
-            pfpurl = User.Pfp_Url;
+            BotString = "<div class='bot-tag'><p>BOT</p></div>";
+        }
+
+        name = await Member.GetNameAsync();
+
+        roleColor = await Member.GetColorHexAsync();
+
+        state = await Member.GetStateAsync();
+
+        string pfp = await Member.GetPfpAsync();
+
+        if (!string.IsNullOrWhiteSpace(pfp))
+        {
+            pfpurl = pfp;
         }
     }
 

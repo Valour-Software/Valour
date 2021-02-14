@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Shared.Users;
 
 namespace Valour.Server.Users.Identity
 {
@@ -17,6 +19,9 @@ namespace Valour.Server.Users.Identity
     /// </summary>
     public class Credential
     {
+        [ForeignKey("User_Id")]
+        public virtual ServerUser User { get; set; }
+
         /// <summary>
         /// The ID of this credential
         /// </summary>

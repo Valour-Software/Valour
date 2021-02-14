@@ -34,7 +34,7 @@ namespace Valour.Client.Categories
         /// </summary>
         public async Task<ClientPlanet> GetPlanetAsync()
         {
-            return await ClientPlanetCache.GetPlanetAsync(Planet_Id);
+            return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
     }
 }

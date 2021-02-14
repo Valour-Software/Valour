@@ -45,14 +45,14 @@
         // Encode non-friendly characters
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
         Console.WriteLine($"Parent Id: {parentid}");
 
         string json = await Http.GetStringAsync($"Category/CreateCategory?name={encodedName}" +
                                                                    $"&planet_id={planetManager.GetCurrent().Id}" +
-                                                                   $"&userid={userid}" +
+                                                                   $"&user_id={user_id}" +
                                                                    $"&parentid={parentid}" +
                                                                    $"&token={token}");
 

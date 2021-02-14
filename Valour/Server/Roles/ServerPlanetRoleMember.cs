@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Valour.Server.Planets;
+using Valour.Shared.Roles;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -10,14 +12,11 @@ using System.Threading.Tasks;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Shared.Roles
+namespace Valour.Server.Roles
 {
-    public class PlanetRoleMember
+    public class ServerPlanetRoleMember : PlanetRoleMember
     {
-        public ulong Id { get; set; }
-        public ulong User_Id { get; set; }
-        public ulong Role_Id { get; set; }
-        public ulong Planet_Id { get; set; }
-        public ulong Member_Id { get; set; }
+        [ForeignKey("Member_Id")]
+        public virtual ServerPlanetMember Member { get; set; }
     }
 }

@@ -11,6 +11,7 @@ using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Planets;
 using Valour.Shared.Categories;
+using Valour.Shared.Roles;
 
 namespace Valour.Client.Planets
 {
@@ -53,7 +54,7 @@ namespace Valour.Client.Planets
         public async Task<ClientPlanetChatChannel> GetPrimaryChannelAsync(IMapper mapper)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPrimaryChannel?planet_id={Id}" +
-                                                                                              $"&userid={ClientUserManager.User.Id}" +
+                                                                                              $"&user_id={ClientUserManager.User.Id}" +
                                                                                               $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult<PlanetChatChannel> channelResult = JsonConvert.DeserializeObject<TaskResult<PlanetChatChannel>>(json);
@@ -204,6 +205,14 @@ namespace Valour.Client.Planets
         public static ClientPlanet Deserialize(string json)
         {
             return JsonConvert.DeserializeObject<ClientPlanet>(json);
+        }
+
+        /// <summary>
+        /// Returns every planet member
+        /// </summary>
+        public async Task<List<ClientPlanetMember>> GetAllMembers()
+        {
+            return await ClientPlanetManager.Current.GetPlanetMemberInfoAsync(Id);
         }
     }
 }

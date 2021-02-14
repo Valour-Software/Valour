@@ -1,0 +1,48 @@
+﻿@page "/VerifyEmail/{code}"
+
+@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+
+<body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
+    <div class="login-box">
+        <div class="col-md-12">
+            <section>
+                <h2>Email Verification</h2>
+
+                <h4>Thanks for registering!</h4>
+                <hr />
+                <br />
+
+                <span id="veri-info-span" class="text-info">@result</span>
+            </section>
+        </div>
+    </div>
+</body>
+
+@code {
+
+    [Parameter]
+    public string code { get; set; }
+
+    public string result = "Verifying...";
+
+    protected async override Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            result = "Could not verify email code.";
+            StateHasChanged();
+        }
+
+        string encoded = System.Web.HttpUtility.UrlEncode(code);
+
+        string json = await Http.GetStringAsync($"User/VerifyEmail?code={encoded}");
+
+        TaskResult taskResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+
+        result = taskResult.Message;
+
+        StateHasChanged();
+    }
+}
