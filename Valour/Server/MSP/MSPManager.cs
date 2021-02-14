@@ -36,6 +36,9 @@ namespace Valour.Server.MSP
             "https://tenor.com/",
             "https://i.imgur.com/",
             "https://youtu.be/",
+            "https://msp.valour.gg",
+            "https://valour.gg",
+            "https://pbs.twimg.com",
 
             "http://youtube.com/watch",
             "http://cdn.discordapp.com/",
@@ -43,6 +46,9 @@ namespace Valour.Server.MSP
             "http://tenor.com/",
             "http://i.imgur.com/",
             "http://youtu.be/",
+            "http://msp.valour.gg",
+            "http://valour.gg",
+            "http://pbs.twimg.com",
         };
 
         public static async Task<string> HandleUrls(string content)
