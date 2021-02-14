@@ -208,14 +208,16 @@ namespace Valour.Server.Controllers
                 Main_Channel_Id = channel.Id
             };
 
+            // Add planet to database
+            await Context.Planets.AddAsync(planet);
+            await Context.SaveChangesAsync(); // We must do this first to prevent foreign key errors
+
             // Add category to database
             await Context.PlanetCategories.AddAsync(category);
             // Add channel to database
             await Context.PlanetChatChannels.AddAsync(channel);
             // Add default role to database
             await Context.PlanetRoles.AddAsync(defaultRole);
-            // Add planet to database
-            await Context.Planets.AddAsync(planet);
             // Save changes
             await Context.SaveChangesAsync();
             // Add owner to planet
