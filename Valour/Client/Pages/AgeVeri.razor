@@ -60,33 +60,28 @@
 
             int years = DateTime.Now.Subtract(date).Days / 365;
 
-            if (years == 0)
+            switch (years)
             {
-                dateSpan = "Welcome to life newborn! We may not know how you even wrote the date but unfortunately you are going to have to wait till 13 years to use Valour.";
-                return;
+                case 0:
+                    dateSpan = "Welcome to life newborn! We may not know how you even wrote the date but unfortunately you are going to have to wait till 13 years to use Valour.";
+                    return;
+                case < 0:
+                    dateSpan = $"Congratulations on not being born! Maybe try again when you are born in {Math.Abs(years)} years?";
+                    return;
+                case < 13:
+                    dateSpan = "You must be 13 years of age or older to use Valour.";
+                    return;
+                case > 120:
+                    dateSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
+                    return;
+                default:
+                {
+                    string dateString = Newtonsoft.Json.JsonConvert.SerializeObject(date);
+
+                    navManager.NavigateTo($"/Register/{dateString}");
+                    break;
+                }
             }
-
-            if (years < 0)
-            {
-                dateSpan = $"Congratulations on not being born! Maybe try again when you are born in {Math.Abs(years)} years?";
-                return;
-            }
-
-            if (years < 13)
-            {
-                dateSpan = "You must be 13 years of age or older to use Valour.";
-                return;
-            }
-
-            if (years > 120)
-            {
-                dateSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
-                return;
-            }
-
-            string dateString = Newtonsoft.Json.JsonConvert.SerializeObject(date);
-
-            navManager.NavigateTo($"/Register/{dateString}");
         }
 
         protected override void OnAfterRender(bool firstRender)
