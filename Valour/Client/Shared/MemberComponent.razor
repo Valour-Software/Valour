@@ -11,6 +11,7 @@
                 @Member.Nickname
             }
         </p>
+        @((MarkupString)StaffString)
         @((MarkupString)BotString)
         <br>
         <div class="user-status-state">
@@ -41,6 +42,8 @@
     public string state = "";
 
     public string BotString = "";
+
+    public string StaffString = "";
 
     public string name = "";
 
@@ -77,6 +80,11 @@
         if ((await Member.GetUserAsync()).Bot)
         {
             BotString = "<div class='bot-tag'><p>BOT</p></div>";
+        }
+
+        if ((await Member.GetUserAsync()).Valour_Staff)
+        {
+            StaffString = "<div class='staff-tag'><p>STAFF</p></div>";
         }
 
         name = await Member.GetNameAsync();
