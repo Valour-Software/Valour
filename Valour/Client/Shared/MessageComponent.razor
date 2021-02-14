@@ -13,16 +13,16 @@
         @if (Author != null)
         {
             <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id" oncontextmenu="UserContextMenu(event, this)">
-                @Author.Username
+                @name
             </p>
 
             <p class="role-name">
-                &nbsp;- Emperor
+                &nbsp;- @roleName
             </p>
         }
         else
         {
-            <p class="author-name" style="color: #ffffff;">
+            <p class="author-name" style="color: @roleColor;">
                 User not found
             </p>
         }
@@ -37,11 +37,15 @@
     [Parameter]
     public ClientPlanetMessage Message { get; set; }
 
-    private ClientPlanetUser Author;
+    private ClientPlanetMember Author;
 
     string roleColor = "#ffffff";
 
+    string roleName = "Default";
+
     string pfpurl = "/icon-512.png";
+
+    string name = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,11 +53,17 @@
 
         Author = await Message.GetAuthorAsync();
 
+        name = await Author.GetNameAsync();
+
         roleColor = await Author.GetColorHexAsync();
 
-        if (Author != null && !string.IsNullOrWhiteSpace(Author.Pfp_Url))
+        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+
+        string pfp = await Author.GetPfpAsync();
+
+        if (Author != null && !string.IsNullOrWhiteSpace(pfp))
         {
-            pfpurl = Author.Pfp_Url;
+            pfpurl = pfp;
         }
     }
 

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Client.Planets;
 using Valour.Client.Users;
 using Valour.Shared.Messages;
 using Valour.Shared.Users;
@@ -17,8 +18,7 @@ namespace Valour.Client.Messages
 
     /// <summary>
     /// This class exists to add client funtionality to the PlanetMessage
-    /// class. It does not, and should not, have any extra fields or properties.
-    /// Just helper methods.
+    /// class.
     /// </summary>
     public class ClientPlanetMessage : PlanetMessage
     {
@@ -46,11 +46,11 @@ namespace Valour.Client.Messages
         /// <summary>
         /// Returns the author of the message
         /// </summary>
-        public async Task<ClientPlanetUser> GetAuthorAsync()
+        public async Task<ClientPlanetMember> GetAuthorAsync()
         {
-            ClientPlanetUser planetUser = await PlanetUserCache.GetPlanetUserAsync(Author_Id, Planet_Id);
+            ClientPlanetMember planetMember = await ClientPlanetManager.Current.GetPlanetMemberAsync(Author_Id, Planet_Id);
 
-            return planetUser;
+            return planetMember;
         }
     }
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Shared.Oauth;
+using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

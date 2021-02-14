@@ -23,7 +23,10 @@ namespace Valour.Shared.Roles
                 Name = "Default",
                 Id = ulong.MaxValue,
                 Authority = 0,
-                Planet_Id = planet_id
+                Planet_Id = planet_id,
+                Color_Red = 255,
+                Color_Green = 255,
+                Color_Blue = 255
             };
         }
 

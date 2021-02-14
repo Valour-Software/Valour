@@ -63,15 +63,15 @@ namespace Valour.Server.Planets
             }
         }
 
-        public async Task<bool> HasPermission(ServerPlanetUser user, ChannelPermission permission)
+        public async Task<bool> HasPermission(ServerPlanetMember member, ChannelPermission permission)
         {
-            var roles = await user.GetRolesAsync();
+            var roles = await member.GetRolesAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
             // If we get an undecided, we continue to the next role down
             foreach (var role in roles)
             {
-                var node = await role.GetChannelNodeAsync(this);
+                var node = await ServerPlanetRole.FromBase(role).GetChannelNodeAsync(this);
 
                 PermissionState state = node.GetPermissionState(permission);
 

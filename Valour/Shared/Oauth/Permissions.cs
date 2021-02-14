@@ -114,7 +114,8 @@ namespace Valour.Server.Oauth
             FullControl,
             Minimum,
             View,
-            Membership
+            Membership,
+            Invites
         };
 
         // Use shared full control definition
@@ -126,6 +127,7 @@ namespace Valour.Server.Oauth
         public static readonly UserPermission Minimum = new UserPermission(0x01, "Minimum", "Allows this app to only view your account ID when authorized.");
         public static readonly UserPermission View = new UserPermission(0x02, "View", "Allows this app to access basic information about your account.");
         public static readonly UserPermission Membership = new UserPermission(0x04, "Membership", "Allows this app to view the planets you are a member of.");
+        public static readonly UserPermission Invites = new UserPermission(0x08, "Invites", "Allows this app to view the planets you are invited to.");
     }
 
     /// <summary>

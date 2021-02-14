@@ -52,6 +52,11 @@ namespace Valour.Shared.Planets
         /// <summary>
         /// The default role for the planet
         /// </summary>
-        public ulong? Default_Role_Id { get; set; }
+        public ulong Default_Role_Id { get; set; }
+
+        /// <summary>
+        /// The id of the main channel of the planet
+        /// </summary>
+        public ulong Main_Channel_Id { get; set; }
     }
 }

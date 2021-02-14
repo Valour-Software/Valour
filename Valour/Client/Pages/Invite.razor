@@ -48,13 +48,13 @@
     protected async override Task OnInitializedAsync()
     {
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
 
         if (ClientUserManager.IsLoggedIn() != true) {
             navManager.NavigateTo("/");
         }
         
-        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}&userid={userid}");
+        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}&user_id={user_id}");
 
         TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
 
@@ -74,7 +74,7 @@
 
         InviteCode = result.Data.Code;
 
-        InviteLink = $"/Invite/Join?code={InviteCode}&userid={userid}&token={token}";
+        InviteLink = $"/Invite/Join?code={InviteCode}&token={token}";
 
         Console.WriteLine(InviteLink);
 
@@ -90,10 +90,10 @@
     public async Task Joined()
     {
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        string link = $"/Invite/Join?code={InviteCode}&userid={userid}&token={token}";
+        string link = $"/Invite/Join?code={InviteCode}&user_id={user_id}&token={token}";
 
         string json = await Http.GetStringAsync(link);
 

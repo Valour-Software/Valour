@@ -48,7 +48,7 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
 
-        public async Task<TaskResult> SetName(string name, ulong id, ulong userid, string token)
+        public async Task<TaskResult> SetName(string name, ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -57,7 +57,7 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
@@ -80,7 +80,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully set name.");
         }
 
-        public async Task<TaskResult> Delete(ulong id, ulong userid, string token)
+        public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -89,7 +89,7 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
@@ -125,7 +125,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully deleted.");
         }
 
-        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong userid, string token)
+        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -134,7 +134,7 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
@@ -167,7 +167,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateCategory(string name, ulong userid, ulong parentid, ulong planet_id, string token)
+        public async Task<TaskResult<ulong>> CreateCategory(string name, ulong user_id, ulong parentid, ulong planet_id, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -183,7 +183,7 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
@@ -201,6 +201,7 @@ namespace Valour.Server.Controllers
 
             PlanetCategory category = new PlanetCategory()
             {
+                Id = IdManager.Generate(),
                 Name = name,
                 Planet_Id = planet_id,
                 Parent_Id = parentid

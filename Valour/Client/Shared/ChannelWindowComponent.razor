@@ -252,7 +252,7 @@
 
     public async Task OnClickWindow()
     {
-        ClientPlanet planet = await ClientPlanetCache.GetPlanetAsync(Channel.Planet_Id);
+        ClientPlanet planet = await ClientPlanetManager.Current.GetPlanetAsync(Channel.Planet_Id);
         await planetManager.SetCurrentPlanet(planet);
     }
 

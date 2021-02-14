@@ -52,17 +52,16 @@
         // Encode non-friendly characters
         string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        ulong SelectedUserId = await JS.InvokeAsync<ulong>("GetSelectedUserId");
+        ulong Selecteduser_id = await JS.InvokeAsync<ulong>("GetSelectedUserId");
 
         ulong timeinminutes = time*24*60;
 
         string json = await Http.GetStringAsync($"Planet/BanUser?reason={encodedreason}" +
-                                                                   $"&Planet_Id={planetManager.GetCurrent().Id}" +
-                                                                   $"&userid={userid}" +
-                                                                   $"&id={SelectedUserId}" +
+                                                                   $"&planet_id={planetManager.GetCurrent().Id}" +
+                                                                   $"&target_id={Selecteduser_id}" +
                                                                    $"&time={(int)timeinminutes}" +
                                                                    $"&token={token}");
 

@@ -81,11 +81,11 @@
 
         ulong planet_id = planetManager.GetCurrent().Id;
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
         string json = await http.GetStringAsync($"Invite/GetInvites?planet_id={planet_id}" +
-                                                               $"&userid={userid}" +
+                                                               $"&user_id={user_id}" +
                                                                $"&token={token}");
 
         TaskResult<List<PlanetInvite>> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<List<PlanetInvite>>>(json);

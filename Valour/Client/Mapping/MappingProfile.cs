@@ -21,8 +21,8 @@ namespace Valour.Client.Mapping
             CreateMap<Planet, ClientPlanet>();
             CreateMap<ClientPlanet, Planet>();
 
-            CreateMap<PlanetUser, ClientPlanetUser>();
-            CreateMap<ClientPlanetUser, PlanetUser>();
+            CreateMap<PlanetMember, ClientPlanetMember>();
+            CreateMap<ClientPlanetMember, PlanetMember>();
 
             CreateMap<PlanetChatChannel, ClientPlanetChatChannel>();
             CreateMap<ClientPlanetChatChannel, PlanetChatChannel>();
