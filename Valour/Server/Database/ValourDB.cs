@@ -16,6 +16,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared;
+using Valour.Shared.Roles;
+using Valour.Server.Roles;
 
 namespace Valour.Server.Database
 {
@@ -51,7 +53,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for Valour users
         /// </summary>
-        public DbSet<User> Users { get; set; }
+        public DbSet<ServerUser> Users { get; set; }
 
         // USER LOGIN AND PERMISSION STUFF //
 
@@ -78,12 +80,12 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for planet definitions
         /// </summary>
-        public DbSet<Planet> Planets { get; set; }
+        public DbSet<ServerPlanet> Planets { get; set; }
 
         /// <summary>
         /// Table for all planet membership
         /// </summary>
-        public DbSet<PlanetMember> PlanetMembers { get; set; }
+        public DbSet<ServerPlanetMember> PlanetMembers { get; set; }
 
         /// <summary>
         /// Table for all planet chat channels
@@ -109,6 +111,20 @@ namespace Valour.Server.Database
         /// Table for planet invites
         /// </summary>
         public DbSet<StatObject> Stats { get; set; }
+
+        /// <summary>
+        /// Table for referrals
+        /// </summary>
+        public DbSet<Referral> Referrals { get; set; }
+
+        /// <summary>
+        /// Table for members of planet roles
+        /// </summary>
+        public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
+
+        public DbSet<ChannelPermissionsNode> ChannelPermissionsNodes { get; set; }
+
+        public DbSet<PlanetRole> PlanetRoles { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

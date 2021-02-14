@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -48,5 +48,15 @@ namespace Valour.Shared.Planets
         /// The amount of members on the planet
         /// </summary>
         public uint Member_Count { get; set;}
+
+        /// <summary>
+        /// The default role for the planet
+        /// </summary>
+        public ulong Default_Role_Id { get; set; }
+
+        /// <summary>
+        /// The id of the main channel of the planet
+        /// </summary>
+        public ulong Main_Channel_Id { get; set; }
     }
 }

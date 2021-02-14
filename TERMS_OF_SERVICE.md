@@ -267,9 +267,8 @@ expressly understand and agree that You are solely responsible for the Content
 and for all activity that occurs under your account, whether done so by You or
 any third person using Your account.
 
-You may not transmit any Content that is unlawful, offensive, upsetting,
-intended to disgust, threatening, libelous, defamatory, obscene or otherwise
-objectionable. Examples of such objectionable Content include, but are not
+You may not transmit any Content that breaches Our [Platform Rules](https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md)
+Examples of such objectionable Content include, but are not
 limited to, the following:
 
   * Unlawful or promoting unlawful activity.

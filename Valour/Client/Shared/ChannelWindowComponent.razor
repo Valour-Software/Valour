@@ -33,7 +33,7 @@
 
     <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" Messages="Window.messages" @ref="MessageHolder"></MessageHolderComponent>
 
-    <div class="ml-1">
+    <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
         <center>
             <textarea id="text-input" class="textbox" rows="2" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput">@currentInput</textarea>
         </center>
@@ -93,7 +93,7 @@
 
         await SetupNewChannelAsync();
     }
-    
+
     public async Task CloseWindow()
     {
         await planetManager.ClosePlanetChatChannel(this);
@@ -195,7 +195,17 @@
         StateHasChanged();
         //MessageHolder.ForceRefresh();
 
+        await ScrollToBottom();
+    }
+
+    public async Task ScrollToBottom()
+    {
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+    }
+
+    public async Task ScrollToBottomAnim()
+    {
+        await JS.InvokeVoidAsync("ScrollWindowBottomAnim", Window.Index);
     }
 
     /// <summary>
@@ -216,6 +226,12 @@
             string temp = msg;
 
             temp = temp.TrimEnd('\n');
+            temp = temp.Trim();
+
+            if (string.IsNullOrWhiteSpace(temp))
+            {
+                return;
+            }
 
             currentInput = "";
 
@@ -236,7 +252,7 @@
 
     public async Task OnClickWindow()
     {
-        ClientPlanet planet = await ClientPlanetCache.GetPlanetAsync(Channel.Planet_Id);
+        ClientPlanet planet = await ClientPlanetManager.Current.GetPlanetAsync(Channel.Planet_Id);
         await planetManager.SetCurrentPlanet(planet);
     }
 

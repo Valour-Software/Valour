@@ -43,14 +43,14 @@
         // Encode non-friendly characters
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
         ulong parentid = await JS.InvokeAsync<ulong>("GetParentId");
 
         string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
                                                                    $"&planet_id={planetManager.GetCurrent().Id}" +
-                                                                   $"&userid={userid}" +
+                                                                   $"&user_id={user_id}" +
                                                                    $"&parentid={parentid}" +
                                                                    $"&token={token}");
 

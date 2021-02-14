@@ -5,11 +5,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Valour.Shared;
+using Valour.Client;
+using Newtonsoft.Json;
 
 namespace Valour.Shared.Planets
 {
     /*  Valour - A free and secure chat client
-     *  Copyright (C) 2020 Vooper Media LLC
+     *  Copyright (C) 2021 Vooper Media LLC
      *  This program is subject to the GNU Affero General Public license
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
@@ -21,40 +23,29 @@ namespace Valour.Shared.Planets
     public class ClientPlanetInvite : PlanetInvite
     {
         /// <summary>
-        /// The Id of this object
+        /// Returns the planet name for the invite
         /// </summary>
-        public ulong Id { get; set; }
+        public async Task<string> GetPlanetName()
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Invite/GetPlanetName?invite_code={Code}");
 
-        /// <summary>
-        /// the invite code
-        /// </summary>
-        public string Code { get; set; }
+            TaskResult<string> result = JsonConvert.DeserializeObject<TaskResult<string>>(json);
 
-        /// <summary>
-        /// The planet the invite is for
-        /// </summary>
-        public ulong Planet_Id { get; set; }
+            if (result == null)
+            {
+                Console.WriteLine($"Critical error retrieving planet name for invite with code {Code}");
+                return "Error";
+            }
 
-        /// <summary>
-        /// The user that created the invite
-        /// </summary>
-        public ulong Issuer_Id { get; set; }
+            if (!result.Success)
+            {
+                Console.WriteLine($"Error retrieving planet name for invite with code {Code}");
+                Console.WriteLine(result.Message);
+                return "Error";
+            }
 
-        /// <summary>
-        /// The time the invite was created
-        /// </summary>
-        public DateTime Time { get; set; }
-
-        /// <summary>
-        /// The length of the invite before its invaild
-        /// </summary>
-        public int? Hours { get; set; }
-
-        public bool IsPermanent() {
-            return (Hours == null);
+            return result.Data;
         }
-
-        public string PlanetName {get; set;}
 
         public static ClientPlanetInvite FromBase(PlanetInvite invite, IMapper mapper)
         {

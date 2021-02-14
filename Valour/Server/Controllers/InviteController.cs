@@ -23,7 +23,7 @@ using Valour.Shared.Users.Identity;
 using Newtonsoft.Json;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -52,21 +52,16 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
 
-        public async Task<TaskResult<List<PlanetInvite>>> GetInvites(ulong userid, string token, ulong planet_id)
+        public async Task<TaskResult<List<PlanetInvite>>> GetInvites(ulong user_id, string token, ulong planet_id)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null)
             {
                 return new TaskResult<List<PlanetInvite>>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
             {
@@ -78,60 +73,47 @@ namespace Valour.Server.Controllers
             return new TaskResult<List<PlanetInvite>>(true, $"Retrieved {invites.Count} invites", invites);
         }
 
-        public async Task<TaskResult> Join(string code, ulong userid, string token)
+        public async Task<TaskResult> Join(string code, string token)
         {
 
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null)
             {
-                return new TaskResult(false, $"Incorrect token!");
+                return new TaskResult(false, $"Unable to authorize");
             }
+
+            ulong user_id = authToken.User_Id;
 
             PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
 
             if (invite == null) {
-                return new TaskResult(false, $"Code is not found!");
+                return new TaskResult(false, $"Invite code not found!");
             }
 
-            PlanetBan ban = await Context.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
-
-            if (ban != null) {
+            if (await Context.PlanetBans.AnyAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id)) {
                 return new TaskResult(false, $"User is banned from this planet!");
             }
 
-            PlanetMember mem = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
-
-            if (mem != null) {
+            if (await Context.PlanetMembers.AnyAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id)) {
                 return new TaskResult(false, $"User is already in this planet!");
             }
 
-            Planet planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == invite.Planet_Id);
+            ServerPlanet planet = await ServerPlanet.FindAsync(invite.Planet_Id);
 
             if (!planet.Public) {
                 return new TaskResult(false, $"Planet is set to private!");
             }
 
-            PlanetMember member = new PlanetMember()
-            {
-                User_Id = userid,
-                Planet_Id = invite.Planet_Id,
-            };
+            User user = await Context.Users.FindAsync(user_id);
 
-            await Context.PlanetMembers.AddAsync(member);
+            await planet.AddMemberAsync(user, Context);
 
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, $"Joined Planet");
+            return new TaskResult(true, $"Successfully joined planet.");
 
         }
 
-        public async Task<TaskResult<ClientPlanetInvite>> GetInvite(string code, ulong userid)
+        public async Task<TaskResult<PlanetInvite>> GetInvite(string code, ulong user_id)
         {
 
             PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
@@ -145,50 +127,41 @@ namespace Valour.Server.Controllers
 
                     await Context.SaveChangesAsync();
 
-                    return new TaskResult<ClientPlanetInvite>(false, $"Invite is expired", null);
+                    return new TaskResult<PlanetInvite>(false, $"Invite is expired", null);
                 }
             }
 
-            PlanetBan ban = await Context.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
+            PlanetBan ban = await Context.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id);
 
             if (ban != null) {
-                return new TaskResult<ClientPlanetInvite>(false, $"User is banned from this planet!", null);
+                return new TaskResult<PlanetInvite>(false, $"User is banned from this planet!", null);
             }
             
-            PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == userid && x.Planet_Id == invite.Planet_Id);
+            PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id);
 
             if (member != null) {
-                return new TaskResult<ClientPlanetInvite>(false, $"User is already in this planet!", null);
+                return new TaskResult<PlanetInvite>(false, $"User is already in this planet!", null);
             }
-
-            ClientPlanetInvite clientinvite = ClientPlanetInvite.FromBase(invite, Mapper);
 
             Planet planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == invite.Planet_Id);
 
             if (!planet.Public) {
-                return new TaskResult<ClientPlanetInvite>(false, $"Planet is set to private!", null);
+                return new TaskResult<PlanetInvite>(false, $"Planet is set to private!", null);
             }
 
-            clientinvite.PlanetName = planet.Name;
-
-            return new TaskResult<ClientPlanetInvite>(true, $"Successfully got invite", clientinvite);
+            return new TaskResult<PlanetInvite>(true, $"Successfully got invite", invite);
         }
 
-        public async Task<TaskResult<PlanetInvite>> CreateInvite(ulong Planet_Id, ulong userid, string token, int hours)
+        public async Task<TaskResult<PlanetInvite>> CreateInvite(ulong Planet_Id, string token, int hours)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null)
             {
                 return new TaskResult<PlanetInvite>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
             {
@@ -197,11 +170,13 @@ namespace Valour.Server.Controllers
 
             PlanetInvite invite = new PlanetInvite()
             {
+                Id = IdManager.Generate(),
                 Planet_Id = Planet_Id,
-                Issuer_Id = userid,
+                Issuer_Id = authToken.User_Id,
                 Time = DateTime.UtcNow,
                 Hours = hours
             };
+
             Random random = new Random();
             
             const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -226,6 +201,28 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             return new TaskResult<PlanetInvite>(true, $"Successfully created invite", invite);
+        }
+
+        /// <summary>
+        /// Returns the planet name using an invite code as authorization
+        /// </summary>
+        public async Task<TaskResult<string>> GetPlanetName(string invite_code)
+        {
+            PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == invite_code);
+
+            if (invite == null)
+            {
+                return new TaskResult<string>(false, "Could not find invite.", null);
+            }
+
+            ServerPlanet planet = await Context.Planets.FindAsync(invite.Planet_Id);
+
+            if (planet == null)
+            {
+                return new TaskResult<string>(false, $"Could not find planet {invite.Planet_Id}", null);
+            }
+
+            return new TaskResult<string>(true, $"Success", planet.Name);
         }
     }
 }

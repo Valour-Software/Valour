@@ -23,7 +23,7 @@ using Valour.Server.Oauth;
 using Valour.Server.MSP;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -54,7 +54,7 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
         
-        public async Task<TaskResult> SetDescription(string description, ulong id, ulong userid, string token)
+        public async Task<TaskResult> SetDescription(string description, ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -63,14 +63,14 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -84,7 +84,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully set description.");
         }
 
-        public async Task<TaskResult> SetName(string name, ulong id, ulong userid, string token)
+        public async Task<TaskResult> SetName(string name, ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -93,15 +93,15 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -117,7 +117,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully set name.");
         }
 
-        public async Task<TaskResult> Delete(ulong id, ulong userid, string token)
+        public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -126,7 +126,7 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
@@ -138,7 +138,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "That channel does not exist.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (planet == null)
             {
@@ -166,7 +166,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully deleted.");
         }
 
-        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong userid, string token)
+        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
@@ -175,14 +175,14 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
+            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {
@@ -202,7 +202,7 @@ namespace Valour.Server.Controllers
         /// Creates a server and if successful returns a task result with the created
         /// planet's id
         /// </summary>
-        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planet_id, ulong userid, ulong parentid, string token)
+        public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planet_id, ulong user_id, ulong parentid, string token)
         {
             TaskResult nameValid = ValidateName(name);
 
@@ -218,12 +218,12 @@ namespace Valour.Server.Controllers
             // impossible to happen by chance but better safe than sorry in the case that
             // the literal impossible odds occur, more likely someone gets a stolen token
             // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != userid)
+            if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id, Mapper);
+            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
             {

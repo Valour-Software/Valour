@@ -59,12 +59,12 @@
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
         string encodedImageUrl = System.Web.HttpUtility.UrlEncode(image_url);
 
-        ulong userid = ClientUserManager.User.Id;
+        ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
         string json = await Http.GetStringAsync($"Planet/CreatePlanet?name={encodedName}" +
                                                                    $"&image_url={encodedImageUrl}" +
-                                                                   $"&userid={userid}" +
+                                                                   $"&user_id={user_id}" +
                                                                    $"&token={token}");
 
         TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
@@ -82,7 +82,7 @@
             ulong planet_id = result.Data;
 
             json = await Http.GetStringAsync($"Planet/GetPlanet?planet_id={planet_id}" +
-                                                               $"&userid={userid}" +
+                                                               $"&user_id={user_id}" +
                                                                $"&token={token}");
 
             TaskResult<Planet> planetResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<Planet>>(json);

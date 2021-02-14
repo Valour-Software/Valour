@@ -273,11 +273,14 @@ function IsAtBottom(index) {
 // Automagically scroll windows down
 function ScrollWindowBottom(index) {
     var window = $("#innerwindow-" + index);
-
     if (scrollStates[index] === 1) {
-        //console.log("hi there");
         window.scrollTop(window.prop("scrollHeight"));
     }
+}
+
+function ScrollWindowBottomAnim(index) {
+    var window = $("#innerwindow-" + index);
+    window.animate({ scrollTop: window.prop("scrollHeight") }, "fast");
 }
 
 function SetupWindow(index) {
@@ -436,7 +439,7 @@ function HideUserContextMenu(){
 }
 
 function KickUser() {
-    fetch(`/User/KickUser?token=${SecretKey}&Planet_Id=${PlanetId}&UserId=${UserId}&id=${parseInt(SelectedUserId)}`)
+    fetch(`/Planet/KickUser?token=${SecretKey}&planet_id=${PlanetId}&target_id=${parseInt(SelectedUserId)}`)
         .then(data => {
             console.log(data)
         })
@@ -486,14 +489,14 @@ function DeleteChannelListItem() {
     console.log(`Id: ${ChannelListItemId} IsCategory: ${IsCategory}`)
 
     if (IsCategory === false) {
-        fetch(`/Channel/Delete?token=${SecretKey}&UserId=${UserId}&id=${parseInt(ChannelListItemId)}`)
+        fetch(`/Channel/Delete?token=${SecretKey}&user_id=${user_id}&id=${parseInt(ChannelListItemId)}`)
             .then(data => {
                 console.log(data)
             })
         
     }
     else {
-        fetch(`/Category/Delete?token=${SecretKey}&UserId=${UserId}&id=${parseInt(ChannelListItemId)}`)
+        fetch(`/Category/Delete?token=${SecretKey}&user_id=${user_id}&id=${parseInt(ChannelListItemId)}`)
             .then(data => {
                 console.log(data)
             })
@@ -572,7 +575,7 @@ const Drop = (e) =>{
     TopLevel = false
     if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
         id = dragging.id 
-        data = httpGet(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=0`)
+        data = httpGet(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=0`)
         console.log(data)
         if (out["success"] == false) {
             return null;
@@ -591,14 +594,14 @@ const Drop = (e) =>{
         categoryid = target.parentNode.id
         if (categoryid != parentid) {
             if (dragging.className.includes("channel")) {
-                data = httpGet(`/Channel/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                data = httpGet(`/Channel/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
                 console.log(data)
                 if (data["success"] == false) {
                     return null;
                 }
             }
             else {
-                data = httpGet(`/Category/SetParentId?token=${SecretKey}&UserId=${UserId}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                data = httpGet(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
                 console.log(data)
                 if (data["success"] == false) {
                     return null;
@@ -656,7 +659,7 @@ const Drop = (e) =>{
             index += 1
         }
     }
-    postData(`/Planet/UpdateOrder?token=${SecretKey}&UserId=${UserId}&Planet_Id=${Planet_Id}`, data)
+    postData(`/Planet/UpdateOrder?token=${SecretKey}&user_id=${user_id}&Planet_Id=${Planet_Id}`, data)
         .then(out => {
             if (out["success"] == false) {
                 target.innerHTML = ""
@@ -674,7 +677,7 @@ const Drop = (e) =>{
 
 function SetSecretKey(key, id, planetid) {
     SecretKey = key
-    UserId = id
+    user_id = id
     Planet_Id = planetid
 }
 
@@ -695,3 +698,9 @@ window.blazorFuncs = {
             });
     }
 };
+
+window.onresize = function () {
+    document.body.height = window.innerHeight;
+}
+
+window.onresize(); // called to initially set the height.

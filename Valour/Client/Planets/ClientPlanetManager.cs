@@ -1,11 +1,17 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Channels;
 using Valour.Client.Messages;
 using Valour.Client.Shared;
+using Valour.Shared;
+using Valour.Shared.Planets;
+using Valour.Shared.Roles;
+using Valour.Shared.Users;
 
 namespace Valour.Client.Planets
 {
@@ -26,6 +32,10 @@ namespace Valour.Client.Planets
         private Dictionary<ulong, ClientPlanet> OpenPlanets = new Dictionary<ulong, ClientPlanet>();
         private Dictionary<ulong, ClientPlanetChatChannel> OpenPlanetChatChannels = new Dictionary<ulong, ClientPlanetChatChannel>();
         private List<ChannelWindowComponent> OpenPlanetChatWindows = new List<ChannelWindowComponent>();
+        private ConcurrentDictionary<ulong, PlanetRole> PlanetRolesCache = new ConcurrentDictionary<ulong, PlanetRole>();
+        private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<string, ClientPlanetMember>();
+        private ConcurrentDictionary<ulong, User> PlanetMemberUserCache = new ConcurrentDictionary<ulong, User>(); // Maps from member id => user
+        private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
 
         public event Func<Task> OnPlanetChange;
 
@@ -47,6 +57,169 @@ namespace Valour.Client.Planets
         public List<ClientPlanet> GetOpenPlanets()
         {
             return OpenPlanets.Values.ToList();
+        }
+
+        /// <summary>
+        /// Returns a user from the given id
+        /// </summary>
+        public async Task<ClientPlanet> GetPlanetAsync(ulong id)
+        {
+            // Attempt to retrieve from cache
+            if (PlanetCache.ContainsKey(id))
+            {
+                return PlanetCache[id];
+            }
+
+            // Retrieve from server
+            ClientPlanet planet = await ClientPlanet.GetClientPlanetAsync(id);
+            // Load planet roles into cache
+            await LoadPlanetRoles(planet);
+
+            if (planet == null)
+            {
+                Console.WriteLine($"Failed to fetch planet with id {id}.");
+                return null;
+            }
+
+            // Add to cache
+            PlanetCache.TryAdd(id, planet);
+
+            return planet;
+
+        }
+
+        /// <summary>
+        /// Returns all of the roles for a given planet
+        /// </summary>
+        public async Task LoadPlanetRoles(ClientPlanet planet)
+        {
+            // Get planet roles
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRoles?planet_id={planet.Id}&token={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine(json);
+
+            TaskResult<List<PlanetRole>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetRole>>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine($"Critical error in getting planet roles for planet {planet.Id}");
+                return;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine($"Critical error in getting planet roles for planet {planet.Id}");
+                Console.WriteLine(result.Message);
+                return;
+            }
+
+            // Set roles into role cache
+            foreach (var role in result.Data)
+            {
+                PlanetRolesCache.TryAdd(role.Id, role);
+            }
+
+            Console.WriteLine($"Loaded {result.Data.Count} roles into cache for planet {planet.Id}");
+        }
+
+        public async Task<PlanetRole> GetPlanetRole(ulong role_id)
+        {
+            if (PlanetRolesCache.ContainsKey(role_id))
+            {
+                return PlanetRolesCache[role_id];
+            }
+
+            // Get planet roles
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRole?role_id={role_id}&token={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine(json);
+
+            TaskResult<PlanetRole> result = JsonConvert.DeserializeObject<TaskResult<PlanetRole>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine($"Critical error in getting planet role with id {role_id}");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine($"Critical error in getting planet role with id {role_id}");
+                Console.WriteLine(result.Message);
+                return null;
+            }
+
+            PlanetRolesCache.TryAdd(role_id, result.Data);
+
+            return result.Data;
+        }
+
+        public async Task<List<ClientPlanetMember>> GetPlanetMemberInfoAsync(ulong planet_id)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberInfo?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine(json);
+
+            TaskResult<List<PlanetMemberInfo>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetMemberInfo>>>(json);
+
+            List<ClientPlanetMember> memberList = new List<ClientPlanetMember>();
+
+            foreach (PlanetMemberInfo info in result.Data)
+            {
+                ClientPlanetMember member = ClientPlanetMember.FromBase(info.Member);
+                member.SetCacheValues(info);
+
+                string key = $"{planet_id}-{member.User_Id}";
+
+                if (PlanetMemberCache.ContainsKey(key) == false)
+                {
+                    PlanetMemberCache.TryAdd(key, member);
+                }
+
+                memberList.Add(member);
+            }
+
+            return memberList;
+        }
+
+        /// <summary>
+        /// Returns a user from the given id
+        /// </summary>
+        public async Task<ClientPlanetMember> GetPlanetMemberAsync(ulong user_id, ulong planet_id)
+        {
+            if (user_id == 0)
+            {
+                return new ClientPlanetMember()
+                {
+                    Id = 0,
+                    Planet_Id = planet_id,
+                };
+            }
+
+            string key = $"{planet_id}-{user_id}";
+
+            // Attempt to retrieve from cache
+            if (PlanetMemberCache.ContainsKey(key))
+            {
+                return PlanetMemberCache[key];
+            }
+
+            // Retrieve from server
+            ClientPlanetMember member = await ClientPlanetMember.GetClientPlanetMemberAsync(user_id, planet_id);
+
+            if (member == null)
+            {
+                Console.WriteLine($"Failed to fetch planet user with user id {user_id} and planet id {planet_id}.");
+                return null;
+            }
+
+            Console.WriteLine($"Fetched planet user {user_id} for planet {planet_id}");
+
+            // Add to cache
+            PlanetMemberCache.TryAdd(key, member);
+
+            return member;
+
         }
 
         /// <summary>
@@ -79,6 +252,9 @@ namespace Valour.Client.Planets
                 // Already opened
                 return;
             }
+
+            // Load roles for planet
+            await LoadPlanetRoles(planet);
 
             // Joins planet via SignalR
             await signalRManager.hubConnection.SendAsync("JoinPlanet", planet.Id, ClientUserManager.UserSecretToken);

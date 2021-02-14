@@ -29,9 +29,11 @@ using Valour.Server.Workers;
 using Valour.Server.MSP;
 using Valour.Server.Planets;
 using Microsoft.Net.Http.Headers;
+using Valour.Shared.Users;
+using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2020 Vooper Media LLC
+ *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
@@ -93,6 +95,8 @@ namespace Valour.Server
 
             services.AddSingleton(mapper);
 
+            MappingManager.Mapper = mapper;
+
             services.AddDbContextPool<ValourDB>(options =>
             {
                 options.UseMySql(ValourDB.ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));
@@ -103,6 +107,8 @@ namespace Valour.Server
 
             // Adds user manager to dependency injection
             services.AddScoped<UserManager>();
+            IdManager idManager = new IdManager();
+            services.AddSingleton<IdManager>(idManager);
             services.AddControllersWithViews();
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
@@ -207,8 +213,9 @@ namespace Valour.Server
 
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
-       
-            app.UseStaticFiles(new StaticFileOptions { 
+
+            app.UseStaticFiles(new StaticFileOptions
+            {
                 //OnPrepareResponse = x =>
                 //{
                 //    x.Context.Response.Headers[HeaderNames.CacheControl] = "no-store";
@@ -229,10 +236,25 @@ namespace Valour.Server
                 endpoints.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
                 {
                     //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
-                }); 
+                });
             });
 
             PlanetHub.Current = app.ApplicationServices.GetService<IHubContext<PlanetHub>>();
+
+            /* Reference code for any future migrations */
+            /*
+            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+            {
+                ServerPlanet valourPlanet = ServerPlanet.FindAsync(735703679107072).Result;
+
+                foreach (var obj in db.Users)
+                {
+                    valourPlanet.AddMemberAsync(obj);
+                }
+
+                db.SaveChanges();
+            }
+            */
         }
     }
 }

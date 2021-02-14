@@ -19,7 +19,7 @@ using AutoMapper;
 namespace Valour.Client
 {
     /*  Valour - A free and secure chat client
-     *  Copyright (C) 2020 Vooper Media LLC
+     *  Copyright (C) 2021 Vooper Media LLC
      *  This program is subject to the GNU Affero General Public license
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
@@ -117,7 +117,7 @@ namespace Valour.Client
         /// </summary>
         public static async Task RefreshPlanetsAsync(IMapper mapper)
         {
-            string json = await Http.GetStringAsync($"User/GetPlanetMembership?id={User.Id}&token={UserSecretToken}");
+            string json = await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
 
             TaskResult<List<Planet>> response = JsonConvert.DeserializeObject<TaskResult<List<Planet>>>(json);
 

@@ -19,6 +19,7 @@ namespace Valour.Client.Messages
                                                     .DisableHtml()
                                                     .UseEmojiAndSmiley(true)
                                                     .UseReferralLinks("nofollow")
+                                                    .UseSoftlineBreakAsHardlineBreak()
                                                     .Build();
         }
 

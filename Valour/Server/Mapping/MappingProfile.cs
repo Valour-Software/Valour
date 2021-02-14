@@ -3,9 +3,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Client.Planets;
 using Valour.Server.Planets;
+using Valour.Server.Roles;
 using Valour.Server.Users;
 using Valour.Shared.Planets;
+using Valour.Shared.Roles;
 using Valour.Shared.Users;
 
 namespace Valour.Server.Mapping
@@ -17,13 +20,14 @@ namespace Valour.Server.Mapping
             CreateMap<Planet, ServerPlanet>();
             CreateMap<ServerPlanet, Planet>();
 
-            CreateMap<User, ServerPlanetUser>();
-            CreateMap<ServerPlanetUser, User>();
+            CreateMap<PlanetMember, ServerPlanetMember>();
+            CreateMap<ServerPlanetMember, PlanetMember>();
 
-            CreateMap<User, PlanetUser>();
-            CreateMap<PlanetUser, User>();
+            CreateMap<PlanetRole, ServerPlanetRole>();
+            CreateMap<ServerPlanetRole, PlanetRole>();
 
-            CreateMap<PlanetInvite, ClientPlanetInvite>();
+            CreateMap<ClientPlanetMember, ServerPlanetMember>();
+            CreateMap<ServerPlanetMember, ClientPlanetMember>();
         }
     }
 }

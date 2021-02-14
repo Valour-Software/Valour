@@ -6,16 +6,20 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Users;
 using Valour.Server.Database;
+using Valour.Server.Mapping;
 using Valour.Server.Oauth;
+using Valour.Server.Roles;
+using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Valour.Shared.Roles;
 using Valour.Shared.Users;
 
 namespace Valour.Server.Planets
 {
     /*  Valour - A free and secure chat client
-     *  Copyright (C) 2020 Vooper Media LLC
+     *  Copyright (C) 2021 Vooper Media LLC
      *  This program is subject to the GNU Affero General Public license
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
@@ -42,32 +46,43 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base
         /// </summary>
-        public static ServerPlanet FromBase(Planet planet, IMapper mapper)
+        public static ServerPlanet FromBase(Planet planet)
         {
-            return mapper.Map<ServerPlanet>(planet);
+            return MappingManager.Mapper.Map<ServerPlanet>(planet);
         }
 
         /// <summary>
         /// Retrieves a ServerPlanet for the given id
         /// </summary>
-        public static async Task<ServerPlanet> FindAsync(ulong id, IMapper mapper)
+        public static async Task<ServerPlanet> FindAsync(ulong id)
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
                 Planet planet = await db.Planets.FindAsync(id);
-                return ServerPlanet.FromBase(planet, mapper);
+                return ServerPlanet.FromBase(planet);
             }
         }
 
         /// <summary>
         /// Returns if a given user id is a member (async)
         /// </summary>
-        public async Task<bool> IsMemberAsync(ulong userid)
+        public async Task<bool> IsMemberAsync(ulong user_id, ValourDB db = null)
         {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+            // Setup db if none provided
+            bool dbcreate = false;
+
+            if (db == null)
             {
-                return await db.PlanetMembers.AnyAsync(x => x.Planet_Id == this.Id && x.User_Id == userid);
+                db = new ValourDB(ValourDB.DBOptions);
+                dbcreate = true;
             }
+
+            var result = await db.PlanetMembers.AnyAsync(x => x.Planet_Id == this.Id && x.User_Id == user_id);
+
+            // Clean up if created own db
+            if (dbcreate) { await db.DisposeAsync(); }
+
+            return result;
         }
 
         /// <summary>
@@ -81,9 +96,9 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if a given user id is a member
         /// </summary>
-        public bool IsMember(ulong userid)
+        public bool IsMember(ulong user_id)
         {
-            return IsMemberAsync(userid).Result;
+            return IsMemberAsync(user_id).Result;
         }
 
         /// <summary>
@@ -102,7 +117,7 @@ namespace Valour.Server.Planets
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
                 // TODO: Make a way to choose a primary channel rather than just grabbing the first one
-                return await db.PlanetChatChannels.Where(x => x.Planet_Id == this.Id && x.Parent_Id != null).FirstOrDefaultAsync();
+                return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
             }
         }
 
@@ -135,7 +150,7 @@ namespace Valour.Server.Planets
                 {
                     return true;
                 }
-                
+
             }
 
             if (authToken == null)
@@ -155,6 +170,77 @@ namespace Valour.Server.Planets
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Returns the default role for the planet
+        /// </summary>
+        public async Task<PlanetRole> GetDefaultRole()
+        {
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            {
+                return await Context.PlanetRoles.FindAsync(Default_Role_Id);
+            }
+        }
+
+        /// <summary>
+        /// Returns all roles within the planet
+        /// </summary>
+        public async Task<List<PlanetRole>> GetRolesAsync()
+        {
+            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+            {
+                return db.PlanetRoles.Where(x => x.Planet_Id == Id).ToList();
+            }
+        }
+
+        /// <summary>
+        /// Adds a member to the server
+        /// </summary>
+        public async Task AddMemberAsync(User user, ValourDB db = null)
+        {
+
+            // Setup db if none provided
+            bool dbcreate = false;
+
+            if (db == null)
+            {
+                db = new ValourDB(ValourDB.DBOptions);
+                dbcreate = true;
+            }
+            
+            // Already a member
+            if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))
+            {
+                return;
+            }
+
+            ServerPlanetMember member = new ServerPlanetMember()
+            {
+                Id = IdManager.Generate(),
+                Nickname = user.Username,
+                Planet_Id = Id,
+                User_Id = user.Id
+            };
+
+            // Add to default planet role
+            ServerPlanetRoleMember rolemember = new ServerPlanetRoleMember()
+            {
+                Id = IdManager.Generate(),
+                Planet_Id = Id,
+                User_Id = user.Id,
+                Role_Id = Default_Role_Id,
+                Member_Id = member.Id
+            };
+
+            await db.PlanetMembers.AddAsync(member);
+            await db.PlanetRoleMembers.AddAsync(rolemember);
+            await db.SaveChangesAsync();
+
+            Console.WriteLine($"User {user.Username} ({user.Id}) has joined {Name} ({Id})");
+            
+            // Clean up if created own db
+            if (dbcreate) { await db.DisposeAsync(); }
         }
     }
 }

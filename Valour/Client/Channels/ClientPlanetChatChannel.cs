@@ -11,7 +11,7 @@ using Valour.Shared.Channels;
 namespace Valour.Client.Channels
 {
     /*  Valour - A free and secure chat client
-     *  Copyright (C) 2020 Vooper Media LLC
+     *  Copyright (C) 2021 Vooper Media LLC
      *  This program is subject to the GNU Affero General Public license
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
@@ -35,7 +35,7 @@ namespace Valour.Client.Channels
         /// </summary>
         public async Task<ClientPlanet> GetPlanetAsync()
         {
-            return await ClientPlanetCache.GetPlanetAsync(Planet_Id);
+            return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
 
         /// <summary>

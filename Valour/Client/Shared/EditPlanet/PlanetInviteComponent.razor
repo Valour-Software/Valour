@@ -31,8 +31,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PlanetUser user = await PlanetUserCache.GetPlanetUserAsync(invite.Issuer_Id, invite.Planet_Id);
-        IssuerName = user.Username;
+        ClientPlanetMember member = await ClientPlanetManager.Current.GetPlanetMemberAsync(invite.Issuer_Id, invite.Planet_Id);
+        IssuerName = await member.GetNameAsync();
         time = invite.Time.AddHours((double)invite.Hours);
         StateHasChanged();
     }
