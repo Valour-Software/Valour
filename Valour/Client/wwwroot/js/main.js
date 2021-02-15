@@ -333,6 +333,11 @@ window.onclick = function(event) {
         modal.style.display = "none";
     }
 
+    var modal = document.getElementById("EditUserModal");
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+
     var x = document.getElementsByClassName("channelmodel")
     for (id in x) {
         item = x[id]
@@ -381,6 +386,20 @@ function OpenEditPlanetModal() {
     console.log("Edit Planet Modal triggered.");
 
     var x = document.getElementsByClassName("edit-planet-modal")
+    for (id in x) {
+        item = x[id]
+
+        if (item.style != null) {
+            item.style.display = "block";
+        }
+    }
+}
+
+function OpenEditUserModal() {
+
+    console.log("Edit User Modal triggered.");
+
+    var x = document.getElementsByClassName("edit-user-modal")
     for (id in x) {
         item = x[id]
 

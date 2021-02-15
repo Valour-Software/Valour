@@ -27,30 +27,41 @@
 
 a {
     color: var(--link-color);
+    user-select: text;
+}
+
+p {
+    user-select: text;
 }
 
 .p-1 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h1 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h2 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h3 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h4 {
     color: var(--font-color);
+    user-select: text;
 }
 
 label {
     color: var(--font-color);
+    user-select: text;
 }
 
 .btn-primary {
@@ -958,6 +969,29 @@ body {
     background-color: var(--main-2);
 }
 
+.modal-content-EditUser {
+    width: 70%;
+    height: 70%;
+    margin: auto;
+}
+
+@media screen and (max-width: 992px) {
+    .modal-content-EditUser {
+        width: 100%;
+        max-height: 100%;
+    }
+}
+
+.modal-content-EditUser .login-box {
+    transform: none;
+    border-radius: 10px;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    transform: translateY(0%);
+    background-color: var(--main-2);
+}
+
 .home-server {
     /*border: 1px solid rgba(255, 255, 255, 0.2);*/
     border-radius: 5px;
@@ -1191,34 +1225,7 @@ body {
     cursor: pointer;
 }
 
-.edit-planet-body {
-    background-color: var(--main-2);
-    height: 100%;
-    width: 100%;
-}
-
-    .edit-planet-body .container {
-        height: 100%;
-        width: 100%;
-    }
-
-    .edit-planet-body .row {
-        height: 100%;
-    }
-
-
-.edit-planet-col-left {
-    height: 100%;
-    background-color: var(--main-2);
-}
-
-.edit-planet-col-right {
-    height: 100%;
-    border-left: solid 1px rgba(255, 255, 255, 0.25);
-    background-color: var(--main-2);
-}
-
-.modal-content-EditPlanet .login-box {
+.modal-content-EditUser .login-box {
     height: 100%;
     width: 100%;
 }
@@ -1271,6 +1278,29 @@ body {
     margin: 5px;
 }
 
+.logout-button {
+    background-color: var(--main-2);
+    width: 95%;
+    height: 35px;
+    line-height: 27px;
+    color: red;
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 4px;
+    padding-left: 8px;
+    margin-top: 2px;
+    text-align: left;
+    vertical-align: central;
+}
+
+.logout-button:hover {
+    background-color: rgba(255, 200, 200, 0.1);
+}
+
+.logout-button:active {
+    background-color: rgba(255, 200, 200, 0.2);
+}
+
 .settings-button {
     background-color: var(--main-2);
     width: 95%;
@@ -1286,6 +1316,11 @@ body {
     vertical-align: central;
 }
 
+.settings-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+
 .invite-tab-holder .settings-button {
     display: inline-block;
     width: 45%;
@@ -1294,6 +1329,10 @@ body {
 
     .invite-tab-holder .settings-button:hover {
         background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .invite-tab-holder .settings-button:active {
+        background-color: rgba(255, 255, 255, 0.3);
     }
 
     .invite-tab-holder .settings-button.active {
@@ -1336,16 +1375,65 @@ body {
     background-color: var(--main-5);
 }
 
+.settings-row {
+    overflow-y: auto;
+}
+
+
+.edit-body {
+    background-color: var(--main-2);
+    height: 100%;
+    width: 100%;
+}
+
+.edit-body .container {
+    height: 100%;
+    width: 100%;
+}
+
+.edit-body .row {
+    height: 100%;
+}
+
+
+.edit-col-left {
+    background-color: var(--main-2);
+    min-width: 150px;
+}
+
+.edit-col-right {
+    border-left: solid 1px rgba(255, 255, 255, 0.25);
+    background-color: var(--main-2);
+    min-width: 200px;
+}
+
+@media screen and (max-width: 992px) {
+    .settings-row {
+        flex-wrap: wrap;
+    }
+
+    .edit-col-left {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .edit-col-right {
+        width: 100%;
+        border: none;
+        margin-bottom: 20px;
+    }
+}
+
 .settings-inner {
     position: relative;
-    height: 100%;
-    overflow-y: scroll;
+    height: 90%;
+    overflow-y: auto;
 }
 
 .settings-save-button {
     position: absolute;
     right: 10px;
-    bottom: 80px;
+    bottom: 10px;
 }
 
 .current-planet-info .planet-desc {
@@ -1411,6 +1499,11 @@ body {
     display: inline-block;
     margin-left: 10px;
     padding: 0px;
+    cursor: pointer;
+}
+
+.forgot-password {
+    display:block;
     cursor: pointer;
 }
 

@@ -118,6 +118,11 @@ namespace Valour.Server.Database
         public DbSet<Referral> Referrals { get; set; }
 
         /// <summary>
+        /// Table for recoveries
+        /// </summary>
+        public DbSet<PasswordRecovery> PasswordRecoveries { get; set; }
+
+        /// <summary>
         /// Table for members of planet roles
         /// </summary>
         public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
