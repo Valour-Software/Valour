@@ -4,10 +4,10 @@
 
 @if (Planet != null)
 {
-    <body class="edit-planet-body">
+    <body class="edit-body">
         <div class="container">
             <div class="row settings-row">
-                <div class="col-3 edit-planet-col-left">
+                <div class="col-3 edit-col-left">
                     <b>@Planet.Name</b>
                     <hr />
                     <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
@@ -16,7 +16,7 @@
                     <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
                     <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
                 </div>
-                <div class="col-9 edit-planet-col-right">
+                <div class="col-9 edit-col-right">
                     @switch (selected)
                     {
                         case 0:

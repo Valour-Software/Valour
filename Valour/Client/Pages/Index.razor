@@ -61,6 +61,21 @@
                         </div>
                     }
 
+                    @if (ClientUserManager.User != null)
+                    {
+                        <!-- The Modal -->
+                        <div class="modal edit-user-modal" id="EditUserModal">
+                            <!-- Modal content -->
+                            <div class="modal-content-EditUser">
+                                <div class="login-box">
+                                    <div class="col-md-12" style="height: 100%; width: 100%;">
+                                        <EditUserComponent User="@ClientUserManager.User"></EditUserComponent>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
                     <div class="top-bar">
                     </div>
                     <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>

@@ -446,5 +446,23 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "Successfully verified email.");
         }
+
+        /// <summary>
+        /// Revokes the token and effectively logs the user out
+        /// </summary>
+        public async Task<TaskResult> Logout(string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Could not find token.");
+            }
+
+            Context.AuthTokens.Remove(authToken);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Logged out successfully.");
+        }
     }
 }
