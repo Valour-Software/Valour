@@ -1313,8 +1313,8 @@ body {
 
 .settings-inner {
     position: relative;
-    height: 100%;
-    overflow-y: scroll;
+    height: 90%;
+    overflow-y: auto;
 }
 
 .settings-save-button {
