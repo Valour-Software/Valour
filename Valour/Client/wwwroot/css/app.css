@@ -1479,6 +1479,7 @@ body {
 
 .forgot-password {
     display:block;
+    cursor: pointer;
 }
 
 #window-0:focus {

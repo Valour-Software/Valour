@@ -23,6 +23,7 @@ using Valour.Shared.Users.Identity;
 using Newtonsoft.Json;
 using Valour.Server.Roles;
 using Valour.Client.Planets;
+using Microsoft.AspNetCore.Http;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -230,6 +231,108 @@ namespace Valour.Server.Controllers
             await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
 
             return new TaskResult(true, $"Successfully created user {username}");
+        }
+
+        /// <summary>
+        /// Sends a password recovery link to the requester
+        /// </summary>
+        public async Task<TaskResult> RequestPasswordReset(string email)
+        {
+            UserEmail userEmail = await Context.UserEmails.FindAsync(email.ToLower());
+
+            if (userEmail == null)
+            {
+                return new TaskResult(false, $"Could not find an account with email {email}");
+            }
+
+            // If a recovery already exists for this user, remove it
+            var old = Context.PasswordRecoveries.Where(x => x.User_Id == userEmail.User_Id);
+            if (old.Count() > 0)
+            {
+                Context.PasswordRecoveries.RemoveRange(old);
+                await Context.SaveChangesAsync();
+            }
+
+            string recoveryCode = Guid.NewGuid().ToString();
+
+            PasswordRecovery recovery = new PasswordRecovery()
+            {
+                Code = recoveryCode,
+                User_Id = userEmail.User_Id
+            };
+
+            await Context.PasswordRecoveries.AddAsync(recovery);
+            await Context.SaveChangesAsync();
+
+            // Send registration email
+            string emsg = $@"<body>
+                              <h2 style='font-family:Helvetica;'>
+                                Valour Password Recovery
+                              </h2>
+                              <p style='font-family:Helvetica;>
+                                To reset your password, please use the following link: 
+                              </p>
+                              <p style='font-family:Helvetica;'>
+                                <a href='https://valour.gg/RecoverPassword/{recoveryCode}'>Click here to recover</a>
+                              </p>
+                            </body>";
+
+            string rawmsg = $"To reset your password, please go to the following link:\nhttps://valour.gg/RecoverPassword/{recoveryCode}";
+
+            await EmailManager.SendEmailAsync(email, "Valour Password Recovery", rawmsg, emsg);
+
+            Console.WriteLine($"Sent recovery email to {email}");
+
+            return new TaskResult(true, $"Sent recovery email to address.");
+        }
+
+        /// <summary>
+        /// Uses a recovery code to replace the password
+        /// </summary>
+        public async Task<TaskResult> RecoverPassword(string code, string password)
+        {
+            PasswordRecovery recovery = await Context.PasswordRecoveries.FindAsync(code);
+
+            if (recovery == null)
+            {
+                return new TaskResult(false, "Could not find recovery code.");
+            }
+
+            TaskResult passwordResult = PasswordManager.TestComplexity(password);
+
+            if (!passwordResult.Success)
+            {
+                return passwordResult;
+            }
+
+            // Get user's old credentials
+            Credential credential = await Context.Credentials.FirstOrDefaultAsync(x => x.User_Id == recovery.User_Id &&
+                                                                                       x.Credential_Type == CredentialType.PASSWORD);
+
+            if (credential == null)
+            {
+                return new TaskResult(false, $"Your credential type is not a password. Log in using {credential.Credential_Type}");
+            }
+
+            // Remove recovery code
+            Context.PasswordRecoveries.Remove(recovery);
+
+            // Modify the user's old credentials
+
+            // Generate random salt
+            byte[] salt = new byte[32];
+            PasswordManager.GenerateSalt(salt);
+
+            // Generate password hash
+            byte[] hash = PasswordManager.GetHashForPassword(password, salt);
+
+            credential.Salt = salt;
+            credential.Secret = hash;
+
+            Context.Credentials.Update(credential);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Your password has been changed.");
         }
 
         /// <summary>
