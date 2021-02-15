@@ -27,30 +27,41 @@
 
 a {
     color: var(--link-color);
+    user-select: text;
+}
+
+p {
+    user-select: text;
 }
 
 .p-1 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h1 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h2 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h3 {
     color: var(--font-color);
+    user-select: text;
 }
 
 h4 {
     color: var(--font-color);
+    user-select: text;
 }
 
 label {
     color: var(--font-color);
+    user-select: text;
 }
 
 .btn-primary {
@@ -1166,33 +1177,6 @@ body {
     cursor: pointer;
 }
 
-.edit-planet-body {
-    background-color: var(--main-2);
-    height: 100%;
-    width: 100%;
-}
-
-    .edit-planet-body .container {
-        height: 100%;
-        width: 100%;
-    }
-
-    .edit-planet-body .row {
-        height: 100%;
-    }
-
-
-.edit-planet-col-left {
-    height: 100%;
-    background-color: var(--main-2);
-}
-
-.edit-planet-col-right {
-    height: 100%;
-    border-left: solid 1px rgba(255, 255, 255, 0.25);
-    background-color: var(--main-2);
-}
-
 .modal-content-EditPlanet .login-box {
     height: 100%;
     width: 100%;
@@ -1311,6 +1295,55 @@ body {
     background-color: var(--main-5);
 }
 
+.settings-row {
+    overflow-y: auto;
+}
+
+
+.edit-planet-body {
+    background-color: var(--main-2);
+    height: 100%;
+    width: 100%;
+}
+
+.edit-planet-body .container {
+    height: 100%;
+    width: 100%;
+}
+
+.edit-planet-body .row {
+    height: 100%;
+}
+
+
+.edit-planet-col-left {
+    background-color: var(--main-2);
+    min-width: 150px;
+}
+
+.edit-planet-col-right {
+    border-left: solid 1px rgba(255, 255, 255, 0.25);
+    background-color: var(--main-2);
+    min-width: 200px;
+}
+
+@media screen and (max-width: 992px) {
+    .settings-row {
+        flex-wrap: wrap;
+    }
+
+    .edit-planet-col-left {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .edit-planet-col-right {
+        width: 100%;
+        border: none;
+        margin-bottom: 20px;
+    }
+}
+
 .settings-inner {
     position: relative;
     height: 90%;
@@ -1320,7 +1353,7 @@ body {
 .settings-save-button {
     position: absolute;
     right: 10px;
-    bottom: 80px;
+    bottom: 10px;
 }
 
 .current-planet-info .planet-desc {
