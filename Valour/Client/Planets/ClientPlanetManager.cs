@@ -36,6 +36,7 @@ namespace Valour.Client.Planets
         private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<string, ClientPlanetMember>();
         private ConcurrentDictionary<ulong, User> PlanetMemberUserCache = new ConcurrentDictionary<ulong, User>(); // Maps from member id => user
         private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
+        private ConcurrentDictionary<ulong, List<PlanetRole>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<PlanetRole>>();
 
         public event Func<Task> OnPlanetChange;
 
@@ -89,12 +90,20 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
-        /// Returns all of the roles for a given planet
+        /// Loads all of the roles for a given planet
         /// </summary>
         public async Task LoadPlanetRoles(ClientPlanet planet)
         {
+            await LoadPlanetRoles(planet.Id);
+        }
+
+        /// <summary>
+        /// Loads all of the roles for a given planet
+        /// </summary>
+        public async Task LoadPlanetRoles(ulong planet_id)
+        {
             // Get planet roles
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRoles?planet_id={planet.Id}&token={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRoles?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
 
             Console.WriteLine(json);
 
@@ -102,16 +111,18 @@ namespace Valour.Client.Planets
 
             if (result == null)
             {
-                Console.WriteLine($"Critical error in getting planet roles for planet {planet.Id}");
+                Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
                 return;
             }
 
             if (!result.Success)
             {
-                Console.WriteLine($"Critical error in getting planet roles for planet {planet.Id}");
+                Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
                 Console.WriteLine(result.Message);
                 return;
             }
+
+            PlanetRolesListCache[planet_id] = result.Data;
 
             // Set roles into role cache
             foreach (var role in result.Data)
@@ -119,7 +130,28 @@ namespace Valour.Client.Planets
                 PlanetRolesCache.TryAdd(role.Id, role);
             }
 
-            Console.WriteLine($"Loaded {result.Data.Count} roles into cache for planet {planet.Id}");
+            Console.WriteLine($"Loaded {result.Data.Count} roles into cache for planet {planet_id}");
+        }
+
+        /// <summary>
+        /// Returns the roles for a given planet
+        /// </summary>
+        public async Task<List<PlanetRole>> GetPlanetRoles(ulong planet_id)
+        {
+            // If we don't have them, try to load them
+            if (!PlanetRolesListCache.ContainsKey(planet_id))
+            {
+                await LoadPlanetRoles(planet_id);
+            }
+
+            // If we still don't have them, give up
+            if (!PlanetRolesListCache.ContainsKey(planet_id))
+            {
+                return null;
+            }
+
+            // Return the roles
+            return PlanetRolesListCache[planet_id];
         }
 
         public async Task<PlanetRole> GetPlanetRole(ulong role_id)

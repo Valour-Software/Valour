@@ -279,6 +279,12 @@ body {
     display: block;
 }
 
+video {
+    /* override other styles to make responsive */
+    width: 90% !important;
+    height: auto !important;
+}
+
 .content .table {
     max-width: 90%;
     display: block;
@@ -891,14 +897,22 @@ body {
 }
 
 @media screen and (max-width: 992px) {
-    .login-box {
+    .popup-box {
         max-width: 90%;
         max-height: 100%;
         transform: translateY(5%);
+        padding: 20px;
+    }
+
+    .modal-content-EditPlanet .popup-box {
+        max-width: 90%;
+        max-height: 100%;
+        transform: translateY(5%);
+        padding: 20px;
     }
 }
 
-.login-box {
+.popup-box {
     background-color: var(--main-4);
     border-radius: 10px;
     border-color: grey;
@@ -912,7 +926,8 @@ body {
     margin-bottom: 50px;
 }
 
-.modal-content-CreatePlanet .login-box {
+
+.modal-content-CreatePlanet .popup-box {
     transform: none;
     border-radius: 10px;
     width: 100%;
@@ -934,7 +949,7 @@ body {
     }
 }
 
-.modal-content-EditPlanet .login-box {
+.modal-content-EditPlanet .popup-box {
     transform: none;
     border-radius: 10px;
     margin: auto;
@@ -957,7 +972,7 @@ body {
     }
 }
 
-.modal-content-EditUser .login-box {
+.modal-content-EditUser .popup-box {
     transform: none;
     border-radius: 10px;
     margin: auto;
@@ -1200,7 +1215,7 @@ body {
     cursor: pointer;
 }
 
-.modal-content-EditUser .login-box {
+.modal-content-EditUser .popup-box {
     height: 100%;
     width: 100%;
 }
@@ -1382,6 +1397,61 @@ body {
     min-width: 200px;
 }
 
+.role-edit {
+    position: relative;
+    display: inline-block;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    width: 50%;
+    height: 30px;
+    margin-right: 20px;
+}
+
+.role-edit-edit {
+    position: relative;
+    display: inline-block;
+    background-color: rgba(0, 100, 255, 0.2);
+    border-radius: 5px 0px 0px 5px;
+    width: 10%;
+    min-width: 40px;
+    height: 30px;
+    margin: 0px;
+    cursor: pointer;
+}
+
+.role-edit-edit:hover {
+    background-color: rgba(0, 100, 255, 0.3);
+}
+
+.role-edit-delete {
+    position: relative;
+    display: inline-block;
+    background-color: rgba(255, 0, 0, 0.2);
+    border-radius: 0px 5px 5px 0px;
+    width: 10%;
+    min-width: 55px;
+    height: 30px;
+    margin: 0px;
+    cursor: pointer;
+}
+
+.role-edit-delete:hover {
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.center-t {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.role-edit p {
+    position: absolute;
+    top: 50%;
+    transform: translate(0%, -50%);
+}
+
 @media screen and (max-width: 992px) {
     .settings-row {
         flex-wrap: wrap;
@@ -1403,6 +1473,7 @@ body {
     position: relative;
     height: 90%;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .settings-save-button {

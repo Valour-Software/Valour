@@ -1,0 +1,20 @@
+﻿<div class="role-edit">
+    <p>
+        @Role.Name
+    </p>
+</div>
+<div class="role-edit-edit">
+    <p class="center-t">
+        Edit
+    </p>
+</div>
+<div class="role-edit-delete">
+    <p class="center-t">
+        Delete
+    </p>
+</div>
+
+@code {
+    [Parameter]
+    public PlanetRole Role { get; set; }
+}

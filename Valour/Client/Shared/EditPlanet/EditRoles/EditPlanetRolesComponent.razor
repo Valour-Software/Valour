@@ -1,0 +1,31 @@
+﻿<h3>Edit Roles</h3>
+<hr />
+<br />
+
+<div class="settings-inner">
+    @if (Selected == null)
+    {
+        <div class="container">
+            <div class="row">
+                @foreach (PlanetRole role in Roles)
+                {
+                    <PlanetRoleComponent Role="role"></PlanetRoleComponent>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+    public PlanetRole Selected { get; set; }
+
+    public List<PlanetRole> Roles = new List<PlanetRole>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Roles = await Planet.GetRolesAsync();
+    }
+}
