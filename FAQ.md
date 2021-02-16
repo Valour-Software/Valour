@@ -54,6 +54,9 @@ Valour does not have an official app for any platform currently and is officiall
 <tr>
 <td><a href="#i-dont-see-any-email">I don't see any email!</a></td>
 </tr>
+<tr>
+<td><a href="#im-on-mobile-and-i-cant-log-in-with-my-email!">Im on mobile and i can't log in with my email!</a></td>
+</tr>
 </table>
 </details>
 -->
@@ -63,6 +66,9 @@ You need to use a temporary password given to you on the email you used for your
 
 ### I don't see any email!
 If you did not receive email from Valour then you need to contact Valour staff. You can find all available contacts [here](https://static.valour.gg/contact) with preferably emailing support@valour.gg.
+
+### Im on mobile and i can't log in with my email!
+Usually cellphones put a space at the end of the auto complete options, so delete the last character of the email input then you are probably good.
 
 ## Valour App
 
