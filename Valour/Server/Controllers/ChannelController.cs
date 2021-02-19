@@ -236,6 +236,7 @@ namespace Valour.Server.Controllers
 
             PlanetChatChannel channel = new PlanetChatChannel()
             {
+                Id = IdManager.Generate(),
                 Name = name,
                 Planet_Id = planet_id,
                 Parent_Id = parentid,
