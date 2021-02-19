@@ -131,7 +131,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully deleted.");
         }
 
-        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong user_id, string token)
+        public async Task<TaskResult> SetParentId(ulong id, ulong parentId, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
