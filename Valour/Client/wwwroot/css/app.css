@@ -148,7 +148,7 @@ body {
     margin-right: auto;
     color: white;
     word-break: break-word;
-    overflow-y: scroll;
+    /*overflow-y: scroll; */
     overflow-wrap: break-word;
     resize: none;
 }
