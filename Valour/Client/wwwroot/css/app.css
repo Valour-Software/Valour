@@ -519,9 +519,14 @@ body {
         margin-left: 8px
     }
 
-.top-level-category {
-    padding-bottom: 24px;
+.top-level-category .is-open{
+    padding-bottom:12px;
 }
+
+.top-level-category {
+    margin-bottom: 16px;
+}
+
 
 
 .sidebar-2 .category .channel-list {
@@ -557,8 +562,8 @@ body {
     border-radius: 5px;
     margin-right: auto;
     margin-left: 10px;
-    margin-bottom: 16px;
 }
+
 
     .sidebar-2 .category .is-open {
         border-bottom-right-radius: 0px;

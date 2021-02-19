@@ -111,27 +111,37 @@ namespace Valour.Server.Controllers
 
             List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
 
+            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
+
+            //Check if any channels in this category are the main channel
+            foreach(PlanetChatChannel channel in channels) {
+                if (channel.Id == planet.Main_Channel_Id) {
+                    return new TaskResult(false, "You can not delete your main channel!");
+                }
+            }
+            //If not, then delete the channels
+            foreach(PlanetChatChannel channel in channels) {
+                Context.PlanetChatChannels.Remove(channel);
+            }
+
             foreach(PlanetCategory Category in categories)
             {
                 Category.Parent_Id = null;
                 
             }
-            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
 
-            foreach(PlanetChatChannel channel in channels) {
-                Context.PlanetChatChannels.Remove(channel);
-            }
+            ulong parentId = category.Planet_Id;
 
             Context.PlanetCategories.Remove(category);
             
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{category.Parent_Id}").SendAsync("RefreshChannelList", "");
+            await PlanetHub.Current.Clients.Group($"p-{parentId}").SendAsync("RefreshChannelList", "");
 
             return new TaskResult(true, "Successfully deleted.");
         }
 
-        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong user_id, string token)
+        public async Task<TaskResult> SetParentId(ulong id, ulong parentId, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
