@@ -567,6 +567,7 @@ async function postData(url = '', data = {}) {
 
 const Drop = (e) =>{
     e.preventDefault();
+    e.stopPropagation();
     if (dragging == null) {
         return null
     }
@@ -596,10 +597,8 @@ const Drop = (e) =>{
         id = dragging.id 
         data = httpGet(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=0`)
         console.log(data)
-        if (out["success"] == false) {
-            return null;
-        }
         TopLevel = true
+        return null
     }
     else {
         if (target == null) {
@@ -613,18 +612,14 @@ const Drop = (e) =>{
         categoryid = target.parentNode.id
         if (categoryid != parentid) {
             if (dragging.className.includes("channel")) {
-                data = httpGet(`/Channel/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                data = fetch(`/Channel/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
                 console.log(data)
-                if (data["success"] == false) {
-                    return null;
-                }
+                return null;
             }
             else {
-                data = httpGet(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
+                data = fetch(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
                 console.log(data)
-                if (data["success"] == false) {
-                    return null;
-                }
+                return null;
             }
         }
     }

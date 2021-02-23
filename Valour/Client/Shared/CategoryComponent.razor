@@ -8,7 +8,7 @@
 <div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)">
     <div id="@category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" oncontextmenu="ChannelListItemContextMenu(event,this)">
         <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
-        <p class="name">
+        <p class="name" @onclick='@OnClick'>
             @category.Name
         </p>
         <p class="add-channel-button" id="@category.Id" onclick="AddChannelCategoryContextMenu(event, this)">
@@ -18,9 +18,6 @@
     <!-- The Modal -->
     @if (IsOpen) {
         <div class="channel-list">
-            @if(ItemList.Count() == 0) {
-                <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
-            }
             @foreach(PlanetListItem item in ItemList) {
                 ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
                 if (channel != null) {
@@ -51,6 +48,7 @@
                     }
                 }
             }
+            <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
         </div>
     }
 </div>
@@ -141,6 +139,9 @@
             }
             else
             {
+                if (IsTopLevel) {
+                    return "category top-level-category";
+                }
                 return "category";
             }
         }

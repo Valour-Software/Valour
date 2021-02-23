@@ -524,11 +524,17 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == target_id && x.Planet_Id == planet_id);
+            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Id == target_id && x.Planet_Id == planet_id);
 
             if (member == null)
             {
                 return new TaskResult(true, $"Could not find PlanetMember {target_id}");
+            }
+
+            List<ServerPlanetRoleMember> roles = await Task.Run(() => Context.PlanetRoleMembers.Where(x => x.Member_Id == target_id && x.Planet_Id == planet_id).ToList());
+
+            foreach(ServerPlanetRoleMember role in roles) {
+                Context.PlanetRoleMembers.Remove(role);
             }
 
             Context.PlanetMembers.Remove(member);
@@ -554,12 +560,15 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
+            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Id == target_id &&
+                                                                                             x.Planet_Id == planet_id);
+
             PlanetBan ban = new PlanetBan()
             {
                 Id = IdManager.Generate(),
                 Reason = reason,
                 Planet_Id = planet_id,
-                User_Id = target_id,
+                User_Id = member.User_Id,
                 Banner_Id = authToken.User_Id,
                 Time = DateTime.UtcNow,
                 Permanent = false
@@ -577,13 +586,16 @@ namespace Valour.Server.Controllers
             // Add channel to database
             await Context.PlanetBans.AddAsync(ban);
 
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == target_id &&
-                                                                                             x.Planet_Id == planet_id);
+            List<ServerPlanetRoleMember> roles = await Task.Run(() => Context.PlanetRoleMembers.Where(x => x.Member_Id == target_id && x.Planet_Id == planet_id).ToList());
+
+            foreach(ServerPlanetRoleMember role in roles) {
+                Context.PlanetRoleMembers.Remove(role);
+            }
 
             Context.PlanetMembers.Remove(member);
             await Context.SaveChangesAsync();
 
-            return new TaskResult(true, $"Successfully banned user {target_id}");
+            return new TaskResult(true, $"Successfully banned user {member.Nickname}");
         }
 
         /// <summary>

@@ -148,7 +148,7 @@ body {
     margin-right: auto;
     color: white;
     word-break: break-word;
-    overflow-y: scroll;
+    /*overflow-y: scroll; */
     overflow-wrap: break-word;
     resize: none;
 }
@@ -525,9 +525,14 @@ video {
         margin-left: 8px
     }
 
-.top-level-category {
-    padding-bottom: 24px;
+.top-level-category .is-open{
+    padding-bottom:12px;
 }
+
+.top-level-category {
+    margin-bottom: 16px;
+}
+
 
 
 .sidebar-2 .category .channel-list {
@@ -563,8 +568,8 @@ video {
     border-radius: 5px;
     margin-right: auto;
     margin-left: 10px;
-    margin-bottom: 16px;
 }
+
 
     .sidebar-2 .category .is-open {
         border-bottom-right-radius: 0px;
@@ -833,6 +838,31 @@ video {
         height: 12px;
     }
 
+    .sidebar-user .staff-tag {
+        display: inline-block;
+        width: 24px;
+        height: 9px;
+        background: #00FAFF;
+        border-radius: 2px;
+        margin-top: 9px;
+    }
+
+    .sidebar-user .staff-tag p {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 7px;
+        line-height: 8px;
+        margin: 0px;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        /* identical to box height */
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #000000;
+    }
+
     .sidebar-user .bot-tag {
         display: inline-block;
         width: 17px;
@@ -842,21 +872,21 @@ video {
         margin-top: 9px;
     }
 
-        .sidebar-user .bot-tag p {
-            font-family: Ubuntu;
-            font-style: normal;
-            font-weight: bold;
-            font-size: 7px;
-            line-height: 8px;
-            margin: 0px;
-            margin-left: 1px;
-            margin-bottom: 1px;
-            /* identical to box height */
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #FFFFFF;
-        }
+    .sidebar-user .bot-tag p {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 7px;
+        line-height: 8px;
+        margin: 0px;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        /* identical to box height */
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #FFFFFF;
+    }
 
     .sidebar-user .active-circle {
         display: inline-block;

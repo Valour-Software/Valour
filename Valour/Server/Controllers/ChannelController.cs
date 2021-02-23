@@ -150,10 +150,8 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
-            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Planet_Id == channel.Planet_Id).ToList());
-
-            if (channels.Count == 1) {
-                return new TaskResult(false, "You can not delete your last channel!");
+            if (channel.Id == planet.Main_Channel_Id) {
+                return new TaskResult(false, "You can not delete your main channel!");
             }
 
 
@@ -166,7 +164,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully deleted.");
         }
 
-        public async Task<TaskResult> SetParentId(ulong id, ushort parentId, ulong user_id, string token)
+        public async Task<TaskResult> SetParentId(ulong id, ulong parentId, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
