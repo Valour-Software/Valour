@@ -1,18 +1,21 @@
-﻿<div class="role-edit">
-    <p>
-        @Role.Name
-    </p>
+﻿<div class="role-edit-row">
+    <div class="role-edit">
+        <p>
+            @Role.Name
+        </p>
+    </div>
+    <div class="btn-role-edit edit">
+        <p class="center-t">
+            Edit
+        </p>
+    </div>
+    <div class="btn-role-edit delete">
+        <p class="center-t">
+            Delete
+        </p>
+    </div>
 </div>
-<div class="role-edit-edit">
-    <p class="center-t">
-        Edit
-    </p>
-</div>
-<div class="role-edit-delete">
-    <p class="center-t">
-        Delete
-    </p>
-</div>
+
 
 @code {
     [Parameter]

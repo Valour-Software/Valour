@@ -258,21 +258,21 @@ body {
         max-height: 90%;
     }
 
-        .content img:hover {
-        }
+    .content img:hover {
+    }
 }
 
 .content a {
     font-size: 0px;
 }
 
-    .content a:after {
-        font-size: 16px;
-        content: attr(href);
-        visibility: visible;
-        left: 55px;
-        vertical-align: central;
-    }
+.content a:after {
+    font-size: 16px;
+    content: attr(href);
+    visibility: visible;
+    left: 55px;
+    vertical-align: central;
+}
 
 .content .youtube {
     max-width: 90%;
@@ -1385,6 +1385,9 @@ body {
     height: 100%;
 }
 
+.settings-inner .row {
+    height: auto;
+}
 
 .edit-col-left {
     background-color: var(--main-2);
@@ -1397,6 +1400,10 @@ body {
     min-width: 200px;
 }
 
+.role-edit-row {
+    height: 32px;
+}
+
 .role-edit {
     position: relative;
     display: inline-block;
@@ -1405,12 +1412,12 @@ body {
     width: 50%;
     height: 30px;
     margin-right: 20px;
+    padding-left: 10px;
 }
 
-.role-edit-edit {
+.btn-role-edit {
     position: relative;
     display: inline-block;
-    background-color: rgba(0, 100, 255, 0.2);
     border-radius: 5px 0px 0px 5px;
     width: 10%;
     min-width: 40px;
@@ -1419,21 +1426,48 @@ body {
     cursor: pointer;
 }
 
-.role-edit-edit:hover {
+btn-role-edit:hover edit {
     background-color: rgba(0, 100, 255, 0.3);
 }
 
-.role-edit-delete {
-    position: relative;
-    display: inline-block;
-    background-color: rgba(255, 0, 0, 0.2);
-    border-radius: 0px 5px 5px 0px;
-    width: 10%;
-    min-width: 55px;
-    height: 30px;
-    margin: 0px;
-    cursor: pointer;
+.btn-role-edit.edit {
+    background-color: rgba(0, 100, 255, 0.4);
+    border-radius: 5px 0px 0px 5px;
 }
+.btn-role-edit.edit:hover {
+    background-color: rgba(0, 100, 255, 0.6);
+}
+.btn-role-edit.edit:active {
+    background-color: rgba(0, 100, 255, 0.8);
+}
+
+.btn-role-edit.delete {
+    background-color: rgba(255, 0, 0, 0.4);
+    border-radius: 0px 5px 5px 0px;
+}
+.btn-role-edit.delete:hover {
+    background-color: rgba(255, 0, 0, 0.6);
+}
+
+.btn-role-edit.delete:active {
+    background-color: rgba(255, 0, 0, 0.8);
+}
+
+.btn-role-edit.create {
+    background-color: rgba(0, 255, 0, 0.4);
+    border-radius: 5px;
+    display: block;
+    margin-left: 20px;
+    min-width: 55px;
+}
+.btn-role-edit.create:hover {
+    background-color: rgba(0, 255, 0, 0.6);
+}
+
+.btn-role-edit.create:active {
+    background-color: rgba(0, 255, 0, 0.8);
+}
+
 
 .role-edit-delete:hover {
     background-color: rgba(255, 0, 0, 0.3);
@@ -1573,4 +1607,16 @@ td, th {
     border: 1px solid #dddddd;
     text-align: left;
     padding: 8px;
+}
+
+.color-picker {
+
+}
+
+.picker-holder {
+    margin: 5px;
+}
+
+.rolecreate-cont {
+    display: flex;
 }

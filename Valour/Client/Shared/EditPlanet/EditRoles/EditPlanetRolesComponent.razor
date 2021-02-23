@@ -1,16 +1,54 @@
-﻿<h3>Edit Roles</h3>
+﻿@inject IJSRuntime JS
+
+<h3>Edit Roles</h3>
 <hr />
 <br />
 
 <div class="settings-inner">
-    @if (Selected == null)
+    @if (!createMode)
     {
-        <div class="container">
-            <div class="row">
+        if (Selected == null)
+        {
+            <div class="container">
+
                 @foreach (PlanetRole role in Roles)
                 {
-                    <PlanetRoleComponent Role="role"></PlanetRoleComponent>
+                    <div class="row mt-2">
+                        <PlanetRoleComponent Role="role"></PlanetRoleComponent>
+                    </div>
                 }
+
+                <div class="row mt-2">
+                    <div class="btn-role-edit create" @onclick="OnClickCreateMode">
+                        <p class="center-t">
+                            Create
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        }
+    }
+    else
+    {
+        <div class="rolecreate-cont">
+            <div class="form-group mt-2">
+                <label>Role Name</label>
+                <input class="form-control" @bind-value="@roleName" />
+                <span id="rolename-span" class="text-danger">@roleNameSpan</span>
+            </div>
+            <div class="form-group mt-2 ml-2">
+                <label>Color</label>
+                <div class="picker-holder">
+                    <ColorPickerComponent></ColorPickerComponent>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="btn-role-edit create" @onclick="OnClickCreate">
+                    <p class="center-t">
+                        Save
+                    </p>
+                </div>
             </div>
         </div>
     }
@@ -20,12 +58,37 @@
     [Parameter]
     public ClientPlanet Planet { get; set; }
 
+    public List<PlanetRole> Roles = new List<PlanetRole>();
+
+    // Stuff for role creation //
+
+    public bool createMode = false;
+
+    public string roleName = "New Role";
+
+    public string roleNameSpan = "";
+
+    public ulong rolePerms = 0x00;
+
+    // Stuff for role editing //
+
     public PlanetRole Selected { get; set; }
 
-    public List<PlanetRole> Roles = new List<PlanetRole>();
+
 
     protected override async Task OnInitializedAsync()
     {
         Roles = await Planet.GetRolesAsync();
+    }
+
+    public async Task OnClickCreateMode()
+    {
+        createMode = true;
+        StateHasChanged();
+    }
+
+    public async Task OnClickCreate()
+    {
+        
     }
 }

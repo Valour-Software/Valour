@@ -1,0 +1,13 @@
+﻿@inject IJSRuntime JS
+
+<div class="color-picker"></div>
+
+@code{
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("SetupColorPicker");
+        }
+    }
+}
