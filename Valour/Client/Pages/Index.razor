@@ -46,35 +46,6 @@
                 </div>
                 <div class="sidebar-2" id="sidebar2">
                     <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
-                    @if (planetManager.GetCurrent() != null)
-                    {
-                        <!-- The Modal -->
-                        <div class="modal edit-planet-modal" id="EditPlanetModal">
-                            <!-- Modal content -->
-                            <div class="modal-content-EditPlanet">
-                                <div class="login-box">
-                                    <div class="col-md-12" style="height: 100%; width: 100%;">
-                                        <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-
-                    @if (ClientUserManager.User != null)
-                    {
-                        <!-- The Modal -->
-                        <div class="modal edit-user-modal" id="EditUserModal">
-                            <!-- Modal content -->
-                            <div class="modal-content-EditUser">
-                                <div class="login-box">
-                                    <div class="col-md-12" style="height: 100%; width: 100%;">
-                                        <EditUserComponent User="@ClientUserManager.User"></EditUserComponent>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
 
                     <div class="top-bar">
                     </div>
@@ -101,13 +72,12 @@
                 <div class="topline">
                 </div>
                 <!--
-        Todo: Logic for multiple main windows.
-        This will be fun.
-    -->
+                    Todo: Logic for multiple main windows.
+                    This will be fun.
+                -->
                 <!--
-        Add dummy window so Jacob doesn't cry
-    -->
-
+                    Add dummy window so Jacob doesn't cry
+                -->
                 @if (windowManager.GetWindowCount() == 0)
                 {
                     windowManager.AddWindow(new HomeWindow(0));
@@ -159,12 +129,12 @@
         <div class="context-menu AddChannelCategoryContextMenu" id="" style="display:none;">
             <div class="context-menu-item" onclick="AddChannelButtonFunction()">
                 <p class="context-menu-item-text">
-                Add Channel
+                    Add Channel
                 </p>
             </div>
             <div class="context-menu-item">
                 <p class="context-menu-item-text" onclick="AddCategoryButtonFunction()">
-                Add Category
+                    Add Category
                 </p>
             </div>
         </div>
@@ -172,12 +142,12 @@
         <div class="context-menu ChannelListItemContextMenu" id="" style="display:none;">
             <div class="context-menu-item" onclick="">
                 <p class="context-menu-item-text">
-                Edit
+                    Edit
                 </p>
             </div>
             <div class="context-menu-item delete-context-menu-item" onclick="DeleteChannelListItem()">
                 <p class="context-menu-item-text">
-                Delete
+                    Delete
                 </p>
             </div>
         </div>
@@ -185,45 +155,75 @@
         <div class="context-menu UserContextMenu" id="" style="display:none;">
             <div class="context-menu-item delete-context-menu-item" onclick="KickUser()">
                 <p class="context-menu-item-text">
-                Kick
+                    Kick
                 </p>
             </div>
             <div class="context-menu-item delete-context-menu-item" onclick="BanUser()">
                 <p class="context-menu-item-text">
-                Ban
+                    Ban
                 </p>
             </div>
         </div>
         <div class="modal BanModel" id="BanModel">
-        <!-- Modal content -->
-            <div class="modal-content-BanModel">
-                <div class="login-box">
+            <!-- Modal content -->
+        <div class="modal-content-BanModel">
+                <div class="popup-box">
                     <div class="col-md-12">
-                        <BanUserComponent></BanUserComponent>   
+                        <BanUserComponent></BanUserComponent>
                     </div>
                 </div>
             </div>
         </div>
         <div class="modal channelmodel" id="CreateChannel">
-        <!-- Modal content -->
-            <div class="modal-content-CreateChannel">
-                <div class="login-box">
+            <!-- Modal content -->
+        <div class="modal-content-CreateChannel">
+                <div class="popup-box">
                     <div class="col-md-12">
-                        <CreateChannelComponent></CreateChannelComponent>   
+                        <CreateChannelComponent></CreateChannelComponent>
                     </div>
                 </div>
             </div>
         </div>
         <div class="modal categorymodel" id='CreateCategory'>
             <!-- Modal content -->
-            <div class="modal-content-CreateChannel">
-                <div class="login-box">
+        <div class="modal-content-CreateChannel">
+                <div class="popup-box">
                     <div class="col-md-12">
                         <CreateCategoryComponent></CreateCategoryComponent>
                     </div>
                 </div>
             </div>
         </div>
+
+        @if (planetManager.GetCurrent() != null)
+        {
+            <!-- The Modal -->
+            <div class="modal edit-planet-modal" id="EditPlanetModal">
+                <!-- Modal content -->
+        <div class="modal-content-EditPlanet">
+                    <div class="popup-box">
+                        <div class="col-md-12" style="height: 100%; width: 100%;">
+                            <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (ClientUserManager.User != null)
+        {
+            <!-- The Modal -->
+            <div class="modal edit-user-modal" id="EditUserModal">
+                <!-- Modal content -->
+        <div class="modal-content-EditUser">
+                    <div class="popup-box">
+                        <div class="col-md-12" style="height: 100%; width: 100%;">
+                            <EditUserComponent User="@ClientUserManager.User"></EditUserComponent>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
 
     </body>
 }
@@ -233,7 +233,6 @@ else
 }
 
 @code{
-
     public ConcurrentBag<ClientPlanetMember> planetMemberList = new ConcurrentBag<ClientPlanetMember>();
 
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
@@ -334,9 +333,10 @@ else
         StateHasChanged();
     }
 
-    public List<PlanetCategory> GetTopLevelCategories() {
+    public List<PlanetCategory> GetTopLevelCategories()
+    {
         List<PlanetCategory> list = PlanetCategoryChannelList.Where(x => x.Parent_Id == null).ToList();
-        list.Sort((x,y) => x.Position.CompareTo(y.Position));
+        list.Sort((x, y) => x.Position.CompareTo(y.Position));
         return list;
     }
 
@@ -362,7 +362,8 @@ else
 
         planetMemberList.Clear();
 
-        foreach(var member in await planetManager.GetCurrent().GetAllMembers()) {
+        foreach (var member in await planetManager.GetCurrent().GetAllMembers())
+        {
             planetMemberList.Add(member);
         }
 

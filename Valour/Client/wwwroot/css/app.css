@@ -258,25 +258,31 @@ body {
         max-height: 90%;
     }
 
-        .content img:hover {
-        }
+    .content img:hover {
+    }
 }
 
 .content a {
     font-size: 0px;
 }
 
-    .content a:after {
-        font-size: 16px;
-        content: attr(href);
-        visibility: visible;
-        left: 55px;
-        vertical-align: central;
-    }
+.content a:after {
+    font-size: 16px;
+    content: attr(href);
+    visibility: visible;
+    left: 55px;
+    vertical-align: central;
+}
 
 .content .youtube {
     max-width: 90%;
     display: block;
+}
+
+video {
+    /* override other styles to make responsive */
+    width: 90% !important;
+    height: auto !important;
 }
 
 .content .table {
@@ -921,14 +927,22 @@ body {
 }
 
 @media screen and (max-width: 992px) {
-    .login-box {
+    .popup-box {
         max-width: 90%;
         max-height: 100%;
         transform: translateY(5%);
+        padding: 20px;
+    }
+
+    .modal-content-EditPlanet .popup-box {
+        max-width: 90%;
+        max-height: 100%;
+        transform: translateY(5%);
+        padding: 20px;
     }
 }
 
-.login-box {
+.popup-box {
     background-color: var(--main-4);
     border-radius: 10px;
     border-color: grey;
@@ -942,7 +956,8 @@ body {
     margin-bottom: 50px;
 }
 
-.modal-content-CreatePlanet .login-box {
+
+.modal-content-CreatePlanet .popup-box {
     transform: none;
     border-radius: 10px;
     width: 100%;
@@ -964,7 +979,7 @@ body {
     }
 }
 
-.modal-content-EditPlanet .login-box {
+.modal-content-EditPlanet .popup-box {
     transform: none;
     border-radius: 10px;
     margin: auto;
@@ -987,7 +1002,7 @@ body {
     }
 }
 
-.modal-content-EditUser .login-box {
+.modal-content-EditUser .popup-box {
     transform: none;
     border-radius: 10px;
     margin: auto;
@@ -1230,7 +1245,7 @@ body {
     cursor: pointer;
 }
 
-.modal-content-EditUser .login-box {
+.modal-content-EditUser .popup-box {
     height: 100%;
     width: 100%;
 }
@@ -1400,6 +1415,9 @@ body {
     height: 100%;
 }
 
+.settings-inner .row {
+    height: auto;
+}
 
 .edit-col-left {
     background-color: var(--main-2);
@@ -1410,6 +1428,93 @@ body {
     border-left: solid 1px rgba(255, 255, 255, 0.25);
     background-color: var(--main-2);
     min-width: 200px;
+    height: 95%;
+}
+
+.role-edit-row {
+    height: 32px;
+}
+
+.role-edit {
+    position: relative;
+    display: inline-block;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+    width: 50%;
+    height: 30px;
+    margin-right: 20px;
+    padding-left: 10px;
+}
+
+.btn-role-edit {
+    position: relative;
+    display: inline-block;
+    border-radius: 5px 0px 0px 5px;
+    width: 10%;
+    min-width: 40px;
+    height: 30px;
+    margin: 0px;
+    cursor: pointer;
+}
+
+btn-role-edit:hover edit {
+    background-color: rgba(0, 100, 255, 0.3);
+}
+
+.btn-role-edit.edit {
+    background-color: rgba(0, 100, 255, 0.4);
+    border-radius: 5px 0px 0px 5px;
+}
+.btn-role-edit.edit:hover {
+    background-color: rgba(0, 100, 255, 0.6);
+}
+.btn-role-edit.edit:active {
+    background-color: rgba(0, 100, 255, 0.8);
+}
+
+.btn-role-edit.delete {
+    background-color: rgba(255, 0, 0, 0.4);
+    border-radius: 0px 5px 5px 0px;
+}
+.btn-role-edit.delete:hover {
+    background-color: rgba(255, 0, 0, 0.6);
+}
+
+.btn-role-edit.delete:active {
+    background-color: rgba(255, 0, 0, 0.8);
+}
+
+.btn-role-edit.create {
+    background-color: rgba(0, 255, 0, 0.4);
+    border-radius: 5px;
+    display: block;
+    margin-left: 20px;
+    min-width: 55px;
+}
+.btn-role-edit.create:hover {
+    background-color: rgba(0, 255, 0, 0.6);
+}
+
+.btn-role-edit.create:active {
+    background-color: rgba(0, 255, 0, 0.8);
+}
+
+
+.role-edit-delete:hover {
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.center-t {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.role-edit p {
+    position: absolute;
+    top: 50%;
+    transform: translate(0%, -50%);
 }
 
 @media screen and (max-width: 992px) {
@@ -1433,6 +1538,7 @@ body {
     position: relative;
     height: 90%;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .settings-save-button {
@@ -1533,3 +1639,97 @@ td, th {
     text-align: left;
     padding: 8px;
 }
+
+.color-picker {
+
+}
+
+.picker-holder {
+    margin: 5px;
+}
+
+.rolecreate-cont {
+    display: flex;
+}
+
+.perm-list-item {
+    padding: 5px;
+    border-top: solid 1px rgba(255, 255, 255, 0.3);
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.perm-list-name {
+    display: inline-block;
+}
+
+.perm-list-desc {
+    font-size: 14px;
+}
+
+/* Slider stuff */
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 0px;
+    bottom: 0px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #42f5f5;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(20px);
+    -ms-transform: translateX(20px);
+    transform: translateX(20px);
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 20px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* End slider stuff */

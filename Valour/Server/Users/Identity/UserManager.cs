@@ -9,7 +9,6 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Valour.Server.Database;
-using Valour.Server.Oauth;
 using Valour.Shared;
 using Valour.Shared.Oauth;
 using Valour.Shared.Users;

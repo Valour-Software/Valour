@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using Valour.Shared;
 using Valour.Shared.Roles;
 using Valour.Server.Roles;
+using Valour.Server.Oauth;
 
 namespace Valour.Server.Database
 {
@@ -70,7 +71,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for authentication tokens
         /// </summary>
-        public DbSet<AuthToken> AuthTokens { get; set; }
+        public DbSet<ServerAuthToken> AuthTokens { get; set; }
 
         /// <summary>
         /// Table for email confirmation codes
@@ -129,7 +130,7 @@ namespace Valour.Server.Database
 
         public DbSet<ChannelPermissionsNode> ChannelPermissionsNodes { get; set; }
 
-        public DbSet<PlanetRole> PlanetRoles { get; set; }
+        public DbSet<ServerPlanetRole> PlanetRoles { get; set; }
 
         public ValourDB(DbContextOptions options)
         {

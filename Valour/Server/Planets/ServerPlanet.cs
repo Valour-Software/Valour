@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Valour.Client.Users;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using Valour.Server.Roles;
 using Valour.Shared;
 using Valour.Shared.Channels;
@@ -186,12 +186,23 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns all roles within the planet
         /// </summary>
-        public async Task<List<PlanetRole>> GetRolesAsync()
+        public async Task<List<ServerPlanetRole>> GetRolesAsync(ValourDB db = null)
         {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+            bool createdb = false;
+            if (db == null)
             {
-                return db.PlanetRoles.Where(x => x.Planet_Id == Id).ToList();
+                db = new ValourDB(ValourDB.DBOptions);
+                createdb = true;
             }
+
+            var roles = db.PlanetRoles.Where(x => x.Planet_Id == Id).ToList();
+
+            if (createdb)
+            {
+                await db.DisposeAsync();
+            }
+
+            return roles; 
         }
 
         /// <summary>

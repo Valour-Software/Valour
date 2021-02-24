@@ -1,0 +1,217 @@
+﻿@inject IJSRuntime JS
+
+<h3>Edit Roles</h3>
+<hr />
+<br />
+
+<div class="settings-inner">
+    @if (!createMode)
+    {
+        if (Selected == null)
+        {
+            <div class="container">
+
+                @foreach (PlanetRole role in Roles)
+                {
+                    <div class="row mt-2">
+                        <PlanetRoleComponent Role="role"></PlanetRoleComponent>
+                    </div>
+                }
+
+                <div class="row mt-2">
+                    <div class="btn-role-edit create" @onclick="OnClickCreateMode">
+                        <p class="center-t">
+                            Create
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        }
+    }
+    else
+    {
+        <div class="rolecreate-cont">
+            <div class="form-group mt-2">
+                <label>Role Name</label>
+                <input class="form-control" @bind-value="@roleName" />
+                <span id="rolename-span" class="text-danger">@roleNameSpan</span>
+            </div>
+            <div class="form-group mt-2 ml-2">
+                <label>Color</label>
+                <div class="picker-holder">
+                    <ColorPickerComponent></ColorPickerComponent>
+                </div>
+            </div>
+
+        </div>
+        <div class="mt-2" style="display: block">
+            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickCreate">
+                <p class="center-t">
+                    Save
+                </p>
+            </div>
+
+            <div class="mt-2">
+                <span id="result-span" class="text-info">@resultSpan</span>
+                <span id="error-span" class="text-danger" style="display:block">@errorSpan</span>
+            </div>
+        </div>
+
+        <br />
+        <hr />
+        <br />
+
+        <h5 style="display: inline-block">Role Permissions</h5>
+        <h7 style="float: right">Code for nerds: @rolePerms &nbsp;</h7>
+
+        @for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
+        {
+            PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
+
+            int val = i; // You have to do this for wacky binding reasons
+
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    @planetPerm.Name
+                </div>
+                <div type="button" style="float: right">
+                    <label class="switch">
+                      <input type="checkbox" @onclick="(e => PermClick(val))">
+                      <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    @planetPerm.Description
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+    public List<PlanetRole> Roles = new List<PlanetRole>();
+
+    // Stuff for role creation //
+
+    public bool createMode = false;
+
+    public string roleName = "New Role";
+
+    public string roleNameSpan = "";
+
+    public string resultSpan = "";
+
+    public string errorSpan = "";
+
+    public ulong rolePerms = 0x00;
+
+    public bool roleBold = false;
+
+    public bool roleItalics = false;
+
+    public byte roleColor_R = 255;
+    public byte roleColor_G = 255;
+    public byte roleColor_B = 255;
+
+    public bool[] rolePermValues;
+
+    // Stuff for role editing //
+
+    public PlanetRole Selected { get; set; }
+
+    public void PermClick(int id)
+    {
+        rolePermValues[id] = !rolePermValues[id];
+        Console.WriteLine($"Toggled value for permission {id}");
+        UpdatePermCode();
+    }
+
+    public void UpdatePermCode()
+    {
+        rolePerms = 0x00;
+
+        for (int i = 0; i < rolePermValues.Length; i++)
+        {
+            if (rolePermValues[i])
+            {
+                rolePerms |= PlanetPermissions.Permissions[i].Value;
+            }
+        }
+
+        //StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Roles = await Planet.GetRolesAsync();
+    }
+
+    public async Task OnClickCreateMode()
+    {
+        roleBold = false;
+        roleItalics = false;
+        roleName = "New Role";
+        rolePermValues = new bool[PlanetPermissions.Permissions.Length];
+        createMode = true;
+        StateHasChanged();
+    }
+
+    public async Task OnClickCreate()
+    {
+        resultSpan = "";
+        errorSpan = "";
+
+        // Get chosen color
+        float[] color = await JS.InvokeAsync<float[]>("GetChosenColor");
+
+        roleColor_R = (byte)Math.Round(color[0]);
+        roleColor_G = (byte)Math.Round(color[1]);
+        roleColor_B = (byte)Math.Round(color[2]);
+
+        Console.WriteLine($"Chosen color: rgb({roleColor_R}, {roleColor_G}, {roleColor_B})");
+
+        // Create json payload to send to server for request
+        PlanetRole role = new PlanetRole()
+        {
+            Name = roleName,
+            Bold = roleBold,
+            Italics = roleItalics,
+            Planet_Id = Planet.Id,
+            Permissions = rolePerms,
+            Color_Red = roleColor_R,
+            Color_Green = roleColor_G,
+            Color_Blue = roleColor_B
+        }; // Id and authority is handled by the server
+
+        //string json = JsonConvert.SerializeObject(role);
+
+        var response = await ClientUserManager.Http.PostAsJsonAsync($"Planet/CreateRole?planet_id={Planet.Id}" +
+                                                                                     $"&token={ClientUserManager.UserSecretToken}", role);
+
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(
+            await response.Content.ReadAsStringAsync());
+
+        if (result == null)
+        {
+            errorSpan = "No response from server!";
+        }
+        else
+        {
+            if (result.Success)
+            {
+                resultSpan = result.Message;
+                createMode = false; 
+            }
+            else
+            {
+                errorSpan = result.Message;
+            }
+        }
+
+        StateHasChanged();
+    }
+}

@@ -8,6 +8,7 @@ using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Server.Roles;
 using Valour.Server.Users;
+using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
@@ -30,6 +31,9 @@ namespace Valour.Server.Planets
         // Relational DB stuff
         [ForeignKey("User_Id")]
         public virtual ServerUser User { get; set; }
+
+        [ForeignKey("Planet_Id")]
+        public virtual ServerPlanet Planet { get; set; }
 
         [InverseProperty("Member")]
         public virtual ICollection<ServerPlanetRoleMember> RoleMembership { get; set; }
@@ -62,64 +66,87 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns all of the roles for a planet user
         /// </summary>
-        public async Task<List<PlanetRole>> GetRolesAsync()
+        public async Task<List<ServerPlanetRole>> GetRolesAsync(ValourDB db = null)
         {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            bool createdb = false;
+            if (db == null)
             {
-                List<PlanetRole> roles = new List<PlanetRole>();
-
-                // Add default role
-                ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
-
-                var membership = Context.PlanetRoleMembers.Where(x => x.User_Id == User_Id && x.Planet_Id == Planet_Id);
-
-                foreach (var member in membership)
-                {
-                    PlanetRole role = await Context.PlanetRoles.FindAsync(member.Role_Id);
-
-                    if (role != null && !roles.Contains(role))
-                    {
-                        roles.Add(role);
-                    }
-                }
-
-                // Put most important roles at start
-                roles.OrderByDescending(x => x.Authority);
-
-                return roles;
+                db = new ValourDB(ValourDB.DBOptions);
+                createdb = true;
             }
+
+            List<ServerPlanetRole> roles = new List<ServerPlanetRole>();
+
+            // Add default role
+            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
+
+            var membership = db.PlanetRoleMembers.Include(x => x.Role)
+                                                 .Where(x => x.Member_Id == Id)
+                                                 .OrderBy(x => x.Role.Position)
+                                                 .Select(x => x.Role)
+                                                 .ToList();
+
+            if (createdb)
+            {
+                await db.DisposeAsync();
+            }
+
+            return membership;
         }
 
         /// <summary>
-        /// Returns all of the roles for a planet user (helper for client work)
+        /// Returns the member's primary role
         /// </summary>
-        public async Task<List<PlanetRole>> GetClientRolesAsync()
+        public async Task<ServerPlanetRole> GetPrimaryRoleAsync(ValourDB db = null)
         {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            bool createdb = false;
+            if (db == null)
             {
-                List<PlanetRole> roles = new List<PlanetRole>();
+                db = new ValourDB(ValourDB.DBOptions);
+                createdb = true;
+            }
 
-                // Add default role
-                ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
-                roles.Add(await planet.GetDefaultRole());
+            var membership = db.PlanetRoleMembers.Include(x => x.Role).Where(x => x.Member_Id == Id).OrderBy(x => x.Role.Position);
+            var primary = (await membership.FirstOrDefaultAsync()).Role;
 
-                var membership = Context.PlanetRoleMembers.Where(x => x.User_Id == User_Id && x.Planet_Id == Planet_Id);
+            if (createdb)
+            {
+                await db.DisposeAsync();
+            }
 
-                foreach (var member in membership)
+            return primary;
+        }
+
+        /// <summary>
+        /// Returns if the member has the given permission
+        /// </summary>
+        public async Task<bool> HasPermissionAsync(PlanetPermission permission, ValourDB db = null)
+        {
+            // Make sure we didn't include the planet already
+            if (Planet == null)
+            {
+                bool createdb = false;
+                if (db == null)
                 {
-                    PlanetRole role = await Context.PlanetRoles.FindAsync(member.Role_Id);
-
-                    if (role != null && !roles.Contains(role))
-                    {
-                        roles.Add(role);
-                    }
+                    db = new ValourDB(ValourDB.DBOptions);
+                    createdb = true;
                 }
 
-                // Put most important roles at start
-                roles.OrderByDescending(x => x.Authority);
+                Planet = await db.Planets.FindAsync(Planet_Id);
 
-                return roles;
+                if (createdb)
+                {
+                    await db.DisposeAsync();
+                }
             }
+
+            // Special case for owner
+            if (User_Id == Planet.Owner_Id)
+            {
+                return true;
+            }
+
+            return (await GetPrimaryRoleAsync(db)).HasPermission(permission);
         }
 
         /// <summary>

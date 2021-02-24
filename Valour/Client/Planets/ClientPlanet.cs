@@ -214,5 +214,13 @@ namespace Valour.Client.Planets
         {
             return await ClientPlanetManager.Current.GetPlanetMemberInfoAsync(Id);
         }
+
+        /// <summary>
+        /// Returns every planet role
+        /// </summary>
+        public async Task<List<PlanetRole>> GetRolesAsync()
+        {
+            return await ClientPlanetManager.Current.GetPlanetRoles(Id);
+        }
     }
 }

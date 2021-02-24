@@ -7,7 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using Valour.Server.Users;
 using Valour.Shared.Channels;
 using Valour.Shared.Roles;
@@ -68,6 +68,16 @@ namespace Valour.Server.Roles
                 ChannelPermissionsNode node = await Context.ChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Channel_Id == channel_id);
                 return node.GetPermissionState(permission);
             }
+        }
+
+        /// <summary>
+        /// Returns if the role has the permission
+        /// </summary>
+        /// <param name="permission"></param>
+        /// <returns></returns>
+        public bool HasPermission(PlanetPermission permission)
+        {
+            return Permission.HasPermission(Permissions, permission);
         }
     }
 }

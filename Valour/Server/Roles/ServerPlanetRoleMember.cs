@@ -18,5 +18,8 @@ namespace Valour.Server.Roles
     {
         [ForeignKey("Member_Id")]
         public virtual ServerPlanetMember Member { get; set; }
+
+        [ForeignKey("Role_Id")]
+        public virtual ServerPlanetRole Role { get; set; }
     }
 }
