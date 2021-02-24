@@ -17,12 +17,13 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using Valour.Server.MSP;
 using Valour.Server.Roles;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using Valour.Server.Users;
+using Valour.Server.Oauth;
 
 
 /*  Valour - A free and secure chat client
@@ -185,11 +186,11 @@ namespace Valour.Server.Controllers
             };
 
             // Create default role
-            PlanetRole defaultRole = new PlanetRole()
+            ServerPlanetRole defaultRole = new ServerPlanetRole()
             {
                 Id = IdManager.Generate(),
                 Planet_Id = planet_id,
-                Authority = 0,
+                Position = 0,
                 Color_Blue = 255,
                 Color_Green = 255,
                 Color_Red = 255,
@@ -601,30 +602,30 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns all of the roles in a planet
         /// </summary>
-        public async Task<TaskResult<List<PlanetRole>>> GetPlanetRoles(ulong planet_id, string token){
+        public async Task<TaskResult<List<ServerPlanetRole>>> GetPlanetRoles(ulong planet_id, string token){
 
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
             if (authToken == null)
             {
-                return new TaskResult<List<PlanetRole>>(false, "Failed to authorize user.", null);
+                return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
             }
 
             ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
 
             if (planet == null)
             {
-                return new TaskResult<List<PlanetRole>>(false, $"Could not find planet {planet_id}", null);
+                return new TaskResult<List<ServerPlanetRole>>(false, $"Could not find planet {planet_id}", null);
             }
 
             if (!(await planet.IsMemberAsync(authToken.User_Id)))
             {
-                return new TaskResult<List<PlanetRole>>(false, "Failed to authorize user.", null);
+                return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
             }
 
             var roles = await planet.GetRolesAsync();
 
-            return new TaskResult<List<PlanetRole>>(true, $"Found {roles.Count} roles.", roles);
+            return new TaskResult<List<ServerPlanetRole>>(true, $"Found {roles.Count} roles.", roles);
         }
 
         /// <summary>
@@ -684,6 +685,109 @@ namespace Valour.Server.Controllers
             }
 
             return new TaskResult<string>(true, $"Success", planet.Name);
+        }
+
+
+        /// <summary>
+        /// Creates the requested role
+        /// </summary>
+        public async Task<TaskResult> CreateRole([FromBody] ServerPlanetRole role, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!Permission.HasPermission(authToken.Scope, UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "You don't have planet management scope.");
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.User)
+                                                                   .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
+                                                                                             x.Planet_Id == role.Planet_Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You're not in the planet!");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageRoles)))
+            {
+                return new TaskResult(false, "You don't have role management permissions!");
+            }
+
+            // Set role id
+            role.Id = IdManager.Generate();
+
+            // Set to next open position
+            role.Position = (uint) await Context.PlanetRoles.Where(x => x.Planet_Id == role.Planet_Id).CountAsync();
+
+            await Context.PlanetRoles.AddAsync(role);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, $"Role successfully added to position {role.Position}.");
+        }
+
+        /// <summary>
+        /// Returns the roles for a given member
+        /// </summary>
+        public async Task<TaskResult<List<ServerPlanetRole>>> GetMemberRoles(ulong member_id, string token)
+        {
+            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.Planet)
+                                                                   .FirstOrDefaultAsync(x => x.Id == member_id);
+
+            if (member == null)
+            {
+                return new TaskResult<List<ServerPlanetRole>>(false, "Member does not exist.", null);
+            }
+
+            if (!(await member.Planet.IsMemberAsync(authToken.User_Id, Context))){
+                return new TaskResult<List<ServerPlanetRole>>(false, "You are not in the planet.", null);
+            }
+
+            var roles = await member.GetRolesAsync(Context);
+
+            return new TaskResult<List<ServerPlanetRole>>(false, $"Found {roles.Count} roles.", roles);
+        }
+
+        /// <summary>
+        /// Returns the primary role for a given member
+        /// </summary>
+        public async Task<TaskResult<ServerPlanetRole>> GetMemberPrimaryRole(ulong member_id, string token)
+        {
+            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult<ServerPlanetRole>(false, "Failed to authorize user.", null);
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.Planet)
+                                                                   .FirstOrDefaultAsync(x => x.Id == member_id);
+
+            if (member == null)
+            {
+                return new TaskResult<ServerPlanetRole>(false, "Member does not exist.", null);
+            }
+
+            if (!(await member.Planet.IsMemberAsync(authToken.User_Id, Context)))
+            {
+                return new TaskResult<ServerPlanetRole>(false, "You are not in the planet.", null);
+            }
+
+            var role = await member.GetPrimaryRoleAsync(Context);
+
+            return new TaskResult<ServerPlanetRole>(false, $"Found primary role.", role);
         }
     }
 }

@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Email;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using Valour.Server.Planets;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
@@ -24,6 +24,7 @@ using Newtonsoft.Json;
 using Valour.Server.Roles;
 using Valour.Client.Planets;
 using Microsoft.AspNetCore.Http;
+using Valour.Server.Oauth;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -437,14 +438,14 @@ namespace Valour.Server.Controllers
             }
 
             // Check if there are any tokens already
-            AuthToken token = null;
+            ServerAuthToken token = null;
 
             token = await Context.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == user.Id && x.Scope == UserPermissions.FullControl.Value);
 
             if (token == null)
             {
                 // We now have to create a token for the user
-                token = new AuthToken()
+                token = new ServerAuthToken()
                 {
                     App_Id = "VALOUR",
                     Id = Guid.NewGuid().ToString(),
@@ -555,7 +556,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> Logout(string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
             if (authToken == null)
             {

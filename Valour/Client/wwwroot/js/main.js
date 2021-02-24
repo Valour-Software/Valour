@@ -713,6 +713,9 @@ window.blazorFuncs = {
     }
 };
 
+
+var chosenColor = [255, 255, 255, 1];
+
 function SetupColorPicker() {
 
     console.log("Setting up color picker...");
@@ -722,11 +725,12 @@ function SetupColorPicker() {
         theme: 'nano', // or 'monolith', or 'nano'
 
         swatches: [
+            'rgba(255, 255, 255, 1)',
             'rgba(244, 67, 54, 1)',
-            'rgba(233, 30, 99, 0.95)',
-            'rgba(156, 39, 176, 0.9)',
-            'rgba(103, 58, 183, 0.85)',
-            'rgba(63, 81, 181, 0.8)',
+            'rgba(233, 30, 99, 1)',
+            'rgba(156, 39, 176, 1)',
+            'rgba(103, 58, 183, 1)',
+            'rgba(63, 81, 181, 1)',
             'rgba(33, 150, 243, 0.75)',
             'rgba(3, 169, 244, 0.7)',
             'rgba(0, 188, 212, 0.7)',
@@ -758,6 +762,16 @@ function SetupColorPicker() {
             }
         }
     });
+
+    pickr.on('save', (color, instance) => {
+        var rgba = color.toRGBA();
+        chosenColor = rgba;
+        console.log("Set color to " + chosenColor);
+    });
+}
+
+function GetChosenColor() {
+    return chosenColor;
 }
 
 window.onresize = function () {

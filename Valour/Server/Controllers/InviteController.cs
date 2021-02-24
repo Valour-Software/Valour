@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Email;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using Valour.Server.Planets;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;

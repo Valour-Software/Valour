@@ -10,7 +10,7 @@ using System.Threading.Tasks;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Oauth
+namespace Valour.Shared.Oauth
 {
     /// <summary>
     /// Permissions are basic flags used to denote if actions are allowed
@@ -104,19 +104,24 @@ namespace Valour.Server.Oauth
     /// This class contains all user permissions and helper methods for working
     /// with them.
     /// </summary>
-    public class UserPermissions
+    public static class UserPermissions
     {
         /// <summary>
         /// Contains every user permission
         /// </summary>
-        public static readonly UserPermission[] Permissions = new UserPermission[]
+        public static UserPermission[] Permissions;
+
+        static UserPermissions()
         {
-            FullControl,
-            Minimum,
-            View,
-            Membership,
-            Invites
-        };
+            Permissions = new UserPermission[]
+            {
+                FullControl,
+                Minimum,
+                View,
+                Membership,
+                Invites
+            };
+        }
 
         // Use shared full control definition
         public static readonly UserPermission FullControl = new UserPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Control every part of your account.");
@@ -128,13 +133,14 @@ namespace Valour.Server.Oauth
         public static readonly UserPermission View = new UserPermission(0x02, "View", "Allows this app to access basic information about your account.");
         public static readonly UserPermission Membership = new UserPermission(0x04, "Membership", "Allows this app to view the planets you are a member of.");
         public static readonly UserPermission Invites = new UserPermission(0x08, "Invites", "Allows this app to view the planets you are invited to.");
+        public static readonly UserPermission PlanetManagement = new UserPermission(0x10, "Planet Management", "Allows this app to manage your planets.");
     }
 
     /// <summary>
     /// This class contains all channel permissions and helper methods for working
     /// with them
     /// </summary>
-    public class ChannelPermissions
+    public static class ChannelPermissions
     {
 
         public static readonly ulong Default =
@@ -143,17 +149,22 @@ namespace Valour.Server.Oauth
         /// <summary>
         /// Contains every channel permission
         /// </summary>
-        public static readonly ChannelPermission[] Permissions = new ChannelPermission[]
+        public static ChannelPermission[] Permissions;
+
+        static ChannelPermissions()
         {
-            FullControl,
-            View,
-            ViewMessages,
-            PostMessages,
-            ManageChannel,
-            ManagePermissions,
-            Embed,
-            AttachContent
-        };
+            Permissions = new ChannelPermission[]
+            {
+                FullControl,
+                View,
+                ViewMessages,
+                PostMessages,
+                ManageChannel,
+                ManagePermissions,
+                Embed,
+                AttachContent
+            };
+        }
 
         // Use shared full control definition
         public static readonly ChannelPermission FullControl = new ChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
@@ -171,7 +182,7 @@ namespace Valour.Server.Oauth
     /// This class contains all planet permissions and helper methods for working
     /// with them
     /// </summary>
-    public class PlanetPermissions
+    public static class PlanetPermissions
     {
         public static readonly ulong Default = 
             Permission.CreateCode(View);
@@ -179,13 +190,24 @@ namespace Valour.Server.Oauth
         /// <summary>
         /// Contains every planet permission
         /// </summary>
-        public static readonly PlanetPermission[] Permissions = new PlanetPermission[]
+        public static PlanetPermission[] Permissions;
+
+        static PlanetPermissions()
         {
-            FullControl,
-            View,
-            Invite,
-            DisplayRole
-        };
+            Permissions = new PlanetPermission[]
+            {
+                FullControl,
+                View,
+                Invite,
+                DisplayRole,
+                Manage,
+                Kick,
+                Ban,
+                ManageCategories,
+                ManageChannels,
+                ManageRoles
+            };
+        }
 
         // Use shared full control definition
         public static readonly PlanetPermission FullControl = new PlanetPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the planet (owner)");
@@ -197,7 +219,9 @@ namespace Valour.Server.Oauth
         public static readonly PlanetPermission Kick = new PlanetPermission(0x10, "Kick Members", "Allow members to kick other members.");
         public static readonly PlanetPermission Ban = new PlanetPermission(0x20, "Ban Members", "Allow members to ban other members.");
         public static readonly PlanetPermission ManageCategories = new PlanetPermission(0x40, "Manage Categories", "Allow members to manage categories.");
-        public static readonly PlanetPermission ManageChannels = new PlanetPermission(0x80, "Manage Categories", "Allow members to manage channels.");
+        public static readonly PlanetPermission ManageChannels = new PlanetPermission(0x80, "Manage Channels", "Allow members to manage channels.");
+        public static readonly PlanetPermission ManageRoles = new PlanetPermission(0x100, "Manage Roles", "Allow members to manage roles.");
+
     }
 
     public enum PermissionState

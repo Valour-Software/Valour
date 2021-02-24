@@ -1,6 +1,6 @@
 ﻿<div class="role-edit-row">
     <div class="role-edit">
-        <p>
+        <p style="color:@color">
             @Role.Name
         </p>
     </div>
@@ -20,4 +20,11 @@
 @code {
     [Parameter]
     public PlanetRole Role { get; set; }
+
+    public string color;
+
+    protected override async Task OnInitializedAsync()
+    {
+        color = Role.GetColorHex();
+    }
 }

@@ -22,7 +22,7 @@ namespace Valour.Shared.Roles
             {
                 Name = "Default",
                 Id = ulong.MaxValue,
-                Authority = 0,
+                Position = uint.MaxValue,
                 Planet_Id = planet_id,
                 Color_Red = 255,
                 Color_Green = 255,
@@ -41,14 +41,19 @@ namespace Valour.Shared.Roles
         public string Name { get; set; }
 
         /// <summary>
-        /// The authority of this role: Higher authority is more powerful
+        /// The position of the role: Lower has more authority
         /// </summary>
-        public uint Authority { get; set; }
+        public uint Position { get; set; }
 
         /// <summary>
         /// The ID of the planet or system this role belongs to
         /// </summary>
         public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The planet permissions for the role
+        /// </summary>
+        public ulong Permissions { get; set; }
 
         // RGB Components for role color
         public byte Color_Red { get; set; }

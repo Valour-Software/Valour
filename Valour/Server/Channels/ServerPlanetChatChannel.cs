@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Valour.Client.Users;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using Valour.Server.Roles;
 using Valour.Server.Users;
 using Valour.Shared.Channels;

@@ -15,7 +15,7 @@ using Valour.Shared.Categories;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Valour.Server.Planets;
-using Valour.Server.Oauth;
+using Valour.Shared.Oauth;
 using AutoMapper;
 
 /*  Valour - A free and secure chat client

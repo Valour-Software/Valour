@@ -33,7 +33,6 @@
 </body>
 
 @code {
-
     public string email;
     public string password;
 
@@ -47,6 +46,9 @@
             emailSpan = "Please enter your email.";
             return;
         }
+
+            // Fix trailing whitespace
+        email = email.Trim();
 
         if (password == null || string.IsNullOrWhiteSpace(password))
         {
