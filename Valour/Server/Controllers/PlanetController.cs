@@ -407,9 +407,10 @@ namespace Valour.Server.Controllers
                 return new TaskResult<List<ulong>>(false, "Failed to authorize.", null);
             }
 
-            var roles = Context.PlanetRoleMembers.Where(x => x.User_Id == user_id && x.Planet_Id == planet_id).Select(x => x.Role_Id).ToList();
+            var roles = Context.PlanetRoleMembers.Include(x => x.Role).Where(x => x.User_Id == user_id && x.Planet_Id == planet_id).OrderBy(x => x.Role.Position);
+            var roleids = roles.Select(x => x.Role_Id).ToList();
 
-            return new TaskResult<List<ulong>>(true, $"Retrieved {roles.Count} roles.", roles);
+            return new TaskResult<List<ulong>>(true, $"Retrieved {roleids.Count} roles.", roleids);
         }
 
         /// <summary>
@@ -489,7 +490,12 @@ namespace Valour.Server.Controllers
                 return new TaskResult<List<PlanetMemberInfo>>(false, $"Could not authenticate.", null);
             }
 
-            var members = Context.PlanetMembers.AsQueryable().Where(x => x.Planet_Id == planet_id).Include(x => x.User).Include(x => x.RoleMembership);
+            var members = Context.PlanetMembers.AsQueryable()
+                                               .Where(x => x.Planet_Id == planet_id)
+                                               .Include(x => x.User)
+                                               .Include(x => x.RoleMembership
+                                               .OrderBy(x => x.Role.Position))
+                                               .ThenInclude(x => x.Role);
 
             List<PlanetMemberInfo> info = new List<PlanetMemberInfo>();
 
@@ -757,7 +763,7 @@ namespace Valour.Server.Controllers
 
             var roles = await member.GetRolesAsync(Context);
 
-            return new TaskResult<List<ServerPlanetRole>>(false, $"Found {roles.Count} roles.", roles);
+            return new TaskResult<List<ServerPlanetRole>>(true, $"Found {roles.Count} roles.", roles);
         }
 
         /// <summary>
@@ -787,7 +793,7 @@ namespace Valour.Server.Controllers
 
             var role = await member.GetPrimaryRoleAsync(Context);
 
-            return new TaskResult<ServerPlanetRole>(false, $"Found primary role.", role);
+            return new TaskResult<ServerPlanetRole>(true, $"Found primary role.", role);
         }
     }
 }
