@@ -715,6 +715,26 @@ window.blazorFuncs = {
 
 
 var chosenColor = [255, 255, 255, 1];
+var setColorHex = '#ffffff';
+
+function SetColorPickerColor(hex) {
+    setColorHex = hex;
+
+    var rgb = hexToRGB(hex, 1);
+
+    chosenColor[0] = rgb[0];
+    chosenColor[1] = rgb[1];
+    chosenColor[2] = rgb[2];
+    chosenColor[3] = rgb[3];
+}
+
+function hexToRGB(hex, alpha) {
+    var r = parseInt(hex.slice(1, 3), 16),
+        g = parseInt(hex.slice(3, 5), 16),
+        b = parseInt(hex.slice(5, 7), 16);
+
+    return [r, g, b, alpha];
+}
 
 function SetupColorPicker() {
 
@@ -723,6 +743,8 @@ function SetupColorPicker() {
     const pickr = Pickr.create({
         el: '.color-picker',
         theme: 'nano', // or 'monolith', or 'nano'
+
+        default: setColorHex,
 
         swatches: [
             'rgba(255, 255, 255, 1)',

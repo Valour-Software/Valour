@@ -558,10 +558,6 @@ video {
     color: #FFFFFF;
 }
 
-.context-menu-item:hover {
-    background-color: #192630;
-}
-
 .sidebar-2 .category {
     max-width: 269px;
     background: rgb(41, 49, 56);
@@ -1185,14 +1181,9 @@ body {
     cursor: pointer;
 }
 
-.delete-context-menu-item {
-    color: #EF3A3A;
+.context-menu-item:hover {
+    background-color: #192630;
 }
-
-    .delete-context-menu-item:hover {
-        color: white;
-        background: #EF3A3A;
-    }
 
 .context-menu-item:nth-last-child(1) {
     margin-bottom: 10px;
@@ -1724,6 +1715,7 @@ input:checked + .slider:before {
 }
 
 /* Rounded sliders */
+
 .slider.round {
     border-radius: 20px;
 }
@@ -1733,3 +1725,5 @@ input:checked + .slider:before {
 }
 
 /* End slider stuff */
+
+/* Dropout menu for user context*/

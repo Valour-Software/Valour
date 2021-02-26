@@ -734,7 +734,59 @@ namespace Valour.Server.Controllers
             await Context.PlanetRoles.AddAsync(role);
             await Context.SaveChangesAsync();
 
-            return new TaskResult(true, $"Role successfully added to position {role.Position}.");
+            return new TaskResult(true, $"Role {role.Id} successfully added to position {role.Position}.");
+        }
+
+        /// <summary>
+        /// Creates the requested role
+        /// </summary>
+        public async Task<TaskResult> EditRole([FromBody] ServerPlanetRole role, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!Permission.HasPermission(authToken.Scope, UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "You don't have planet management scope.");
+            }
+
+            if (!(await Context.PlanetRoles.AnyAsync(x => x.Id == role.Id)))
+            {
+                return new TaskResult(false, $"The role {role.Id} does not exist.");
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.User)
+                                                                   .Include(x => x.Planet)
+                                                                   .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
+                                                                                             x.Planet_Id == role.Planet_Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You're not in the planet!");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageRoles)))
+            {
+                return new TaskResult(false, "You don't have role management permissions!");
+            }
+
+            // Do not allow modifying roles with a lower position than your own (lower is more powerful)
+            if (member.User_Id != member.Planet.Owner_Id)
+            {
+                if (((await member.GetPrimaryRoleAsync()).Position > role.Position))
+                {
+                    return new TaskResult(false, "You can't edit a role above your own!");
+                }
+            }
+
+            Context.PlanetRoles.Update(role);
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, $"Successfully edited role {role.Id}.");
         }
 
         /// <summary>

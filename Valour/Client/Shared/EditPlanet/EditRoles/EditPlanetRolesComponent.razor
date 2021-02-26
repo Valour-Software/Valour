@@ -5,7 +5,7 @@
 <br />
 
 <div class="settings-inner">
-    @if (!createMode)
+    @if (!editMode)
     {
         if (Selected == null)
         {
@@ -13,8 +13,27 @@
 
                 @foreach (PlanetRole role in Roles)
                 {
+                    // For magic lambda
+                    var role_x = role;
+
                     <div class="row mt-2">
-                        <PlanetRoleComponent Role="role"></PlanetRoleComponent>
+                        <div class="role-edit-row">
+                            <div class="role-edit">
+                                <p style="color:@role.GetColorHex()">
+                                    @role.Name
+                                </p>
+                            </div>
+                            <div class="btn-role-edit edit" @onclick="() => OnClickEdit(role_x)">
+                                <p class="center-t">
+                                    Edit
+                                </p>
+                            </div>
+                            <div class="btn-role-edit delete">
+                                <p class="center-t">
+                                    Delete
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 }
 
@@ -34,7 +53,7 @@
         <div class="rolecreate-cont">
             <div class="form-group mt-2">
                 <label>Role Name</label>
-                <input class="form-control" @bind-value="@roleName" />
+                <input class="form-control" @bind-value="@role.Name" />
                 <span id="rolename-span" class="text-danger">@roleNameSpan</span>
             </div>
             <div class="form-group mt-2 ml-2">
@@ -46,7 +65,7 @@
 
         </div>
         <div class="mt-2" style="display: block">
-            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickCreate">
+            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave">
                 <p class="center-t">
                     Save
                 </p>
@@ -63,7 +82,7 @@
         <br />
 
         <h5 style="display: inline-block">Role Permissions</h5>
-        <h7 style="float: right">Code for nerds: @rolePerms &nbsp;</h7>
+        <h7 style="float: right">Code for nerds: @role.Permissions &nbsp;</h7>
 
         @for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
         {
@@ -77,7 +96,7 @@
                 </div>
                 <div type="button" style="float: right">
                     <label class="switch">
-                      <input type="checkbox" @onclick="(e => PermClick(val))">
+                      <input type="checkbox" @onclick="(e => PermClick(val))" checked="@rolePermValues[i]">
                       <span class="slider round"></span>
                     </label>
                 </div>
@@ -97,9 +116,15 @@
 
     // Stuff for role creation //
 
-    public bool createMode = false;
+    public PlanetRole role = new PlanetRole()
+    {
+        Name = "New Role",
+        Color_Red = 255,
+        Color_Green = 255,
+        Color_Blue = 255
+    };
 
-    public string roleName = "New Role";
+    public bool editMode = false;
 
     public string roleNameSpan = "";
 
@@ -107,17 +132,7 @@
 
     public string errorSpan = "";
 
-    public ulong rolePerms = 0x00;
-
-    public bool roleBold = false;
-
-    public bool roleItalics = false;
-
-    public byte roleColor_R = 255;
-    public byte roleColor_G = 255;
-    public byte roleColor_B = 255;
-
-    public bool[] rolePermValues;
+    public bool[] rolePermValues = new bool[PlanetPermissions.Permissions.Length];
 
     // Stuff for role editing //
 
@@ -132,13 +147,13 @@
 
     public void UpdatePermCode()
     {
-        rolePerms = 0x00;
+        role.Permissions = 0x00;
 
         for (int i = 0; i < rolePermValues.Length; i++)
         {
             if (rolePermValues[i])
             {
-                rolePerms |= PlanetPermissions.Permissions[i].Value;
+                role.Permissions |= PlanetPermissions.Permissions[i].Value;
             }
         }
 
@@ -150,17 +165,39 @@
         Roles = await Planet.GetRolesAsync();
     }
 
-    public async Task OnClickCreateMode()
+    public async Task OnClickEdit(PlanetRole editRole)
     {
-        roleBold = false;
-        roleItalics = false;
-        roleName = "New Role";
+        role = editRole;
+        editMode = true;
+
         rolePermValues = new bool[PlanetPermissions.Permissions.Length];
-        createMode = true;
+
+        for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
+        {
+            rolePermValues[i] = ((editRole.Permissions & PlanetPermissions.Permissions[i].Value) 
+                                                      == PlanetPermissions.Permissions[i].Value);
+        }
+
+        await JS.InvokeVoidAsync("SetColorPickerColor", role.GetColorHex());
+
         StateHasChanged();
     }
 
-    public async Task OnClickCreate()
+    public async Task OnClickCreateMode()
+    {
+        role = new PlanetRole(){
+            Name = "New Role",
+            Bold = false,
+            Italics = false,
+            Planet_Id = Planet.Id
+        };
+
+        rolePermValues = new bool[PlanetPermissions.Permissions.Length];
+        editMode = true;
+        StateHasChanged();
+    }
+
+    public async Task OnClickSave()
     {
         resultSpan = "";
         errorSpan = "";
@@ -168,29 +205,31 @@
         // Get chosen color
         float[] color = await JS.InvokeAsync<float[]>("GetChosenColor");
 
-        roleColor_R = (byte)Math.Round(color[0]);
-        roleColor_G = (byte)Math.Round(color[1]);
-        roleColor_B = (byte)Math.Round(color[2]);
+        role.Color_Red = (byte)Math.Round(color[0]);
+        role.Color_Green = (byte)Math.Round(color[1]);
+        role.Color_Blue = (byte)Math.Round(color[2]);
 
-        Console.WriteLine($"Chosen color: rgb({roleColor_R}, {roleColor_G}, {roleColor_B})");
+        Console.WriteLine($"Chosen color: rgb({role.Color_Red}, {role.Color_Green}, {role.Color_Blue})");
 
         // Create json payload to send to server for request
-        PlanetRole role = new PlanetRole()
-        {
-            Name = roleName,
-            Bold = roleBold,
-            Italics = roleItalics,
-            Planet_Id = Planet.Id,
-            Permissions = rolePerms,
-            Color_Red = roleColor_R,
-            Color_Green = roleColor_G,
-            Color_Blue = roleColor_B
-        }; // Id and authority is handled by the server
+        // Id and authority is handled by the server
 
         //string json = JsonConvert.SerializeObject(role);
 
-        var response = await ClientUserManager.Http.PostAsJsonAsync($"Planet/CreateRole?planet_id={Planet.Id}" +
-                                                                                     $"&token={ClientUserManager.UserSecretToken}", role);
+        HttpResponseMessage response = null;
+
+        // If the id is not set, this is a new role to be created
+        if (role.Id == 0)
+        {
+            response = await ClientUserManager.Http.PostAsJsonAsync($"Planet/CreateRole?planet_id={Planet.Id}" +
+                                                                                         $"&token={ClientUserManager.UserSecretToken}", role);
+        }
+        // Otherwise we are editing a prior role
+        else
+        {
+            response = await ClientUserManager.Http.PostAsJsonAsync($"Planet/EditRole?planet_id={Planet.Id}" +
+                                                                                   $"&token={ClientUserManager.UserSecretToken}", role);
+        }
 
         TaskResult result = JsonConvert.DeserializeObject<TaskResult>(
             await response.Content.ReadAsStringAsync());
@@ -204,7 +243,12 @@
             if (result.Success)
             {
                 resultSpan = result.Message;
-                createMode = false; 
+
+                // If creating, send back to role list afterwards
+                if (role.Id == 0)
+                {
+                    editMode = false;
+                }
             }
             else
             {
