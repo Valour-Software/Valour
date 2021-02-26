@@ -8,10 +8,12 @@
     .dropdown-content {
       display: none;
       position: absolute;
-      background-color: #f9f9f9;
       min-width: 160px;
       box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
       z-index: 1;
+      top: 0px;
+      left: 150px;
+      background-color: var(--main-1);
     }
 
     /* Links inside the dropdown */
@@ -27,6 +29,10 @@
 
     /* Show the dropdown menu on hover */
     .role-dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    .dropdown-content::hover {
       display: block;
     }
 
@@ -56,15 +62,38 @@
             Ban
         </p>
     </div>
-    <div class="context-menu-item role-dropdown">
-        <p class="context-menu-item-text">
-            Roles
-        </p>
-        <div class="dropdown-content">
-            <a href="#">Link 1</a>
-            <a href="#">Link 2</a>
-            <a href="#">Link 3</a>
+    @if (Planet != null)
+    {
+        <div class="context-menu-item role-dropdown">
+            <p class="context-menu-item-text">
+                Roles
+            </p>
+            <div class="dropdown-content">
+                @foreach (PlanetRole role in Roles){
+                    <div class="context-menu-item">
+                        <p class="context-menu-item-text" style="color:@role.GetColorHex()">@role.Name</p>
+                    </div>
+                }
+            </div>
+            
         </div>
-    </div>
+    }
 </div>
+
+@code {
+    public ClientPlanet Planet { get; set; }
+    public List<PlanetRole> Roles { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ClientPlanetManager.Current.OnPlanetChange += OnPlanetChange;
+    }
+
+    public async Task OnPlanetChange()
+    {
+        Planet = ClientPlanetManager.Current.GetCurrent();
+        Roles = await Planet.GetRolesAsync();
+        StateHasChanged();
+    }
+}
 
