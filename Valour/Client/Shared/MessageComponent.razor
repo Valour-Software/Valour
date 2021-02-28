@@ -1,4 +1,5 @@
 ﻿@inject ClientPlanetManager planetManager
+@inject MemberContextMenu memberContextMenu
 
 <div id="m-@Message.Channel_Id-@Message.Message_Index" class="message">
     <div style="display:inline-block; position: absolute">
@@ -12,7 +13,8 @@
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id" oncontextmenu="UserContextMenu(event, this)">
+            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id" 
+            @onmouseup="OnAuthorNameClick">
                 @name
             </p>
 
@@ -46,6 +48,14 @@
     string pfpurl = "/icon-512.png";
 
     string name = "";
+
+    public async Task OnAuthorNameClick(MouseEventArgs e)
+    {
+        if (e.Button == 2)
+        {
+            await memberContextMenu.Open(e, Author);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

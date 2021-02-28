@@ -10,6 +10,7 @@ using Microsoft.JSInterop;
 using Valour.Client.Planets;
 using Valour.Client.Categories;
 using Microsoft.AspNetCore.Components;
+using Valour.Client.ContextMenus;
 
 
 /*  Valour - A free and secure chat client
@@ -34,6 +35,7 @@ namespace Valour.Client
             builder.Services.AddSingleton<ClientPlanetManager>();
             builder.Services.AddSingleton<ClientWindowManager>();
             builder.Services.AddSingleton<ClientCategoryManager>();
+            builder.Services.AddSingleton<MemberContextMenu>();
 
             var mapConfig = new MapperConfiguration(x =>
             {

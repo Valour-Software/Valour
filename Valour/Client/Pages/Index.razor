@@ -32,17 +32,9 @@
                         </div>
                     </div>
 
-                    @if (planetManager.GetCurrent() != null)
-                    {
+                    
+                    <MemberListComponent @ref="MemberListComponent"></MemberListComponent>
 
-                        <RoleComponent Name="Emperor"></RoleComponent>
-                        <div class="UserList keep-scrolling">
-                            @foreach (var member in planetMemberList)
-                            {
-                                <MemberComponent Only="true" Member="@member"></MemberComponent>
-                            }
-                        </div>
-                    }
                 </div>
                 <div class="sidebar-2" id="sidebar2">
                     <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
@@ -229,6 +221,8 @@ else
 
     public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<PlanetCategory>();
 
+    public MemberListComponent MemberListComponent { get; set; } 
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
@@ -350,12 +344,13 @@ else
     {
         if (planetManager.GetCurrent() == null) return;
 
-        planetMemberList.Clear();
-
-        foreach (var member in await planetManager.GetCurrent().GetAllMembers())
-        {
-            planetMemberList.Add(member);
-        }
+        //var memberTask = Task.Run(async () =>
+        //{
+            planetMemberList.Clear();
+            var members = await planetManager.GetCurrent().GetAllMembers();
+            foreach (var member in members) { planetMemberList.Add(member); }
+            await MemberListComponent.SetMemberList(planetMemberList);
+        //});
 
         await OnChannelsUpdate();
 

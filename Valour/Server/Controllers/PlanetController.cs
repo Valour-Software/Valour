@@ -734,6 +734,9 @@ namespace Valour.Server.Controllers
             await Context.PlanetRoles.AddAsync(role);
             await Context.SaveChangesAsync();
 
+            // Send update to members
+            await PlanetHub.Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RefreshRoleList");
+
             return new TaskResult(true, $"Role {role.Id} successfully added to position {role.Position}.");
         }
 

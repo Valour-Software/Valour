@@ -46,6 +46,8 @@ namespace Valour.Client.Planets
 
         public event Func<Task> OnCategoriesUpdate;
 
+        public event Func<Task> OnRolesUpdate;
+
         private readonly SignalRManager signalRManager;
 
         public ClientPlanetManager(SignalRManager signalrmanager)
@@ -53,6 +55,7 @@ namespace Valour.Client.Planets
             this.signalRManager = signalrmanager;
 
             signalRManager.hubConnection.On<string>("Relay", OnMessageRecieve);
+            signalRManager.hubConnection.On("RefreshRoleList", RefreshRoleList);
         }
 
         public List<ClientPlanet> GetOpenPlanets()
@@ -404,6 +407,18 @@ namespace Valour.Client.Planets
             foreach (ChannelWindowComponent window in OpenPlanetChatWindows.Where(x => x.Channel.Id == message.Channel_Id))
             {
                 await window.OnRecieveMessage(message);
+            }
+        }
+
+        public async Task RefreshRoleList()
+        {
+            Console.WriteLine("RECIEVE: Planet role update ping");
+            await LoadPlanetRoles(CurrentPlanet);
+            Console.WriteLine($"Loaded {PlanetRolesListCache[CurrentPlanet.Id].Count} roles.");
+
+            if (OnRolesUpdate != null)
+            {
+                await OnRolesUpdate.Invoke();
             }
         }
     }
