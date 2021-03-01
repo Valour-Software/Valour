@@ -364,21 +364,41 @@ window.onclick = function(event) {
     }
 
     var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
-    if (event.target != modal) {
+    if (!isDescendant(event.target, modal.id)) {
         modal.style.display = "none";
     }
 
-    var modal = document.getElementsByClassName("UserContextMenu")[0];
-    if (event.target != modal) {
-        modal.style.display = "none";
+    var modal = document.getElementsByClassName("member-context-menu")[0];
+
+    //console.log(event.target.id);
+    //console.log(modal.id);
+
+    if (!isDescendant(event.target, modal.id)) {
+        HideMemberContextMenu();
     }
 
     var modal = document.getElementsByClassName("BanModel")[0];
-    if (event.target == modal) {
+    if (!isDescendant(event.target, modal.id)) {
         modal.style.display = "none";
     }
 
 
+}
+
+const isDescendant = (el, parentId) => {
+    let isChild = false
+
+    if (el.id === parentId) { //is this the element itself?
+        isChild = true
+    }
+
+    while (el = el.parentNode) {
+        if (el.id == parentId) {
+            isChild = true
+        }
+    }
+
+    return isChild
 }
 
 function OpenEditPlanetModal() {
@@ -440,20 +460,15 @@ function GetParentId() {
     return parseInt(ParentIdForModel)
 }
 
-function UserContextMenu(event, element) {
-    var modal = document.getElementsByClassName("UserContextMenu")[0];
+function OpenMemberContextMenu(x, y) {
+    var modal = document.getElementsByClassName("member-context-menu")[0];
     modal.style.display = "block";
-    x = event.clientX;
-    y = event.clientY;
     modal.style.left = `${x}px`;
     modal.style.top = `${y}px`;
-    data = element.id.split(",")
-    SelectedUserId = parseInt(data[0])
-    PlanetId = parseInt(data[1])
 }
 
-function HideUserContextMenu(){
-    var modal = document.getElementsByClassName("UserContextMenu")[0];
+function HideMemberContextMenu(){
+    var modal = document.getElementsByClassName("member-context-menu")[0];
     modal.style.display = "none";
 }
 

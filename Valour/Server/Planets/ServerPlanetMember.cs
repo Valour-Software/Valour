@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -30,12 +31,15 @@ namespace Valour.Server.Planets
 
         // Relational DB stuff
         [ForeignKey("User_Id")]
+        [JsonIgnore]
         public virtual ServerUser User { get; set; }
 
         [ForeignKey("Planet_Id")]
+        [JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
         [InverseProperty("Member")]
+        [JsonIgnore]
         public virtual ICollection<ServerPlanetRoleMember> RoleMembership { get; set; }
 
         /// <summary>

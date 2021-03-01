@@ -1,48 +1,61 @@
-﻿<style>
+﻿@inject MemberContextMenu memberContextMenu
+@implements IDisposable
+
+<style>
     /* The container - needed to position the dropdown content */
     .role-dropdown {
-      position: relative;
+        position: relative;
     }
 
     /* Dropdown Content (Hidden by Default) */
     .dropdown-content {
-      display: none;
-      position: absolute;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1;
-      top: 0px;
-      left: 150px;
-      background-color: var(--main-1);
+        display: none;
+        position: absolute;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+        top: -150px;
+        left: 150px;
+        height: 200px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        background-color: var(--main-1);
+        overflow-y: auto;
     }
 
-    /* Links inside the dropdown */
-    .dropdown-content a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-    }
+        /* Links inside the dropdown */
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
 
-    /* Change color of dropdown links on hover */
-    .dropdown-content a:hover {background-color: #f1f1f1}
+            /* Change color of dropdown links on hover */
+            .dropdown-content a:hover {
+                background-color: #f1f1f1
+            }
 
     /* Show the dropdown menu on hover */
     .role-dropdown:hover .dropdown-content {
-      display: block;
+        display: block;
     }
 
     .dropdown-content::hover {
-      display: block;
+        display: block;
     }
 
     /* Change the background color of the dropdown button when the dropdown content is shown */
     .role-dropdown:hover .dropbtn {
-      background-color: #192630;
+        background-color: #192630;
     }
 
     .user-context-delete {
         color: #EF3A3A;
+    }
+
+    .role-checkbox {
+        margin-right: 5px;
     }
 
     .user-context-delete:hover {
@@ -51,7 +64,7 @@
     }
 </style>
 
-<div class="context-menu UserContextMenu" id="" style="display:none;">
+<div class="context-menu member-context-menu" id="user-context-menu" style="display:none;">
     <div class="context-menu-item user-context-delete" onclick="KickUser()">
         <p class="context-menu-item-text">
             Kick
@@ -69,31 +82,86 @@
                 Roles
             </p>
             <div class="dropdown-content">
-                @foreach (PlanetRole role in Roles){
-                    <div class="context-menu-item">
+
+                @foreach (PlanetRole role in PlanetRoles)
+                {
+                    var curRole = role;
+                    var hasRole = MemberRoles.Any(x => x.Id == role.Id);
+
+                    <div class="context-menu-item d-flex flex-row justify-content-between align-items-center"
+                    @onclick="(async () => await OnRoleClick(curRole, !hasRole))">
                         <p class="context-menu-item-text" style="color:@role.GetColorHex()">@role.Name</p>
+                        <input class="role-checkbox" type="checkbox" 
+                        checked="@hasRole" disabled />
                     </div>
                 }
             </div>
-            
+
         </div>
     }
 </div>
 
 @code {
     public ClientPlanet Planet { get; set; }
-    public List<PlanetRole> Roles { get; set; }
+    public List<PlanetRole> PlanetRoles { get; set; }
+    public List<PlanetRole> MemberRoles { get; set; }
+    public ClientPlanetMember Member { get; set; }
+
+    public async Task OnMemberUpdate(ClientPlanetMember member)
+    {
+        if (member.Id == Member.Id)
+        {
+            Member = member;
+            MemberRoles = await Member.GetPlanetRolesAsync();
+            StateHasChanged();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         ClientPlanetManager.Current.OnPlanetChange += OnPlanetChange;
+        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+        memberContextMenu.OpenEvent += OnOpened;
     }
 
     public async Task OnPlanetChange()
     {
         Planet = ClientPlanetManager.Current.GetCurrent();
-        Roles = await Planet.GetRolesAsync();
+        PlanetRoles = await Planet.GetRolesAsync();
+    }
+
+    public async Task OnOpened()
+    {
+        Member = memberContextMenu.SelectedMember;
+        MemberRoles = await Member.GetPlanetRolesAsync();
         StateHasChanged();
+    }
+
+    public async Task OnRoleClick(PlanetRole role, bool value)
+    {
+        var response = await ClientUserManager.Http.GetAsync($"Planet/SetMemberRoleMembership?role_id={role.Id}" +
+                                                                                           $"&member_id={Member.Id}" +
+                                                                                           $"&value={value}" +
+                                                                                           $"&token={ClientUserManager.UserSecretToken}");
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+        if (result == null){
+            Console.WriteLine("Severe error occured during OnRoleClick response from server");
+            return;
+        }
+
+        Console.WriteLine(result.Message);
+
+        StateHasChanged();
+    }
+
+    // Clean up properly
+    void IDisposable.Dispose()
+    {
+        memberContextMenu.OpenEvent -= OnOpened;
     }
 }
 

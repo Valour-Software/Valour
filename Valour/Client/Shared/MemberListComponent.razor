@@ -1,0 +1,20 @@
+﻿<RoleComponent Name="Emperor"></RoleComponent>
+<div class="UserList keep-scrolling">
+    @if (MemberList != null)
+    {
+        foreach (var member in MemberList)
+        {
+            <MemberComponent Only="true" Member="@member"></MemberComponent>
+        }
+    }
+</div>
+
+@code {
+    public IEnumerable<ClientPlanetMember> MemberList { get; set; }
+
+    public async Task SetMemberList(IEnumerable<ClientPlanetMember> list)
+    {
+        MemberList = list;
+        StateHasChanged();
+    }
+}

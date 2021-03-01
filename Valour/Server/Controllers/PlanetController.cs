@@ -734,6 +734,8 @@ namespace Valour.Server.Controllers
             await Context.PlanetRoles.AddAsync(role);
             await Context.SaveChangesAsync();
 
+            await PlanetHub.NotifyRoleChange(role);
+            
             return new TaskResult(true, $"Role {role.Id} successfully added to position {role.Position}.");
         }
 
@@ -786,7 +788,123 @@ namespace Valour.Server.Controllers
             Context.PlanetRoles.Update(role);
             await Context.SaveChangesAsync();
 
+            await PlanetHub.NotifyRoleChange(role);
+
             return new TaskResult(true, $"Successfully edited role {role.Id}.");
+        }
+
+        /// <summary>
+        /// Sets whether or not a member is in a role
+        /// </summary>
+        public async Task<TaskResult> SetMemberRoleMembership(ulong role_id, ulong member_id, bool value, string token)
+        {
+            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            // Oauth protection
+            if (!Permission.HasPermission(authToken.Scope, UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "You don't have planet management scope.");
+            }
+
+            // Retrieve role
+            ServerPlanetRole role = await Context.PlanetRoles.Include(x => x.Planet)
+                                                             .FirstOrDefaultAsync(x => x.Id == role_id);
+
+            if (role == null)
+            {
+                return new TaskResult(false, $"Role {role_id} could not be found.");
+            }
+
+            ServerPlanetMember authMember = await Context.PlanetMembers.Include(x => x.RoleMembership)
+                                                                       .ThenInclude(x => x.Role)
+                                                                       .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
+                                                                       x.Planet_Id == role.Planet_Id);
+
+            // If the authorizor is not in the planet
+            if (authMember == null)
+            {
+                return new TaskResult(false, $"You are not in the target planet!");
+            }
+
+            // Get target member
+
+            var targetMember = await Context.PlanetMembers.FindAsync(member_id);
+
+            if (targetMember == null)
+            {
+                return new TaskResult(false, $"Could not find member with id {member_id}");
+            }
+
+            // Get auth primary role
+            var primaryAuthRole = authMember.RoleMembership.OrderBy(x => x.Role.Position).FirstOrDefault();
+
+            if (primaryAuthRole == null)
+            {
+                return new TaskResult(false, $"Error: Issue retrieving primary role for authorizor");
+            }
+
+            if (!(await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, Context)))
+            {
+                return new TaskResult(false, $"You don't have permission to manage roles");
+            }
+
+            // Ensure that the role being set is *lower* than their own role
+            if (role.Planet.Owner_Id != authMember.User_Id &&
+                role.Position <= primaryAuthRole.Role.Position)
+            {
+                return new TaskResult(false, $"You cannot set roles that aren't below your own");
+            }
+            
+            // At this point, authorization should be complete
+            
+            // Add the role
+            if (value)
+            {
+                // Ensure it isn't already there
+                if (await Context.PlanetRoleMembers.AnyAsync(x => x.Member_Id == targetMember.Id &&
+                                                                  x.Role_Id == role.Id))
+                {
+                    return new TaskResult(true, $"The user already has the role.");
+                }
+
+                ServerPlanetRoleMember roleMember = new ServerPlanetRoleMember()
+                {
+                    Id = IdManager.Generate(),
+                    Member_Id = targetMember.Id,
+                    Role_Id = role.Id,
+                    User_Id = targetMember.User_Id,
+                    Planet_Id = targetMember.Planet_Id
+                };
+
+                await Context.PlanetRoleMembers.AddAsync(roleMember);
+            }
+            // Remove the role
+            else
+            {
+                var currentRoleMember = await Context.PlanetRoleMembers.FirstOrDefaultAsync(x => x.Member_Id == targetMember.Id &&
+                                                                                                 x.Role_Id == role.Id);
+
+                // Ensure the user actually has the role
+                if (currentRoleMember == null)
+                {
+                    return new TaskResult(true, $"The user doesn't have the role.");
+                }
+
+                Context.PlanetRoleMembers.Remove(currentRoleMember);
+            }
+
+            // Save changes
+            await Context.SaveChangesAsync();
+
+            // Send ping that the member was modified (new role)
+            await PlanetHub.NotifyMemberChange(targetMember);
+
+            return new TaskResult(true, $"Successfully set role membership to {value}");
         }
 
         /// <summary>

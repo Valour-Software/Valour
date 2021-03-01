@@ -11,6 +11,8 @@ using Valour.Shared.Oauth;
 using Valour.Server.Users;
 using Valour.Shared.Channels;
 using Valour.Shared.Roles;
+using Valour.Server.Planets;
+using System.ComponentModel.DataAnnotations.Schema;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -23,6 +25,9 @@ namespace Valour.Server.Roles
 {
     public class ServerPlanetRole : PlanetRole
     {
+        [ForeignKey("Planet_Id")]
+        public virtual ServerPlanet Planet { get; set; }
+
         /// <summary>
         /// Returns the generic planetrole object
         /// </summary>

@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JS
+@inject ClientPlanetManager planetManager
 
 <h3>Edit Roles</h3>
 <hr />
@@ -163,6 +164,7 @@
     protected override async Task OnInitializedAsync()
     {
         Roles = await Planet.GetRolesAsync();
+        planetManager.OnRolesUpdate += OnRolesUpdate;
     }
 
     public async Task OnClickEdit(PlanetRole editRole)
@@ -256,6 +258,13 @@
             }
         }
 
+        StateHasChanged();
+    }
+
+    // Handle role list changes that may occur while open
+    public async Task OnRolesUpdate()
+    {
+        Roles = await Planet.GetRolesAsync();
         StateHasChanged();
     }
 }
