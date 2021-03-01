@@ -843,7 +843,7 @@ namespace Valour.Server.Controllers
             // Get auth primary role
             var primaryAuthRole = authMember.RoleMembership.OrderBy(x => x.Role.Position).FirstOrDefault();
 
-            if (primaryAuthRole == null)
+            if (authMember.Planet_Id != authMember.Planet.Owner_Id && primaryAuthRole == null)
             {
                 return new TaskResult(false, $"Error: Issue retrieving primary role for authorizor");
             }
@@ -886,6 +886,11 @@ namespace Valour.Server.Controllers
             // Remove the role
             else
             {
+                if (role.Id == authMember.Planet.Default_Role_Id)
+                {
+                    return new TaskResult(false, $"Cannot remove the default role!");
+                }
+
                 var currentRoleMember = await Context.PlanetRoleMembers.FirstOrDefaultAsync(x => x.Member_Id == targetMember.Id &&
                                                                                                  x.Role_Id == role.Id);
 
