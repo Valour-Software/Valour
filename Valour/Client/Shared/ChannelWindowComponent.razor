@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
+@implements IDisposable
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
@@ -41,7 +42,6 @@
 </div>
 
 @code{
-
     /// <summary>
     /// True if the client has negotiated a channel connection
     /// </summary>
@@ -83,6 +83,8 @@
 
         Window.Component = this;
 
+        ClientPlanetManager.Current.OnMemberUpdate += OnPlanetMemberUpdate;
+
         await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
@@ -92,6 +94,27 @@
         await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, planetManager.GetCurrent().Id);
 
         await SetupNewChannelAsync();
+    }
+
+    void IDisposable.Dispose()
+    {
+        ClientPlanetManager.Current.OnMemberUpdate -= OnPlanetMemberUpdate;
+    }
+
+    public async Task OnPlanetMemberUpdate(ClientPlanetMember member)
+    {
+        if (member.Planet_Id != Planet.Id){
+            return;
+        }
+
+        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.Author.User_Id == member.User_Id))
+        {
+            //Console.WriteLine(msg.Message.Message_Index);
+
+            // Update member reference
+            msg.Author = member;
+            await msg.RefreshMessage();
+        }
     }
 
     public async Task CloseWindow()

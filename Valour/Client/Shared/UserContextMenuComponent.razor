@@ -1,4 +1,5 @@
 ﻿@inject MemberContextMenu memberContextMenu
+@implements IDisposable
 
 <style>
     /* The container - needed to position the dropdown content */
@@ -85,12 +86,13 @@
                 @foreach (PlanetRole role in PlanetRoles)
                 {
                     var curRole = role;
+                    var hasRole = MemberRoles.Any(x => x.Id == role.Id);
 
                     <div class="context-menu-item d-flex flex-row justify-content-between align-items-center"
-                    @onclick="(async () => await OnRoleClick(curRole))">
+                    @onclick="(async () => await OnRoleClick(curRole, !hasRole))">
                         <p class="context-menu-item-text" style="color:@role.GetColorHex()">@role.Name</p>
                         <input class="role-checkbox" type="checkbox" 
-                        checked="@(MemberRoles.Any(x => x.Id == role.Id))" disabled />
+                        checked="@hasRole" disabled />
                     </div>
                 }
             </div>
@@ -105,9 +107,20 @@
     public List<PlanetRole> MemberRoles { get; set; }
     public ClientPlanetMember Member { get; set; }
 
+    public async Task OnMemberUpdate(ClientPlanetMember member)
+    {
+        if (member.Id == Member.Id)
+        {
+            Member = member;
+            MemberRoles = await Member.GetPlanetRolesAsync();
+            StateHasChanged();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         ClientPlanetManager.Current.OnPlanetChange += OnPlanetChange;
+        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
         memberContextMenu.OpenEvent += OnOpened;
     }
 
@@ -124,9 +137,31 @@
         StateHasChanged();
     }
 
-    public async Task OnRoleClick(PlanetRole role)
+    public async Task OnRoleClick(PlanetRole role, bool value)
     {
-        
+        var response = await ClientUserManager.Http.GetAsync($"Planet/SetMemberRoleMembership?role_id={role.Id}" +
+                                                                                           $"&member_id={Member.Id}" +
+                                                                                           $"&value={value}" +
+                                                                                           $"&token={ClientUserManager.UserSecretToken}");
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+        if (result == null){
+            Console.WriteLine("Severe error occured during OnRoleClick response from server");
+            return;
+        }
+
+        Console.WriteLine(result.Message);
+
+        StateHasChanged();
+    }
+
+    // Clean up properly
+    void IDisposable.Dispose()
+    {
+        memberContextMenu.OpenEvent -= OnOpened;
     }
 }
 

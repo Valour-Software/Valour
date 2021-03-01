@@ -39,7 +39,10 @@
     [Parameter]
     public ClientPlanetMessage Message { get; set; }
 
-    private ClientPlanetMember Author;
+    [Parameter]
+    public MessageHolderComponent Holder { get; set; }
+
+    public ClientPlanetMember Author;
 
     string roleColor = "#ffffff";
 
@@ -57,10 +60,13 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
+    public async Task RefreshMessage(){
+        await BuildMessage();
+        StateHasChanged();
+    }
 
+    public async Task BuildMessage()
+    {
         Author = await Message.GetAuthorAsync();
 
         name = await Author.GetNameAsync();
@@ -75,6 +81,15 @@
         {
             pfpurl = pfp;
         }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        Holder.AddRenderedMessage(this);
+
+        await BuildMessage();
     }
 
     protected async Task OnPfpError()

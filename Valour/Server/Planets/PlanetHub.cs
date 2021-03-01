@@ -1,12 +1,15 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
+using Valour.Server.Roles;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Valour.Shared.Roles;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -62,6 +65,19 @@ namespace Valour.Server.Planets
         public async Task LeaveChannel(ulong channel_id)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channel_id}");
+        }
+
+        public static async Task NotifyMemberChange(ServerPlanetMember member)
+        {
+            string json = JsonConvert.SerializeObject(member);
+
+            await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", json);
+        }
+
+        public static async Task NotifyRoleChange(ServerPlanetRole role)
+        {
+            // Send update to members
+            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RefreshRoleList");
         }
     }
 }

@@ -48,6 +48,8 @@ namespace Valour.Client.Planets
 
         public event Func<Task> OnRolesUpdate;
 
+        public event Func<ClientPlanetMember, Task> OnMemberUpdate;
+
         private readonly SignalRManager signalRManager;
 
         public ClientPlanetManager(SignalRManager signalrmanager)
@@ -56,6 +58,7 @@ namespace Valour.Client.Planets
 
             signalRManager.hubConnection.On<string>("Relay", OnMessageRecieve);
             signalRManager.hubConnection.On("RefreshRoleList", RefreshRoleList);
+            signalRManager.hubConnection.On<string>("MemberUpdate", UpdateMember);
         }
 
         public List<ClientPlanet> GetOpenPlanets()
@@ -187,6 +190,20 @@ namespace Valour.Client.Planets
             PlanetRolesCache.TryAdd(role_id, result.Data);
 
             return result.Data;
+        }
+
+        public async Task SetUpdatedMember(ClientPlanetMember member)
+        {
+            string key = $"{member.Planet_Id}-{member.User_Id}";
+
+            if (PlanetMemberCache.ContainsKey(key) == false)
+            {
+                PlanetMemberCache.TryAdd(key, member);
+            }
+            else
+            {
+                PlanetMemberCache[key] = member;
+            }
         }
 
         public async Task<List<ClientPlanetMember>> GetPlanetMemberInfoAsync(ulong planet_id)
@@ -419,6 +436,26 @@ namespace Valour.Client.Planets
             if (OnRolesUpdate != null)
             {
                 await OnRolesUpdate.Invoke();
+            }
+        }
+
+        public async Task UpdateMember(string json)
+        {
+            ClientPlanetMember member = JsonConvert.DeserializeObject<ClientPlanetMember>(json);
+
+            if (member == null)
+            {
+                Console.WriteLine("Failed to deserialize member in member update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet member update ping");
+            Console.WriteLine(json);
+            await SetUpdatedMember(member);
+
+            if (OnMemberUpdate != null)
+            {
+                await OnMemberUpdate.Invoke(member);
             }
         }
     }

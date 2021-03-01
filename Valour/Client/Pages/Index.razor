@@ -344,13 +344,13 @@ else
     {
         if (planetManager.GetCurrent() == null) return;
 
-        //var memberTask = Task.Run(async () =>
-        //{
+        var memberTask = Task.Run(async () =>
+        {
             planetMemberList.Clear();
             var members = await planetManager.GetCurrent().GetAllMembers();
             foreach (var member in members) { planetMemberList.Add(member); }
             await MemberListComponent.SetMemberList(planetMemberList);
-        //});
+        });
 
         await OnChannelsUpdate();
 

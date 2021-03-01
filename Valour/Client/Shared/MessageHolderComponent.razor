@@ -9,13 +9,15 @@
         {
             string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
+            RenderedMessages.Clear();
+
             if (!currentRendered.Contains(key))
             {
                 currentRendered.Add(key);
 
                 if (msg.Author_Id != lastAuthorId)
                 {
-                <MessageComponent Message="msg" @key='key'></MessageComponent>
+                <MessageComponent Message="msg" @key='key' Holder="this"></MessageComponent>
                 }
                 else
                 {
@@ -39,11 +41,18 @@
     [Parameter]
     public List<ClientPlanetMessage> Messages { get; set; }
 
+    public List<MessageComponent> RenderedMessages { get; set; }
+
     public HashSet<string> currentRendered = new HashSet<string>();
 
     public void ForceRefresh()
     {
         StateHasChanged();
+    }
+
+    public void AddRenderedMessage(MessageComponent message)
+    {
+        RenderedMessages.Add(message);
     }
 
     //protected override async Task OnParametersSetAsync()
@@ -53,6 +62,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        RenderedMessages = new List<MessageComponent>();
         StateHasChanged();
     }
 
