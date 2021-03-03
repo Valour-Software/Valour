@@ -205,15 +205,11 @@
 
         bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
 
-        Console.WriteLine("Bottom: " + IsAtBottom);
-
         // check if theres too many messages
         if (IsAtBottom && Window.messages.Count > 120) {
             Window.messages.RemoveRange(0, Window.messages.Count - 120);
             Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
         }
-
-        Console.WriteLine("Added message.");
 
         // Flag for UI refresh
         StateHasChanged();

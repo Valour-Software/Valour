@@ -225,7 +225,7 @@ namespace Valour.Client.Planets
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberInfo?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
 
-            Console.WriteLine(json);
+            //Console.WriteLine(json);
 
             TaskResult<List<PlanetMemberInfo>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetMemberInfo>>>(json);
 
@@ -426,10 +426,10 @@ namespace Valour.Client.Planets
         {
             ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(json);
 
-            Console.WriteLine("RECIEVE: ");
-            Console.WriteLine(json);
+            //Console.WriteLine("RECIEVE: ");
+            //Console.WriteLine(json);
 
-            Console.WriteLine($"Recieved message {message.Message_Index} from channel {message.Channel_Id}.");
+            //Console.WriteLine($"Recieved message {message.Message_Index} from channel {message.Channel_Id}.");
 
             if (!OpenPlanetChatChannels.ContainsKey(message.Channel_Id))
             {
