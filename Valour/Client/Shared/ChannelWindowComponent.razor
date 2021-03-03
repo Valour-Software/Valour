@@ -81,11 +81,12 @@
 
         Planet = await Window.Channel.GetPlanetAsync();
 
+        // Get newest role definitions
+        await planetManager.LoadPlanetRoles(Planet);
+
         Window.Component = this;
 
         ClientPlanetManager.Current.OnMemberUpdate += OnPlanetMemberUpdate;
-
-        await planetManager.SetCurrentPlanet(await Channel.GetPlanetAsync());
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 

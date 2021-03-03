@@ -66,6 +66,21 @@ namespace Valour.Client.Planets
             return OpenPlanets.Values.ToList();
         }
 
+        public async Task AddPlanetAsync(ClientPlanet planet)
+        {
+            if (PlanetCache.ContainsKey(planet.Id))
+            {
+                PlanetCache[planet.Id] = planet;
+            }
+            else
+            {
+                PlanetCache.TryAdd(planet.Id, planet);
+            }
+
+            // Pre-cache roles
+            await GetPlanetRoles(planet.Id);
+        }
+
         /// <summary>
         /// Returns a user from the given id
         /// </summary>

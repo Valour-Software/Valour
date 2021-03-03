@@ -190,7 +190,7 @@ namespace Valour.Server.Controllers
             {
                 Id = IdManager.Generate(),
                 Planet_Id = planet_id,
-                Position = 0,
+                Position = uint.MaxValue,
                 Color_Blue = 255,
                 Color_Green = 255,
                 Color_Red = 255,
@@ -617,19 +617,19 @@ namespace Valour.Server.Controllers
                 return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            ServerPlanet planet = await Context.Planets.FindAsync(planet_id);
 
             if (planet == null)
             {
                 return new TaskResult<List<ServerPlanetRole>>(false, $"Could not find planet {planet_id}", null);
             }
 
-            if (!(await planet.IsMemberAsync(authToken.User_Id)))
+            if (!(await planet.IsMemberAsync(authToken.User_Id, Context)))
             {
                 return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
             }
 
-            var roles = await planet.GetRolesAsync();
+            var roles = await planet.GetRolesAsync(Context);
 
             return new TaskResult<List<ServerPlanetRole>>(true, $"Found {roles.Count} roles.", roles);
         }

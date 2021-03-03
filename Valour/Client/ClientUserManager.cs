@@ -119,14 +119,17 @@ namespace Valour.Client
         {
             string json = await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
 
-            TaskResult<List<Planet>> response = JsonConvert.DeserializeObject<TaskResult<List<Planet>>>(json);
+            TaskResult<List<ClientPlanet>> response = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanet>>>(json);
 
             Console.WriteLine(response.Message);
 
             if (response.Success)
             {
-                foreach (Planet planet in response.Data)
+                foreach (ClientPlanet planet in response.Data)
                 {
+                    // Load planet into cache
+                    //await ClientPlanetManager.Current.AddPlanetAsync(planet);
+
                     Planets.Add(ClientPlanet.FromBase(planet, mapper));
                 }
             }

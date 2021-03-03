@@ -1,6 +1,7 @@
 ﻿@inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
+@inject ClientPlanetManager planetManager
 
 
 <div>
@@ -87,6 +88,9 @@
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
         windowManager.SetWindow(Window.Index, new ChatChannelWindow(Window.Index, channel));
         await windowManager.SetSelectedWindow(Window.Index);
+
+        // Actually load planet
+        await planetManager.SetCurrentPlanet(planet);
 
         StateHasChanged();
 
