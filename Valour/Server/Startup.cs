@@ -31,6 +31,7 @@ using Valour.Server.Planets;
 using Microsoft.Net.Http.Headers;
 using Valour.Shared.Users;
 using Valour.Shared.Planets;
+using Valour.Server.Roles;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -242,19 +243,20 @@ namespace Valour.Server
             PlanetHub.Current = app.ApplicationServices.GetService<IHubContext<PlanetHub>>();
 
             /* Reference code for any future migrations */
-            /*
+            
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
-                ServerPlanet valourPlanet = ServerPlanet.FindAsync(735703679107072).Result;
-
-                foreach (var obj in db.Users)
+                foreach (ServerPlanetRole role in db.PlanetRoles.Include(x => x.Planet))
                 {
-                    valourPlanet.AddMemberAsync(obj);
+                    if (role.Id == role.Planet.Default_Role_Id)
+                    {
+                        role.Position = uint.MaxValue;
+                    }
                 }
 
                 db.SaveChanges();
             }
-            */
+            
         }
     }
 }

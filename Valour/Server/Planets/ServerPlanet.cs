@@ -195,7 +195,7 @@ namespace Valour.Server.Planets
                 createdb = true;
             }
 
-            var roles = db.PlanetRoles.Where(x => x.Planet_Id == Id).ToList();
+            var roles = db.PlanetRoles.Where(x => x.Planet_Id == Id).OrderBy(x => x.Position).ToList();
 
             if (createdb)
             {
