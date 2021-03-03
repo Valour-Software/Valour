@@ -473,7 +473,7 @@ function HideMemberContextMenu(){
 }
 
 function KickUser() {
-    fetch(`/Planet/KickUser?token=${SecretKey}&planet_id=${PlanetId}&target_id=${parseInt(SelectedUserId)}`)
+    fetch(`/Planet/KickUser?token=${SecretKey}&planet_id=${Planet_Id}&target_id=${parseInt(SelectedUserId)}`)
         .then(data => {
             console.log(data)
         })
