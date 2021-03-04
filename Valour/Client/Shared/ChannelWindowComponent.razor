@@ -81,9 +81,6 @@
 
         Planet = await Window.Channel.GetPlanetAsync();
 
-        // Get newest role definitions
-        await planetManager.LoadPlanetRoles(Planet);
-
         Window.Component = this;
 
         ClientPlanetManager.Current.OnMemberUpdate += OnPlanetMemberUpdate;
@@ -205,6 +202,17 @@
 
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
+        //Get current window scroll pos
+
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
+
+        // check if theres too many messages
+        if (IsAtBottom && Window.messages.Count > 120)
+        {
+            Window.messages.RemoveRange(0, Window.messages.Count - 120);
+            Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
+        }
+
         if (!Window.messages.Any(x => x.Message_Index == message.Message_Index)){
             Window.messages.Add(message);
         }
@@ -214,16 +222,6 @@
         //}
 
         Window.messageIndex = message.Message_Index;
-
-        //Get current window scroll pos
-
-        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
-
-        // check if theres too many messages
-        if (IsAtBottom && Window.messages.Count > 120) {
-            Window.messages.RemoveRange(0, Window.messages.Count - 120);
-            Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
-        }
 
         // Flag for UI refresh
         StateHasChanged();
@@ -345,7 +343,10 @@
         await Window.Component.UpdateScrollPosition(); // This saves the scroll position
         Window.messages.InsertRange(0, messages);
         Window.firstMessageIndex = messages.ElementAt(0).Message_Index;
-        Window.Component.StateHasChanged();
+
+        Window.Component.MessageHolder.ForceRefresh();
+
+        //Window.Component.StateHasChanged();
         await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly
     }
 }

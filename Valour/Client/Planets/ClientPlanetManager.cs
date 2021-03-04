@@ -87,8 +87,6 @@ namespace Valour.Client.Planets
 
             // Retrieve from server
             ClientPlanet planet = await ClientPlanet.GetClientPlanetAsync(id);
-            // Load planet roles into cache
-            await LoadPlanetRoles(planet);
 
             if (planet == null)
             {

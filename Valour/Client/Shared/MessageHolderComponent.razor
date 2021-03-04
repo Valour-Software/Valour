@@ -1,8 +1,6 @@
 ﻿<div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
     @if (Messages != null && Messages.Count > 0)
     {
-        currentRendered.Clear();
-
         ulong lastAuthorId = 0;
 
         foreach (ClientPlanetMessage msg in Messages)
@@ -11,23 +9,16 @@
 
             //RenderedMessages.Clear();
 
-            if (!currentRendered.Contains(key))
-            {
-                currentRendered.Add(key);
 
-                if (msg.Author_Id != lastAuthorId)
-                {
+            if (msg.Author_Id != lastAuthorId)
+            {
                 <MessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MessageComponent>
-                }
-                else
-                {
-                <MultiMessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MultiMessageComponent>
-                }
             }
             else
             {
-                Console.WriteLine($"Prevented key collision for message [{key}]. This should not occur, but at least we handle it.");
+                <MultiMessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MultiMessageComponent>
             }
+
 
             lastAuthorId = msg.Author_Id;
         }
@@ -42,8 +33,6 @@
     public List<ClientPlanetMessage> Messages { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
-
-    public HashSet<string> currentRendered = new HashSet<string>();
 
     public void ForceRefresh()
     {
