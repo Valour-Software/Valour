@@ -76,8 +76,10 @@ namespace Valour.Server.Planets
 
         public static async Task NotifyRoleChange(ServerPlanetRole role)
         {
+            string json = JsonConvert.SerializeObject(role);
+
             // Send update to members
-            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RefreshRoleList");
+            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", json);
         }
     }
 }
