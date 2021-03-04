@@ -9,7 +9,7 @@
         {
             string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
-            RenderedMessages.Clear();
+            //RenderedMessages.Clear();
 
             if (!currentRendered.Contains(key))
             {
@@ -17,11 +17,11 @@
 
                 if (msg.Author_Id != lastAuthorId)
                 {
-                <MessageComponent Message="msg" @key='key' Holder="this"></MessageComponent>
+                <MessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MessageComponent>
                 }
                 else
                 {
-                <MultiMessageComponent Message="msg" @key='key'></MultiMessageComponent>
+                <MultiMessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MultiMessageComponent>
                 }
             }
             else
@@ -36,7 +36,7 @@
 
 @code {
     [Parameter]
-    public ChatChannelWindow Window { get; set; } 
+    public ChatChannelWindow Window { get; set; }
 
     [Parameter]
     public List<ClientPlanetMessage> Messages { get; set; }
@@ -53,6 +53,11 @@
     public void AddRenderedMessage(MessageComponent message)
     {
         RenderedMessages.Add(message);
+    }
+
+    public void RemoveRenderedMessage(MessageComponent message)
+    {
+        RenderedMessages.Remove(message);
     }
 
     //protected override async Task OnParametersSetAsync()
