@@ -164,7 +164,7 @@
     protected override async Task OnInitializedAsync()
     {
         Roles = await Planet.GetRolesAsync();
-        planetManager.OnRolesUpdate += OnRolesUpdate;
+        planetManager.OnRoleUpdate += OnRolesUpdate;
     }
 
     public async Task OnClickEdit(PlanetRole editRole)
@@ -176,7 +176,7 @@
 
         for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
         {
-            rolePermValues[i] = ((editRole.Permissions & PlanetPermissions.Permissions[i].Value) 
+            rolePermValues[i] = ((editRole.Permissions & PlanetPermissions.Permissions[i].Value)
                                                       == PlanetPermissions.Permissions[i].Value);
         }
 
@@ -262,9 +262,21 @@
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate()
+    public async Task OnRolesUpdate(PlanetRole role)
     {
-        Roles = await Planet.GetRolesAsync();
+
+        var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
+
+        if (oldRole == null)
+        {
+            return;
+        }
+
+        var index = Roles.IndexOf(oldRole);
+
+        // Set to new role
+        Roles[index] = role;
+
         StateHasChanged();
     }
 }

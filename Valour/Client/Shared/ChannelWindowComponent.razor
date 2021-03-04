@@ -87,6 +87,7 @@
         Window.Component = this;
 
         ClientPlanetManager.Current.OnMemberUpdate += OnPlanetMemberUpdate;
+        ClientPlanetManager.Current.OnRoleUpdate += OnPlanetRoleUpdate;
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
@@ -114,6 +115,19 @@
 
             // Update member reference
             msg.Author = member;
+            await msg.RefreshMessage();
+        }
+    }
+
+    public async Task OnPlanetRoleUpdate(PlanetRole role)
+    {
+        if (role.Planet_Id != Planet.Id)
+        {
+            return;
+        }
+
+        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.Author.TryGetPrimaryRoleId() == role.Id))
+        {
             await msg.RefreshMessage();
         }
     }

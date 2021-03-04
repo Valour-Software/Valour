@@ -36,7 +36,7 @@ namespace Valour.Client.Planets
         private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<string, ClientPlanetMember>();
         private ConcurrentDictionary<ulong, User> PlanetMemberUserCache = new ConcurrentDictionary<ulong, User>(); // Maps from member id => user
         private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
-        private ConcurrentDictionary<ulong, List<PlanetRole>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<PlanetRole>>();
+        private ConcurrentDictionary<ulong, List<ulong>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<ulong>>();
 
         public event Func<Task> OnPlanetChange;
 
@@ -46,7 +46,7 @@ namespace Valour.Client.Planets
 
         public event Func<Task> OnCategoriesUpdate;
 
-        public event Func<Task> OnRolesUpdate;
+        public event Func<PlanetRole, Task> OnRoleUpdate;
 
         public event Func<ClientPlanetMember, Task> OnMemberUpdate;
 
@@ -57,7 +57,7 @@ namespace Valour.Client.Planets
             this.signalRManager = signalrmanager;
 
             signalRManager.hubConnection.On<string>("Relay", OnMessageRecieve);
-            signalRManager.hubConnection.On("RefreshRoleList", RefreshRoleList);
+            signalRManager.hubConnection.On<string>("RoleUpdate", UpdateRole);
             signalRManager.hubConnection.On<string>("MemberUpdate", UpdateMember);
         }
 
@@ -68,14 +68,7 @@ namespace Valour.Client.Planets
 
         public async Task AddPlanetAsync(ClientPlanet planet)
         {
-            if (PlanetCache.ContainsKey(planet.Id))
-            {
-                PlanetCache[planet.Id] = planet;
-            }
-            else
-            {
-                PlanetCache.TryAdd(planet.Id, planet);
-            }
+            PlanetCache.AddOrUpdate(planet.Id, planet, (key, old) => planet);
 
             // Pre-cache roles
             await GetPlanetRoles(planet.Id);
@@ -143,12 +136,12 @@ namespace Valour.Client.Planets
                 return;
             }
 
-            PlanetRolesListCache[planet_id] = result.Data;
+            PlanetRolesListCache[planet_id] = result.Data.Select(x => x.Id).ToList();
 
             // Set roles into role cache
             foreach (var role in result.Data)
             {
-                PlanetRolesCache.TryAdd(role.Id, role);
+                PlanetRolesCache.AddOrUpdate(role.Id, role, (key, old) => role);
             }
 
             Console.WriteLine($"Loaded {result.Data.Count} roles into cache for planet {planet_id}");
@@ -171,8 +164,15 @@ namespace Valour.Client.Planets
                 return null;
             }
 
+            List<PlanetRole> roles = new List<PlanetRole>();
+
+            foreach (var id in PlanetRolesListCache[planet_id])
+            {
+                roles.Add(PlanetRolesCache[id]);
+            }
+
             // Return the roles
-            return PlanetRolesListCache[planet_id];
+            return roles;
         }
 
         public async Task<PlanetRole> GetPlanetRole(ulong role_id)
@@ -211,14 +211,12 @@ namespace Valour.Client.Planets
         {
             string key = $"{member.Planet_Id}-{member.User_Id}";
 
-            if (PlanetMemberCache.ContainsKey(key) == false)
-            {
-                PlanetMemberCache.TryAdd(key, member);
-            }
-            else
-            {
-                PlanetMemberCache[key] = member;
-            }
+            PlanetMemberCache.AddOrUpdate(key, member, (key, old) => member);
+        }
+
+        public async Task SetUpdatedRole(PlanetRole role)
+        {
+            PlanetRolesCache.AddOrUpdate(role.Id, role, (key, old) => role);
         }
 
         public async Task<List<ClientPlanetMember>> GetPlanetMemberInfoAsync(ulong planet_id)
@@ -442,15 +440,24 @@ namespace Valour.Client.Planets
             }
         }
 
-        public async Task RefreshRoleList()
+        public async Task UpdateRole(string json)
         {
-            Console.WriteLine("RECIEVE: Planet role update ping");
-            await LoadPlanetRoles(CurrentPlanet);
-            Console.WriteLine($"Loaded {PlanetRolesListCache[CurrentPlanet.Id].Count} roles.");
+            PlanetRole role = JsonConvert.DeserializeObject<PlanetRole>(json);
 
-            if (OnRolesUpdate != null)
+            if (role == null)
             {
-                await OnRolesUpdate.Invoke();
+                Console.WriteLine("Failed to deserialize role in role update.");
+                return;
+            }
+
+            Console.WriteLine($"RECIEVE: Planet role update ping for role {role.Id}");
+            Console.WriteLine(json);
+            await SetUpdatedRole(role);
+            
+
+            if (OnRoleUpdate != null)
+            {
+                await OnRoleUpdate.Invoke(role);
             }
         }
 

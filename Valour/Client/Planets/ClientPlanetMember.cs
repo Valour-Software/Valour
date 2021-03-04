@@ -37,6 +37,16 @@ namespace Valour.Client.Planets
         /// </summary>
         private User _user = null;
 
+        public ulong TryGetPrimaryRoleId()
+        {
+            if (_roleids == null)
+            {
+                return ulong.MaxValue;
+            }
+
+            return _roleids[0];
+        }
+
         public void SetCacheValues(PlanetMemberInfo info)
         {
             SetCacheValues(info.RoleIds, info.State, info.User);

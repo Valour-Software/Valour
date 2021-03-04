@@ -29,6 +29,7 @@ namespace Valour.Server.Roles
     {
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
         /// <summary>
