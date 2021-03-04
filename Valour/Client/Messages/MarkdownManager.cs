@@ -41,7 +41,18 @@ namespace Valour.Client.Messages
 
         public static MarkupString GetHtml(string content)
         {
-            string markdown = Markdown.ToHtml(content, pipeline);
+            string markdown = "Error: Message could not be parsed.";
+
+            try
+            {
+                markdown = Markdown.ToHtml(content, pipeline);
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine("Error parsing message!");
+                Console.WriteLine("This may be nothing to worry about, a user may have added an insane table or such.");
+                Console.WriteLine(e.Message);
+            }
 
             markdown = markdown.Replace("<a", "<a target='_blank'");
 
