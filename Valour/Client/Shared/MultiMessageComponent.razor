@@ -1,4 +1,6 @@
-﻿<div id="m-@Message.Channel_Id-@Message.Message_Index" class="multi-message">
+﻿@implements IDisposable
+
+<div id="m-@Message.Channel_Id-@Message.Message_Index" class="multi-message">
     <div class="time-container">
         <p class="time">
             @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
@@ -16,5 +18,23 @@
     [Parameter]
     public ClientPlanetMessage Message { get; set; }
 
-    private PlanetMember Author;
+    private ClientPlanetMember Author;
+
+    [Parameter]
+    public MessageHolderComponent Holder { get; set; }
+
+    [Parameter]
+    public string Key { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+    }
+
+    void IDisposable.Dispose()
+    {
+
+    }
 }
+
