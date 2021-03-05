@@ -32,7 +32,7 @@
 
     </div>
 
-    <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" Messages="Window.messages" @ref="MessageHolder"></MessageHolderComponent>
+    <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" @ref="MessageHolder"></MessageHolderComponent>
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
         <center>
@@ -75,8 +75,6 @@
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
-        Window.messages = new List<ClientPlanetMessage>();
-
         Channel = Window.Channel;
 
         Planet = await Window.Channel.GetPlanetAsync();
@@ -148,35 +146,11 @@
 
     public async Task SetupNewChannelAsync()
     {
-        if (Window.messages == null)
-        {
-            Window.messages = new List<ClientPlanetMessage>();
-        }
-        else
-        {
-            Window.messages.Clear();
-        }
+        MessageHolder.Clear();
 
         await planetManager.OpenPlanetChatChannel(this);
 
-        // Request messages from server
-        Window.messages.AddRange(await Channel.GetLastMessagesAsync(64));
-
-        if (Window.messages.Count > 0)
-        {
-            Window.firstMessageIndex = Window.messages[0].Message_Index;
-            Window.messageIndex = Window.messages[Window.messages.Count - 1].Message_Index;
-        }
-
-        ForceMessageRefresh = true;
-
-        StateHasChanged();
-
-        ForceMessageRefresh = false;
-
-        //while (true){
-        //      PostMessage(Guid.NewGuid().ToString());
-        //   }
+        MessageHolder.AddMessages(await Channel.GetLastMessagesAsync(64));
     }
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
@@ -202,32 +176,7 @@
 
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
-        //Get current window scroll pos
-
-        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
-
-        // check if theres too many messages
-        if (IsAtBottom && Window.messages.Count > 120)
-        {
-            Window.messages.RemoveRange(0, Window.messages.Count - 120);
-            Window.firstMessageIndex = Window.messages.ElementAt(0).Message_Index;
-        }
-
-        if (!Window.messages.Any(x => x.Message_Index == message.Message_Index)){
-            Window.messages.Add(message);
-        }
-        //else
-        //{
-        //    Console.WriteLine("Prevented egg error");
-        //}
-
-        Window.messageIndex = message.Message_Index;
-
-        // Flag for UI refresh
-        StateHasChanged();
-        //MessageHolder.ForceRefresh();
-
-        await ScrollToBottom();
+        await MessageHolder.AddMessage(message);
     }
 
     public async Task ScrollToBottom()
@@ -324,6 +273,7 @@
     public static async Task OnScrollTop(int index)
     {
         ChatChannelWindow Window = ClientWindowManager.Instance.GetWindow(index) as ChatChannelWindow;
+        MessageHolderComponent Holder = Window.Component.MessageHolder;
 
         if (Window == null)
         {
@@ -331,9 +281,16 @@
             return;
         }
 
-        Console.WriteLine($"Fetching older messages from index {Window.firstMessageIndex} for window {Window.Index}");
+        if (Holder.Messages == null || Holder.Messages.Count == 0)
+        {
+            return;
+        }
 
-        var messages = await Window.Channel.GetMessagesAsync(Window.firstMessageIndex, 32);
+        ulong firstIndex = Holder.Messages[0].Message_Index;
+
+        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Index}");
+
+        var messages = await Window.Channel.GetMessagesAsync(firstIndex, 32);
 
         if (messages == null || messages.Count() == 0)
         {
@@ -341,10 +298,8 @@
         }
 
         await Window.Component.UpdateScrollPosition(); // This saves the scroll position
-        Window.messages.InsertRange(0, messages);
-        Window.firstMessageIndex = messages.ElementAt(0).Message_Index;
 
-        Window.Component.MessageHolder.ForceRefresh();
+        Holder.InsertMessages(0, messages);
 
         //Window.Component.StateHasChanged();
         await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly

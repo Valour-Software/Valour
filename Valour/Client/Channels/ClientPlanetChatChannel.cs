@@ -44,13 +44,13 @@ namespace Valour.Client.Channels
         /// <param name="index">The starting index for the messages</param>
         /// <param name="count">The amount of messages to return</param>
         /// <returns>An enumerable list of planet messages</returns>
-        public async Task<IEnumerable<ClientPlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10)
+        public async Task<List<ClientPlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetMessages?channel_id={Id}" +
                                                                                            $"&index={index}" +
                                                                                            $"&count={count}");
 
-            IEnumerable<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
+            List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
 
             if (messages == null)
             {
@@ -66,12 +66,12 @@ namespace Valour.Client.Channels
         /// <param name="index">The starting index for the messages</param>
         /// <param name="count">The amount of messages to return</param>
         /// <returns>An enumerable list of planet messages</returns>
-        public async Task<IEnumerable<ClientPlanetMessage>> GetLastMessagesAsync(int count = 10)
+        public async Task<List<ClientPlanetMessage>> GetLastMessagesAsync(int count = 10)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetLastMessages?channel_id={Id}" +
                                                                                              $"&count={count}");
 
-            IEnumerable<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
+            List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
 
             if (messages == null)
             {

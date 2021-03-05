@@ -14,8 +14,8 @@
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id" 
-            @onmouseup="OnAuthorNameClick">
+            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id"
+               @onmouseup="OnAuthorNameClick">
                 @name
             </p>
 
@@ -64,7 +64,8 @@
         }
     }
 
-    public async Task RefreshMessage(){
+    public async Task RefreshMessage()
+    {
         await BuildMessage();
         StateHasChanged();
     }
