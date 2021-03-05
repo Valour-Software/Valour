@@ -1,7 +1,11 @@
-﻿<div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
+﻿@inject IJSRuntime JS
+
+<div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
     @if (Messages != null && Messages.Count > 0)
     {
         ulong lastAuthorId = 0;
+
+        //Keys.Clear();
 
         foreach (ClientPlanetMessage msg in Messages)
         {
@@ -9,15 +13,19 @@
 
             //RenderedMessages.Clear();
 
-
+            //if (!Keys.Contains(key))
+            //{
             if (msg.Author_Id != lastAuthorId)
             {
-                <MessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MessageComponent>
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this"></MessageComponent>
             }
             else
             {
-                <MultiMessageComponent Message="msg" Key="@key" @key='key' Holder="this"></MultiMessageComponent>
+                <MultiMessageComponent Message="msg" Key="@key" @key='key + "-multi"' Holder="this"></MultiMessageComponent>
             }
+            //}
+
+            //Keys.Add(key);
 
 
             lastAuthorId = msg.Author_Id;
@@ -33,6 +41,62 @@
     public List<ClientPlanetMessage> Messages { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
+
+    public string state = "none";
+
+    //public HashSet<string> Keys = new HashSet<string>();
+
+    public void Clear()
+    {
+        Messages.Clear();
+    }
+
+    public void AddMessages(List<ClientPlanetMessage> messages, bool refresh = true)
+    {
+        Messages.AddRange(messages);
+
+        if (refresh)
+        {
+            StateHasChanged();
+        }
+    }
+
+    public void InsertMessages(int position, List<ClientPlanetMessage> messages, bool refresh = true)
+    {
+        //foreach(var m in messages)
+        //{
+        //    Console.WriteLine(m.Content);
+        //}
+
+        Messages.InsertRange(position, messages);
+
+        if (refresh)
+        {
+            StateHasChanged();
+        }
+    }
+
+    public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
+    {
+        //Get current window scroll pos
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
+
+        // check if theres too many messages
+        if (IsAtBottom && Messages.Count > 120)
+        {
+            Messages.RemoveRange(0, Messages.Count - 120);
+        }
+
+        Messages.Add(message);
+
+        // Flag for UI refresh
+        if (refresh)
+        {
+            StateHasChanged();
+        }
+
+        await Window.Component.ScrollToBottom();
+    }
 
     public void ForceRefresh()
     {
@@ -57,30 +121,30 @@
     protected override async Task OnInitializedAsync()
     {
         RenderedMessages = new List<MessageComponent>();
+        Messages = new List<ClientPlanetMessage>();
         StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        Console.WriteLine("Rendered messages");
+        state = GetState();
+    }
+
+    public string GetState()
+    {
+        if (Messages == null || Messages.Count == 0)
+        {
+            return "none";
+        }
+        else
+        {
+            return $"{Messages.First().Message_Index}-{Messages.Last().Message_Index}";
+        }
     }
 
     protected override bool ShouldRender()
     {
-        if (Messages == null)
-        {
-            return false;
-        }
-
-        if (Messages.Count == 0)
-        {
-            return true;
-        }
-
-        //Console.WriteLine($"{Window.messageIndex} | {Window.messageIndexRendered}");
-
-        if ((Window.messageIndex != Window.messageIndexRendered) || (Window.firstMessageIndex != Window.firstMessageIndexRendered))
-        {
-            Window.messageIndexRendered = Window.messageIndex;
-            Window.firstMessageIndexRendered = Window.firstMessageIndex;
-            return true;
-        }
-
-        return false;
+        return GetState() != state;
     }
 }

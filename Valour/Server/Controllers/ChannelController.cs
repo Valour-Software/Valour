@@ -316,7 +316,7 @@ namespace Valour.Server.Controllers
                                           .ToList();
                 });
 
-                messages.AddRange(staged);
+                messages.AddRange(staged.Where(x => x.Message_Index < index));
             }
 
             return messages;

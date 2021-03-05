@@ -127,10 +127,10 @@ namespace Valour.Client
             {
                 ChatChannelWindow chat = window as ChatChannelWindow;
 
-                if (chat != null)
+                if (chat != null && chat.Component != null && chat.Component.MessageHolder != null)
                 {
                     // Force window refresh
-                    chat.firstMessageIndexRendered = ulong.MaxValue;
+                    chat.Component.MessageHolder.ForceRefresh();
                 }
             }
         }
@@ -178,24 +178,6 @@ namespace Valour.Client
         /// The component that belongs to this window
         /// </summary>
         public ChannelWindowComponent Component { get; set; }
-
-        /// <summary>
-        /// Storage for messages that should be displayed
-        /// </summary>
-        public List<ClientPlanetMessage> messages;
-
-        /// <summary>
-        /// The index of the last recieved message
-        /// </summary>
-        public ulong messageIndex;
-
-        /// <summary>
-        /// The index of the earliest recieved message
-        /// </summary>
-        public ulong firstMessageIndex;
-
-        public ulong messageIndexRendered;
-        public ulong firstMessageIndexRendered;
 
         public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
         {
