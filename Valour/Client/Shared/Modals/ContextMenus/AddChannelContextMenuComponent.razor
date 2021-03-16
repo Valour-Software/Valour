@@ -1,0 +1,63 @@
+﻿@inject AddChannelContextMenu addChannelContextMenu
+@inject CreateChannelModal createChannelModal
+@inject CreateCategoryModal createCategoryModal
+
+@if (visible)
+{
+    <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
+        <div id="create-channel-btn" class="context-menu-item" @onclick="createChannelModal.Open">
+            <p class="context-menu-item-text">
+                Add Channel
+            </p>
+        </div>
+        <div id="create-category-btn" class="context-menu-item" @onclick="createCategoryModal.Open">
+            <p class="context-menu-item-text">
+                Add Category
+            </p>
+        </div>
+    </div>
+}
+
+@code {
+
+    public bool visible = false;
+
+    public double x;
+    public double y;
+
+    const string Modal_Id = "add-channel-context-menu";
+
+    [Parameter]
+    public ModalHolderComponent Holder { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        addChannelContextMenu.Component = this;
+        ModalHolderComponent.CloseModalEvent += OnModalClose;
+    }
+
+    public void SetPosition(double x, double y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    public void SetVisibility(bool value)
+    {
+        this.visible = value;
+        StateHasChanged();
+    }
+
+    public async Task OnModalClose(string modal_id)
+    {
+        if (Modal_Id == modal_id)
+        {
+            SetVisibility(false);
+        }
+    }
+
+    public async Task AddCategory()
+    {
+
+    }
+}

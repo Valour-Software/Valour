@@ -1108,7 +1108,7 @@ body {
 
 /* The Modal (background) */
 .modal {
-    display: none; /* Hidden by default */
+    display: inline-block;
     position: fixed; /* Stay in place */
     z-index: 1; /* Sit on top */
     padding-top: 100px; /* Location of the box */

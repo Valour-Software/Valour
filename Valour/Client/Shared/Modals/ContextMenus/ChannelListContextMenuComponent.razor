@@ -1,0 +1,75 @@
+﻿@inject ChannelListContextMenu channelListContextMenu
+@inject ConfirmModal confirmModal
+
+@if (visible)
+{
+    <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
+        <div class="context-menu-item" onclick="">
+            <p class="context-menu-item-text">
+                Edit
+            </p>
+        </div>
+        <div class="context-menu-item delete-context-menu-item" @onclick="DeleteChannelListItem">
+            <p class="context-menu-item-text">
+                Delete
+            </p>
+        </div>
+    </div>
+}
+
+@code {
+
+    public bool visible = false;
+
+    public double x;
+    public double y;
+
+    const string Modal_Id = "channel-context-menu";
+
+    [Parameter]
+    public ModalHolderComponent Holder { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        channelListContextMenu.Component = this;
+        ModalHolderComponent.CloseModalEvent += OnModalClose;
+    }
+
+    public void SetPosition(double x, double y)
+    {
+        this.x = x;
+        this.y = y;
+    }
+
+    public void SetVisibility(bool value)
+    {
+        this.visible = value;
+        StateHasChanged();
+    }
+
+    public async Task OnModalClose(string modal_id)
+    {
+        if (Modal_Id == modal_id)
+        {
+            SetVisibility(false);
+        }
+    }
+
+    public async Task DeleteChannelListItem()
+    {
+        await confirmModal.Open($"Delete {channelListContextMenu.SelectedItem.Name}?",
+                                "Are you sure?",
+                                "Continue",
+                                "Cancel",
+
+        async () =>
+        {
+            Console.WriteLine("Confirmed channel item deletion.");
+        },
+
+        async () =>
+        {
+            Console.WriteLine("Cancelled channel item deletion.");
+        });
+    }
+}

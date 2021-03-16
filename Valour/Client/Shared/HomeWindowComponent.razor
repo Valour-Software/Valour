@@ -2,6 +2,7 @@
 @inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
 @inject ClientPlanetManager planetManager
+@inject CreatePlanetModal createPlanetModal
 
 
 <div>
@@ -27,17 +28,8 @@
         </div>
     }
 
-    <div class="home-server m-2" onclick="AddPlanetButtonFunction(this)" style="cursor: pointer;">
+    <div class="home-server m-2" @onclick="createPlanetModal.Open" style="cursor: pointer;" id="create-planet-button">
         <h6 class="text-center">Create a planet</h6>
-        <!-- The Modal -->
-        <div id="AddPlanetModel" class="modal">
-
-            <!-- Modal content -->
-            <div class="modal-content-CreatePlanet">
-                <CreatePlanetComponent></CreatePlanetComponent>
-            </div>
-
-        </div>
         <svg class="planet-create-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
             <defs>
                 <style>

@@ -794,6 +794,80 @@ namespace Valour.Server.Controllers
         }
 
         /// <summary>
+        /// Deletes the given role
+        /// </summary>
+        public async Task<TaskResult> DeleteRole(ulong role_id, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!Permission.HasPermission(authToken.Scope, UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "You don't have planet management scope.");
+            }
+
+            ServerPlanetRole role = await Context.PlanetRoles.FindAsync(role_id);
+
+            if (!(await Context.PlanetRoles.AnyAsync(x => x.Id == role.Id)))
+            {
+                return new TaskResult(false, $"The role {role.Id} does not exist.");
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.User)
+                                                                   .Include(x => x.Planet)
+                                                                   .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
+                                                                                             x.Planet_Id == role.Planet_Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You're not in the planet!");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageRoles)))
+            {
+                return new TaskResult(false, "You don't have role management permissions!");
+            }
+
+            // Do not allow modifying roles with a lower position than your own (lower is more powerful)
+            if (member.User_Id != member.Planet.Owner_Id)
+            {
+                if (((await member.GetPrimaryRoleAsync()).Position > role.Position))
+                {
+                    return new TaskResult(false, "You can't delete a role above your own!");
+                }
+            }
+
+            if (member.Planet.Default_Role_Id == role.Id)
+            {
+                return new TaskResult(false, "You can't delete the default role!");
+            }
+
+            // Remove role members first
+
+            var roleMembers = Context.PlanetRoleMembers.Where(x => x.Role_Id == role_id);
+            Context.PlanetRoleMembers.RemoveRange(roleMembers);
+
+            // Then remove role nodes
+
+            var roleChannelNodes = Context.ChannelPermissionsNodes.Where(x => x.Role_Id == role_id);
+            Context.ChannelPermissionsNodes.RemoveRange(roleChannelNodes);
+
+            // Finally remove the role
+
+            Context.PlanetRoles.Remove(role);
+
+            await Context.SaveChangesAsync();
+
+            await PlanetHub.NotifyRoleChange(role);
+
+            return new TaskResult(true, $"Successfully removed role {role.Id}.");
+        }
+
+        /// <summary>
         /// Sets whether or not a member is in a role
         /// </summary>
         public async Task<TaskResult> SetMemberRoleMembership(ulong role_id, ulong member_id, bool value, string token)

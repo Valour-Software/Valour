@@ -1,56 +1,19 @@
 ﻿@inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
+@inject EditPlanetModal editPlanetModal
 
 <h3>Edit Roles</h3>
 <hr />
 <br />
 
-<div class="settings-inner">
-    @if (!editMode)
-    {
-        if (Selected == null)
-        {
-            <div class="container">
+<div class="settings-inner" id="edit-inner-settings">
 
-                @foreach (PlanetRole role in Roles)
-                {
-                    // For magic lambda
-                    var role_x = role;
-
-                    <div class="row mt-2">
-                        <div class="role-edit-row">
-                            <div class="role-edit">
-                                <p style="color:@role.GetColorHex()">
-                                    @role.Name
-                                </p>
-                            </div>
-                            <div class="btn-role-edit edit" @onclick="() => OnClickEdit(role_x)">
-                                <p class="center-t">
-                                    Edit
-                                </p>
-                            </div>
-                            <div class="btn-role-edit delete">
-                                <p class="center-t">
-                                    Delete
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                }
-
-                <div class="row mt-2">
-                    <div class="btn-role-edit create" @onclick="OnClickCreateMode">
-                        <p class="center-t">
-                            Create
-                        </p>
-                    </div>
-                </div>
-
-            </div>
-        }
+    @{
+        string editStyle = "display: none";
+        if (editMode) { editStyle = ""; }
     }
-    else
-    {
+
+    <div style="@editStyle">
         <div class="rolecreate-cont">
             <div class="form-group mt-2">
                 <label>Role Name</label>
@@ -66,7 +29,7 @@
 
         </div>
         <div class="mt-2" style="display: block">
-            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave">
+            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
                 <p class="center-t">
                     Save
                 </p>
@@ -97,8 +60,8 @@
                 </div>
                 <div type="button" style="float: right">
                     <label class="switch">
-                      <input type="checkbox" @onclick="(e => PermClick(val))" checked="@rolePermValues[i]">
-                      <span class="slider round"></span>
+                        <input type="checkbox" @onclick="(e => PermClick(val))" checked="@rolePermValues[i]">
+                        <span class="slider round"></span>
                     </label>
                 </div>
                 <div class="perm-list-desc mt-1">
@@ -106,7 +69,72 @@
                 </div>
             </div>
         }
+    </div>
+
+    @{
+        string delStyle = "display: none";
+        if (deleteMode) { delStyle = ""; }
     }
+
+
+    <div style="@delStyle">
+        <h3>Delete: @role.Name</h3>
+        <h4>Are you sure?</h4>
+
+        <br />
+
+        <div class="btn btn-outline-primary" style="display:inline-block" @onclick="GoBack">Cancel</div>
+        <div class="btn btn-danger" @onclick="Delete">Confirm</div>
+
+        <div class="mt-2">
+            <span id="result-span" class="text-info">@resultSpan</span>
+            <span id="error-span" class="text-danger" style="display:block">@errorSpan</span>
+        </div>
+    </div>
+
+    @{
+        string normStyle = "display: none";
+        if (!editMode && !deleteMode) { normStyle = ""; }
+    }
+
+
+    <div class="container" id="edit-rows-container" style="@normStyle">
+
+        @foreach (PlanetRole role in Roles)
+        {
+            // For magic lambda
+            var role_x = role;
+
+            <div class="row mt-2" id="row-edit-holder">
+                <div class="role-edit-row" id="role-edit-row">
+                    <div class="role-edit">
+                        <p style="color:@role.GetColorHex()">
+                            @role.Name
+                        </p>
+                    </div>
+                    <div id="role-edit-btn" class="btn-role-edit edit" @onclick="() => OnClickEdit(role_x)">
+                        <p class="center-t">
+                            Edit
+                        </p>
+                    </div>
+                    <div id="role-delete-btn" class="btn-role-edit delete" @onclick="() => OnClickDelete(role_x)">
+                        <p class="center-t">
+                            Delete
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="row mt-2">
+            <div class="btn-role-edit create" @onclick="OnClickCreateMode">
+                <p class="center-t">
+                    Create
+                </p>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 @code {
@@ -126,6 +154,8 @@
     };
 
     public bool editMode = false;
+
+    public bool deleteMode = false;
 
     public string roleNameSpan = "";
 
@@ -167,10 +197,68 @@
         planetManager.OnRoleUpdate += OnRolesUpdate;
     }
 
+    public async Task GoBack()
+    {
+        role = null;
+        deleteMode = false;
+        editMode = false;
+
+        StateHasChanged();
+    }
+
+    public async Task OnClickDelete(PlanetRole deleteRole)
+    {
+        resultSpan = "";
+        errorSpan = "";
+
+        role = deleteRole;
+        deleteMode = true;
+        editMode = false;
+
+        StateHasChanged();
+    }
+
+    public async Task Delete()
+    {
+        HttpResponseMessage response = null;
+
+        response = await ClientUserManager.Http.GetAsync($"Planet/DeleteRole?role_id={role.Id}" +
+                                                                          $"&token={ClientUserManager.UserSecretToken}");
+
+        Console.WriteLine(await response.Content.ReadAsStringAsync());
+
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(
+            await response.Content.ReadAsStringAsync());
+
+        if (result == null)
+        {
+            errorSpan = "No response from server!";
+        }
+        else
+        {
+            if (result.Success)
+            {
+                resultSpan = result.Message;
+            }
+            else
+            {
+                errorSpan = result.Message;
+            }
+        }
+
+        deleteMode = false;
+
+        StateHasChanged();
+    }
+
     public async Task OnClickEdit(PlanetRole editRole)
     {
+        resultSpan = "";
+        errorSpan = "";
+
         role = editRole;
         editMode = true;
+        deleteMode = false;
 
         rolePermValues = new bool[PlanetPermissions.Permissions.Length];
 
@@ -196,7 +284,9 @@
 
         rolePermValues = new bool[PlanetPermissions.Permissions.Length];
         editMode = true;
+
         StateHasChanged();
+        await editPlanetModal.Open();
     }
 
     public async Task OnClickSave()

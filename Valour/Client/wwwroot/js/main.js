@@ -1,7 +1,4 @@
-﻿
-// Code for resizeable main windows
-
-document.addEventListener('contextmenu', event => EventForContextMenu(event));
+﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
 
 function EventForContextMenu(event) {
     if (event.target.className.includes("EnableRightCLick")) {
@@ -308,81 +305,61 @@ function SetupWindow(index) {
     });
 }
 
-// When the user clicks the button, open the modal 
-function AddPlanetButtonFunction(element) {
-    var modal = document.getElementById("AddPlanetModel");
-    modal.style.display = "block";
-}
-
-// When the user clicks on <span> (x), close the modal
-function AddPlanetModelCloseFunction(element)
-{
-    var modal = document.getElementById("AddPlanetModel");
-    modal.style.display = "none";
-}
-
 // When the user clicks anywhere outside of the modal, close it
-window.onclick = function(event) {
-    var modal = document.getElementById("AddPlanetModel");
-    if (event.target == modal) {
-        modal.style.display = "none";
+window.onclick = function (event) {
+
+    var id = 'null';
+    if (event.target != null) {
+        id = event.target.id;
     }
 
-    var modal = document.getElementById("EditPlanetModal");
-    if (event.target == modal) {
-        modal.style.display = "none";
+    DotNet.invokeMethodAsync('Valour.Client', 'OnClickInterop', id);
+
+    if (event.target.id != "add-channel-context-menu" &&
+        event.target.id != "add-channel-button") {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "add-channel-context-menu");
     }
 
-    var modal = document.getElementById("EditUserModal");
-    if (event.target == modal) {
-        modal.style.display = "none";
+    if (!isDescendant(event.target,  "create-channel-modal-box") &&
+        !isDescendant(event.target, "create-channel-btn")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-channel-modal");
     }
 
-    var x = document.getElementsByClassName("channelmodel")
-    for (id in x) {
-        item = x[id]
-        if (event.target == item) {
-            item.style.display = "none";
-        }
-    }
-    var x = document.getElementsByClassName("categorymodel")
-    for (id in x) {
-        item = x[id]
-        if (event.target == item) {
-            item.style.display = "none";
-        }
-
+    if (!isDescendant(event.target, "create-category-modal-box") &&
+        !isDescendant(event.target, "create-category-btn")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-category-modal");
     }
 
-    var modal = document.getElementsByClassName("add-channel-button");
-    if (event.target.className != "add-channel-button") {
-        var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
+    console.log(event.target.id);
 
-        if (modal != null) {
-            modal.style.display = "none";
-        }
+    if (!isDescendant(event.target, "ban-modal-box") &&
+        event.target.id != "ban-button" &&
+        event.target.id != "ban-button-inner") {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "ban-modal");
     }
 
-    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
-    if (!isDescendant(event.target, modal.id)) {
-        modal.style.display = "none";
+    if (!isDescendant(event.target, "create-planet-modal-inner") &&
+        !isDescendant(event.target, "create-planet-button")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-planet-modal");
     }
 
-    var modal = document.getElementsByClassName("member-context-menu")[0];
-
-    //console.log(event.target.id);
-    //console.log(modal.id);
-
-    if (!isDescendant(event.target, modal.id)) {
-        HideMemberContextMenu();
+    if (!isDescendant(event.target, "edit-planet-modal-inner") &&
+        event.target.id != "edit-planet-button") {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-planet-modal");
     }
 
-    var modal = document.getElementsByClassName("BanModel")[0];
-    if (!isDescendant(event.target, modal.id)) {
-        modal.style.display = "none";
+    if (!isDescendant(event.target, "edit-user-modal-inner") &&
+        event.target.id != "user-edit-button") {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-user-modal");
     }
 
+    if (!isDescendant(event.target, "member-context-menu")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "member-context-menu");
+    }
 
+    if (!isDescendant(event.target, "channel-context-menu")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "channel-context-menu");
+    }
 }
 
 const isDescendant = (el, parentId) => {
@@ -401,20 +378,6 @@ const isDescendant = (el, parentId) => {
     return isChild
 }
 
-function OpenEditPlanetModal() {
-
-    console.log("Edit Planet Modal triggered.");
-
-    var x = document.getElementsByClassName("edit-planet-modal")
-    for (id in x) {
-        item = x[id]
-
-        if (item.style != null) {
-            item.style.display = "block";
-        }
-    }
-}
-
 function OpenEditUserModal() {
 
     console.log("Edit User Modal triggered.");
@@ -429,47 +392,8 @@ function OpenEditUserModal() {
     }
 }
 
-function AddChannelButtonFunction() {
-    x = document.getElementById("CreateChannel")
-    x.style.display = "block"
-}
-
-function AddCategoryButtonFunction() {
-    x = document.getElementById("CreateCategory")
-    x.style.display = "block"
-}
-
-function HideContextMenuForChannelCategory(){
-    var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
-    modal.style.display = "none";
-}
-
-// When the user clicks the button, open the modal 
-function AddChannelCategoryContextMenu(event, element) {
-    var modal = document.getElementsByClassName("AddChannelCategoryContextMenu")[0];
-    modal.id = element.id
-    modal.style.display = "block";
-    x = event.clientX;
-    y = event.clientY;
-    modal.style.left = `${x}px`;
-    modal.style.top = `${y}px`;
-    ParentIdForModel = element.id
-}
-
 function GetParentId() {
     return parseInt(ParentIdForModel)
-}
-
-function OpenMemberContextMenu(x, y) {
-    var modal = document.getElementsByClassName("member-context-menu")[0];
-    modal.style.display = "block";
-    modal.style.left = `${x}px`;
-    modal.style.top = `${y}px`;
-}
-
-function HideMemberContextMenu(){
-    var modal = document.getElementsByClassName("member-context-menu")[0];
-    modal.style.display = "none";
 }
 
 function KickUser() {
@@ -487,58 +411,6 @@ function BanUser() {
 function GetSelectedUserId() {
     return parseInt(SelectedUserId)
 }
-
-function ChannelListItemContextMenu(event, element) {
-    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
-    modal.id = element.id
-    modal.style.display = "block";
-    x = event.clientX;
-    y = event.clientY;
-    modal.style.left = `${x}px`;
-    modal.style.top = `${y}px`;
-    ChannelListItemId = element.id
-    while (true) {
-        if (element.className.includes("channel") == true | element.className.includes("category") == true) {
-            break
-        }
-        element = element.parentNode
-        if (element == null) {
-            return null;
-        }
-    }
-    if (element.className.includes("channel")) {
-        IsCategory = false
-    }
-    if (element.className.includes("category")){
-        IsCategory = true
-    }
-}
-
-function HideContextMenuForChanneListItem(){
-    var modal = document.getElementsByClassName("ChannelListItemContextMenu")[0];
-    modal.style.display = "none";
-}
-
-function DeleteChannelListItem() {
-    console.log(`Id: ${ChannelListItemId} IsCategory: ${IsCategory}`)
-
-    if (IsCategory === false) {
-        fetch(`/Channel/Delete?token=${SecretKey}&user_id=${user_id}&id=${parseInt(ChannelListItemId)}`)
-            .then(data => {
-                console.log(data)
-            })
-        
-    }
-    else {
-        fetch(`/Category/Delete?token=${SecretKey}&user_id=${user_id}&id=${parseInt(ChannelListItemId)}`)
-            .then(data => {
-                console.log(data)
-            })
-            
-    }
-
-}
-
 
 // Code for Reordering categories and channels
 const setDraggedOver = (e) => {
