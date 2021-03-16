@@ -32,7 +32,7 @@
                         </div>
                     </div>
 
-                    
+
                     <MemberListComponent @ref="MemberListComponent"></MemberListComponent>
 
                 </div>
@@ -48,7 +48,7 @@
                             ClientWindow window = windowManager.GetSelectedWindow();
                             ChatChannelWindow channelWindow = (ChatChannelWindow)window;
                             Planet planet = planetManager.GetCurrent();
-                            @foreach (PlanetCategory category in GetTopLevelCategories())
+                            @foreach (ClientPlanetCategory category in GetTopLevelCategories())
                             {
                                 <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
                                 </CategoryComponent>
@@ -64,12 +64,12 @@
                 <div class="topline">
                 </div>
                 <!--
-                    Todo: Logic for multiple main windows.
-                    This will be fun.
-                -->
+                Todo: Logic for multiple main windows.
+                This will be fun.
+            -->
                 <!--
-                    Add dummy window so Jacob doesn't cry
-                -->
+                Add dummy window so Jacob doesn't cry
+            -->
                 @if (windowManager.GetWindowCount() == 0)
                 {
                     windowManager.AddWindow(new HomeWindow(0));
@@ -118,95 +118,8 @@
 
             </div>
         </div>
-        <div class="context-menu AddChannelCategoryContextMenu" id="" style="display:none;">
-            <div class="context-menu-item" onclick="AddChannelButtonFunction()">
-                <p class="context-menu-item-text">
-                    Add Channel
-                </p>
-            </div>
-            <div class="context-menu-item">
-                <p class="context-menu-item-text" onclick="AddCategoryButtonFunction()">
-                    Add Category
-                </p>
-            </div>
-        </div>
 
-        <div class="context-menu ChannelListItemContextMenu" id="" style="display:none;">
-            <div class="context-menu-item" onclick="">
-                <p class="context-menu-item-text">
-                    Edit
-                </p>
-            </div>
-            <div class="context-menu-item delete-context-menu-item" onclick="DeleteChannelListItem()">
-                <p class="context-menu-item-text">
-                    Delete
-                </p>
-            </div>
-        </div>
-
-        <UserContextMenuComponent></UserContextMenuComponent>
-
-        <div class="modal BanModel" id="BanModel">
-            <!-- Modal content -->
-        <div class="modal-content-BanModel">
-                <div class="popup-box">
-                    <div class="col-md-12">
-                        <BanUserComponent></BanUserComponent>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal channelmodel" id="CreateChannel">
-            <!-- Modal content -->
-        <div class="modal-content-CreateChannel">
-                <div class="popup-box">
-                    <div class="col-md-12">
-                        <CreateChannelComponent></CreateChannelComponent>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal categorymodel" id='CreateCategory'>
-            <!-- Modal content -->
-        <div class="modal-content-CreateChannel">
-                <div class="popup-box">
-                    <div class="col-md-12">
-                        <CreateCategoryComponent></CreateCategoryComponent>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @if (planetManager.GetCurrent() != null)
-        {
-            <!-- The Modal -->
-            <div class="modal edit-planet-modal" id="EditPlanetModal">
-                <!-- Modal content -->
-        <div class="modal-content-EditPlanet">
-                    <div class="popup-box">
-                        <div class="col-md-12" style="height: 100%; width: 100%;">
-                            <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        @if (ClientUserManager.User != null)
-        {
-            <!-- The Modal -->
-            <div class="modal edit-user-modal" id="EditUserModal">
-                <!-- Modal content -->
-        <div class="modal-content-EditUser">
-                    <div class="popup-box">
-                        <div class="col-md-12" style="height: 100%; width: 100%;">
-                            <EditUserComponent User="@ClientUserManager.User"></EditUserComponent>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
+        <ModalHolderComponent></ModalHolderComponent>
     </body>
 }
 else
@@ -219,9 +132,9 @@ else
 
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
 
-    public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<PlanetCategory>();
+    public ConcurrentBag<ClientPlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<ClientPlanetCategory>();
 
-    public MemberListComponent MemberListComponent { get; set; } 
+    public MemberListComponent MemberListComponent { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -236,13 +149,11 @@ else
     public async Task OnRefreshChannelList(string data)
     {
 
-        ClientPlanet dummy = new ClientPlanet();
+        ClientPlanet planet = planetManager.GetCurrent();
 
-        Planet planet = planetManager.GetCurrent();
+        IEnumerable<ClientPlanetChatChannel> channels = await planet.GetClientPlanetChannelsAsync(planet.Id);
 
-        IEnumerable<ClientPlanetChatChannel> channels = await dummy.GetClientPlanetChannelsAsync(planet.Id);
-
-        IEnumerable<PlanetCategory> categories = await dummy.GetClientPlanetCategoriesAsync(planet.Id);
+        IEnumerable<ClientPlanetCategory> categories = await planet.GetClientPlanetCategoriesAsync(planet.Id);
 
         PlanetCategoryChannelList.Clear();
 
@@ -255,7 +166,7 @@ else
             PlanetChannelList.Add(channel);
         }
 
-        foreach (PlanetCategory category in categories)
+        foreach (ClientPlanetCategory category in categories)
         {
             PlanetCategoryChannelList.Add(category);
         }
@@ -309,7 +220,7 @@ else
 
         PlanetCategoryChannelList.Clear();
 
-        foreach (PlanetCategory category in await dummy.GetClientPlanetCategoriesAsync(planet.Id))
+        foreach (ClientPlanetCategory category in await dummy.GetClientPlanetCategoriesAsync(planet.Id))
         {
             PlanetCategoryChannelList.Add(category);
         }
@@ -317,9 +228,9 @@ else
         StateHasChanged();
     }
 
-    public List<PlanetCategory> GetTopLevelCategories()
+    public List<ClientPlanetCategory> GetTopLevelCategories()
     {
-        List<PlanetCategory> list = PlanetCategoryChannelList.Where(x => x.Parent_Id == null).ToList();
+        List<ClientPlanetCategory> list = PlanetCategoryChannelList.Where(x => x.Parent_Id == null).ToList();
         list.Sort((x, y) => x.Position.CompareTo(y.Position));
         return list;
     }
@@ -375,5 +286,11 @@ else
     public async Task ForceRefresh()
     {
         StateHasChanged();
+    }
+
+    [JSInvokable("OnClickInterop")]
+    public static async Task OnClickInterop(string target)
+    {
+
     }
 }

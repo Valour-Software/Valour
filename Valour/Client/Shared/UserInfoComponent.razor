@@ -1,4 +1,6 @@
-﻿<div class="user-info">
+﻿@inject EditUserModal editUserModal
+
+<div class="user-info">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
     <p class="username">
         @if (User.Username.Length > 16) {
@@ -12,7 +14,7 @@
     </p>
     <div class="active">
     </div>
-    <img class="settings" src="/media/Settings-Icon.svg" onclick="OpenEditUserModal()">
+    <img id="user-edit-button" class="settings" src="/media/Settings-Icon.svg" @onclick="editUserModal.Open">
 </div>
 
 @code {

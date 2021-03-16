@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Planets;
+using Valour.Client.Shared.Modals.ContextMenus;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
@@ -12,7 +13,7 @@ using Valour.Client.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-namespace Valour.Client.ContextMenus
+namespace Valour.Client.Modals.ContextMenus
 {
     /// <summary>
     /// Assists in controlling the user context menu
@@ -21,6 +22,7 @@ namespace Valour.Client.ContextMenus
     {
         public readonly IJSRuntime JS;
         public ClientPlanetMember SelectedMember;
+        public MemberContextMenuComponent Component;
         public Func<Task> OpenEvent;
 
         public MemberContextMenu(IJSRuntime js)
@@ -29,8 +31,10 @@ namespace Valour.Client.ContextMenus
         }
 
         public async Task Open(MouseEventArgs e, ClientPlanetMember member){
-            await JS.InvokeVoidAsync("OpenMemberContextMenu", e.ClientX, e.ClientY);
+            
             SelectedMember = member;
+            Component.SetPosition(e.ClientX, e.ClientY);
+            Component.SetVisibility(true);
 
             if (OpenEvent != null)
             {

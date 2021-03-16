@@ -1,13 +1,19 @@
 ﻿@inject IJSRuntime JS
 @inject ClientPlanetManager planetManager
+@inject EditPlanetModal editPlanetModal
 
 <h3>Edit Roles</h3>
 <hr />
 <br />
 
-<div class="settings-inner">
-    @if (editMode)
-    {
+<div class="settings-inner" id="edit-inner-settings">
+
+    @{
+        string editStyle = "display: none";
+        if (editMode) { editStyle = ""; }
+    }
+
+    <div style="@editStyle">
         <div class="rolecreate-cont">
             <div class="form-group mt-2">
                 <label>Role Name</label>
@@ -23,7 +29,7 @@
 
         </div>
         <div class="mt-2" style="display: block">
-            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave">
+            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
                 <p class="center-t">
                     Save
                 </p>
@@ -63,9 +69,15 @@
                 </div>
             </div>
         }
+    </div>
+
+    @{
+        string delStyle = "display: none";
+        if (deleteMode) { delStyle = ""; }
     }
-    else if (deleteMode)
-    {
+
+
+    <div style="@delStyle">
         <h3>Delete: @role.Name</h3>
         <h4>Are you sure?</h4>
 
@@ -78,51 +90,51 @@
             <span id="result-span" class="text-info">@resultSpan</span>
             <span id="error-span" class="text-danger" style="display:block">@errorSpan</span>
         </div>
+    </div>
 
+    @{
+        string normStyle = "display: none";
+        if (!editMode && !deleteMode) { normStyle = ""; }
     }
-    else
-    {
-        if (Selected == null)
+
+
+    <div class="container" id="edit-rows-container" style="@normStyle">
+
+        @foreach (PlanetRole role in Roles)
         {
-            <div class="container">
+            // For magic lambda
+            var role_x = role;
 
-                @foreach (PlanetRole role in Roles)
-                {
-                    // For magic lambda
-                    var role_x = role;
-
-                    <div class="row mt-2">
-                        <div class="role-edit-row">
-                            <div class="role-edit">
-                                <p style="color:@role.GetColorHex()">
-                                    @role.Name
-                                </p>
-                            </div>
-                            <div class="btn-role-edit edit" @onclick="() => OnClickEdit(role_x)">
-                                <p class="center-t">
-                                    Edit
-                                </p>
-                            </div>
-                            <div class="btn-role-edit delete" @onclick="() => OnClickDelete(role_x)">
-                                <p class="center-t">
-                                    Delete
-                                </p>
-                            </div>
-                        </div>
+            <div class="row mt-2" id="row-edit-holder">
+                <div class="role-edit-row" id="role-edit-row">
+                    <div class="role-edit">
+                        <p style="color:@role.GetColorHex()">
+                            @role.Name
+                        </p>
                     </div>
-                }
-
-                <div class="row mt-2">
-                    <div class="btn-role-edit create" @onclick="OnClickCreateMode">
+                    <div id="role-edit-btn" class="btn-role-edit edit" @onclick="() => OnClickEdit(role_x)">
                         <p class="center-t">
-                            Create
+                            Edit
+                        </p>
+                    </div>
+                    <div id="role-delete-btn" class="btn-role-edit delete" @onclick="() => OnClickDelete(role_x)">
+                        <p class="center-t">
+                            Delete
                         </p>
                     </div>
                 </div>
-
             </div>
         }
-    }
+
+        <div class="row mt-2">
+            <div class="btn-role-edit create" @onclick="OnClickCreateMode">
+                <p class="center-t">
+                    Create
+                </p>
+            </div>
+        </div>
+
+    </div>
 </div>
 
 @code {
@@ -235,6 +247,7 @@
         }
 
         deleteMode = false;
+
         StateHasChanged();
     }
 
@@ -271,7 +284,9 @@
 
         rolePermValues = new bool[PlanetPermissions.Permissions.Length];
         editMode = true;
+
         StateHasChanged();
+        await editPlanetModal.Open();
     }
 
     public async Task OnClickSave()

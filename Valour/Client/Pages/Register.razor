@@ -91,7 +91,7 @@
 
         birthDay = Newtonsoft.Json.JsonConvert.DeserializeObject<DateTime>(birthDayString);
 
-        if (birthDay == null)
+        if (birthDay == new DateTime())
         {
             navManager.NavigateTo("/AgeVeri");
         }

@@ -1,7 +1,7 @@
 
 namespace Valour.Shared.Planets
 {
-    public class PlanetListItem
+    public class ChannelListItem
     {
         public ushort Position { get; set; }
 

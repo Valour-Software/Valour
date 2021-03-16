@@ -12,6 +12,7 @@ using Valour.Shared.Channels;
 using Valour.Shared.Planets;
 using Valour.Shared.Categories;
 using Valour.Shared.Roles;
+using Valour.Client.Categories;
 
 namespace Valour.Client.Planets
 {
@@ -79,11 +80,11 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Retrieves and returns categories of a planet by requesting from the server
         /// </summary>
-        public async Task<IEnumerable<PlanetCategory>> GetClientPlanetCategoriesAsync(ulong id)
+        public async Task<List<ClientPlanetCategory>> GetClientPlanetCategoriesAsync(ulong id)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Category/GetPlanetCategories?planet_id={id}");
 
-            TaskResult<IEnumerable<PlanetCategory>> result = JsonConvert.DeserializeObject<TaskResult<IEnumerable<PlanetCategory>>>(json);
+            TaskResult<List<ClientPlanetCategory>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetCategory>>>(json);
 
             if (result == null)
             {

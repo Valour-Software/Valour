@@ -1,8 +1,11 @@
 ﻿@using Valour.Shared.Categories
+@using Valour.Shared.Planets
+
+@inject AddChannelContextMenu addChannelContextMenu
 @inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject ClientCategoryManager categoryManager
-@using Valour.Shared.Planets
+
 
 
 <div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)">
@@ -11,18 +14,23 @@
         <p class="name" @onclick='@OnClick'>
             @category.Name
         </p>
-        <p class="add-channel-button" id="@category.Id" onclick="AddChannelCategoryContextMenu(event, this)">
+        <p class="add-channel-button" id="add-channel-button" @onclick="OpenAddContextMenu">
             +
         </p>
     </div>
     <!-- The Modal -->
-    @if (IsOpen) {
+    @if (IsOpen)
+    {
         <div class="channel-list">
-            @foreach(PlanetListItem item in ItemList) {
+            @foreach (ChannelListItem item in ItemList)
+            {
                 ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
-                if (channel != null) {
-                    if (channel.Parent_Id == null && category.Name == "General") {
-                        if (channel.Id == channelWindow.Channel.Id) {
+                if (channel != null)
+                {
+                    if (channel.Parent_Id == null && category.Name == "General")
+                    {
+                        if (channel.Id == channelWindow.Channel.Id)
+                        {
                             <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
                         }
                         else
@@ -30,8 +38,10 @@
                             <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
                         }
                     }
-                    if (channel.Parent_Id == category.Id) {
-                        if (channel.Id == channelWindow.Channel.Id) {
+                    if (channel.Parent_Id == category.Id)
+                    {
+                        if (channel.Id == channelWindow.Channel.Id)
+                        {
                             <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
                         }
                         else
@@ -40,9 +50,11 @@
                         }
                     }
                 }
-                else {
-                    PlanetCategory planetcategory = item as PlanetCategory;
-                    @if (planetcategory.Parent_Id == category.Id) {
+                else
+                {
+                    ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
+                    @if (planetcategory.Parent_Id == category.Id)
+                    {
                         <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
                         </CategoryComponent>
                     }
@@ -53,18 +65,18 @@
     }
 </div>
 @code {
-    
-    [Parameter]
-    public bool IsTopLevel {get; set;}
 
     [Parameter]
-    public PlanetCategory category { get; set; }
+    public bool IsTopLevel { get; set; }
+
+    [Parameter]
+    public ClientPlanetCategory category { get; set; }
 
     [Parameter]
     public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList { get; set; }
 
     [Parameter]
-    public ConcurrentBag<PlanetCategory> PlanetCategoryChannelList { get; set; }
+    public ConcurrentBag<ClientPlanetCategory> PlanetCategoryChannelList { get; set; }
 
     [Parameter]
     public ChatChannelWindow channelWindow { get; set; }
@@ -74,7 +86,7 @@
 
     public bool IsOpen { get; set; }
 
-    public List<PlanetListItem> ItemList = new List<PlanetListItem>();
+    public List<ChannelListItem> ItemList = new List<ChannelListItem>();
 
     protected override Task OnInitializedAsync()
     {
@@ -82,7 +94,8 @@
 
         var channels = PlanetChannelList.Where(x => x.Parent_Id == category.Id).ToList();
 
-        foreach(ClientPlanetChatChannel channel in channels) {
+        foreach (ClientPlanetChatChannel channel in channels)
+        {
             ItemList.Add(channel);
             Console.WriteLine($"Id: {channel.Id}");
         }
@@ -91,21 +104,25 @@
 
         ItemList.AddRange(categories);
 
-        foreach(PlanetListItem item in ItemList) {
-             ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
-             if (channel != null) {
-                 item.Position = channel.Position;
-             }
-             else {
-               PlanetCategory planetcategory = item as PlanetCategory;
-               item.Position = planetcategory.Position;
-             }
+        foreach (ChannelListItem item in ItemList)
+        {
+            ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+            if (channel != null)
+            {
+                item.Position = channel.Position;
+            }
+            else
+            {
+                PlanetCategory planetcategory = item as PlanetCategory;
+                item.Position = planetcategory.Position;
+            }
 
         }
 
-        ItemList.Sort((x,y) => x.Position.CompareTo(y.Position));
+        ItemList.Sort((x, y) => x.Position.CompareTo(y.Position));
 
-        foreach(PlanetListItem item in ItemList) {
+        foreach (ChannelListItem item in ItemList)
+        {
             Console.WriteLine(item.Position);
             Console.WriteLine(item.Name);
         }
@@ -117,10 +134,12 @@
     {
         get
         {
-            if (IsOpen) {
+            if (IsOpen)
+            {
                 return "transform: rotate(90deg);";
             }
-            else {
+            else
+            {
                 return "";
             }
         }
@@ -132,14 +151,16 @@
         {
             if (IsOpen)
             {
-                if (IsTopLevel) {
+                if (IsTopLevel)
+                {
                     return "category is-open top-level-category";
                 }
                 return "category is-open";
             }
             else
             {
-                if (IsTopLevel) {
+                if (IsTopLevel)
+                {
                     return "category top-level-category";
                 }
                 return "category";
@@ -156,5 +177,10 @@
         categoryManager.SetOpen(category, IsOpen);
 
         StateHasChanged();
+    }
+
+    public async Task OpenAddContextMenu(MouseEventArgs e)
+    {
+        await addChannelContextMenu.Open(e, category);
     }
 }
