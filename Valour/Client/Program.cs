@@ -48,6 +48,7 @@ namespace Valour.Client
             builder.Services.AddSingleton<CreateChannelModal>();
             builder.Services.AddSingleton<CreateCategoryModal>();
             builder.Services.AddSingleton<CreatePlanetModal>();
+            builder.Services.AddSingleton<EditChannelListItemModal>();
 
             var mapConfig = new MapperConfiguration(x =>
             {

@@ -348,6 +348,11 @@ window.onclick = function (event) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-planet-modal");
     }
 
+    if (!isDescendant(event.target, "edit-channel-list-item-modal-inner") &&
+        !isDescendant(event.target, "edit-channel-list-item-btn")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-channel-list-item-modal");
+    }
+
     if (!isDescendant(event.target, "edit-user-modal-inner") &&
         event.target.id != "user-edit-button") {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-user-modal");

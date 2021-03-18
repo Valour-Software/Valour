@@ -1,0 +1,97 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject LocalStorageService storage
+
+
+<body class="edit-body">
+    <div class="container">
+        <div class="row settings-row">
+            <div class="col-3 edit-col-left">
+                <b>@GetTitle()</b>
+                <hr />
+                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+            </div>
+            <div class="col-9 edit-col-right">
+                @switch (selected)
+                {
+                    case 0:
+                        
+                        break;
+                    default:
+                        break;
+
+                }
+            </div>
+        </div>
+    </div>
+</body>
+
+@code {
+    [Parameter]
+    public ChannelListItem ChannelListItem { get; set; }
+    public bool isChannel;
+    public ClientPlanetChatChannel Channel;
+    public ClientPlanetCategory Category;
+
+
+    public string GetTitle()
+    {
+        if (isChannel)
+        {
+            return $"Channel: {Channel.Name}";
+        }
+        else
+        {
+            return $"Category: {Category.Name}";
+        }
+    }
+
+    public string GetButtonClass(int tab)
+    {
+        if (buttonStates[tab])
+        {
+            return "settings-button active";
+        }
+
+        return "settings-button";
+    }
+
+    public bool[] buttonStates = new bool[1]
+    {
+        true
+        };
+
+    public int selected = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ChannelListItem is PlanetChatChannel)
+        {
+            isChannel = true;
+            Channel = (ClientPlanetChatChannel)ChannelListItem;
+            Category = null;
+        }
+        else
+        {
+            isChannel = false;
+            Category = (ClientPlanetCategory)ChannelListItem;
+            Channel = null;
+        }
+    }
+
+    public void SetSelectedTab(int tab)
+    {
+        Console.WriteLine("Set selected to " + tab);
+
+        for (int i = 0; i < buttonStates.Length; i++)
+        {
+            buttonStates[i] = false;
+        }
+
+        buttonStates[tab] = true;
+
+        selected = tab;
+
+        StateHasChanged();
+    }
+}
