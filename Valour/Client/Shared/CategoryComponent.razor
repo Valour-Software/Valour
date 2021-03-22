@@ -73,10 +73,10 @@
     public ClientPlanetCategory category { get; set; }
 
     [Parameter]
-    public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList { get; set; }
+    public List<ClientPlanetChatChannel> PlanetChannelList { get; set; }
 
     [Parameter]
-    public ConcurrentBag<ClientPlanetCategory> PlanetCategoryChannelList { get; set; }
+    public List<ClientPlanetCategory> PlanetCategoryChannelList { get; set; }
 
     [Parameter]
     public ChatChannelWindow channelWindow { get; set; }

@@ -1,0 +1,70 @@
+﻿@inject HttpClient http
+
+<h3>Basic Details</h3>
+<hr />
+<br />
+
+<div class="settings-inner">
+    <p>Name</p>
+    <input class="form-control" type="text" @bind-value="@nameValue" />
+    <span class="text-danger">@nameSpan</span>
+
+    <br />
+
+    <p>Description</p>
+    <input class="form-control" type="text" @bind-value="@descValue" />
+    <span class="text-danger">@descSpan</span>
+
+    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+</div>
+
+
+@code {
+    [Parameter]
+    public ChannelListItem Item { get; set; }
+
+    public string nameValue;
+    public string descValue;
+
+    public string nameSpan;
+    public string descSpan;
+
+    protected override async Task OnInitializedAsync()
+    {
+        nameValue = Item.Name;
+        descValue = Item.Description;
+
+        StateHasChanged();
+    }
+
+    public async Task OnSaveChanges()
+    {
+
+        ClientPlanetChatChannel channel = Item as ClientPlanetChatChannel;
+
+        if (channel != null)
+        {
+            if (nameValue != Item.Name)
+            {
+                TaskResult result = await channel.SetNameAsync(nameValue);
+                nameSpan = result.Message;
+            }
+
+            if (descValue != Item.Description)
+            {
+                TaskResult result = await channel.SetDescriptionAsync(descValue);
+                descSpan = result.Message;
+            }
+        }
+        else
+        {
+            ClientPlanetCategory category = Item as ClientPlanetCategory;
+
+
+        }
+
+
+
+        StateHasChanged();
+    }
+}

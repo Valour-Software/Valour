@@ -15,6 +15,10 @@ using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
+using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.RegularExpressions;
+using Valour.Shared;
 
 namespace Valour.Server.Planets
 {
@@ -31,6 +35,10 @@ namespace Valour.Server.Planets
     /// </summary>
     public class ServerPlanetChatChannel : PlanetChatChannel
     {
+
+        [ForeignKey("Planet_Id")]
+        [JsonIgnore]
+        public virtual ServerPlanet Planet { get; set; }
 
         /// <summary>
         /// Returns the generic planet chat channel object
@@ -92,6 +100,26 @@ namespace Valour.Server.Planets
 
             // No roles ever defined behavior: resort to false.
             return false;
+        }
+
+        public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+        /// <summary>
+        /// Validates that a given name is allowable for a channel
+        /// </summary>
+        public static TaskResult ValidateName(string name)
+        {
+            if (name.Length > 32)
+            {
+                return new TaskResult(false, "Channel names must be 32 characters or less.");
+            }
+
+            if (!nameRegex.IsMatch(name))
+            {
+                return new TaskResult(false, "Channel names may only include letters, numbers, dashes, and underscores.");
+            }
+
+            return new TaskResult(true, "The given name is valid.");
         }
     }
 }

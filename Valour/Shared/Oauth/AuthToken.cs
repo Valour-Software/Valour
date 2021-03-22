@@ -45,5 +45,13 @@ namespace Valour.Shared.Oauth
         /// The time that this token will expire
         /// </summary>
         public DateTime Expires { get; set; }
+
+        /// <summary>
+        /// Helper method for scope checking
+        /// </summary>
+        public bool HasScope(UserPermission permission)
+        {
+            return Permission.HasPermission(Scope, permission);
+        }
     }
 }

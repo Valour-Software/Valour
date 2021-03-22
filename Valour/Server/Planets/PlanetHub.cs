@@ -81,5 +81,13 @@ namespace Valour.Server.Planets
             // Send update to members
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", json);
         }
+
+        public static async Task NotifyChatChannelChange(ServerPlanetChatChannel channel)
+        {
+            string json = JsonConvert.SerializeObject(channel);
+
+            // Send update to members
+            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", json);
+        }
     }
 }

@@ -130,9 +130,9 @@ else
 @code{
     public ConcurrentBag<ClientPlanetMember> planetMemberList = new ConcurrentBag<ClientPlanetMember>();
 
-    public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList = new ConcurrentBag<ClientPlanetChatChannel>();
+    public List<ClientPlanetChatChannel> PlanetChannelList = new List<ClientPlanetChatChannel>();
 
-    public ConcurrentBag<ClientPlanetCategory> PlanetCategoryChannelList = new ConcurrentBag<ClientPlanetCategory>();
+    public List<ClientPlanetCategory> PlanetCategoryChannelList = new List<ClientPlanetCategory>();
 
     public MemberListComponent MemberListComponent { get; set; }
 
@@ -143,6 +143,7 @@ else
         planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
         planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
+        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
         signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
     }
 
@@ -151,28 +152,11 @@ else
 
         ClientPlanet planet = planetManager.GetCurrent();
 
-        IEnumerable<ClientPlanetChatChannel> channels = await planet.GetClientPlanetChannelsAsync(planet.Id);
+        PlanetChannelList = await planet.GetChannelsAsync();
 
-        IEnumerable<ClientPlanetCategory> categories = await planet.GetClientPlanetCategoriesAsync(planet.Id);
-
-        PlanetCategoryChannelList.Clear();
-
-        PlanetChannelList.Clear();
+        PlanetCategoryChannelList = await planet.GetCategoriesAsync();
 
         StateHasChanged();
-
-        foreach (ClientPlanetChatChannel channel in channels)
-        {
-            PlanetChannelList.Add(channel);
-        }
-
-        foreach (ClientPlanetCategory category in categories)
-        {
-            PlanetCategoryChannelList.Add(category);
-        }
-
-        StateHasChanged();
-
     }
 
     public void Dispose()
@@ -214,13 +198,11 @@ else
 
     public async Task OnCategoriesUpdate()
     {
-        ClientPlanet dummy = new ClientPlanet();
-
-        Planet planet = planetManager.GetCurrent();
+        ClientPlanet planet = planetManager.GetCurrent();
 
         PlanetCategoryChannelList.Clear();
 
-        foreach (ClientPlanetCategory category in await dummy.GetClientPlanetCategoriesAsync(planet.Id))
+        foreach (ClientPlanetCategory category in await planet.GetCategoriesAsync())
         {
             PlanetCategoryChannelList.Add(category);
         }
@@ -235,15 +217,30 @@ else
         return list;
     }
 
+    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    {
+        var oldChannel = PlanetChannelList.FirstOrDefault(x => x.Id == channel.Id);
+
+        if (oldChannel == null)
+        {
+            return;
+        }
+
+        var index = PlanetChannelList.IndexOf(oldChannel);
+
+        // Set to new role
+        PlanetChannelList[index] = channel;
+
+        StateHasChanged();
+    }
+
     public async Task OnChannelsUpdate()
     {
-        ClientPlanet dummy = new ClientPlanet();
-
-        Planet planet = planetManager.GetCurrent();
+        ClientPlanet planet = planetManager.GetCurrent();
 
         PlanetChannelList.Clear();
 
-        foreach (ClientPlanetChatChannel channel in await dummy.GetClientPlanetChannelsAsync(planet.Id))
+        foreach (ClientPlanetChatChannel channel in await planet.GetChannelsAsync())
         {
             PlanetChannelList.Add(channel);
         }

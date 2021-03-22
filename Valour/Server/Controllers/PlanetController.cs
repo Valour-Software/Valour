@@ -175,7 +175,7 @@ namespace Valour.Server.Controllers
             };
 
             // Create general channel
-            PlanetChatChannel channel = new PlanetChatChannel()
+            ServerPlanetChatChannel channel = new ServerPlanetChatChannel()
             {
                 Id = IdManager.Generate(),
                 Planet_Id = planet_id,

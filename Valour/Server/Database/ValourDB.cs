@@ -19,6 +19,7 @@ using Valour.Shared;
 using Valour.Shared.Roles;
 using Valour.Server.Roles;
 using Valour.Server.Oauth;
+using Valour.Server.Categories;
 
 namespace Valour.Server.Database
 {
@@ -91,12 +92,12 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for all planet chat channels
         /// </summary>
-        public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
+        public DbSet<ServerPlanetChatChannel> PlanetChatChannels { get; set; }
 
         /// <summary>
         /// Table for all planet chat categories
         /// </summary>
-        public DbSet<PlanetCategory> PlanetCategories { get; set; }
+        public DbSet<ServerPlanetCategory> PlanetCategories { get; set; }
 
         /// <summary>
         /// Table for all banned members

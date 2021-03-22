@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web;
 using Valour.Client.Messages;
 using Valour.Client.Planets;
+using Valour.Shared;
 using Valour.Shared.Channels;
 
 namespace Valour.Client.Channels
@@ -79,6 +81,48 @@ namespace Valour.Client.Channels
             }
 
             return messages;
+        }
+
+        /// <summary>
+        /// Attempts to set the name of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> SetNameAsync(string name)
+        {
+            string encodedName = HttpUtility.UrlEncode(name);
+
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetName?channel_id={Id}" +
+                                                                                     $"&name={encodedName}" +
+                                                                                     $"&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from SetName in channel");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Attempts to set the description of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> SetDescriptionAsync(string desc)
+        {
+            string encodedDesc = HttpUtility.UrlEncode(desc);
+
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetName?channel_id={Id}" +
+                                                                                     $"&description={desc}" +
+                                                                                     $"&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from SetDescription in channel");
+            }
+
+            return result;
         }
     }
 }

@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Valour.Server.Planets;
 using Valour.Shared.Oauth;
 using AutoMapper;
+using Valour.Server.Categories;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -111,7 +112,7 @@ namespace Valour.Server.Controllers
 
             List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
 
-            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
+            List<ServerPlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
 
             //Check if any channels in this category are the main channel
             foreach(PlanetChatChannel channel in channels) {
@@ -120,11 +121,11 @@ namespace Valour.Server.Controllers
                 }
             }
             //If not, then delete the channels
-            foreach(PlanetChatChannel channel in channels) {
+            foreach(ServerPlanetChatChannel channel in channels) {
                 Context.PlanetChatChannels.Remove(channel);
             }
 
-            foreach(PlanetCategory Category in categories)
+            foreach(ServerPlanetCategory Category in categories)
             {
                 Category.Parent_Id = null;
                 
@@ -233,26 +234,6 @@ namespace Valour.Server.Controllers
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created category.", category.Id);
-        }
-
-        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
-        /// <summary>
-        /// Validates that a given name is allowable for a server
-        /// </summary>
-        public TaskResult ValidateName(string name)
-        {
-            if (name.Length > 32)
-            {
-                return new TaskResult(false, "Planet names must be 32 characters or less.");
-            }
-
-            if (!planetRegex.IsMatch(name))
-            {
-                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-            }
-
-            return new TaskResult(true, "The given name is valid.");
         }
 
         [HttpGet]

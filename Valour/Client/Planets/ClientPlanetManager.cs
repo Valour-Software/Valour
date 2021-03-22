@@ -50,6 +50,8 @@ namespace Valour.Client.Planets
 
         public event Func<ClientPlanetMember, Task> OnMemberUpdate;
 
+        public event Func<ClientPlanetChatChannel, Task> OnChatChannelUpdate;
+
         private readonly SignalRManager signalRManager;
 
         public ClientPlanetManager(SignalRManager signalrmanager)
@@ -476,6 +478,25 @@ namespace Valour.Client.Planets
             if (OnMemberUpdate != null)
             {
                 await OnMemberUpdate.Invoke(member);
+            }
+        }
+
+        public async Task UpdateChatChannel(string json)
+        {
+            ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(json);
+
+            if (channel == null)
+            {
+                Console.WriteLine("Failed to deserialize channel in chat channel update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet chat channel update ping");
+            Console.WriteLine(json);
+
+            if (OnChatChannelUpdate != null)
+            {
+                await OnChatChannelUpdate.Invoke(channel);
             }
         }
     }
