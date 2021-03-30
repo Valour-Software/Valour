@@ -15,7 +15,7 @@
                 @switch (selected)
                 {
                     case 0:
-                        <EditCLIDetailsComponent></EditCLIDetailsComponent>
+                        <EditCLIDetailsComponent Item="ChannelListItem"></EditCLIDetailsComponent>
                         break;
                     default:
                         break;
@@ -28,7 +28,7 @@
 
 @code {
     [Parameter]
-    public ChannelListItem ChannelListItem { get; set; }
+    public IClientPlanetListItem ChannelListItem { get; set; }
     public bool isChannel;
     public ClientPlanetChatChannel Channel;
     public ClientPlanetCategory Category;

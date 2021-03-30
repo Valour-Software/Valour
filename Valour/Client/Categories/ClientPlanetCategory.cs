@@ -1,9 +1,12 @@
 ﻿using AutoMapper;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Web;
 using Valour.Client.Planets;
+using Valour.Shared;
 using Valour.Shared.Categories;
 
 namespace Valour.Client.Categories
@@ -19,7 +22,7 @@ namespace Valour.Client.Categories
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ClientPlanetCategory : PlanetCategory
+    public class ClientPlanetCategory : PlanetCategory, IClientPlanetListItem
     {
         /// <summary>
         /// Converts to a client version of planet category
@@ -35,6 +38,48 @@ namespace Valour.Client.Categories
         public async Task<ClientPlanet> GetPlanetAsync()
         {
             return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
+        }
+
+        /// <summary>
+        /// Attempts to set the name of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> SetNameAsync(string name)
+        {
+            string encodedName = HttpUtility.UrlEncode(name);
+
+            string json = await ClientUserManager.Http.GetStringAsync($"Category/SetName?category_id={Id}" +
+                                                                                      $"&name={encodedName}" +
+                                                                                      $"&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from SetName in channel");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Attempts to set the description of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> SetDescriptionAsync(string desc)
+        {
+            string encodedDesc = HttpUtility.UrlEncode(desc);
+
+            string json = await ClientUserManager.Http.GetStringAsync($"Category/SetName?category_id={Id}" +
+                                                                                      $"&description={desc}" +
+                                                                                      $"&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from SetDescription in channel");
+            }
+
+            return result;
         }
     }
 }

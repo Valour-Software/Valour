@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Roles;
 using Valour.Shared.Oauth;
@@ -88,6 +89,14 @@ namespace Valour.Server.Planets
 
             // Send update to members
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", json);
+        }
+
+        public static async Task NotifyCategoryChange(ServerPlanetCategory category)
+        {
+            string json = JsonConvert.SerializeObject(category);
+
+            // Send update to members
+            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", json);
         }
     }
 }

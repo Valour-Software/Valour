@@ -33,7 +33,7 @@ namespace Valour.Server.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ServerPlanetChatChannel : PlanetChatChannel
+    public class ServerPlanetChatChannel : PlanetChatChannel, IServerChannelListItem
     {
 
         [ForeignKey("Planet_Id")]
@@ -43,6 +43,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the generic planet chat channel object
         /// </summary>
+        [JsonIgnore]
         public ServerPlanetChatChannel PlanetChatChannel
         {
             get
@@ -71,7 +72,7 @@ namespace Valour.Server.Planets
             }
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChannelPermission permission)
+        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission)
         {
             var roles = await member.GetRolesAsync();
 
@@ -120,6 +121,32 @@ namespace Valour.Server.Planets
             }
 
             return new TaskResult(true, "The given name is valid.");
+        }
+
+        public async Task SetNameAsync(string name, ValourDB db = null)
+        {
+            bool createdb = false;
+            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+
+            this.Name = name;
+
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            if (createdb) { await db.DisposeAsync(); }
+        }
+
+        public async Task SetDescriptionAsync(string desc, ValourDB db = null)
+        {
+            bool createdb = false;
+            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+
+            this.Description = desc;
+
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            if (createdb) { await db.DisposeAsync(); }
         }
     }
 }

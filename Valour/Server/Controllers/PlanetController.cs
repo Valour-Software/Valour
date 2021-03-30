@@ -24,6 +24,7 @@ using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using Valour.Server.Users;
 using Valour.Server.Oauth;
+using Valour.Server.Categories;
 
 
 /*  Valour - A free and secure chat client
@@ -165,7 +166,7 @@ namespace Valour.Server.Controllers
             ulong planet_id = IdManager.Generate();
 
             // Create general category
-            PlanetCategory category = new PlanetCategory()
+            ServerPlanetCategory category = new ServerPlanetCategory()
             {
                 Id = IdManager.Generate(),
                 Name = "General",

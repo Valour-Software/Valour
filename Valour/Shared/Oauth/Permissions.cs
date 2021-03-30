@@ -79,9 +79,9 @@ namespace Valour.Shared.Oauth
         }
     }
 
-    public class ChannelPermission : Permission
+    public class ChatChannelPermission : Permission
     {
-        public ChannelPermission(ulong value, string name, string description) : base(value, name, description)
+        public ChatChannelPermission(ulong value, string name, string description) : base(value, name, description)
         {
         }
     }
@@ -140,7 +140,7 @@ namespace Valour.Shared.Oauth
     /// This class contains all channel permissions and helper methods for working
     /// with them
     /// </summary>
-    public static class ChannelPermissions
+    public static class ChatChannelPermissions
     {
 
         public static readonly ulong Default =
@@ -149,11 +149,11 @@ namespace Valour.Shared.Oauth
         /// <summary>
         /// Contains every channel permission
         /// </summary>
-        public static ChannelPermission[] Permissions;
+        public static ChatChannelPermission[] Permissions;
 
-        static ChannelPermissions()
+        static ChatChannelPermissions()
         {
-            Permissions = new ChannelPermission[]
+            Permissions = new ChatChannelPermission[]
             {
                 FullControl,
                 View,
@@ -167,15 +167,15 @@ namespace Valour.Shared.Oauth
         }
 
         // Use shared full control definition
-        public static readonly ChannelPermission FullControl = new ChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
+        public static readonly ChatChannelPermission FullControl = new ChatChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
 
-        public static readonly ChannelPermission View = new ChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
-        public static readonly ChannelPermission ViewMessages = new ChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
-        public static readonly ChannelPermission PostMessages = new ChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
-        public static readonly ChannelPermission ManageChannel = new ChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
-        public static readonly ChannelPermission ManagePermissions = new ChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
-        public static readonly ChannelPermission Embed = new ChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
-        public static readonly ChannelPermission AttachContent = new ChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
+        public static readonly ChatChannelPermission View = new ChatChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
+        public static readonly ChatChannelPermission ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
+        public static readonly ChatChannelPermission PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
+        public static readonly ChatChannelPermission ManageChannel = new ChatChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
+        public static readonly ChatChannelPermission ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+        public static readonly ChatChannelPermission Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
+        public static readonly ChatChannelPermission AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
     }
 
     /// <summary>

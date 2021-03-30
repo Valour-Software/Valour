@@ -22,7 +22,7 @@ namespace Valour.Client.Channels
     /// The clientside planet cache reduces the need to repeatedly ask the server
     /// for planet resources
     /// </summary>
-    public class ClientPlanetChatChannel : PlanetChatChannel
+    public class ClientPlanetChatChannel : PlanetChatChannel, IClientPlanetListItem
     {
         /// <summary>
         /// Converts to a client version of planet chat channel

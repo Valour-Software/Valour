@@ -7,24 +7,31 @@
 <div class="settings-inner">
     <p>Name</p>
     <input class="form-control" type="text" @bind-value="@nameValue" />
-    <span class="text-danger">@nameSpan</span>
+    <span id="result-span" class="text-info">@nameSpan</span>
+    <span class="text-danger">@nameErrorSpan</span>
+
+    <div class="mb-2"></div>
 
     <br />
 
     <p>Description</p>
     <input class="form-control" type="text" @bind-value="@descValue" />
-    <span class="text-danger">@descSpan</span>
+    <span id="result-span" class="text-info">@descSpan</span>
+    <span class="text-danger">@descErrorSpan</span>
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 </div>
 
 
 @code {
-    [Parameter]
-    public ChannelListItem Item { get; set; }
+        [Parameter]
+        public IClientPlanetListItem Item { get; set; }
 
     public string nameValue;
     public string descValue;
+
+    public string nameErrorSpan;
+    public string descErrorSpan;
 
     public string nameSpan;
     public string descSpan;
@@ -34,36 +41,42 @@
         nameValue = Item.Name;
         descValue = Item.Description;
 
+        nameErrorSpan = "";
+        descErrorSpan = "";
+
         StateHasChanged();
     }
 
     public async Task OnSaveChanges()
     {
 
-        ClientPlanetChatChannel channel = Item as ClientPlanetChatChannel;
-
-        if (channel != null)
+        if (nameValue != Item.Name)
         {
-            if (nameValue != Item.Name)
+            TaskResult result = await Item.SetNameAsync(nameValue);
+
+            if (!result.Success)
             {
-                TaskResult result = await channel.SetNameAsync(nameValue);
+                nameErrorSpan = result.Message;
+            }
+            else
+            {
                 nameSpan = result.Message;
             }
+        }
 
-            if (descValue != Item.Description)
+        if (descValue != Item.Description)
+        {
+            TaskResult result = await Item.SetDescriptionAsync(descValue);
+
+            if (!result.Success)
             {
-                TaskResult result = await channel.SetDescriptionAsync(descValue);
+                descErrorSpan = result.Message;
+            }
+            else
+            {
                 descSpan = result.Message;
             }
         }
-        else
-        {
-            ClientPlanetCategory category = Item as ClientPlanetCategory;
-
-
-        }
-
-
 
         StateHasChanged();
     }

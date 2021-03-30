@@ -54,69 +54,6 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
         
-        public async Task<TaskResult> SetDescription(string description, ulong id, ulong user_id, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
-
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
-
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
-            }
-
-            channel.Description = description;
-
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, "Successfully set description.");
-        }
-
-        public async Task<TaskResult> SetName(string name, ulong id, ulong user_id, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
-
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
-
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
-            }
-
-            channel.Name = name;
-
-            await Context.SaveChangesAsync();
-
-            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
-
-            return new TaskResult(true, "Successfully set name.");
-        }
-
         public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
@@ -414,7 +351,7 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully changed channel name.");
         }
 
-        public async Task<TaskResult> SetDescription(ulong channel_id, string desc, string token)
+        public async Task<TaskResult> SetDescription(ulong channel_id, string description, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
 
@@ -450,7 +387,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You do not have planet channel management permissions.");
             }
 
-            channel.Description = desc;
+            channel.Description = description;
             await Context.SaveChangesAsync();
 
             // Send channel refresh

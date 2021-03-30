@@ -42,19 +42,7 @@
                     <div class="top-bar">
                     </div>
                     <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                    <div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
-                        @if (planetManager.GetCurrent() != null)
-                        {
-                            ClientWindow window = windowManager.GetSelectedWindow();
-                            ChatChannelWindow channelWindow = (ChatChannelWindow)window;
-                            Planet planet = planetManager.GetCurrent();
-                            @foreach (ClientPlanetCategory category in GetTopLevelCategories())
-                            {
-                                <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@category" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList" IsTopLevel="true">
-                                </CategoryComponent>
-                            }
-                        }
-                    </div>
+                    <ChannelListItemListComponent></ChannelListItemListComponent>
 
                 </div>
             </div>
@@ -132,39 +120,21 @@ else
 
     public List<ClientPlanetChatChannel> PlanetChannelList = new List<ClientPlanetChatChannel>();
 
-    public List<ClientPlanetCategory> PlanetCategoryChannelList = new List<ClientPlanetCategory>();
+    public List<ClientPlanetCategory> PlanetCategoryList = new List<ClientPlanetCategory>();
 
-    public MemberListComponent MemberListComponent { get; set; }
+    public MemberListComponent MemberListComponent { get; set; } 
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         planetManager.OnPlanetChange += OnPlanetChange;
-        planetManager.OnChannelsUpdate += OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
-        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
-        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
-    }
-
-    public async Task OnRefreshChannelList(string data)
-    {
-
-        ClientPlanet planet = planetManager.GetCurrent();
-
-        PlanetChannelList = await planet.GetChannelsAsync();
-
-        PlanetCategoryChannelList = await planet.GetCategoriesAsync();
-
-        StateHasChanged();
     }
 
     public void Dispose()
     {
         planetManager.OnPlanetChange -= OnPlanetChange;
-        planetManager.OnChannelsUpdate -= OnChannelsUpdate;
         planetManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
-        planetManager.OnCategoriesUpdate -= OnCategoriesUpdate;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -196,58 +166,6 @@ else
         StateHasChanged();
     }
 
-    public async Task OnCategoriesUpdate()
-    {
-        ClientPlanet planet = planetManager.GetCurrent();
-
-        PlanetCategoryChannelList.Clear();
-
-        foreach (ClientPlanetCategory category in await planet.GetCategoriesAsync())
-        {
-            PlanetCategoryChannelList.Add(category);
-        }
-
-        StateHasChanged();
-    }
-
-    public List<ClientPlanetCategory> GetTopLevelCategories()
-    {
-        List<ClientPlanetCategory> list = PlanetCategoryChannelList.Where(x => x.Parent_Id == null).ToList();
-        list.Sort((x, y) => x.Position.CompareTo(y.Position));
-        return list;
-    }
-
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
-    {
-        var oldChannel = PlanetChannelList.FirstOrDefault(x => x.Id == channel.Id);
-
-        if (oldChannel == null)
-        {
-            return;
-        }
-
-        var index = PlanetChannelList.IndexOf(oldChannel);
-
-        // Set to new role
-        PlanetChannelList[index] = channel;
-
-        StateHasChanged();
-    }
-
-    public async Task OnChannelsUpdate()
-    {
-        ClientPlanet planet = planetManager.GetCurrent();
-
-        PlanetChannelList.Clear();
-
-        foreach (ClientPlanetChatChannel channel in await planet.GetChannelsAsync())
-        {
-            PlanetChannelList.Add(channel);
-        }
-
-        StateHasChanged();
-    }
-
     public async Task OnPlanetChange()
     {
         if (planetManager.GetCurrent() == null) return;
@@ -259,10 +177,6 @@ else
             foreach (var member in members) { planetMemberList.Add(member); }
             await MemberListComponent.SetMemberList(planetMemberList);
         });
-
-        await OnChannelsUpdate();
-
-        await OnCategoriesUpdate();
 
         StateHasChanged();
     }
