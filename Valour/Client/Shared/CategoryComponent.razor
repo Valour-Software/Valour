@@ -1,4 +1,6 @@
-﻿@using Valour.Shared.Categories
+﻿@implements IDisposable
+
+@using Valour.Shared.Categories
 @using Valour.Shared.Planets
 
 @inject AddChannelContextMenu addChannelContextMenu
@@ -81,50 +83,33 @@
     [Parameter]
     public ChatChannelWindow ChannelWindow { get; set; }
 
+    public List<ClientPlanetChatChannel> ChildChannels;
+    public List<ClientPlanetCategory> ChildCategories;
+
     public bool IsOpen { get; set; }
 
     public List<IClientPlanetListItem> ItemList = new List<IClientPlanetListItem>();
 
     protected override Task OnInitializedAsync()
     {
+        planetManager.OnCategoryUpdate += OnCategoryUpdate;
+
+        ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
+        ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
+
+        ItemList.AddRange(ChildChannels);
+        ItemList.AddRange(ChildCategories);
+
         IsOpen = categoryManager.IsOpen(Category);
-
-        var channels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
-
-        foreach (ClientPlanetChatChannel channel in channels)
-        {
-            ItemList.Add(channel);
-            Console.WriteLine($"Id: {channel.Id}");
-        }
-
-        var categories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
-
-        ItemList.AddRange(categories);
-
-        foreach (ChannelListItem item in ItemList)
-        {
-            ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
-            if (channel != null)
-            {
-                item.Position = channel.Position;
-            }
-            else
-            {
-                PlanetCategory planetcategory = item as PlanetCategory;
-                item.Position = planetcategory.Position;
-            }
-
-        }
 
         ItemList.Sort((x, y) => x.Position.CompareTo(y.Position));
 
-        foreach (ChannelListItem item in ItemList)
-        {
-            Console.WriteLine(item.Position);
-            Console.WriteLine(item.Name);
-        }
-
         return base.OnInitializedAsync();
+    }
+
+    public void Dispose()
+    {
+        planetManager.OnCategoryUpdate -= OnCategoryUpdate;
     }
 
     public string ArrowStyle
@@ -179,5 +164,14 @@
     public async Task OpenAddContextMenu(MouseEventArgs e)
     {
         await addChannelContextMenu.Open(e, Category);
+    }
+
+    public async Task OnCategoryUpdate(ClientPlanetCategory category)
+    {
+        if (Category.Id == category.Id)
+        {
+            this.Category = category;
+            StateHasChanged();
+        }
     }
 }

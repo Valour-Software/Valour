@@ -1,4 +1,6 @@
-﻿@inject ClientWindowManager windowManager
+﻿@implements IDisposable
+
+@inject ClientWindowManager windowManager
 @inject ClientPlanetManager planetManager
 @inject ChannelListContextMenu channelContextMenu
 
@@ -60,4 +62,22 @@
         await channelContextMenu.Open(e, Channel);
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+    }
+
+    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    {
+        if (Channel.Id == channel.Id)
+        {
+            this.Channel = channel;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+    }
 }
