@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared;
+using Valour.Shared.Oauth;
 
 namespace Valour.Client.Planets
 {
@@ -17,5 +18,9 @@ namespace Valour.Client.Planets
 
         public Task<TaskResult> SetNameAsync(string name);
         public Task<TaskResult> SetDescriptionAsync(string desc);
+
+        public string GetItemTypeName();
+
+        public Task<ClientPlanet> GetPlanetAsync();
     }
 }

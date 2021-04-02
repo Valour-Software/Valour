@@ -1727,3 +1727,25 @@ input:checked + .slider:before {
 /* End slider stuff */
 
 /* Dropout menu for user context*/
+
+/* Tri button stuff */
+.tri-button-back {
+    fill: #040d14;
+}
+
+.tri-button-hightlight {
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+.tri-button-yes {
+    fill: #05ff00;
+}
+
+.tri-button-disabled {
+    fill: #ffad19;
+}
+
+.tri-button-no {
+    fill: #ef3a3a;
+}

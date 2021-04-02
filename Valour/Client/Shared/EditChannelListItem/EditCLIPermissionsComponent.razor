@@ -1,0 +1,140 @@
+﻿
+<h3>@Item.GetItemTypeName() Permissions</h3>
+
+<select class="form-control" @onchange="OnRoleChange" style="color: @Selected_Role.GetColorHex();
+        background-color: var(--main-1)">
+    @foreach (var role in Roles)
+    {
+        <option value="@role.Id" style="color: @role.GetColorHex(); background-color: var(--main-1)">@role.Name</option>
+    }
+</select>
+
+<br />
+
+@if (Selected_Role == null)
+{
+    // This actually cuts the HTML off early and is way cleaner than a massive 'if' statement
+    return;
+}
+
+<!-- If there's a role selected we show possible permissions that role can have
+     for the channel or category -->
+
+@if (ChatChannel != null)
+{
+    <div class="perm-list-item">
+        <div class="perm-list-name mb-1">
+            Inherit Category Permissions
+        </div>
+        <div type="button" style="float:right">
+            <label class="switch">
+                <input type="checkbox" @onclick="SwitchInherit" checked="@ChatChannel.Inherits_Perms">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="perm-list-desc mt-1">
+            While true, the channel will inherit permissions from its parent category.
+        </div>
+    </div>
+
+    // If the channel inherits the permissions, we do not give the option to edit them
+    @if (ChatChannel.Inherits_Perms)
+    {
+        return;
+    }
+
+    // We need logic to grab the permission node for the specific role-channel combination
+    // from the server
+
+
+    foreach (var permission in ChatChannelPermissions.Permissions)
+    {
+    <div class="perm-list-item">
+        <div class="perm-list-name mb-1">
+            @permission.Name
+        </div>
+        <div style="float:right">
+            <TriButtonComponent></TriButtonComponent>
+        </div>
+        <div class="perm-list-desc mt-1">
+            @permission.Description
+        </div>
+    </div>
+    }
+}
+else if (Category != null)
+{
+    foreach (var permission in ChatChannelPermissions.Permissions)
+    {
+        <h2>@permission.Name</h2>
+    }
+
+// We'll have VC permissions as well down here at some point
+}
+else
+{
+    <h4>This isn't implemented? (Blame Jacob I guess)</h4>
+}
+
+    @code {
+
+        public ChannelPermissionsNode PermissionsNode { get; set; }
+
+        public PlanetRole Selected_Role { get; set; }
+
+        public List<PlanetRole> Roles { get; set; }
+
+        public ClientPlanet Planet { get; set; }
+
+        public ClientPlanetChatChannel ChatChannel { get; set; }
+
+        public ClientPlanetCategory Category { get; set; }
+
+        [Parameter]
+        public IClientPlanetListItem Item { get; set; }
+
+        public async Task SwitchInherit()
+        {
+            await ChatChannel.SetPermissionInheritMode(!ChatChannel.Inherits_Perms);
+            StateHasChanged();
+        }
+
+        protected override async Task OnInitializedAsync()
+        {
+            Planet = await Item.GetPlanetAsync();
+            Roles = await Planet.GetRolesAsync();
+
+            Selected_Role = Roles[0];
+
+            ClientPlanetCategory category = Item as ClientPlanetCategory;
+
+            if (category != null)
+            {
+                this.Category = category;
+            }
+            else
+            {
+                ClientPlanetChatChannel channel = Item as ClientPlanetChatChannel;
+
+                if (channel != null)
+                {
+                    this.ChatChannel = channel;
+                }
+                else
+                {
+                    Console.WriteLine("Unexpected channel type in Edit CLI Component");
+                }
+            }
+        }
+
+        public async Task OnRoleChange(ChangeEventArgs e)
+        {
+            ulong newRoleId = ulong.Parse(e.Value.ToString());
+
+            Selected_Role = Roles.FirstOrDefault(x => x.Id == newRoleId);
+
+            Console.WriteLine($"Selected role {Selected_Role.Name}");
+        }
+    }
+
+

@@ -1,30 +1,5 @@
 ﻿<div class="tri-button">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 93.77051 32.59009" width="64px">
-        <defs>
-            <style>
-            .tri-button-back {
-                fill: #040d14;
-            }
-
-            .tri-button-hightlight {
-                fill: @backColor;
-                opacity: 0.2;
-                pointer-events: none;
-            }
-
-            .tri-button-yes {
-                fill: @green;
-            }
-
-            .tri-button-disabled {
-                fill: @yellow;
-            }
-
-            .tri-button-no {
-                fill: @red;
-            }
-            </style>
-        </defs>
         <g id="Layer_2" data-name="Layer 2">
             <g id="Layer_2-2" data-name="Layer 2">
                 <g>
@@ -40,7 +15,7 @@
                         <rect class="tri-button-back" x="31.08984" y="0.5" width="31.58984" height="31.59033" />
                         <path class="tri-button-back" d="M62.18018,1V31.59009H31.58984V1H62.18018m1-1H30.58984V32.59009H63.18018V0Z" />
                     </g>
-                    <path class="tri-button-hightlight" d="M16.29455,2.39513H77.47521a13.90009,13.90009,0,0,1,0,27.80017H16.29455a13.90009,13.90009,0,0,1,0-27.80017Z" />
+                    <path class="tri-button-hightlight" style="fill: @GetStateColor(); pointer-events: none" d="M16.29455,2.39513H77.47521a13.90009,13.90009,0,0,1,0,27.80017H16.29455a13.90009,13.90009,0,0,1,0-27.80017Z" />
                 </g>
 
                 @if (showYes)
@@ -92,6 +67,13 @@
     {
         await OnChangeState(State);
         StateHasChanged();
+    }
+
+    public string GetStateColor()
+    {
+        if (State == TriButtonState.Yes) return green;
+        else if (State == TriButtonState.Disabled) return yellow;
+        else return red;
     }
 
     public async Task OnChangeState(TriButtonState state)

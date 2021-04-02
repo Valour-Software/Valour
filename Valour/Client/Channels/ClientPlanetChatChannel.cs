@@ -9,6 +9,7 @@ using Valour.Client.Messages;
 using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Channels;
+using Valour.Shared.Oauth;
 
 namespace Valour.Client.Channels
 {
@@ -101,6 +102,11 @@ namespace Valour.Client.Channels
                 Console.WriteLine("Failed to deserialize result from SetName in channel");
             }
 
+            if (result.Success)
+            {
+                this.Name = name;
+            }
+
             return result;
         }
 
@@ -111,15 +117,48 @@ namespace Valour.Client.Channels
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetName?channel_id={Id}" +
-                                                                                     $"&description={desc}" +
-                                                                                     $"&token={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetDescription?channel_id={Id}" +
+                                                                                            $"&description={encodedDesc}" +
+                                                                                            $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
 
             if (result == null)
             {
                 Console.WriteLine("Failed to deserialize result from SetDescription in channel");
+            }
+
+            if (result.Success)
+            {
+                this.Description = desc;
+            }
+
+            return result;
+        }
+        public string GetItemTypeName()
+        {
+            return "Chat Channel";
+        }
+
+        /// <summary>
+        /// Sets whether or not the permissions should be inherited from the category
+        /// </summary>
+        public async Task<TaskResult> SetPermissionInheritMode(bool value)
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetPermissionInheritMode?channel_id={Id}" +
+                                                                                                      $"&value={value}" +
+                                                                                                      $"&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from SetPermissionInheritMode in channel");
+            }
+
+            if (result.Success)
+            {
+                this.Inherits_Perms = value;
             }
 
             return result;

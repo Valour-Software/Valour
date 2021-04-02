@@ -393,7 +393,52 @@ namespace Valour.Server.Controllers
             // Send channel refresh
             await PlanetHub.NotifyChatChannelChange(channel);
 
-            return new TaskResult(true, "Successfully changed channel name.");
+            return new TaskResult(true, "Successfully changed channel description.");
+        }
+
+        public async Task<TaskResult> SetPermissionInheritMode(ulong channel_id, bool value, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
+                                                                              .FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            if (channel == null)
+            {
+                return new TaskResult(false, $"Could not find channel {channel_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, channel.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You do not have planet channel management permissions.");
+            }
+
+            channel.Inherits_Perms = value;
+            await Context.SaveChangesAsync();
+
+            // Send channel refresh
+            await PlanetHub.NotifyChatChannelChange(channel);
+
+            return new TaskResult(true, $"Successfully set permission inheritance to {value}.");
         }
     }
 }

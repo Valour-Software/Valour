@@ -330,7 +330,7 @@ window.onclick = function (event) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-category-modal");
     }
 
-    console.log(event.target.id);
+    //console.log(event.target.id);
 
     if (!isDescendant(event.target, "ban-modal-box") &&
         event.target.id != "ban-button" &&

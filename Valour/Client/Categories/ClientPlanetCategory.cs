@@ -8,6 +8,7 @@ using System.Web;
 using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Categories;
+using Valour.Shared.Oauth;
 
 namespace Valour.Client.Categories
 {
@@ -68,9 +69,9 @@ namespace Valour.Client.Categories
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Category/SetName?category_id={Id}" +
-                                                                                      $"&description={desc}" +
-                                                                                      $"&token={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Category/SetDescription?category_id={Id}" +
+                                                                                             $"&description={encodedDesc}" +
+                                                                                             $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
 
@@ -80,6 +81,11 @@ namespace Valour.Client.Categories
             }
 
             return result;
+        }
+
+        public string GetItemTypeName()
+        {
+            return "Category";
         }
     }
 }

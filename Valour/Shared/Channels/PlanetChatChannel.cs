@@ -51,5 +51,11 @@ namespace Valour.Shared.Channels
         /// The description of the channel
         /// </summary>
         public string Description { get; set; }
+
+        /// <summary>
+        /// If true, this channel will inherit the permission nodes
+        /// from the category it belongs to
+        /// </summary>
+        public bool Inherits_Perms { get; set; }
     }
 }

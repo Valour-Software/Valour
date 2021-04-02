@@ -340,7 +340,7 @@ namespace Valour.Server.Controllers
             // Send channel refresh
             await PlanetHub.NotifyCategoryChange(category);
 
-            return new TaskResult(true, "Successfully changed category name.");
+            return new TaskResult(true, "Successfully changed category description.");
         }
     }
 }

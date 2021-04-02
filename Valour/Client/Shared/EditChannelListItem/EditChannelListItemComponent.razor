@@ -10,12 +10,16 @@
                 <b>@GetTitle()</b>
                 <hr />
                 <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Permissions</div>
             </div>
             <div class="col-9 edit-col-right">
                 @switch (selected)
                 {
                     case 0:
                         <EditCLIDetailsComponent Item="ChannelListItem"></EditCLIDetailsComponent>
+                        break;
+                    case 1:
+                        <EditCLIPermissionsComponent Item="ChannelListItem"></EditCLIPermissionsComponent>
                         break;
                     default:
                         break;
@@ -56,10 +60,10 @@
         return "settings-button";
     }
 
-    public bool[] buttonStates = new bool[1]
+    public bool[] buttonStates = new bool[2]
     {
-        true
-        };
+        true, false
+    };
 
     public int selected = 0;
 
