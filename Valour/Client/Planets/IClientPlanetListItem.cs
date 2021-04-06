@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared;
 using Valour.Shared.Oauth;
+using Valour.Shared.Roles;
 
 namespace Valour.Client.Planets
 {
@@ -22,5 +23,7 @@ namespace Valour.Client.Planets
         public string GetItemTypeName();
 
         public Task<ClientPlanet> GetPlanetAsync();
+
+        public Task<PermissionsNode> GetPermissionsNode(PlanetRole role);
     }
 }

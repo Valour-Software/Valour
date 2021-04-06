@@ -40,19 +40,19 @@ namespace Valour.Server.Roles
             return MappingManager.Mapper.Map<ServerPlanetRole>(planetrole);
         }
 
-        public List<ChannelPermissionsNode> GetAllChannelNodes()
+        public List<ChatChannelPermissionsNode> GetAllChannelNodes()
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
-                return Context.ChannelPermissionsNodes.Where(x => x.Planet_Id == Planet_Id).ToList();
+                return Context.ChatChannelPermissionsNodes.Where(x => x.Planet_Id == Planet_Id).ToList();
             }           
         }
 
-        public async Task<ChannelPermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel)
+        public async Task<ChatChannelPermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel)
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
-                return await Context.ChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Channel_Id == channel.Id &&
+                return await Context.ChatChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Channel_Id == channel.Id &&
                                                                                       x.Role_Id == Id);
             }
         }
@@ -66,7 +66,7 @@ namespace Valour.Server.Roles
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
-                ChannelPermissionsNode node = await Context.ChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Channel_Id == channel_id);
+                ChatChannelPermissionsNode node = await Context.ChatChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Channel_Id == channel_id);
                 return node.GetPermissionState(permission);
             }
         }

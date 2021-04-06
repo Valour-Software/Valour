@@ -72,8 +72,26 @@ namespace Valour.Server.Planets
             }
         }
 
+        public async Task<Planet> GetPlanetAsync(ValourDB db = null)
+        {
+            if (Planet != null) return Planet;
+
+            bool createdb = false;
+            if (db == null)
+            {
+                db = new ValourDB(ValourDB.DBOptions);
+            }
+
+            Planet = await db.Planets.FindAsync(Planet_Id);
+
+            if (createdb) await db.DisposeAsync();
+
+            return Planet;
+        }
+
         public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission)
         {
+            Planet planet = await GetPlanetAsync();
             var roles = await member.GetRolesAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
@@ -81,6 +99,17 @@ namespace Valour.Server.Planets
             foreach (var role in roles)
             {
                 var node = await ServerPlanetRole.FromBase(role).GetChannelNodeAsync(this);
+
+                // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
+                if (node == null)
+                {
+                    if (role.Id == planet.Default_Role_Id)
+                    {
+                        return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+                    }
+
+                    continue;
+                }
 
                 PermissionState state = node.GetPermissionState(permission);
 

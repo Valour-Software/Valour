@@ -143,16 +143,36 @@ namespace Valour.Shared.Oauth
     public static class ChatChannelPermissions
     {
 
-        public static readonly ulong Default =
-            Permission.CreateCode(View, ViewMessages, PostMessages);
+        public static readonly ulong Default;
 
         /// <summary>
         /// Contains every channel permission
         /// </summary>
         public static ChatChannelPermission[] Permissions;
 
+
+        // Use shared full control definition
+        public static readonly ChatChannelPermission FullControl;
+
+        public static readonly ChatChannelPermission View;
+        public static readonly ChatChannelPermission ViewMessages;
+        public static readonly ChatChannelPermission PostMessages;
+        public static readonly ChatChannelPermission ManageChannel;
+        public static readonly ChatChannelPermission ManagePermissions;
+        public static readonly ChatChannelPermission Embed;
+        public static readonly ChatChannelPermission AttachContent;
+
         static ChatChannelPermissions()
         {
+            FullControl = new ChatChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
+            View = new ChatChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
+            ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
+            PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
+            ManageChannel = new ChatChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
+            ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+            Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
+            AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
+
             Permissions = new ChatChannelPermission[]
             {
                 FullControl,
@@ -164,18 +184,9 @@ namespace Valour.Shared.Oauth
                 Embed,
                 AttachContent
             };
+
+            Default = Permission.CreateCode(View, ViewMessages, PostMessages);
         }
-
-        // Use shared full control definition
-        public static readonly ChatChannelPermission FullControl = new ChatChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
-
-        public static readonly ChatChannelPermission View = new ChatChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
-        public static readonly ChatChannelPermission ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
-        public static readonly ChatChannelPermission PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
-        public static readonly ChatChannelPermission ManageChannel = new ChatChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
-        public static readonly ChatChannelPermission ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
-        public static readonly ChatChannelPermission Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
-        public static readonly ChatChannelPermission AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
     }
 
     /// <summary>

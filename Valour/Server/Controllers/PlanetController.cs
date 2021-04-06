@@ -854,8 +854,8 @@ namespace Valour.Server.Controllers
 
             // Then remove role nodes
 
-            var roleChannelNodes = Context.ChannelPermissionsNodes.Where(x => x.Role_Id == role_id);
-            Context.ChannelPermissionsNodes.RemoveRange(roleChannelNodes);
+            var roleChannelNodes = Context.ChatChannelPermissionsNodes.Where(x => x.Role_Id == role_id);
+            Context.ChatChannelPermissionsNodes.RemoveRange(roleChannelNodes);
 
             // Finally remove the role
 

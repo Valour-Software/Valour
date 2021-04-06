@@ -9,6 +9,7 @@ using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Categories;
 using Valour.Shared.Oauth;
+using Valour.Shared.Roles;
 
 namespace Valour.Client.Categories
 {
@@ -86,6 +87,37 @@ namespace Valour.Client.Categories
         public string GetItemTypeName()
         {
             return "Category";
+        }
+
+        public async Task<PermissionsNode> GetPermissionsNode(PlanetRole role)
+        {
+            return await GetCategoryPermissionsNode(role);
+        }
+
+        public async Task<CategoryPermissionsNode> GetCategoryPermissionsNode(PlanetRole role)
+        {
+
+            string json = await ClientUserManager.Http.GetStringAsync($"Permissions/GetCategoryNode?category_id={Id}" +
+                                                                                                 $"&role_id={role.Id}" +
+                                                                                                 $"&token={ClientUserManager.UserSecretToken}");
+
+            TaskResult<CategoryPermissionsNode> result = JsonConvert.DeserializeObject<TaskResult<CategoryPermissionsNode>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from GetPermissionsNode in category");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine("Permissions/GetCategoryNode failed.");
+                Console.WriteLine(result.Message);
+                return null;
+            }
+
+            // Return the node - it may be null, but that's ok
+            return result.Data;
         }
     }
 }

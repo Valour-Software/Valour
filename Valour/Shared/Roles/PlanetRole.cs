@@ -67,6 +67,11 @@ namespace Valour.Shared.Roles
 
         public bool Italics { get; set; }
 
+        public uint GetAuthority()
+        {
+            return uint.MaxValue - (1 + Position);
+        }
+
         public Color GetColor()
         {
             return Color.FromArgb(Color_Red, Color_Green, Color_Blue);

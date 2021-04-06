@@ -10,6 +10,7 @@ using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Oauth;
+using Valour.Shared.Roles;
 
 namespace Valour.Client.Channels
 {
@@ -162,6 +163,37 @@ namespace Valour.Client.Channels
             }
 
             return result;
+        }
+
+        public async Task<PermissionsNode> GetPermissionsNode(PlanetRole role)
+        {
+            return await GetChatChannelPermissionsNode(role);
+        }
+
+        public async Task<ChatChannelPermissionsNode> GetChatChannelPermissionsNode(PlanetRole role)
+        {
+
+            string json = await ClientUserManager.Http.GetStringAsync($"Permissions/GetChatChannelNode?channel_id={Id}" +
+                                                                                                    $"&role_id={role.Id}" +
+                                                                                                    $"&token={ClientUserManager.UserSecretToken}");
+            
+            TaskResult<ChatChannelPermissionsNode> result = JsonConvert.DeserializeObject<TaskResult<ChatChannelPermissionsNode>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("Failed to deserialize result from GetPermissionsNode in channel");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine("Permissions/GetChatChannelNode failed.");
+                Console.WriteLine(result.Message);
+                return null;
+            }
+
+            // Return the node - it may be null, but that's ok
+            return result.Data;
         }
     }
 }
