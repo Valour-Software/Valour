@@ -1420,6 +1420,7 @@ body {
     background-color: var(--main-2);
     min-width: 200px;
     height: 95%;
+    overflow-y: auto;
 }
 
 .role-edit-row {
@@ -1528,8 +1529,8 @@ btn-role-edit:hover edit {
 .settings-inner {
     position: relative;
     height: 90%;
-    overflow-y: auto;
-    overflow-x: hidden;
+    /*overflow-y: auto;*/
+    /*overflow-x: hidden;*/
 }
 
 .settings-save-button {

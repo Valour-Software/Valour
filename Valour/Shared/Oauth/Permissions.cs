@@ -86,6 +86,13 @@ namespace Valour.Shared.Oauth
         }
     }
 
+    public class CategoryPermission : Permission
+    {
+        public CategoryPermission(ulong value, string name, string description) : base(value, name, description)
+        {
+        }
+    }
+
     public class UserPermission : Permission
     {
         public UserPermission(ulong value, string name, string description) : base(value, name, description)
@@ -186,6 +193,47 @@ namespace Valour.Shared.Oauth
             };
 
             Default = Permission.CreateCode(View, ViewMessages, PostMessages);
+        }
+    }
+
+    /// <summary>
+    /// This class contains all category permissions and helper methods for working
+    /// with them
+    /// </summary>
+    public static class CategoryPermissions
+    {
+
+        public static readonly ulong Default;
+
+        /// <summary>
+        /// Contains every category permission
+        /// </summary>
+        public static CategoryPermission[] Permissions;
+
+
+        // Use shared full control definition
+        public static readonly CategoryPermission FullControl;
+
+        public static readonly CategoryPermission View;
+        public static readonly CategoryPermission ManageCategory;
+        public static readonly CategoryPermission ManagePermissions;
+
+        static CategoryPermissions()
+        {
+            FullControl = new CategoryPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
+            View = new CategoryPermission(0x01, "View", "Allow members to view this channel in the channel list.");
+            ManageCategory = new CategoryPermission(0x08, "Manage", "Allow members to manage this channel's details.");
+            ManagePermissions = new CategoryPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+
+            Permissions = new CategoryPermission[]
+            {
+                FullControl,
+                View,
+                ManageCategory,
+                ManagePermissions,
+            };
+
+            Default = Permission.CreateCode(View);
         }
     }
 

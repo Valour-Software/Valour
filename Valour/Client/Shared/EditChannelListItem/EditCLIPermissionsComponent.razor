@@ -69,9 +69,54 @@
 }
 else if (Category != null)
 {
-    foreach (var permission in ChatChannelPermissions.Permissions)
+    <h3>Category Permissions</h3>
+    <br />
+
+    for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
     {
-        <h2>@permission.Name</h2>
+        int i2 = i;
+
+        CategoryPermission permission = CategoryPermissions.Permissions[i];
+
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                @permission.Name
+            </div>
+            <div style="float:right">
+                @{
+                    var t_perm = permission;
+                }
+                <TriButtonComponent @ref="Buttons[i2]" OnStateChange="(async (state) => await SwitchPermission(state, t_perm))"></TriButtonComponent>
+            </div>
+            <div class="perm-list-desc mt-1">
+                @permission.Description
+            </div>
+        </div>
+    }
+
+    <h3>Chat Channel Permissions</h3>
+    <br />
+
+    for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
+    {
+        int i2 = i;
+
+        ChatChannelPermission permission = ChatChannelPermissions.Permissions[i];
+
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                @permission.Name
+            </div>
+            <div style="float:right">
+                @{
+                    var t_perm = permission;
+                }
+                <TriButtonComponent @ref="Buttons[i2 + CategoryPermissions.Permissions.Length]" OnStateChange="(async (state) => await SwitchPermission(state, t_perm))"></TriButtonComponent>
+            </div>
+            <div class="perm-list-desc mt-1">
+                @permission.Description
+            </div>
+        </div>
     }
 
     // We'll have VC permissions as well down here at some point
@@ -146,7 +191,21 @@ else
         if (state == TriButtonComponent.TriButtonState.Yes) newState = PermissionState.True;
         else if (state == TriButtonComponent.TriButtonState.No) newState = PermissionState.False;
 
-        PermissionsNode.SetPermission(permission, newState);
+        if (Category != null)
+        {
+            if (PermissionsNode is ChatChannelPermissionsNode)
+            {
+                ((CategoryPermissionsNode)PermissionsNode).SetChatChannelPermission(permission, newState);
+            }
+            else
+            {
+                PermissionsNode.SetPermission(permission, newState);
+            }
+        }
+        else
+        {
+            PermissionsNode.SetPermission(permission, newState);
+        }
 
         changed = true;
 
@@ -188,7 +247,8 @@ else
         if (category != null)
         {
             this.Category = category;
-            Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length];
+            Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length +
+                                             CategoryPermissions.Permissions.Length];
         }
         else
         {
@@ -241,14 +301,44 @@ else
                 if (PermissionsNode != null)
                 {
                     var pState = PermissionsNode.GetPermissionState(ChatChannelPermissions.Permissions[i]);
-                    //Console.WriteLine(pState);
-                    //Console.WriteLine(PermissionsNode.Code);
-                    //Console.WriteLine(PermissionsNode.Code_Mask);
                     if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
                     else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
                 }
 
                 await Buttons[i].OnChangeState(bState, false);
+            }
+        }
+        else if (Category != null)
+        {
+
+            // Setup category buttons
+            for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
+            {
+                TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
+                if (PermissionsNode != null)
+                {
+                    var pState = PermissionsNode.GetPermissionState(CategoryPermissions.Permissions[i]);
+                    if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
+                    else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
+                }
+
+                await Buttons[i].OnChangeState(bState, false);
+            }
+
+            // Setup chat channel buttons
+            for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
+            {
+                TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
+                if (PermissionsNode != null)
+                {
+                    CategoryPermissionsNode catNode = PermissionsNode as CategoryPermissionsNode;
+
+                    var pState = catNode.GetChatChannelPermissionState(ChatChannelPermissions.Permissions[i]);
+                    if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
+                    else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
+                }
+
+                await Buttons[i + CategoryPermissions.Permissions.Length].OnChangeState(bState, false);
             }
         }
 

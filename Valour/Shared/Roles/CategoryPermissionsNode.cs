@@ -24,5 +24,62 @@ namespace Valour.Shared.Roles
         /// The category this node applies to
         /// </summary>
         public ulong Category_Id { get; set; }
+
+        /// <summary>
+        /// The permission code for the chat channels within the category
+        /// </summary>
+        public ulong ChatChannel_Code { get; set; }
+
+        /// <summary>
+        /// The permission mask for the chat channels within the category
+        /// </summary>
+        public ulong ChatChannel_Code_Mask { get; set; }
+
+        /// <summary>
+        /// Returns the node code for the chat channel
+        /// </summary>
+        public PermissionNodeCode GetChatChannelNodeCode()
+        {
+            return new PermissionNodeCode(ChatChannel_Code, ChatChannel_Code_Mask);
+        }
+
+        /// <summary>
+        /// Returns the permission state for a given permission
+        /// </summary>
+        public PermissionState GetChatChannelPermissionState(Permission perm)
+        {
+            return GetChatChannelNodeCode().GetState(perm);
+        }
+
+        /// <summary>
+        /// Sets a permission to the given state
+        /// </summary>
+        public void SetChatChannelPermission(Permission perm, PermissionState state)
+        {
+            if (state == PermissionState.Undefined)
+            {
+                // Remove bit from code
+                ChatChannel_Code &= ~perm.Value;
+
+                // Remove mask bit
+                ChatChannel_Code_Mask &= ~perm.Value;
+            }
+            else if (state == PermissionState.True)
+            {
+                // Add mask bit
+                ChatChannel_Code_Mask |= perm.Value;
+
+                // Add true bit
+                ChatChannel_Code |= perm.Value;
+            }
+            else
+            {
+                // Remove mask bit
+                ChatChannel_Code_Mask |= perm.Value;
+
+                // Remove true bit
+                ChatChannel_Code &= ~perm.Value;
+            }
+        }
     }
 }
