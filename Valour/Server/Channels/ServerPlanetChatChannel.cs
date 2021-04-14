@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using Valour.Shared;
+using Valour.Server.Categories;
 
 namespace Valour.Server.Planets
 {
@@ -39,6 +40,9 @@ namespace Valour.Server.Planets
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
+
+        [ForeignKey("Parent_Id")]
+        public virtual ServerPlanetCategory Parent { get; set; }
 
         /// <summary>
         /// Returns the generic planet chat channel object
@@ -89,6 +93,23 @@ namespace Valour.Server.Planets
             return Planet;
         }
 
+        public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db = null)
+        {
+            if (Parent != null) return Parent;
+
+            bool createdb = false;
+            if (db == null)
+            {
+                db = new ValourDB(ValourDB.DBOptions);
+            }
+
+            Parent = await db.PlanetCategories.FindAsync(Parent_Id);
+
+            if (createdb) await db.DisposeAsync();
+
+            return Parent;
+        }
+
         public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission)
         {
             Planet planet = await GetPlanetAsync();
@@ -96,6 +117,12 @@ namespace Valour.Server.Planets
             if (planet.Owner_Id == member.User_Id)
             {
                 return true;
+            }
+
+            // If true, we just ask the category
+            if (Inherits_Perms)
+            {
+                return await (await GetParentAsync()).HasPermission(member, permission);
             }
 
             var roles = await member.GetRolesAsync();
