@@ -283,6 +283,31 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(msg.Channel_Id);
+
+            if (channel == null)
+            {
+                return new TaskResult(false, "Failed to post message: The given channel does not exist!");
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == msg.Planet_Id &&
+                                                                                             x.User_Id == msg.Author_Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "Failed to post message: You are not in the planet!");
+            }
+
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.View)))
+            {
+                return new TaskResult(false, "Failed to post message: You don't have permission to see this channel!");
+            }
+
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.PostMessages)))
+            {
+                return new TaskResult(false, "Failed to post message: You don't have permission to post here!");
+            }
+
             //ClientMessage msg = JsonConvert.DeserializeObject<ClientMessage>(json);
 
             if (msg == null)
