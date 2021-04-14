@@ -92,6 +92,12 @@ namespace Valour.Server.Planets
         public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission)
         {
             Planet planet = await GetPlanetAsync();
+
+            if (planet.Owner_Id == member.User_Id)
+            {
+                return true;
+            }
+
             var roles = await member.GetRolesAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".

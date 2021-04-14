@@ -69,9 +69,6 @@
 }
 else if (Category != null)
 {
-    <h3>Category Permissions</h3>
-    <br />
-
     for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
     {
         int i2 = i;
@@ -193,7 +190,7 @@ else
 
         if (Category != null)
         {
-            if (PermissionsNode is ChatChannelPermissionsNode)
+            if (permission is ChatChannelPermission)
             {
                 ((CategoryPermissionsNode)PermissionsNode).SetChatChannelPermission(permission, newState);
             }
@@ -221,6 +218,11 @@ else
             response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
                                                                                                 (ChatChannelPermissionsNode)PermissionsNode);
         }
+        else if (PermissionsNode is CategoryPermissionsNode)
+        {
+            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
+                                                                                                (CategoryPermissionsNode)PermissionsNode);
+        }
 
         TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
 
@@ -235,6 +237,8 @@ else
         }
 
         Console.WriteLine(result.Message);
+
+        await RefreshButtons();
     }
 
     protected override async Task OnInitializedAsync()
@@ -292,6 +296,12 @@ else
         PermissionsNode = await Item.GetPermissionsNode(Selected_Role);
 
         changed = false;
+
+        await RefreshButtons();
+    }
+
+    public async Task RefreshButtons()
+    {
         if (ChatChannel != null)
         {
             // Setup buttons
@@ -343,22 +353,6 @@ else
         }
 
         StateHasChanged();
-    }
-
-    public async Task RefreshButtons()
-    {
-
-        Console.WriteLine("[");
-        for (int i = 0; i < Buttons.Length; i++)
-        {
-            Console.WriteLine($"{i} : {Buttons[i].color}");
-        }
-        Console.WriteLine("]");
-
-        foreach (var button in Buttons)
-        {
-            button.Refresh();
-        }
     }
 }
 

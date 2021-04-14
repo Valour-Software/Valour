@@ -89,7 +89,7 @@ namespace Valour.Server.Controllers
             return new TaskResult<ChatChannelPermissionsNode>(true, "Returned permission node successfully", node);
         }
 
-        public async Task<TaskResult<CategoryPermissionsNode>> GetCategoryChannelNode(ulong category_id, ulong role_id, string token)
+        public async Task<TaskResult<CategoryPermissionsNode>> GetCategoryNode(ulong category_id, ulong role_id, string token)
         {
             // Authenticate first
             AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
@@ -196,6 +196,79 @@ namespace Valour.Server.Controllers
             {
                 node.Id = IdManager.Generate();
                 await Context.ChatChannelPermissionsNodes.AddAsync(node);
+            }
+
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Successfully set node");
+        }
+
+        public async Task<TaskResult> UpdateCategoryNode([FromBody] CategoryPermissionsNode node, string token)
+        {
+            // Authenticate first
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            // Membership check
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            PlanetRole role = await Context.PlanetRoles.FindAsync(node.Role_Id);
+
+            if (role == null)
+            {
+                return new TaskResult(false, $"Can't find role with ID {node.Role_Id}. This really shouldn't happen, and means the node data sent is incorrect.");
+            }
+
+            // Ensure the role being edited is under the user's authority
+            if (await member.GetAuthorityAsync() < role.GetAuthority())
+            {
+                return new TaskResult(false, $"You cannot edit permissions for a role that is not under your own.");
+            }
+
+            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == node.Category_Id);
+
+            if (category == null)
+            {
+                return new TaskResult(false, $"Can't find category with ID {node.Category_Id}. This really shouldn't happen, and means the node data sent is incorrect.");
+            }
+
+            if (!(await category.HasPermission(member, CategoryPermissions.View)))
+            {
+                return new TaskResult(false, "You don't have access to this category.");
+            }
+
+            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You don't have permission to manage categories.");
+            }
+
+            // Check if the node already exists
+            var oldNode = await Context.CategoryPermissionsNodes.FirstOrDefaultAsync(x => x.Category_Id == node.Category_Id &&
+                                                                                          x.Role_Id == node.Role_Id);
+
+            if (oldNode != null)
+            {
+                oldNode.Code = node.Code;
+                oldNode.Code_Mask = node.Code_Mask;
+
+                oldNode.ChatChannel_Code = node.ChatChannel_Code;
+                oldNode.ChatChannel_Code_Mask = node.ChatChannel_Code_Mask;
+
+                Context.CategoryPermissionsNodes.Update(oldNode);
+            }
+            else
+            {
+                node.Id = IdManager.Generate();
+                await Context.CategoryPermissionsNodes.AddAsync(node);
             }
 
             await Context.SaveChangesAsync();

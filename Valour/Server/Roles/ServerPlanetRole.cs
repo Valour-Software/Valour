@@ -15,6 +15,7 @@ using Valour.Server.Planets;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Valour.Shared.Categories;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -45,16 +46,39 @@ namespace Valour.Server.Roles
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
                 return Context.ChatChannelPermissionsNodes.Where(x => x.Planet_Id == Planet_Id).ToList();
-            }           
+            }
         }
 
-        public async Task<ChatChannelPermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel)
+        public async Task<ChatChannelPermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db = null)
         {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            bool createdb = false;
+            if (db == null)
             {
-                return await Context.ChatChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Channel_Id == channel.Id &&
-                                                                                      x.Role_Id == Id);
+                db = new ValourDB(ValourDB.DBOptions);
             }
+
+            var res = await db.ChatChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Channel_Id == channel.Id &&
+                                                                                    x.Role_Id == Id);
+
+            if (createdb) await db.DisposeAsync();
+
+            return res;
+        }
+
+        public async Task<CategoryPermissionsNode> GetCategoryNodeAsync(PlanetCategory category, ValourDB db = null)
+        {
+            bool createdb = false;
+            if (db == null)
+            {
+                db = new ValourDB(ValourDB.DBOptions);
+            }
+
+            var res = await db.CategoryPermissionsNodes.FirstOrDefaultAsync(x => x.Category_Id == category.Id &&
+                                                                              x.Role_Id == Id);
+
+            if (createdb) await db.DisposeAsync();
+
+            return res;
         }
 
         public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel)

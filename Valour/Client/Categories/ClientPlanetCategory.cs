@@ -97,9 +97,12 @@ namespace Valour.Client.Categories
         public async Task<CategoryPermissionsNode> GetCategoryPermissionsNode(PlanetRole role)
         {
 
+            // For SOME reason the args need to be in this order
             string json = await ClientUserManager.Http.GetStringAsync($"Permissions/GetCategoryNode?category_id={Id}" +
-                                                                                                 $"&role_id={role.Id}" +
-                                                                                                 $"&token={ClientUserManager.UserSecretToken}");
+                                                                                                 $"&token={ClientUserManager.UserSecretToken}" +
+                                                                                                 $"&role_id={role.Id}");
+
+            Console.WriteLine(json);
 
             TaskResult<CategoryPermissionsNode> result = JsonConvert.DeserializeObject<TaskResult<CategoryPermissionsNode>>(json);
 

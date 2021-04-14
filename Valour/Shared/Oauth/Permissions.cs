@@ -21,7 +21,7 @@ namespace Valour.Shared.Oauth
         /// <summary>
         /// Permission node to have complete control
         /// </summary>
-        public const ulong FULL_CONTROL = 0xFFFFFFFFFFFFFFFF;
+        public const ulong FULL_CONTROL = ulong.MaxValue;
 
         /// <summary>
         /// The name of this permission
@@ -131,7 +131,7 @@ namespace Valour.Shared.Oauth
         }
 
         // Use shared full control definition
-        public static readonly UserPermission FullControl = new UserPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Control every part of your account.");
+        public static readonly UserPermission FullControl = new UserPermission(Permission.FULL_CONTROL, "Full Control", "Control every part of your account.");
 
         // Every subsequent permission has double the value (the next bit)
         // An update should NEVER change the order or value of old permissions
@@ -171,7 +171,7 @@ namespace Valour.Shared.Oauth
 
         static ChatChannelPermissions()
         {
-            FullControl = new ChatChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
+            FullControl = new ChatChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
             View = new ChatChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
             ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
             PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
@@ -220,7 +220,7 @@ namespace Valour.Shared.Oauth
 
         static CategoryPermissions()
         {
-            FullControl = new CategoryPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
+            FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
             View = new CategoryPermission(0x01, "View", "Allow members to view this channel in the channel list.");
             ManageCategory = new CategoryPermission(0x08, "Manage", "Allow members to manage this channel's details.");
             ManagePermissions = new CategoryPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
@@ -269,7 +269,7 @@ namespace Valour.Shared.Oauth
         }
 
         // Use shared full control definition
-        public static readonly PlanetPermission FullControl = new PlanetPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the planet (owner)");
+        public static readonly PlanetPermission FullControl = new PlanetPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the planet (owner)");
 
         public static readonly PlanetPermission View = new PlanetPermission(0x01, "View", "Allow members to view the planet. This is implicitly granted to members."); // Implicitly granted to members
         public static readonly PlanetPermission Invite = new PlanetPermission(0x02, "Invite", "Allow members to send invites to the planet.");
@@ -310,12 +310,12 @@ namespace Valour.Shared.Oauth
 
         public PermissionState GetState(Permission permission)
         {
-            if ((Mask & permission.Value) == 0x00)
+            if ((Mask & permission.Value) != permission.Value)
             {
                 return PermissionState.Undefined;
             }
 
-            if ((Code & permission.Value) == 0x00)
+            if ((Code & permission.Value) != permission.Value)
             {
                 return PermissionState.False;
             }
