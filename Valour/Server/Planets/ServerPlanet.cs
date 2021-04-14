@@ -172,6 +172,14 @@ namespace Valour.Server.Planets
             return false;
         }
 
+        public async Task<bool> HasPermissionAsync(ServerPlanetMember member, PlanetPermission permission)
+        {
+            if (member.User_Id == Owner_Id) return true;
+
+            var roles = await member.GetRolesAsync();
+            return roles[0].HasPermission(permission);
+        }
+
         /// <summary>
         /// Returns the default role for the planet
         /// </summary>

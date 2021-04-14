@@ -330,7 +330,7 @@ window.onclick = function (event) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-category-modal");
     }
 
-    console.log(event.target.id);
+    //console.log(event.target.id);
 
     if (!isDescendant(event.target, "ban-modal-box") &&
         event.target.id != "ban-button" &&
@@ -346,6 +346,11 @@ window.onclick = function (event) {
     if (!isDescendant(event.target, "edit-planet-modal-inner") &&
         event.target.id != "edit-planet-button") {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-planet-modal");
+    }
+
+    if (!isDescendant(event.target, "edit-channel-list-item-modal-inner") &&
+        !isDescendant(event.target, "edit-channel-list-item-btn")) {
+        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-channel-list-item-modal");
     }
 
     if (!isDescendant(event.target, "edit-user-modal-inner") &&

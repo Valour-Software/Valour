@@ -1,14 +1,10 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Valour.Client.Channels;
-using Valour.Client.Planets;
-using Valour.Client.Shared;
+using Valour.Client.Shared.Modals;
 using Valour.Client.Shared.Modals.ContextMenus;
-using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
@@ -16,38 +12,30 @@ using Valour.Shared.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-namespace Valour.Client.Modals.ContextMenus
+namespace Valour.Client.Modals
 {
     /// <summary>
-    /// Assists in controlling the user context menu
+    /// Assists in controlling the edit planet modal
     /// </summary>
-    public class ChannelListContextMenu
+    public class EditChannelListItemModal
     {
         public readonly IJSRuntime JS;
-        public IClientPlanetListItem SelectedItem;
-        public ChannelListContextMenuComponent Component;
+        public EditChannelListItemModalComponent Component;
         public Func<Task> OpenEvent;
-        
-        public ChannelListContextMenu(IJSRuntime js)
+
+        public EditChannelListItemModal(IJSRuntime js)
         {
             JS = js;
         }
 
-        public async Task Open(MouseEventArgs e, IClientPlanetListItem item)
+        public async Task Open()
         {
-            Component.SetPosition(e.ClientX, e.ClientY);
             Component.SetVisibility(true);
-            SelectedItem = item;
 
             if (OpenEvent != null)
             {
                 await OpenEvent.Invoke();
             }
-        }
-
-        public async Task Close()
-        {
-            Component.SetVisibility(false);
         }
     }
 }

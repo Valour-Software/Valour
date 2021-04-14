@@ -15,6 +15,11 @@ using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
+using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.RegularExpressions;
+using Valour.Shared;
+using Valour.Server.Categories;
 
 namespace Valour.Server.Planets
 {
@@ -29,12 +34,20 @@ namespace Valour.Server.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ServerPlanetChatChannel : PlanetChatChannel
+    public class ServerPlanetChatChannel : PlanetChatChannel, IServerChannelListItem
     {
+
+        [ForeignKey("Planet_Id")]
+        [JsonIgnore]
+        public virtual ServerPlanet Planet { get; set; }
+
+        [ForeignKey("Parent_Id")]
+        public virtual ServerPlanetCategory Parent { get; set; }
 
         /// <summary>
         /// Returns the generic planet chat channel object
         /// </summary>
+        [JsonIgnore]
         public ServerPlanetChatChannel PlanetChatChannel
         {
             get
@@ -63,8 +76,55 @@ namespace Valour.Server.Planets
             }
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChannelPermission permission)
+        public async Task<Planet> GetPlanetAsync(ValourDB db = null)
         {
+            if (Planet != null) return Planet;
+
+            bool createdb = false;
+            if (db == null)
+            {
+                db = new ValourDB(ValourDB.DBOptions);
+            }
+
+            Planet = await db.Planets.FindAsync(Planet_Id);
+
+            if (createdb) await db.DisposeAsync();
+
+            return Planet;
+        }
+
+        public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db = null)
+        {
+            if (Parent != null) return Parent;
+
+            bool createdb = false;
+            if (db == null)
+            {
+                db = new ValourDB(ValourDB.DBOptions);
+            }
+
+            Parent = await db.PlanetCategories.FindAsync(Parent_Id);
+
+            if (createdb) await db.DisposeAsync();
+
+            return Parent;
+        }
+
+        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission)
+        {
+            Planet planet = await GetPlanetAsync();
+
+            if (planet.Owner_Id == member.User_Id)
+            {
+                return true;
+            }
+
+            // If true, we just ask the category
+            if (Inherits_Perms)
+            {
+                return await (await GetParentAsync()).HasPermission(member, permission);
+            }
+
             var roles = await member.GetRolesAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
@@ -72,6 +132,17 @@ namespace Valour.Server.Planets
             foreach (var role in roles)
             {
                 var node = await ServerPlanetRole.FromBase(role).GetChannelNodeAsync(this);
+
+                // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
+                if (node == null)
+                {
+                    if (role.Id == planet.Default_Role_Id)
+                    {
+                        return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+                    }
+
+                    continue;
+                }
 
                 PermissionState state = node.GetPermissionState(permission);
 
@@ -92,6 +163,52 @@ namespace Valour.Server.Planets
 
             // No roles ever defined behavior: resort to false.
             return false;
+        }
+
+        public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+        /// <summary>
+        /// Validates that a given name is allowable for a channel
+        /// </summary>
+        public static TaskResult ValidateName(string name)
+        {
+            if (name.Length > 32)
+            {
+                return new TaskResult(false, "Channel names must be 32 characters or less.");
+            }
+
+            if (!nameRegex.IsMatch(name))
+            {
+                return new TaskResult(false, "Channel names may only include letters, numbers, dashes, and underscores.");
+            }
+
+            return new TaskResult(true, "The given name is valid.");
+        }
+
+        public async Task SetNameAsync(string name, ValourDB db = null)
+        {
+            bool createdb = false;
+            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+
+            this.Name = name;
+
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            if (createdb) { await db.DisposeAsync(); }
+        }
+
+        public async Task SetDescriptionAsync(string desc, ValourDB db = null)
+        {
+            bool createdb = false;
+            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+
+            this.Description = desc;
+
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            if (createdb) { await db.DisposeAsync(); }
         }
     }
 }

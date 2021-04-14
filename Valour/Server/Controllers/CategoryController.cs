@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 using Valour.Server.Planets;
 using Valour.Shared.Oauth;
 using AutoMapper;
+using Valour.Server.Categories;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -94,7 +95,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetCategory category = await Context.PlanetCategories.FindAsync(id);
+            ServerPlanetCategory category = await Context.PlanetCategories.FindAsync(id);
 
             ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
 
@@ -103,15 +104,15 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
-            List<PlanetCategory> cate = await Task.Run(() => Context.PlanetCategories.Where(x => x.Planet_Id == category.Planet_Id).ToList());
+            List<ServerPlanetCategory> cate = await Task.Run(() => Context.PlanetCategories.Where(x => x.Planet_Id == category.Planet_Id).ToList());
 
             if (cate.Count == 1) {
                 return new TaskResult(false, "You can not delete your last category!");
             }
 
-            List<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
+            List<ServerPlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
 
-            List<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
+            List<ServerPlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
 
             //Check if any channels in this category are the main channel
             foreach(PlanetChatChannel channel in channels) {
@@ -120,11 +121,11 @@ namespace Valour.Server.Controllers
                 }
             }
             //If not, then delete the channels
-            foreach(PlanetChatChannel channel in channels) {
+            foreach(ServerPlanetChatChannel channel in channels) {
                 Context.PlanetChatChannels.Remove(channel);
             }
 
-            foreach(PlanetCategory Category in categories)
+            foreach(ServerPlanetCategory Category in categories)
             {
                 Category.Parent_Id = null;
                 
@@ -185,7 +186,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<ulong>> CreateCategory(string name, ulong user_id, ulong parentid, ulong planet_id, string token)
         {
-            TaskResult nameValid = ValidateName(name);
+            TaskResult nameValid = ServerPlanetCategory.ValidateName(name);
 
             if (!nameValid.Success)
             {
@@ -215,10 +216,11 @@ namespace Valour.Server.Controllers
 
             // Creates the channel channel
 
-            PlanetCategory category = new PlanetCategory()
+            ServerPlanetCategory category = new ServerPlanetCategory()
             {
                 Id = IdManager.Generate(),
                 Name = name,
+                Description = "A category",
                 Planet_Id = planet_id,
                 Parent_Id = parentid
             };
@@ -235,34 +237,14 @@ namespace Valour.Server.Controllers
             return new TaskResult<ulong>(true, "Successfully created category.", category.Id);
         }
 
-        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
-        /// <summary>
-        /// Validates that a given name is allowable for a server
-        /// </summary>
-        public TaskResult ValidateName(string name)
-        {
-            if (name.Length > 32)
-            {
-                return new TaskResult(false, "Planet names must be 32 characters or less.");
-            }
-
-            if (!planetRegex.IsMatch(name))
-            {
-                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-            }
-
-            return new TaskResult(true, "The given name is valid.");
-        }
-
         [HttpGet]
         public async Task<TaskResult<IEnumerable<PlanetCategory>>> GetPlanetCategoriesAsync(ulong planet_id)
         {
-            IEnumerable<PlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planet_id).ToList());
+            List<ServerPlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(c => c.Planet_Id == planet_id).ToList());
 
             // in case theres 0 categories or "General" does not exist
             if (categories.Count() == 0 || !(categories.Any(x => x.Name == "General"))) {
-                PlanetCategory category = new PlanetCategory();
+                ServerPlanetCategory category = new ServerPlanetCategory();
                 category.Name = "General";
                 category.Planet_Id = planet_id;
                 await Context.PlanetCategories.AddAsync(category);
@@ -271,6 +253,94 @@ namespace Valour.Server.Controllers
             }
 
             return new TaskResult<IEnumerable<PlanetCategory>>(true, "Successfully retrieved Categories.", categories);
+        }
+
+        public async Task<TaskResult> SetName(ulong category_id, string name, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
+                                                                          .FirstOrDefaultAsync(x => x.Id == category_id);
+
+            if (category == null)
+            {
+                return new TaskResult(false, $"Could not find category {category_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, category.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You do not have planet category management permissions.");
+            }
+
+            await category.SetNameAsync(name, Context);
+
+            // Send channel refresh
+            await  PlanetHub.NotifyCategoryChange(category);
+
+            return new TaskResult(true, "Successfully changed category name.");
+        }
+
+        public async Task<TaskResult> SetDescription(ulong category_id, string description, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
+                                                                          .FirstOrDefaultAsync(x => x.Id == category_id);
+
+            if (category == null)
+            {
+                return new TaskResult(false, $"Could not find category {category_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, category.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You do not have planet category management permissions.");
+            }
+
+            await category.SetDescriptionAsync(description, Context);
+
+            // Send channel refresh
+            await PlanetHub.NotifyCategoryChange(category);
+
+            return new TaskResult(true, "Successfully changed category description.");
         }
     }
 }

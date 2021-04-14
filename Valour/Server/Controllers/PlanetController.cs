@@ -24,6 +24,7 @@ using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using Valour.Server.Users;
 using Valour.Server.Oauth;
+using Valour.Server.Categories;
 
 
 /*  Valour - A free and secure chat client
@@ -165,7 +166,7 @@ namespace Valour.Server.Controllers
             ulong planet_id = IdManager.Generate();
 
             // Create general category
-            PlanetCategory category = new PlanetCategory()
+            ServerPlanetCategory category = new ServerPlanetCategory()
             {
                 Id = IdManager.Generate(),
                 Name = "General",
@@ -175,7 +176,7 @@ namespace Valour.Server.Controllers
             };
 
             // Create general channel
-            PlanetChatChannel channel = new PlanetChatChannel()
+            ServerPlanetChatChannel channel = new ServerPlanetChatChannel()
             {
                 Id = IdManager.Generate(),
                 Planet_Id = planet_id,
@@ -853,8 +854,8 @@ namespace Valour.Server.Controllers
 
             // Then remove role nodes
 
-            var roleChannelNodes = Context.ChannelPermissionsNodes.Where(x => x.Role_Id == role_id);
-            Context.ChannelPermissionsNodes.RemoveRange(roleChannelNodes);
+            var roleChannelNodes = Context.ChatChannelPermissionsNodes.Where(x => x.Role_Id == role_id);
+            Context.ChatChannelPermissionsNodes.RemoveRange(roleChannelNodes);
 
             // Finally remove the role
 

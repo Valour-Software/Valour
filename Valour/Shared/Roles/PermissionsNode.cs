@@ -16,9 +16,8 @@ namespace Valour.Shared.Roles
 {
     /// <summary>
     /// A permission node is a set of permissions for a specific thing
-    /// This is a set of permissions for a specific channel
     /// </summary>
-    public class ChannelPermissionsNode
+    public class PermissionsNode
     {
         /// <summary>
         /// The ID of this permission node
@@ -34,11 +33,6 @@ namespace Valour.Shared.Roles
         /// A mask used to determine if code bits are disabled
         /// </summary>
         public ulong Code_Mask { get; set; }
-
-        /// <summary>
-        /// The channel this node applies to
-        /// </summary>
-        public ulong Channel_Id { get; set; }
 
         /// <summary>
         /// The planet this node applies to
@@ -65,6 +59,37 @@ namespace Valour.Shared.Roles
         public PermissionState GetPermissionState(Permission perm)
         {
             return GetNodeCode().GetState(perm);
+        }
+
+        /// <summary>
+        /// Sets a permission to the given state
+        /// </summary>
+        public void SetPermission(Permission perm, PermissionState state)
+        {
+            if (state == PermissionState.Undefined)
+            {
+                // Remove bit from code
+                Code &= ~perm.Value;
+
+                // Remove mask bit
+                Code_Mask &= ~perm.Value;
+            }
+            else if (state == PermissionState.True)
+            {
+                // Add mask bit
+                Code_Mask |= perm.Value;
+
+                // Add true bit
+                Code |= perm.Value;
+            }
+            else
+            {
+                // Remove mask bit
+                Code_Mask |= perm.Value;
+
+                // Remove true bit
+                Code &= ~perm.Value;
+            }
         }
     }
 }

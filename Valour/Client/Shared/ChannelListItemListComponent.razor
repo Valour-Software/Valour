@@ -1,0 +1,140 @@
+﻿@inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
+@inject SignalRManager signalRManager
+
+<div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
+
+        @foreach (ClientPlanetCategory category in TopCategories)
+        {
+            <CategoryComponent Categories="Categories" 
+                               Channels="Channels" 
+                               Category="category" 
+                               ChannelWindow="@((ChatChannelWindow)windowManager.GetSelectedWindow())" 
+                               IsTopLevel="true">
+            </CategoryComponent>
+        }
+</div>
+
+@code {
+
+    public List<ClientPlanetCategory> TopCategories;
+    public List<ClientPlanetCategory> Categories { get; set; }
+    public List<ClientPlanetChatChannel> Channels { get; set; }
+
+    public void GetTopLevelCategories()
+    {
+        if (Categories == null) return;
+
+        TopCategories = Categories.Where(x => x.Parent_Id == null)
+                                  .OrderByDescending(x => x.Position)
+                                  .ToList();
+
+        Console.WriteLine($"Found {TopCategories.Count} top level categories");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize collections
+        Categories = new List<ClientPlanetCategory>();
+        Channels = new List<ClientPlanetChatChannel>();
+        TopCategories = new List<ClientPlanetCategory>();
+
+        // Handle full planet change
+        planetManager.OnPlanetChange += OnPlanetChange;
+
+        // Handle list change
+        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
+        planetManager.OnChannelsUpdate += OnChannelsUpdate;
+
+        // Handle single change
+        planetManager.OnCategoryUpdate += OnCategoryUpdate;
+        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+
+        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
+    }
+
+    public async Task OnPlanetChange()
+    {
+        Console.WriteLine("Rebuilding channel list due to planet change");
+
+        await GetChannels();
+        await GetCategories();
+
+        Console.WriteLine($"Found {Categories.Count} categories and {Channels.Count} channels.");
+
+        StateHasChanged();
+    }
+
+    public async Task OnChannelsUpdate()
+    {
+        await GetChannels();
+        StateHasChanged();
+    }
+
+    public async Task OnCategoriesUpdate()
+    {
+        await GetCategories();
+        StateHasChanged();
+    }
+
+    public async Task OnRefreshChannelList(string data)
+    {
+        ClientPlanet planet = planetManager.GetCurrent();
+        Channels = await planet.GetChannelsAsync();
+        Categories = await planet.GetCategoriesAsync();
+
+        StateHasChanged();
+    }
+
+    public async Task OnCategoryUpdate(ClientPlanetCategory category)
+    {
+        var oldCategory = Categories.FirstOrDefault(x => x.Id == category.Id);
+
+        if (oldCategory == null)
+        {
+            Categories.Add(category);
+            return;
+        }
+
+        var index = Categories.IndexOf(oldCategory);
+
+        // Set to new category
+        Categories[index] = category;
+
+        StateHasChanged();
+    }
+
+    public async Task GetCategories()
+    {
+        Categories = await planetManager.GetCurrent().GetCategoriesAsync();
+        GetTopLevelCategories();
+    }
+
+    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    {
+
+        //Console.WriteLine(channel.Name);
+
+        var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
+
+        //Console.WriteLine(oldChannel.Name);
+
+        if (oldChannel == null)
+        {
+            Channels.Add(channel);
+            return;
+        }
+
+        var index = Channels.IndexOf(oldChannel);
+
+        // Set to new channel
+        Channels[index] = channel;
+
+        StateHasChanged();
+    }
+
+    public async Task GetChannels()
+    {
+        Channels = await planetManager.GetCurrent().GetChannelsAsync();
+    }
+}

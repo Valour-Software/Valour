@@ -177,10 +177,14 @@ namespace Valour.Server.Planets
         /// </summary>
         public async Task<Planet> GetPlanetAsync()
         {
+            if (Planet != null) return Planet;
+
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
-                return await db.Planets.FindAsync(Planet_Id);
+                Planet = await db.Planets.FindAsync(Planet_Id);
             }
+
+            return Planet;
         }
 
         /// <summary>
@@ -188,7 +192,21 @@ namespace Valour.Server.Planets
         /// </summary>
         public Planet GetPlanet()
         {
+            if (Planet != null) return Planet;
             return GetPlanetAsync().Result;
+        }
+
+        public async Task<uint> GetAuthorityAsync()
+        {
+            if ((await GetPlanetAsync()).Owner_Id == User_Id)
+            {
+                // Highest possible authority for owner
+                return uint.MaxValue;
+            }
+            else
+            {
+                return uint.MaxValue - (1 + (await GetPrimaryRoleAsync()).Position);
+            }
         }
     }
 }

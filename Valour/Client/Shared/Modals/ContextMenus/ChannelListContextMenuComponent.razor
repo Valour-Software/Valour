@@ -1,10 +1,11 @@
 ﻿@inject ChannelListContextMenu channelListContextMenu
 @inject ConfirmModal confirmModal
+@inject EditChannelListItemModal editModal
 
 @if (visible)
 {
     <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
-        <div class="context-menu-item" onclick="">
+        <div id="edit-channel-list-item-btn" class="context-menu-item" @onclick="EditChannelListItem">
             <p class="context-menu-item-text">
                 Edit
             </p>
@@ -72,4 +73,11 @@
             Console.WriteLine("Cancelled channel item deletion.");
         });
     }
+
+    public async Task EditChannelListItem()
+    {
+        await editModal.Open();
+        await channelListContextMenu.Close();
+    }
 }
+

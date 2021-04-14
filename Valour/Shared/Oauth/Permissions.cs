@@ -21,7 +21,7 @@ namespace Valour.Shared.Oauth
         /// <summary>
         /// Permission node to have complete control
         /// </summary>
-        public const ulong FULL_CONTROL = 0xFFFFFFFFFFFFFFFF;
+        public const ulong FULL_CONTROL = ulong.MaxValue;
 
         /// <summary>
         /// The name of this permission
@@ -79,9 +79,16 @@ namespace Valour.Shared.Oauth
         }
     }
 
-    public class ChannelPermission : Permission
+    public class ChatChannelPermission : Permission
     {
-        public ChannelPermission(ulong value, string name, string description) : base(value, name, description)
+        public ChatChannelPermission(ulong value, string name, string description) : base(value, name, description)
+        {
+        }
+    }
+
+    public class CategoryPermission : Permission
+    {
+        public CategoryPermission(ulong value, string name, string description) : base(value, name, description)
         {
         }
     }
@@ -124,7 +131,7 @@ namespace Valour.Shared.Oauth
         }
 
         // Use shared full control definition
-        public static readonly UserPermission FullControl = new UserPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Control every part of your account.");
+        public static readonly UserPermission FullControl = new UserPermission(Permission.FULL_CONTROL, "Full Control", "Control every part of your account.");
 
         // Every subsequent permission has double the value (the next bit)
         // An update should NEVER change the order or value of old permissions
@@ -140,20 +147,40 @@ namespace Valour.Shared.Oauth
     /// This class contains all channel permissions and helper methods for working
     /// with them
     /// </summary>
-    public static class ChannelPermissions
+    public static class ChatChannelPermissions
     {
 
-        public static readonly ulong Default =
-            Permission.CreateCode(View, ViewMessages, PostMessages);
+        public static readonly ulong Default;
 
         /// <summary>
         /// Contains every channel permission
         /// </summary>
-        public static ChannelPermission[] Permissions;
+        public static ChatChannelPermission[] Permissions;
 
-        static ChannelPermissions()
+
+        // Use shared full control definition
+        public static readonly ChatChannelPermission FullControl;
+
+        public static readonly ChatChannelPermission View;
+        public static readonly ChatChannelPermission ViewMessages;
+        public static readonly ChatChannelPermission PostMessages;
+        public static readonly ChatChannelPermission ManageChannel;
+        public static readonly ChatChannelPermission ManagePermissions;
+        public static readonly ChatChannelPermission Embed;
+        public static readonly ChatChannelPermission AttachContent;
+
+        static ChatChannelPermissions()
         {
-            Permissions = new ChannelPermission[]
+            FullControl = new ChatChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
+            View = new ChatChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
+            ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
+            PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
+            ManageChannel = new ChatChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
+            ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+            Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
+            AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
+
+            Permissions = new ChatChannelPermission[]
             {
                 FullControl,
                 View,
@@ -164,18 +191,50 @@ namespace Valour.Shared.Oauth
                 Embed,
                 AttachContent
             };
+
+            Default = Permission.CreateCode(View, ViewMessages, PostMessages);
         }
+    }
+
+    /// <summary>
+    /// This class contains all category permissions and helper methods for working
+    /// with them
+    /// </summary>
+    public static class CategoryPermissions
+    {
+
+        public static readonly ulong Default;
+
+        /// <summary>
+        /// Contains every category permission
+        /// </summary>
+        public static CategoryPermission[] Permissions;
+
 
         // Use shared full control definition
-        public static readonly ChannelPermission FullControl = new ChannelPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the channel");
+        public static readonly CategoryPermission FullControl;
 
-        public static readonly ChannelPermission View = new ChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
-        public static readonly ChannelPermission ViewMessages = new ChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
-        public static readonly ChannelPermission PostMessages = new ChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
-        public static readonly ChannelPermission ManageChannel = new ChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
-        public static readonly ChannelPermission ManagePermissions = new ChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
-        public static readonly ChannelPermission Embed = new ChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
-        public static readonly ChannelPermission AttachContent = new ChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
+        public static readonly CategoryPermission View;
+        public static readonly CategoryPermission ManageCategory;
+        public static readonly CategoryPermission ManagePermissions;
+
+        static CategoryPermissions()
+        {
+            FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
+            View = new CategoryPermission(0x01, "View", "Allow members to view this channel in the channel list.");
+            ManageCategory = new CategoryPermission(0x08, "Manage", "Allow members to manage this channel's details.");
+            ManagePermissions = new CategoryPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+
+            Permissions = new CategoryPermission[]
+            {
+                FullControl,
+                View,
+                ManageCategory,
+                ManagePermissions,
+            };
+
+            Default = Permission.CreateCode(View);
+        }
     }
 
     /// <summary>
@@ -210,7 +269,7 @@ namespace Valour.Shared.Oauth
         }
 
         // Use shared full control definition
-        public static readonly PlanetPermission FullControl = new PlanetPermission(0xFFFFFFFFFFFFFFFF, "Full Control", "Allow members full control of the planet (owner)");
+        public static readonly PlanetPermission FullControl = new PlanetPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the planet (owner)");
 
         public static readonly PlanetPermission View = new PlanetPermission(0x01, "View", "Allow members to view the planet. This is implicitly granted to members."); // Implicitly granted to members
         public static readonly PlanetPermission Invite = new PlanetPermission(0x02, "Invite", "Allow members to send invites to the planet.");
@@ -251,12 +310,12 @@ namespace Valour.Shared.Oauth
 
         public PermissionState GetState(Permission permission)
         {
-            if ((Mask & permission.Value) == 0x00)
+            if ((Mask & permission.Value) != permission.Value)
             {
                 return PermissionState.Undefined;
             }
 
-            if ((Code & permission.Value) == 0x00)
+            if ((Code & permission.Value) != permission.Value)
             {
                 return PermissionState.False;
             }

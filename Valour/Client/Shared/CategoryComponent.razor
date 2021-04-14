@@ -1,18 +1,21 @@
-﻿@using Valour.Shared.Categories
+﻿@implements IDisposable
+
+@using Valour.Shared.Categories
 @using Valour.Shared.Planets
 
 @inject AddChannelContextMenu addChannelContextMenu
 @inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject ClientCategoryManager categoryManager
+@inject ChannelListContextMenu listContextMenu
 
 
 
-<div class="@Chosen_CSS" id="@category.Id" draggable="true" ondrag="setDragging(event)">
-    <div id="@category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" oncontextmenu="ChannelListItemContextMenu(event,this)">
-        <img class="arrow" src="media/Category-Icon.svg" @onclick='@OnClick' style="@ArrowStyle">
-        <p class="name" @onclick='@OnClick'>
-            @category.Name
+<div class="@Chosen_CSS" id="@Category.Id" draggable="true" ondrag="setDragging(event)">
+    <div style="cursor:pointer"  @onclick='@OnClick' id="@Category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" @oncontextmenu="OnContextMenu">
+        <img class="arrow" src="media/Category-Icon.svg" style="@ArrowStyle">
+        <p class="name">
+            @Category.Name
         </p>
         <p class="add-channel-button" id="add-channel-button" @onclick="OpenAddContextMenu">
             +
@@ -27,9 +30,9 @@
                 ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
                 if (channel != null)
                 {
-                    if (channel.Parent_Id == null && category.Name == "General")
+                    if (channel.Parent_Id == null && Category.Name == "General")
                     {
-                        if (channel.Id == channelWindow.Channel.Id)
+                        if (channel.Id == ChannelWindow.Channel.Id)
                         {
                             <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
                         }
@@ -38,9 +41,9 @@
                             <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
                         }
                     }
-                    if (channel.Parent_Id == category.Id)
+                    if (channel.Parent_Id == Category.Id)
                     {
-                        if (channel.Id == channelWindow.Channel.Id)
+                        if (channel.Id == ChannelWindow.Channel.Id)
                         {
                             <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
                         }
@@ -53,9 +56,9 @@
                 else
                 {
                     ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
-                    @if (planetcategory.Parent_Id == category.Id)
+                    @if (planetcategory.Parent_Id == Category.Id)
                     {
-                        <CategoryComponent PlanetCategoryChannelList="@PlanetCategoryChannelList" Category="@planetcategory" channelWindow="@channelWindow" planet="@planet" PlanetChannelList="@PlanetChannelList">
+                        <CategoryComponent Category="@planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow" >
                         </CategoryComponent>
                     }
                 }
@@ -70,64 +73,44 @@
     public bool IsTopLevel { get; set; }
 
     [Parameter]
-    public ClientPlanetCategory category { get; set; }
+    public ClientPlanetCategory Category { get; set; }
 
     [Parameter]
-    public ConcurrentBag<ClientPlanetChatChannel> PlanetChannelList { get; set; }
+    public List<ClientPlanetChatChannel> Channels { get; set; }
 
     [Parameter]
-    public ConcurrentBag<ClientPlanetCategory> PlanetCategoryChannelList { get; set; }
+    public List<ClientPlanetCategory> Categories { get; set; }
 
     [Parameter]
-    public ChatChannelWindow channelWindow { get; set; }
+    public ChatChannelWindow ChannelWindow { get; set; }
 
-    [Parameter]
-    public Planet planet { get; set; }
+    public List<ClientPlanetChatChannel> ChildChannels;
+    public List<ClientPlanetCategory> ChildCategories;
 
     public bool IsOpen { get; set; }
 
-    public List<ChannelListItem> ItemList = new List<ChannelListItem>();
+    public List<IClientPlanetListItem> ItemList = new List<IClientPlanetListItem>();
 
     protected override Task OnInitializedAsync()
     {
-        IsOpen = categoryManager.IsOpen(category);
+        planetManager.OnCategoryUpdate += OnCategoryUpdate;
 
-        var channels = PlanetChannelList.Where(x => x.Parent_Id == category.Id).ToList();
+        ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
+        ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
 
-        foreach (ClientPlanetChatChannel channel in channels)
-        {
-            ItemList.Add(channel);
-            Console.WriteLine($"Id: {channel.Id}");
-        }
+        ItemList.AddRange(ChildChannels);
+        ItemList.AddRange(ChildCategories);
 
-        var categories = PlanetCategoryChannelList.Where(x => x.Parent_Id == category.Id).ToList();
-
-        ItemList.AddRange(categories);
-
-        foreach (ChannelListItem item in ItemList)
-        {
-            ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
-            if (channel != null)
-            {
-                item.Position = channel.Position;
-            }
-            else
-            {
-                PlanetCategory planetcategory = item as PlanetCategory;
-                item.Position = planetcategory.Position;
-            }
-
-        }
+        IsOpen = categoryManager.IsOpen(Category);
 
         ItemList.Sort((x, y) => x.Position.CompareTo(y.Position));
 
-        foreach (ChannelListItem item in ItemList)
-        {
-            Console.WriteLine(item.Position);
-            Console.WriteLine(item.Name);
-        }
-
         return base.OnInitializedAsync();
+    }
+
+    public void Dispose()
+    {
+        planetManager.OnCategoryUpdate -= OnCategoryUpdate;
     }
 
     public string ArrowStyle
@@ -174,13 +157,27 @@
     {
         IsOpen = !IsOpen;
 
-        categoryManager.SetOpen(category, IsOpen);
+        categoryManager.SetOpen(Category, IsOpen);
 
         StateHasChanged();
     }
 
     public async Task OpenAddContextMenu(MouseEventArgs e)
     {
-        await addChannelContextMenu.Open(e, category);
+        await addChannelContextMenu.Open(e, Category);
+    }
+
+    public async Task OnCategoryUpdate(ClientPlanetCategory category)
+    {
+        if (Category.Id == category.Id)
+        {
+            this.Category = category;
+            StateHasChanged();
+        }
+    }
+
+    public async Task OnContextMenu(MouseEventArgs e)
+    {
+        await listContextMenu.Open(e, Category);
     }
 }

@@ -54,69 +54,6 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
         
-        public async Task<TaskResult> SetDescription(string description, ulong id, ulong user_id, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
-
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
-
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
-            }
-
-            channel.Description = description;
-
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, "Successfully set description.");
-        }
-
-        public async Task<TaskResult> SetName(string name, ulong id, ulong user_id, string token)
-        {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
-
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
-
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
-            }
-
-            channel.Name = name;
-
-            await Context.SaveChangesAsync();
-
-            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
-
-            return new TaskResult(true, "Successfully set name.");
-        }
-
         public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
@@ -131,7 +68,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
 
             if (channel == null)
             {
@@ -178,7 +115,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
 
             ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
 
@@ -191,7 +128,8 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
+            // Notify of update
+            await PlanetHub.NotifyChatChannelChange(channel);
             
             return new TaskResult(true, "Successfully set parentid.");
         }
@@ -202,7 +140,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planet_id, ulong user_id, ulong parentid, string token)
         {
-            TaskResult nameValid = ValidateName(name);
+            TaskResult nameValid = ServerPlanetChatChannel.ValidateName(name);
 
             if (!nameValid.Success)
             {
@@ -232,7 +170,7 @@ namespace Valour.Server.Controllers
 
             // Creates the channel channel
 
-            PlanetChatChannel channel = new PlanetChatChannel()
+            ServerPlanetChatChannel channel = new ServerPlanetChatChannel()
             {
                 Id = IdManager.Generate(),
                 Name = name,
@@ -254,32 +192,12 @@ namespace Valour.Server.Controllers
             // Return success
             return new TaskResult<ulong>(true, "Successfully created channel.", channel.Id);
         }
-
-        public Regex planetRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
-        /// <summary>
-        /// Validates that a given name is allowable for a server
-        /// </summary>
-        public TaskResult ValidateName(string name)
-        {
-            if (name.Length > 32)
-            {
-                return new TaskResult(false, "Planet names must be 32 characters or less.");
-            }
-
-            if (!planetRegex.IsMatch(name))
-            {
-                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-            }
-
-            return new TaskResult(true, "The given name is valid.");
-        }
         
         public async Task<TaskResult<IEnumerable<ulong>>> GetChannelIdsAsync(ulong planet_id)
         {
             IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
 
-            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retireved channels.", channels);;
+            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retrieved channels.", channels);;
         }
 
         [HttpGet]
@@ -287,7 +205,7 @@ namespace Valour.Server.Controllers
         {
             IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
 
-            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retireved channels.", channels);
+            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retrieved channels.", channels);
         }
 
         [HttpGet]
@@ -360,11 +278,6 @@ namespace Valour.Server.Controllers
 
             AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
             if (authToken == null || authToken.User_Id != msg.Author_Id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
@@ -391,6 +304,141 @@ namespace Valour.Server.Controllers
             StatWorker.IncreaseMessageCount();
 
             return new TaskResult(true, "Added message to post queue.");
+        }
+
+        public async Task<TaskResult> SetName(ulong channel_id, string name, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
+                                                                              .FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            if (channel == null)
+            {
+                return new TaskResult(false, $"Could not find channel {channel_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, channel.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You do not have planet channel management permissions.");
+            }
+
+            channel.Name = name;
+            await Context.SaveChangesAsync();
+
+            // Send channel refresh
+            await PlanetHub.NotifyChatChannelChange(channel);
+
+            return new TaskResult(true, "Successfully changed channel name.");
+        }
+
+        public async Task<TaskResult> SetDescription(ulong channel_id, string description, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
+                                                                              .FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            if (channel == null)
+            {
+                return new TaskResult(false, $"Could not find channel {channel_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, channel.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You do not have planet channel management permissions.");
+            }
+
+            channel.Description = description;
+            await Context.SaveChangesAsync();
+
+            // Send channel refresh
+            await PlanetHub.NotifyChatChannelChange(channel);
+
+            return new TaskResult(true, "Successfully changed channel description.");
+        }
+
+        public async Task<TaskResult> SetPermissionInheritMode(ulong channel_id, bool value, string token)
+        {
+            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
+                                                                              .FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            if (channel == null)
+            {
+                return new TaskResult(false, $"Could not find channel {channel_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, channel.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageChannels)))
+            {
+                return new TaskResult(false, "You do not have planet channel management permissions.");
+            }
+
+            channel.Inherits_Perms = value;
+            await Context.SaveChangesAsync();
+
+            // Send channel refresh
+            await PlanetHub.NotifyChatChannelChange(channel);
+
+            return new TaskResult(true, $"Successfully set permission inheritance to {value}.");
         }
     }
 }

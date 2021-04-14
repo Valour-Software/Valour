@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Client.Categories;
 using Valour.Client.Channels;
 using Valour.Client.Messages;
 using Valour.Client.Shared;
@@ -50,6 +51,10 @@ namespace Valour.Client.Planets
 
         public event Func<ClientPlanetMember, Task> OnMemberUpdate;
 
+        public event Func<ClientPlanetChatChannel, Task> OnChatChannelUpdate;
+
+        public event Func<ClientPlanetCategory, Task> OnCategoryUpdate;
+
         private readonly SignalRManager signalRManager;
 
         public ClientPlanetManager(SignalRManager signalrmanager)
@@ -59,6 +64,8 @@ namespace Valour.Client.Planets
             signalRManager.hubConnection.On<string>("Relay", OnMessageRecieve);
             signalRManager.hubConnection.On<string>("RoleUpdate", UpdateRole);
             signalRManager.hubConnection.On<string>("MemberUpdate", UpdateMember);
+            signalRManager.hubConnection.On<string>("ChatChannelUpdate", UpdateChatChannel);
+            signalRManager.hubConnection.On<string>("CategoryUpdate", UpdateCategory);
         }
 
         public List<ClientPlanet> GetOpenPlanets()
@@ -476,6 +483,44 @@ namespace Valour.Client.Planets
             if (OnMemberUpdate != null)
             {
                 await OnMemberUpdate.Invoke(member);
+            }
+        }
+
+        public async Task UpdateChatChannel(string json)
+        {
+            ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(json);
+
+            if (channel == null)
+            {
+                Console.WriteLine("Failed to deserialize channel in chat channel update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet chat channel update ping");
+            Console.WriteLine(json);
+
+            if (OnChatChannelUpdate != null)
+            {
+                await OnChatChannelUpdate.Invoke(channel);
+            }
+        }
+
+        public async Task UpdateCategory(string json)
+        {
+            ClientPlanetCategory category = JsonConvert.DeserializeObject<ClientPlanetCategory>(json);
+
+            if (category == null)
+            {
+                Console.WriteLine("Failed to deserialize category in chat category update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet chat category update ping");
+            Console.WriteLine(json);
+
+            if (OnCategoryUpdate != null)
+            {
+                await OnCategoryUpdate.Invoke(category);
             }
         }
     }
