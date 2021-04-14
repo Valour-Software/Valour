@@ -41,7 +41,9 @@
             return;
         }
 
-        ulong parentid = await JS.InvokeAsync<ulong>("GetParentId");
+        ulong parentid = contextMenu.SelectedCategory.Id;
+
+
         // Encode non-friendly characters
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
 
