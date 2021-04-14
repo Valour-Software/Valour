@@ -12,11 +12,13 @@
 
 
 <div class="@Chosen_CSS" id="@Category.Id" draggable="true" ondrag="setDragging(event)">
-    <div style="cursor:pointer"  @onclick='@OnClick' id="@Category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" @oncontextmenu="OnContextMenu">
-        <img class="arrow" src="media/Category-Icon.svg" style="@ArrowStyle">
-        <p class="name">
-            @Category.Name
-        </p>
+    <div style="cursor:pointer" id="@Category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" @oncontextmenu="OnContextMenu">
+        <div @onclick='@OnClick' style="width:85%; display:inline-block">
+            <img class="arrow" src="media/Category-Icon.svg" style="@ArrowStyle">
+            <p class="name">
+                @Category.Name
+            </p>
+        </div>
         <p class="add-channel-button" id="add-channel-button" @onclick="OpenAddContextMenu">
             +
         </p>
