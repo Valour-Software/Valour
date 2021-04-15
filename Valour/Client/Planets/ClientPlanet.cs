@@ -82,7 +82,8 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<List<ClientPlanetCategory>> GetCategoriesAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Category/GetPlanetCategories?planet_id={Id}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Category/GetPlanetCategories?planet_id={Id}" +
+                                                                                                  $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult<List<ClientPlanetCategory>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetCategory>>>(json);
 
@@ -106,7 +107,8 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planet_id={Id}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planet_id={Id}" +
+                                                                                               $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult<List<ClientPlanetChatChannel>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetChatChannel>>>(json);
 

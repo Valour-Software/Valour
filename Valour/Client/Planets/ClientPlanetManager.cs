@@ -68,6 +68,16 @@ namespace Valour.Client.Planets
             signalRManager.hubConnection.On<string>("CategoryUpdate", UpdateCategory);
         }
 
+        public bool IsChatChannelOpen(ClientPlanetChatChannel channel)
+        {
+            return OpenPlanetChatChannels.ContainsKey(channel.Id);
+        }
+
+        public bool IsChatChannelOpen(ulong channel_id)
+        {
+            return OpenPlanetChatChannels.ContainsKey(channel_id);
+        }
+
         public List<ClientPlanet> GetOpenPlanets()
         {
             return OpenPlanets.Values.ToList();
