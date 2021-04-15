@@ -86,16 +86,16 @@ namespace Valour.Server.Categories
             return Planet;
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission)
+        public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db = null)
         {
-            Planet planet = await GetPlanetAsync();
+            Planet planet = await GetPlanetAsync(db);
 
             if (planet.Owner_Id == member.User_Id)
             {
                 return true;
             }
 
-            var roles = await member.GetRolesAsync();
+            var roles = await member.GetRolesAsync(db);
 
             CategoryPermission catPerm = null;
             ChatChannelPermission chatPerm = null;
