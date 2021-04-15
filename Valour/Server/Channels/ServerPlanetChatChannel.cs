@@ -110,9 +110,9 @@ namespace Valour.Server.Planets
             return Parent;
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission)
+        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db = null)
         {
-            Planet planet = await GetPlanetAsync();
+            Planet planet = await GetPlanetAsync(db);
 
             if (planet.Owner_Id == member.User_Id)
             {
@@ -122,16 +122,16 @@ namespace Valour.Server.Planets
             // If true, we just ask the category
             if (Inherits_Perms)
             {
-                return await (await GetParentAsync()).HasPermission(member, permission);
+                return await (await GetParentAsync(db)).HasPermission(member, permission);
             }
 
-            var roles = await member.GetRolesAsync();
+            var roles = await member.GetRolesAsync(db);
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
             // If we get an undecided, we continue to the next role down
             foreach (var role in roles)
             {
-                var node = await ServerPlanetRole.FromBase(role).GetChannelNodeAsync(this);
+                var node = await ServerPlanetRole.FromBase(role).GetChannelNodeAsync(this, db);
 
                 // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
                 if (node == null)

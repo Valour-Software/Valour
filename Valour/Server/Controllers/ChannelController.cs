@@ -186,26 +186,75 @@ namespace Valour.Server.Controllers
 
             // Save changes to DB
             await Context.SaveChangesAsync();
-            
-            await PlanetHub.Current.Clients.Group($"p-{planet_id}").SendAsync("RefreshChannelList", "");
+
+            // Send channel refresh
+            await PlanetHub.NotifyChatChannelChange(channel);
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created channel.", channel.Id);
         }
         
-        public async Task<TaskResult<IEnumerable<ulong>>> GetChannelIdsAsync(ulong planet_id)
+        public async Task<TaskResult<IEnumerable<ulong>>> GetChannelIdsAsync(ulong planet_id, string token)
         {
-            IEnumerable<ulong> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).Select(c => c.Id).ToList());
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retrieved channels.", channels);;
+            if (authToken == null)
+            {
+                return new TaskResult<IEnumerable<ulong>>(false, "Please supply a valid authentication token.", null);
+            }
+            
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, planet_id, Context);
+
+            if (member == null)
+            {
+                return new TaskResult<IEnumerable<ulong>>(false, "You are not a member of this planet.", null);
+            }
+
+            var channels = Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id);
+
+            List<ulong> result = new List<ulong>();
+
+            foreach (var channel in channels)
+            {
+                if (await channel.HasPermission(member, ChatChannelPermissions.View))
+                {
+                    result.Add(channel.Id);
+                }
+            }
+
+            return new TaskResult<IEnumerable<ulong>>(true, "Successfully retrieved channels.", result);;
         }
 
         [HttpGet]
-        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planet_id)
+        public async Task<TaskResult<IEnumerable<PlanetChatChannel>>> GetPlanetChannelsAsync(ulong planet_id, string token)
         {
-            IEnumerable<PlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id).ToList());
+            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
 
-            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retrieved channels.", channels);
+            if (authToken == null)
+            {
+                return new TaskResult<IEnumerable<PlanetChatChannel>>(false, "Please supply a valid authentication token.", null);
+            }
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, planet_id, Context);
+
+            if (member == null)
+            {
+                return new TaskResult<IEnumerable<PlanetChatChannel>>(false, "You are not a member of this planet.", null);
+            }
+
+            var channels = Context.PlanetChatChannels.Where(c => c.Planet_Id == planet_id);
+
+            List<PlanetChatChannel> result = new List<PlanetChatChannel>();
+
+            foreach (var channel in channels)
+            {
+                if (await channel.HasPermission(member, ChatChannelPermissions.View))
+                {
+                    result.Add(channel);
+                }
+            }
+
+            return new TaskResult<IEnumerable<PlanetChatChannel>>(true, "Successfully retrieved channels.", result);
         }
 
         [HttpGet]

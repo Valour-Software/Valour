@@ -32,27 +32,9 @@
                 ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
                 if (channel != null)
                 {
-                    if (channel.Parent_Id == null && Category.Name == "General")
-                    {
-                        if (channel.Id == ChannelWindow.Channel.Id)
-                        {
-                            <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
-                        }
-                        else
-                        {
-                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
-                        }
-                    }
                     if (channel.Parent_Id == Category.Id)
                     {
-                        if (channel.Id == ChannelWindow.Channel.Id)
-                        {
-                            <ChannelListComponent Channel="@channel" Open="true"></ChannelListComponent>
-                        }
-                        else
-                        {
-                            <ChannelListComponent Channel="@channel" Open="false"></ChannelListComponent>
-                        }
+                        <ChannelListComponent Channel="@channel"></ChannelListComponent>
                     }
                 }
                 else

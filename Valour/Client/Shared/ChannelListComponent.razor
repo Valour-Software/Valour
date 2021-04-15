@@ -15,21 +15,28 @@
     // Demonstrates how a parent component can supply parameters
     [Parameter]
     public ClientPlanetChatChannel Channel { get; set; }
-    [Parameter]
-    public bool Open { get; set; }
+
     public string Chosen_CSS
     {
         get
         {
-            if (Open)
+            ChatChannelWindow window = windowManager.GetSelectedWindow() as ChatChannelWindow;
+
+            if (window != null)
             {
-                return "channel open";
+                if (window.Channel.Id == Channel.Id)
+                {
+                    return "channel open";
+                }
             }
-            else
-            {
-                return "channel";
-            }
+
+            return "channel";
         }
+    }
+
+    public async Task OnChannelWindowUpdate()
+    {
+        StateHasChanged();
     }
 
     public async Task OnClick()
@@ -65,6 +72,7 @@
     protected override async Task OnInitializedAsync()
     {
         planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+        planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
     }
 
     public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
