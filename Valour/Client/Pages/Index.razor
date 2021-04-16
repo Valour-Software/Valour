@@ -168,6 +168,8 @@ else
 
         if (planet != null)
         {
+            Console.WriteLine("Index planet change: " + planet.Name);
+
             var memberTask = Task.Run(async () =>
             {
                 var members = await planet.GetAllMembers();
@@ -177,6 +179,8 @@ else
         }
         else
         {
+            Console.WriteLine("Index planet change: null");
+
             await MemberListComponent.SetMemberList(planetMemberList);
         }
 

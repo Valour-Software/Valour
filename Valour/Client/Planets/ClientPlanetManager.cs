@@ -369,8 +369,6 @@ namespace Valour.Client.Planets
             // Remove from list
             OpenPlanets.Remove(planet.Id);
 
-
-
             Console.WriteLine($"Left SignalR group for planet {planet.Id}");
         }
 
@@ -418,6 +416,8 @@ namespace Valour.Client.Planets
             // If there are no windows open for a planet, close the planet
             if (!OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == window.Channel.Planet_Id))
             {
+                CurrentPlanet = null;
+
                 await ClosePlanet(await window.Channel.GetPlanetAsync());
 
                 if (OnPlanetChange != null)
