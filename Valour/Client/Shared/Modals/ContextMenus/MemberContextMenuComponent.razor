@@ -141,9 +141,13 @@
         ModalHolderComponent.CloseModalEvent += OnModalClose;
     }
 
-    public async Task OnPlanetChange()
+    public async Task OnPlanetChange(ClientPlanet planet)
     {
-        Planet = ClientPlanetManager.Current.GetCurrent();
+        Planet = planet;
+
+        if (planet == null)
+            return;
+
         PlanetRoles = await Planet.GetRolesAsync();
     }
 

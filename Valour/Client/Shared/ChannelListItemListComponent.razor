@@ -53,14 +53,24 @@
         signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
     }
 
-    public async Task OnPlanetChange()
+    public async Task OnPlanetChange(ClientPlanet planet)
     {
         Console.WriteLine("Rebuilding channel list due to planet change");
 
-        await GetChannels();
-        await GetCategories();
+        if (planet == null)
+        {
+            Console.WriteLine("New planet is null, clearing list.");
+            TopCategories.Clear();
+            Categories.Clear();
+            Channels.Clear();
+        }
+        else
+        {
+            await GetChannels();
+            await GetCategories();
 
-        Console.WriteLine($"Found {Categories.Count} categories and {Channels.Count} channels.");
+            Console.WriteLine($"Found {Categories.Count} categories and {Channels.Count} channels.");
+        }
 
         StateHasChanged();
     }

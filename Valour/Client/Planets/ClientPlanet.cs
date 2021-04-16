@@ -225,5 +225,13 @@ namespace Valour.Client.Planets
         {
             return await ClientPlanetManager.Current.GetPlanetRoles(Id);
         }
+
+        /// <summary>
+        /// Returns the member for a given user id
+        /// </summary>
+        public async Task<ClientPlanetMember> GetMemberAsync(ulong user_id)
+        {
+            return await ClientPlanetMember.GetClientPlanetMemberAsync(user_id, Id);
+        }
     }
 }

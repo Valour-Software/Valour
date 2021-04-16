@@ -127,23 +127,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public static async Task<ClientPlanetMember> GetClientPlanetMemberAsync(ulong user_id, ulong planet_id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMember?user_id={user_id}&planet_id={planet_id}&auth={ClientUserManager.UserSecretToken}");
-
-            TaskResult<ClientPlanetMember> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetMember>>(json);
-
-            if (result == null)
-            {
-                Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
-                return null;
-            }
-
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                return null;
-            }
-
-            return result.Data;
+            return await ClientPlanetManager.Current.GetPlanetMemberAsync(user_id, planet_id);
         }
 
         /// <summary>

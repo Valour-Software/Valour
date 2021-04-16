@@ -39,7 +39,7 @@ namespace Valour.Client.Planets
         private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
         private ConcurrentDictionary<ulong, List<ulong>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<ulong>>();
 
-        public event Func<Task> OnPlanetChange;
+        public event Func<ClientPlanet, Task> OnPlanetChange;
 
         public event Func<Task> OnChannelsUpdate;
 
@@ -285,7 +285,23 @@ namespace Valour.Client.Planets
             }
 
             // Retrieve from server
-            ClientPlanetMember member = await ClientPlanetMember.GetClientPlanetMemberAsync(user_id, planet_id);
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMember?user_id={user_id}&planet_id={planet_id}&auth={ClientUserManager.UserSecretToken}");
+
+            TaskResult<ClientPlanetMember> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetMember>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                return null;
+            }
+
+            ClientPlanetMember member = result.Data;
 
             if (member == null)
             {
@@ -353,6 +369,8 @@ namespace Valour.Client.Planets
             // Remove from list
             OpenPlanets.Remove(planet.Id);
 
+
+
             Console.WriteLine($"Left SignalR group for planet {planet.Id}");
         }
 
@@ -396,6 +414,18 @@ namespace Valour.Client.Planets
 
                 Console.WriteLine($"Left SignalR group for channel {channel.Id}");
             } 
+
+            // If there are no windows open for a planet, close the planet
+            if (!OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == window.Channel.Planet_Id))
+            {
+                await ClosePlanet(await window.Channel.GetPlanetAsync());
+
+                if (OnPlanetChange != null)
+                {
+                    Console.WriteLine($"Invoking planet change event");
+                    await OnPlanetChange?.Invoke(null);
+                }
+            }
         }
 
         public async Task RefreshOpenedChannels() {
@@ -421,7 +451,7 @@ namespace Valour.Client.Planets
             if (OnPlanetChange != null)
             {
                 Console.WriteLine($"Invoking planet change event");
-                await OnPlanetChange?.Invoke();
+                await OnPlanetChange?.Invoke(planet);
             }
         }
 
