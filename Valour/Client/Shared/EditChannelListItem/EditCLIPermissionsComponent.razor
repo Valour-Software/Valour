@@ -1,14 +1,39 @@
-﻿<h3>@Item.GetItemTypeName() Permissions</h3>
+﻿@if (loading)
+{
+    <h4>Loading details...</h4>
+    return;
+}
+
+<h3>@Item.GetItemTypeName() Permissions</h3>
+
+@{
+    Console.WriteLine(Selected_Role.Name);
+}
 
 <select class="form-control" @onchange="OnRoleSelect" style="color: @Selected_Role.GetColorHex();
         background-color: var(--main-1)">
+
+    @{ int options = 0; }
+
     @foreach (var role in Roles)
     {
+        // Don't show roles we can't edit
+        if (role.GetAuthority() >= SelfAuthority)
+            continue;
+
+        options++;
+
         <option value="@role.Id" style="color: @role.GetColorHex(); background-color: var(--main-1)">@role.Name</option>
     }
 </select>
 
 <br />
+
+@if (options == 0)
+{
+    <h3>There are no roles you can edit!</h3>
+    return;
+}
 
 @if (Selected_Role == null)
 {
@@ -21,6 +46,12 @@
 
 @if (ChatChannel != null)
 {
+    if ((Planet.Owner_Id != SelfMember.User_Id) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageChannels))
+    {
+        <h4>You do not have permission to manage chat channels!</h4>
+        return;
+    }
+
     <div class="perm-list-item">
         <div class="perm-list-name mb-1">
             Inherit Category Permissions
@@ -69,6 +100,12 @@
 }
 else if (Category != null)
 {
+    if ((Planet.Owner_Id != SelfMember.User_Id) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
+    {
+        <h4>You do not have permission to manage categories!</h4>
+        return;
+    }
+
     for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
     {
         int i2 = i;
@@ -144,7 +181,15 @@ else
 
     public ClientPlanetCategory Category { get; set; }
 
+    public ClientPlanetMember SelfMember { get; set; }
+
+    public PlanetRole SelfPrimaryRole { get; set; }
+
+    public ulong SelfAuthority { get; set; }
+
     public bool changed = false;
+
+    public bool loading = true;
 
     [Parameter]
     public IClientPlanetListItem Item { get; set; }
@@ -270,14 +315,22 @@ else
         }
 
         Selected_Role = Roles[0];
+
+        // Get self membership
+        SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, Planet.Id);
+        SelfAuthority = await SelfMember.GetAuthorityAsync();
+        SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
+
+        loading = false;
+
+        await OnRoleChange(Selected_Role);
+
+        await RefreshButtons();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
-        {
-            await OnRoleChange(Roles[0]);
-        }
+
     }
 
     public async Task OnRoleSelect(ChangeEventArgs e)
@@ -302,6 +355,9 @@ else
 
     public async Task RefreshButtons()
     {
+        if (Buttons == null || Buttons.Length == 0)
+            return;
+
         if (ChatChannel != null)
         {
             // Setup buttons
@@ -324,6 +380,9 @@ else
             // Setup category buttons
             for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
             {
+                if (Buttons[i] == null)
+                    continue;
+
                 TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
                 if (PermissionsNode != null)
                 {
@@ -338,6 +397,9 @@ else
             // Setup chat channel buttons
             for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
             {
+                if (Buttons[i] == null)
+                    continue;
+
                 TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
                 if (PermissionsNode != null)
                 {

@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Oauth;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -81,6 +82,11 @@ namespace Valour.Shared.Roles
         {
             Color c = GetColor();
             return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+        }
+
+        public bool HasPermission(PlanetPermission perm)
+        {
+            return Permission.HasPermission(Permissions, perm);
         }
     }
 }

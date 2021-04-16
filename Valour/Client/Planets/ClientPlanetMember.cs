@@ -196,6 +196,28 @@ namespace Valour.Client.Planets
             _roleids = result.Data;
         }
 
+        public async Task<uint> GetAuthorityAsync()
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine($"Got authority for {Id}: " + json);
+
+            TaskResult<uint> result = JsonConvert.DeserializeObject<TaskResult<uint>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving member authority from the server.");
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                Console.WriteLine($"Failed for {Id} in {Planet_Id}");
+            }
+
+            return result.Data;
+        }
+
         /// <summary>
         /// Loads the current user state from the server
         /// </summary>
