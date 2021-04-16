@@ -1045,5 +1045,33 @@ namespace Valour.Server.Controllers
 
             return new TaskResult<ServerPlanetRole>(true, $"Found primary role.", role);
         }
+
+        /// <summary>
+        /// Returns the authority of the requested member
+        /// </summary>
+        public async Task<TaskResult<uint>> GetMemberAuthority(ulong member_id, string token)
+        {
+            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+
+            if (authToken == null)
+            {
+                return new TaskResult<uint>(false, "Failed to authorize user.", 0);
+            }
+
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.Planet)
+                                                                   .FirstOrDefaultAsync(x => x.Id == member_id);
+
+            if (member == null)
+            {
+                return new TaskResult<uint>(false, "Member does not exist.", 0);
+            }
+
+            if (!(await member.Planet.IsMemberAsync(authToken.User_Id, Context)))
+            {
+                return new TaskResult<uint>(false, "You are not in the planet.", 0);
+            }
+
+            return new TaskResult<uint>(true, "Found authority", await member.GetAuthorityAsync());
+        }
     }
 }
