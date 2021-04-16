@@ -37,7 +37,7 @@
 
                 </div>
                 <div class="sidebar-2" id="sidebar2">
-                    <CurrentPlanetComponent Planet="@planetManager.GetCurrent()"></CurrentPlanetComponent>
+                    <CurrentPlanetComponent></CurrentPlanetComponent>
 
                     <div class="top-bar">
                     </div>
@@ -118,7 +118,7 @@ else
 @code{
     public ConcurrentBag<ClientPlanetMember> planetMemberList = new ConcurrentBag<ClientPlanetMember>();
 
-    public MemberListComponent MemberListComponent { get; set; } 
+    public MemberListComponent MemberListComponent { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -162,17 +162,23 @@ else
         StateHasChanged();
     }
 
-    public async Task OnPlanetChange()
+    public async Task OnPlanetChange(ClientPlanet planet)
     {
-        if (planetManager.GetCurrent() == null) return;
+        planetMemberList.Clear();
 
-        var memberTask = Task.Run(async () =>
+        if (planet != null)
         {
-            planetMemberList.Clear();
-            var members = await planetManager.GetCurrent().GetAllMembers();
-            foreach (var member in members) { planetMemberList.Add(member); }
+            var memberTask = Task.Run(async () =>
+            {
+                var members = await planet.GetAllMembers();
+                foreach (var member in members) { planetMemberList.Add(member); }
+                await MemberListComponent.SetMemberList(planetMemberList);
+            });
+        }
+        else
+        {
             await MemberListComponent.SetMemberList(planetMemberList);
-        });
+        }
 
         StateHasChanged();
     }
