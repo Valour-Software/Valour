@@ -343,8 +343,11 @@ window.onclick = function (event) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-planet-modal");
     }
 
+    //console.log(event.target.id);
+    //console.log(event.target.className);
+    
     if (!isDescendant(event.target, "edit-planet-modal-inner") &&
-        event.target.id != "edit-planet-button") {
+        event.target.id != "edit-planet-button" && !event.target.className.includes('pcr')) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-planet-modal");
     }
 
