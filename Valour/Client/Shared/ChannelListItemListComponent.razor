@@ -4,14 +4,17 @@
 
 <div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
 
-        @foreach (ClientPlanetCategory category in TopCategories)
+        @if (windowManager.GetSelectedWindow() is ChatChannelWindow)
         {
-            <CategoryComponent Categories="Categories" 
-                               Channels="Channels" 
-                               Category="category" 
-                               ChannelWindow="@((ChatChannelWindow)windowManager.GetSelectedWindow())" 
-                               IsTopLevel="true">
-            </CategoryComponent>
+            foreach (ClientPlanetCategory category in TopCategories)
+            {
+                <CategoryComponent Categories="Categories" 
+                                    Channels="Channels" 
+                                    Category="category" 
+                                    ChannelWindow="@((ChatChannelWindow)windowManager.GetSelectedWindow())" 
+                                    IsTopLevel="true">
+                </CategoryComponent>
+            }
         }
 </div>
 

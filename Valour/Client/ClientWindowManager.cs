@@ -58,6 +58,8 @@ namespace Valour.Client
             window.Index = OpenWindows.Count;
             OpenWindows.Add(window);
 
+            Console.WriteLine("Added window " + window.Index);
+
             ForceChatRefresh();
         }
 

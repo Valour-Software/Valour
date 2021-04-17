@@ -343,6 +343,8 @@ namespace Valour.Client.Planets
 
         public async Task OpenPlanet(ClientPlanet planet)
         {
+            Console.WriteLine("Opening planet " + planet.Name);
+
             if (OpenPlanets.ContainsKey(planet.Id))
             {
                 // Already opened
@@ -418,15 +420,8 @@ namespace Valour.Client.Planets
             // If there are no windows open for a planet, close the planet
             if (!OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == window.Channel.Planet_Id))
             {
-                CurrentPlanet = null;
-
                 await ClosePlanet(await window.Channel.GetPlanetAsync());
-
-                if (OnPlanetChange != null)
-                {
-                    Console.WriteLine($"Invoking planet change event");
-                    await OnPlanetChange?.Invoke(null);
-                }
+                await SetCurrentPlanet(null);
             }
         }
 
@@ -444,11 +439,32 @@ namespace Valour.Client.Planets
 
         public async Task SetCurrentPlanet(ClientPlanet planet)
         {
-            if (planet == null || (CurrentPlanet != null && CurrentPlanet.Id == planet.Id)) return;
+            if (planet == null)
+            {
+                if (CurrentPlanet == null)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                if (CurrentPlanet != null)
+                {
+                    if (planet.Id == CurrentPlanet.Id)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            Console.WriteLine("Egg");
 
             CurrentPlanet = planet;
 
-            Console.WriteLine($"Set current planet to {planet.Id}");
+            if (planet != null)
+                Console.WriteLine($"Set current planet to {planet.Id}");
+            else
+                Console.WriteLine($"Set current planet to null");
 
             if (OnPlanetChange != null)
             {
