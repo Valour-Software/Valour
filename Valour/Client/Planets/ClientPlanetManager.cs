@@ -397,6 +397,8 @@ namespace Valour.Client.Planets
 
         public async Task ClosePlanetChatChannel(ChannelWindowComponent window)
         {
+            Console.WriteLine("Closing chat channel " + window.Channel.Name);
+
             ClientPlanetChatChannel channel = window.Channel;
 
             OpenPlanetChatWindows.Remove(window);
