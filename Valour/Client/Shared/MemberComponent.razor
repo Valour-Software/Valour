@@ -15,10 +15,13 @@
         @((MarkupString)BotString)
         <br>
         <div class="user-status-state">
-            <div class="active-circle">
+
+            <!-- State bubble -->
+            <div class="state-circle @state.ClassName">
             </div>
-            <p class="state">
-                @state
+
+            <p class="status">
+                @status
             </p>
         </div>
     </div>
@@ -39,13 +42,15 @@
 
     public string roleColor = "#ffffff";
 
-    public string state = "";
+    public string status = "";
 
     public string BotString = "";
 
     public string StaffString = "";
 
     public string name = "";
+
+    public UserState state = UserState.Offline;
 
     public string Chosen_CSS
     {
@@ -77,7 +82,9 @@
     {
         await base.OnInitializedAsync();
 
-        if ((await Member.GetUserAsync()).Bot)
+        var user = (await Member.GetUserAsync());
+
+        if (user.Bot)
         {
             BotString = "<div class='bot-tag'><p>BOT</p></div>";
         }
@@ -91,7 +98,9 @@
 
         roleColor = await Member.GetColorHexAsync();
 
-        state = await Member.GetStateAsync();
+        status = await Member.GetStatusAsync();
+
+        state = user.UserState;
 
         string pfp = await Member.GetPfpAsync();
 

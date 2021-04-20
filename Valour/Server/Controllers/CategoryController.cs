@@ -18,6 +18,7 @@ using Valour.Server.Planets;
 using Valour.Shared.Oauth;
 using AutoMapper;
 using Valour.Server.Categories;
+using Valour.Server.Oauth;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -51,7 +52,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> SetName(string name, ulong id, ulong user_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // Return the same if the token is for the wrong user to prevent someone
             // from knowing if they cracked another user's token. This is basically 
@@ -83,7 +84,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // Return the same if the token is for the wrong user to prevent someone
             // from knowing if they cracked another user's token. This is basically 
@@ -144,7 +145,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> SetParentId(ulong id, ulong parentId, ulong user_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // Return the same if the token is for the wrong user to prevent someone
             // from knowing if they cracked another user's token. This is basically 
@@ -193,7 +194,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, nameValid.Message, 0);
             }
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // Return the same if the token is for the wrong user to prevent someone
             // from knowing if they cracked another user's token. This is basically 

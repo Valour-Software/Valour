@@ -818,7 +818,7 @@ video {
         margin-top: 6px;
     }
 
-    .sidebar-user .state {
+    .sidebar-user .status {
         display: inline-block;
         font-family: Ubuntu;
         font-style: normal;
@@ -884,7 +884,7 @@ video {
         color: #FFFFFF;
     }
 
-    .sidebar-user .active-circle {
+    .sidebar-user .state-circle {
         display: inline-block;
         width: 5px;
         height: 5px;
@@ -892,7 +892,22 @@ video {
         margin: 0px;
         margin-bottom: 7px;
         margin-left: 4px;
+    }
+
+    .sidebar-user .state-circle.online {
         background: #05FF00;
+    }
+
+    .sidebar-user .state-circle.away {
+        background: #F0E62E;
+    }
+
+    .sidebar-user .state-circle.do-not-disturb {
+        background: #F21F1F;
+    }
+
+    .sidebar-user .state-circle.offline {
+        background: #B3B3B3;
     }
 
     .sidebar-user .username {

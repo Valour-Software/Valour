@@ -28,9 +28,9 @@ namespace Valour.Client.Planets
         private List<ulong> _roleids = null;
 
         /// <summary>
-        /// Cached state
+        /// Cached status
         /// </summary>
-        private string _state = null;
+        private string _status = null;
 
         /// <summary>
         /// Cached user
@@ -55,7 +55,7 @@ namespace Valour.Client.Planets
         public void SetCacheValues(List<ulong> role_ids, string state, User user)
         {
             _roleids = role_ids;
-            _state = state;
+            _status = state;
             _user = user;
         }
 
@@ -86,14 +86,14 @@ namespace Valour.Client.Planets
             return roles;
         }
 
-        public async Task<string> GetStateAsync()
+        public async Task<string> GetStatusAsync()
         {
-            if (_state == null)
+            if (_status == null)
             {
-                await LoadStateAsync();
+                await LoadStatusAsync();
             }
 
-            return _state;
+            return _status;
         }
 
         public async Task<User> GetUserAsync()
@@ -205,10 +205,10 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Loads the current user state from the server
         /// </summary>
-        public async Task LoadStateAsync()
+        public async Task LoadStatusAsync()
         {
             // TODO: Make work
-            _state = "Currently browsing";
+            _status = "Currently browsing";
         }
 
         /// <summary>
