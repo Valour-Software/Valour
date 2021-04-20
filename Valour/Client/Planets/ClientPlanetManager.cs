@@ -374,6 +374,22 @@ namespace Valour.Client.Planets
             Console.WriteLine($"Left SignalR group for planet {planet.Id}");
         }
 
+        public async Task ReplacePlanetChatChannel(ChannelWindowComponent window, ClientPlanetChatChannel newChannel)
+        {
+            if (window.Channel.Id == newChannel.Id)
+                return;
+
+            Console.WriteLine("Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);
+
+            bool close_planet = true;
+
+            if (window.Channel.Planet_Id == newChannel.Planet_Id)
+                close_planet = false;
+
+            await ClosePlanetChatChannel(window, close_planet);
+            await OpenPlanetChatChannel(window);
+        }
+
         public async Task OpenPlanetChatChannel(ChannelWindowComponent window)
         {
             ClientPlanetChatChannel channel = window.Channel;
@@ -397,7 +413,7 @@ namespace Valour.Client.Planets
             OpenPlanetChatWindows.Add(window);
         }
 
-        public async Task ClosePlanetChatChannel(ChannelWindowComponent window)
+        public async Task ClosePlanetChatChannel(ChannelWindowComponent window, bool close_planet = true)
         {
             Console.WriteLine("Closing chat channel " + window.Channel.Name);
 
@@ -418,7 +434,7 @@ namespace Valour.Client.Planets
             } 
 
             // If there are no windows open for a planet, close the planet
-            if (!OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == window.Channel.Planet_Id))
+            if (close_planet && !OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == window.Channel.Planet_Id))
             {
                 await ClosePlanet(await window.Channel.GetPlanetAsync());
                 await SetCurrentPlanet(null);
@@ -457,7 +473,7 @@ namespace Valour.Client.Planets
                 }
             }
 
-            Console.WriteLine("Egg");
+            // Console.WriteLine("Egg");
 
             CurrentPlanet = planet;
 
