@@ -91,6 +91,8 @@
 
         await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, Planet.Id);
 
+        await planetManager.OpenPlanetChatChannel(this);
+
         await SetupNewChannelAsync();
     }
 
@@ -160,14 +162,12 @@
     {
         MessageHolder.Clear();
 
-        await planetManager.OpenPlanetChatChannel(this);
-
         MessageHolder.AddMessages(await Channel.GetLastMessagesAsync(64));
     }
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
     {
-        await planetManager.ClosePlanetChatChannel(this);
+        await planetManager.ReplacePlanetChatChannel(this, newchannel);
         Window.Channel = newchannel;
         Channel = newchannel;
 
