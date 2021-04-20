@@ -74,8 +74,8 @@ namespace Valour.Server.Controllers
         [HttpPost]
         public async Task<TaskResult> UpdateOrder([FromBody] Dictionary<ushort, List<ulong>> json, ulong user_id, string token, ulong Planet_Id)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
-
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+            
             // Return the same if the token is for the wrong user to prevent someone
             // from knowing if they cracked another user's token. This is basically 
             // impossible to happen by chance but better safe than sorry in the case that
@@ -133,7 +133,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<ulong>(false, nameValid.Message, 0);
             }
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -267,7 +267,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<Planet>(false, "The given planet id does not exist.", null);
             }
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.View))) {
                 return new TaskResult<Planet>(false, "You are not authorized to access this planet.", null);
@@ -400,7 +400,7 @@ namespace Valour.Server.Controllers
             if (planet == null) return new TaskResult<List<ulong>>(false, "The planet could not be found.", null);
 
             // Authentication flow
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // If authorizor is not a member of the planet, they do not have authority to get member info
             if (authToken == null || !(await planet.IsMemberAsync(authToken.User_Id)))
@@ -426,7 +426,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<List<Planet>>(false, "Please supply an authentication token", null);
             }
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (!Permission.HasPermission(authToken.Scope, UserPermissions.Membership))
             {
@@ -468,7 +468,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult<List<ulong>>> GetPlanetUserIds(ulong planet_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // If not a member of planet
             if (authToken == null || !(await Context.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id)))
@@ -483,7 +483,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult<List<PlanetMemberInfo>>> GetPlanetMemberInfo(ulong planet_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             // If not a member of planet
             if (authToken == null || !(await Context.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id)))
@@ -518,7 +518,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> KickUser(ulong target_id, ulong planet_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -554,7 +554,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> BanUser(ulong target_id, ulong planet_id, string reason, string token, uint time)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -611,7 +611,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<List<ServerPlanetRole>>> GetPlanetRoles(ulong planet_id, string token){
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -641,7 +641,7 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult<PlanetRole>> GetPlanetRole(ulong role_id, string token)
         {
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             PlanetRole role = await Context.PlanetRoles.FindAsync(role_id);
 
@@ -670,7 +670,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<string>> GetPlanetName(ulong planet_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -700,7 +700,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> CreateRole([FromBody] ServerPlanetRole role, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -745,7 +745,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> EditRole([FromBody] ServerPlanetRole role, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -799,7 +799,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> DeleteRole(ulong role_id, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -873,7 +873,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetMemberRoleMembership(ulong role_id, ulong member_id, bool value, string token)
         {
-            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -992,7 +992,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<List<ServerPlanetRole>>> GetMemberRoles(ulong member_id, string token)
         {
-            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -1021,7 +1021,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<ServerPlanetRole>> GetMemberPrimaryRole(ulong member_id, string token)
         {
-            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -1051,7 +1051,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<uint>> GetMemberAuthority(ulong member_id, string token)
         {
-            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {

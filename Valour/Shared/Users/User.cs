@@ -56,6 +56,49 @@ namespace Valour.Shared.Users
         /// license. Don't do that.
         /// </summary>
         public bool Valour_Staff { get; set; }
+
+        /// <summary>
+        /// The integer representation of the current user state
+        /// </summary>
+        public int UserState_Value { get; set; }
+
+        /// <summary>
+        /// The last time this user was flagged as active (successful auth)
+        /// </summary>
+        public DateTime Last_Active { get; set; }
+
+        [NotMapped]
+        public UserState UserState
+        {
+            get
+            {
+                // Automatically determine
+                if (UserState_Value == 0)
+                {
+                    double minPassed = DateTime.UtcNow.Subtract(Last_Active).TotalMinutes;
+
+                    if (minPassed < 3)
+                    {
+                        return UserState.Online;
+                    }
+                    else if (minPassed < 6)
+                    {
+                        return UserState.Away;
+                    }
+                    else
+                    {
+                        return UserState.Offline;
+                    }
+                }
+
+                // User selected
+                return UserState.States[UserState_Value];
+            }
+            set
+            {
+                UserState_Value = value.Value;
+            }
+        }
     }
 
 }

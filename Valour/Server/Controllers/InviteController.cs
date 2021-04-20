@@ -21,6 +21,7 @@ using Valour.Shared.Users;
 using Valour.Client.Users;
 using Valour.Shared.Users.Identity;
 using Newtonsoft.Json;
+using Valour.Server.Oauth;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -54,7 +55,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult<List<PlanetInvite>>> GetInvites(ulong user_id, string token, ulong planet_id)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -76,7 +77,7 @@ namespace Valour.Server.Controllers
         public async Task<TaskResult> Join(string code, string token)
         {
 
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -154,7 +155,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult<PlanetInvite>> CreateInvite(ulong Planet_Id, string token, int hours)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {

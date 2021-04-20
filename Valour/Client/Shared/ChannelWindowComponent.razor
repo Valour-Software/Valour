@@ -89,7 +89,7 @@
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, Planet.Id);
 
         await SetupNewChannelAsync();
     }
@@ -148,7 +148,7 @@
 
     public async Task ReturnHome()
     {
-        await planetManager.ClosePlanetChatChannel(this);
+        //await planetManager.ClosePlanetChatChannel(this);
 
         HomeWindow newWindow = new HomeWindow(Window.Index);
 

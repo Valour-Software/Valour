@@ -14,7 +14,15 @@
 
     public async Task SetMemberList(IEnumerable<ClientPlanetMember> list)
     {
-        MemberList = list;
+        MemberList = list.OrderByDescending(GetComparator);
         StateHasChanged();
+    }
+
+    public long GetComparator(ClientPlanetMember m)
+    {
+        var task = m.GetUserAsync();
+        task.Wait();
+
+        return task.Result.Last_Active.Ticks;
     }
 }

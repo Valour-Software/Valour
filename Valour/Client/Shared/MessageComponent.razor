@@ -14,7 +14,7 @@
     <div class="message-content">
         @if (Author != null)
         {
-            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@planetManager.GetCurrent().Id"
+            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.Channel_Id"
                @onmouseup="OnAuthorNameClick">
                 @name
             </p>

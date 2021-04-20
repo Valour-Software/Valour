@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Categories;
 using Valour.Server.Database;
+using Valour.Server.Oauth;
 using Valour.Server.Roles;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
@@ -33,7 +34,7 @@ namespace Valour.Server.Planets
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
 
                 // Authenticate user
-                AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+                AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
                 if (authToken == null) return;
 

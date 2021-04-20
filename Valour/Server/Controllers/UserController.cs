@@ -135,7 +135,8 @@ namespace Valour.Server.Controllers
             {
                 Id = IdManager.Generate(),
                 Username = username,
-                Join_DateTime = DateTime.UtcNow
+                Join_DateTime = DateTime.UtcNow,
+                Last_Active = DateTime.UtcNow
             };
 
             // An error here would be really bad so we'll be careful and catch any exceptions
@@ -481,7 +482,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<User>> GetUserWithToken(string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
@@ -556,7 +557,7 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> Logout(string token)
         {
-            ServerAuthToken authToken = await Context.AuthTokens.FindAsync(token);
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
