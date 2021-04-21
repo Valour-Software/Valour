@@ -1791,6 +1791,7 @@ input:checked + .slider:before {
     margin: auto;
     text-align: center;
 }
-strong{
+
+.content > p > string{
    text-weight: bold
 }
