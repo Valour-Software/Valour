@@ -137,12 +137,6 @@ namespace Valour.Server.Controllers
             if (ban != null) {
                 return new TaskResult<PlanetInvite>(false, $"User is banned from this planet!", null);
             }
-            
-            PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id);
-
-            if (member != null) {
-                return new TaskResult<PlanetInvite>(false, $"User is already in this planet!", null);
-            }
 
             Planet planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == invite.Planet_Id);
 
@@ -224,6 +218,28 @@ namespace Valour.Server.Controllers
             }
 
             return new TaskResult<string>(true, $"Success", planet.Name);
+        }
+
+        /// <summary>
+        /// Returns the planet icon using an invite code as authorization
+        /// </summary>
+        public async Task<TaskResult<string>> GetPlanetIcon(string invite_code)
+        {
+            PlanetInvite invite = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == invite_code);
+
+            if (invite == null)
+            {
+                return new TaskResult<string>(false, "Could not find invite.", null);
+            }
+
+            ServerPlanet planet = await Context.Planets.FindAsync(invite.Planet_Id);
+
+            if (planet == null)
+            {
+                return new TaskResult<string>(false, $"Could not find planet {invite.Planet_Id}", null);
+            }
+
+            return new TaskResult<string>(true, $"Success", planet.Image_Url);
         }
     }
 }

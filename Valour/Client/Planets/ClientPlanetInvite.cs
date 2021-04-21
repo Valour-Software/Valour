@@ -47,6 +47,31 @@ namespace Valour.Shared.Planets
             return result.Data;
         }
 
+        /// <summary>
+        /// Returns the planet icon for the invite
+        /// </summary>
+        public async Task<string> GetPlanetIcon()
+        {
+            string json = await ClientUserManager.Http.GetStringAsync($"Invite/GetPlanetIcon?invite_code={Code}");
+
+            TaskResult<string> result = JsonConvert.DeserializeObject<TaskResult<string>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine($"Critical error retrieving planet icon for invite with code {Code}");
+                return "Error";
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine($"Error retrieving planet icon for invite with code {Code}");
+                Console.WriteLine(result.Message);
+                return "Error";
+            }
+
+            return result.Data;
+        }
+
         public static ClientPlanetInvite FromBase(PlanetInvite invite, IMapper mapper)
         {
             return mapper.Map<ClientPlanetInvite>(invite);
