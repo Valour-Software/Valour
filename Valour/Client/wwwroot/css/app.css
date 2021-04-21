@@ -1791,3 +1791,6 @@ input:checked + .slider:before {
     margin: auto;
     text-align: center;
 }
+strong{
+   text-weight: bold
+}
