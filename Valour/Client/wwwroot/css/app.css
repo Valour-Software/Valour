@@ -954,7 +954,7 @@ body {
 }
 
 .popup-box {
-    background-color: var(--main-4);
+    background-color: var(--main-2);
     border-radius: 10px;
     border-color: grey;
     padding: 50px;
@@ -1764,4 +1764,30 @@ input:checked + .slider:before {
 
 .tri-button-no {
     fill: #ef3a3a;
+}
+
+/* Invite page stuff */
+.invite-title {
+    text-align: center;
+}
+
+.invite-name {
+    text-align: center;
+    display: inline-block;
+}
+
+.join-btn .btn-pos {
+    position: absolute;
+    bottom: 40px;
+    left: 0px;
+    right: 0px;
+    margin: auto;
+}
+
+.center-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: auto;
+    text-align: center;
 }

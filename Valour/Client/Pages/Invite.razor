@@ -10,16 +10,26 @@
     <div class="popup-box">
         <div class="col-md-12">
             <section>
-                <h2>@PlanetSpan</h2>
+                <h2 class="invite-title">Do you want to join</h2>
+                <div style="text-align: center">
+                    <h3 class="text-info invite-name">@PlanetName</h3>
+                    <h3 class="invite-name">?</h3>
+                </div>
 
-                <span style="@style">@infoSpan</span>
+                <img class="planet-card-icon" src="@PlanetImage" />
 
-                <center>
-                    @if (Clicked) {
-                        <button class="btn btn-primary mt-2" @onclick="OnClose">Close</button>
+                <br />
+                <span class="text-info center-text" style="text-align:center">@infoSpan</span>
+                <span class="text-danger center-text" style="text-align:center">@errorSpan</span>
+
+                <center class="join-btn">
+                    @if (Clicked)
+                    {
+                        <button class="btn btn-outline-primary btn-pos mt-2" @onclick="OnClose">Close</button>
                     }
-                    else {
-                        <button class="btn btn-primary mt-2" @onclick="Joined">Join</button>
+                    else
+                    {
+                        <button class="btn btn-outline-primary btn-pos mt-2" @onclick="Joined">Join</button>
                     }
                 </center>
             </section>
@@ -33,13 +43,13 @@
     public string code {get; set;}
 
     string PlanetName = "";
+    string PlanetImage = "icon-512.png";
     string InviteLink = "/Invite/Join/";
 
     string PlanetSpan = "Do you want to join";
 
     string infoSpan = "";
-
-    string style = "";
+    string errorSpan = "";
 
     string InviteCode = "";
 
@@ -60,8 +70,7 @@
         TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
 
         if (result.Success == false) {
-            style = "color:red;";
-            infoSpan = "[Fail] "+result.Message;
+            errorSpan = result.Message;
             Clicked = true;
             PlanetSpan = "";
             StateHasChanged();
@@ -69,6 +78,7 @@
         }
 
         PlanetName = await result.Data.GetPlanetName();
+        PlanetImage = await result.Data.GetPlanetIcon();
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
         string token = ClientUserManager.UserSecretToken;
@@ -106,12 +116,10 @@
         TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
 
         if (result.Success) {
-            style = "color:green;";
-            infoSpan = "[Succ] "+result.Message;
+            infoSpan = result.Message;
         }
         else {
-            style = "color:red;";
-            infoSpan = "[Fail] "+result.Message;
+            errorSpan = result.Message;
         }
 
         Clicked = true;

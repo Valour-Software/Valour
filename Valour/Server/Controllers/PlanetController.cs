@@ -142,7 +142,7 @@ namespace Valour.Server.Controllers
 
             User user = await Context.Users.FindAsync(authToken.User_Id);
 
-            if (await Context.Planets.CountAsync(x => x.Owner_Id == user.Id) > MAX_OWNED_PLANETS - 1)
+            if (!user.Valour_Staff && await Context.Planets.CountAsync(x => x.Owner_Id == user.Id) > MAX_OWNED_PLANETS - 1)
             {
                 return new TaskResult<ulong>(false, "You have hit your maximum planets!", 0);
             }
@@ -172,6 +172,7 @@ namespace Valour.Server.Controllers
                 Name = "General",
                 Parent_Id = null,
                 Planet_Id = planet_id,
+                Description = "General category",
                 Position = 0
             };
 

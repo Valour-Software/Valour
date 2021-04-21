@@ -314,7 +314,8 @@ else
             }
         }
 
-        Selected_Role = Roles[0];
+        if (Roles.Count > 0)
+            Selected_Role = Roles[0];
 
         // Get self membership
         SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, Planet.Id);
@@ -371,7 +372,8 @@ else
                     else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
                 }
 
-                await Buttons[i].OnChangeState(bState, false);
+                if (Buttons[i] != null)
+                    await Buttons[i].OnChangeState(bState, false);
             }
         }
         else if (Category != null)
