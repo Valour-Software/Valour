@@ -1791,3 +1791,11 @@ input:checked + .slider:before {
     margin: auto;
     text-align: center;
 }
+
+blockquote {
+    border-left: 3px rgba(255, 255, 255, 0.2) solid;
+    padding-top: 5px;
+    padding-left: 5px;
+    margin: 0px;
+    background-color: rgba(255, 255, 255, 0.01);
+}
