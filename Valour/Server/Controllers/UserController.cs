@@ -449,7 +449,7 @@ namespace Valour.Server.Controllers
                 token = new ServerAuthToken()
                 {
                     App_Id = "VALOUR",
-                    Id = Guid.NewGuid().ToString(),
+                    Id = "val-" + Guid.NewGuid().ToString(),
                     Time = DateTime.UtcNow,
                     Expires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
