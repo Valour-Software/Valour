@@ -120,7 +120,7 @@ namespace Valour.Client
                 newInd++;
             }
 
-            ForceChatRefresh();
+            //ForceChatRefresh();
         }
 
         public void ForceChatRefresh()
@@ -188,6 +188,9 @@ namespace Valour.Client
 
         public override void OnClosed()
         {
+            ClientPlanetManager.Current.SetChannelWindowClosed(this);
+
+            // Must be after SetChannelWindowClosed
             base.OnClosed();
 
             Task.Run(async () =>

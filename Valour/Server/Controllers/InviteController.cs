@@ -15,7 +15,6 @@ using Valour.Server.Planets;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared;
-using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Client.Users;

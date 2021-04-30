@@ -85,13 +85,13 @@
         planetManager.OnRoleUpdate += OnPlanetRoleUpdate;
         planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
 
+        await planetManager.OpenPlanetChatChannel(Window);
+
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
         await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, Planet.Id);
-
-        await planetManager.OpenPlanetChatChannel(this);
 
         await SetupNewChannelAsync();
     }
@@ -143,19 +143,22 @@
 
     public async Task CloseWindow()
     {
-        await planetManager.ClosePlanetChatChannel(this);
         windowManager.CloseWindow(Window.Index);
         await IndexPage.ForceRefresh();
+
+        // This must be last (again)
+        await planetManager.ClosePlanetChatChannel(Window, Channel);
     }
 
     public async Task ReturnHome()
     {
-        //await planetManager.ClosePlanetChatChannel(this);
-
         HomeWindow newWindow = new HomeWindow(Window.Index);
 
         windowManager.SetWindow(Window.Index, newWindow);
         MainWindow.RefreshWindow(newWindow);
+
+        // This must be last
+        await planetManager.ClosePlanetChatChannel(Window, Channel);
     }
 
     public async Task SetupNewChannelAsync()
@@ -167,9 +170,12 @@
 
     public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
     {
-        await planetManager.ReplacePlanetChatChannel(this, newchannel);
+        var oldchannel = Window.Channel;
+
         Window.Channel = newchannel;
         Channel = newchannel;
+
+        await planetManager.ReplacePlanetChatChannel(Window, oldchannel, newchannel);
 
         await SetupNewChannelAsync();
     }
@@ -183,7 +189,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await planetManager.ClosePlanetChatChannel(this);
+        await planetManager.ClosePlanetChatChannel(Window, Channel);
     }
 
     public async Task OnRecieveMessage(ClientPlanetMessage message)

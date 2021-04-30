@@ -1,28 +1,95 @@
 ﻿@inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
-@inject SignalRManager signalRManager
 
-<div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
-
-        @if (windowManager.GetSelectedWindow() is ChatChannelWindow)
+<div class="@GetCssClass()" id="list-@Planet.Id" draggable="true">
+    <div style="cursor:pointer" id="list-inner-@Planet.Id" @oncontextmenu="OnContextMenu">
+        <div @onclick='@OnClick' style="width:85%; display:inline-block">
+            <img class="arrow" src="media/Category-Icon.svg" style="@GetArrowStyle()">
+            <p class="name">
+                @Planet.Name
+            </p>
+        </div>
+        <p class="add-channel-button" id="add-channel-button">
+            +
+        </p>
+    </div>
+    <div style="padding-left: 25px;">
+        <!-- The Modal -->
+        @if (Open)
         {
-            foreach (ClientPlanetCategory category in TopCategories)
+            @foreach (ClientPlanetCategory category in TopCategories)
             {
-                <CategoryComponent Categories="Categories" 
-                                    Channels="Channels" 
-                                    Category="category" 
-                                    ChannelWindow="@((ChatChannelWindow)windowManager.GetSelectedWindow())" 
-                                    IsTopLevel="true">
-                </CategoryComponent>
+                <ChannelListCategoryComponent Categories="Categories"
+                                              Channels="Channels"
+                                              Category="category"
+                                              IsTopLevel="true"
+                                              @key='"list-category-" + category.Id'>
+                </ChannelListCategoryComponent>
             }
+
         }
+    </div>
 </div>
 
 @code {
+    [Parameter]
+    public ClientPlanet Planet { get; set; }
+
+    public bool Open { get; set; }
 
     public List<ClientPlanetCategory> TopCategories;
     public List<ClientPlanetCategory> Categories { get; set; }
     public List<ClientPlanetChatChannel> Channels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize collections
+        Categories = new List<ClientPlanetCategory>();
+        Channels = new List<ClientPlanetChatChannel>();
+        TopCategories = new List<ClientPlanetCategory>();
+
+        // Handle list change
+        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
+        planetManager.OnChannelsUpdate += OnChannelsUpdate;
+
+        // Handle single change
+        planetManager.OnCategoryUpdate += OnCategoryUpdate;
+        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+
+        await GetCategories();
+        await GetChannels();
+        GetTopLevelCategories();
+    }
+
+    public async Task OnContextMenu()
+    {
+
+    }
+
+    public string GetCssClass()
+    {
+        if (Open)
+        {
+            return "category is-open top-level-category planet-list";
+        }
+        else
+        {
+            return "category top-level-category planet-list";
+        }
+    }
+
+    public string GetArrowStyle()
+    {
+        if (Open)
+            return "transform: rotate(90deg);";
+        return "";
+    }
+
+    public void OnClick()
+    {
+        Open = !Open;
+        StateHasChanged();
+    }
 
     public void GetTopLevelCategories()
     {
@@ -35,49 +102,6 @@
         Console.WriteLine($"Found {TopCategories.Count} top level categories");
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Initialize collections
-        Categories = new List<ClientPlanetCategory>();
-        Channels = new List<ClientPlanetChatChannel>();
-        TopCategories = new List<ClientPlanetCategory>();
-
-        // Handle full planet change
-        planetManager.OnPlanetChange += OnPlanetChange;
-
-        // Handle list change
-        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
-        planetManager.OnChannelsUpdate += OnChannelsUpdate;
-
-        // Handle single change
-        planetManager.OnCategoryUpdate += OnCategoryUpdate;
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
-
-        signalRManager.hubConnection.On<string>("RefreshChannelList", OnRefreshChannelList);
-    }
-
-    public async Task OnPlanetChange(ClientPlanet planet)
-    {
-        Console.WriteLine("Rebuilding channel list due to planet change");
-
-        if (planet == null)
-        {
-            Console.WriteLine("New planet is null, clearing list.");
-            TopCategories.Clear();
-            Categories.Clear();
-            Channels.Clear();
-        }
-        else
-        {
-            await GetChannels();
-            await GetCategories();
-
-            Console.WriteLine($"Found {Categories.Count} categories and {Channels.Count} channels.");
-        }
-
-        StateHasChanged();
-    }
-
     public async Task OnChannelsUpdate()
     {
         await GetChannels();
@@ -87,15 +111,6 @@
     public async Task OnCategoriesUpdate()
     {
         await GetCategories();
-        StateHasChanged();
-    }
-
-    public async Task OnRefreshChannelList(string data)
-    {
-        ClientPlanet planet = planetManager.GetCurrent();
-        Channels = await planet.GetChannelsAsync();
-        Categories = await planet.GetCategoriesAsync();
-
         StateHasChanged();
     }
 
@@ -119,7 +134,7 @@
 
     public async Task GetCategories()
     {
-        Categories = await planetManager.GetCurrent().GetCategoriesAsync();
+        Categories = await Planet.GetCategoriesAsync();
         GetTopLevelCategories();
     }
 

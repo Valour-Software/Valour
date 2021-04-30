@@ -34,7 +34,7 @@
                 {
                     if (channel.Parent_Id == Category.Id)
                     {
-                        <ChannelListComponent Channel="@channel"></ChannelListComponent>
+                        <ChannelListChatChannelComponent Channel="channel"></ChannelListChatChannelComponent>
                     }
                 }
                 else
@@ -42,8 +42,7 @@
                     ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
                     @if (planetcategory.Parent_Id == Category.Id)
                     {
-                        <CategoryComponent Category="@planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow" >
-                        </CategoryComponent>
+                        <ChannelListCategoryComponent Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
                     }
                 }
             }

@@ -1,20 +1,30 @@
-﻿<RoleComponent Name="Emperor"></RoleComponent>
+﻿@inject ClientPlanetManager planetManager
+
+<RoleComponent Name="Emperor"></RoleComponent>
 <div class="UserList keep-scrolling">
     @if (MemberList != null)
     {
         foreach (var member in MemberList)
         {
-            <MemberComponent Only="true" Member="@member"></MemberComponent>
+            <MemberComponent Only="true" Member="@member" @key="@member.Id"></MemberComponent>
         }
     }
 </div>
 
 @code {
-    public IEnumerable<ClientPlanetMember> MemberList { get; set; }
+    public List<ClientPlanetMember> MemberList { get; set; }
 
-    public async Task SetMemberList(IEnumerable<ClientPlanetMember> list)
+    protected override async Task OnInitializedAsync()
     {
-        MemberList = list.OrderByDescending(GetComparator);
+        planetManager.OnPlanetChange += OnPlanetChange;
+    }
+
+    public async Task OnPlanetChange(ClientPlanet planet)
+    {
+        Console.WriteLine($"Member list is updating to {planet.Name}");
+        MemberList = await planetManager.GetCachedPlanetMembers(planet);
+        MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+        Console.WriteLine($"Starting with {MemberList.Count()} members.");
         StateHasChanged();
     }
 

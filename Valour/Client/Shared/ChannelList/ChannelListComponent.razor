@@ -1,0 +1,48 @@
+﻿@inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
+@inject SignalRManager signalRManager
+
+<div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
+    @if (windowManager.GetSelectedWindow() is ChatChannelWindow)
+    {
+        @foreach (ClientPlanet planet in planetManager.GetOpenPlanets())
+        {
+            <ChannelListPlanetComponent Planet="planet" @key='"list-planet-" + planet.Id'></ChannelListPlanetComponent>
+        }
+    }
+</div>
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        planetManager.OnPlanetChange += OnPlanetChange;
+        planetManager.OnPlanetClose += OnPlanetClose;
+        planetManager.OnPlanetOpen += OnPlanetOpen;
+    }
+
+    public async Task OnPlanetOpen(ClientPlanet planet)
+    {
+        if (planet == null)
+            Console.WriteLine("Rebuilding channel list due to planet open: " + planet.Name);
+        else
+            Console.WriteLine("Rebuilding channel list due to planet open: null");
+
+        StateHasChanged();
+    }
+
+    public async Task OnPlanetClose(ClientPlanet planet)
+    {
+        if (planet == null)
+            Console.WriteLine("Rebuilding channel list due to planet close: " + planet.Name);
+        else
+            Console.WriteLine("Rebuilding channel list due to planet close: null");
+
+        StateHasChanged();
+    }
+
+    public async Task OnPlanetChange(ClientPlanet planet)
+    {
+
+    }
+}

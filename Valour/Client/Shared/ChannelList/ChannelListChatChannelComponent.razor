@@ -4,7 +4,7 @@
 @inject ClientPlanetManager planetManager
 @inject ChannelListContextMenu channelContextMenu
 
-<div class="@Chosen_CSS" @onclick="OnClick" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)" id="@Channel.Id" @oncontextmenu="OnContextMenu"> 
+<div class="@Chosen_CSS" @onclick="OnClick" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)" id="@Channel.Id" @oncontextmenu="OnContextMenu">
     <img class="chat-icon" src="media/Channel-Icon.svg">
     <p class="channel-name">
         @Channel.Name
@@ -20,14 +20,9 @@
     {
         get
         {
-            ChatChannelWindow window = windowManager.GetSelectedWindow() as ChatChannelWindow;
-
-            if (window != null)
+            if (planetManager.IsChatChannelOpen(Channel))
             {
-                if (window.Channel.Id == Channel.Id)
-                {
-                    return "channel open";
-                }
+                return "channel open";
             }
 
             return "channel";

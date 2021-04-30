@@ -32,14 +32,20 @@ namespace Valour.Client.Planets
 
         private Dictionary<ulong, ClientPlanet> OpenPlanets = new Dictionary<ulong, ClientPlanet>();
         private Dictionary<ulong, ClientPlanetChatChannel> OpenPlanetChatChannels = new Dictionary<ulong, ClientPlanetChatChannel>();
-        private List<ChannelWindowComponent> OpenPlanetChatWindows = new List<ChannelWindowComponent>();
+        private List<ChatChannelWindow> OpenPlanetChatWindows = new List<ChatChannelWindow>();
         private ConcurrentDictionary<ulong, PlanetRole> PlanetRolesCache = new ConcurrentDictionary<ulong, PlanetRole>();
         private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<string, ClientPlanetMember>();
-        private ConcurrentDictionary<ulong, User> PlanetMemberUserCache = new ConcurrentDictionary<ulong, User>(); // Maps from member id => user
         private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
+
+        // Used to cache data for several open planets. Data is returned for the given planet id.
         private ConcurrentDictionary<ulong, List<ulong>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<ulong>>();
+        private ConcurrentDictionary<ulong, List<ClientPlanetMember>> PlanetMembersListCache = new ConcurrentDictionary<ulong, List<ClientPlanetMember>>();
 
         public event Func<ClientPlanet, Task> OnPlanetChange;
+
+        public event Func<ClientPlanet, Task> OnPlanetClose;
+
+        public event Func<ClientPlanet, Task> OnPlanetOpen;
 
         public event Func<Task> OnChannelsUpdate;
 
@@ -116,6 +122,19 @@ namespace Valour.Client.Planets
 
             return planet;
 
+        }
+
+        public async Task<List<ClientPlanetMember>> GetCachedPlanetMembers(ClientPlanet planet)
+        {
+            return await GetCachedPlanetMembers(planet.Id);
+        }
+
+        public async Task<List<ClientPlanetMember>> GetCachedPlanetMembers(ulong planet_id)
+        {
+            if (PlanetMembersListCache.ContainsKey(planet_id))
+                return PlanetMembersListCache[planet_id];
+
+            return new List<ClientPlanetMember>();
         }
 
         /// <summary>
@@ -234,7 +253,7 @@ namespace Valour.Client.Planets
             PlanetRolesCache.AddOrUpdate(role.Id, role, (key, old) => role);
         }
 
-        public async Task<List<ClientPlanetMember>> GetPlanetMemberInfoAsync(ulong planet_id)
+        public async Task LoadAllPlanetMemberInfoAsync(ulong planet_id)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberInfo?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
 
@@ -259,7 +278,8 @@ namespace Valour.Client.Planets
                 memberList.Add(member);
             }
 
-            return memberList;
+            // Set entire list
+            PlanetMembersListCache.AddOrUpdate(planet_id, memberList, (key, old) => memberList);
         }
 
         /// <summary>
@@ -335,15 +355,16 @@ namespace Valour.Client.Planets
                 Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
             }
 
-            foreach (ChannelWindowComponent window in OpenPlanetChatWindows)
+            foreach (ChatChannelWindow window in OpenPlanetChatWindows)
             {
-                await window.SetupNewChannelAsync();
+                await window.Component.SetupNewChannelAsync();
             }
         }
 
         public async Task OpenPlanet(ClientPlanet planet)
         {
-            Console.WriteLine("Opening planet " + planet.Name);
+            if (planet == null)
+                return;
 
             if (OpenPlanets.ContainsKey(planet.Id))
             {
@@ -351,8 +372,13 @@ namespace Valour.Client.Planets
                 return;
             }
 
+            Console.WriteLine("Opening planet " + planet.Name);
+
             // Load roles for planet
             await LoadPlanetRoles(planet);
+
+            // Load member info for planet
+            await LoadAllPlanetMemberInfoAsync(planet.Id);
 
             // Joins planet via SignalR
             await signalRManager.hubConnection.SendAsync("JoinPlanet", planet.Id, ClientUserManager.UserSecretToken);
@@ -361,36 +387,55 @@ namespace Valour.Client.Planets
             OpenPlanets.Add(planet.Id, planet);
 
             Console.WriteLine($"Joined SignalR group for planet {planet.Id}");
+
+            if (OnPlanetOpen != null)
+            {
+                Console.WriteLine($"Invoking open planet event for {planet.Name}");
+                await OnPlanetOpen.Invoke(planet);
+            }
         }
 
         public async Task ClosePlanet(ClientPlanet planet)
         {
+            if (!OpenPlanets.ContainsKey(planet.Id))
+                return;
+
             // Joins planet via SignalR
             await signalRManager.hubConnection.SendAsync("LeavePlanet", planet.Id);
 
             // Remove from list
             OpenPlanets.Remove(planet.Id);
 
+            // Clear members list
+            List<ClientPlanetMember> l;
+            PlanetMembersListCache.Remove(planet.Id, out l);
+
             Console.WriteLine($"Left SignalR group for planet {planet.Id}");
+
+            if (OnPlanetClose != null)
+            {
+                Console.WriteLine($"Invoking close planet event for {planet.Name}");
+                await OnPlanetClose.Invoke(planet);
+            }
         }
 
-        public async Task ReplacePlanetChatChannel(ChannelWindowComponent window, ClientPlanetChatChannel newChannel)
+        public async Task ReplacePlanetChatChannel(ChatChannelWindow window, ClientPlanetChatChannel oldChannel, ClientPlanetChatChannel newChannel)
         {
-            if (window.Channel.Id == newChannel.Id)
+            if (oldChannel.Id == newChannel.Id)
                 return;
 
-            Console.WriteLine("Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);
+            Console.WriteLine("Swapping chat channel " + oldChannel.Name + " for " + newChannel.Name);
 
             bool close_planet = true;
 
-            if (window.Channel.Planet_Id == newChannel.Planet_Id)
+            if (oldChannel.Planet_Id == newChannel.Planet_Id)
                 close_planet = false;
 
-            await ClosePlanetChatChannel(window, close_planet);
+            await ClosePlanetChatChannel(window, oldChannel, close_planet);
             await OpenPlanetChatChannel(window);
         }
 
-        public async Task OpenPlanetChatChannel(ChannelWindowComponent window)
+        public async Task OpenPlanetChatChannel(ChatChannelWindow window)
         {
             ClientPlanetChatChannel channel = window.Channel;
 
@@ -405,21 +450,21 @@ namespace Valour.Client.Planets
                 await signalRManager.hubConnection.SendAsync("JoinChannel", channel.Id, ClientUserManager.UserSecretToken);
 
                 // Add to open channel list
-                OpenPlanetChatChannels.Add(channel.Id, window.Channel);
+                OpenPlanetChatChannels.Add(channel.Id, channel);
 
                 Console.WriteLine($"Joined SignalR group for channel {channel.Id}");
             }
 
-            OpenPlanetChatWindows.Add(window);
+            if (!OpenPlanetChatWindows.Contains(window))
+                OpenPlanetChatWindows.Add(window);
         }
 
-        public async Task ClosePlanetChatChannel(ChannelWindowComponent window, bool close_planet = true)
+        public async Task ClosePlanetChatChannel(ChatChannelWindow window, ClientPlanetChatChannel channel, bool close_planet = true)
         {
-            Console.WriteLine("Closing chat channel " + window.Channel.Name);
+            if (!OpenPlanetChatChannels.ContainsKey(channel.Id))
+                return;
 
-            ClientPlanetChatChannel channel = window.Channel;
-
-            OpenPlanetChatWindows.Remove(window);
+            Console.WriteLine("Closing chat channel " + channel.Name);
 
             // If there are no longer any windows open for the channel, leave
             if (!OpenPlanetChatWindows.Any(x => x.Channel.Id == channel.Id))
@@ -434,11 +479,16 @@ namespace Valour.Client.Planets
             } 
 
             // If there are no windows open for a planet, close the planet
-            if (close_planet && !OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == window.Channel.Planet_Id))
+            if (close_planet && !OpenPlanetChatWindows.Any(x => x.Channel.Planet_Id == channel.Planet_Id))
             {
-                await ClosePlanet(await window.Channel.GetPlanetAsync());
+                await ClosePlanet(await channel.GetPlanetAsync());
                 await SetCurrentPlanet(null);
             }
+        }
+
+        public void SetChannelWindowClosed(ChatChannelWindow window)
+        {
+            OpenPlanetChatWindows.Remove(window);
         }
 
         public async Task RefreshOpenedChannels() {
@@ -477,10 +527,14 @@ namespace Valour.Client.Planets
 
             CurrentPlanet = planet;
 
-            if (planet != null)
-                Console.WriteLine($"Set current planet to {planet.Id}");
+            // Open planet if it's not opened
+            await OpenPlanet(planet);
+
+            
+            if (planet == null)
+                Console.WriteLine($"Set current planet to: null");
             else
-                Console.WriteLine($"Set current planet to null");
+                Console.WriteLine($"Set current planet to: " + planet.Name);
 
             if (OnPlanetChange != null)
             {
@@ -513,9 +567,9 @@ namespace Valour.Client.Planets
                 Console.WriteLine("Error: Recieved a message for a closed channel.");
             }
 
-            foreach (ChannelWindowComponent window in OpenPlanetChatWindows.Where(x => x.Channel.Id == message.Channel_Id))
+            foreach (ChatChannelWindow window in OpenPlanetChatWindows.Where(x => x.Channel.Id == message.Channel_Id))
             {
-                await window.OnRecieveMessage(message);
+                await window.Component.OnRecieveMessage(message);
             }
         }
 
