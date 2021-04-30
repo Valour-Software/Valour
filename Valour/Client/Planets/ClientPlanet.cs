@@ -213,9 +213,11 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Returns every planet member
         /// </summary>
-        public async Task<List<ClientPlanetMember>> GetAllMembers()
+        public async Task<List<ClientPlanetMember>> GetCachedMembers()
         {
-            return await ClientPlanetManager.Current.GetPlanetMemberInfoAsync(Id);
+            return await ClientPlanetManager.Current.GetCachedPlanetMembers(this);
+
+            //return await ClientPlanetManager.Current.GetPlanetMemberInfoAsync(Id);
         }
 
         /// <summary>

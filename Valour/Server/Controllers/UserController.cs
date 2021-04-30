@@ -15,7 +15,6 @@ using Valour.Server.Planets;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared;
-using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Client.Users;
@@ -147,6 +146,7 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
+                Console.WriteLine(e.Message);
                 return new TaskResult(false, $"A critical error occured adding the user.");
             }
 
@@ -166,6 +166,7 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
+                Console.WriteLine(e.Message);
                 return new TaskResult(false, $"A critical error occured adding the email.");
             }
 
@@ -186,6 +187,7 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
+                Console.WriteLine(e.Message);
                 return new TaskResult(false, $"A critical error occured adding the credentials.");
             }
 
@@ -212,6 +214,7 @@ namespace Valour.Server.Controllers
             }
             catch (System.Exception e)
             {
+                Console.WriteLine(e.Message);
                 return new TaskResult(false, $"A critical error occured adding the email confirmation code.");
             }
 
@@ -369,6 +372,7 @@ namespace Valour.Server.Controllers
             }
             catch (FormatException e)
             {
+                Console.WriteLine(e.Message);
                 return new TaskResult(false, "Email was invalid.");
             }
         }

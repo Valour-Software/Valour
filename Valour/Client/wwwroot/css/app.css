@@ -450,14 +450,14 @@ video {
     margin-bottom: 11px;
 }
 
-    .sidebar-2 .user-info .pfp {
-        width: 32.72px;
-        height: 32.72px;
-        border-radius: 50%;
-        margin-top: 6.36px;
-        margin-bottom: 6.36px;
-        margin-left: 8.18px;
-    }
+.sidebar-2 .user-info .pfp {
+    width: 32.72px;
+    height: 32.72px;
+    border-radius: 50%;
+    margin-top: 6.36px;
+    margin-bottom: 6.36px;
+    margin-left: 8.18px;
+}
 
 .sidebar-2 .category .arrow {
     border-radius: 1px;
@@ -486,9 +486,9 @@ video {
     background: rgba(255, 255, 255, 0.1);
 }
 
-    .sidebar-2 .category .channel.open:hover {
-        background: rgba(255, 255, 255, 0.125);
-    }
+.sidebar-2 .category .channel.open:hover {
+    background: rgba(255, 255, 255, 0.125);
+}
 
 .sidebar-2 .category .channel:nth-child(1) {
     margin-top: 10px;
@@ -502,37 +502,40 @@ video {
     cursor: pointer;
 }
 
-    .sidebar-2 .category .channel:hover {
-        background: rgba(255, 255, 255, 0.075);
-    }
+.sidebar-2 .category .channel:hover {
+    background: rgba(255, 255, 255, 0.075);
+}
 
-    .sidebar-2 .category .channel .channel-name {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 16px;
-        line-height: 21px;
-        color: #FFFFFF;
-        margin-left: 8px;
-        margin-top: 5px;
-        vertical-align: top;
-        display: inline-block;
-    }
+.sidebar-2 .category .channel .channel-name {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 21px;
+    color: #FFFFFF;
+    margin-left: 8px;
+    margin-top: 5px;
+    vertical-align: top;
+    display: inline-block;
+}
 
-    .sidebar-2 .category .channel .chat-icon {
-        margin-top: 10px;
-        margin-bottom: 9px;
-        margin-left: 8px
-    }
+.sidebar-2 .category .channel .chat-icon {
+    margin-top: 10px;
+    margin-bottom: 9px;
+    margin-left: 8px
+}
 
 .top-level-category .is-open{
-    padding-bottom:12px;
+    /*padding-bottom:12px;*/
 }
 
 .top-level-category {
-    margin-bottom: 16px;
+    /*margin-bottom: 16px;*/
 }
 
+.planet-list {
+    margin-bottom: 5px;
+}
 
 
 .sidebar-2 .category .channel-list {
@@ -567,10 +570,10 @@ video {
 }
 
 
-    .sidebar-2 .category .is-open {
-        border-bottom-right-radius: 0px;
-        border-bottom-left-radius: 0px;
-    }
+.sidebar-2 .category .is-open {
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
 
 .sidebar-2 .user-info .settings {
     display: inline-block;

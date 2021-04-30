@@ -78,10 +78,14 @@
         ClientPlanetChatChannel channel = await planet.GetPrimaryChannelAsync(Mapper);
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
-        windowManager.SetWindow(Window.Index, new ChatChannelWindow(Window.Index, channel));
+
+        var newWindow = new ChatChannelWindow(Window.Index, channel);
+
+        windowManager.SetWindow(Window.Index, newWindow);
         await windowManager.SetSelectedWindow(Window.Index);
 
         // Actually load planet
+        await planetManager.OpenPlanet(planet); // Required for member list bug
         await planetManager.SetCurrentPlanet(planet);
 
         StateHasChanged();

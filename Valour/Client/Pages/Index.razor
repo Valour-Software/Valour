@@ -33,7 +33,7 @@
                     </div>
 
 
-                    <MemberListComponent @ref="MemberListComponent"></MemberListComponent>
+                    <MemberListComponent></MemberListComponent>
 
                 </div>
                 <div class="sidebar-2" id="sidebar2">
@@ -42,8 +42,7 @@
                     <div class="top-bar">
                     </div>
                     <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                    <ChannelListItemListComponent></ChannelListItemListComponent>
-
+                    <ChannelListComponent></ChannelListComponent>
                 </div>
             </div>
             <div class="channel-and-topbar" id="mainwindow">
@@ -116,9 +115,6 @@ else
 }
 
 @code{
-    public ConcurrentBag<ClientPlanetMember> planetMemberList = new ConcurrentBag<ClientPlanetMember>();
-
-    public MemberListComponent MemberListComponent { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,24 +160,13 @@ else
 
     public async Task OnPlanetChange(ClientPlanet planet)
     {
-        planetMemberList.Clear();
-
         if (planet != null)
         {
             Console.WriteLine("Index planet change: " + planet.Name);
-
-            var memberTask = Task.Run(async () =>
-            {
-                var members = await planet.GetAllMembers();
-                foreach (var member in members) { planetMemberList.Add(member); }
-                await MemberListComponent.SetMemberList(planetMemberList);
-            });
         }
         else
         {
             Console.WriteLine("Index planet change: null");
-
-            await MemberListComponent.SetMemberList(planetMemberList);
         }
 
         StateHasChanged();
