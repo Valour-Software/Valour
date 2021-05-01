@@ -167,10 +167,10 @@
 
     public async Task OnClickKick()
     {
-        confirmModal.Open($"Kick {Member.Nickname}?",
-                          $"This will remove them from the planet.",
-                          "Confirm",
-                          "Cancel",
+        await confirmModal.Open($"Kick {Member.Nickname}?",
+                                $"This will remove them from the planet.",
+                                "Confirm",
+                                "Cancel",
 
             async () =>
             {
