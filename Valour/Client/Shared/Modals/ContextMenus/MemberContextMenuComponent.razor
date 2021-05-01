@@ -1,5 +1,6 @@
 ﻿@inject MemberContextMenu memberContextMenu
 @inject BanModal banModal
+@inject ConfirmModal confirmModal
 @implements IDisposable
 
 @if (visible)
@@ -68,7 +69,7 @@
     </style>
 
     <div class="context-menu member-context-menu" id="@Modal_Id" style="left:@(x)px;top:@(y)px">
-        <div class="context-menu-item user-context-delete" onclick="KickUser()">
+        <div class="context-menu-item user-context-delete" @onclick="OnClickKick">
             <p class="context-menu-item-text">
                 Kick
             </p>
@@ -162,6 +163,28 @@
     {
         await banModal.Open();
         SetVisibility(false);
+    }
+
+    public async Task OnClickKick()
+    {
+        confirmModal.Open($"Kick {Member.Nickname}?",
+                          $"This will remove them from the planet.",
+                          "Confirm",
+                          "Cancel",
+
+            async () =>
+            {
+                var result = await ClientUserManager.Http.GetAsync($"/Planet/KickUser?token={ClientUserManager.UserSecretToken}" +
+                                                                                   $"&planet_id={Member.Planet_Id}" +
+                                                                                   $"&target_id={Member.Id}");
+
+                Console.WriteLine(await result.Content.ReadAsStringAsync());
+            },
+            async () =>
+            {
+
+            }
+        );
     }
 
     public void SetPosition(double x, double y)

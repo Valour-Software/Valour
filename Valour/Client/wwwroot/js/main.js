@@ -386,29 +386,8 @@ const isDescendant = (el, parentId) => {
     return isChild
 }
 
-function OpenEditUserModal() {
-
-    console.log("Edit User Modal triggered.");
-
-    var x = document.getElementsByClassName("edit-user-modal")
-    for (id in x) {
-        item = x[id]
-
-        if (item.style != null) {
-            item.style.display = "block";
-        }
-    }
-}
-
 function GetParentId() {
     return parseInt(ParentIdForModel)
-}
-
-function KickUser() {
-    fetch(`/Planet/KickUser?token=${SecretKey}&planet_id=${Planet_Id}&target_id=${parseInt(SelectedUserId)}`)
-        .then(data => {
-            console.log(data)
-        })
 }
 
 function BanUser() {
