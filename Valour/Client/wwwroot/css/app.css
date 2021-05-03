@@ -1103,7 +1103,7 @@ body {
     height: 64px;
     padding: 8px;
     position: absolute;
-    left: calc(100% - 64px);
+    left: calc(100% - 98px);
     top: 200px;
     cursor: pointer;
     z-index: 6;
@@ -1642,6 +1642,10 @@ btn-role-edit:hover edit {
 
 #window-3:focus {
     outline: 2px solid var(--main5);
+}
+
+.content > p > strong{
+   font-weight: bold
 }
 
 td, th {
