@@ -20,7 +20,7 @@
                 <div class="form-group mt-2">
                     <label>Password</label>
                     <input type="password" class="form-control" @bind-value="@password" />
-                    <span id="password-span" class="text-danger">@passwordSpan</span>
+                    <span id="password-span" class="@passwordspancolor">@passwordSpan</span>
                 </div>
                 <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
                 <div class="form-group mt-4" style="display:inline-block">
@@ -38,6 +38,7 @@
 
     public string emailSpan;
     public string passwordSpan;
+    public string passwordspancolor = "text-danger";
 
     private async Task OnClickLogin(MouseEventArgs e)
     {
@@ -76,6 +77,7 @@
 
             if (result.Success)
             {
+                passwordspancolor = "text-success";
                 navManager.NavigateTo("/", true);
             }
         }
