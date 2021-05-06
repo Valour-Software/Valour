@@ -20,8 +20,9 @@
                 <div class="form-group mt-2">
                     <label>Password</label>
                     <input type="password" class="form-control" @bind-value="@password" />
-                    <span id="password-span" class="@passwordspancolor">@passwordSpan</span>
+                    <span id="password-span" class="text-danger">@passwordSpan</span>
                 </div>
+                <span id="result-span" class="text-info">@resultSpan</span>
                 <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
                 <div class="form-group mt-4" style="display:inline-block">
                     <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button>
@@ -38,7 +39,7 @@
 
     public string emailSpan;
     public string passwordSpan;
-    public string passwordspancolor = "text-danger";
+    public string resultSpan;
 
     private async Task OnClickLogin(MouseEventArgs e)
     {
@@ -68,18 +69,21 @@
 
         TaskResult<string> loginResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<string>>(response);
 
-        passwordSpan = loginResult.ToString();
-
         if (loginResult.Success)
         {
             TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, storage, mapper);
-            passwordSpan = result.Message;
 
             if (result.Success)
             {
-                passwordspancolor = "text-success";
+                resultSpan = result.Message;
                 navManager.NavigateTo("/", true);
             }
+            else {
+                passwordSpan = result.Message;
+            }
+        }
+        else {
+            passwordSpan = loginResult.ToString();
         }
     }
 
