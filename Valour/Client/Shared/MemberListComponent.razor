@@ -1,18 +1,46 @@
 ﻿@inject ClientPlanetManager planetManager
 
-<RoleComponent Name="Emperor"></RoleComponent>
-<div class="UserList keep-scrolling">
+<div class="RoleList keep-scrolling">
     @if (MemberList != null)
     {
-        foreach (var member in MemberList)
-        {
-            <MemberComponent Only="true" Member="@member" @key="@member.Id"></MemberComponent>
+        List<ClientPlanetMember> AlreadyListed = new List<ClientPlanetMember>();
+        foreach(PlanetRole role in PlanetRoles) {
+            // only render roles that have the DisplayRole permission
+            if (role.HasPermission(PlanetPermissions.DisplayRole)) 
+            {
+                // get all active, away, do not disturb members
+                List<ClientPlanetMember> members = MemberList.Where(x => x.HasRoleNonAsync(role.Id) && (x.GetUser().UserState.Value != 1)).ToList();
+                if (members.Count() != 0) {
+                    // removes all members that have already been rendered
+                    members.RemoveAll(x => AlreadyListed.Contains(x));
+                    AlreadyListed.AddRange(members);
+                    <RoleComponent Name="@role.Name" Members="@members"></RoleComponent>
+                }
+            }
+        }
+
+        // online group
+        // this group is for members whose roles lack DisplayRole permission
+
+        List<ClientPlanetMember> OnlineMembers = MemberList.Where(x => x.GetUser().UserState.Value != 1 && AlreadyListed.Contains(x) == false).ToList();
+        if (OnlineMembers.Count() > 0) {
+            AlreadyListed.AddRange(OnlineMembers);
+        <RoleComponent Name="Online" Members="@OnlineMembers"></RoleComponent>
+        }
+
+        // offline group
+
+        // no sense in rendering members who have been offline for more than a week
+        List<ClientPlanetMember> OfflineMembers = MemberList.Where(x => DateTime.UtcNow.Subtract(x.GetUser().Last_Active).TotalDays < 7 && AlreadyListed.Contains(x) == false).ToList();
+        if (OfflineMembers.Count() > 0) {
+            <RoleComponent Name="Offline" Members="@OfflineMembers"></RoleComponent>
         }
     }
 </div>
 
 @code {
     public List<ClientPlanetMember> MemberList { get; set; }
+    public List<PlanetRole> PlanetRoles {get; set;} 
 
     protected override async Task OnInitializedAsync()
     {
@@ -23,6 +51,7 @@
     {
         Console.WriteLine($"Member list is updating to {planet.Name}");
         MemberList = await planetManager.GetCachedPlanetMembers(planet);
+        PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
         MemberList = MemberList.OrderByDescending(GetComparator).ToList();
         Console.WriteLine($"Starting with {MemberList.Count()} members.");
         StateHasChanged();

@@ -1,7 +1,16 @@
 ﻿<p class="rolename">
     @Name
 </p>
+<div class="UserList keep-scrolling">
+    @foreach (var member in Members)
+    {
+        <MemberComponent Only="true" Member="@member" @key="@member.Id"></MemberComponent>
+    }
+</div>
 @code {
     [Parameter]
     public string Name { get; set; }
+
+    [Parameter]
+    public List<ClientPlanetMember> Members {get; set;}
 }

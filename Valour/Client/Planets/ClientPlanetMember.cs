@@ -59,6 +59,11 @@ namespace Valour.Client.Planets
             _user = user;
         }
 
+        public bool HasRoleNonAsync(ulong role_id)
+        {
+            return _roleids.Contains(role_id);
+        }
+
         public async Task<bool> HasRole(ulong role_id)
         {
             if (_roleids == null)
@@ -94,6 +99,11 @@ namespace Valour.Client.Planets
             }
 
             return _status;
+        }
+
+        public User GetUser()
+        {
+            return _user;
         }
 
         public async Task<User> GetUserAsync()
