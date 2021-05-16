@@ -36,7 +36,7 @@
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
         <center>
-            <textarea id="text-input" class="textbox" rows="2" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput">@currentInput</textarea>
+            <textarea id="text-input" class="textbox" rows="2" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput" autofocus>@currentInput</textarea>
         </center>
     </div>
 </div>
