@@ -259,8 +259,25 @@ namespace Valour.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<IEnumerable<PlanetMessage>> GetMessages(ulong channel_id, ulong index = ulong.MaxValue, int count = 10)
+        public async Task<TaskResult<IEnumerable<PlanetMessage>>> GetMessages(ulong channel_id, string token, ulong index = ulong.MaxValue, int count = 10)
         {
+
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+
+            if (authToken == null)
+            {
+                return new TaskResult<IEnumerable<PlanetMessage>>(false, "Please supply a valid authentication token.", null);
+            }
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == channel.Planet_Id && x.User_Id == authToken.User_Id);
+
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, Context)))
+            {
+                return new TaskResult<IEnumerable<PlanetMessage>>(false, "You are not authorized to do this.", null);
+            }
+            
             // Prevent requesting a ridiculous amount of messages
             if (count > 64)
             {
@@ -287,12 +304,29 @@ namespace Valour.Server.Controllers
                 messages.AddRange(staged.Where(x => x.Message_Index < index));
             }
 
-            return messages;
+            return new TaskResult<IEnumerable<PlanetMessage>>(true, $"Successfully retrieved {messages.Count()} messages", messages);
         }
 
         [HttpGet]
-        public async Task<IEnumerable<PlanetMessage>> GetLastMessages(ulong channel_id, int count = 10)
+        public async Task<TaskResult<IEnumerable<PlanetMessage>>> GetLastMessages(ulong channel_id, string token, int count = 10)
         {
+
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+
+            if (authToken == null)
+            {
+                return new TaskResult<IEnumerable<PlanetMessage>>(false, "Please supply a valid authentication token.", null);
+            }
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == channel.Planet_Id && x.User_Id == authToken.User_Id);
+
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, Context)))
+            {
+                return new TaskResult<IEnumerable<PlanetMessage>>(false, "You are not authorized to do this.", null);
+            }
+            
             // Prevent requesting a ridiculous amount of messages
             if (count > 64)
             {
@@ -319,7 +353,7 @@ namespace Valour.Server.Controllers
                 messages.AddRange(staged);
             }
 
-            return messages;
+           return new TaskResult<IEnumerable<PlanetMessage>>(true, $"Successfully retrieved {messages.Count()} messages", messages);
         }
 
         [HttpPost]

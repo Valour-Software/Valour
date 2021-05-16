@@ -51,11 +51,14 @@ namespace Valour.Client.Channels
         public async Task<List<ClientPlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetMessages?channel_id={Id}" +
+                                                                                           $"&token={ClientUserManager.UserSecretToken}" +
                                                                                            $"&index={index}" +
                                                                                            $"&count={count}");
 
-            List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
+            TaskResult<List<ClientPlanetMessage>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetMessage>>>(json);
 
+            List<ClientPlanetMessage> messages = result.Data;
+            
             if (messages == null)
             {
                 Console.WriteLine("Failed to deserialize messages from GetMessages");
@@ -73,9 +76,12 @@ namespace Valour.Client.Channels
         public async Task<List<ClientPlanetMessage>> GetLastMessagesAsync(int count = 10)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetLastMessages?channel_id={Id}" +
+                                                                                             $"&token={ClientUserManager.UserSecretToken}" +
                                                                                              $"&count={count}");
 
-            List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
+            TaskResult<List<ClientPlanetMessage>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetMessage>>>(json);
+
+            List<ClientPlanetMessage> messages = result.Data;
 
             if (messages == null)
             {
