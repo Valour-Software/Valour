@@ -399,6 +399,17 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Malformed message.");
             }
 
+            DateTime now = DateTime.UtcNow;
+
+            // check for someone setting the timesent to be in the future
+            if (msg.TimeSent > now) {
+                return new TaskResult(false, "Failed to post message: You can not have message.TimeSent be in the future!");
+            }
+
+            if (msg.TimeSent < now.AddHours(-1)) {
+                return new TaskResult(false, "Failed to post message: You can not have message.TimeSent be more than a hour old!");
+            }
+
             // Stop people from sending insanely large messages
             if (msg.Content.Length > 2048)
             {
