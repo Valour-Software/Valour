@@ -25,6 +25,8 @@ namespace Valour.Server.Categories
         [JsonIgnore]
         public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
+        public ChannelListItemType ItemType => ChannelListItemType.Category;
+
         /// <summary>
         /// Validates that a given name is allowable for a server
         /// </summary>

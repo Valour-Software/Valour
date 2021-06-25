@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Shared;
 using Valour.Shared.Oauth;
+using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 
 namespace Valour.Client.Planets
@@ -21,6 +22,8 @@ namespace Valour.Client.Planets
         public Task<TaskResult> SetDescriptionAsync(string desc);
 
         public string GetItemTypeName();
+
+        public ChannelListItemType ItemType { get; }
 
         public Task<ClientPlanet> GetPlanetAsync();
 

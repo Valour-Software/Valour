@@ -1,7 +1,7 @@
 ﻿@inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
 
-<div class="@GetCssClass()" id="list-@Planet.Id" draggable="true">
+<div class="@GetCssClass()" id="list-@Planet.Id">
     <div style="cursor:pointer" id="list-inner-@Planet.Id" @oncontextmenu="OnContextMenu">
         <div @onclick='@OnClick' style="width:85%; display:inline-block">
             <img class="arrow" src="media/Category-Icon.svg" style="@GetArrowStyle()">

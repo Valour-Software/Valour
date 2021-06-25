@@ -44,6 +44,8 @@ namespace Valour.Server.Planets
         [ForeignKey("Parent_Id")]
         public virtual ServerPlanetCategory Parent { get; set; }
 
+        public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
+
         /// <summary>
         /// Returns the generic planet chat channel object
         /// </summary>

@@ -8,11 +8,12 @@
 @inject ClientWindowManager windowManager
 @inject ClientCategoryManager categoryManager
 @inject ChannelListContextMenu listContextMenu
+@inject ChannelListManager listManager
 
 
 
-<div class="@Chosen_CSS" id="@Category.Id" draggable="true" ondrag="setDragging(event)">
-    <div style="cursor:pointer" id="@Category.Id" ondragover="setDraggedOver(event)" ondrop="Drop(event)" @oncontextmenu="OnContextMenu">
+<div class="@Chosen_CSS" id="@Category.Id" draggable="true">
+    <div style="cursor:pointer" id="@Category.Id" @oncontextmenu="OnContextMenu">
         <div @onclick='@OnClick' style="width:85%; display:inline-block">
             <img class="arrow" src="media/Category-Icon.svg" style="@ArrowStyle">
             <p class="name">
@@ -26,28 +27,28 @@
     <!-- The Modal -->
     @if (IsOpen)
     {
-        <div class="channel-list">
-            @foreach (ChannelListItem item in ItemList)
+<div class="channel-list" ondragover="event.preventDefault();">
+    @foreach (ChannelListItem item in ItemList)
+    {
+        ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+        if (channel != null)
+        {
+            if (channel.Parent_Id == Category.Id)
             {
-                ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
-                if (channel != null)
-                {
-                    if (channel.Parent_Id == Category.Id)
-                    {
-                        <ChannelListChatChannelComponent Channel="channel"></ChannelListChatChannelComponent>
-                    }
-                }
-                else
-                {
-                    ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
-                    @if (planetcategory.Parent_Id == Category.Id)
-                    {
-                        <ChannelListCategoryComponent Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
-                    }
-                }
+                <ChannelListChatChannelComponent ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>        
             }
-            <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
-        </div>
+        }
+        else
+        {
+            ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
+            @if (planetcategory.Parent_Id == Category.Id)
+            {
+                <ChannelListCategoryComponent Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
+            }
+        }
+    }
+    <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
+</div>
     }
 </div>
 @code {
@@ -162,5 +163,18 @@
     public async Task OnContextMenu(MouseEventArgs e)
     {
         await listContextMenu.Open(e, Category);
+    }
+
+    int currentDragIndex;
+
+    // Get local index
+    public int GetIndex(IClientPlanetListItem item)
+    {
+        return ItemList.FindIndex(x => x.Id == item.Id);
+    }
+
+    public void Refresh()
+    {
+        StateHasChanged();
     }
 }

@@ -15,6 +15,7 @@ namespace Valour.Server.Planets
         public ulong Id { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public ChannelListItemType ItemType { get; }
 
         public Task SetNameAsync(string name, ValourDB db);
         public Task SetDescriptionAsync(string desc, ValourDB db);

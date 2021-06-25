@@ -343,5 +343,89 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "Successfully changed category description.");
         }
+
+        public async Task<TaskResult> SetContents([FromBody] List<CategoryContentData> contents, ulong category_id, string auth)
+        {
+            // Retrieve base category
+            ServerPlanetCategory baseCategory = await Context.PlanetCategories.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == category_id);
+
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(auth, Context);
+
+            if (baseCategory == null)
+            {
+                return new TaskResult(false, $"Could not find category {category_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, baseCategory.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You do not have planet category management permissions.");
+            }
+
+            if (!await baseCategory.HasPermission(member, CategoryPermissions.ManageCategory, Context))
+            {
+                return new TaskResult(false, "You do not have permission to manage this category");
+            }
+
+            // Ensure contents belong to same server as base category. If any don't, skip it.
+            foreach (CategoryContentData data in contents)
+            {
+                IServerChannelListItem item;
+
+                if (data.ItemType == ChannelListItemType.Category)
+                {
+                    item = await Context.PlanetCategories.FirstOrDefaultAsync(x => x.Id == data.Id);
+                }
+                else if (data.ItemType == ChannelListItemType.ChatChannel)
+                {
+                    item = await Context.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == data.Id);
+                }
+                else
+                {
+                    return new TaskResult(false, $"Item with ID {data.Id} had unexpected type: {data.ItemType}");
+                }
+
+                if (item == null)
+                {
+                   Console.WriteLine($"Item with ID {data.Id} could not be found.");
+                   continue;
+                }
+
+                if (item.Planet_Id != baseCategory.Planet_Id)
+                {
+                    Console.WriteLine($"Item with ID {data.Id} has different server than base! ({item.Planet_Id} vs {baseCategory.Planet_Id} base)");
+                    continue;
+                }
+
+                item.Parent_Id = category_id;
+                item.Position = data.Position;
+
+                Context.Update(item);
+            }
+
+
+            // Save changes to database
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Updated contents successfully.");
+        }
     }
 }
