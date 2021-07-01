@@ -12,9 +12,12 @@
 
 
 
-<div class="@Chosen_CSS" id="@Category.Id" draggable="true">
+<div class="@Chosen_CSS"
+     id="@Category.Id" draggable="true" ondragover="event.preventDefault();">
     <div style="cursor:pointer" id="@Category.Id" @oncontextmenu="OnContextMenu">
-        <div @onclick='@OnClick' style="width:85%; display:inline-block">
+        <div @onclick="OnClick"
+             @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
+             @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)" style="width:85%; display:inline-block">
             <img class="arrow" src="media/Category-Icon.svg" style="@ArrowStyle">
             <p class="name">
                 @Category.Name
@@ -27,28 +30,28 @@
     <!-- The Modal -->
     @if (IsOpen)
     {
-<div class="channel-list" ondragover="event.preventDefault();">
-    @foreach (ChannelListItem item in ItemList)
-    {
-        ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
-        if (channel != null)
-        {
-            if (channel.Parent_Id == Category.Id)
+        <div class="channel-list" ondragover="event.preventDefault();">
+            @foreach (ChannelListItem item in ItemList)
             {
-                <ChannelListChatChannelComponent ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>        
+                ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+                if (channel != null)
+                {
+                    if (channel.Parent_Id == Category.Id)
+                    {
+                        <ChannelListChatChannelComponent ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>        
+                    }
+                }
+                else
+                {
+                    ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
+                    @if (planetcategory.Parent_Id == Category.Id)
+                    {
+                        <ChannelListCategoryComponent ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
+                    }
+                }
             }
-        }
-        else
-        {
-            ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
-            @if (planetcategory.Parent_Id == Category.Id)
-            {
-                <ChannelListCategoryComponent Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
-            }
-        }
-    }
-    <div style="padding-bottom: 20px;" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)"></div>
-</div>
+            <div style="padding-bottom: 20px;"></div>
+        </div>
     }
 </div>
 @code {
@@ -68,6 +71,9 @@
     [Parameter]
     public ChatChannelWindow ChannelWindow { get; set; }
 
+    [Parameter]
+    public ChannelListCategoryComponent ParentCategory { get; set; }
+
     public List<ClientPlanetChatChannel> ChildChannels;
     public List<ClientPlanetCategory> ChildCategories;
 
@@ -78,23 +84,42 @@
     protected override Task OnInitializedAsync()
     {
         planetManager.OnCategoryUpdate += OnCategoryUpdate;
+        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
 
         ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
 
-        ItemList.AddRange(ChildChannels);
-        ItemList.AddRange(ChildCategories);
-
         IsOpen = categoryManager.IsOpen(Category);
 
-        ItemList.Sort((x, y) => x.Position.CompareTo(y.Position));
+        BuildItemList();
 
         return base.OnInitializedAsync();
+    }
+
+    public void BuildItemList()
+    {
+        ItemList.Clear();
+
+        ItemList.AddRange(ChildChannels);
+        ItemList.AddRange(ChildCategories);
+        ItemList.Sort((x, y) => x.Position.CompareTo(y.Position));
     }
 
     public void Dispose()
     {
         planetManager.OnCategoryUpdate -= OnCategoryUpdate;
+        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+    }
+
+    public async Task OnClick()
+    {
+        listManager.OnItemClickInCategory(Category, ParentCategory);
+
+        IsOpen = !IsOpen;
+
+        categoryManager.SetOpen(Category, IsOpen);
+
+        StateHasChanged();
     }
 
     public string ArrowStyle
@@ -137,14 +162,6 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
-    public void OnClick()
-    {
-        IsOpen = !IsOpen;
-
-        categoryManager.SetOpen(Category, IsOpen);
-
-        StateHasChanged();
-    }
 
     public async Task OpenAddContextMenu(MouseEventArgs e)
     {
@@ -156,6 +173,83 @@
         if (Category.Id == category.Id)
         {
             this.Category = category;
+            StateHasChanged();
+        }
+        else
+        {
+            // If we contain the category and its position or category changed we need to factor for that
+            var old = ChildCategories.FirstOrDefault(x => x.Id == category.Id);
+
+            if (old != null)
+            {
+                // If removed from this category
+                if (category.Parent_Id != Category.Id)
+                {
+                    ChildCategories.Remove(old);
+                }
+                // If moved within this category
+                else
+                {
+                    // Get old index
+                    var index = ChildCategories.IndexOf(old);
+                    // Remove old
+                    ChildCategories.Remove(old);
+                    // Replace with new
+                    ChildCategories.Insert(index, category);
+                    // Resort
+                    BuildItemList();
+                }
+
+                StateHasChanged();
+            }
+            // In this case it was just added to this category
+            else if (category.Parent_Id == Category.Id)
+            {
+                // Insert into position
+                ChildCategories.Insert(category.Position, category);
+                // Resort
+                BuildItemList();
+
+                StateHasChanged();
+            }
+        }
+    }
+
+    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    {
+        // If we contain the category and its position or category changed we need to factor for that
+        var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
+
+        if (old != null)
+        {
+            // If removed from this category
+            if (channel.Parent_Id != Category.Id)
+            {
+                ChildChannels.Remove(old);
+            }
+            // If moved within this category
+            else
+            {
+                // Get old index
+                var index = ChildChannels.IndexOf(old);
+                // Remove old
+                ChildChannels.Remove(old);
+                // Replace with new
+                ChildChannels.Insert(index, channel);
+                // Resort
+                BuildItemList();
+            }
+
+            StateHasChanged();
+        }
+        // In this case it was just added to this category
+        else if (channel.Parent_Id == Category.Id)
+        {
+            // Insert into position
+            ChildChannels.Insert(channel.Position, channel);
+            // Resort
+            BuildItemList();
+
             StateHasChanged();
         }
     }

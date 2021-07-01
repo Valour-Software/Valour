@@ -158,5 +158,10 @@ namespace Valour.Server.Categories
             // No roles ever defined behavior: resort to false.
             return false;
         }
+
+        public async Task NotifyClientsChange()
+        {
+            await PlanetHub.NotifyCategoryChange(this);
+        }
     }
 }

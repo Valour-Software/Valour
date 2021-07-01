@@ -38,7 +38,7 @@ namespace Valour.Client.Shared.ChannelList
                                           ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Click for {item.GetItemTypeName()} at position {currentDragIndex} in {parent.Category.Name}");
+            Console.WriteLine($"Click for {item.GetItemTypeName()} at position {currentDragIndex}");
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Valour.Client.Shared.ChannelList
                                               ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Starting drag for {item.GetItemTypeName()} at position {currentDragIndex} in {parent.Category.Name}");
+            Console.WriteLine($"Starting drag for {item.GetItemTypeName()} at position {currentDragIndex}");
         }
 
         /// <summary>
@@ -61,7 +61,13 @@ namespace Valour.Client.Shared.ChannelList
         public void SetTargetInCategory(IClientPlanetListItem item,
                                         ChannelListCategoryComponent parent)
         {
-            currentDragIndex = parent.GetIndex(item);
+            currentDragIndex = 0;
+
+            if (parent != null)
+            {
+                currentDragIndex = parent.GetIndex(item);
+            }
+
             currentDragParentPlanet = null;
             currentDragParentCategory = parent;
             currentDragItem = item;
@@ -71,9 +77,26 @@ namespace Valour.Client.Shared.ChannelList
         /// Run when an item is dropped on a category
         /// </summary>
         /// <param name="target">The category component that the item was dropped onto</param>
-        public void OnItemDropOnCategory(ChannelListCategoryComponent target)
+        public async Task OnItemDropOnCategory(ChannelListCategoryComponent target)
         {
-            
+            // Insert item into the next slot in the category
+            if (target == null)
+                return;
+
+            // Already parent
+            if (target.Category.Id == currentDragItem.Parent_Id)
+                return;
+
+            HttpResponseMessage response = null;
+
+            // Add current item to target category
+            response = await ClientUserManager.Http.GetAsync($"Category/InsertItem?item_id={currentDragItem.Id}&item_type={currentDragItem.ItemType}" +
+                                                                                $"&category_id={target.Category.Id}&position={target.ItemList.Count()}" +
+                                                                                $"&auth={ClientUserManager.UserSecretToken}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
+
+            Console.WriteLine(result);
         }
 
         public async Task OnItemDropOnChatChannel(ChannelListChatChannelComponent target)
@@ -81,11 +104,19 @@ namespace Valour.Client.Shared.ChannelList
             if (target == null)
                 return;
 
-            var oldIndex = currentDragParentCategory.GetIndex(currentDragItem);
+            var oldIndex = 0;
+
+            if (currentDragParentCategory != null)
+            {
+                oldIndex = currentDragParentCategory.GetIndex(currentDragItem);
+            }
             var newIndex = target.ParentCategory.GetIndex(target.Channel);
 
             // Remove from old list
-            currentDragParentCategory.ItemList.RemoveAt(oldIndex);
+            if (currentDragParentCategory != null)
+            {
+                currentDragParentCategory.ItemList.RemoveAt(oldIndex);
+            }
             // Insert into new list at correct position
             target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
             currentDragItem.Parent_Id = target.ParentCategory.Category.Id;
@@ -106,6 +137,8 @@ namespace Valour.Client.Shared.ChannelList
 
                 foreach (var item in target.ParentCategory.ItemList)
                 {
+                    Console.WriteLine($"{item.Id} at {pos}");
+
                     orderData.Add(
                         new CategoryContentData()
                         {
@@ -130,7 +163,7 @@ namespace Valour.Client.Shared.ChannelList
             // Update the source category
             //currentDragParentCategory.Refresh();
             
-            Console.WriteLine($"Dropped onto {target.Channel.Name} at {newIndex}");
+            Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
         }
     }
 }

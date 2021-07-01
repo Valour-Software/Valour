@@ -126,6 +126,14 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
+            // Get parent category
+            ServerPlanetCategory category = await Context.PlanetCategories.FindAsync(parent_id);
+
+            if (category == null)
+            {
+                return new TaskResult(false, $"The category with id {parent_id} could not be found.");
+            }
+
             channel.Parent_Id = parent_id;
 
             await Context.SaveChangesAsync();
