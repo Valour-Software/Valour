@@ -10,9 +10,9 @@
             {
                 // get all active, away, do not disturb members
                 List<ClientPlanetMember> members = MemberList.Where(x => x.HasRoleNonAsync(role.Id) && (x.GetUser().UserState.Value != 1)).ToList();
+                // removes all members that have already been rendered
+                members.RemoveAll(x => AlreadyListed.Contains(x));
                 if (members.Count() != 0) {
-                    // removes all members that have already been rendered
-                    members.RemoveAll(x => AlreadyListed.Contains(x));
                     AlreadyListed.AddRange(members);
                     <RoleComponent Name="@role.Name" Members="@members"></RoleComponent>
                 }
