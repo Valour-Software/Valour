@@ -38,7 +38,7 @@ namespace Valour.Client.Shared.ChannelList
                                           ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Click for {item.GetItemTypeName()} at position {currentDragIndex}");
+            Console.WriteLine($"Click for {item.GetItemTypeName()} {item.Name} at position {currentDragIndex}");
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Valour.Client.Shared.ChannelList
                                               ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Starting drag for {item.GetItemTypeName()} at position {currentDragIndex}");
+            Console.WriteLine($"Starting drag for {item.GetItemTypeName()} {item.Name} at position {currentDragIndex}");
         }
 
         /// <summary>
@@ -74,6 +74,43 @@ namespace Valour.Client.Shared.ChannelList
         }
 
         /// <summary>
+        /// Run when an item is dropped on a planet
+        /// </summary>
+        /// <param name="target">The planet component that the item was dropped onto</param>
+        public async Task OnItemDropOnPlanet(ChannelListPlanetComponent target)
+        {
+            // Insert item into the next slot in the category
+            if (target == null)
+                return;
+
+            if (currentDragItem == null)
+                return;
+
+            // Only categories can be put under a planet
+            if (currentDragItem.ItemType != Valour.Shared.Planets.ChannelListItemType.Category)
+                return;
+
+            // Already parent
+            if (target.Planet.Id == currentDragItem.Parent_Id)
+                return;
+
+            HttpResponseMessage response = null;
+
+            ushort position = (ushort)target.TopCategories.Count();
+
+            // Add current item to target category
+            response = await ClientUserManager.Http.GetAsync($"Planet/InsertCategory?category_id={currentDragItem.Id}" +
+                                                                                $"&planet_id={target.Planet.Id}&position={position}" +
+                                                                                $"&auth={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
+
+            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
+
+            Console.WriteLine(result);
+        }
+
+        /// <summary>
         /// Run when an item is dropped on a category
         /// </summary>
         /// <param name="target">The category component that the item was dropped onto</param>
@@ -87,12 +124,20 @@ namespace Valour.Client.Shared.ChannelList
             if (target.Category.Id == currentDragItem.Parent_Id)
                 return;
 
+            // Same item
+            if (target.Category.Id == currentDragItem.Id)
+                return;
+
             HttpResponseMessage response = null;
+
+            ushort position = (ushort)target.ItemList.Count();
 
             // Add current item to target category
             response = await ClientUserManager.Http.GetAsync($"Category/InsertItem?item_id={currentDragItem.Id}&item_type={currentDragItem.ItemType}" +
-                                                                                $"&category_id={target.Category.Id}&position={target.ItemList.Count()}" +
+                                                                                $"&category_id={target.Category.Id}&position={position}" +
                                                                                 $"&auth={ClientUserManager.UserSecretToken}");
+
+            Console.WriteLine($"Inserting {currentDragItem.Id} into {target.Category.Id} at position {position}");
 
             TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
 
