@@ -306,7 +306,7 @@ function SetupWindow(index) {
 }
 
 // When the user clicks anywhere outside of the modal, close it
-window.onclick = function (event) {
+window.onpointerdown = function (event) {
 
     var id = 'null';
     if (event.target != null) {
@@ -386,57 +386,12 @@ const isDescendant = (el, parentId) => {
     return isChild
 }
 
-function OpenEditUserModal() {
-
-    console.log("Edit User Modal triggered.");
-
-    var x = document.getElementsByClassName("edit-user-modal")
-    for (id in x) {
-        item = x[id]
-
-        if (item.style != null) {
-            item.style.display = "block";
-        }
-    }
-}
-
 function GetParentId() {
     return parseInt(ParentIdForModel)
 }
 
-function KickUser() {
-    fetch(`/Planet/KickUser?token=${SecretKey}&planet_id=${Planet_Id}&target_id=${parseInt(SelectedUserId)}`)
-        .then(data => {
-            console.log(data)
-        })
-}
-
-function BanUser() {
-    x = document.getElementById("BanModel")
-    x.style.display = "block"
-}
-
 function GetSelectedUserId() {
     return parseInt(SelectedUserId)
-}
-
-// Code for Reordering categories and channels
-const setDraggedOver = (e) => {
-      e.preventDefault();
-      draggedOver = e.target
-}
-    
-const setDragging = (e) =>{
-    dragging = e.target
-    while (true) {
-        if (dragging.className.includes("channel") == true | dragging.className.includes("category") == true) {
-            break
-        }
-        dragging = dragging.parentNode
-        if (dragging == null) {
-            return null;
-        }
-    }
 }
 
 async function postData(url = '', data = {}) {
@@ -452,136 +407,12 @@ async function postData(url = '', data = {}) {
     return response.json(); // parses JSON response into native JavaScript objects
   }
 
-  function httpGet(theUrl)
-  {
-      var xmlHttp = new XMLHttpRequest();
-      xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-      xmlHttp.send( null );
-      return JSON.parse(xmlHttp.responseText);
-  }
-
-const Drop = (e) =>{
-    e.preventDefault();
-    e.stopPropagation();
-    if (dragging == null) {
-        return null
-    }
-    target = e.target
-    beforeelement = null
-    while (target.className.includes("channel-list") == false && target.className.includes("category-list") == false ) {
-        if (target.className.includes("channel")) {
-            beforeelement = target
-        }
-        if (target.className.includes("category-list") == false && dragging.className.includes("category") == true) {
-            beforeelement = target
-        }
-        target = target.parentNode
-        if (target == null) {
-            return null;
-        }
-    }
-    if (target.className.includes("channel-list") == false && target.className.includes("category-list") == false) {
-        beforeelement = null;
-    }
-    node = target.parentNode
-    if (target.className.includes("category") == true && dragging.className.includes("category") == false) {
-        return null;
-    }
-    TopLevel = false
-    if (target.className.includes("category-list") == true && dragging.className.includes("category") == true) {
-        id = dragging.id 
-        data = httpGet(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=0`)
-        console.log(data)
-        TopLevel = true
-        return null
-    }
-    else {
-        if (target == null) {
-            return null;
-        }
-        if (beforeelement == dragging) {
-            return null;
-        }
-        parentid = dragging.parentNode
-        parentid = parentid.parentNode.id
-        categoryid = target.parentNode.id
-        if (categoryid != parentid) {
-            if (dragging.className.includes("channel")) {
-                data = fetch(`/Channel/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-                console.log(data)
-                return null;
-            }
-            else {
-                data = fetch(`/Category/SetParentId?token=${SecretKey}&user_id=${user_id}&id=${parseInt(dragging.id)}&parentId=${parseInt(categoryid)}`)
-                console.log(data)
-                return null;
-            }
-        }
-    }
-    if (target == null) {
-        return null;
-    }
-    if (beforeelement == dragging) {
-        return null;
-    }
-   // dragging.parentNode.removeChild(dragging);
-    parentid = dragging.parentNode
-    parentid = parentid.parentNode.id
-    categoryid = target.parentNode.id
-    oldlist = Array.from(target.children)
-    if (categoryid == parentid || TopLevel) {
-        list = Array.prototype.slice.call( target.children )
-        var index1 = list.indexOf(dragging);
-        var index2 = list.indexOf(beforeelement);
-        list.splice(index1, 1)
-        list.splice(index2, 0, dragging)
-        target.innerHTML = ""
-        for (i in list) {
-            item = list[i]
-            target.append(item)
-        }
-    }
-    else {
-        dragging.parentNode.removeChild(dragging);
-        list = Array.prototype.slice.call( target.children )
-        var index2 = list.indexOf(beforeelement);
-        list.splice(index2, 0, dragging)
-        target.innerHTML = ""
-        for (i in list) {
-            item = list[i]
-            target.append(item)
-        }
-    }
-    index = 0
-    var data = {}
-    for (i in target.children) {
-        item = target.children[i]
-        if (item.className == null) {
-            continue
-        }
-        if (item.className.includes("channel")) {
-            data[index] = [parseInt(item.id), 0]
-            index += 1
-        }
-        if (item.className.includes("category")) {
-            data[index] = [parseInt(item.id), 1]
-            index += 1
-        }
-    }
-    postData(`/Planet/UpdateOrder?token=${SecretKey}&user_id=${user_id}&Planet_Id=${Planet_Id}`, data)
-        .then(out => {
-            if (out["success"] == false) {
-                target.innerHTML = ""
-                for (i in oldlist) {
-                    item = oldlist[i]
-                    target.append(item)
-
-                }
-            }
-            console.log(out)
-        })
-    dragging = null
-    return null;
+function httpGet(theUrl)
+{
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
+    xmlHttp.send( null );
+    return JSON.parse(xmlHttp.responseText);
 }
 
 function SetSecretKey(key, id, planetid) {
@@ -631,11 +462,17 @@ function hexToRGB(hex, alpha) {
     return [r, g, b, alpha];
 }
 
+const pickr = null;
+
 function SetupColorPicker() {
 
     console.log("Setting up color picker...");
 
-    const pickr = Pickr.create({
+    if (pickr != null) {
+        return;
+    }
+
+    pickr = Pickr.create({
         el: '.color-picker',
         theme: 'nano', // or 'monolith', or 'nano'
 
@@ -691,8 +528,12 @@ function GetChosenColor() {
     return chosenColor;
 }
 
+/* Window resize code */
+
 window.onresize = function () {
     document.body.height = window.innerHeight;
 }
 
 window.onresize(); // called to initially set the height.
+
+/* Channel list code */

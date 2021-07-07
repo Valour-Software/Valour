@@ -2,7 +2,7 @@
 @inject ClientWindowManager windowManager
 @inject SignalRManager signalRManager
 
-<div class="category-list keep-scrolling" style="padding-bottom:80px" ondragover="setDraggedOver(event)" ondrop="Drop(event)">
+<div class="category-list keep-scrolling" style="padding-bottom:80px">
     @if (windowManager.GetSelectedWindow() is ChatChannelWindow)
     {
         @foreach (ClientPlanet planet in planetManager.GetOpenPlanets())

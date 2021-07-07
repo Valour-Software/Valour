@@ -3,8 +3,12 @@
 @inject ClientWindowManager windowManager
 @inject ClientPlanetManager planetManager
 @inject ChannelListContextMenu channelContextMenu
+@inject ChannelListManager listManager
 
-<div class="@Chosen_CSS" @onclick="OnClick" draggable="true" ondrag="setDragging(event)" ondragover="setDraggedOver(event)" ondrop="Drop(event)" id="@Channel.Id" @oncontextmenu="OnContextMenu">
+<div class="@Chosen_CSS" 
+     @onclick="OnClick" 
+     @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
+     @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id" @oncontextmenu="OnContextMenu">
     <img class="chat-icon" src="media/Channel-Icon.svg">
     <p class="channel-name">
         @Channel.Name
@@ -15,6 +19,9 @@
     // Demonstrates how a parent component can supply parameters
     [Parameter]
     public ClientPlanetChatChannel Channel { get; set; }
+
+    [Parameter]
+    public ChannelListCategoryComponent ParentCategory { get; set; }
 
     public string Chosen_CSS
     {
@@ -36,6 +43,9 @@
 
     public async Task OnClick()
     {
+
+        listManager.OnItemClickInCategory(Channel, ParentCategory);
+
         ClientWindow window = windowManager.GetSelectedWindow();
 
         Console.WriteLine(window.Index);

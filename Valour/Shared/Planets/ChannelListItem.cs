@@ -1,6 +1,12 @@
 
 namespace Valour.Shared.Planets
 {
+    public enum ChannelListItemType
+    {
+        ChatChannel,
+        Category
+    }
+
     public class ChannelListItem
     {
         public ushort Position { get; set; }
