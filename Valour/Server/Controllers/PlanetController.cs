@@ -17,7 +17,6 @@ using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.Linq;
-using Valour.Shared.Oauth;
 using Valour.Server.MSP;
 using Valour.Server.Roles;
 using Valour.Shared.Roles;

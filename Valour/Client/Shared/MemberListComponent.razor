@@ -3,48 +3,93 @@
 <div class="RoleList keep-scrolling">
     @if (MemberList != null)
     {
-        List<ClientPlanetMember> AlreadyListed = new List<ClientPlanetMember>();
-        foreach(PlanetRole role in PlanetRoles) {
-            // only render roles that have the DisplayRole permission
-            if (role.HasPermission(PlanetPermissions.DisplayRole)) 
-            {
-                // get all active, away, do not disturb members
-                List<ClientPlanetMember> members = MemberList.Where(x => x.HasRoleNonAsync(role.Id) && (x.GetUser().UserState.Value != 1)).ToList();
-                if (members.Count() != 0) {
-                    // removes all members that have already been rendered
-                    members.RemoveAll(x => AlreadyListed.Contains(x));
-                    AlreadyListed.AddRange(members);
-                    <RoleComponent Name="@role.Name" Members="@members"></RoleComponent>
-                }
-            }
+        foreach (KeyValuePair<PlanetRole, List<ClientPlanetMember>> roleMemberList in RoleMemberLists)
+        {
+            <RoleComponent Role="@roleMemberList.Key" Members="@roleMemberList.Value"></RoleComponent>
         }
 
         // online group
         // this group is for members whose roles lack DisplayRole permission
-
-        List<ClientPlanetMember> OnlineMembers = MemberList.Where(x => x.GetUser().UserState.Value != 1 && AlreadyListed.Contains(x) == false).ToList();
-        if (OnlineMembers.Count() > 0) {
-            AlreadyListed.AddRange(OnlineMembers);
-        <RoleComponent Name="Online" Members="@OnlineMembers"></RoleComponent>
-        }
+        <RoleComponent DummyName="Online" Members="@OnlineList"></RoleComponent>
 
         // offline group
-
-        // no sense in rendering members who have been offline for more than a week
-        List<ClientPlanetMember> OfflineMembers = MemberList.Where(x => DateTime.UtcNow.Subtract(x.GetUser().Last_Active).TotalDays < 7 && AlreadyListed.Contains(x) == false).ToList();
-        if (OfflineMembers.Count() > 0) {
-            <RoleComponent Name="Offline" Members="@OfflineMembers"></RoleComponent>
-        }
+        <RoleComponent DummyName="Offline" Members="@OfflineList"></RoleComponent>
     }
 </div>
 
 @code {
     public List<ClientPlanetMember> MemberList { get; set; }
-    public List<PlanetRole> PlanetRoles {get; set;} 
+    public List<PlanetRole> PlanetRoles {get; set;}
+
+    public Dictionary<PlanetRole, List<ClientPlanetMember>> RoleMemberLists { get; set; }
+    public List<ClientPlanetMember> OnlineList { get; set; }
+    public List<ClientPlanetMember> OfflineList { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        RoleMemberLists = new Dictionary<PlanetRole, List<ClientPlanetMember>>();
+        OnlineList = new List<ClientPlanetMember>();
+        OfflineList = new List<ClientPlanetMember>();
+
         planetManager.OnPlanetChange += OnPlanetChange;
+    }
+
+    public async Task BuildRoleLists()
+    {
+        RoleMemberLists.Clear();
+        OnlineList.Clear();
+        OfflineList.Clear();
+
+        foreach (var member in MemberList)
+        {
+            var user = await member.GetUserAsync();
+
+            // Don't list at all if this is true
+            if (user.Last_Active_Span.TotalDays > 7)
+                continue;
+
+            // Throw directly into offline group
+            if (user.UserState.Value == UserState.Offline.Value)
+            {
+                OfflineList.Add(member);
+                continue;
+            }
+
+            // Get role ids
+            var roleids = await member.GetRoleIdsAsync();
+
+            bool hadRole = false;
+
+            // Try for a role
+            foreach (PlanetRole role in PlanetRoles)
+            {
+                // Ensure role should be listed
+                if (!role.HasPermission(PlanetPermissions.DisplayRole))
+                    continue;
+
+                // Member has role
+                if (roleids.Contains(role.Id))
+                {
+                    // Ensure there is a list
+                    if (!RoleMemberLists.ContainsKey(role))
+                    {
+                        RoleMemberLists.Add(role, new List<ClientPlanetMember>());
+                    }
+
+                    RoleMemberLists[role].Add(member);
+
+                    // Break from loop since we have already succeeded
+                    hadRole = true;
+                    break;
+                }
+            }
+
+            // Online pass
+            if (!hadRole)
+            {
+                OnlineList.Add(member);
+            }
+        }
     }
 
     public async Task OnPlanetChange(ClientPlanet planet)
@@ -53,6 +98,7 @@
         MemberList = await planetManager.GetCachedPlanetMembers(planet);
         PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
         MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+        await BuildRoleLists();
         Console.WriteLine($"Starting with {MemberList.Count()} members.");
         StateHasChanged();
     }

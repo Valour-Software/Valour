@@ -15,7 +15,6 @@ using Valour.Shared.Categories;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Valour.Server.Planets;
-using Valour.Shared.Oauth;
 using AutoMapper;
 using Valour.Server.Categories;
 using Valour.Server.Oauth;

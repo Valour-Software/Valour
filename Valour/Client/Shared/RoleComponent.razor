@@ -1,6 +1,17 @@
-﻿<p class="rolename">
-    @Name
+﻿
+@if (Role != null)
+{
+<p class="rolename" style="color: @Role.GetColorHex()">
+    @Role.Name
 </p>
+}
+else
+{
+<p class="rolename">
+    @DummyName
+</p>
+}
+
 <div class="UserList keep-scrolling">
     @foreach (var member in Members)
     {
@@ -8,8 +19,12 @@
     }
 </div>
 @code {
+
     [Parameter]
-    public string Name { get; set; }
+    public string DummyName { get; set; }
+
+    [Parameter]
+    public PlanetRole Role { get; set; }
 
     [Parameter]
     public List<ClientPlanetMember> Members {get; set;}
