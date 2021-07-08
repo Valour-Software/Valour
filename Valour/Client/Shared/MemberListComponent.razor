@@ -1,29 +1,104 @@
 ﻿@inject ClientPlanetManager planetManager
 
-<RoleComponent Name="Emperor"></RoleComponent>
-<div class="UserList keep-scrolling">
+<div class="RoleList keep-scrolling">
     @if (MemberList != null)
     {
-        foreach (var member in MemberList)
+        foreach (KeyValuePair<PlanetRole, List<ClientPlanetMember>> roleMemberList in RoleMemberLists)
         {
-            <MemberComponent Only="true" Member="@member" @key="@member.Id"></MemberComponent>
+            <RoleComponent Role="@roleMemberList.Key" Members="@roleMemberList.Value"></RoleComponent>
         }
+
+        // online group
+        // this group is for members whose roles lack DisplayRole permission
+        <RoleComponent DummyName="Online" Members="@OnlineList"></RoleComponent>
+
+        // offline group
+        <RoleComponent DummyName="Offline" Members="@OfflineList"></RoleComponent>
     }
 </div>
 
 @code {
     public List<ClientPlanetMember> MemberList { get; set; }
+    public List<PlanetRole> PlanetRoles {get; set;}
+
+    public Dictionary<PlanetRole, List<ClientPlanetMember>> RoleMemberLists { get; set; }
+    public List<ClientPlanetMember> OnlineList { get; set; }
+    public List<ClientPlanetMember> OfflineList { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
+        RoleMemberLists = new Dictionary<PlanetRole, List<ClientPlanetMember>>();
+        OnlineList = new List<ClientPlanetMember>();
+        OfflineList = new List<ClientPlanetMember>();
+
         planetManager.OnPlanetChange += OnPlanetChange;
+    }
+
+    public async Task BuildRoleLists()
+    {
+        RoleMemberLists.Clear();
+        OnlineList.Clear();
+        OfflineList.Clear();
+
+        foreach (var member in MemberList)
+        {
+            var user = await member.GetUserAsync();
+
+            // Don't list at all if this is true
+            if (user.Last_Active_Span.TotalDays > 7)
+                continue;
+
+            // Throw directly into offline group
+            if (user.UserState.Value == UserState.Offline.Value)
+            {
+                OfflineList.Add(member);
+                continue;
+            }
+
+            // Get role ids
+            var roleids = await member.GetRoleIdsAsync();
+
+            bool hadRole = false;
+
+            // Try for a role
+            foreach (PlanetRole role in PlanetRoles)
+            {
+                // Ensure role should be listed
+                if (!role.HasPermission(PlanetPermissions.DisplayRole))
+                    continue;
+
+                // Member has role
+                if (roleids.Contains(role.Id))
+                {
+                    // Ensure there is a list
+                    if (!RoleMemberLists.ContainsKey(role))
+                    {
+                        RoleMemberLists.Add(role, new List<ClientPlanetMember>());
+                    }
+
+                    RoleMemberLists[role].Add(member);
+
+                    // Break from loop since we have already succeeded
+                    hadRole = true;
+                    break;
+                }
+            }
+
+            // Online pass
+            if (!hadRole)
+            {
+                OnlineList.Add(member);
+            }
+        }
     }
 
     public async Task OnPlanetChange(ClientPlanet planet)
     {
         Console.WriteLine($"Member list is updating to {planet.Name}");
         MemberList = await planetManager.GetCachedPlanetMembers(planet);
+        PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
         MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+        await BuildRoleLists();
         Console.WriteLine($"Starting with {MemberList.Count()} members.");
         StateHasChanged();
     }

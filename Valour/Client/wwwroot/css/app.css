@@ -779,6 +779,7 @@ video {
 
 .rolename {
     margin: 0px;
+    margin-left: 5px;
     margin-top: 12px;
     margin-bottom: 5px;
     font-family: Ubuntu;
@@ -796,7 +797,7 @@ video {
 
 .sidebar-user {
     width: 240px;
-    height: 55px;
+    height: 56px;
     background-color: rgba(255, 255, 255, 0.07);
     margin-right: auto;
 }
@@ -1590,10 +1591,14 @@ btn-role-edit:hover edit {
     scrollbar-width: none; /* Firefox */
 }
 
-.UserList {
+.RoleList {
     overflow-y: scroll;
     overflow-x: hidden;
     height: calc(99.5% - 80px);
+}
+
+.UserList {
+    overflow-x: hidden;
 }
 
 .category-list {

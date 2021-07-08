@@ -19,7 +19,6 @@ using System.Collections.Concurrent;
 using Valour.Server.Workers;
 using Valour.Server.Planets;
 using AutoMapper;
-using Valour.Shared.Oauth;
 using Valour.Server.MSP;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
