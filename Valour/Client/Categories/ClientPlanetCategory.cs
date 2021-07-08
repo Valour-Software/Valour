@@ -9,6 +9,7 @@ using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Categories;
 using Valour.Shared.Oauth;
+using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 
 namespace Valour.Client.Categories
@@ -41,6 +42,8 @@ namespace Valour.Client.Categories
         {
             return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
+
+        public ChannelListItemType ItemType => ChannelListItemType.Category;
 
         /// <summary>
         /// Attempts to set the name of the channel and returns the result

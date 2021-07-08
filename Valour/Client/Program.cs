@@ -12,6 +12,7 @@ using Valour.Client.Categories;
 using Microsoft.AspNetCore.Components;
 using Valour.Client.Modals.ContextMenus;
 using Valour.Client.Modals;
+using Valour.Client.Shared.ChannelList;
 
 
 /*  Valour - A free and secure chat client
@@ -36,6 +37,7 @@ namespace Valour.Client
             builder.Services.AddSingleton<ClientPlanetManager>();
             builder.Services.AddSingleton<ClientWindowManager>();
             builder.Services.AddSingleton<ClientCategoryManager>();
+            builder.Services.AddSingleton<ChannelListManager>();
 
             // Context menus and modals
             builder.Services.AddSingleton<MemberContextMenu>();

@@ -10,6 +10,7 @@ using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Oauth;
+using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 
 namespace Valour.Client.Channels
@@ -41,6 +42,8 @@ namespace Valour.Client.Channels
         {
             return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
+
+        public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
 
         /// <summary>
         /// Returns messages from the channel

@@ -2,6 +2,8 @@
 @inject CreateChannelModal createChannelModal
 @inject CreateCategoryModal createCategoryModal
 
+@using System.Threading
+
 @if (visible)
 {
     <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
@@ -52,6 +54,9 @@
     {
         if (Modal_Id == modal_id)
         {
+            // This is honestly a poor solution but it needs to wait a moment
+            await Task.Delay(100);
+
             SetVisibility(false);
         }
     }

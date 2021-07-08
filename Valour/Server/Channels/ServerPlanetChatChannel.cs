@@ -43,6 +43,8 @@ namespace Valour.Server.Planets
         [ForeignKey("Parent_Id")]
         public virtual ServerPlanetCategory Parent { get; set; }
 
+        public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
+
         /// <summary>
         /// Returns the generic planet chat channel object
         /// </summary>
@@ -208,6 +210,11 @@ namespace Valour.Server.Planets
             await db.SaveChangesAsync();
 
             if (createdb) { await db.DisposeAsync(); }
+        }
+
+        public async Task NotifyClientsChange()
+        {
+            await PlanetHub.NotifyChatChannelChange(this);
         }
     }
 }

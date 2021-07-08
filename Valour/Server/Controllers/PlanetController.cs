@@ -1073,5 +1073,60 @@ namespace Valour.Server.Controllers
 
             return new TaskResult<uint>(true, "Found authority", await member.GetAuthorityAsync());
         }
+
+        public async Task<TaskResult> InsertCategory(ulong category_id, ulong planet_id, ushort position, string auth)
+        {
+            // Retrieve target planet
+            ServerPlanet target_planet = await Context.Planets.FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(auth, Context);
+
+            if (target_planet == null)
+            {
+                return new TaskResult(false, $"Could not find planet {planet_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, target_planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You do not have planet category management permissions.");
+            }
+
+            ServerPlanetCategory category = await Context.PlanetCategories.FindAsync(category_id);
+
+            // Ensure the planet matches
+            if (category.Planet_Id != target_planet.Id)
+            {
+                Console.WriteLine($"Category with ID {category.Id} has different server than base! ({category.Planet_Id} vs {target_planet.Id} base)");
+            }
+
+
+            category.Parent_Id = null;
+            category.Position = position;
+            Context.Update(category);
+            await Context.SaveChangesAsync();
+
+            await category.NotifyClientsChange();
+
+            return new TaskResult(true, "Inserted category into planet.");
+        }
     }
 }

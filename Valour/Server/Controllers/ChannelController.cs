@@ -21,6 +21,7 @@ using Valour.Server.Planets;
 using AutoMapper;
 using Valour.Server.MSP;
 using Valour.Server.Oauth;
+using Valour.Server.Categories;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -101,18 +102,18 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Successfully deleted.");
         }
 
-        public async Task<TaskResult> SetParentId(ulong id, ulong parentId, ulong user_id, string token)
+        public async Task<TaskResult> SetParentId(ulong id, ulong parent_id, string token)
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
+            if (authToken == null)
             {
                 return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
             }
 
             ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
@@ -124,7 +125,15 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
-            channel.Parent_Id = parentId;
+            // Get parent category
+            ServerPlanetCategory category = await Context.PlanetCategories.FindAsync(parent_id);
+
+            if (category == null)
+            {
+                return new TaskResult(false, $"The category with id {parent_id} could not be found.");
+            }
+
+            channel.Parent_Id = parent_id;
 
             await Context.SaveChangesAsync();
 
@@ -382,7 +391,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> SetName(ulong channel_id, string name, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
                                                                               .FirstOrDefaultAsync(x => x.Id == channel_id);
@@ -427,7 +436,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> SetDescription(ulong channel_id, string description, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
                                                                               .FirstOrDefaultAsync(x => x.Id == channel_id);
@@ -472,7 +481,7 @@ namespace Valour.Server.Controllers
 
         public async Task<TaskResult> SetPermissionInheritMode(ulong channel_id, bool value, string token)
         {
-            AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
                                                                               .FirstOrDefaultAsync(x => x.Id == channel_id);

@@ -17,7 +17,7 @@
         <span id="name-span" style="color:#888888">@ReasonSpan</span>
     </div>
     <div class="form-group mt-2">
-        <label>Time in days, put any number under 0 to ban permantly</label>
+        <label>Time</label>
         <input class="form-control" @bind-value="@time" />
         <span id="name-span" style="color:#888888">@TimeSpan</span>
     </div>
@@ -35,7 +35,7 @@
     // Spans
     string ReasonSpan = "Reason for ban";
 
-    string TimeSpan = "Time in days, put any number under 0 to ban permantly";
+    string TimeSpan = "Time in days, put any number under 0 to ban permanently";
     string imageSpan = "";
 
     private async Task OnClickSubmit(MouseEventArgs e)

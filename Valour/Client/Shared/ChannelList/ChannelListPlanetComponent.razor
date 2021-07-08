@@ -1,9 +1,12 @@
 ﻿@inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
+@inject ChannelListManager listManager
 
-<div class="@GetCssClass()" id="list-@Planet.Id" draggable="true">
+<div class="@GetCssClass()" id="list-@Planet.Id">
     <div style="cursor:pointer" id="list-inner-@Planet.Id" @oncontextmenu="OnContextMenu">
-        <div @onclick='@OnClick' style="width:85%; display:inline-block">
+        <div @onclick='@OnClick'
+             @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
+             style="width:85%; display:inline-block" ondragover="event.preventDefault();">
             <img class="arrow" src="media/Category-Icon.svg" style="@GetArrowStyle()">
             <p class="name">
                 @Planet.Name
@@ -13,7 +16,7 @@
             +
         </p>
     </div>
-    <div style="padding-left: 25px;">
+    <div style="padding-left: 25px">
         <!-- The Modal -->
         @if (Open)
         {
@@ -116,20 +119,37 @@
 
     public async Task OnCategoryUpdate(ClientPlanetCategory category)
     {
-        var oldCategory = Categories.FirstOrDefault(x => x.Id == category.Id);
+        // If we contain the category and its position or category changed we need to factor for that
+        var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
-        if (oldCategory == null)
+        if (old != null)
         {
-            Categories.Add(category);
-            return;
+            // If removed from this
+            if (category.Parent_Id != null)
+            {
+                TopCategories.Remove(old);
+            }
+            // If moved within this category
+            else
+            {
+                // Get old index
+                var index = TopCategories.IndexOf(old);
+                // Remove old
+                TopCategories.Remove(old);
+                // Replace with new
+                TopCategories.Insert(index, category);
+            }
+
+            StateHasChanged();
         }
+        // In this case it was just added to this category
+        else if (category.Parent_Id == null)
+        {
+            // Insert into position
+            TopCategories.Insert(category.Position, category);
 
-        var index = Categories.IndexOf(oldCategory);
-
-        // Set to new category
-        Categories[index] = category;
-
-        StateHasChanged();
+            StateHasChanged();
+        }
     }
 
     public async Task GetCategories()

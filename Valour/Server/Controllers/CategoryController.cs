@@ -342,5 +342,173 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "Successfully changed category description.");
         }
+
+        public async Task<TaskResult> SetContents([FromBody] List<CategoryContentData> contents, ulong category_id, string auth)
+        {
+            // Retrieve base category
+            ServerPlanetCategory baseCategory = await Context.PlanetCategories.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == category_id);
+
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(auth, Context);
+
+            if (baseCategory == null)
+            {
+                return new TaskResult(false, $"Could not find category {category_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, baseCategory.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You do not have planet category management permissions.");
+            }
+
+            if (!await baseCategory.HasPermission(member, CategoryPermissions.ManageCategory, Context))
+            {
+                return new TaskResult(false, "You do not have permission to manage this category");
+            }
+
+            // Ensure contents belong to same server as base category. If any don't, skip it.
+            foreach (CategoryContentData data in contents)
+            {
+                IServerChannelListItem item = await IServerChannelListItem.FindAsync(data.Id, data.ItemType, Context);
+
+                if (item == null)
+                {
+                   Console.WriteLine($"Item with ID {data.Id} could not be found.");
+                   continue;
+                }
+
+                if (item.Planet_Id != baseCategory.Planet_Id)
+                {
+                    Console.WriteLine($"Item with ID {data.Id} has different server than base! ({item.Planet_Id} vs {baseCategory.Planet_Id} base)");
+                    continue;
+                }
+
+                // Only act if there's a difference to save DB work
+                if (item.Parent_Id != category_id || item.Position != data.Position)
+                {
+                    // Prevent putting an item inside of itself
+                    if (item.Id != category_id)
+                    {
+                        item.Parent_Id = category_id;
+                        item.Position = data.Position;
+                        Context.Update(item);
+
+                        // Send update to clients
+                        await item.NotifyClientsChange();
+                    }
+                }
+            }
+
+
+            // Save changes to database
+            await Context.SaveChangesAsync();
+
+            return new TaskResult(true, "Updated contents successfully.");
+        }
+
+        public async Task<TaskResult> InsertItem(ulong item_id, ChannelListItemType item_type, ulong category_id, ushort position, string auth)
+        {
+            if (item_id == category_id)
+            {
+                return new TaskResult(false, "You cannot put an item inside of itself.");
+            }
+
+            // Retrieve target category
+            ServerPlanetCategory target_category = await Context.PlanetCategories.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == category_id);
+
+            ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(auth, Context);
+
+            if (target_category == null)
+            {
+                return new TaskResult(false, $"Could not find category {category_id}");
+            }
+
+            if (authToken == null)
+            {
+                return new TaskResult(false, "Failed to authorize user.");
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement))
+            {
+                return new TaskResult(false, "Your token doesn't have planet management scope.");
+            }
+
+            // Membership check
+
+            ServerPlanetMember member = await ServerPlanetMember.FindAsync(authToken.User_Id, target_category.Planet.Id);
+
+            if (member == null)
+            {
+                return new TaskResult(false, "You are not a member of the target planet.");
+            }
+
+            if (!(await member.HasPermissionAsync(PlanetPermissions.ManageCategories)))
+            {
+                return new TaskResult(false, "You do not have planet category management permissions.");
+            }
+
+            if (!await target_category.HasPermission(member, CategoryPermissions.ManageCategory, Context))
+            {
+                return new TaskResult(false, "You do not have permission to manage this category");
+            }
+
+            // Get target item
+            IServerChannelListItem item = await IServerChannelListItem.FindAsync(item_id, item_type, Context);
+
+            // Ensure the planet matches
+            if (item.Planet_Id != target_category.Planet_Id)
+            {
+                Console.WriteLine($"Item with ID {item.Id} has different server than base! ({item.Planet_Id} vs {target_category.Planet_Id} base)");
+            }
+
+            if (item.Parent_Id == category_id)
+            {
+                return new TaskResult(false, "Item is already child of the same category");
+            }
+
+            // Ensure that if this is a category, it is not going into a category that contains itself!
+            if (item.ItemType == ChannelListItemType.Category)
+            {
+                ulong? parent_id = target_category.Parent_Id;
+
+                while (parent_id != null)
+                {
+                    // Recursion is a nono
+                    if (parent_id == item.Id)
+                    {
+                        return new TaskResult(false, "Operation would result in recursion.");
+                    }
+
+                    parent_id = (await Context.PlanetCategories.FirstOrDefaultAsync(x => x.Id == parent_id)).Parent_Id;
+                }
+            }
+
+            item.Parent_Id = category_id;
+            item.Position = position;
+            Context.Update(item);
+            await Context.SaveChangesAsync();
+
+            await item.NotifyClientsChange();
+
+            return new TaskResult(true, "Inserted item into category.");
+        }
     }
 }
