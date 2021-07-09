@@ -229,7 +229,7 @@ namespace Valour.Server.Controllers
 
             foreach (var channel in channels)
             {
-                if (await channel.HasPermission(member, ChatChannelPermissions.View))
+                if (await channel.HasPermission(member, ChatChannelPermissions.View, Context))
                 {
                     result.Add(channel.Id);
                 }
@@ -261,7 +261,7 @@ namespace Valour.Server.Controllers
 
             foreach (var channel in channels)
             {
-                if (await channel.HasPermission(member, ChatChannelPermissions.View))
+                if (await channel.HasPermission(member, ChatChannelPermissions.View, Context))
                 {
                     result.Add(channel);
                 }
@@ -360,12 +360,12 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to post message: You are not in the planet!");
             }
 
-            if (!(await channel.HasPermission(member, ChatChannelPermissions.View)))
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.View, Context)))
             {
                 return new TaskResult(false, "Failed to post message: You don't have permission to see this channel!");
             }
 
-            if (!(await channel.HasPermission(member, ChatChannelPermissions.PostMessages)))
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.PostMessages, Context)))
             {
                 return new TaskResult(false, "Failed to post message: You don't have permission to post here!");
             }

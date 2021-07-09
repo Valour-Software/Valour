@@ -112,7 +112,7 @@ namespace Valour.Server.Planets
             return Parent;
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db = null)
+        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
         {
             if (Planet == null)
             {
