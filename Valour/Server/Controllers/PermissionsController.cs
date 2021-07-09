@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Planets;
+using Valour.Server.Roles;
 using Valour.Shared;
 using Valour.Shared.Oauth;
 using Valour.Shared.Roles;
@@ -133,7 +134,7 @@ namespace Valour.Server.Controllers
             return new TaskResult<CategoryPermissionsNode>(true, "Returned permission node successfully", node);
         }
 
-        public async Task<TaskResult> UpdateChatChannelNode([FromBody] ChatChannelPermissionsNode node, string token)
+        public async Task<TaskResult> UpdateChatChannelNode([FromBody] ServerChatChannelPermissionsNode node, string token)
         {
             // Authenticate first
             AuthToken authToken = await Context.AuthTokens.FirstOrDefaultAsync(x => x.Id == token);

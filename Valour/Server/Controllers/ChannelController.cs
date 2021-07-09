@@ -22,6 +22,8 @@ using AutoMapper;
 using Valour.Server.MSP;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
+using WebPush;
+using Valour.Server.Notifications;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -47,12 +49,14 @@ namespace Valour.Server.Controllers
         private readonly ValourDB Context;
 
         private readonly IMapper Mapper;
+        private readonly WebPushClient PushClient;
 
         // Dependency injection
-        public ChannelController(ValourDB context, IMapper mapper)
+        public ChannelController(ValourDB context, IMapper mapper, WebPushClient pushClient)
         {
             this.Context = context;
             this.Mapper = mapper;
+            this.PushClient = pushClient;
         }
         
         public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
@@ -341,7 +345,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(msg.Channel_Id);
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == msg.Channel_Id);
 
             if (channel == null)
             {
@@ -385,6 +389,46 @@ namespace Valour.Server.Controllers
             PlanetMessageWorker.AddToQueue(msg);
 
             StatWorker.IncreaseMessageCount();
+
+
+            // Run this in another thread as quickly as possible
+#pragma warning disable CS4014 
+            Task.Run(async () =>
+            {
+                using (ValourDB db = new ValourDB(ValourDB.DBOptions))
+                {
+                    // Get all members of channel
+                    var not_members = await channel.GetChannelMembersAsync(db);
+
+                    // For each member get their subscribed devices and send notifications
+                    //Parallel.ForEach(not_members, async mem =>
+                    //{
+                    foreach (var mem in not_members)
+                    {
+                        var not_subs = db.NotificationSubscriptions.Where(x => x.User_Id == mem.User_Id);
+
+                        //Parallel.ForEach(not_subs, async sub =>
+                        //{
+                        foreach (var sub in not_subs)
+                        {
+                            var subscription = new PushSubscription(sub.Endpoint, sub.Not_Key, sub.Auth);
+
+                            try
+                            {
+                                await PushClient.SendNotificationAsync(subscription, $"{member.Id}: {msg.Content}", VapidConfig.Current.GetDetails());
+                            }
+                            catch (System.Exception e)
+                            {
+                                Console.WriteLine(e.Message);
+                            }
+                        }
+                        //});
+                    }
+                    //});
+                }
+            });
+#pragma warning restore CS4014 
+
 
             return new TaskResult(true, "Added message to post queue.");
         }

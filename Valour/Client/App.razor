@@ -44,7 +44,6 @@ else
 }
 
 
-
 @code{
 
     string newVersion = "(Pinging server)";
@@ -67,6 +66,33 @@ else
           "blazorFuncs.registerClient",
           DotNetObjectReference.Create(this)
         );
+
+        await JS.InvokeVoidAsync("SetVapidKey", VapidConfig.PublicKey);
+
+        await JS.InvokeVoidAsync("enableNotifications");
+    }
+
+    [JSInvokable("NotifyPushSub")]
+    public static async Task NotifyPushSub(string endpoint, string key, string auth)
+    {
+        //Console.WriteLine(endpoint);
+        //Console.WriteLine(key);
+        //Console.WriteLine(auth);
+
+        NotificationSubscription not = new NotificationSubscription()
+        {
+            Endpoint = endpoint,
+            Auth = auth,
+            Not_Key = key,
+            User_Id = ClientUserManager.User.Id
+        };
+
+        // Send subscription information to server
+        var response = await ClientUserManager.Http.PostAsJsonAsync<NotificationSubscription>($"Notification/SubmitSubscription?token={ClientUserManager.UserSecretToken}", not);
+
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
+
+        Console.WriteLine(result);
     }
 
     [JSInvokable("OnServiceUpdateAvailable")]

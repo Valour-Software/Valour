@@ -33,6 +33,12 @@ namespace Valour.Server.Roles
         [Newtonsoft.Json.JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
+        [InverseProperty("Role")]
+        [JsonIgnore]
+        [Newtonsoft.Json.JsonIgnore]
+        public virtual ICollection<ServerChatChannelPermissionsNode> ChatChannelPermissionNodes { get; set; }
+
+
         /// <summary>
         /// Returns a ServerPlanetRole using a PlanetRole as a base
         /// </summary>
@@ -41,7 +47,7 @@ namespace Valour.Server.Roles
             return MappingManager.Mapper.Map<ServerPlanetRole>(planetrole);
         }
 
-        public List<ChatChannelPermissionsNode> GetAllChannelNodes()
+        public List<ServerChatChannelPermissionsNode> GetAllChannelNodes()
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {

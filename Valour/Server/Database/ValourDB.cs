@@ -20,6 +20,7 @@ using Valour.Shared.Roles;
 using Valour.Server.Roles;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
+using Valour.Shared.Notifications;
 
 namespace Valour.Server.Database
 {
@@ -125,11 +126,16 @@ namespace Valour.Server.Database
         public DbSet<PasswordRecovery> PasswordRecoveries { get; set; }
 
         /// <summary>
+        /// Table for notification subscriptions
+        /// </summary>
+        public DbSet<NotificationSubscription> NotificationSubscriptions { get; set; }
+
+        /// <summary>
         /// Table for members of planet roles
         /// </summary>
         public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
 
-        public DbSet<ChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
+        public DbSet<ServerChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
 
         public DbSet<CategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
 

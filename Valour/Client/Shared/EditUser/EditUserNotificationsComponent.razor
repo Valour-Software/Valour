@@ -1,0 +1,62 @@
+﻿@inject IJSRuntime JS
+
+<h3>Notification Settings</h3>
+
+<div class="perm-list-item">
+    <div class="perm-list-name mb-1">
+        Enable Push Notifications
+    </div>
+    <div type="button" style="float:right">
+        <label class="switch">
+            <input type="checkbox" @onclick="OnNotifClick" checked="@notif_enabled" disabled="@notif_blocked">
+            <span class="slider round"></span>
+        </label>
+    </div>
+    <div class="perm-list-desc mt-1">
+        This will allow your device to recieve push notifications.
+    </div>
+</div>
+
+@code { 
+
+    public string notif_state = "null";
+    public bool notif_enabled = false;
+    public bool notif_blocked = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await JS.InvokeAsync<string>("GetNotifStatus");
+        UpdateState(state);
+    }
+
+    public void UpdateState(string new_state)
+    {
+        notif_state = new_state;
+
+        if (notif_state == "granted")
+        {
+            notif_enabled = true;
+        }
+        else if (notif_state == "blocked")
+        {
+            notif_blocked = true;
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnNotifClick()
+    {
+        if (!notif_enabled)
+        {
+            var state = await JS.InvokeAsync<string>("requestNotificationAccess", VapidConfig.PublicKey);
+            UpdateState(state);
+        }
+        else
+        {
+
+        }
+
+        StateHasChanged();
+    }
+}
