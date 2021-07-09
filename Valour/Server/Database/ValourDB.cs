@@ -135,7 +135,7 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
 
-        public DbSet<ChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
+        public DbSet<ServerChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
 
         public DbSet<CategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
 

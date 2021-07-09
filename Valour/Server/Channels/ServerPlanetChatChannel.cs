@@ -135,21 +135,21 @@ namespace Valour.Server.Planets
                 return await Parent.HasPermission(member, permission);
             }
 
-            // Load membership data for member
+
+            // Load permission data
             await db.Entry(member).Collection(x => x.RoleMembership)
                                   .Query()
                                   .Where(x => x.Planet_Id == Planet.Id)
                                   .Include(x => x.Role)
+                                  .ThenInclude(x => x.ChatChannelPermissionNodes.Where(x => x.Channel_Id == Id))
                                   .LoadAsync();
-                                              
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
             // If we get an undecided, we continue to the next role down
-            foreach (var roleMember in member.RoleMembership)
+            foreach (var roleMembership in member.RoleMembership)
             {
-                var role = roleMember.Role;
-
-                var node = await role.GetChannelNodeAsync(this, db);
+                var role = roleMembership.Role;
+                ChatChannelPermissionsNode node = role.ChatChannelPermissionNodes.FirstOrDefault();
 
                 // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
                 if (node == null)
