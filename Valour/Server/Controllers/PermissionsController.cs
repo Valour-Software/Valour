@@ -172,7 +172,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, $"Can't find channel with ID {node.Channel_Id}. This really shouldn't happen, and means the node data sent is incorrect.");
             }
 
-            if (!(await channel.HasPermission(member, ChatChannelPermissions.View)))
+            if (!(await channel.HasPermission(member, ChatChannelPermissions.View, Context)))
             {
                 return new TaskResult(false, "You don't have access to this channel.");
             }
