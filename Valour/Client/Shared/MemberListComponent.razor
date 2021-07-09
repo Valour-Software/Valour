@@ -10,10 +10,17 @@
 
         // online group
         // this group is for members whose roles lack DisplayRole permission
-        <RoleComponent DummyName="Online" Members="@OnlineList"></RoleComponent>
+        @if (OnlineList.Count() > 0)
+        {
+            <RoleComponent DummyName="Online" Members="@OnlineList"></RoleComponent>
+        }
 
         // offline group
-        <RoleComponent DummyName="Offline" Members="@OfflineList"></RoleComponent>
+        @if (OfflineList.Count() > 0)
+        {
+            <RoleComponent DummyName="Offline" Members="@OfflineList"></RoleComponent>
+        }
+        
     }
 </div>
 
