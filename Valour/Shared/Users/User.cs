@@ -74,7 +74,7 @@ namespace Valour.Shared.Users
         { 
             get
             {
-                return Last_Active.Subtract(DateTime.UtcNow);
+                return DateTime.UtcNow.Subtract(Last_Active);
             } 
         }
 
