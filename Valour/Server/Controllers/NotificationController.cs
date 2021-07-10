@@ -71,9 +71,24 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Subscription data is incomplete.");
             }
 
-            if (await Context.NotificationSubscriptions.AnyAsync(x => x.Endpoint == subscription.Endpoint))
+            var old_sub = await Context.NotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
+
+            if (old_sub != null)
             {
-                return new TaskResult(false, "There is already a subscription for this endpoint.");
+                if (old_sub.Auth == subscription.Auth && old_sub.Not_Key == subscription.Not_Key)
+                {
+                    return new TaskResult(false, "There is already a subscription for this endpoint.");
+                }
+
+
+                // Update old subscription
+                old_sub.Auth = subscription.Auth;
+                old_sub.Not_Key = subscription.Not_Key;
+
+                Context.Update(old_sub);
+                await Context.SaveChangesAsync();
+
+                return new TaskResult(true, "Updated subscription.");
             }
 
             subscription.Id = IdManager.Generate();

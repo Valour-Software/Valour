@@ -68,16 +68,15 @@ else
         );
 
         await JS.InvokeVoidAsync("SetVapidKey", VapidConfig.PublicKey);
-
         await JS.InvokeVoidAsync("enableNotifications");
     }
 
     [JSInvokable("NotifyPushSub")]
     public static async Task NotifyPushSub(string endpoint, string key, string auth)
     {
-        //Console.WriteLine(endpoint);
-        //Console.WriteLine(key);
-        //Console.WriteLine(auth);
+        Console.WriteLine(endpoint);
+        Console.WriteLine(key);
+        Console.WriteLine(auth);
 
         NotificationSubscription not = new NotificationSubscription()
         {

@@ -240,13 +240,7 @@ namespace Valour.Server
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
 
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                //OnPrepareResponse = x =>
-                //{
-                //    x.Context.Response.Headers[HeaderNames.CacheControl] = "no-store";
-                //}
-            });
+            app.UseStaticFiles();
 
             app.UseRouting();
 

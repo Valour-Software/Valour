@@ -24,6 +24,8 @@ using Valour.Server.Oauth;
 using Valour.Server.Categories;
 using WebPush;
 using Valour.Server.Notifications;
+using System.Web;
+using Microsoft.Extensions.Primitives;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -390,7 +392,6 @@ namespace Valour.Server.Controllers
 
             StatWorker.IncreaseMessageCount();
 
-
             // Run this in another thread as quickly as possible
 #pragma warning disable CS4014 
             Task.Run(async () =>
@@ -415,10 +416,16 @@ namespace Valour.Server.Controllers
 
                             try
                             {
-                                await PushClient.SendNotificationAsync(subscription, $"{member.Id}: {msg.Content}", VapidConfig.Current.GetDetails());
+                                var details = VapidConfig.Current.GetDetails();
+
+                                var payload = $"{{'title':'{member.Id}','message':'{msg.Content}'}}";
+
+                                var pushClient = new WebPushClient();
+
+                                await pushClient.SendNotificationAsync(subscription, payload, details);
                             }
                             catch (System.Exception e)
-                            {
+                            { 
                                 Console.WriteLine(e.Message);
                             }
                         }
