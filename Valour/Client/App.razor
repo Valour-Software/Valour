@@ -78,7 +78,7 @@ else
         Console.WriteLine(key);
         Console.WriteLine(auth);
 
-        NotificationSubscription not = new NotificationSubscription()
+        Valour.Shared.Notifications.NotificationSubscription not = new Valour.Shared.Notifications.NotificationSubscription()
         {
             Endpoint = endpoint,
             Auth = auth,
@@ -87,7 +87,7 @@ else
         };
 
         // Send subscription information to server
-        var response = await ClientUserManager.Http.PostAsJsonAsync<NotificationSubscription>($"Notification/SubmitSubscription?token={ClientUserManager.UserSecretToken}", not);
+        var response = await ClientUserManager.Http.PostAsJsonAsync<Valour.Shared.Notifications.NotificationSubscription>($"Notification/SubmitSubscription?token={ClientUserManager.UserSecretToken}", not);
 
         TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
 
@@ -109,7 +109,7 @@ else
     }
 
     [JSInvokable("OnServiceUpdateUnavailable")]
-    public async Task AppNotUpdate()
+    public static async Task AppNotUpdate()
     {
         Console.WriteLine("New version not available");
     }

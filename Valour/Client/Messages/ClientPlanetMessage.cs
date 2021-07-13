@@ -34,6 +34,11 @@ namespace Valour.Client.Messages
             }
         }
 
+        public ClientPlanetMessage()
+        {
+
+        }
+
         /// <summary>
         /// Returns client version using shared implementation
         /// </summary>
