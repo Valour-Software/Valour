@@ -214,6 +214,6 @@
 
     public async Task GetChannels()
     {
-        Channels = await planetManager.GetCurrent().GetChannelsAsync();
+        Channels = await Planet.GetChannelsAsync();
     }
 }

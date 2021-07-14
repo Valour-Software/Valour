@@ -111,12 +111,12 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Retrieves and returns categories of a planet by requesting from the server
         /// </summary>
-        public async Task<List<ClientPlanetCategory>> GetCategoriesAsync()
+        public async Task<List<ClientPlanetCategory>> GetCategoriesAsync(bool forcerefersh = false)
         {
 
             // return cache
 
-            if (Categories.Count() > 0) {
+            if (Categories.Count() > 0 && !forcerefersh) {
                 return Categories;
             }
 
@@ -145,12 +145,12 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Retrieves and returns channels of a planet by requesting from the server
         /// </summary>
-        public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync()
+        public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync(bool forcerefersh = false)
         {
 
             // return cache
 
-            if (Channels.Count() > 0) {
+            if (Channels.Count() > 0 && !forcerefersh) {
                 return Channels;
             }
 

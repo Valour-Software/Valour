@@ -387,6 +387,12 @@ namespace Valour.Client.Planets
             // Joins planet via SignalR
             await signalRManager.hubConnection.SendAsync("JoinPlanet", planet.Id, ClientUserManager.UserSecretToken);
 
+            // refersh channels and categories in case dumbness
+
+            await planet.GetChannelsAsync(true);
+
+            await planet.GetCategoriesAsync(true);
+
             // Add to open planet list
             OpenPlanets.Add(planet.Id, planet);
 
