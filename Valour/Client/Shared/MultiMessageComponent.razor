@@ -8,7 +8,8 @@
     </div>
     <div class="message-content">
         <p class="content">
-            @MarkdownManager.GetHtml(Message.Content)
+            @((MarkupString)MarkdownManager.GetHtml(Message.Content))
+            @{ Console.WriteLine("Found " + Message.MemberMentions.Count() + " Mentions in " + Message.Message_Index); }
         </p>
     </div>
 </div>
@@ -35,6 +36,14 @@
     void IDisposable.Dispose()
     {
 
+    }
+
+    /// <summary>
+    /// This prevents the message from re-rendering. This should be expanded to support message edits in the future.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        return false;
     }
 }
 

@@ -39,7 +39,7 @@ namespace Valour.Client.Messages
 
         public static Regex sanitizeLink = new Regex("(?<=follow\">).+?(?=<)");
 
-        public static MarkupString GetHtml(string content)
+        public static string GetHtml(string content)
         {
             string markdown = "Error: Message could not be parsed.";
 
@@ -58,7 +58,7 @@ namespace Valour.Client.Messages
 
             //markdown = sanitizeLink.Replace(markdown, "");
 
-            return (MarkupString)markdown;
+            return markdown;
         }
     }
 }

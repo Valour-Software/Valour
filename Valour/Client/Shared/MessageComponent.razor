@@ -30,7 +30,7 @@
             </p>
         }
         <p class="content">
-            @MarkdownManager.GetHtml(Message.Content)
+            @((MarkupString)MarkdownManager.GetHtml(Message.Content))
         </p>
     </div>
 </div>
