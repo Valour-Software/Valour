@@ -58,6 +58,8 @@ namespace Valour.Client.Planets
         public event Func<ClientPlanetMember, Task> OnMemberUpdate;
 
         public event Func<ClientPlanetChatChannel, Task> OnChatChannelUpdate;
+        public event Func<ClientPlanetChatChannel, Task> OnChatChannelDeletion;
+        public event Func<ClientPlanetCategory, Task> OnCategoryDeletion;
 
         public event Func<ClientPlanetCategory, Task> OnCategoryUpdate;
 
@@ -72,6 +74,8 @@ namespace Valour.Client.Planets
             signalRManager.hubConnection.On<string>("MemberUpdate", UpdateMember);
             signalRManager.hubConnection.On<string>("ChatChannelUpdate", UpdateChatChannel);
             signalRManager.hubConnection.On<string>("CategoryUpdate", UpdateCategory);
+            signalRManager.hubConnection.On<string>("ChatChannelDeletion", ChatChannelDeletion);
+            signalRManager.hubConnection.On<string>("CategoryDeletion", CategoryDeletion);
         }
 
         public bool IsChatChannelOpen(ClientPlanetChatChannel channel)
@@ -627,9 +631,57 @@ namespace Valour.Client.Planets
             Console.WriteLine("RECIEVE: Planet chat channel update ping");
             Console.WriteLine(json);
 
+            // update planet cache
+
+            PlanetCache[channel.Planet_Id].UpdateChannel(channel);
+
             if (OnChatChannelUpdate != null)
             {
                 await OnChatChannelUpdate.Invoke(channel);
+            }
+        }
+        public async Task CategoryDeletion(string json)
+        {
+            ClientPlanetCategory category = JsonConvert.DeserializeObject<ClientPlanetCategory>(json);
+
+            if (category == null)
+            {
+                Console.WriteLine("Failed to deserialize category in chat category update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet Category Deletion ping");
+            Console.WriteLine(json);
+
+            // Update planet cache
+
+            PlanetCache[category.Planet_Id].Categories.Remove(category);
+
+            if (OnCategoryDeletion != null)
+            {
+                await OnCategoryDeletion.Invoke(category);
+            }
+        }
+        public async Task ChatChannelDeletion(string json)
+        {
+            ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(json);
+
+            if (channel == null)
+            {
+                Console.WriteLine("Failed to deserialize channel in chat channel update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet chat channel Deletion ping");
+            Console.WriteLine(json);
+
+            // Update planet cache
+
+            PlanetCache[channel.Planet_Id].Channels.Remove(channel);
+
+            if (OnChatChannelDeletion != null)
+            {
+                await OnChatChannelDeletion.Invoke(channel);
             }
         }
 
@@ -645,6 +697,10 @@ namespace Valour.Client.Planets
 
             Console.WriteLine("RECIEVE: Planet chat category update ping");
             Console.WriteLine(json);
+
+            // update planet cache
+
+            PlanetCache[category.Planet_Id].UpdateCategory(category);
 
             if (OnCategoryUpdate != null)
             {

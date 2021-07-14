@@ -1,0 +1,39 @@
+@inject InfoModel infoModel
+
+<!-- This modal exists to allow parts of the app to ask for confirmation -->
+
+@if (visible)
+{
+<div class="modal info-modal" id="info-modal">
+    <!-- Modal content -->
+    <div class="modal-info-content">
+        <div class="popup-box">
+            <div class="col-md-12">
+                <section>
+                    <h2 style="font-size:1.5rem">@infoModel.title_text</h2>
+                    <h4 style="font-size:1rem">@infoModel.desc_text</h4>
+                    <hr />
+                    <br />
+                    <div @onclick="infoModel.OnClick" class="btn btn-primary d-inline-block">@infoModel.button_text</div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+}
+
+@code { 
+
+    public bool visible = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        infoModel.Component = this;
+    }
+
+    public void SetVisibility(bool value)
+    {
+        this.visible = value;
+        StateHasChanged();
+    }
+}

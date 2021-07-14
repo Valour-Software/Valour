@@ -49,6 +49,37 @@ namespace Valour.Client.Planets
             return mapper.Map<ClientPlanet>(planet);
         }
 
+        public List<ClientPlanetChatChannel> Channels = new List<ClientPlanetChatChannel>();
+
+        public List<ClientPlanetCategory> Categories = new List<ClientPlanetCategory>();
+
+        public void UpdateChannel(ClientPlanetChatChannel channel)
+        {
+            ClientPlanetChatChannel old = Channels.FirstOrDefault(x => x.Id == channel.Id);
+            if (old == null) {
+                // add to cache
+                Channels.Add(channel);
+            }
+            else {
+                // replace
+                Channels.Remove(old);
+                Channels.Add(channel);
+            }
+        }
+        public void UpdateCategory(ClientPlanetCategory category)
+        {
+            ClientPlanetCategory old = Categories.FirstOrDefault(x => x.Id == category.Id);
+            if (old == null) {
+                // add to cache
+                Categories.Add(category);
+            }
+            else {
+                // replace
+                Categories.Remove(old);
+                Categories.Add(category);
+            }
+        }
+
         /// <summary>
         /// Returns the primary channel of the planet
         /// </summary>
@@ -82,6 +113,13 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<List<ClientPlanetCategory>> GetCategoriesAsync()
         {
+
+            // return cache
+
+            if (Categories.Count() > 0) {
+                return Categories;
+            }
+
             string json = await ClientUserManager.Http.GetStringAsync($"Category/GetPlanetCategories?planet_id={Id}" +
                                                                                                   $"&token={ClientUserManager.UserSecretToken}");
 
@@ -99,6 +137,8 @@ namespace Valour.Client.Planets
                 return null;
             }
 
+            Categories = result.Data;
+
             return result.Data;
         }
 
@@ -107,6 +147,13 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync()
         {
+
+            // return cache
+
+            if (Channels.Count() > 0) {
+                return Channels;
+            }
+
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planet_id={Id}" +
                                                                                                $"&token={ClientUserManager.UserSecretToken}");
 
@@ -123,6 +170,8 @@ namespace Valour.Client.Planets
                 Console.WriteLine(result.ToString());
                 return null;
             }
+
+            Channels = result.Data;
 
             return result.Data;
         }

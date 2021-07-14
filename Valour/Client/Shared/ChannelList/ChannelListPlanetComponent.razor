@@ -59,6 +59,10 @@
         planetManager.OnCategoryUpdate += OnCategoryUpdate;
         planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
 
+        // Handle Deletions
+        planetManager.OnCategoryDeletion += OnCategoryDeletion;
+        planetManager.OnChatChannelDeletion += OnChatChannelDeletion;
+
         await GetCategories();
         await GetChannels();
         GetTopLevelCategories();
@@ -116,6 +120,29 @@
         await GetCategories();
         StateHasChanged();
     }
+    public async Task OnChatChannelDeletion(ClientPlanetChatChannel channel)
+    {
+        var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
+
+        // just in case something weird happens
+        if (oldChannel != null)
+        {
+            Channels.Remove(oldChannel);
+        
+            StateHasChanged();
+        }
+    }
+    public async Task OnCategoryDeletion(ClientPlanetCategory category)
+    {
+        var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
+
+        // just in case something weird happens
+        if (old != null)
+        {
+            TopCategories.Remove(old);
+            StateHasChanged();
+        }
+    }
 
     public async Task OnCategoryUpdate(ClientPlanetCategory category)
     {
@@ -145,10 +172,12 @@
         // In this case it was just added to this category
         else if (category.Parent_Id == null)
         {
+
             // Insert into position
             TopCategories.Insert(category.Position, category);
 
             StateHasChanged();
+            return;
         }
     }
 
@@ -170,6 +199,8 @@
         if (oldChannel == null)
         {
             Channels.Add(channel);
+        
+            StateHasChanged();
             return;
         }
 

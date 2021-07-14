@@ -5,21 +5,56 @@
 @inject ClientPlanetManager planetManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
+@inject CreateCategoryModal createCategoryModal
 @using Valour.Shared.Categories
 
 <section>
-    <h2>Create a new Category</h2>
+    <h2 class="CreateComponentTitle">Create a Category</h2>
 
-    <hr />
     <div asp-validation-summary="All" class="text-info"></div>
     <div class="form-group mt-2">
         <label>Category Name</label>
         <input class="form-control" @bind-value="@name" />
-        <span id="name-span" style="color:#888888">@nameSpan</span>
     </div>
+    <div style="margin-top:20px;">
+        <div class="perm-list-name mb-1">
+            Private Category
+        </div>
+        <div type="button" style="float: right">
+            <label class="switch">
+                <input type="checkbox" @onclick="PrivateSwitch" checked="@isprivate">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div>
+
+    @if (isprivate) {
+        <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
+        <div class="CreateComponentRolesBox">
+            @foreach (PlanetRole role in Roles)
+            {
+                <div class="Role">
+                   <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
+                        @role.Name
+                    </div>
+                    <div type="button" style="float: right">
+                        <label class="switch">
+                            <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                            <span class="slider round"></span>
+                        </label>
+                    </div> 
+                </div>
+
+            }
+        </div>
+    }
+
     <span id="image-span" style="color:#888888">@imageSpan</span>
+    
     <div class="form-group mt-4">
-        <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
+        <center>
+            <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
+        </center>
     </div>
 </section>
 
@@ -29,8 +64,33 @@
     string name;
 
     // Spans
-    string nameSpan = "The name of the category";
     string imageSpan = "";
+    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
+
+    List<PlanetRole> Roles = new List<PlanetRole>();
+    bool isprivate = false;
+
+    protected override async Task OnInitializedAsync() {
+        Roles.Clear();
+        SelectedRoles.Clear();
+        ClientPlanetMember SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+        ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
+        foreach (PlanetRole item in await planetManager.GetCurrent().GetRolesAsync())
+        {
+            if (item.GetAuthority() >= SelfAuthority)
+                continue;
+            Roles.Add(item);
+            SelectedRoles.Add(item, false);
+        }
+        StateHasChanged();
+    }
+
+    private void SwitchRole(PlanetRole role) {
+        SelectedRoles[role] = !SelectedRoles[role];
+    }
+    private void PrivateSwitch() {
+        isprivate = !isprivate;
+    }
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
@@ -67,6 +127,65 @@
         }
 
         imageSpan = result.Message;
+
+        if (isprivate) {
+            // set the default role channel view perms to false
+
+            PermissionsNode PermissionsNode = new CategoryPermissionsNode()
+            {
+                Category_Id = result.Data,
+                Planet_Id = planetManager.GetCurrent().Id,
+                Role_Id = planetManager.GetCurrent().Default_Role_Id,
+                Code_Mask = 0x00,
+                Code = 0x00
+            };
+
+            PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
+
+            HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
+                                                                                                    (CategoryPermissionsNode)PermissionsNode);
+
+            Console.WriteLine(result.Message);
+
+            foreach (PlanetRole role in Roles)
+            {
+                
+                if (!SelectedRoles[role]) {
+                    continue;
+                }
+                
+                PermissionsNode = new CategoryPermissionsNode()
+                {
+                    Category_Id = result.Data,
+                    Planet_Id = planetManager.GetCurrent().Id,
+                    Role_Id = role.Id,
+                    Code_Mask = 0x00,
+                    Code = 0x00
+                };
+
+                PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
+
+                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
+                                                                                                        (CategoryPermissionsNode)PermissionsNode);
+                if (result == null)
+                {
+                    Console.WriteLine("Error deserializing response for permission node update!");
+                }
+
+                if (!result.Success)
+                {
+                    Console.WriteLine("Error in permission node update!");
+                }
+
+                Console.WriteLine(result.Message);
+            }
+        }
+
+        // close model
+
+        createCategoryModal.Component.SetVisibility(false);
+
+
     }
 
     private async Task OnImageInput()

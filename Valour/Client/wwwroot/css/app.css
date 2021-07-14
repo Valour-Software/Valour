@@ -963,7 +963,6 @@ body {
     border-color: grey;
     padding: 50px;
     width: 400px;
-    min-height: 400px;
     z-index: 2;
     box-shadow: 0px 0px 15px #000000;
     margin: auto;
@@ -1806,4 +1805,33 @@ blockquote {
     padding-left: 5px;
     margin: 0px;
     background-color: rgba(255, 255, 255, 0.01);
+}
+
+.CreateComponentTitle {
+    text-align: center;
+}
+
+.CreateComponentEnterTextInfo {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.CreateComponentEnterTextBox {
+    background: #192630;
+    border: 1px solid #030B11;
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+
+.CreateComponentRolesBox {
+    background: #192630;
+    width:100%;
+    border-radius: 8px;
+    margin-top:12px;
+}
+
+.CreateComponentRolesBox .Role {
+    padding-left: 9px;
+    padding-right: 9px;
+    padding-top: 6px;
+    padding-bottom: 6px;
 }
