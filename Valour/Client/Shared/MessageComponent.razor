@@ -30,7 +30,7 @@
             </p>
         }
         <p class="content">
-            @MarkdownManager.GetHtml(Message.Content)
+            <MessageContentComponent Message="Message"></MessageContentComponent>
         </p>
     </div>
 </div>
@@ -109,6 +109,14 @@
         Console.WriteLine("pfp error caught");
 
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// This prevents the message from re-rendering. This should be expanded to support message edits in the future.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        return false;
     }
 
 }

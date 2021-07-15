@@ -133,11 +133,19 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
-        /// Returns a planet member by requesting from the server
+        /// Returns a planet member
         /// </summary>
         public static async Task<ClientPlanetMember> GetClientPlanetMemberAsync(ulong user_id, ulong planet_id)
         {
             return await ClientPlanetManager.Current.GetPlanetMemberAsync(user_id, planet_id);
+        }
+
+        /// <summary>
+        /// Returns a planet member given their id
+        /// </summary>
+        public static async Task<ClientPlanetMember> FindAsync(ulong member_id)
+        {
+            return await ClientPlanetManager.Current.GetPlanetMemberAsync(member_id);
         }
 
         /// <summary>

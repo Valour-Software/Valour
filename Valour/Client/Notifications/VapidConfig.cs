@@ -8,6 +8,6 @@ namespace Valour.Client.Notifications
     public class VapidConfig
     {
         // This is a public key and does not have to be hidden. Thanks.
-        public static string PublicKey = "BC2gPJzT4GgqxHt8Fo--yKOumg6XMif21awkYtZyo0Nq8-jec6E22J45slhsOSHevEl2LAyvWNOT0Yp-aLQgMsQ";
+        public static string PublicKey = "BBySvfFjJ4IihseXSujDGj4MsAd3ZAwDwy1Q2XxnMY6V3rCXjuqwm3utGvACAyjl0zEhj4Rk4Eoumy-znN_Y2VQ";
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,6 +23,9 @@ using Valour.Server.Oauth;
 using Valour.Server.Categories;
 using WebPush;
 using Valour.Server.Notifications;
+using System.Web;
+using Microsoft.Extensions.Primitives;
+using System.Text.Json;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -352,12 +354,16 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to post message: The given channel does not exist!");
             }
 
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == msg.Planet_Id &&
-                                                                                             x.User_Id == msg.Author_Id);
+            ServerPlanetMember member = await Context.PlanetMembers.FindAsync(msg.Member_Id);
 
             if (member == null)
             {
                 return new TaskResult(false, "Failed to post message: You are not in the planet!");
+            }
+
+            if (member.User_Id != msg.Author_Id)
+            {
+                return new TaskResult(false, "Failed to post message: User Id mismatch! Attempt at impersonation?");
             }
 
             if (!(await channel.HasPermission(member, ChatChannelPermissions.View, Context)))
@@ -390,6 +396,7 @@ namespace Valour.Server.Controllers
 
             StatWorker.IncreaseMessageCount();
 
+            /*
 
             // Run this in another thread as quickly as possible
 #pragma warning disable CS4014 
@@ -415,10 +422,16 @@ namespace Valour.Server.Controllers
 
                             try
                             {
-                                await PushClient.SendNotificationAsync(subscription, $"{member.Id}: {msg.Content}", VapidConfig.Current.GetDetails());
+                                var details = VapidConfig.Current.GetDetails();
+
+                                var payload = $"{{'title':'{member.Id}','message':'{msg.Content}'}}";
+
+                                var pushClient = new WebPushClient();
+
+                                await pushClient.SendNotificationAsync(subscription, payload, details);
                             }
                             catch (System.Exception e)
-                            {
+                            { 
                                 Console.WriteLine(e.Message);
                             }
                         }
@@ -427,6 +440,28 @@ namespace Valour.Server.Controllers
                     //});
                 }
             });
+
+            var sub = await Context.NotificationSubscriptions.FirstOrDefaultAsync();
+
+            var subscription = new PushSubscription(ep, ke, au);
+
+
+            var details = new VapidDetails(VapidConfig.Current.Subject, VapidConfig.Current.PublicKey, VapidConfig.Current.PrivateKey);
+
+            var payload = JsonSerializer.Serialize(
+                new
+                {
+                    title = member.Nickname,
+                    message = msg.Content
+                }
+            );
+
+            var pushClient = new TestWebPushClient();
+
+            await pushClient.SendNotificationAsync(subscription, payload, details);
+
+            */
+
 #pragma warning restore CS4014 
 
 

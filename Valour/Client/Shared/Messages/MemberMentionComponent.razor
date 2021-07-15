@@ -1,0 +1,30 @@
+﻿@inject ClientPlanetManager planetManager
+
+<div style="color: aqua; display: inline-block">
+    @if (Member == null)
+    {
+        <div>@@NotFound</div>
+    }
+    else
+    {
+        <div>@@@Member.Nickname</div>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public ulong Member_Id { get; set; }
+
+    [Parameter]
+    public MemberMention Mention { get; set; }
+
+    public ClientPlanetMember Member { get; set; } 
+
+    protected async override Task OnInitializedAsync()
+    {
+        Member = await ClientPlanetMember.FindAsync(Member_Id);
+
+        StateHasChanged();
+    }
+}

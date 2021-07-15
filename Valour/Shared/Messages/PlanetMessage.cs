@@ -1,4 +1,6 @@
-﻿using Valour.Shared.Users;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
+using Valour.Shared.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -10,6 +12,9 @@ namespace Valour.Shared.Messages
 {
     public class PlanetMessage : Message
     {
+        //[JsonProperty("p")]
         public ulong Planet_Id { get; set; }
+
+        public ulong Member_Id { get; set; }
     }
 }

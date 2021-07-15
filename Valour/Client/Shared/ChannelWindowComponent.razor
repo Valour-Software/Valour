@@ -66,6 +66,8 @@
 
     public ClientPlanet Planet;
 
+    public ClientPlanetMember SelfMember;
+
     public Func<Task> ForceRefreshMessages;
 
     public bool ForceMessageRefresh;
@@ -86,6 +88,8 @@
         planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
 
         await planetManager.OpenPlanetChatChannel(Window);
+
+        SelfMember = await planetManager.GetPlanetMemberAsync(ClientUserManager.User.Id, Channel.Planet_Id);
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
@@ -263,7 +267,8 @@
             Content = msg,
             TimeSent = DateTime.UtcNow,
             Author_Id = ClientUserManager.User.Id,
-            Planet_Id = Channel.Planet_Id
+            Planet_Id = Channel.Planet_Id,
+            Member_Id = SelfMember.Id
         };
 
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);

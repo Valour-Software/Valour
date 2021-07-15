@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.RegularExpressions;
+using Valour.Client.Messages.Rendering;
+using Markdig.Syntax;
 
 namespace Valour.Client.Messages
 {
@@ -39,9 +41,11 @@ namespace Valour.Client.Messages
 
         public static Regex sanitizeLink = new Regex("(?<=follow\">).+?(?=<)");
 
-        public static MarkupString GetHtml(string content)
+        public static string GetHtml(string content)
         {
             string markdown = "Error: Message could not be parsed.";
+
+            var mark = Markdown.Parse(content);
 
             try
             {
@@ -56,9 +60,7 @@ namespace Valour.Client.Messages
 
             markdown = markdown.Replace("<a", "<a target='_blank'");
 
-            //markdown = sanitizeLink.Replace(markdown, "");
-
-            return (MarkupString)markdown;
+            return markdown;
         }
     }
 }

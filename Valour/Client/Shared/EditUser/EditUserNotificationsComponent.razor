@@ -23,38 +23,30 @@
     public bool notif_enabled = false;
     public bool notif_blocked = false;
 
+    public Client.Notifications.NotificationSubscription Subscription = null;
+
     protected override async Task OnInitializedAsync()
     {
-        var state = await JS.InvokeAsync<string>("GetNotifStatus");
-        UpdateState(state);
-    }
+        Subscription = await JS.InvokeAsync<Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
 
-    public void UpdateState(string new_state)
-    {
-        notif_state = new_state;
-
-        if (notif_state == "granted")
+        if (Subscription != null)
         {
             notif_enabled = true;
         }
-        else if (notif_state == "blocked")
-        {
-            notif_blocked = true;
-        }
+
+        Console.WriteLine(Subscription);
 
         StateHasChanged();
     }
 
     public async Task OnNotifClick()
     {
-        if (!notif_enabled)
-        {
-            var state = await JS.InvokeAsync<string>("requestNotificationAccess", VapidConfig.PublicKey);
-            UpdateState(state);
-        }
-        else
-        {
 
+        Subscription = await JS.InvokeAsync<Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+
+        if (Subscription != null)
+        {
+            notif_enabled = true;
         }
 
         StateHasChanged();
