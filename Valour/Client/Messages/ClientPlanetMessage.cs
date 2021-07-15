@@ -198,6 +198,7 @@ namespace Valour.Client.Messages
                             // Make sure ending tag is '>'
                             if (c != '»')
                             {
+
                                 pos++;
                                 continue;
                             }
