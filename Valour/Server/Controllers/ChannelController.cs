@@ -354,12 +354,16 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to post message: The given channel does not exist!");
             }
 
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == msg.Planet_Id &&
-                                                                                             x.User_Id == msg.Author_Id);
+            ServerPlanetMember member = await Context.PlanetMembers.FindAsync(msg.Member_Id);
 
             if (member == null)
             {
                 return new TaskResult(false, "Failed to post message: You are not in the planet!");
+            }
+
+            if (member.User_Id != msg.Author_Id)
+            {
+                return new TaskResult(false, "Failed to post message: User Id mismatch! Attempt at impersonation?");
             }
 
             if (!(await channel.HasPermission(member, ChatChannelPermissions.View, Context)))

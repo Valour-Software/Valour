@@ -14,5 +14,7 @@ namespace Valour.Shared.Messages
     {
         //[JsonProperty("p")]
         public ulong Planet_Id { get; set; }
+
+        public ulong Member_Id { get; set; }
     }
 }

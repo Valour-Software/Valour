@@ -34,8 +34,13 @@ namespace Valour.Client.Planets
         private Dictionary<ulong, ClientPlanetChatChannel> OpenPlanetChatChannels = new Dictionary<ulong, ClientPlanetChatChannel>();
         private List<ChatChannelWindow> OpenPlanetChatWindows = new List<ChatChannelWindow>();
         private ConcurrentDictionary<ulong, PlanetRole> PlanetRolesCache = new ConcurrentDictionary<ulong, PlanetRole>();
-        private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<string, ClientPlanetMember>();
         private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
+
+        // Caches planet members by ID
+        private static ConcurrentDictionary<ulong, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<ulong, ClientPlanetMember>();
+
+        // Caches planet members by a key built from user ID and planet ID
+        private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberDualCache = new ConcurrentDictionary<string, ClientPlanetMember>();
 
         // Used to cache data for several open planets. Data is returned for the given planet id.
         private ConcurrentDictionary<ulong, List<ulong>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<ulong>>();
@@ -243,9 +248,10 @@ namespace Valour.Client.Planets
 
         public async Task SetUpdatedMember(ClientPlanetMember member)
         {
-            string key = $"{member.Planet_Id}-{member.User_Id}";
+            string dual_key = $"{member.Planet_Id}-{member.User_Id}";
 
-            PlanetMemberCache.AddOrUpdate(key, member, (key, old) => member);
+            PlanetMemberDualCache.AddOrUpdate(dual_key, member, (key, old) => member);
+            PlanetMemberCache.AddOrUpdate(member.Id, member, (key, old) => member);
         }
 
         public async Task SetUpdatedRole(PlanetRole role)
@@ -270,9 +276,13 @@ namespace Valour.Client.Planets
 
                 string key = $"{planet_id}-{member.User_Id}";
 
-                if (PlanetMemberCache.ContainsKey(key) == false)
+                if (!PlanetMemberDualCache.ContainsKey(key))
                 {
-                    PlanetMemberCache.TryAdd(key, member);
+                    PlanetMemberDualCache.TryAdd(key, member);
+                }
+                if (!PlanetMemberCache.ContainsKey(member.Id))
+                {
+                    PlanetMemberCache.TryAdd(member.Id, member);
                 }
 
                 memberList.Add(member);
@@ -283,7 +293,53 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
-        /// Returns a user from the given id
+        /// Returns a planet member from the given Id
+        /// </summary>
+        public async Task<ClientPlanetMember> GetPlanetMemberAsync(ulong member_id)
+        {
+            if (PlanetMemberCache.ContainsKey(member_id))
+            {
+                return PlanetMemberCache[member_id];
+            }
+
+            // Otherwise attempt to fetch from server
+            // Retrieve from server
+            string json = await ClientUserManager.Http.GetStringAsync($"Member/GetMember?id={member_id}&auth={ClientUserManager.UserSecretToken}");
+
+            TaskResult<ClientPlanetMember> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetMember>>(json);
+
+            if (result == null)
+            {
+                Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
+                return null;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine(result.ToString());
+                return null;
+            }
+
+            ClientPlanetMember member = result.Data;
+
+            if (member == null)
+            {
+                Console.WriteLine($"Failed to fetch member with id {member_id}.");
+                return null;
+            }
+
+            Console.WriteLine($"Fetched member {member_id} for planet {member.Planet_Id}.");
+
+            // Add to cache
+            string key = $"{member.Planet_Id}-{member.User_Id}";
+            PlanetMemberDualCache.TryAdd(key, member);
+            PlanetMemberCache.TryAdd(member.Id, member);
+
+            return member;
+        }
+
+        /// <summary>
+        /// Returns a user from the given user and planet id
         /// </summary>
         public async Task<ClientPlanetMember> GetPlanetMemberAsync(ulong user_id, ulong planet_id)
         {
@@ -299,9 +355,9 @@ namespace Valour.Client.Planets
             string key = $"{planet_id}-{user_id}";
 
             // Attempt to retrieve from cache
-            if (PlanetMemberCache.ContainsKey(key))
+            if (PlanetMemberDualCache.ContainsKey(key))
             {
-                return PlanetMemberCache[key];
+                return PlanetMemberDualCache[key];
             }
 
             // Retrieve from server
@@ -332,7 +388,8 @@ namespace Valour.Client.Planets
             Console.WriteLine($"Fetched planet user {user_id} for planet {planet_id}");
 
             // Add to cache
-            PlanetMemberCache.TryAdd(key, member);
+            PlanetMemberDualCache.TryAdd(key, member);
+            PlanetMemberCache.TryAdd(member.Id, member);
 
             return member;
 

@@ -202,6 +202,12 @@ namespace Valour.Client.Messages
                                 continue;
                             }
 
+                            if (string.IsNullOrWhiteSpace(id_chars))
+                            {
+                                pos++;
+                                continue;
+                            }
+
                             ulong id = ulong.Parse(id_chars);
 
                             // Create object
@@ -320,6 +326,7 @@ namespace Valour.Client.Messages
                 MemberMentionFragment fragment = new MemberMentionFragment()
                 {
                     Mention = memberMention,
+                    Member_Id = Member_Id,
                     Position = memberMention.Position,
                     Length = memberMention.Length
                 };
