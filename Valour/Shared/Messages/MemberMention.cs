@@ -27,5 +27,10 @@ namespace Valour.Shared.Messages
         /// For example, the message "Hey @SpikeViper!" would have Position = 4
         /// </summary>
         public ushort Position { get; set; }
+
+        /// <summary>
+        /// The length of this mention, in chars
+        /// </summary>
+        public ushort Length { get; set; }
     }
 }

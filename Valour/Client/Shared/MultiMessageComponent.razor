@@ -8,8 +8,7 @@
     </div>
     <div class="message-content">
         <p class="content">
-            @((MarkupString)MarkdownManager.GetHtml(Message.Content))
-            @{ Console.WriteLine("Found " + Message.MemberMentions.Count() + " Mentions in " + Message.Message_Index); }
+            <MessageContentComponent Message="Message"></MessageContentComponent>
         </p>
     </div>
 </div>
@@ -26,6 +25,8 @@
 
     [Parameter]
     public string Key { get; set; }
+
+    public MessageContentComponent component { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
