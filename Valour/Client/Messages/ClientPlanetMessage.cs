@@ -208,7 +208,15 @@ namespace Valour.Client.Messages
                                 continue;
                             }
 
-                            ulong id = ulong.Parse(id_chars);
+                            ulong id = 0;
+
+                            bool parsed = ulong.TryParse(id_chars, out id);
+
+                            if (!parsed)
+                            {
+                                pos++;
+                                continue;
+                            }
 
                             // Create object
                             MemberMention memberMention = new MemberMention()
