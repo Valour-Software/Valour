@@ -198,7 +198,6 @@ namespace Valour.Client.Messages
                             // Make sure ending tag is '>'
                             if (c != '»')
                             {
-
                                 pos++;
                                 continue;
                             }
@@ -327,7 +326,7 @@ namespace Valour.Client.Messages
                 MemberMentionFragment fragment = new MemberMentionFragment()
                 {
                     Mention = memberMention,
-                    Member_Id = Member_Id,
+                    Member_Id = memberMention.Member_Id,
                     Position = memberMention.Position,
                     Length = memberMention.Length
                 };
