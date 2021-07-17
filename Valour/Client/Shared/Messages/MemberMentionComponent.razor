@@ -1,6 +1,6 @@
 ﻿@inject ClientPlanetManager planetManager
 
-<div style="color: aqua; display: inline-block">
+<div class="@Class" style="color: @Role_Color">
     @if (Member == null)
     {
         <div>@@NotFound</div>
@@ -13,17 +13,39 @@
 
 @code {
 
+    public string Class
+    {
+        get
+        {
+            if (Member == null || Member.User_Id != ClientUserManager.User.Id)
+            {
+                return "mention";
+            }
+            else
+            {
+                return "mention target";
+            }
+        }
+    }
+
     [Parameter]
     public ulong Member_Id { get; set; }
 
     [Parameter]
     public MemberMention Mention { get; set; }
 
-    public ClientPlanetMember Member { get; set; } 
+    public ClientPlanetMember Member { get; set; }
+
+    public string Role_Color = "#ffffff";
 
     protected async override Task OnInitializedAsync()
     {
         Member = await ClientPlanetMember.FindAsync(Member_Id);
+
+        if (Member != null)
+        {
+            Role_Color = await Member.GetColorHexAsync();
+        }
 
         StateHasChanged();
     }
