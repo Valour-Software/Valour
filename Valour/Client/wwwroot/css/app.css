@@ -97,8 +97,7 @@ body {
 .message {
     width: 100%;
     max-width: 100%;
-    margin-top: 4px;
-    padding-bottom: 0px;
+    padding-bottom: 4px;
     padding-left: 4px;
     position: relative;
     min-height: 51.333px;
