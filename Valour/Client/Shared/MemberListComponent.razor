@@ -101,13 +101,20 @@
 
     public async Task OnPlanetChange(ClientPlanet planet)
     {
-        Console.WriteLine($"Member list is updating to {planet.Name}");
-        MemberList = await planetManager.GetCachedPlanetMembers(planet);
-        PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
-        MemberList = MemberList.OrderByDescending(GetComparator).ToList();
-        await BuildRoleLists();
-        Console.WriteLine($"Starting with {MemberList.Count()} members.");
-        StateHasChanged();
+        // theres no reason to await the memberlist change
+        // not awaited on purpose
+
+        Task.Run(async () => {
+            Console.WriteLine($"Member list is updating to {planet.Name}");
+            MemberList = await planetManager.GetCachedPlanetMembers(planet);
+            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
+            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+            await BuildRoleLists();
+            Console.WriteLine($"Starting with {MemberList.Count()} members.");
+            StateHasChanged();
+        });
+
+        
     }
 
     public long GetComparator(ClientPlanetMember m)
