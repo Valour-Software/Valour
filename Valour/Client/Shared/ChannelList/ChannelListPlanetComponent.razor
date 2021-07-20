@@ -120,11 +120,11 @@
         await GetCategories();
         StateHasChanged();
     }
+
     public async Task OnChatChannelDeletion(ClientPlanetChatChannel channel)
     {
         var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
 
-        // just in case something weird happens
         if (oldChannel != null)
         {
             Channels.Remove(oldChannel);
@@ -132,14 +132,15 @@
             StateHasChanged();
         }
     }
+
     public async Task OnCategoryDeletion(ClientPlanetCategory category)
     {
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
-        // just in case something weird happens
         if (old != null)
         {
             TopCategories.Remove(old);
+            Categories.Remove(old);
             StateHasChanged();
         }
     }
