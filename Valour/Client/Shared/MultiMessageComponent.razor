@@ -1,6 +1,6 @@
 ﻿@implements IDisposable
 
-<div id="m-@Message.Channel_Id-@Message.Message_Index" class="multi-message">
+<div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class">
     <div class="time-container">
         <p class="time">
             @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
@@ -28,10 +28,31 @@
 
     public MessageContentComponent component { get; set; }
 
+    public string Class
+    {
+        get
+        {
+            if (mentioned)
+            {
+                return "multi-message mentioned";
+            }
+            else
+            {
+                return "multi-message";
+            }
+        }
+    }
+
+
+    bool mentioned = false;
+
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
+        var self_id = Holder.Window.Component.SelfMember.Id;
+
+        mentioned = Message.MemberMentions.Any(x => x.Member_Id == self_id);
     }
 
     void IDisposable.Dispose()

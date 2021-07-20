@@ -114,7 +114,7 @@ namespace Valour.Client.Messages
         /// </summary>
         public async Task<ClientPlanetMember> GetAuthorAsync()
         {
-            ClientPlanetMember planetMember = await ClientPlanetManager.Current.GetPlanetMemberAsync(Author_Id, Planet_Id);
+            ClientPlanetMember planetMember = await ClientPlanetManager.Current.GetPlanetMemberAsync(Member_Id);
 
             return planetMember;
         }
@@ -128,7 +128,7 @@ namespace Valour.Client.Messages
         private static HashSet<string> InlineTags = new HashSet<string>()
         {
             "b", "/b", "em", "/em", "strong", "/strong",
-            "blockquote", "/blockquote"
+            "blockquote", "/blockquote", "p", "/p"
         };
 
         /// <summary>
