@@ -31,7 +31,6 @@ namespace Valour.Client
             builder.RootComponents.Add<App>("app");
 
             builder.Services.AddBlazoredLocalStorage();
-            builder.Services.AddScoped<LocalStorageService>();
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddSingleton<SignalRManager>();
             builder.Services.AddSingleton<ClientPlanetManager>();

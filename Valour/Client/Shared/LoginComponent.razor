@@ -1,7 +1,7 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
-@inject LocalStorageService storage
 @inject AutoMapper.IMapper mapper
+@inject ILocalStorageService localStorage
 
 <body class="login-background">
     <div class="popup-box">
@@ -71,7 +71,7 @@
 
         if (loginResult.Success)
         {
-            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, storage, mapper);
+            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, localStorage, mapper);
 
             if (result.Success)
             {
