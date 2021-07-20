@@ -17,7 +17,7 @@ namespace Valour.Client.Modals
     /// <summary>
     /// Assists in controlling the user confirmation modal
     /// </summary>
-    public class InfoModel
+    public class InfoModal
     {
         public readonly IJSRuntime JS;
         public InfoModelComponent Component;
@@ -34,7 +34,7 @@ namespace Valour.Client.Modals
         public string desc_text;
         public string button_text;
 
-        public InfoModel(IJSRuntime js)
+        public InfoModal(IJSRuntime js)
         {
             JS = js;
         }

@@ -696,7 +696,7 @@ namespace Valour.Client.Planets
 
             // update planet cache
 
-            PlanetCache[channel.Planet_Id].UpdateChannel(channel);
+            await PlanetCache[channel.Planet_Id].NotifyUpdateChannel(channel);
 
             if (OnChatChannelUpdate != null)
             {
@@ -718,7 +718,7 @@ namespace Valour.Client.Planets
 
             // Update planet cache
 
-            PlanetCache[category.Planet_Id].Categories.Remove(category);
+            PlanetCache[category.Planet_Id].NotifyDeleteCategory(category);
 
             if (OnCategoryDeletion != null)
             {
@@ -740,7 +740,7 @@ namespace Valour.Client.Planets
 
             // Update planet cache
 
-            PlanetCache[channel.Planet_Id].Channels.Remove(channel);
+            PlanetCache[channel.Planet_Id].NotifyDeleteChannel(channel);
 
             if (OnChatChannelDeletion != null)
             {
@@ -763,7 +763,7 @@ namespace Valour.Client.Planets
 
             // update planet cache
 
-            PlanetCache[category.Planet_Id].UpdateCategory(category);
+            await PlanetCache[category.Planet_Id].NotifyUpdateCategory(category);
 
             if (OnCategoryUpdate != null)
             {

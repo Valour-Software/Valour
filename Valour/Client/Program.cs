@@ -44,7 +44,7 @@ namespace Valour.Client
             builder.Services.AddSingleton<ChannelListContextMenu>();
             builder.Services.AddSingleton<AddChannelContextMenu>();
             builder.Services.AddSingleton<ConfirmModal>();
-            builder.Services.AddSingleton<InfoModel>();
+            builder.Services.AddSingleton<InfoModal>();
             builder.Services.AddSingleton<BanModal>();
             builder.Services.AddSingleton<EditPlanetModal>();
             builder.Services.AddSingleton<EditUserModal>();
