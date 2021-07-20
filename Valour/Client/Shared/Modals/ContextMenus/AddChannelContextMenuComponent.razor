@@ -55,7 +55,9 @@
         if (Modal_Id == modal_id)
         {
             // This is honestly a poor solution but it needs to wait a moment
-            await Task.Delay(100);
+            
+            // anything below 125ms causes the model to not open
+            await Task.Delay(125);
 
             SetVisibility(false);
         }

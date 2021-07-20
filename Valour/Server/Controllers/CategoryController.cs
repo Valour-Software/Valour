@@ -12,6 +12,7 @@ using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Categories;
+using Valour.Shared.Roles;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Valour.Server.Planets;
@@ -120,9 +121,10 @@ namespace Valour.Server.Controllers
                     return new TaskResult(false, "You can not delete your main channel!");
                 }
             }
-            //If not, then delete the channels
-            foreach(ServerPlanetChatChannel channel in channels) {
-                Context.PlanetChatChannels.Remove(channel);
+
+            // require user to delete all child categories and channels
+            if (categories.Count() != 0 || channels.Count() != 0) {
+                return new TaskResult(false, "YOu have to delete all child channels and categories before deleting this category!");
             }
 
             foreach(ServerPlanetCategory Category in categories)
@@ -133,11 +135,16 @@ namespace Valour.Server.Controllers
 
             ulong parentId = category.Planet_Id;
 
+            // remove permission nodes
+
+            Context.CategoryPermissionsNodes.RemoveRange(Context.CategoryPermissionsNodes.Where(x => x.Category_Id == id));
+
             Context.PlanetCategories.Remove(category);
-            
+        
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{parentId}").SendAsync("RefreshChannelList", "");
+            // Notify of update
+            await PlanetHub.NotifyCategoryDeletion(category);
 
             return new TaskResult(true, "Successfully deleted.");
         }
@@ -222,7 +229,8 @@ namespace Valour.Server.Controllers
                 Name = name,
                 Description = "A category",
                 Planet_Id = planet_id,
-                Parent_Id = parentid
+                Parent_Id = parentid,
+                Position = (ushort)Context.PlanetCategories.Where(x => x.Parent_Id == parentid).Count()
             };
 
             // Add channel to database
@@ -231,7 +239,8 @@ namespace Valour.Server.Controllers
             // Save changes to DB
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{planet_id}").SendAsync("RefreshChannelList", "");
+            // Send channel refresh
+            await PlanetHub.NotifyCategoryChange(category);
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created category.", category.Id);

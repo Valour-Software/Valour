@@ -9,6 +9,7 @@ using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
+using Valour.Shared.Roles;
 using Valour.Shared.Planets;
 using System.Text.RegularExpressions;
 using System.Collections.Specialized;
@@ -98,12 +99,24 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You can not delete your main channel!");
             }
 
+            // remove permission nodes
+
+            Context.ChatChannelPermissionsNodes.RemoveRange(Context.ChatChannelPermissionsNodes.Where(x => x.Channel_Id == id));
+
+            await Context.SaveChangesAsync();
+
+            // remove all messages in this channel
+
+            Context.PlanetMessages.RemoveRange(Context.PlanetMessages.Where(x => x.Channel_Id == id));
+
+            await Context.SaveChangesAsync();
 
             Context.PlanetChatChannels.Remove(channel);
 
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("RefreshChannelList", "");
+            // Notify of update
+            await PlanetHub.NotifyChatChannelDeletion(channel);
 
             return new TaskResult(true, "Successfully deleted.");
         }
@@ -193,7 +206,7 @@ namespace Valour.Server.Controllers
                 Parent_Id = parentid,
                 Message_Count = 0,
                 Description = "A chat channel",
-                Position = Convert.ToUInt16(Context.PlanetChatChannels.Count())
+                Position = (ushort)Context.PlanetChatChannels.Where(x => x.Parent_Id == parentid).Count()
             };
 
             // Add channel to database

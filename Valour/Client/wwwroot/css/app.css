@@ -984,7 +984,6 @@ body {
     border-color: grey;
     padding: 50px;
     width: 400px;
-    min-height: 400px;
     z-index: 2;
     box-shadow: 0px 0px 15px #000000;
     margin: auto;
@@ -1831,6 +1830,35 @@ blockquote {
     padding-left: 5px;
     margin: 0px;
     background-color: rgba(255, 255, 255, 0.01);
+}
+
+.create-component-title {
+    text-align: center;
+}
+
+.create-component-enter-info {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.create-component-enter-box {
+    background: #192630;
+    border: 1px solid #030B11;
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+
+.create-component-roles-box {
+    background: #192630;
+    width:100%;
+    border-radius: 8px;
+    margin-top:12px;
+}
+
+.create-component-roles-box .role {
+    padding-left: 9px;
+    padding-right: 9px;
+    padding-top: 6px;
+    padding-bottom: 6px;
 }
 
 .mention {

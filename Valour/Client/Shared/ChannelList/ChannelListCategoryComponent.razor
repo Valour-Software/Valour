@@ -89,6 +89,10 @@
         planetManager.OnCategoryUpdate += OnCategoryUpdate;
         planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
 
+        // Handle Deletions
+        planetManager.OnChatChannelDeletion += OnChatChannelDeletion;
+        planetManager.OnCategoryDeletion += OnCategoryDeletion;
+
         ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
 
@@ -174,6 +178,19 @@
         Console.WriteLine("Opening context menu for channel/category addition");
         await addChannelContextMenu.Open(e, Category);
     }
+    public async Task OnCategoryDeletion(ClientPlanetCategory category)
+    {
+
+        var old = ChildCategories.FirstOrDefault(x => x.Id == category.Id);
+
+        // just in case something weird happens
+        if (old != null)
+        {
+            ChildCategories.Remove(old);
+            BuildItemList();
+            StateHasChanged();
+        }
+    }
 
     public async Task OnCategoryUpdate(ClientPlanetCategory category)
     {
@@ -213,6 +230,7 @@
             // In this case it was just added to this category
             else if (category.Parent_Id == Category.Id)
             {
+
                 // Insert
                 ChildCategories.Add(category);
                 // Resort
@@ -222,6 +240,15 @@
 
                 StateHasChanged();
             }
+        }
+    }
+    public async Task OnChatChannelDeletion(ClientPlanetChatChannel channel)
+    {
+        if (channel.Parent_Id == Category.Id) {
+            var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
+            ChildChannels.Remove(old);
+            BuildItemList();
+            StateHasChanged();
         }
     }
 
@@ -256,8 +283,8 @@
         // In this case it was just added to this category
         else if (channel.Parent_Id == Category.Id)
         {
-            // Insert into position
-            ChildChannels.Insert(channel.Position, channel);
+            // Add to childchannels
+            ChildChannels.Add(channel);
             // Resort
             BuildItemList();
 
