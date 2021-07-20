@@ -1,0 +1,54 @@
+﻿@inject IJSRuntime JS
+
+<h3>Notification Settings</h3>
+
+<div class="perm-list-item">
+    <div class="perm-list-name mb-1">
+        Enable Push Notifications
+    </div>
+    <div type="button" style="float:right">
+        <label class="switch">
+            <input type="checkbox" @onclick="OnNotifClick" checked="@notif_enabled" disabled="@notif_blocked">
+            <span class="slider round"></span>
+        </label>
+    </div>
+    <div class="perm-list-desc mt-1">
+        This will allow your device to recieve push notifications.
+    </div>
+</div>
+
+@code { 
+
+    public string notif_state = "null";
+    public bool notif_enabled = false;
+    public bool notif_blocked = false;
+
+    public Client.Notifications.NotificationSubscription Subscription = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Subscription = await JS.InvokeAsync<Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+
+        if (Subscription != null)
+        {
+            notif_enabled = true;
+        }
+
+        Console.WriteLine(Subscription);
+
+        StateHasChanged();
+    }
+
+    public async Task OnNotifClick()
+    {
+
+        Subscription = await JS.InvokeAsync<Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+
+        if (Subscription != null)
+        {
+            notif_enabled = true;
+        }
+
+        StateHasChanged();
+    }
+}

@@ -67,6 +67,17 @@ namespace Valour.Shared.Users
         /// </summary>
         public DateTime Last_Active { get; set; }
 
+        /// <summary>
+        /// The span of time from which the user was last active
+        /// </summary>
+        public TimeSpan Last_Active_Span 
+        { 
+            get
+            {
+                return DateTime.UtcNow.Subtract(Last_Active);
+            } 
+        }
+
         [NotMapped]
         public UserState UserState
         {

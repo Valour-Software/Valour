@@ -90,13 +90,22 @@ body {
     line-height: NORMAL;
 }
 
+.chat-holder {
+    padding-right: 0.5rem;
+}
+
 .message {
     width: 100%;
     max-width: 100%;
-    margin-top: 4px;
     padding-bottom: 0px;
+    padding-left: 4px;
     position: relative;
     min-height: 51.333px;
+}
+
+.message.mentioned {
+    border-left: 2px solid #ffac6c;
+    background: rgba(168, 115, 87, 0.15);
 }
 
 .multi-message {
@@ -104,7 +113,18 @@ body {
     max-width: 100%;
     margin-top: 0px;
     margin-bottom: 0px;
+    padding-bottom: 0px;
+    padding-left: 4px;
     position: relative;
+}
+
+.multi-message.mentioned {
+    border-left: 2px solid #ffac6c;
+    background: rgba(168, 115, 87, 0.15);
+}
+
+.mentioned .content {
+    margin-left: -2px !important;
 }
 
 .multi-message-content {
@@ -779,6 +799,7 @@ video {
 
 .rolename {
     margin: 0px;
+    margin-left: 5px;
     margin-top: 12px;
     margin-bottom: 5px;
     font-family: Ubuntu;
@@ -796,7 +817,7 @@ video {
 
 .sidebar-user {
     width: 240px;
-    height: 55px;
+    height: 56px;
     background-color: rgba(255, 255, 255, 0.07);
     margin-right: auto;
 }
@@ -1589,10 +1610,14 @@ btn-role-edit:hover edit {
     scrollbar-width: none; /* Firefox */
 }
 
-.UserList {
+.RoleList {
     overflow-y: scroll;
     overflow-x: hidden;
     height: calc(99.5% - 80px);
+}
+
+.UserList {
+    overflow-x: hidden;
 }
 
 .category-list {
@@ -1834,4 +1859,26 @@ blockquote {
     padding-right: 9px;
     padding-top: 6px;
     padding-bottom: 6px;
+}
+
+.mention {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.mention.target {
+    font-weight: 500;
+}
+
+.mention:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mention:active {
+    background-color: rgba(255, 255, 255, 0.3);
 }

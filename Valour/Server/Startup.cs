@@ -32,6 +32,8 @@ using Microsoft.Net.Http.Headers;
 using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using Valour.Server.Roles;
+using Valour.Server.Notifications;
+using WebPush;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -54,6 +56,7 @@ namespace Valour.Server
         public const string DBCONF_FILE = "DBConfig.json";
         public const string EMCONF_FILE = "EmailConfig.json";
         public const string MSPCONF_FILE = "MSPConfig.json";
+        public const string VAPIDCONF_FILE = "VapidConfig.json";
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -110,6 +113,7 @@ namespace Valour.Server
             services.AddScoped<UserManager>();
             IdManager idManager = new IdManager();
             services.AddSingleton<IdManager>(idManager);
+            services.AddSingleton<WebPushClient>();
             services.AddControllersWithViews();
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
@@ -191,6 +195,27 @@ namespace Valour.Server
                 File.WriteAllText(CONF_LOC + MSPCONF_FILE, JsonConvert.SerializeObject(mspconfig));
                 Console.WriteLine("Error: No MSP config was found. Creating file...");
             }
+
+            VapidConfig vapidconfig = null;
+
+            if (File.Exists(CONF_LOC + VAPIDCONF_FILE))
+            {
+                // If there is a config, read it
+                vapidconfig = JsonConvert.DeserializeObject<VapidConfig>(File.ReadAllText(CONF_LOC + VAPIDCONF_FILE));
+            }
+            else
+            {
+                // Otherwise create a config with default values and write it to the location
+                vapidconfig = new VapidConfig()
+                {
+                    Subject = "mailto: <>",
+                    PublicKey = "public-key-here",
+                    PrivateKey = "private-key-here"
+                };
+
+                File.WriteAllText(CONF_LOC + VAPIDCONF_FILE, JsonConvert.SerializeObject(vapidconfig));
+                Console.WriteLine("Error: No Vapid config was found. Creating file...");
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -215,18 +240,12 @@ namespace Valour.Server
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
 
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                //OnPrepareResponse = x =>
-                //{
-                //    x.Context.Response.Headers[HeaderNames.CacheControl] = "no-store";
-                //}
-            });
+            app.UseStaticFiles();
 
             app.UseRouting();
 
-            app.UseAuthorization();
             app.UseAuthentication();
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {

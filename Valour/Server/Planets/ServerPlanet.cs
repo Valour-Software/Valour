@@ -11,7 +11,6 @@ using Valour.Shared.Oauth;
 using Valour.Server.Roles;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;

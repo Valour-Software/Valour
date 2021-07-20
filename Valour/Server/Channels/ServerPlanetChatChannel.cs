@@ -11,7 +11,6 @@ using Valour.Shared.Oauth;
 using Valour.Server.Roles;
 using Valour.Server.Users;
 using Valour.Shared.Channels;
-using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
@@ -20,6 +19,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using Valour.Shared;
 using Valour.Server.Categories;
+using System.Diagnostics;
 
 namespace Valour.Server.Planets
 {
@@ -78,7 +78,7 @@ namespace Valour.Server.Planets
             }
         }
 
-        public async Task<Planet> GetPlanetAsync(ValourDB db = null)
+        public async Task<ServerPlanet> GetPlanetAsync(ValourDB db = null)
         {
             if (Planet != null) return Planet;
 
@@ -112,11 +112,14 @@ namespace Valour.Server.Planets
             return Parent;
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db = null)
+        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
         {
-            Planet planet = await GetPlanetAsync(db);
+            if (Planet == null)
+            {
+                Planet = await GetPlanetAsync(db);
+            }
 
-            if (planet.Owner_Id == member.User_Id)
+            if (Planet.Owner_Id == member.User_Id)
             {
                 return true;
             }
@@ -124,21 +127,34 @@ namespace Valour.Server.Planets
             // If true, we just ask the category
             if (Inherits_Perms)
             {
-                return await (await GetParentAsync(db)).HasPermission(member, permission);
+                if (Parent == null)
+                {
+                    Parent = await GetParentAsync(db);
+                }
+
+                return await Parent.HasPermission(member, permission);
             }
 
-            var roles = await member.GetRolesAsync(db);
+
+            // Load permission data
+            await db.Entry(member).Collection(x => x.RoleMembership)
+                                  .Query()
+                                  .Where(x => x.Planet_Id == Planet.Id)
+                                  .Include(x => x.Role)
+                                  .ThenInclude(x => x.ChatChannelPermissionNodes.Where(x => x.Channel_Id == Id))
+                                  .LoadAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
             // If we get an undecided, we continue to the next role down
-            foreach (var role in roles)
+            foreach (var roleMembership in member.RoleMembership)
             {
-                var node = await ServerPlanetRole.FromBase(role).GetChannelNodeAsync(this, db);
+                var role = roleMembership.Role;
+                ChatChannelPermissionsNode node = role.ChatChannelPermissionNodes.FirstOrDefault();
 
                 // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
                 if (node == null)
                 {
-                    if (role.Id == planet.Default_Role_Id)
+                    if (role.Id == Planet.Default_Role_Id)
                     {
                         return Permission.HasPermission(ChatChannelPermissions.Default, permission);
                     }
@@ -216,6 +232,31 @@ namespace Valour.Server.Planets
         public async Task NotifyClientsChange()
         {
             await PlanetHub.NotifyChatChannelChange(this);
+        }
+
+        /// <summary>
+        /// Returns all members who can see this channel
+        /// </summary>
+        public async Task<List<ServerPlanetMember>> GetChannelMembersAsync(ValourDB db = null)
+        {
+            List<ServerPlanetMember> members = new List<ServerPlanetMember>(); 
+
+            bool createdb = false;
+            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+
+            var planetMembers = db.PlanetMembers.Include(x => x.RoleMembership).Where(x => x.Planet_Id == Planet_Id);
+
+            foreach (var member in planetMembers)
+            {
+                if (await HasPermission(member, ChatChannelPermissions.View, db))
+                {
+                    members.Add(member);
+                }
+            }
+
+            if (createdb) { await db.DisposeAsync(); }
+
+            return members;
         }
     }
 }

@@ -1,20 +1,14 @@
 ﻿@inject IJSRuntime JS
 
-<div id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
+<div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
     @if (Messages != null && Messages.Count > 0)
     {
         ulong lastAuthorId = 0;
-
-        //Keys.Clear();
 
         foreach (ClientPlanetMessage msg in Messages)
         {
             string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
-            //RenderedMessages.Clear();
-
-            //if (!Keys.Contains(key))
-            //{
             if (msg.Author_Id != lastAuthorId)
             {
                 <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this"></MessageComponent>
@@ -23,10 +17,6 @@
             {
                 <MultiMessageComponent Message="msg" Key="@key" @key='key + "-multi"' Holder="this"></MultiMessageComponent>
             }
-            //}
-
-            //Keys.Add(key);
-
 
             lastAuthorId = msg.Author_Id;
         }

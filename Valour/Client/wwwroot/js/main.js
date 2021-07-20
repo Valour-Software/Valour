@@ -320,7 +320,7 @@ window.onpointerdown = function (event) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "add-channel-context-menu");
     }
 
-    if (!isDescendant(event.target,  "create-channel-modal-box") &&
+    if (!isDescendant(event.target, "create-channel-modal-box") &&
         !isDescendant(event.target, "create-channel-btn")) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-channel-modal");
     }
@@ -345,7 +345,7 @@ window.onpointerdown = function (event) {
 
     //console.log(event.target.id);
     //console.log(event.target.className);
-    
+
     if (!isDescendant(event.target, "edit-planet-modal-inner") &&
         event.target.id != "edit-planet-button" && !event.target.className.includes('pcr')) {
         DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-planet-modal");
@@ -397,21 +397,20 @@ function GetSelectedUserId() {
 async function postData(url = '', data = {}) {
     // Default options are marked with *
     const response = await fetch(url, {
-      method: 'POST', // *GET, POST, PUT, DELETE, etc.
-      headers: {
-        'Accept': 'application/json, text/plain',
-        'Content-Type': 'application/json;charset=UTF-8'
+        method: 'POST', // *GET, POST, PUT, DELETE, etc.
+        headers: {
+            'Accept': 'application/json, text/plain',
+            'Content-Type': 'application/json;charset=UTF-8'
         },
-      body:  JSON.stringify(data) // body data type must match "Content-Type" header
+        body: JSON.stringify(data) // body data type must match "Content-Type" header
     });
     return response.json(); // parses JSON response into native JavaScript objects
-  }
+}
 
-function httpGet(theUrl)
-{
+function httpGet(theUrl) {
     var xmlHttp = new XMLHttpRequest();
-    xmlHttp.open( "GET", theUrl, false ); // false for synchronous request
-    xmlHttp.send( null );
+    xmlHttp.open("GET", theUrl, false); // false for synchronous request
+    xmlHttp.send(null);
     return JSON.parse(xmlHttp.responseText);
 }
 
@@ -535,5 +534,3 @@ window.onresize = function () {
 }
 
 window.onresize(); // called to initially set the height.
-
-/* Channel list code */

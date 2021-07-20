@@ -16,7 +16,6 @@ using Valour.Shared;
 using System.Collections.Generic;
 using System.Linq;
 using Valour.Server.Planets;
-using Valour.Server.Database;
 
 namespace Valour.Server.Workers
 {

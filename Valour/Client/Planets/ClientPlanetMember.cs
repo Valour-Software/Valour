@@ -47,6 +47,16 @@ namespace Valour.Client.Planets
             return _roleids[0];
         }
 
+        public async Task<List<ulong>> GetRoleIdsAsync()
+        {
+            if (_roleids == null)
+            {
+                await LoadRoleIdsAsync();
+            }
+
+            return _roleids;
+        }
+
         public void SetCacheValues(PlanetMemberInfo info)
         {
             SetCacheValues(info.RoleIds, info.State, info.User);
@@ -59,11 +69,11 @@ namespace Valour.Client.Planets
             _user = user;
         }
 
-        public async Task<bool> HasRole(ulong role_id)
+        public async Task<bool> HasRoleAsync(ulong role_id)
         {
             if (_roleids == null)
             {
-                await LoadRolesAsync();
+                await LoadRoleIdsAsync();
             }
 
             return _roleids.Contains(role_id);
@@ -73,7 +83,7 @@ namespace Valour.Client.Planets
         {
             if (_roleids == null)
             {
-                await LoadRolesAsync();
+                await LoadRoleIdsAsync();
             }
 
             List<PlanetRole> roles = new List<PlanetRole>();
@@ -123,11 +133,19 @@ namespace Valour.Client.Planets
         }
 
         /// <summary>
-        /// Returns a planet member by requesting from the server
+        /// Returns a planet member
         /// </summary>
         public static async Task<ClientPlanetMember> GetClientPlanetMemberAsync(ulong user_id, ulong planet_id)
         {
             return await ClientPlanetManager.Current.GetPlanetMemberAsync(user_id, planet_id);
+        }
+
+        /// <summary>
+        /// Returns a planet member given their id
+        /// </summary>
+        public static async Task<ClientPlanetMember> FindAsync(ulong member_id)
+        {
+            return await ClientPlanetManager.Current.GetPlanetMemberAsync(member_id);
         }
 
         /// <summary>
@@ -158,7 +176,7 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Loads the user roles into cache, or reloads them if called again
         /// </summary>
-        public async Task LoadRolesAsync()
+        public async Task LoadRoleIdsAsync()
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberRoleIds?user_id={User_Id}&planet_id={Planet_Id}&token={ClientUserManager.UserSecretToken}");
 
@@ -218,7 +236,7 @@ namespace Valour.Client.Planets
         {
             if (_roleids == null)
             {
-                await LoadRolesAsync();
+                await LoadRoleIdsAsync();
             }
 
             //Console.WriteLine($"PlanetManager null: {ClientPlanetManager.Current == null}");

@@ -2,7 +2,7 @@
 @inject MemberContextMenu memberContextMenu
 @implements IDisposable
 
-<div id="m-@Message.Channel_Id-@Message.Message_Index" class="message">
+<div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class">
     <div style="display:inline-block; position: absolute">
         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
         <div class="time-container">
@@ -30,7 +30,7 @@
             </p>
         }
         <p class="content">
-            @MarkdownManager.GetHtml(Message.Content)
+            <MessageContentComponent Message="Message"></MessageContentComponent>
         </p>
     </div>
 </div>
@@ -48,6 +48,21 @@
 
     public ClientPlanetMember Author;
 
+    public string Class
+    {
+        get
+        {
+            if (mentioned)
+            {
+                return "message mentioned";
+            }
+            else
+            {
+                return "message";
+            }
+        }
+    }
+
     string roleColor = "#ffffff";
 
     string roleName = "Default";
@@ -55,6 +70,8 @@
     string pfpurl = "/icon-512.png";
 
     string name = "";
+
+    bool mentioned = false;
 
     public async Task OnAuthorNameClick(MouseEventArgs e)
     {
@@ -81,6 +98,10 @@
         roleName = (await Author.GetPrimaryRoleAsync()).Name;
 
         string pfp = await Author.GetPfpAsync();
+
+        var self_id = Holder.Window.Component.SelfMember.Id;
+
+        mentioned = Message.MemberMentions.Any(x => x.Member_Id == self_id);
 
         if (Author != null && !string.IsNullOrWhiteSpace(pfp))
         {
@@ -109,6 +130,14 @@
         Console.WriteLine("pfp error caught");
 
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// This prevents the message from re-rendering. This should be expanded to support message edits in the future.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        return false;
     }
 
 }
