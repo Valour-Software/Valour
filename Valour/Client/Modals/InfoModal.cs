@@ -20,7 +20,7 @@ namespace Valour.Client.Modals
     public class InfoModal
     {
         public readonly IJSRuntime JS;
-        public InfoModelComponent Component;
+        public InfoModalComponent Component;
         public Func<Task> OpenEvent;
 
         /// <summary>

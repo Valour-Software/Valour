@@ -1,6 +1,6 @@
 ﻿@inject ChannelListContextMenu channelListContextMenu
 @inject ConfirmModal confirmModal
-@inject InfoModel infoModel
+@inject InfoModal infoModal
 @inject EditChannelListItemModal editModal
 @inject HttpClient Http
 @inject ClientPlanetManager planetManager
@@ -75,7 +75,7 @@
             List<ClientPlanetCategory> categories = await planetManager.GetCurrent().GetCategoriesAsync();
 
             if (channels.Where(x => x.Parent_Id == category_id).Count() > 0 || categories.Where(x => x.Parent_Id == category_id).Count() > 0) {
-                await infoModel.Open($"You can't delete this!",
+                await infoModal.Open($"You can't delete this!",
                                     "This is due to this category having channels and/or categories inside of it.",
                                     "Okay",
 
