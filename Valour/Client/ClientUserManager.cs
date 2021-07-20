@@ -66,7 +66,7 @@ namespace Valour.Client
         /// <summary>
         /// Tries to initialize the user client by using a local token
         /// </summary>
-        public static async Task<TaskResult> TryInitializeWithLocalToken(LocalStorageService storage, IMapper mapper)
+        public static async Task<TaskResult> TryInitializeWithLocalToken(ILocalStorageService storage, IMapper mapper)
         {
             if (User != null)
             {
@@ -87,7 +87,7 @@ namespace Valour.Client
         /// <summary>
         /// Initializes the user using a valid user token
         /// </summary>
-        public static async Task<TaskResult> InitializeUser(string token, LocalStorageService storage, IMapper mapper)
+        public static async Task<TaskResult> InitializeUser(string token, ILocalStorageService storage, IMapper mapper)
         {
             string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
 
@@ -143,7 +143,7 @@ namespace Valour.Client
         /// <summary>
         /// Stores the current user token
         /// </summary>
-        public static async Task StoreToken(LocalStorageService storage)
+        public static async Task StoreToken(ILocalStorageService storage)
         {
             LocalToken tokenObj = new LocalToken()
             {
@@ -158,7 +158,7 @@ namespace Valour.Client
         /// <summary>
         /// Attempts to retrieve a prior user token
         /// </summary>
-        public static async Task RetrieveToken(LocalStorageService storage)
+        public static async Task RetrieveToken(ILocalStorageService storage)
         {
             LocalToken tokenObj = await storage.GetItemAsync<LocalToken>("token");
 

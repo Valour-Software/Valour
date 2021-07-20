@@ -31,12 +31,13 @@ namespace Valour.Server.Database
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
-            options.UseMySql(ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));
+            options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => options.EnableRetryOnFailure());
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.HasCharSet(CharSet.Utf8Mb4);
         }
 
         // These are the database sets we can access

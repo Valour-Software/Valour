@@ -103,7 +103,7 @@ namespace Valour.Server
 
             services.AddDbContextPool<ValourDB>(options =>
             {
-                options.UseMySql(ValourDB.ConnectionString, ServerVersion.FromString("8.0.20-mysql"), options => options.EnableRetryOnFailure().CharSet(CharSet.Utf8Mb4));
+                options.UseMySql(ValourDB.ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => options.EnableRetryOnFailure());
             });
 
             // This probably needs to be customized further but the documentation changed
