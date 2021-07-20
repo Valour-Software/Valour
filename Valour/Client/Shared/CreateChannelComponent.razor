@@ -9,7 +9,7 @@
 @using Valour.Shared.Categories
 
 <section>
-    <h2 class="CreateComponentTitle">Create a Channel</h2>
+    <h2 class="create-component-title">Create a Channel</h2>
 
     <div asp-validation-summary="All" class="text-info"></div>
     <div class="form-group mt-2">
@@ -30,10 +30,10 @@
 
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this channel?</label>
-        <div class="CreateComponentRolesBox">
+        <div class="create-component-roles-box">
             @foreach (PlanetRole role in Roles)
             {
-                <div class="Role">
+                <div class="role">
                    <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
                         @role.Name
                     </div>
