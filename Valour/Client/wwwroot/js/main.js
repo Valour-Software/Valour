@@ -461,15 +461,11 @@ function hexToRGB(hex, alpha) {
     return [r, g, b, alpha];
 }
 
-const pickr = null;
+pickr = null;
 
 function SetupColorPicker() {
 
     console.log("Setting up color picker...");
-
-    if (pickr != null) {
-        return;
-    }
 
     pickr = Pickr.create({
         el: '.color-picker',
