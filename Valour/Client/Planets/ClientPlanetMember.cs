@@ -198,13 +198,13 @@ namespace Valour.Client.Planets
             _roleids = result.Data;
         }
 
-        public async Task<uint> GetAuthorityAsync()
+        public async Task<ulong> GetAuthorityAsync()
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}");
 
             Console.WriteLine($"Got authority for {Id}: " + json);
 
-            TaskResult<uint> result = JsonConvert.DeserializeObject<TaskResult<uint>>(json);
+            TaskResult<ulong> result = JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
 
             if (result == null)
             {

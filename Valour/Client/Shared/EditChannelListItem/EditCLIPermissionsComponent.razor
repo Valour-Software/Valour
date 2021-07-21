@@ -18,7 +18,10 @@
     @foreach (var role in Roles)
     {
         // Don't show roles we can't edit
-        if (role.GetAuthority() >= SelfAuthority)
+
+        var authority = role.GetAuthority();
+
+        if (authority >= SelfAuthority)
             continue;
 
         options++;

@@ -1049,13 +1049,13 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns the authority of the requested member
         /// </summary>
-        public async Task<TaskResult<uint>> GetMemberAuthority(ulong member_id, string token)
+        public async Task<TaskResult<ulong>> GetMemberAuthority(ulong member_id, string token)
         {
             ServerAuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
-                return new TaskResult<uint>(false, "Failed to authorize user.", 0);
+                return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
             ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.Planet)
@@ -1063,15 +1063,15 @@ namespace Valour.Server.Controllers
 
             if (member == null)
             {
-                return new TaskResult<uint>(false, "Member does not exist.", 0);
+                return new TaskResult<ulong>(false, "Member does not exist.", 0);
             }
 
             if (!(await member.Planet.IsMemberAsync(authToken.User_Id, Context)))
             {
-                return new TaskResult<uint>(false, "You are not in the planet.", 0);
+                return new TaskResult<ulong>(false, "You are not in the planet.", 0);
             }
 
-            return new TaskResult<uint>(true, "Found authority", await member.GetAuthorityAsync());
+            return new TaskResult<ulong>(true, "Found authority", await member.GetAuthorityAsync());
         }
 
         public async Task<TaskResult> InsertCategory(ulong category_id, ulong planet_id, ushort position, string auth)
