@@ -27,7 +27,7 @@ namespace Valour.Client.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ClientPlanet : Planet
+    public class ClientPlanet : Planet 
     {
 
         /// <summary>
