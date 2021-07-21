@@ -70,7 +70,7 @@ namespace Valour.Shared.Roles
 
         public uint GetAuthority()
         {
-            return uint.MaxValue - (1 + Position);
+            return uint.MaxValue - Position;
         }
 
         public Color GetColor()

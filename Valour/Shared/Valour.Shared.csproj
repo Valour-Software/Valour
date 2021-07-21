@@ -1,7 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <Company>Vooper Media LLC</Company>
+    <Product>Valour Shared Library</Product>
+    <Authors>The Valour Team</Authors>
+    <Description>The Valour Shared Library contains shared resources for Valour and related projects, including object definitions and more.</Description>
+    <PackageTags>Valour, API, Messaging, Bots</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageIcon>valour-logo.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,5 +17,12 @@
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\valour-logo.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 </Project>
