@@ -1,0 +1,53 @@
+@inject ClientPlanetManager planetManager
+
+@if (embed != null) {
+    <div class="embed">
+        @if (embed.Items != null) {
+            @foreach (ClientEmbedItem item in embed.Items)
+            {
+                @switch (item.Type)
+                {
+                    case "Text":
+                        <div style="@item.GetInlineStyle" class="embed-item">
+                            @if (item.Name != null) {
+                                <div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
+                                    @item.DoMarkdown(item.Name)
+                                </div>
+                            }
+                            <div style="color:#@item.TextColor;font-size:14px;">
+                                @if (item.Link != null) {
+                                    <a href="@item.Link" rel="nofollow" target="_blank">@item.DoMarkdown(item.Text)</a>
+                                }
+                                else {
+                                    @item.DoMarkdown(item.Text)
+                                }
+                            </div>
+                        </div>
+                        break;
+                    case "Button":
+                        @if (item.Center) {
+                            <center>
+                                <EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
+                            </center>
+                        }
+                        else {
+                            <EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
+                        }
+                        break;
+                    case "InputBox":
+                        <EmbedinputBoxComponent Item="item" embed="embed"></EmbedinputBoxComponent>
+                        break;
+                }
+            }
+        }
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public ClientEmbed embed { get; set;}
+    [Parameter]
+    public ClientPlanetMessage Message {get; set;}
+
+}

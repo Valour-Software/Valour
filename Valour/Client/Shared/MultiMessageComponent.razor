@@ -8,7 +8,12 @@
     </div>
     <div class="message-content">
         <p class="content">
-            <MessageContentComponent Message="Message"></MessageContentComponent>
+            @if (Message.IsEmbed()) {
+                <EmbedComponent embed="@Message.GetEmbed()" Message="Message"></EmbedComponent>
+            }
+            else {
+                <MessageContentComponent Message="Message"></MessageContentComponent>
+            }
         </p>
     </div>
 </div>

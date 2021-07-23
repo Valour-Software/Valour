@@ -11,6 +11,7 @@ using Valour.Server.Oauth;
 using Valour.Server.Roles;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
+using Valour.Shared.Messages;
 using Valour.Shared.Roles;
 
 /*  Valour - A free and secure chat client
@@ -69,11 +70,45 @@ namespace Valour.Server.Planets
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channel_id}");
         }
 
+        public async Task JoinInteractionGroup(ulong planet_id, string token)
+        {
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
+
+                // Authenticate user
+                AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+
+                if (authToken == null) return;
+
+                PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
+                    x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id);
+
+                // If the user is not a member, cancel
+                if (member == null)
+                {
+                    return;
+                }
+            }
+
+            // Add to planet group
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planet_id}");
+        }
+
+        public async Task LeaveInteractionGroup(ulong planet_id)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
+        }
+
         public static async Task NotifyMemberChange(ServerPlanetMember member)
         {
             string json = JsonConvert.SerializeObject(member);
 
             await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", json);
+        }
+
+        public static async Task NotifyInteractionEvent(InteractionEvent Interaction)
+        {
+            string json = JsonConvert.SerializeObject(Interaction);
+            await Current.Clients.Group($"i-{Interaction.Planet_Id}").SendAsync("InteractionEvent", json);
         }
 
         public static async Task NotifyRoleChange(ServerPlanetRole role)

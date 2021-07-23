@@ -100,6 +100,11 @@ namespace Valour.Client.Messages
 
         }
 
+        public ClientEmbed GetEmbed()
+        {
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<ClientEmbed>(Embed_Data);
+        }
+
         /// <summary>
         /// Returns client version using shared implementation
         /// </summary>

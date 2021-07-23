@@ -9,6 +9,7 @@ using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
+using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using System.Text.RegularExpressions;
 using System.Collections.Specialized;
@@ -384,10 +385,32 @@ namespace Valour.Server.Controllers
             }
 
             // Stop people from sending insanely large messages
-            if (msg.Content.Length > 2048)
-            {
-                return new TaskResult(false, "Message is longer than 2048 chars.");
+
+            if (msg.Embed_Data == null) {
+                if (msg.Content.Length > 2048)
+                {
+                    return new TaskResult(false, "Message is longer than 2048 chars.");
+                }
             }
+            else {
+
+                // also check if the user is a bot
+                // sense only bots can send embeds
+                // make sure only bots can post embeds
+
+                User user = await member.GetUserAsync();
+
+                if (!user.Bot) {
+                    return new TaskResult(false, "Only bots may send embeds!");
+                }
+
+                if (msg.Embed_Data.Length > 65535)
+                {
+                    return new TaskResult(false, "Embed Data is longer than 65535 chars.");
+                }
+            }
+
+            
 
             // Media proxy layer
             msg.Content = await MSPManager.HandleUrls(msg.Content);
