@@ -32,30 +32,4 @@ namespace Valour.Shared.Messages
         public DateTime TimeInteracted {get; set;}
         public List<EmbedFormDataItem> EmbedFormData {get; set;}
     }
-
-    /// <summary>
-    /// This class is only used by the server to check if a message is a embed
-    /// </summary>
-
-    public class EmbedItem
-    {
-        public string Type {get; set;}
-
-        public string Text {get; set;}
-        public string Name {get; set;}
-
-        public string Color {get; set;}
-
-        public bool Inline {get; set;}
-    }
-
-    /// <summary>
-    /// This class is only used by the server to check if a message is a embed
-    /// </summary>
-    public class Embed
-    {
-        public string Color {get; set;}
-
-        public List<EmbedItem> Items {get; set;}
-    }
 }
