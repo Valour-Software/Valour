@@ -23,6 +23,15 @@ namespace Valour.Client.Messages
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
 
+     public enum EmbedSize {
+        Big,
+        Normal,
+        Small,
+        VerySmall,
+        Short,
+        VeryShort
+    }
+
     public class ClientEmbedItem
     {
 
@@ -31,7 +40,6 @@ namespace Valour.Client.Messages
         /// Text
         /// Button
         /// InputBox
-        /// TextArea
         /// </summary>
         public string Type {get; set;}
 
@@ -48,18 +56,13 @@ namespace Valour.Client.Messages
         public string Link {get; set;}
         public string TextColor {get; set;}
         public bool Center {get; set;}
-        /// <summary>
-        /// list of sizes
-        /// Very Small
-        /// Small
-        /// Normal
-        /// Large
-        /// </summary>
-        public string Size {get; set;}
+        public EmbedSize Size {get; set;}
         // for button click events and for naming form elements
         public string Id {get; set;}
         // the value of a input
         public string Value {get; set;}
+
+        // The placeholder for input boxes
         public string Placeholder {get; set;}
 
         public string GetInlineStyle {
@@ -77,9 +80,9 @@ namespace Valour.Client.Messages
             get {
                 switch (Size)
                 {
-                    case "Short":
+                    case EmbedSize.Short:
                         return "width:50%;";
-                    case "Very Short":
+                    case EmbedSize.VeryShort:
                         return "width:25%";
                     default:
                         return "";
