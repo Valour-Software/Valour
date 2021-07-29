@@ -277,7 +277,9 @@
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage?token={ClientUserManager.UserSecretToken}", message);
 
-        TaskResult response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(await httpresponse.Content.ReadAsStringAsync());
+        string res = await httpresponse.Content.ReadAsStringAsync();
+
+        TaskResult response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(res);
 
         Console.WriteLine(response.ToString());
     }

@@ -12,18 +12,17 @@ using Valour.Shared.Channels;
 using Valour.Shared.Categories;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using System.Linq;
-using Valour.Server.MSP;
 using Valour.Server.Roles;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using Valour.Server.Users;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
+using Valour.Server.MPS.Proxy;
+using Valour.Server.MPS;
 
 
 /*  Valour - A free and secure chat client
@@ -151,15 +150,17 @@ namespace Valour.Server.Controllers
 
             // Use MSP for proxying image
 
-            MSPResponse proxyResponse = await MSPManager.GetProxy(image_url);
+            ProxyResponse proxyResponse = await MPSManager.GetProxy(image_url);
 
-            if (string.IsNullOrWhiteSpace(proxyResponse.Url) || !proxyResponse.Is_Media)
+            bool is_media = MPSManager.Media_Types.Contains(proxyResponse.Item.Mime_Type);
+
+            if (proxyResponse.Item == null || !is_media)
             {
                 image_url = "https://valour.gg/image.png";
             }
             else
             {
-                image_url = proxyResponse.Url;
+                image_url = proxyResponse.Item.Url;
             }
 
             ulong planet_id = IdManager.Generate();

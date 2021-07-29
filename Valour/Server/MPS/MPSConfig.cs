@@ -4,13 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Valour.Server.MSP
+namespace Valour.Server.MPS
 {
-    public class MSPConfig
+    public class MPSConfig
     {
-        public static MSPConfig Current;
+        public static MPSConfig Current;
 
-        public MSPConfig()
+        public MPSConfig()
         {
             Current = this;
         }

@@ -1,39 +1,26 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using Pomelo.EntityFrameworkCore.MySql.Storage;
 using System;
 using System.IO;
-using System.Linq;
 using Valour.Server.Database;
-using Valour.Server.Messages;
-using Microsoft.AspNetCore.Http;
 using Valour.Server.Users.Identity;
-using Valour.Server.Users;
 using Valour.Server.Email;
 using AutoMapper;
 using Valour.Server.Mapping;
 using Valour.Server.Workers;
-using Valour.Server.MSP;
 using Valour.Server.Planets;
-using Microsoft.Net.Http.Headers;
-using Valour.Shared.Users;
-using Valour.Shared.Planets;
 using Valour.Server.Roles;
 using Valour.Server.Notifications;
 using WebPush;
+using Valour.Server.MPS;
+using System.Text.Json.Serialization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -55,7 +42,7 @@ namespace Valour.Server
         public const string CONF_LOC = "ValourConfig/";
         public const string DBCONF_FILE = "DBConfig.json";
         public const string EMCONF_FILE = "EmailConfig.json";
-        public const string MSPCONF_FILE = "MSPConfig.json";
+        public const string MPSCONF_FILE = "MPSConfig.json";
         public const string VAPIDCONF_FILE = "VapidConfig.json";
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -114,7 +101,12 @@ namespace Valour.Server
             IdManager idManager = new IdManager();
             services.AddSingleton<IdManager>(idManager);
             services.AddSingleton<WebPushClient>();
-            services.AddControllersWithViews();
+            services.AddControllersWithViews().AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                    options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
+                }
+            );
             services.AddRazorPages();
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
@@ -177,22 +169,22 @@ namespace Valour.Server
             // Initialize Email Manager
             EmailManager.SetupClient();
 
-            MSPConfig mspconfig = null;
+            MPSConfig mspconfig = null;
 
-            if (File.Exists(CONF_LOC + MSPCONF_FILE))
+            if (File.Exists(CONF_LOC + MPSCONF_FILE))
             {
                 // If there is a config, read it
-                mspconfig = JsonConvert.DeserializeObject<MSPConfig>(File.ReadAllText(CONF_LOC + MSPCONF_FILE));
+                mspconfig = JsonConvert.DeserializeObject<MPSConfig>(File.ReadAllText(CONF_LOC + MPSCONF_FILE));
             }
             else
             {
                 // Otherwise create a config with default values and write it to the location
-                mspconfig = new MSPConfig()
+                mspconfig = new MPSConfig()
                 {
                     Api_Key = "api_key_goes_here"
                 };
 
-                File.WriteAllText(CONF_LOC + MSPCONF_FILE, JsonConvert.SerializeObject(mspconfig));
+                File.WriteAllText(CONF_LOC + MPSCONF_FILE, JsonConvert.SerializeObject(mspconfig));
                 Console.WriteLine("Error: No MSP config was found. Creating file...");
             }
 
