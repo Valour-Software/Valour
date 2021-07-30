@@ -17,5 +17,8 @@ namespace Valour.Server.MPS
 
         [JsonProperty]
         public string Api_Key { get; set; }
+
+        [JsonIgnore]
+        public string Api_Key_Encoded { get; set; }
     }
 }

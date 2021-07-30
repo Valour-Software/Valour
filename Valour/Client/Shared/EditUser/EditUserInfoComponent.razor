@@ -1,6 +1,87 @@
-﻿<h3>Edit Basic Info</h3>
+﻿@using System.Net.Http.Headers
+@inject HttpClient http
+
+<h3>Edit Basic Info</h3>
+
+<br />
+
+<div>
+    <h5>Profile Image (pfp)</h5>
+    <img style="width:128px; border:solid 4px white; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
+    <div style="display:inline-block">
+        <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
+        <span id="result-span" style="display:block" class="text-info">@Pfp_Output</span>
+        <span id="error-span" style="display:block" class="text-danger">@Pfp_Error</span>
+    </div>
+</div>
 
 @code {
     [Parameter]
     public User User { get; set; }
+
+    public string Pfp_Url { get; set; }
+
+    public string Pfp_Output = "";
+    public string Pfp_Error = "";
+
+    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
+    {
+        { "accept", ".png,.jpg,.jpeg,.gif" }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        Pfp_Url = User.Pfp_Url;
+    }
+
+    protected async Task OnPfpError()
+    {
+        Pfp_Url = "/icon-512.png";
+
+        StateHasChanged();
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        Pfp_Output = "";
+        Pfp_Error = "";
+
+        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
+
+        var file = e.File;
+
+        if (file == null)
+        {
+            Pfp_Error = "Could not load file as an image.";
+        }
+
+        if (file.Size > 2621440)
+        {
+            Pfp_Error = "Max profile image size is 2mb.";
+        }
+
+        byte[] data = new byte[file.Size];
+
+        await file.OpenReadStream(2621440).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await http.PostAsync($"Upload/ProfileImage?auth={ClientUserManager.UserSecretToken}", content);
+
+        if (result.IsSuccessStatusCode)
+        {
+            Pfp_Url = await result.Content.ReadAsStringAsync();
+            Pfp_Output = "Successfully changed profile picture.";
+        }
+        else
+        {
+            Pfp_Error = await result.Content.ReadAsStringAsync();
+        }
+
+        StateHasChanged();
+    }
 }

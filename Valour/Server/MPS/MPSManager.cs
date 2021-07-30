@@ -39,17 +39,17 @@ namespace Valour.Server.MPS
             "https://tenor.com/",
             "https://i.imgur.com/",
             "https://youtu.be/",
-            "https://msp.valour.gg",
+            "https://vmps.valour.gg",
             "https://valour.gg",
             "https://pbs.twimg.com",
-
+             
             "http://youtube.com/watch",
             "http://cdn.discordapp.com/",
             "http://vimeo.com/",
             "http://tenor.com/",
             "http://i.imgur.com/",
             "http://youtu.be/",
-            "http://msp.valour.gg",
+            "http://vmps.valour.gg",
             "http://valour.gg",
             "http://pbs.twimg.com",
         };
@@ -78,6 +78,19 @@ namespace Valour.Server.MPS
             "video/x-msvideo",
             "video/x-flv",
             "video/webm",
+        };
+
+        public static HashSet<string> Image_Types = new HashSet<string>()
+        {
+            // Image
+            "image/gif",
+            "image/jpeg",
+            "image/png",
+            "image/tiff",
+            "image/vnd.microsoft.icon",
+            "image/x-icon",
+            "image/vnd.djvu",
+            "image/svg+xml",
         };
 
         public static async Task<string> HandleUrls(string content)
