@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,24 +8,14 @@ using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
-using Valour.Shared.Roles;
-using Valour.Shared.Planets;
-using System.Text.RegularExpressions;
-using System.Collections.Specialized;
-using Valour.Server.Messages;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
 using Valour.Server.Workers;
 using Valour.Server.Planets;
 using AutoMapper;
-using Valour.Server.MSP;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
 using WebPush;
-using Valour.Server.Notifications;
-using System.Web;
-using Microsoft.Extensions.Primitives;
-using System.Text.Json;
+using Valour.Server.MPS;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -403,7 +392,7 @@ namespace Valour.Server.Controllers
             }
 
             // Media proxy layer
-            msg.Content = await MSPManager.HandleUrls(msg.Content);
+            msg.Content = await MPSManager.HandleUrls(msg.Content);
 
             PlanetMessageWorker.AddToQueue(msg);
 
