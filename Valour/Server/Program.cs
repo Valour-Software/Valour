@@ -179,7 +179,7 @@ namespace Valour.Server
             services.AddControllersWithViews().AddJsonOptions(options =>
             {
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-                options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
+                //options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
             }
             );
             services.AddRazorPages();

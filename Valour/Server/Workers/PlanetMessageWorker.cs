@@ -73,6 +73,7 @@ namespace Valour.Server.Workers
                         // Update message count. May have to queue this in the future to prevent concurrency issues (done).
                         channel.Message_Count += 1;
                         Message.Message_Index = index;
+                        Message.TimeSent = DateTime.UtcNow;
 
                         string json = JsonConvert.SerializeObject(Message);
 
