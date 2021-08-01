@@ -109,17 +109,61 @@ namespace Valour.Client.Messages
     public class ClientEmbed
     {
 
-        /// <summary>
-        /// Must be in hex format, example: "ffffff"
-        /// </summary>
-        public string Color {get; set;}
+        // if pages is null/empty, then render items
+        // else render the pages
+
+        public List<List<ClientEmbedItem>> Pages {get; set;}
 
         public List<ClientEmbedItem> Items {get; set;}
+
+        public List<ClientEmbedItem> CurrentlyDisplayed;
+        public int CurrentPage = 0;
+
+        public void NextPage()
+        {
+            CurrentPage += 1;
+            if (CurrentPage >= Pages.Count()) {
+                CurrentPage = 0;
+            }
+            UpdateCurrentlyDisplayed();
+        }
+        public void PrevPage()
+        {
+            CurrentPage -= 1;
+            if (CurrentPage < 0) {
+                CurrentPage = Pages.Count()-1;
+            }
+            UpdateCurrentlyDisplayed();
+        }
+
+        public bool HasPages()
+        {
+            if (Pages == null) {
+                return false;
+            }
+            if (Pages.Count() == 0) {
+                return false;
+            }
+            return true;
+        }
+
+        public void UpdateCurrentlyDisplayed()
+        {
+            if (Pages == null) {
+                CurrentlyDisplayed = Items;
+                return;
+            }
+            if (Pages.Count() == 0) {
+                CurrentlyDisplayed = Items;
+                return;
+            }
+            CurrentlyDisplayed = Pages[CurrentPage];
+        }
 
         public List<EmbedFormDataItem> GetFormData()
         {
             List<EmbedFormDataItem> data = new List<EmbedFormDataItem>();
-            foreach(ClientEmbedItem item in Items) {
+            foreach(ClientEmbedItem item in CurrentlyDisplayed) {
                 if (item.Type == "InputBox") {
                     EmbedFormDataItem DataItem = new EmbedFormDataItem()
                     {

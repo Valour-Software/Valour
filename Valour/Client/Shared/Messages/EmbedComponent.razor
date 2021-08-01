@@ -3,7 +3,7 @@
 @if (embed != null) {
     <div class="embed">
         @if (embed.Items != null) {
-            @foreach (ClientEmbedItem item in embed.Items)
+            @foreach (ClientEmbedItem item in embed.CurrentlyDisplayed)
             {
                 @switch (item.Type)
                 {
@@ -39,6 +39,13 @@
                         break;
                 }
             }
+            @if (embed.HasPages()) {
+                <div style="margin-left: 80%;">
+                    <button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
+                    <p style="font-size:12px;display: inline-block;">@embed.CurrentPage</p>
+                    <button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+                </div>
+            }
         }
     </div>
 }
@@ -49,5 +56,20 @@
     public ClientEmbed embed { get; set;}
     [Parameter]
     public ClientPlanetMessage Message {get; set;}
+
+    protected async override Task OnInitializedAsync() {
+        embed.UpdateCurrentlyDisplayed();
+        StateHasChanged();
+    }
+
+    public void NextPage() {
+        embed.NextPage();
+        StateHasChanged();
+    }
+
+    public void PrevPage() {
+        embed.PrevPage();
+        StateHasChanged();
+    }
 
 }
