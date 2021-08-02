@@ -48,6 +48,8 @@
 
     public ClientPlanetMember Author;
 
+    public bool ShouldRenderValue = false;
+
     public string Class
     {
         get
@@ -115,7 +117,46 @@
 
         Holder.AddRenderedMessage(this);
 
+        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+
+        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
+
+        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+
         await BuildMessage();
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role)
+    {
+        Author = await Message.GetAuthorAsync();
+        roleColor = await Author.GetColorHexAsync();
+        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        ShouldRenderValue = true;
+        StateHasChanged();
+        ShouldRenderValue = false;
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        Author = await Message.GetAuthorAsync();
+        roleColor = await Author.GetColorHexAsync();
+        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        ShouldRenderValue = true;
+        StateHasChanged();
+        ShouldRenderValue = false;
+    }
+
+    public async Task OnMemberUpdate(ClientPlanetMember member)
+    {
+        if (member.Id == Author.Id)
+        {
+            Author = await Message.GetAuthorAsync();
+            roleColor = await Author.GetColorHexAsync();
+            roleName = (await Author.GetPrimaryRoleAsync()).Name;
+            ShouldRenderValue = true;
+            StateHasChanged();
+            ShouldRenderValue = false;
+        }
     }
 
     void IDisposable.Dispose()
@@ -137,7 +178,7 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        return false;
+        return ShouldRenderValue;
     }
 
 }

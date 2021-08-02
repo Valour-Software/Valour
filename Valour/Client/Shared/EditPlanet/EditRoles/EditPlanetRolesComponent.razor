@@ -195,11 +195,18 @@
     {
         Roles = await Planet.GetRolesAsync();
         planetManager.OnRoleUpdate += OnRolesUpdate;
+        planetManager.OnRoleDeletion += OnRoleDeletion;
     }
+
 
     public async Task GoBack()
     {
-        role = null;
+        role = new PlanetRole(){
+            Name = "New Role",
+            Bold = false,
+            Italics = false,
+            Planet_Id = Planet.Id
+        };
         deleteMode = false;
         editMode = false;
 
@@ -349,6 +356,13 @@
         }
 
         StateHasChanged();
+
+        editMode = false;
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        Roles = await Planet.GetRolesAsync();
     }
 
     // Handle role list changes that may occur while open
@@ -359,6 +373,8 @@
 
         if (oldRole == null)
         {
+            Roles = await Planet.GetRolesAsync();
+            StateHasChanged();
             return;
         }
 

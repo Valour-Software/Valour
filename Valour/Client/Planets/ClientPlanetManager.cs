@@ -59,6 +59,7 @@ namespace Valour.Client.Planets
         public event Func<Task> OnCategoriesUpdate;
 
         public event Func<PlanetRole, Task> OnRoleUpdate;
+        public event Func<PlanetRole, Task> OnRoleDeletion;
 
         public event Func<ClientPlanetMember, Task> OnMemberUpdate;
 
@@ -76,6 +77,7 @@ namespace Valour.Client.Planets
 
             signalRManager.hubConnection.On<string>("Relay", OnMessageRecieve);
             signalRManager.hubConnection.On<string>("RoleUpdate", UpdateRole);
+            signalRManager.hubConnection.On<string>("RoleDeletion", RoleDeletion);
             signalRManager.hubConnection.On<string>("MemberUpdate", UpdateMember);
             signalRManager.hubConnection.On<string>("ChatChannelUpdate", UpdateChatChannel);
             signalRManager.hubConnection.On<string>("CategoryUpdate", UpdateCategory);
@@ -639,6 +641,39 @@ namespace Valour.Client.Planets
             }
         }
 
+        public async Task RoleDeletion(string json)
+        {
+            PlanetRole role = JsonConvert.DeserializeObject<PlanetRole>(json);
+
+            if (role == null)
+            {
+                Console.WriteLine("Failed to deserialize role in role update.");
+                return;
+            }
+
+            Console.WriteLine($"RECIEVE: Planet role deletion ping for role {role.Id}");
+            Console.WriteLine(json);
+            PlanetRole r;
+            PlanetRolesCache.TryRemove(role.Id, out r);
+            if (PlanetRolesListCache[role.Planet_Id].Contains(role.Id))
+            {
+                PlanetRolesListCache[role.Planet_Id].Remove(role.Id);
+            }
+
+            // check every member
+
+            foreach (ClientPlanetMember member in PlanetMemberCache.Values)
+            {
+                member.RemoveRoleId(role.Id);
+            }
+
+
+            if (OnRoleDeletion != null)
+            {
+                await OnRoleDeletion.Invoke(role);
+            }
+        }
+
         public async Task UpdateRole(string json)
         {
             PlanetRole role = JsonConvert.DeserializeObject<PlanetRole>(json);
@@ -652,6 +687,9 @@ namespace Valour.Client.Planets
             Console.WriteLine($"RECIEVE: Planet role update ping for role {role.Id}");
             Console.WriteLine(json);
             await SetUpdatedRole(role);
+            if (!PlanetRolesListCache[role.Planet_Id].Contains(role.Id)) {
+                PlanetRolesListCache[role.Planet_Id].Insert(PlanetRolesListCache[role.Planet_Id].Count()-1, role.Id);
+            }
             
 
             if (OnRoleUpdate != null)
@@ -672,7 +710,17 @@ namespace Valour.Client.Planets
 
             Console.WriteLine("RECIEVE: Planet member update ping");
             Console.WriteLine(json);
+
+            // get new roles for this member
+
+            await member.LoadUserAsync();
+
+            await member.GetRoleIdsAsync();
+
             await SetUpdatedMember(member);
+            ClientPlanetMember m = PlanetMembersListCache[member.Planet_Id].Find(x => x.Id == member.Id);
+            PlanetMembersListCache[member.Planet_Id].Remove(m);
+            PlanetMembersListCache[member.Planet_Id].Add(member);
 
             if (OnMemberUpdate != null)
             {

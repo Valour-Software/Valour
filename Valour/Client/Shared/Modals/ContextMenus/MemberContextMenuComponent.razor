@@ -138,8 +138,20 @@
 
         ClientPlanetManager.Current.OnPlanetChange += OnPlanetChange;
         ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
         memberContextMenu.OpenEvent += OnOpened;
         ModalHolderComponent.CloseModalEvent += OnModalClose;
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        PlanetRoles = await Planet.GetRolesAsync();
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role)
+    {
+        PlanetRoles = await Planet.GetRolesAsync();
     }
 
     public async Task OnPlanetChange(ClientPlanet planet)

@@ -864,7 +864,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            await PlanetHub.NotifyRoleChange(role);
+            await PlanetHub.NotifyRoleDeletion(role);
 
             return new TaskResult(true, $"Successfully removed role {role.Id}.");
         }

@@ -39,6 +39,61 @@
         OfflineList = new List<ClientPlanetMember>();
 
         planetManager.OnPlanetChange += OnPlanetChange;
+        planetManager.OnRoleUpdate += OnRoleUpdate;
+        planetManager.OnMemberUpdate += OnMemberUpdate;
+        planetManager.OnRoleDeletion += OnRoleDeletion;
+    }
+
+    public async Task OnMemberUpdate(ClientPlanetMember member)
+    {
+        // not awaited on purpose
+        if (member.Planet_Id == planetManager.GetCurrent().Id)
+        {
+            MemberList = await planetManager.GetCachedPlanetMembers(planetManager.GetCurrent());
+            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
+            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+            RoleMemberLists.Clear();
+            OnlineList.Clear();
+            OfflineList.Clear();
+            StateHasChanged();
+            await BuildRoleLists();
+            StateHasChanged();
+        }
+        
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        // not awaited on purpose
+        if (role.Planet_Id == planetManager.GetCurrent().Id)
+        {
+            MemberList = await planetManager.GetCachedPlanetMembers(planetManager.GetCurrent());
+            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
+            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+            RoleMemberLists.Clear();
+            OnlineList.Clear();
+            OfflineList.Clear();
+            StateHasChanged();
+            await BuildRoleLists();
+            StateHasChanged();
+        }
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role)
+    {
+        // not awaited on purpose
+        if (role.Planet_Id == planetManager.GetCurrent().Id)
+        {
+            MemberList = await planetManager.GetCachedPlanetMembers(planetManager.GetCurrent());
+            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
+            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+            RoleMemberLists.Clear();
+            OnlineList.Clear();
+            OfflineList.Clear();
+            StateHasChanged();
+            await BuildRoleLists();
+            StateHasChanged();
+        }
     }
 
     public async Task BuildRoleLists()
