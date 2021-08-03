@@ -260,6 +260,15 @@ namespace Valour.Client.Planets
             PlanetMemberCache.AddOrUpdate(member.Id, member, (key, old) => member);
         }
 
+        public async Task RemoveMember(ClientPlanetMember member)
+        {
+            string dual_key = $"{member.Planet_Id}-{member.User_Id}";
+
+            ClientPlanetMember o;
+            PlanetMemberDualCache.Remove(dual_key, out o);
+            PlanetMemberCache.Remove(member.Id, out o);
+        }
+
         public async Task SetUpdatedRole(PlanetRole role)
         {
             PlanetRolesCache.AddOrUpdate(role.Id, role, (key, old) => role);
@@ -647,7 +656,7 @@ namespace Valour.Client.Planets
 
             if (role == null)
             {
-                Console.WriteLine("Failed to deserialize role in role update.");
+                Console.WriteLine("Failed to deserialize role in role deletion.");
                 return;
             }
 
@@ -688,7 +697,8 @@ namespace Valour.Client.Planets
             Console.WriteLine(json);
             await SetUpdatedRole(role);
             if (!PlanetRolesListCache[role.Planet_Id].Contains(role.Id)) {
-                PlanetRolesListCache[role.Planet_Id].Insert(PlanetRolesListCache[role.Planet_Id].Count()-1, role.Id);
+                var rolesList = PlanetRolesListCache[role.Planet_Id];
+                rolesList.Insert(rolesList.Count()-1, role.Id);
             }
             
 
@@ -718,8 +728,10 @@ namespace Valour.Client.Planets
             await member.GetRoleIdsAsync();
 
             await SetUpdatedMember(member);
+
             ClientPlanetMember m = PlanetMembersListCache[member.Planet_Id].Find(x => x.Id == member.Id);
             PlanetMembersListCache[member.Planet_Id].Remove(m);
+
             PlanetMembersListCache[member.Planet_Id].Add(member);
 
             if (OnMemberUpdate != null)

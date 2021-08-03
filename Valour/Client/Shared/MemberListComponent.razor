@@ -25,7 +25,10 @@
 </div>
 
 @code {
+ 
     public List<ClientPlanetMember> MemberList { get; set; }
+    public List<ClientPlanetMember> OrderedList { get; set; }
+
     public List<PlanetRole> PlanetRoles {get; set;}
 
     public Dictionary<PlanetRole, List<ClientPlanetMember>> RoleMemberLists { get; set; }
@@ -49,15 +52,7 @@
         // not awaited on purpose
         if (member.Planet_Id == planetManager.GetCurrent().Id)
         {
-            MemberList = await planetManager.GetCachedPlanetMembers(planetManager.GetCurrent());
-            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
-            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
-            RoleMemberLists.Clear();
-            OnlineList.Clear();
-            OfflineList.Clear();
-            StateHasChanged();
-            await BuildRoleLists();
-            StateHasChanged();
+            await RefreshOnRoleChange();
         }
         
     }
@@ -67,15 +62,7 @@
         // not awaited on purpose
         if (role.Planet_Id == planetManager.GetCurrent().Id)
         {
-            MemberList = await planetManager.GetCachedPlanetMembers(planetManager.GetCurrent());
-            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
-            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
-            RoleMemberLists.Clear();
-            OnlineList.Clear();
-            OfflineList.Clear();
-            StateHasChanged();
-            await BuildRoleLists();
-            StateHasChanged();
+            await RefreshOnRoleChange();
         }
     }
 
@@ -84,16 +71,19 @@
         // not awaited on purpose
         if (role.Planet_Id == planetManager.GetCurrent().Id)
         {
-            MemberList = await planetManager.GetCachedPlanetMembers(planetManager.GetCurrent());
-            PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
-            MemberList = MemberList.OrderByDescending(GetComparator).ToList();
-            RoleMemberLists.Clear();
-            OnlineList.Clear();
-            OfflineList.Clear();
-            StateHasChanged();
-            await BuildRoleLists();
-            StateHasChanged();
+            await RefreshOnRoleChange();
         }
+    }
+
+    public async Task RefreshOnRoleChange()
+    {
+        OrderedList = MemberList.OrderByDescending(GetComparator).ToList();
+        RoleMemberLists.Clear();
+        OnlineList.Clear();
+        OfflineList.Clear();
+        StateHasChanged();
+        await BuildRoleLists();
+        StateHasChanged();
     }
 
     public async Task BuildRoleLists()
@@ -102,7 +92,7 @@
         OnlineList.Clear();
         OfflineList.Clear();
 
-        foreach (var member in MemberList)
+        foreach (var member in OrderedList)
         {
             var user = await member.GetUserAsync();
 
@@ -159,9 +149,9 @@
         Console.WriteLine($"Member list is updating to {planet.Name}");
         MemberList = await planetManager.GetCachedPlanetMembers(planet);
         PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
-        MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+        OrderedList = MemberList.OrderByDescending(GetComparator).ToList();
         await BuildRoleLists();
-        Console.WriteLine($"Starting with {MemberList.Count()} members.");
+        Console.WriteLine($"Starting with {OrderedList.Count()} members.");
         StateHasChanged();
     }
 

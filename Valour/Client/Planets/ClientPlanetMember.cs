@@ -25,7 +25,7 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Cached roles
         /// </summary>
-        public List<ulong> _roleids { get; set; }
+        private List<ulong> _roleids = null;
 
         /// <summary>
         /// Cached status
@@ -39,7 +39,10 @@ namespace Valour.Client.Planets
 
         public void RemoveRoleId(ulong RoleId)
         {
-            _roleids.Remove(RoleId);
+            if (_roleids != null)
+            {
+                _roleids.Remove(RoleId);
+            }
         }
 
         public ulong TryGetPrimaryRoleId()

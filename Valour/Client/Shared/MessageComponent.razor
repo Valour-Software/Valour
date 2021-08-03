@@ -75,6 +75,8 @@
 
     bool mentioned = false;
 
+    private PlanetRole primaryRole;
+
     public async Task OnAuthorNameClick(MouseEventArgs e)
     {
         if (e.Button == 2)
@@ -97,7 +99,9 @@
 
         roleColor = await Author.GetColorHexAsync();
 
-        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        primaryRole = await Author.GetPrimaryRoleAsync();
+
+        roleName = primaryRole.Name;
 
         string pfp = await Author.GetPfpAsync();
 
@@ -126,36 +130,45 @@
         await BuildMessage();
     }
 
-    public async Task OnRoleUpdate(PlanetRole role)
+    public async Task UpdateForRoleChange()
     {
-        Author = await Message.GetAuthorAsync();
         roleColor = await Author.GetColorHexAsync();
         roleName = (await Author.GetPrimaryRoleAsync()).Name;
+    }
+    
+    public void ReRender(){
         ShouldRenderValue = true;
         StateHasChanged();
         ShouldRenderValue = false;
     }
 
+    public async Task OnRoleUpdate(PlanetRole role)
+    {
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = role;
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
     public async Task OnRoleDeletion(PlanetRole role)
     {
-        Author = await Message.GetAuthorAsync();
-        roleColor = await Author.GetColorHexAsync();
-        roleName = (await Author.GetPrimaryRoleAsync()).Name;
-        ShouldRenderValue = true;
-        StateHasChanged();
-        ShouldRenderValue = false;
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = await Author.GetPrimaryRoleAsync();
+            await UpdateForRoleChange();
+            ReRender();
+        }
     }
 
     public async Task OnMemberUpdate(ClientPlanetMember member)
     {
         if (member.Id == Author.Id)
         {
-            Author = await Message.GetAuthorAsync();
-            roleColor = await Author.GetColorHexAsync();
-            roleName = (await Author.GetPrimaryRoleAsync()).Name;
-            ShouldRenderValue = true;
-            StateHasChanged();
-            ShouldRenderValue = false;
+            Author = member;
+            await UpdateForRoleChange();
+            ReRender();
         }
     }
 
