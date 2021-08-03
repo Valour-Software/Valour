@@ -91,6 +91,14 @@ namespace Valour.Server.Planets
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", json);
         }
 
+        public static async Task NotifyRoleDeletion(ServerPlanetRole role)
+        {
+            string json = JsonConvert.SerializeObject(role);
+
+            // Send update to members
+            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", json);
+        }
+
         public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel)
         {
             string json = JsonConvert.SerializeObject(channel);

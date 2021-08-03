@@ -48,6 +48,8 @@
 
     public ClientPlanetMember Author;
 
+    public bool ShouldRenderValue = false;
+
     public string Class
     {
         get
@@ -73,6 +75,8 @@
 
     bool mentioned = false;
 
+    private PlanetRole primaryRole;
+
     public async Task OnAuthorNameClick(MouseEventArgs e)
     {
         if (e.Button == 2)
@@ -95,7 +99,9 @@
 
         roleColor = await Author.GetColorHexAsync();
 
-        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        primaryRole = await Author.GetPrimaryRoleAsync();
+
+        roleName = primaryRole.Name;
 
         string pfp = await Author.GetPfpAsync();
 
@@ -115,7 +121,55 @@
 
         Holder.AddRenderedMessage(this);
 
+        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+
+        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
+
+        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+
         await BuildMessage();
+    }
+
+    public async Task UpdateForRoleChange()
+    {
+        roleColor = await Author.GetColorHexAsync();
+        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+    }
+    
+    public void ReRender(){
+        ShouldRenderValue = true;
+        StateHasChanged();
+        ShouldRenderValue = false;
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role)
+    {
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = role;
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = await Author.GetPrimaryRoleAsync();
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
+    public async Task OnMemberUpdate(ClientPlanetMember member)
+    {
+        if (member.Id == Author.Id)
+        {
+            Author = member;
+            await UpdateForRoleChange();
+            ReRender();
+        }
     }
 
     void IDisposable.Dispose()
@@ -137,7 +191,7 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        return false;
+        return ShouldRenderValue;
     }
 
 }

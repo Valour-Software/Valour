@@ -37,6 +37,14 @@ namespace Valour.Client.Planets
         /// </summary>
         private User _user = null;
 
+        public void RemoveRoleId(ulong RoleId)
+        {
+            if (_roleids != null)
+            {
+                _roleids.Remove(RoleId);
+            }
+        }
+
         public ulong TryGetPrimaryRoleId()
         {
             if (_roleids == null)
