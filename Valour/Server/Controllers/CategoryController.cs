@@ -240,7 +240,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Send channel refresh
-            await PlanetHub.NotifyCategoryChange(category);
+            PlanetHub.NotifyCategoryChange(category);
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created category.", category.Id);
