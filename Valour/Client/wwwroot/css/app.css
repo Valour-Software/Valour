@@ -22,7 +22,7 @@
     margin: 0px;
     padding: 0px;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overflow-y: hidden;  
 }
 
 a {
@@ -90,13 +90,22 @@ body {
     line-height: NORMAL;
 }
 
+.chat-holder {
+    padding-right: 0.5rem;
+}
+
 .message {
     width: 100%;
     max-width: 100%;
-    margin-top: 4px;
     padding-bottom: 0px;
+    padding-left: 4px;
     position: relative;
     min-height: 51.333px;
+}
+
+.message.mentioned {
+    border-left: 2px solid #ffac6c;
+    background: rgba(168, 115, 87, 0.15);
 }
 
 .multi-message {
@@ -104,7 +113,18 @@ body {
     max-width: 100%;
     margin-top: 0px;
     margin-bottom: 0px;
+    padding-bottom: 0px;
+    padding-left: 4px;
     position: relative;
+}
+
+.multi-message.mentioned {
+    border-left: 2px solid #ffac6c;
+    background: rgba(168, 115, 87, 0.15);
+}
+
+.mentioned .content {
+    margin-left: -2px !important;
 }
 
 .multi-message-content {
@@ -962,7 +982,6 @@ body {
     border-color: grey;
     padding: 50px;
     width: 400px;
-    min-height: 400px;
     z-index: 2;
     box-shadow: 0px 0px 15px #000000;
     margin: auto;
@@ -1813,4 +1832,55 @@ blockquote {
 
 .cbtn-Normal {
 
+}
+  
+.create-component-title {
+    text-align: center;
+}
+
+.create-component-enter-info {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.create-component-enter-box {
+    background: #192630;
+    border: 1px solid #030B11;
+    box-sizing: border-box;
+    border-radius: 8px;
+}
+
+.create-component-roles-box {
+    background: #192630;
+    width:100%;
+    border-radius: 8px;
+    margin-top:12px;
+}
+
+.create-component-roles-box .role {
+    padding-left: 9px;
+    padding-right: 9px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.mention {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.mention.target {
+    font-weight: 500;
+}
+
+.mention:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mention:active {
+    background-color: rgba(255, 255, 255, 0.3);
 }

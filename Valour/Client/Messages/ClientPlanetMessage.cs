@@ -144,7 +144,7 @@ namespace Valour.Client.Messages
         private static HashSet<string> InlineTags = new HashSet<string>()
         {
             "b", "/b", "em", "/em", "strong", "/strong",
-            "blockquote", "/blockquote"
+            "blockquote", "/blockquote", "p", "/p"
         };
 
         /// <summary>

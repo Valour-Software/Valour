@@ -1,6 +1,9 @@
 ﻿@inject ChannelListContextMenu channelListContextMenu
 @inject ConfirmModal confirmModal
+@inject InfoModal infoModal
 @inject EditChannelListItemModal editModal
+@inject HttpClient Http
+@inject ClientPlanetManager planetManager
 
 @if (visible)
 {
@@ -58,6 +61,36 @@
 
     public async Task DeleteChannelListItem()
     {
+
+        bool IsCategory = channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.Category;
+
+        if (IsCategory) {
+
+            ulong category_id = channelListContextMenu.SelectedItem.Id;
+
+            // get planet channels and categories
+
+            List<ClientPlanetChatChannel> channels = await planetManager.GetCurrent().GetChannelsAsync();
+
+            List<ClientPlanetCategory> categories = await planetManager.GetCurrent().GetCategoriesAsync();
+
+            if (channels.Where(x => x.Parent_Id == category_id).Count() > 0 || categories.Where(x => x.Parent_Id == category_id).Count() > 0) {
+                await infoModal.Open($"You can't delete this!",
+                                    "This is due to this category having channels and/or categories inside of it.",
+                                    "Okay",
+
+                async () =>
+                {
+                    Console.WriteLine("User Clicked Ok");
+                });
+
+                return;
+            }
+        }
+
+        
+        
+
         await confirmModal.Open($"Delete {channelListContextMenu.SelectedItem.Name}?",
                                 "Are you sure?",
                                 "Continue",
@@ -66,6 +99,29 @@
         async () =>
         {
             Console.WriteLine("Confirmed channel item deletion.");
+
+            //Delete(ulong id, ulong user_id, string token)
+
+            ulong user_id = ClientUserManager.User.Id;
+            string token = ClientUserManager.UserSecretToken;
+            string json = "";
+
+            if (channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.ChatChannel) {
+                json = await Http.GetStringAsync($"Channel/Delete?id={channelListContextMenu.SelectedItem.Id}" +
+                                                                    $"&user_id={user_id}" +
+                                                                    $"&token={token}");
+            }
+
+            else {
+                json = await Http.GetStringAsync($"Category/Delete?id={channelListContextMenu.SelectedItem.Id}" +
+                                                                    $"&user_id={user_id}" +
+                                                                    $"&token={token}");
+            }
+
+            TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+
+            Console.WriteLine(result.Message);
+
         },
 
         async () =>

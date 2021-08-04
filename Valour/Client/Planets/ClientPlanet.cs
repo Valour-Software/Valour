@@ -27,7 +27,7 @@ namespace Valour.Client.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ClientPlanet : Planet
+    public class ClientPlanet : Planet 
     {
 
         /// <summary>
@@ -41,12 +41,78 @@ namespace Valour.Client.Planets
             }
         }
 
+        // Cached values
+        private List<ClientPlanetChatChannel> _channels = null;
+        private List<ClientPlanetCategory> _categories = null;
+
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base
         /// </summary>
         public static ClientPlanet FromBase(Planet planet, IMapper mapper)
         {
             return mapper.Map<ClientPlanet>(planet);
+        }
+
+        public async Task NotifyUpdateChannel(ClientPlanetChatChannel channel)
+        {
+            if (_channels == null)
+            {
+                await RequestChannelsAsync();
+            }
+
+            int index = _channels.FindIndex(x => x.Id == channel.Id);
+
+            if (index == -1) {
+                // add to cache
+                _channels.Add(channel);
+            }
+            else {
+                // replace
+                _channels.RemoveAt(index);
+                _channels.Insert(index, channel);
+            }
+        }
+
+        public void NotifyDeleteChannel(ClientPlanetChatChannel channel)
+        {
+            int index = _channels.FindIndex(x => x.Id == channel.Id);
+
+            if (index != -1)
+            {
+                _channels.RemoveAt(index);
+            }
+        }
+
+        public async Task NotifyUpdateCategory(ClientPlanetCategory category)
+        {
+            if (_categories == null)
+            {
+                await RequestCategoriesAsync();
+            }
+
+            int index = _categories.FindIndex(x => x.Id == category.Id);
+
+            if (index == -1)
+            {
+                // add to cache
+                _categories.Add(category);
+            }
+            else
+            {
+                // replace
+                _categories.RemoveAt(index);
+                _categories.Insert(index, category);
+            }
+        }
+
+        public void NotifyDeleteCategory(ClientPlanetCategory category)
+        {
+            int index = _categories.FindIndex(x => x.Id == category.Id);
+
+            if (index != -1)
+            {
+                _categories.RemoveAt(index);
+            }
         }
 
         /// <summary>
@@ -80,7 +146,21 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Retrieves and returns categories of a planet by requesting from the server
         /// </summary>
-        public async Task<List<ClientPlanetCategory>> GetCategoriesAsync()
+        public async Task<List<ClientPlanetCategory>> GetCategoriesAsync(bool force_refresh = false)
+        {
+
+            if (_categories == null || force_refresh)
+            {
+                await RequestCategoriesAsync();
+            }
+
+            return _categories;
+        }
+
+        /// <summary>
+        /// Requests and caches categories from the server
+        /// </summary>
+        public async Task RequestCategoriesAsync()
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Category/GetPlanetCategories?planet_id={Id}" +
                                                                                                   $"&token={ClientUserManager.UserSecretToken}");
@@ -90,41 +170,51 @@ namespace Valour.Client.Planets
             if (result == null)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet from the server.");
-                return null;
             }
 
             if (!result.Success)
             {
                 Console.WriteLine(result.ToString());
-                return null;
             }
 
-            return result.Data;
+            _categories = result.Data;
         }
 
         /// <summary>
         /// Retrieves and returns channels of a planet by requesting from the server
         /// </summary>
-        public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync()
+        public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync(bool force_refresh = false)
+        {
+
+            if (_channels == null || force_refresh)
+            {
+                await RequestChannelsAsync();
+            }
+
+            return _channels;
+        }
+
+        /// <summary>
+        /// Requests and caches channels from the server
+        /// </summary>
+        public async Task RequestChannelsAsync()
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planet_id={Id}" +
-                                                                                               $"&token={ClientUserManager.UserSecretToken}");
+                                                                                   $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult<List<ClientPlanetChatChannel>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetChatChannel>>>(json);
 
             if (result == null)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet from the server.");
-                return null;
             }
 
             if (!result.Success)
             {
                 Console.WriteLine(result.ToString());
-                return null;
             }
 
-            return result.Data;
+            _channels = result.Data;
         }
 
         /// <summary>

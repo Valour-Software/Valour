@@ -31,7 +31,6 @@ namespace Valour.Client
             builder.RootComponents.Add<App>("app");
 
             builder.Services.AddBlazoredLocalStorage();
-            builder.Services.AddScoped<LocalStorageService>();
             builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddSingleton<SignalRManager>();
             builder.Services.AddSingleton<ClientPlanetManager>();
@@ -44,6 +43,7 @@ namespace Valour.Client
             builder.Services.AddSingleton<ChannelListContextMenu>();
             builder.Services.AddSingleton<AddChannelContextMenu>();
             builder.Services.AddSingleton<ConfirmModal>();
+            builder.Services.AddSingleton<InfoModal>();
             builder.Services.AddSingleton<BanModal>();
             builder.Services.AddSingleton<EditPlanetModal>();
             builder.Services.AddSingleton<EditUserModal>();

@@ -84,36 +84,22 @@ namespace Valour.Server.Planets
         /// </summary>
         public async Task<List<ServerPlanetRole>> GetRolesAsync(ValourDB db = null)
         {
-            bool createdb = false;
-            if (db == null)
+            List<ServerPlanetRole> roles;
+
+            if (RoleMembership == null)
             {
-                db = new ValourDB(ValourDB.DBOptions);
-                createdb = true;
+                await LoadRoleMembershipAsync(db);
             }
 
-            List<ServerPlanetRole> roles = new List<ServerPlanetRole>();
+            roles = RoleMembership.Select(x => x.Role).ToList();
 
-            // Add default role
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
-
-            var membership = db.PlanetRoleMembers.Include(x => x.Role)
-                                                 .Where(x => x.Member_Id == Id)
-                                                 .OrderBy(x => x.Role.Position)
-                                                 .Select(x => x.Role)
-                                                 .ToList();
-
-            if (createdb)
-            {
-                await db.DisposeAsync();
-            }
-
-            return membership;
+            return roles;
         }
 
         /// <summary>
-        /// Returns the member's primary role
+        /// Loads role membership data from database
         /// </summary>
-        public async Task<ServerPlanetRole> GetPrimaryRoleAsync(ValourDB db = null)
+        public async Task LoadRoleMembershipAsync(ValourDB db = null)
         {
             bool createdb = false;
             if (db == null)
@@ -122,15 +108,29 @@ namespace Valour.Server.Planets
                 createdb = true;
             }
 
-            var membership = db.PlanetRoleMembers.Include(x => x.Role).Where(x => x.Member_Id == Id).OrderBy(x => x.Role.Position);
-            var primary = (await membership.FirstOrDefaultAsync()).Role;
+            await db.Attach(this).Collection(x => x.RoleMembership)
+                                     .Query()
+                                     .Include(x => x.Role)
+                                     .OrderBy(x => x.Role.Position)
+                                     .LoadAsync();
 
             if (createdb)
             {
                 await db.DisposeAsync();
             }
+        }
 
-            return primary;
+        /// <summary>
+        /// Returns the member's primary role
+        /// </summary>
+        public async Task<ServerPlanetRole> GetPrimaryRoleAsync(ValourDB db = null)
+        {
+            if (RoleMembership == null)
+            {
+                await LoadRoleMembershipAsync(db);
+            }
+
+            return RoleMembership.FirstOrDefault().Role;
         }
 
         /// <summary>
@@ -187,7 +187,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the planet (async)
         /// </summary>
-        public async Task<Planet> GetPlanetAsync()
+        public async Task<ServerPlanet> GetPlanetAsync()
         {
             if (Planet != null) return Planet;
 
@@ -208,16 +208,23 @@ namespace Valour.Server.Planets
             return GetPlanetAsync().Result;
         }
 
-        public async Task<uint> GetAuthorityAsync()
+        public async Task<ulong> GetAuthorityAsync()
         {
-            if ((await GetPlanetAsync()).Owner_Id == User_Id)
+            if (Planet == null)
+            {
+                Planet = await GetPlanetAsync();
+            }
+
+            if (Planet.Owner_Id == User_Id)
             {
                 // Highest possible authority for owner
-                return uint.MaxValue;
+                return ulong.MaxValue;
             }
             else
             {
-                return uint.MaxValue - (1 + (await GetPrimaryRoleAsync()).Position);
+                var primaryRole = await GetPrimaryRoleAsync();
+
+                return primaryRole.GetAuthority();
             }
         }
     }

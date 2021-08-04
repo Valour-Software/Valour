@@ -2,7 +2,7 @@
 @inject MemberContextMenu memberContextMenu
 @implements IDisposable
 
-<div id="m-@Message.Channel_Id-@Message.Message_Index" class="message">
+<div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class">
     <div style="display:inline-block; position: absolute">
         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
         <div class="time-container">
@@ -57,6 +57,23 @@
 
     public ClientPlanetMember Author;
 
+    public bool ShouldRenderValue = false;
+
+    public string Class
+    {
+        get
+        {
+            if (mentioned)
+            {
+                return "message mentioned";
+            }
+            else
+            {
+                return "message";
+            }
+        }
+    }
+
     string roleColor = "#ffffff";
 
     string roleName = "Default";
@@ -64,6 +81,10 @@
     string pfpurl = "/icon-512.png";
 
     string name = "";
+
+    bool mentioned = false;
+
+    private PlanetRole primaryRole;
 
     public async Task OnAuthorNameClick(MouseEventArgs e)
     {
@@ -87,9 +108,15 @@
 
         roleColor = await Author.GetColorHexAsync();
 
-        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        primaryRole = await Author.GetPrimaryRoleAsync();
+
+        roleName = primaryRole.Name;
 
         string pfp = await Author.GetPfpAsync();
+
+        var self_id = Holder.Window.Component.SelfMember.Id;
+
+        mentioned = Message.MemberMentions.Any(x => x.Member_Id == self_id);
 
         if (Author != null && !string.IsNullOrWhiteSpace(pfp))
         {
@@ -103,7 +130,55 @@
 
         Holder.AddRenderedMessage(this);
 
+        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+
+        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
+
+        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+
         await BuildMessage();
+    }
+
+    public async Task UpdateForRoleChange()
+    {
+        roleColor = await Author.GetColorHexAsync();
+        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+    }
+    
+    public void ReRender(){
+        ShouldRenderValue = true;
+        StateHasChanged();
+        ShouldRenderValue = false;
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role)
+    {
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = role;
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = await Author.GetPrimaryRoleAsync();
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
+    public async Task OnMemberUpdate(ClientPlanetMember member)
+    {
+        if (member.Id == Author.Id)
+        {
+            Author = member;
+            await UpdateForRoleChange();
+            ReRender();
+        }
     }
 
     void IDisposable.Dispose()
@@ -125,7 +200,7 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        return false;
+        return ShouldRenderValue;
     }
 
 }

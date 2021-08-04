@@ -453,6 +453,7 @@ function SetColorPickerColor(hex) {
     chosenColor[3] = rgb[3];
 }
 
+// Turns hex to rgb
 function hexToRGB(hex, alpha) {
     var r = parseInt(hex.slice(1, 3), 16),
         g = parseInt(hex.slice(3, 5), 16),
@@ -461,15 +462,11 @@ function hexToRGB(hex, alpha) {
     return [r, g, b, alpha];
 }
 
-const pickr = null;
+pickr = null;
 
 function SetupColorPicker() {
 
     console.log("Setting up color picker...");
-
-    if (pickr != null) {
-        return;
-    }
 
     pickr = Pickr.create({
         el: '.color-picker',

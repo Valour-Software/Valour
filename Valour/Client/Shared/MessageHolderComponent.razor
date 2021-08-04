@@ -1,6 +1,6 @@
 ﻿@inject IJSRuntime JS
 
-<div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="p-2 mt-auto" style="overflow-y: scroll;">
+<div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
     @if (Messages != null && Messages.Count > 0)
     {
         ulong lastAuthorId = 0;
