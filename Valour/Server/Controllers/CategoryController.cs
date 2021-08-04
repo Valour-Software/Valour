@@ -294,7 +294,7 @@ namespace Valour.Server.Controllers
             await category.SetNameAsync(name, Context);
 
             // Send channel refresh
-            await  PlanetHub.NotifyCategoryChange(category);
+            PlanetHub.NotifyCategoryChange(category);
 
             return new TaskResult(true, "Successfully changed category name.");
         }
@@ -338,7 +338,7 @@ namespace Valour.Server.Controllers
             await category.SetDescriptionAsync(description, Context);
 
             // Send channel refresh
-            await PlanetHub.NotifyCategoryChange(category);
+            PlanetHub.NotifyCategoryChange(category);
 
             return new TaskResult(true, "Successfully changed category description.");
         }
@@ -412,7 +412,7 @@ namespace Valour.Server.Controllers
                         Context.Update(item);
 
                         // Send update to clients
-                        await item.NotifyClientsChange();
+                        item.NotifyClientsChange();
                     }
                 }
             }
@@ -506,7 +506,7 @@ namespace Valour.Server.Controllers
             Context.Update(item);
             await Context.SaveChangesAsync();
 
-            await item.NotifyClientsChange();
+            item.NotifyClientsChange();
 
             return new TaskResult(true, "Inserted item into category.");
         }

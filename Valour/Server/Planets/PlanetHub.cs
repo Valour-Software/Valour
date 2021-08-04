@@ -98,20 +98,20 @@ namespace Valour.Server.Planets
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
         }
 
-        public static async Task NotifyMemberChange(ServerPlanetMember member)
+        public static async void NotifyMemberChange(ServerPlanetMember member)
         {
             string json = JsonConvert.SerializeObject(member);
 
             await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", json);
         }
 
-        public static async Task NotifyInteractionEvent(InteractionEvent Interaction)
+        public static async void NotifyInteractionEvent(InteractionEvent Interaction)
         {
             string json = JsonConvert.SerializeObject(Interaction);
             await Current.Clients.Group($"i-{Interaction.Planet_Id}").SendAsync("InteractionEvent", json);
         }
 
-        public static async Task NotifyRoleChange(ServerPlanetRole role)
+        public static async void NotifyRoleChange(ServerPlanetRole role)
         {
             string json = JsonConvert.SerializeObject(role);
 
@@ -119,7 +119,7 @@ namespace Valour.Server.Planets
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", json);
         }
 
-        public static async Task NotifyChatChannelChange(ServerPlanetChatChannel channel)
+        public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel)
         {
             string json = JsonConvert.SerializeObject(channel);
 
@@ -127,7 +127,7 @@ namespace Valour.Server.Planets
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", json);
         }
 
-        public static async Task NotifyCategoryChange(ServerPlanetCategory category)
+        public static async void NotifyCategoryChange(ServerPlanetCategory category)
         {
             string json = JsonConvert.SerializeObject(category);
 

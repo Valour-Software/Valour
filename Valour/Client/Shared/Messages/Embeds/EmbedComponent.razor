@@ -37,7 +37,7 @@
                         }
                         break;
                     case EmbedItemType.InputBox:
-                        <EmbedinputBoxComponent Item="item" embed="embed"></EmbedinputBoxComponent>
+                        <EmbedInputBoxComponent Item="item" embed="embed"></EmbedInputBoxComponent>
                         break;
                 }
             }
@@ -59,7 +59,7 @@
     [Parameter]
     public ClientPlanetMessage Message {get; set;}
 
-    protected async override Task OnInitializedAsync() {
+    protected override void OnInitialized() {
         StateHasChanged();
     }
 

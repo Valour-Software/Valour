@@ -145,7 +145,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Notify of update
-            await PlanetHub.NotifyChatChannelChange(channel);
+            PlanetHub.NotifyChatChannelChange(channel);
             
             return new TaskResult(true, "Successfully set parentid.");
         }
@@ -204,7 +204,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Send channel refresh
-            await PlanetHub.NotifyChatChannelChange(channel);
+            PlanetHub.NotifyChatChannelChange(channel);
 
             // Return success
             return new TaskResult<ulong>(true, "Successfully created channel.", channel.Id);
@@ -531,7 +531,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Send channel refresh
-            await PlanetHub.NotifyChatChannelChange(channel);
+            PlanetHub.NotifyChatChannelChange(channel);
 
             return new TaskResult(true, "Successfully changed channel name.");
         }
@@ -576,7 +576,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Send channel refresh
-            await PlanetHub.NotifyChatChannelChange(channel);
+            PlanetHub.NotifyChatChannelChange(channel);
 
             return new TaskResult(true, "Successfully changed channel description.");
         }
@@ -621,7 +621,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Send channel refresh
-            await PlanetHub.NotifyChatChannelChange(channel);
+            PlanetHub.NotifyChatChannelChange(channel);
 
             return new TaskResult(true, $"Successfully set permission inheritance to {value}.");
         }

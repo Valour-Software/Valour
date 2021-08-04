@@ -1,7 +1,7 @@
 @inject HttpClient Http
 @inject ClientPlanetManager planetManager
 
-<div style="@Item.GetInlineStyle" class="embed-Item">
+<div style="@Item.GetInlineStyle" class="embed-item">
     @if (Item.Name != null) {
         <div style="color:#@Item.TextColor;font-weight:bold;font-size:14px;">
             @Item.DoMarkdown(Item.Name)

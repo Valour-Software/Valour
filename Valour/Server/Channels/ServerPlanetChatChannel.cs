@@ -229,9 +229,9 @@ namespace Valour.Server.Planets
             if (createdb) { await db.DisposeAsync(); }
         }
 
-        public async Task NotifyClientsChange()
+        public void NotifyClientsChange()
         {
-            await PlanetHub.NotifyChatChannelChange(this);
+            PlanetHub.NotifyChatChannelChange(this);
         }
 
         /// <summary>

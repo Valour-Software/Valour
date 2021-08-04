@@ -19,7 +19,7 @@ namespace Valour.Server.Planets
 
         public Task SetNameAsync(string name, ValourDB db);
         public Task SetDescriptionAsync(string desc, ValourDB db);
-        public Task NotifyClientsChange();
+        public void NotifyClientsChange();
 
         public static async Task<IServerChannelListItem> FindAsync(ulong id, ChannelListItemType type, ValourDB context)
         {

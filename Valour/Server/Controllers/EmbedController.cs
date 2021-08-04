@@ -55,7 +55,7 @@ namespace Valour.Server.Controllers
         }
 
         [HttpPost]
-        public async Task<TaskResult> InteractionEvent(InteractionEvent Interaction, string token)
+        public async Task<TaskResult> InteractionEvent(InteractionEvent interaction, string token)
         {
             ServerAuthToken auth = await ServerAuthToken.TryAuthorize(token, Context);
 
@@ -64,7 +64,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize.");
             }
 
-            ServerPlanetMember member = await Context.PlanetMembers.FindAsync(Interaction.Member_Id);
+            ServerPlanetMember member = await Context.PlanetMembers.FindAsync(interaction.Member_Id);
 
             if (member == null)
             {
@@ -78,7 +78,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Requester is not the same user as memberid!");
             }
 
-            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == Interaction.Channel_Id);
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == interaction.Channel_Id);
 
             if (channel == null)
             {
@@ -92,7 +92,7 @@ namespace Valour.Server.Controllers
 
             // no need to await this
 
-            PlanetHub.NotifyInteractionEvent(Interaction);
+            PlanetHub.NotifyInteractionEvent(interaction);
 
             return new TaskResult(true, "Processed & Completed Interaction.");
 

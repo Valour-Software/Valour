@@ -159,9 +159,9 @@ namespace Valour.Server.Categories
             return false;
         }
 
-        public async Task NotifyClientsChange()
+        public void NotifyClientsChange()
         {
-            await PlanetHub.NotifyCategoryChange(this);
+            PlanetHub.NotifyCategoryChange(this);
         }
     }
 }

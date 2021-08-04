@@ -30,7 +30,10 @@
             </p>
         }
         <p class="content">
-            @if (Message.Embed != null) {
+            @if (Message.Embed != null && Message.Embed.Pages.Length > 0) {
+
+                Console.WriteLine(Message.Embed.Pages.Length);
+
                 <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
             }
             else

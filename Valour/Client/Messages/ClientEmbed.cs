@@ -153,7 +153,7 @@ namespace Valour.Client.Messages
         {
             currentPage += 1;
 
-            if (currentPage >= Pages.Count())
+            if (currentPage >= Pages.Length)
             {
                 currentPage = 0;
             }
@@ -164,7 +164,7 @@ namespace Valour.Client.Messages
 
             if (currentPage < 0)
             {
-                currentPage = Pages.Count() - 1;
+                currentPage = Pages.Length - 1;
             }
         }
 

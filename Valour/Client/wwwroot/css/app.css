@@ -1811,22 +1811,6 @@ blockquote {
     background-color: rgba(255, 255, 255, 0.01);
 }
 
-.embed {
-    background-color:#2f3136;
-    padding: 1rem 1rem 1rem 1rem;
-    max-width:512px;
-    border-radius: 8px;
-}
-.embed a {
-    font-size: 14px;
-    text-decoration: none;
-}
-.embed a:after {
-    content:none;
-}
-.embed-item {
-
-}
 .cbtn-Normal {
 
 }
