@@ -1,7 +1,7 @@
 # DB Credentials
 DBConfig.json
 EmailConfig.json
-MSPConfig.json
+MPSConfig.json
 VapidConfig.json
 
 # The 5 approved on boarding samples that need wwwroot/lib/ can add a local .gitignore that allows wwwroot/lib/.
