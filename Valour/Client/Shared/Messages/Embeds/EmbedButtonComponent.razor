@@ -33,14 +33,14 @@
         InteractionEvent Interaction = new InteractionEvent()
         {
             Event = "Button Click",
-            ElementId = Item.Id,
+            Element_Id = Item.Id,
             Planet_Id = planetManager.GetCurrent().Id,
             Message_Id = Message.Id,
-            Message_Author_Member_Id = Message.Member_Id,
+            Author_Member_Id = Message.Member_Id,
             Member_Id = SelfMember.Id,
             Channel_Id = Message.Channel_Id,
-            TimeInteracted = DateTime.UtcNow,
-            EmbedFormData = embed.GetFormData()
+            Time_Interacted = DateTime.UtcNow,
+            Form_Data = embed.GetFormData()
         };
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<InteractionEvent>($"Embed/InteractionEvent?token={ClientUserManager.UserSecretToken}", Interaction);

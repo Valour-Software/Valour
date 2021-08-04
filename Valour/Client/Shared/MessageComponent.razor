@@ -30,10 +30,11 @@
             </p>
         }
         <p class="content">
-            @if (Message.IsEmbed()) {
-                <EmbedComponent embed="@Message.GetEmbed()" Message="Message"></EmbedComponent>
+            @if (Message.Embed != null) {
+                <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
             }
-            else {
+            else
+            {
                 <MessageContentComponent Message="Message"></MessageContentComponent>
             }
         </p>

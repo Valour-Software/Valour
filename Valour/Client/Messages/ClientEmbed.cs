@@ -23,61 +23,88 @@ namespace Valour.Client.Messages
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
 
-     public enum EmbedSize {
-        Big,
-        Normal,
-        Small,
-        VerySmall,
-        Short,
-        VeryShort
-    }
-
     public class ClientEmbedItem
     {
 
         /// <summary>
-        /// list of types
-        /// Text
-        /// Button
-        /// InputBox
+        /// The type of this embed item
         /// </summary>
-        public string Type {get; set;}
+        public EmbedItemType Type { get; set; }
 
-        public string Text {get; set;}
-        // is not required
-        public string Name {get; set;}
+        /// <summary>
+        /// The text within the embed.
+        /// </summary>
+        public string Text { get; set; }
+        
+        /// <summary>
+        /// Name of the embed. Not required.
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// If this component should be inlined
+        /// </summary>
+        public bool Inline { get; set; }
+
+        /// <summary>
+        /// The link this component leads to
+        /// </summary>
+        public string Link { get; set; }
 
         /// <summary>
         /// Must be in hex format, example: "ffffff"
         /// </summary>
-        public string Color {get; set;}
+        public string Color { get; set; }
 
-        public bool Inline {get; set;}
-        public string Link {get; set;}
-        public string TextColor {get; set;}
-        public bool Center {get; set;}
-        public EmbedSize Size {get; set;}
-        // for button click events and for naming form elements
-        public string Id {get; set;}
-        // the value of a input
-        public string Value {get; set;}
+        /// <summary>
+        /// The color (hex) of this embed item's text
+        /// </summary>
+        public string TextColor { get; set; }
 
-        // The placeholder for input boxes
-        public string Placeholder {get; set;}
+        /// <summary>
+        /// True if this item should be centered
+        /// </summary>
+        public bool Center { get; set; }
 
-        public string GetInlineStyle {
-            get {
-              if (Inline) {
-                  return "display:inline-grid;margin-right: 8px;";
-              }
-              else {
-                  return "margin-right: 8px;";
-              } 
+        /// <summary>
+        /// The size of this embed item
+        /// </summary>
+        public EmbedSize Size { get; set; }
+        
+        /// <summary>
+        /// Used to identify this embed item for events and more
+        /// </summary>
+        public string Id { get; set; }
+
+        /// <summary>
+        /// The input value
+        /// </summary>
+        public string Value { get; set; }
+
+        /// <summary>
+        /// The placeholder text for inputs
+        /// </summary>
+        public string Placeholder { get; set; }
+
+        public string GetInlineStyle
+        {
+            get
+            {
+                if (Inline)
+                {
+                    return "display:inline-grid;margin-right: 8px;";
+                }
+                else
+                {
+                    return "margin-right: 8px;";
+                }
             }
         }
 
-        public string GetInputStyle {
-            get {
+        public string GetInputStyle
+        {
+            get
+            {
                 switch (Size)
                 {
                     case EmbedSize.Short:
@@ -90,95 +117,81 @@ namespace Valour.Client.Messages
             }
         }
 
-        // blazor can't cast types
-        // so we have to do this dumb function
-
-        public MarkupString DoMarkdown(string data) 
+        /// <summary>
+        /// Conversion for markdown
+        /// </summary>
+        public MarkupString DoMarkdown(string data)
         {
             return (MarkupString)MarkdownManager.GetHtml(data);
         }
-
-        
-
-
     }
 
     /// <summary>
-    /// This class exists render embeds
+    /// This class exists to render embeds
     /// </summary>
     public class ClientEmbed
     {
 
-        // if pages is null/empty, then render items
-        // else render the pages
+        /// <summary>
+        /// The pages within this embed. Sub-arrays are the items within the page.
+        /// </summary>
+        public ClientEmbedItem[][] Pages { get; set; }
 
-        public List<List<ClientEmbedItem>> Pages {get; set;}
+        public int currentPage = 0;
 
-        public List<ClientEmbedItem> Items {get; set;}
-
-        public List<ClientEmbedItem> CurrentlyDisplayed;
-        public int CurrentPage = 0;
+        /// <summary>
+        /// The currently displayed embed items
+        /// </summary>
+        public ClientEmbedItem[] Currently_Displayed { 
+            get
+            {
+                return Pages[currentPage];
+            }
+        }
 
         public void NextPage()
         {
-            CurrentPage += 1;
-            if (CurrentPage >= Pages.Count()) {
-                CurrentPage = 0;
+            currentPage += 1;
+
+            if (currentPage >= Pages.Count())
+            {
+                currentPage = 0;
             }
-            UpdateCurrentlyDisplayed();
         }
         public void PrevPage()
         {
-            CurrentPage -= 1;
-            if (CurrentPage < 0) {
-                CurrentPage = Pages.Count()-1;
-            }
-            UpdateCurrentlyDisplayed();
-        }
+            currentPage -= 1;
 
-        public bool HasPages()
-        {
-            if (Pages == null) {
-                return false;
+            if (currentPage < 0)
+            {
+                currentPage = Pages.Count() - 1;
             }
-            if (Pages.Count() == 0) {
-                return false;
-            }
-            return true;
-        }
-
-        public void UpdateCurrentlyDisplayed()
-        {
-            if (Pages == null) {
-                CurrentlyDisplayed = Items;
-                return;
-            }
-            if (Pages.Count() == 0) {
-                CurrentlyDisplayed = Items;
-                return;
-            }
-            CurrentlyDisplayed = Pages[CurrentPage];
         }
 
         public List<EmbedFormDataItem> GetFormData()
         {
             List<EmbedFormDataItem> data = new List<EmbedFormDataItem>();
-            foreach(ClientEmbedItem item in CurrentlyDisplayed) {
-                if (item.Type == "InputBox") {
+
+            foreach (ClientEmbedItem item in Currently_Displayed)
+            {
+                if (item.Type == EmbedItemType.InputBox)
+                {
                     EmbedFormDataItem DataItem = new EmbedFormDataItem()
                     {
-                        ElementId = item.Id,
+                        Element_Id = item.Id,
                         Value = item.Value,
                         Type = item.Type
                     };
 
                     // do only if input is not null
                     // limit the size of the input to 32 char
-                    if (DataItem.Value != null) {
-                        if (DataItem.Value.Length > 32) {
+                    if (DataItem.Value != null)
+                    {
+                        if (DataItem.Value.Length > 32)
+                        {
                             DataItem.Value = DataItem.Value.Substring(0, 31);
                         }
-                    } 
+                    }
                     data.Add(DataItem);
                 }
             }
