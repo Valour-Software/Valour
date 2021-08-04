@@ -37,12 +37,6 @@ namespace Valour.Server.Controllers
             this.Context = context;
         }
 
-        [HttpGet]
-        public async Task<string> Ping()
-        {
-            return "Pong";
-        }
-
         public async Task<TaskResult> SubmitSubscription([FromBody] NotificationSubscription subscription, string token)
         {
             var auth = await ServerAuthToken.TryAuthorize(token, Context);

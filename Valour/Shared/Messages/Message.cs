@@ -2,6 +2,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
+using System.Collections.Generic;
+using System.Linq;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -45,6 +47,8 @@ namespace Valour.Shared.Messages
         /// </summary>
         public ulong Message_Index { get; set; }
 
+        public string Embed_Data {get; set;}
+
         /// <summary>
         /// Returns the hash for a message. Cannot be used in browser/client!
         /// </summary>
@@ -57,6 +61,18 @@ namespace Valour.Shared.Messages
                 byte[] buffer = Encoding.Unicode.GetBytes(conc);
 
                 return sha.ComputeHash(buffer);
+            }
+        }
+        /// <summary>
+        /// Returns true if the message is a embed
+        /// </summary>
+        public bool IsEmbed()
+        {
+            if (Embed_Data != null) {
+                return true;
+            }
+            else {
+                return false;
             }
         }
     }

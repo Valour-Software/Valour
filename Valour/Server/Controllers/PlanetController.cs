@@ -736,7 +736,7 @@ namespace Valour.Server.Controllers
             await Context.PlanetRoles.AddAsync(role);
             await Context.SaveChangesAsync();
 
-            await PlanetHub.NotifyRoleChange(role);
+            PlanetHub.NotifyRoleChange(role);
             
             return new TaskResult(true, $"Role {role.Id} successfully added to position {role.Position}.");
         }
@@ -790,7 +790,7 @@ namespace Valour.Server.Controllers
             Context.PlanetRoles.Update(role);
             await Context.SaveChangesAsync();
 
-            await PlanetHub.NotifyRoleChange(role);
+            PlanetHub.NotifyRoleChange(role);
 
             return new TaskResult(true, $"Successfully edited role {role.Id}.");
         }
@@ -864,7 +864,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            await PlanetHub.NotifyRoleDeletion(role);
+            PlanetHub.NotifyRoleChange(role);
 
             return new TaskResult(true, $"Successfully removed role {role.Id}.");
         }
@@ -983,7 +983,7 @@ namespace Valour.Server.Controllers
             await Context.SaveChangesAsync();
 
             // Send ping that the member was modified (new role)
-            await PlanetHub.NotifyMemberChange(targetMember);
+            PlanetHub.NotifyMemberChange(targetMember);
 
             return new TaskResult(true, $"Successfully set role membership to {value}");
         }
@@ -1125,7 +1125,7 @@ namespace Valour.Server.Controllers
             Context.Update(category);
             await Context.SaveChangesAsync();
 
-            await category.NotifyClientsChange();
+            category.NotifyClientsChange();
 
             return new TaskResult(true, "Inserted category into planet.");
         }

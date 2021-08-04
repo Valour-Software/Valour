@@ -8,7 +8,13 @@
     </div>
     <div class="message-content">
         <p class="content">
-            <MessageContentComponent Message="Message"></MessageContentComponent>
+            @if (Message.Embed != null && Message.Embed.Pages.Length > 0) {
+                <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+            }
+            else
+            {
+                <MessageContentComponent Message="Message"></MessageContentComponent>
+            }
         </p>
     </div>
 </div>

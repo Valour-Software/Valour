@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Valour.Client.Messages.Rendering;
 using Valour.Client.Planets;
@@ -37,6 +38,11 @@ namespace Valour.Client.Messages
         private bool markdownParsed = false;
 
         /// <summary>
+        /// True if the embed data has been parsed
+        /// </summary>
+        private bool embedParsed = false;
+
+        /// <summary>
         /// The mentions contained within this message
         /// </summary>
         private List<MemberMention> _memberMentions;
@@ -45,6 +51,11 @@ namespace Valour.Client.Messages
         /// The fragments used for building elements
         /// </summary>
         private List<ElementFragment> _elementFragments;
+
+        /// <summary>
+        /// The inner embed data
+        /// </summary>
+        private ClientEmbed _embed;
 
         /// <summary>
         /// The markdown-parsed version of the Content
@@ -68,6 +79,24 @@ namespace Valour.Client.Messages
             }
         }
 
+        public ClientEmbed Embed
+        {
+            get
+            {
+                if (!embedParsed)
+                {
+                    if (!string.IsNullOrEmpty(Embed_Data))
+                    {
+                        _embed = JsonSerializer.Deserialize<ClientEmbed>(Embed_Data);
+                    }
+
+                    embedParsed = true;
+                }
+
+                return _embed;
+            }
+        }
+
         /// <summary>
         /// The mentions for members within this message
         /// </summary>
@@ -81,17 +110,6 @@ namespace Valour.Client.Messages
                 }
 
                 return _memberMentions;
-            }
-        }
-
-        /// <summary>
-        /// Returns the generic planet object
-        /// </summary>
-        public PlanetMessage PlanetMessage
-        {
-            get
-            {
-                return (PlanetMessage)this;
             }
         }
 
@@ -114,9 +132,7 @@ namespace Valour.Client.Messages
         /// </summary>
         public async Task<ClientPlanetMember> GetAuthorAsync()
         {
-            ClientPlanetMember planetMember = await ClientPlanetManager.Current.GetPlanetMemberAsync(Member_Id);
-
-            return planetMember;
+            return await ClientPlanetManager.Current.GetPlanetMemberAsync(Member_Id);
         }
 
         private void ParseMarkdown()
