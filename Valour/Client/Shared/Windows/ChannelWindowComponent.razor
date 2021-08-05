@@ -24,9 +24,9 @@
             </div>
             @if (windowManager.GetWindowCount() > 1)
             {
-            <div class="channel-close" @onclick="CloseWindow">
-                X
-            </div>
+                <div class="channel-close" @onclick="CloseWindow">
+                    X
+                </div>
             }
         </div>
 
@@ -34,16 +34,23 @@
 
     <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" @ref="MessageHolder"></MessageHolderComponent>
 
+    
+    <div style="opacity: 0.7; width: 99%">
+        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" ></MessageComponent>
+    </div>
+    
+
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
         <center>
             <div class="textbox" onclick="this.children[0].focus()">
-                <textarea class="textbox-inner" id="text-input-@Window.Index" rows="1" @onkeydown="OnChatboxKeypress" @bind-value="@currentInput" @bind-value:event="oninput" autofocus></textarea>
+                <div contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
+                </div>
             </div>
         </center>
     </div>
 </div>
 
-@code{
+@code {
     /// <summary>
     /// True if the client has negotiated a channel connection
     /// </summary>
@@ -54,6 +61,10 @@
     /// be reflected within the box.
     /// </summary>
     private string currentInput;
+
+    public MessageComponent DummyComponent { get; set; }
+
+    public ClientPlanetMessage DummyMessage { get; set; }
 
     [Parameter]
     public ChatChannelWindow Window { get; set; }
@@ -97,7 +108,9 @@
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken,ClientUserManager.User.Id, Planet.Id);
+        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken, ClientUserManager.User.Id, Planet.Id);
+
+        await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
 
         await SetupNewChannelAsync();
     }
@@ -120,7 +133,8 @@
 
     public async Task OnPlanetMemberUpdate(ClientPlanetMember member)
     {
-        if (member.Planet_Id != Planet.Id){
+        if (member.Planet_Id != Planet.Id)
+        {
             return;
         }
 
@@ -213,56 +227,63 @@
         await JS.InvokeVoidAsync("ScrollWindowBottomAnim", Window.Index);
     }
 
-    /// <summary>
-    /// This runs every time a key is pressed when the chatbox is selected
-    /// </summary>
-    public async Task OnChatboxKeypress(KeyboardEventArgs args)
+    [JSInvokable]
+    public async Task OnChatboxSubmit()
     {
-        // Debug for key presses
-        // Console.WriteLine(currentInput);
+        Console.WriteLine(currentInput);
 
-        if (args.Key == "Enter" && !args.ShiftKey)
+        if (currentInput == null)
         {
-            // Grab current input
-            string msg = currentInput;
+            return;
+        }
 
-            Console.WriteLine(currentInput);
+        string temp = currentInput.TrimEnd('\n');
+        temp = temp.Trim();
 
-            string temp = msg;
+        if (string.IsNullOrWhiteSpace(temp))
+        {
+            return;
+        }
 
-            if (temp == null){
-                return;
-            }
-
-            temp = temp.TrimEnd('\n');
-            temp = temp.Trim();
-
-            if (string.IsNullOrWhiteSpace(temp))
-            {
-                currentInput = "";
-                return;
-            }
-
+        if (temp != "")
+        {
             currentInput = "";
+            await OnChatboxUpdate(null);
 
-            if (temp != "")
-            {
-                // Post message to server
-                //StateHasChanged();
-                await PostMessage(msg);
-                currentInput = currentInput.TrimStart('\n'); // Fix odd bug
-            }
-
-            //await JS.InvokeVoidAsync("ResizeTextAreaById", "text-input-" + Window.Index);
-
-            
+            // Post message to server
             //StateHasChanged();
+            await PostMessage(temp);
+
         }
     }
 
-    public async Task OnChatboxInput()
+    /// <summary>
+    /// This runs every time a key is pressed when the chatbox is selected
+    /// </summary>
+    [JSInvokable]
+    public async Task OnChatboxUpdate(string input)
     {
+        currentInput = input;
 
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            await DummyComponent.SetMessage(null);
+        }
+        else
+        {
+            DummyMessage = new ClientPlanetMessage()
+            {
+                Author_Id = SelfMember.User_Id,
+                Content = input,
+                Channel_Id = Channel.Id,
+                Member_Id = SelfMember.Id,
+                TimeSent = DateTime.UtcNow
+            };
+
+            await DummyComponent.SetMessage(DummyMessage);
+        }
+
+        StateHasChanged();
     }
 
     public async Task OnClickWindow()

@@ -2,6 +2,10 @@
 @inject MemberContextMenu memberContextMenu
 @implements IDisposable
 
+@if (Message == null){
+    return;
+}
+
 <div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class">
     <div style="display:inline-block; position: absolute">
         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
@@ -84,7 +88,20 @@
 
     bool mentioned = false;
 
+    [Parameter]
+    public bool Submessage { get; set; }
+
     private PlanetRole primaryRole;
+
+    public async Task SetMessage(ClientPlanetMessage message){
+        this.Message = message;
+
+        if (message != null)
+        {
+            await BuildMessage();
+        }
+        ReRender();
+    }
 
     public async Task OnAuthorNameClick(MouseEventArgs e)
     {
@@ -102,6 +119,10 @@
 
     public async Task BuildMessage()
     {
+        if (Message == null){
+            return;
+        }
+
         Author = await Message.GetAuthorAsync();
 
         name = await Author.GetNameAsync();
@@ -114,11 +135,14 @@
 
         string pfp = await Author.GetPfpAsync();
 
-        var self_id = Holder.Window.Component.SelfMember.Id;
-
-        if (Message.Mentions != null && Message.Mentions.Count > 0)
+        if (!Submessage)
         {
-            mentioned = Message.Mentions.Any(x => x.Type == MentionType.Member && x.Target_Id == self_id);
+            var self_id = Holder.Window.Component.SelfMember.Id;
+
+            if (Message.Mentions != null && Message.Mentions.Count > 0)
+            {
+                mentioned = Message.Mentions.Any(x => x.Type == MentionType.Member && x.Target_Id == self_id);
+            }
         }
 
         if (Author != null && !string.IsNullOrWhiteSpace(pfp))
@@ -131,7 +155,10 @@
     {
         await base.OnInitializedAsync();
 
-        Holder.AddRenderedMessage(this);
+        if (!Submessage)
+        {
+            Holder.AddRenderedMessage(this);
+        }
 
         ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
 

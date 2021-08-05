@@ -154,7 +154,10 @@ namespace Valour.Client.Messages
         private static HashSet<string> InlineTags = new HashSet<string>()
         {
             "b", "/b", "em", "/em", "strong", "/strong",
-            "blockquote", "/blockquote", "p", "/p"
+            "blockquote", "/blockquote", "p", "/p", 
+            "h1", "h2", "h3", "h4", "h5", "h6",
+            "/h1", "/h2", "/h3", "/h4", "/h5", "/h6",
+            "code", "/code"
         };
 
         /// <summary>
@@ -162,6 +165,15 @@ namespace Valour.Client.Messages
         /// </summary>
         private void GenerateMessage()
         {
+            if (_mentions == null)
+            {
+                _mentions = new List<Mention>();
+            }
+            else
+            {
+                _mentions.Clear();
+            }
+
             if (_elementFragments == null)
             {
                 _elementFragments = new List<ElementFragment>(2);
@@ -179,67 +191,140 @@ namespace Valour.Client.Messages
             // Scan over full text
             while (pos < text.Length)
             {
-                // Custom support for markdown things that are broken horribly.
-                // Detect html tags and build fragments
-                if (text[pos] == '<')
+                if (text[pos] == '«')
                 {
-                    // A pure '<' can only be generated from markup, meaning we should
-                    // always be able to find an end tag. I think.
-
-                    int offset = pos + 1;
-                    string tag = "";
-
-                    while (text[offset] != '>')
+                    int s_len = text.Length - pos;
+                    // Must be at least this long ( «@x-x» )
+                    if (s_len < 6)
                     {
-                        tag += text[offset];
-                        offset++;
+                        pos++;
+                        continue;
                     }
-
-                    if (InlineTags.Contains(tag))
+                    // Mentions (<@x-)
+                    if (text[pos + 1] == '@' &&
+                        text[pos + 3] == '-')
                     {
-                        // Allow these tags but be careful and block
-                        // any we don't intend to be handled this way
+                        // Member mention (<@m-)
+                        if (text[pos + 2] == 'm')
+                        {
+                            // Extract id
+                            char c = ' ';
+                            int offset = 4;
+                            string id_chars = "";
+                            while (offset < s_len &&
+                                   (c = text[pos + offset]).IsDigit())
+                            {
+                                id_chars += c;
+                                offset++;
+                            }
+                            // Make sure ending tag is '>'
+                            if (c != '»')
+                            {
+                                pos++;
+                                continue;
+                            }
+                            if (string.IsNullOrWhiteSpace(id_chars))
+                            {
+                                pos++;
+                                continue;
+                            }
+                            ulong id = 0;
+                            bool parsed = ulong.TryParse(id_chars, out id);
+                            if (!parsed)
+                            {
+                                pos++;
+                                continue;
+                            }
+                            // Create object
+                            Mention memberMention = new Mention()
+                            {
+                                Target_Id = id,
+                                Position = (ushort)pos,
+                                Length = (ushort)(6 + id_chars.Length),
+                                Type = MentionType.Member
+                            };
+
+                            Mentions.Add(memberMention);
+                        }
+                        // Other mentions go here
+                        else
+                        {
+                            pos++;
+                            continue;
+                        }
                     }
+                    // Put future things here
                     else
                     {
                         pos++;
                         continue;
                     }
-
-                    // We should now have the full tag
-
-                    // Check if this is a closing tag
-
-                    // Closing
-                    if (tag[0] == '/')
-                    {
-                        ElementFragment end = new ElementFragment()
-                        {
-                            Closing = true,
-                            Attributes = null,
-                            Length = (ushort)(2 + (offset - pos)),
-                            Position = (ushort)pos,
-                            Tag = tag
-                        };
-
-                        _elementFragments.Add(end);
-                    }
-                    // Opening
-                    else
-                    {
-                        ElementFragment start = new ElementFragment()
-                        {
-                            Closing = false,
-                            Attributes = null,
-                            Length = (ushort)(2 + (offset - pos)),
-                            Position = (ushort)pos,
-                            Tag = tag
-                        };
-
-                        _elementFragments.Add(start);
-                    }
                 }
+                else
+                {
 
+                    // Custom support for markdown things that are broken horribly.
+                    // Detect html tags and build fragments
+                    if (text[pos] == '<')
+                    {
+                        // A pure '<' can only be generated from markup, meaning we should
+                        // always be able to find an end tag. I think.
+
+                        int offset = pos + 1;
+                        string tag = "";
+
+                        while (text[offset] != '>')
+                        {
+                            tag += text[offset];
+                            offset++;
+                        }
+
+                        if (InlineTags.Contains(tag))
+                        {
+                            // Allow these tags but be careful and block
+                            // any we don't intend to be handled this way
+                        }
+                        else
+                        {
+                            pos++;
+                            continue;
+                        }
+
+                        // We should now have the full tag
+
+                        // Check if this is a closing tag
+
+                        // Closing
+                        if (tag[0] == '/')
+                        {
+                            ElementFragment end = new ElementFragment()
+                            {
+                                Closing = true,
+                                Attributes = null,
+                                Length = (ushort)(2 + (offset - pos)),
+                                Position = (ushort)pos,
+                                Tag = tag
+                            };
+
+                            _elementFragments.Add(end);
+                        }
+                        // Opening
+                        else
+                        {
+                            ElementFragment start = new ElementFragment()
+                            {
+                                Closing = false,
+                                Attributes = null,
+                                Length = (ushort)(2 + (offset - pos)),
+                                Position = (ushort)pos,
+                                Tag = tag
+                            };
+
+                            _elementFragments.Add(start);
+                        }
+                    }
+
+                }
 
                 pos++;
             }

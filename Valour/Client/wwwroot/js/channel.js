@@ -1,40 +1,40 @@
 ﻿function OnChannelLoad() {
-    $('textarea').each(function () {
-        ResizeTextArea(this);
+    $('.textbox-inner').each(function () {
+        
     })
     .keydown(function (e) {
-        OnChatboxKeypress(e, this);
+        OnChatboxKeydown(e, this);
+    })
+    .keypress(function (e) {
+        
     })
     .on("input", function (e) {
-        ResizeTextArea(this);
+        OnChatboxUpdate(e, this);
     });
 
     console.log("Loaded channel.");
 }
 
+components = [];
 
-function ResizeTextArea(box) {
-
-    box.style.height = 'auto';
-
-    var sh = box.scrollHeight;
-
-    box.style.height = (sh) + 'px';
+function SetComponent(id, comp) {
+    components[id] = comp;
 }
 
-function ResizeTextAreaById(id) {
-
-    var t = $('#' + id)[0];
-
-    ResizeTextArea(t);
-}
-
-function OnChatboxKeypress(e, box) {
+function OnChatboxKeydown(e, box) {
     // Enter was pressed without shift key
     if (e.keyCode == 13 && !e.shiftKey) {
         // prevent default behavior
         e.preventDefault();
-        box.value = "";
-        ResizeTextArea(box);
+        box.innerHTML = "";
+        //ResizeTextArea(box);
+
+        var id = box.id.substring(box.id.length - 1, box.id.length);
+        components[id].invokeMethodAsync('OnChatboxSubmit');
     }
+}
+
+function OnChatboxUpdate(e, box) {
+    var id = box.id.substring(box.id.length - 1, box.id.length);
+    components[id].invokeMethodAsync('OnChatboxUpdate', box.innerHTML);
 }

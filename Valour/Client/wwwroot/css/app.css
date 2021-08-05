@@ -185,6 +185,7 @@ body {
     resize: none;
     color: white;
     vertical-align: bottom;
+    text-align: start;
 }
 
 .textbox-holder {
