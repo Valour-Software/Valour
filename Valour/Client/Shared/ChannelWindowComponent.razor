@@ -273,6 +273,7 @@
             Member_Id = SelfMember.Id
         };
 
+        /*
         message.SetMentions(new List<Mention>()
         {
             new Mention()
@@ -282,6 +283,7 @@
                 Type = MentionType.Member
             }
         });
+        */
 
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
 
