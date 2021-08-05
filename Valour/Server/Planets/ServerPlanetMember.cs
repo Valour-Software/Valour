@@ -39,6 +39,7 @@ namespace Valour.Server.Planets
         public virtual ServerPlanet Planet { get; set; }
 
         [InverseProperty("Member")]
+        [JsonIgnore]
         public virtual ICollection<ServerPlanetRoleMember> RoleMembership { get; set; }
 
         /// <summary>

@@ -37,7 +37,7 @@
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
         <center>
             <div class="textbox" onclick="this.children[0].focus()">
-                <textarea class="textbox-inner" id="text-input" rows="1" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput" autofocus>@currentInput</textarea>
+                <textarea class="textbox-inner" id="text-input-@Window.Index" rows="1" @onkeydown="OnChatboxKeypress" @bind-value="@currentInput" @bind-value:event="oninput" autofocus></textarea>
             </div>
         </center>
     </div>
@@ -230,11 +230,16 @@
 
             string temp = msg;
 
+            if (temp == null){
+                return;
+            }
+
             temp = temp.TrimEnd('\n');
             temp = temp.Trim();
 
             if (string.IsNullOrWhiteSpace(temp))
             {
+                currentInput = "";
                 return;
             }
 
@@ -247,6 +252,11 @@
                 await PostMessage(msg);
                 currentInput = currentInput.TrimStart('\n'); // Fix odd bug
             }
+
+            //await JS.InvokeVoidAsync("ResizeTextAreaById", "text-input-" + Window.Index);
+
+            
+            //StateHasChanged();
         }
     }
 
