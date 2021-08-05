@@ -64,12 +64,10 @@ namespace Valour.Client.Planets
 
             return _roleids;
         }
-
         public void SetCacheValues(PlanetMemberInfo info)
         {
-            SetCacheValues(info.RoleIds, info.State, info.User);
+            SetCacheValues(info.RoleIds.ToList(), info.State, info.User);
         }
-
         public void SetCacheValues(List<ulong> role_ids, string state, User user)
         {
             _roleids = role_ids;

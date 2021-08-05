@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -12,6 +13,8 @@ namespace Valour.Server.Oauth
 {
     public class ServerAuthToken : AuthToken
     {
+        public static ConcurrentDictionary<string, ServerAuthToken> QuickCache = new ConcurrentDictionary<string, ServerAuthToken>();
+
         [ForeignKey("User_Id")]
         public virtual ServerUser User { get; set; }
 
@@ -22,25 +25,40 @@ namespace Valour.Server.Oauth
         /// </summary>
         public static async Task<ServerAuthToken> TryAuthorize(string token, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null)
+            if (token == null) return null;
+
+            ServerAuthToken authToken = null;
+
+            if (QuickCache.ContainsKey(token))
             {
-                db = new ValourDB(ValourDB.DBOptions);
-                createdb = true;
+                authToken = QuickCache[token];
+            }
+            else
+            {
+                authToken = await db.AuthTokens.FindAsync(token);
+
+                QuickCache.TryAdd(token, authToken);
             }
 
-            ServerAuthToken auth = await db.AuthTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == token);
-            if (auth == null) return null;
-            if (auth.User == null) return null;
-            auth.User.Last_Active = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-
-            if (createdb)
+            // Spin off a task to do things we don't want to wait on
+            var t = Task.Run(async () =>
             {
-                await db.DisposeAsync();
-            }
+                using (ValourDB tdb = new ValourDB(ValourDB.DBOptions))
+                {
+                    if (authToken == null)
+                    {
+                        authToken = await tdb.AuthTokens.FindAsync(token);
+                    }
 
-            return auth;
+                    ServerUser user = await  tdb.Users.FindAsync(authToken.User_Id);
+                    user.Last_Active = DateTime.UtcNow;
+
+                    await tdb.SaveChangesAsync();
+                }
+            });
+
+
+            return authToken;
         }
     }
 }

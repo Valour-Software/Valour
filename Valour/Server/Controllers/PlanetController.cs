@@ -507,7 +507,7 @@ namespace Valour.Server.Controllers
                 {
                     Member = member,
                     User = member.User,
-                    RoleIds = member.RoleMembership.Select(x => x.Role_Id).ToList(),
+                    RoleIds = member.RoleMembership.Select(x => x.Role_Id),
                     State = "Currently browsing"
                 };
 
@@ -610,30 +610,26 @@ namespace Valour.Server.Controllers
         /// <summary>
         /// Returns all of the roles in a planet
         /// </summary>
-        public async Task<TaskResult<List<ServerPlanetRole>>> GetPlanetRoles(ulong planet_id, string token){
+        public async Task<TaskResult<ICollection<ServerPlanetRole>>> GetPlanetRoles(ulong planet_id, string token){
 
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null)
             {
-                return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
+                return new TaskResult<ICollection<ServerPlanetRole>>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await Context.Planets.FindAsync(planet_id);
+            ServerPlanetMember member = await Context.PlanetMembers.Include(x => x.Planet)
+                                                                   .ThenInclude(x => x.Roles)
+                                                                   .FirstOrDefaultAsync(x => x.Planet_Id == planet_id &&
+                                                                                             x.User_Id == authToken.User_Id);
 
-            if (planet == null)
+            if (member == null)
             {
-                return new TaskResult<List<ServerPlanetRole>>(false, $"Could not find planet {planet_id}", null);
+                return new TaskResult<ICollection<ServerPlanetRole>>(false, "Failed to find member.", null);
             }
 
-            if (!(await planet.IsMemberAsync(authToken.User_Id, Context)))
-            {
-                return new TaskResult<List<ServerPlanetRole>>(false, "Failed to authorize user.", null);
-            }
-
-            var roles = await planet.GetRolesAsync(Context);
-
-            return new TaskResult<List<ServerPlanetRole>>(true, $"Found {roles.Count} roles.", roles);
+            return new TaskResult<ICollection<ServerPlanetRole>>(true, $"Found {member.Planet.Roles.Count} roles.", member.Planet.Roles);
         }
 
         /// <summary>
@@ -651,14 +647,10 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetRole>(false, "Failed to authorize user.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(role.Planet_Id);
+            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == role.Planet_Id &&
+                                                                                             x.User_Id == authToken.User_Id);
 
-            if (planet == null)
-            {
-                return new TaskResult<PlanetRole>(false, $"Could not find planet {role.Planet_Id}", null);
-            }
-
-            if (!(await planet.IsMemberAsync(authToken.User_Id)))
+            if (member != null)
             {
                 return new TaskResult<PlanetRole>(false, "Failed to authorize user.", null);
             }

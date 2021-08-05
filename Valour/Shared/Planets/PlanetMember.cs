@@ -55,7 +55,7 @@ namespace Valour.Shared.Planets
     {
         public PlanetMember Member { get; set; }
         public string State { get; set; }
-        public List<ulong> RoleIds { get; set; }
+        public IEnumerable<ulong> RoleIds { get; set; }
         public User User { get; set; }
     }
 }

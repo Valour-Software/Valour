@@ -39,16 +39,7 @@ namespace Valour.Server.Planets
         public virtual ServerPlanet Planet { get; set; }
 
         [InverseProperty("Member")]
-        [JsonIgnore]
         public virtual ICollection<ServerPlanetRoleMember> RoleMembership { get; set; }
-
-        /// <summary>
-        /// Returns the generic planet member object
-        /// </summary>
-        public PlanetMember GetPlanetMember()
-        {
-            return (PlanetMember)this;
-        }
 
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base
