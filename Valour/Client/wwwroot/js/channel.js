@@ -1,10 +1,18 @@
 ﻿function OnChannelLoad() {
     $('textarea').each(function () {
-        this.setAttribute('style', 'height:' + (this.scrollHeight) + 'px;overflow-y:hidden;');
-    }).on('input', function () {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
+        ResizeTextArea(this);
+    }).on("input", function () {
+        ResizeTextArea(this);
     });
+
+    function ResizeTextArea(box) {
+
+        box.style.height = 'auto';
+
+        var sh = box.scrollHeight;
+
+        box.style.height = (sh) + 'px';
+    }
 
     console.log("Loaded channel.");
 }

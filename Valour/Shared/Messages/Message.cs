@@ -47,7 +47,15 @@ namespace Valour.Shared.Messages
         /// </summary>
         public ulong Message_Index { get; set; }
 
-        public string Embed_Data {get; set;}
+        /// <summary>
+        /// Data for representing an embed
+        /// </summary>
+        public string Embed_Data { get; set; }
+
+        /// <summary>
+        /// Data for representing mentions in a message
+        /// </summary>
+        public string Mentions_Data { get; set; }
 
         /// <summary>
         /// Returns the hash for a message. Cannot be used in browser/client!

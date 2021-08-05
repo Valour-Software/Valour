@@ -13,7 +13,7 @@ namespace Valour.Client.Messages.Rendering
     {
         public ulong Member_Id { get; set; }
 
-        public MemberMention Mention { get; set; }
+        public Mention Mention { get; set; }
 
         public override void BuildRenderTree(RenderTreeBuilder builder, ref int stage)
         {
