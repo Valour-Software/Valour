@@ -36,7 +36,9 @@
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
         <center>
-            <textarea id="text-input" class="textbox" rows="2" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput" autofocus>@currentInput</textarea>
+            <div class="textbox" onclick="this.children[0].focus()">
+                <textarea class="textbox-inner" id="text-input" rows="1" @bind-value="@currentInput" @bind-value:event="oninput" @onkeypress="OnChatboxKeypress" @onpaste="OnChatboxInput" autofocus>@currentInput</textarea>
+            </div>
         </center>
     </div>
 </div>
@@ -261,7 +263,7 @@
 
     public async Task PostMessage(string msg)
     {
-        PlanetMessage message = new PlanetMessage()
+        ClientPlanetMessage message = new ClientPlanetMessage()
         {
             Channel_Id = Channel.Id,
             Content = msg,
@@ -270,6 +272,16 @@
             Planet_Id = Channel.Planet_Id,
             Member_Id = SelfMember.Id
         };
+
+        message.SetMentions(new List<Mention>()
+        {
+            new Mention()
+            {
+                Target_Id = 1050746125287424,
+                Position = 5,
+                Type = MentionType.Member
+            }
+        });
 
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
 

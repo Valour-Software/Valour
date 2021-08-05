@@ -28,9 +28,9 @@ namespace Valour.Client.Messages
     public class ClientPlanetMessage : PlanetMessage
     {
         /// <summary>
-        /// True if this message's content has been parsed for rich content
+        /// True if this message's content has been fully built
         /// </summary>
-        private bool richParsed = false;
+        private bool generated = false;
 
         /// <summary>
         /// True if the markdown has already been generated
@@ -43,9 +43,14 @@ namespace Valour.Client.Messages
         private bool embedParsed = false;
 
         /// <summary>
+        /// True if the mentions data has been parsed
+        /// </summary>
+        private bool mentionsParsed = false;
+
+        /// <summary>
         /// The mentions contained within this message
         /// </summary>
-        private List<MemberMention> _memberMentions;
+        private List<Mention> _mentions;
 
         /// <summary>
         /// The fragments used for building elements
@@ -73,10 +78,6 @@ namespace Valour.Client.Messages
 
                 return _markdownContent;
             }
-            private set
-            {
-                Content = value;
-            }
         }
 
         public ClientEmbed Embed
@@ -100,22 +101,31 @@ namespace Valour.Client.Messages
         /// <summary>
         /// The mentions for members within this message
         /// </summary>
-        public List<MemberMention> MemberMentions
+        public List<Mention> Mentions
         {
             get
             {
-                if (!richParsed)
+                if (!mentionsParsed)
                 {
-                    ParseRichContent();
+                    if (!string.IsNullOrEmpty(Mentions_Data))
+                    {
+                        _mentions = JsonSerializer.Deserialize<List<Mention>>(Mentions_Data);
+                    }
                 }
 
-                return _memberMentions;
+                return _mentions;
             }
         }
 
         public ClientPlanetMessage()
         {
 
+        }
+
+        public void SetMentions(IEnumerable<Mention> mentions)
+        {
+            this._mentions = mentions.ToList();
+            this.Mentions_Data = JsonSerializer.Serialize(mentions);
         }
 
         /// <summary>
@@ -150,18 +160,8 @@ namespace Valour.Client.Messages
         /// <summary>
         /// Parses (should parse AFTER markdown is generated!)
         /// </summary>
-        private void ParseRichContent()
+        private void GenerateMessage()
         {
-            // Set up containers
-            if (_memberMentions == null)
-            {
-                _memberMentions = new List<MemberMention>(0);
-            }
-            else
-            {
-                _memberMentions.Clear();
-            }
-
             if (_elementFragments == null)
             {
                 _elementFragments = new List<ElementFragment>(2);
@@ -179,152 +179,72 @@ namespace Valour.Client.Messages
             // Scan over full text
             while (pos < text.Length)
             {
-                // Start tag
-                if (text[pos] == '«')
+                // Custom support for markdown things that are broken horribly.
+                // Detect html tags and build fragments
+                if (text[pos] == '<')
                 {
+                    // A pure '<' can only be generated from markup, meaning we should
+                    // always be able to find an end tag. I think.
 
-                    int s_len = text.Length - pos;
+                    int offset = pos + 1;
+                    string tag = "";
 
-                    // Must be at least this long ( <@x-x> )
-                    if (s_len < 6)
+                    while (text[offset] != '>')
                     {
-                        pos++;
-                        continue;
+                        tag += text[offset];
+                        offset++;
                     }
 
-                    // Mentions (<@x-)
-                    if (text[pos + 1] == '@' &&
-                        text[pos + 3] == '-')
+                    if (InlineTags.Contains(tag))
                     {
-                        // Member mention (<@m-)
-                        if (text[pos + 2] == 'm')
-                        {
-                            // Extract id
-                            char c = ' ';
-                            int offset = 4;
-                            string id_chars = "";
-
-                            while (offset < s_len &&
-                                   (c = text[pos + offset]).IsDigit())
-                            {
-                                id_chars += c;
-                                offset++;
-                            }
-
-                            // Make sure ending tag is '>'
-                            if (c != '»')
-                            {
-                                pos++;
-                                continue;
-                            }
-
-                            if (string.IsNullOrWhiteSpace(id_chars))
-                            {
-                                pos++;
-                                continue;
-                            }
-
-                            ulong id = 0;
-
-                            bool parsed = ulong.TryParse(id_chars, out id);
-
-                            if (!parsed)
-                            {
-                                pos++;
-                                continue;
-                            }
-
-                            // Create object
-                            MemberMention memberMention = new MemberMention()
-                            {
-                                Member_Id = id,
-                                Position = (ushort)pos,
-                                Length = (ushort)(6 + id_chars.Length)
-
-                            };
-
-                            _memberMentions.Add(memberMention);
-                        }
-                        // Other mentions go here
-                        else
-                        {
-                            pos++;
-                            continue;
-                        }
+                        // Allow these tags but be careful and block
+                        // any we don't intend to be handled this way
                     }
-                    // Put future things here
                     else
                     {
                         pos++;
                         continue;
                     }
-                }
-                else
-                {
-                    // Custom support for markdown things that are broken horribly.
-                    // Detect html tags and build fragments
-                    if (text[pos] == '<')
+
+                    // We should now have the full tag
+
+                    // Check if this is a closing tag
+
+                    // Closing
+                    if (tag[0] == '/')
                     {
-                        // A pure '<' can only be generated from markup, meaning we should
-                        // always be able to find an end tag. I think.
-
-                        int offset = pos + 1;
-                        string tag = "";
-
-                        while (text[offset] != '>')
+                        ElementFragment end = new ElementFragment()
                         {
-                            tag += text[offset];
-                            offset++;
-                        }
+                            Closing = true,
+                            Attributes = null,
+                            Length = (ushort)(2 + (offset - pos)),
+                            Position = (ushort)pos,
+                            Tag = tag
+                        };
 
-                        if (InlineTags.Contains(tag))
+                        _elementFragments.Add(end);
+                    }
+                    // Opening
+                    else
+                    {
+                        ElementFragment start = new ElementFragment()
                         {
-                            // Allow these tags but be careful and block
-                            // any we don't intend to be handled this way
-                        }
-                        else
-                        {
-                            pos++;
-                            continue;
-                        }
+                            Closing = false,
+                            Attributes = null,
+                            Length = (ushort)(2 + (offset - pos)),
+                            Position = (ushort)pos,
+                            Tag = tag
+                        };
 
-                        // We should now have the full tag
-
-                        // Check if this is a closing tag
-
-                        // Closing
-                        if (tag[0] == '/')
-                        {
-                            ElementFragment end = new ElementFragment()
-                            {
-                                Closing = true,
-                                Attributes = null,
-                                Length = (ushort)(2 + (offset - pos)),
-                                Position = (ushort)pos,
-                                Tag = tag
-                            };
-
-                            _elementFragments.Add(end);
-                        }
-                        // Opening
-                        else
-                        {
-                            ElementFragment start = new ElementFragment()
-                            {
-                                Closing = false,
-                                Attributes = null,
-                                Length = (ushort)(2 + (offset - pos)),
-                                Position = (ushort)pos,
-                                Tag = tag
-                            };
-
-                            _elementFragments.Add(start);
-                        }
+                        _elementFragments.Add(start);
                     }
                 }
 
+
                 pos++;
             }
+
+            generated = true;
         }
 
         /// <summary>
@@ -334,28 +254,44 @@ namespace Valour.Client.Messages
         {
             Stopwatch sw = new Stopwatch();
 
+            if (!generated)
+            {
+                GenerateMessage();
+            }
+
             sw.Start();
 
             List<MessageFragment> fragments = new List<MessageFragment>();
 
             // Empty message catch
-            if (string.IsNullOrWhiteSpace(Content)) 
-            { 
+            if (string.IsNullOrWhiteSpace(Content))
+            {
                 return fragments;
             }
 
             // First insert rich components into list and sort by position
-            foreach (var memberMention in MemberMentions)
+            if (Mentions != null && Mentions.Count > 0)
             {
-                MemberMentionFragment fragment = new MemberMentionFragment()
+                foreach (var mention in Mentions)
                 {
-                    Mention = memberMention,
-                    Member_Id = memberMention.Member_Id,
-                    Position = memberMention.Position,
-                    Length = memberMention.Length
-                };
+                    MessageFragment fragment = null;
 
-                fragments.Add(fragment);
+                    if (mention.Type == MentionType.Member)
+                    {
+                        fragment = new MemberMentionFragment()
+                        {
+                            Mention = mention,
+                            Member_Id = mention.Target_Id,
+                            Position = mention.Position,
+                            Length = mention.Length
+                        };
+                    }
+
+                    if (fragment != null)
+                    {
+                        fragments.Add(fragment);
+                    }
+                }
             }
 
             // Shortcut if there is no rich content

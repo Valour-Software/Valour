@@ -58,7 +58,10 @@
 
         var self_id = Holder.Window.Component.SelfMember.Id;
 
-        mentioned = Message.MemberMentions.Any(x => x.Member_Id == self_id);
+        if (Message.Mentions != null && Message.Mentions.Count > 0)
+        {
+            mentioned = Message.Mentions.Any(x => x.Type == MentionType.Member && x.Target_Id == self_id);
+        }
     }
 
     void IDisposable.Dispose()

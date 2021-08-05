@@ -14,6 +14,8 @@ using Valour.Shared.Channels;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
+using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Valour.Server.Planets
 {
@@ -24,23 +26,17 @@ namespace Valour.Server.Planets
      */
 
     /// <summary>
-    /// This class exists to add server funtionality to the Planet
-    /// class. It does not, and should not, have any extra fields or properties.
-    /// Just helper methods.
+    /// This class exists to add server funtionality to the Planet class.
     /// </summary>
     public class ServerPlanet : Planet
     {
+        [InverseProperty("Planet")]
+        [JsonIgnore]
+        public virtual ICollection<ServerPlanetRole> Roles { get; set; }
 
-        /// <summary>
-        /// Returns the generic planet object
-        /// </summary>
-        public Planet Planet
-        {
-            get
-            {
-                return (Planet)this;
-            }
-        }
+        [InverseProperty("Planet")]
+        [JsonIgnore]
+        public virtual ICollection<ServerPlanetMember> Members { get; set; }
 
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base

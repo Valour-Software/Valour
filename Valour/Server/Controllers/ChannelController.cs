@@ -354,7 +354,8 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == msg.Channel_Id);
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
+                                                                              .FirstOrDefaultAsync(x => x.Id == msg.Channel_Id);
 
             if (channel == null)
             {
