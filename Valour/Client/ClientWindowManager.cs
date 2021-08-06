@@ -6,6 +6,7 @@ using Valour.Client.Channels;
 using Valour.Client.Messages;
 using Valour.Client.Planets;
 using Valour.Client.Shared;
+using Valour.Client.Shared.Windows;
 using Valour.Shared.Channels;
 
 namespace Valour.Client
