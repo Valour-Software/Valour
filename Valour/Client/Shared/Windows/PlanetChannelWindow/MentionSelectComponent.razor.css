@@ -1,0 +1,7 @@
+﻿.mention-select {
+    position: absolute;
+    bottom: 80px;
+    width: 100%;
+    background-color: red;
+    min-height: 100px;
+}

@@ -1900,3 +1900,9 @@ blockquote {
 .mention:active {
     background-color: rgba(255, 255, 255, 0.3);
 }
+
+/* Fix for safari */
+[contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+}

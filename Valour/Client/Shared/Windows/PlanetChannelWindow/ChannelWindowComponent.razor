@@ -38,9 +38,11 @@
     <div style="opacity: 0.7; width: 99%">
         <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" ></MessageComponent>
     </div>
-    
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
+
+        <MentionSelectComponent @ref="MentionSelector"></MentionSelectComponent>
+
         <center>
             <div class="textbox" onclick="this.children[0].focus()">
                 <div contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
@@ -61,6 +63,8 @@
     /// be reflected within the box.
     /// </summary>
     private string currentInput;
+
+    private bool mentionSelect;
 
     public MessageComponent DummyComponent { get; set; }
 
@@ -86,6 +90,8 @@
     public bool ForceMessageRefresh;
 
     public MessageHolderComponent MessageHolder { get; set; }
+
+    public MentionSelectComponent MentionSelector { get; set; }
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -248,7 +254,7 @@
         if (temp != "")
         {
             currentInput = "";
-            await OnChatboxUpdate(null);
+            await OnChatboxUpdate(null, "");
 
             // Post message to server
             //StateHasChanged();
@@ -257,15 +263,44 @@
         }
     }
 
+    public async Task UpdateMentionMenu(string text)
+    {
+        if (text.StartsWith('@'))
+        {
+            if (!MentionSelector.Visible)
+            {
+                MentionSelector.SetVisible(true);
+            }
+
+            await MentionSelector.SetText(text);
+        }
+        else
+        {
+            if (MentionSelector.Visible){
+                MentionSelector.SetVisible(false);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task OnCaretUpdate(string currentWord)
+    {
+        await UpdateMentionMenu(currentWord);
+    }
+
     /// <summary>
     /// This runs every time a key is pressed when the chatbox is selected
     /// </summary>
     [JSInvokable]
-    public async Task OnChatboxUpdate(string input)
+    public async Task OnChatboxUpdate(string input, string currentWord)
     {
+        await UpdateMentionMenu(currentWord);
+
         currentInput = input;
 
-        Console.WriteLine(input);
+        // Console.WriteLine(input);
 
         if (string.IsNullOrWhiteSpace(input))
         {
