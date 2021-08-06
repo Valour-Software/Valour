@@ -157,7 +157,12 @@ namespace Valour.Client.Messages
             "blockquote", "/blockquote", "p", "/p", 
             "h1", "h2", "h3", "h4", "h5", "h6",
             "/h1", "/h2", "/h3", "/h4", "/h5", "/h6",
-            "code", "/code"
+            "code", "/code", "br"
+        };
+
+        private static HashSet<string> SelfClosingTags = new HashSet<string>()
+        {
+            "br"
         };
 
         /// <summary>
@@ -319,6 +324,11 @@ namespace Valour.Client.Messages
                                 Position = (ushort)pos,
                                 Tag = tag
                             };
+
+                            if (SelfClosingTags.Contains(tag))
+                            {
+                                start.Self_Closing = true;
+                            }
 
                             _elementFragments.Add(start);
                         }

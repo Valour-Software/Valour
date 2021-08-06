@@ -265,6 +265,8 @@
     {
         currentInput = input;
 
+        Console.WriteLine(input);
+
         if (string.IsNullOrWhiteSpace(input))
         {
             await DummyComponent.SetMessage(null);

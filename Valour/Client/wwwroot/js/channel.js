@@ -8,6 +8,9 @@
     .keypress(function (e) {
         
     })
+    .on("paste", function (e) {
+        OnChatboxPaste(e, this);
+    })
     .on("input", function (e) {
         OnChatboxUpdate(e, this);
     });
@@ -36,5 +39,16 @@ function OnChatboxKeydown(e, box) {
 
 function OnChatboxUpdate(e, box) {
     var id = box.id.substring(box.id.length - 1, box.id.length);
-    components[id].invokeMethodAsync('OnChatboxUpdate', box.innerHTML);
+
+    var s = box.innerHTML;
+    var rep = s.replace(/<br>/g, '\n');
+    rep = rep.replace(/&gt;/g, '>');
+
+    components[id].invokeMethodAsync('OnChatboxUpdate', rep);
+}
+
+function OnChatboxPaste(e, box) {
+    e.preventDefault();
+    var text = (e.originalEvent || e).clipboardData.getData('text/plain');
+    document.execCommand("insertHTML", false, text);
 }
