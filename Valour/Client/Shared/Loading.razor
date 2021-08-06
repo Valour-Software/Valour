@@ -1,4 +1,7 @@
-﻿<div class="d">
+﻿@inject IJSRuntime runtime
+@implements IAsyncDisposable
+
+<div class="d">
     <div class="dab">
         <svg id="logo" width="87" height="87" viewBox="0 0 87 87" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M43.5 85.1733C32.3659 85.1733 21.9072 80.8403 14.0228 72.9772C6.15967 65.0928 1.82666 54.6341 1.82666 43.5C1.82666 32.3659 6.15967 21.9072 14.0228 14.0228C21.8859 6.13843 32.3659 1.82666 43.5 1.82666C54.6341 1.82666 65.0928 6.15967 72.9772 14.0228C80.8403 21.8902 85.1733 32.3659 85.1733 43.5C85.1733 54.6341 80.8403 65.0928 72.9772 72.9772C65.0928 80.8403 54.6341 85.1733 43.5 85.1733Z" fill="#040D14" />
@@ -17,5 +20,25 @@
 </div>
 
 @code {
+    public bool running = false;
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!running)
+        {
+            await runtime.InvokeVoidAsync("DoRainbow");
+            running = true;
+            Console.WriteLine("Starting loading animation.");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (running)
+        {
+            await runtime.InvokeVoidAsync("StopRainbow");
+            running = false;
+            Console.WriteLine("Ending loading animation.");
+        }
+    }
 }
