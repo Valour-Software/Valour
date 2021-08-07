@@ -13,8 +13,15 @@ namespace Valour.Client.Messages.Rendering
         [Parameter]
         public ClientPlanetMessage Message { get; set; }
 
+        public void ReRender()
+        {
+            StateHasChanged();
+        }
+
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
+            //Console.WriteLine("Rendering content");
+
             var fragments = Message.GetMessageFragments();
             int stage = 0;
 

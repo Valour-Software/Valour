@@ -1,7 +1,10 @@
 ﻿.mention-select {
     position: absolute;
     bottom: 80px;
-    width: 100%;
     background-color: red;
-    min-height: 100px;
+    border-radius: 10px;
+    padding: 10px;
+    background-color: var(--main-5);
+    border: 5px solid var(--main-1);
+    opacity: 0.95;
 }

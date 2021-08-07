@@ -42,7 +42,7 @@
             }
             else
             {
-                <MessageContentComponent Message="Message"></MessageContentComponent>
+                <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
             }
         </p>
     </div>
@@ -55,6 +55,8 @@
 
     [Parameter]
     public MessageHolderComponent Holder { get; set; }
+
+    public MessageContentComponent ContentComponent;
 
     [Parameter]
     public string Key { get; set; }
@@ -135,13 +137,17 @@
 
         string pfp = await Author.GetPfpAsync();
 
+        Console.WriteLine(Submessage);
+        Console.WriteLine(Message.Mentions_Data);
+
         if (!Submessage)
         {
             var self_id = Holder.Window.Component.SelfMember.Id;
 
-            if (Message.Mentions != null && Message.Mentions.Count > 0)
+            if (Message.Mentions_Data != null)
             {
-                mentioned = Message.Mentions.Any(x => x.Type == MentionType.Member && x.Target_Id == self_id);
+                Console.WriteLine(Message.Mentions_Data);
+                mentioned = Message.Mentions_Data.Contains(self_id.ToString());
             }
         }
 
@@ -178,6 +184,7 @@
     public void ReRender(){
         ShouldRenderValue = true;
         StateHasChanged();
+        ContentComponent.ReRender();
         ShouldRenderValue = false;
     }
 

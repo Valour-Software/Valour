@@ -41,7 +41,7 @@
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
 
-        <MentionSelectComponent @ref="MentionSelector"></MentionSelectComponent>
+        <MentionSelectComponent @ref="MentionSelector" Channel="Channel"></MentionSelectComponent>
 
         <center>
             <div class="textbox" onclick="this.children[0].focus()">
@@ -265,6 +265,8 @@
 
     public async Task UpdateMentionMenu(string text)
     {
+        //Console.WriteLine(text);
+
         if (text.StartsWith('@'))
         {
             if (!MentionSelector.Visible)
@@ -282,6 +284,19 @@
         }
 
         StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task MentionSubmit()
+    {
+        await MentionSelector.Submit();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void MoveMentionSelect(int n)
+    {
+        MentionSelector.MoveSelect(n);
     }
 
     [JSInvokable]
@@ -317,6 +332,8 @@
                 TimeSent = DateTime.UtcNow
             };
 
+            DummyMessage.GenerateForPost();
+
             await DummyComponent.SetMessage(DummyMessage);
         }
 
@@ -340,6 +357,8 @@
             Planet_Id = Channel.Planet_Id,
             Member_Id = SelfMember.Id
         };
+
+        message.GenerateForPost();
 
         /*
         message.SetMentions(new List<Mention>()

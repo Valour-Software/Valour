@@ -8,10 +8,12 @@
 
   <ItemGroup>
     <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
+    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
+    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>
