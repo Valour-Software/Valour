@@ -179,3 +179,14 @@ function insertTextAtCaret(text) {
         document.selection.createRange().text = text;
     }
 }
+
+function OnMessageLoad(innerContent) {
+
+    for (let item of innerContent.getElementsByTagName('code')) {
+        hljs.highlightElement(item);
+    }
+
+    //innerContent.getElementsByTagName('code').forEach(el => 
+    //    console.log(el)
+    //);
+}
