@@ -98,7 +98,6 @@ function InjectText(text, id) {
     var box = $("#text-input-" + id)[0];
 
     insertTextAtCaret(text);
-    box.textContent += " ";
     components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
 }
 
