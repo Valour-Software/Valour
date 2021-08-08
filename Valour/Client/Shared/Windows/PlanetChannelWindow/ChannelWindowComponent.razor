@@ -36,12 +36,12 @@
 
     
     <div style="opacity: 0.7; width: 99%">
-        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" ></MessageComponent>
+        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" Last_Message="MessageHolder?.GetLastMessage()" ></MessageComponent>
     </div>
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
 
-        <MentionSelectComponent @ref="MentionSelector" Channel="Channel"></MentionSelectComponent>
+        <MentionSelectComponent @ref="MentionSelector" ChannelComponent="this" Channel="Channel"></MentionSelectComponent>
 
         <center>
             <div class="textbox" onclick="this.children[0].focus()">
@@ -311,6 +311,8 @@
     [JSInvokable]
     public async Task OnChatboxUpdate(string input, string currentWord)
     {
+        //Console.WriteLine(currentWord);
+
         await UpdateMentionMenu(currentWord);
 
         currentInput = input;
@@ -375,6 +377,8 @@
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
 
         Console.WriteLine("SEND: \n" + json);
+
+        MessageHolder.AddQueuedMessage(message);
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage?token={ClientUserManager.UserSecretToken}", message);
 

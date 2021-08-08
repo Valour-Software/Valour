@@ -29,6 +29,9 @@
     [Parameter]
     public ClientPlanetChatChannel Channel { get; set; }
 
+    [Parameter]
+    public ChannelWindowComponent ChannelComponent { get; set; }
+
     public ClientPlanet Planet { get; set; }
 
     public List<ClientPlanetMember> Members;
@@ -52,7 +55,7 @@
 
         string tag = $"«@m-{selected.Id}»";
 
-        await JS.InvokeVoidAsync("InjectText", tag);
+        await JS.InvokeVoidAsync("InjectText", tag, ChannelComponent.Window.Index);
 
         SetVisible(false);
 

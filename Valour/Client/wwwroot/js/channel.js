@@ -86,8 +86,10 @@ function OnChatboxKeydown(e, box) {
     }
 }
 
-function InjectText(text) {
+function InjectText(text, id) {
+    var box = $("#text-input-" + id)[0];
     insertTextAtCaret(text);
+    components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
 }
 
 function OnChatboxKeyup(e, box) {
