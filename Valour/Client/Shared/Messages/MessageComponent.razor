@@ -1,5 +1,6 @@
 ﻿@inject ClientPlanetManager planetManager
 @inject MemberContextMenu memberContextMenu
+@inject IJSRuntime JS
 @implements IDisposable
 
 @if (Message == null)
@@ -17,7 +18,7 @@
             </p>
         </div>
         <div class="message-content">
-            <p class="content">
+            <p class="content" @ref="InnerRef">
                 @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
                 {
                     <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
@@ -58,7 +59,7 @@
                     User not found
                 </p>
             }
-            <p class="content">
+            <p class="content" @ref="InnerRef">
                 @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
                 {
 
@@ -87,6 +88,8 @@
     public MessageHolderComponent Holder { get; set; }
 
     public MessageContentComponent ContentComponent;
+
+    public ElementReference InnerRef;
 
     [Parameter]
     public string Key { get; set; }
@@ -153,6 +156,11 @@
     public bool Submessage { get; set; }
 
     private PlanetRole primaryRole;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
+    }
 
     public async Task SetMessage(ClientPlanetMessage message)
     {
