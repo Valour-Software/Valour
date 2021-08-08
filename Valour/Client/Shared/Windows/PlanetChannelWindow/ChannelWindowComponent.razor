@@ -34,9 +34,12 @@
 
     <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" @ref="MessageHolder"></MessageHolderComponent>
 
+    @{
+        var lastMessage = MessageHolder?.GetLastMessage();
+    }
     
     <div style="opacity: 0.7; width: 99%">
-        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" Last_Message="MessageHolder?.GetLastMessage()" ></MessageComponent>
+        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" Last_Message="lastMessage" ></MessageComponent>
     </div>
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
@@ -221,7 +224,9 @@
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
         await MessageHolder.AddMessage(message);
-        StateHasChanged();
+        DummyComponent.SetLast(MessageHolder.GetLastMessage());
+        DummyComponent.CheckMinimal();
+        DummyComponent.ReRender();
     }
 
     public async Task ScrollToBottom()
@@ -322,6 +327,7 @@
 
         if (string.IsNullOrWhiteSpace(input))
         {
+            DummyMessage = null;
             await DummyComponent.SetMessage(null);
         }
         else

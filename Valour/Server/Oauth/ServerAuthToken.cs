@@ -50,10 +50,13 @@ namespace Valour.Server.Oauth
                         authToken = await tdb.AuthTokens.FindAsync(token);
                     }
 
-                    ServerUser user = await  tdb.Users.FindAsync(authToken.User_Id);
-                    user.Last_Active = DateTime.UtcNow;
+                    if (authToken != null)
+                    {
+                        ServerUser user = await tdb.Users.FindAsync(authToken.User_Id);
+                        user.Last_Active = DateTime.UtcNow;
 
-                    await tdb.SaveChangesAsync();
+                        await tdb.SaveChangesAsync();
+                    }
                 }
             });
 

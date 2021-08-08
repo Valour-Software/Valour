@@ -157,11 +157,8 @@
     public async Task SetMessage(ClientPlanetMessage message)
     {
         this.Message = message;
+        await BuildMessage();
 
-        if (message != null)
-        {
-            await BuildMessage();
-        }
         ReRender();
     }
 
@@ -248,19 +245,16 @@
 
     public void CheckMinimal()
     {
-        if (Last_Message != null)
+        if (Last_Message != null && Message != null)
         {
             if (Last_Message.Author_Id == Message.Author_Id)
             {
                 Minimal = true;
+                return;
             }
         }
-    }
-
-    protected override void OnParametersSet()
-    {
-        CheckMinimal();
-        StateHasChanged();
+        
+        Minimal = false;
     }
 
     public async Task UpdateForRoleChange()
