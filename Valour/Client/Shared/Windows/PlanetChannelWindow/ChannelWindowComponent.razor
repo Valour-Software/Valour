@@ -221,6 +221,8 @@
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
         await MessageHolder.AddMessage(message);
+        DummyComponent.SetLast(MessageHolder.GetLastMessage());
+        DummyComponent.ReRender();
     }
 
     public async Task ScrollToBottom()
@@ -357,7 +359,8 @@
             TimeSent = DateTime.UtcNow,
             Author_Id = ClientUserManager.User.Id,
             Planet_Id = Channel.Planet_Id,
-            Member_Id = SelfMember.Id
+            Member_Id = SelfMember.Id,
+            Fingerprint = Guid.NewGuid().ToString()
         };
 
         message.GenerateForPost();

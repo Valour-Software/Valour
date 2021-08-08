@@ -84,11 +84,21 @@ function OnChatboxKeydown(e, box) {
             components[id].invokeMethodAsync('OnCaretUpdate', "");
         }
     }
+    else if (e.keyCode == 9) {
+        // If the mention menu is open this sends off an event to select it rather
+        // than adding a tab!
+        if (currentWord[0] == '@') {
+            e.preventDefault();
+            components[id].invokeMethodAsync('MentionSubmit');
+        }
+    }
 }
 
 function InjectText(text, id) {
     var box = $("#text-input-" + id)[0];
+
     insertTextAtCaret(text);
+    box.textContent += " ";
     components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
 }
 
@@ -152,7 +162,8 @@ function insertTextAtCaret(text) {
 
             range.deleteContents();
 
-            var node = document.createTextNode(text);
+            var node = document.createTextNode(text + '\u00A0');
+            
             range.insertNode(node);
 
             var nrange = document.createRange();

@@ -346,7 +346,6 @@ namespace Valour.Server.Controllers
         [HttpPost]
         public async Task<TaskResult> PostMessage(PlanetMessage msg, string token)
         {
-
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
             if (authToken == null || authToken.User_Id != msg.Author_Id)

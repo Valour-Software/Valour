@@ -70,7 +70,7 @@
         if (QueuedMessages != null && QueuedMessages.Count > 0){
             return QueuedMessages.Last();
         }
-        else if (Messages != null)
+        else if (Messages != null && Messages.Count > 0)
         {
             return Messages.Last();
         }
@@ -105,9 +105,7 @@
 
     public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
     {
-        QueuedMessages.RemoveAll(x => x.Content == message.Content &&
-                                      x.Author_Id == message.Author_Id &&
-                                      x.Channel_Id == message.Channel_Id);
+        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
 
         //Get current window scroll pos
         bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);

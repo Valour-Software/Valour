@@ -53,9 +53,9 @@
     {
         var selected = Matches[Selected];
 
-        string tag = $"«@m-{selected.Id}»";
+        string tag = $"«@m-{selected.Id}» ";
 
-        await JS.InvokeVoidAsync("InjectText", tag, ChannelComponent.Window.Index);
+        await JS.InvokeVoidAsync("InjectText", tag, ChannelComponent.Window.Index, true);
 
         SetVisible(false);
 
