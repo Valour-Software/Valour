@@ -1,24 +1,40 @@
 ﻿@inject IJSRuntime JS
 
 <div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
-    @if (Messages != null && Messages.Count > 0)
-    {
-        ulong lastAuthorId = 0;
+    
+    @{
+        ClientPlanetMessage last = null;    
 
-        foreach (ClientPlanetMessage msg in Messages)
+        if (Messages != null && Messages.Count > 0)
         {
-            string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+            last = null;
 
-            if (msg.Author_Id != lastAuthorId)
+            foreach (ClientPlanetMessage msg in Messages)
             {
-                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this"></MessageComponent>
+                string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last"></MessageComponent>
+
+        last = msg;
             }
-            else
+        }
+
+        if (QueuedMessages != null && QueuedMessages.Count > 0){
+            last = null;
+
+            if (Messages != null)
             {
-                <MultiMessageComponent Message="msg" Key="@key" @key='key + "-multi"' Holder="this"></MultiMessageComponent>
+                last = Messages.Last();
             }
 
-            lastAuthorId = msg.Author_Id;
+            foreach (ClientPlanetMessage msg in QueuedMessages)
+            {
+                string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Ghost="true" Last_Message="last"></MessageComponent>
+
+                last = msg;
+            }
         }
     }
 </div>
@@ -30,15 +46,36 @@
     [Parameter]
     public List<ClientPlanetMessage> Messages { get; set; }
 
+    public List<ClientPlanetMessage> QueuedMessages { get; set; }
+
     public List<MessageComponent> RenderedMessages { get; set; }
 
     public string state = "none";
 
     //public HashSet<string> Keys = new HashSet<string>();
 
+    public void AddQueuedMessage(ClientPlanetMessage message)
+    {
+        QueuedMessages.Add(message);
+        StateHasChanged();
+    }
+
     public void Clear()
     {
         Messages.Clear();
+    }
+
+    public ClientPlanetMessage GetLastMessage()
+    {
+        if (QueuedMessages != null && QueuedMessages.Count > 0){
+            return QueuedMessages.Last();
+        }
+        else if (Messages != null)
+        {
+            return Messages.Last();
+        }
+
+        return null;
     }
 
     public void AddMessages(List<ClientPlanetMessage> messages, bool refresh = true)
@@ -68,6 +105,10 @@
 
     public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
     {
+        QueuedMessages.RemoveAll(x => x.Content == message.Content &&
+                                      x.Author_Id == message.Author_Id &&
+                                      x.Channel_Id == message.Channel_Id);
+
         //Get current window scroll pos
         bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
 
@@ -112,6 +153,7 @@
     {
         RenderedMessages = new List<MessageComponent>();
         Messages = new List<ClientPlanetMessage>();
+        QueuedMessages = new List<ClientPlanetMessage>();
         StateHasChanged();
     }
 
@@ -129,7 +171,7 @@
         }
         else
         {
-            return $"{Messages.First().Message_Index}-{Messages.Last().Message_Index}";
+            return $"{Messages.First().Message_Index}-{Messages.Last().Message_Index}-{QueuedMessages.Count}";
         }
     }
 

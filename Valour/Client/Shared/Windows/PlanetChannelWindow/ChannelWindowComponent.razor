@@ -36,11 +36,13 @@
 
     
     <div style="opacity: 0.7; width: 99%">
-        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" ></MessageComponent>
+        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" Last_Message="MessageHolder?.GetLastMessage()" ></MessageComponent>
     </div>
-    
 
     <div class="textbox-holder ml-1" @onclick="ScrollToBottomAnim">
+
+        <MentionSelectComponent @ref="MentionSelector" ChannelComponent="this" Channel="Channel"></MentionSelectComponent>
+
         <center>
             <div class="textbox" onclick="this.children[0].focus()">
                 <div contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
@@ -61,6 +63,8 @@
     /// be reflected within the box.
     /// </summary>
     private string currentInput;
+
+    private bool mentionSelect;
 
     public MessageComponent DummyComponent { get; set; }
 
@@ -86,6 +90,8 @@
     public bool ForceMessageRefresh;
 
     public MessageHolderComponent MessageHolder { get; set; }
+
+    public MentionSelectComponent MentionSelector { get; set; }
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -248,7 +254,7 @@
         if (temp != "")
         {
             currentInput = "";
-            await OnChatboxUpdate(null);
+            await OnChatboxUpdate(null, "");
 
             // Post message to server
             //StateHasChanged();
@@ -257,13 +263,61 @@
         }
     }
 
+    public async Task UpdateMentionMenu(string text)
+    {
+        //Console.WriteLine(text);
+
+        if (text.StartsWith('@'))
+        {
+            if (!MentionSelector.Visible)
+            {
+                MentionSelector.SetVisible(true);
+            }
+
+            await MentionSelector.SetText(text);
+        }
+        else
+        {
+            if (MentionSelector.Visible){
+                MentionSelector.SetVisible(false);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task MentionSubmit()
+    {
+        await MentionSelector.Submit();
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void MoveMentionSelect(int n)
+    {
+        MentionSelector.MoveSelect(n);
+    }
+
+    [JSInvokable]
+    public async Task OnCaretUpdate(string currentWord)
+    {
+        await UpdateMentionMenu(currentWord);
+    }
+
     /// <summary>
     /// This runs every time a key is pressed when the chatbox is selected
     /// </summary>
     [JSInvokable]
-    public async Task OnChatboxUpdate(string input)
+    public async Task OnChatboxUpdate(string input, string currentWord)
     {
+        //Console.WriteLine(currentWord);
+
+        await UpdateMentionMenu(currentWord);
+
         currentInput = input;
+
+        // Console.WriteLine(input);
 
         if (string.IsNullOrWhiteSpace(input))
         {
@@ -279,6 +333,8 @@
                 Member_Id = SelfMember.Id,
                 TimeSent = DateTime.UtcNow
             };
+
+            DummyMessage.GenerateForPost();
 
             await DummyComponent.SetMessage(DummyMessage);
         }
@@ -304,6 +360,8 @@
             Member_Id = SelfMember.Id
         };
 
+        message.GenerateForPost();
+
         /*
         message.SetMentions(new List<Mention>()
         {
@@ -319,6 +377,8 @@
         string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
 
         Console.WriteLine("SEND: \n" + json);
+
+        MessageHolder.AddQueuedMessage(message);
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage?token={ClientUserManager.UserSecretToken}", message);
 

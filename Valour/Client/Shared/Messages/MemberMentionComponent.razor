@@ -28,8 +28,6 @@
         }
     }
 
-    [Parameter]
-    public ulong Member_Id { get; set; }
 
     [Parameter]
     public Mention Mention { get; set; }
@@ -40,11 +38,35 @@
 
     protected async override Task OnInitializedAsync()
     {
-        Member = await ClientPlanetMember.FindAsync(Member_Id);
+        await Build();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Member != null)
+        {
+            if (Mention.Target_Id != Member.Id)
+            {
+                await Build();
+            }
+        }
+        else
+        {
+            await Build();
+        }
+    }
+
+    public async Task Build()
+    {
+        Member = await ClientPlanetMember.FindAsync(Mention.Target_Id);
 
         if (Member != null)
         {
             Role_Color = await Member.GetColorHexAsync();
+        }
+        else
+        {
+            Role_Color = "#ffffff";
         }
 
         StateHasChanged();

@@ -11,8 +11,6 @@ namespace Valour.Client.Messages.Rendering
 {
     public class MemberMentionFragment : MessageFragment
     {
-        public ulong Member_Id { get; set; }
-
         public Mention Mention { get; set; }
 
         public override void BuildRenderTree(RenderTreeBuilder builder, ref int stage)
@@ -20,8 +18,6 @@ namespace Valour.Client.Messages.Rendering
             builder.OpenComponent<MemberMentionComponent>(stage);
             stage++;
             builder.AddAttribute(stage, "Mention", Mention);
-            stage++;
-            builder.AddAttribute(stage, "Member_Id", Member_Id);
             stage++;
             builder.CloseComponent();
         }

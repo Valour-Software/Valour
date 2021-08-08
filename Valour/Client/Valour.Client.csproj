@@ -3,8 +3,18 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-    <Version>0.0.9.0</Version>
+    <Version>0.0.9.1</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
+    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
+    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="10.1.1" />

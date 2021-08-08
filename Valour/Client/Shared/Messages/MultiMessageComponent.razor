@@ -1,22 +1,7 @@
 ﻿@implements IDisposable
 
 <div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class">
-    <div class="time-container">
-        <p class="time">
-            @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
-        </p>
-    </div>
-    <div class="message-content">
-        <p class="content">
-            @if (Message.Embed != null && Message.Embed.Pages.Length > 0) {
-                <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-            }
-            else
-            {
-                <MessageContentComponent Message="Message"></MessageContentComponent>
-            }
-        </p>
-    </div>
+    
 </div>
 
 @code {
