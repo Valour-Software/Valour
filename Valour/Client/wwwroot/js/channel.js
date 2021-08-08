@@ -36,6 +36,7 @@ function OnChatboxKeydown(e, box) {
 
     var id = box.id.substring(box.id.length - 1, box.id.length);
 
+    GetCurrentWord(0);
 
     // Down arrow
     if (e.keyCode == 40) {
