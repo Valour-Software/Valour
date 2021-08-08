@@ -191,13 +191,7 @@
             return;
         }
 
-        if (Last_Message != null)
-        {
-            if (Last_Message.Author_Id == Message.Author_Id)
-            {
-                Minimal = true;
-            }
-        }
+        CheckMinimal();
 
         if (!Submessage)
         {
@@ -250,6 +244,23 @@
         ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
 
         await BuildMessage();
+    }
+
+    public void CheckMinimal()
+    {
+        if (Last_Message != null)
+        {
+            if (Last_Message.Author_Id == Message.Author_Id)
+            {
+                Minimal = true;
+            }
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        CheckMinimal();
+        StateHasChanged();
     }
 
     public async Task UpdateForRoleChange()
