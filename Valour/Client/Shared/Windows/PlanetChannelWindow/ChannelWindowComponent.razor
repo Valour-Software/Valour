@@ -221,8 +221,7 @@
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
         await MessageHolder.AddMessage(message);
-        DummyComponent.SetLast(MessageHolder.GetLastMessage());
-        DummyComponent.ReRender();
+        StateHasChanged();
     }
 
     public async Task ScrollToBottom()
