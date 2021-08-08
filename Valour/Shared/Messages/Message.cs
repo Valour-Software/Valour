@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -56,6 +57,13 @@ namespace Valour.Shared.Messages
         /// Data for representing mentions in a message
         /// </summary>
         public string Mentions_Data { get; set; }
+
+        /// <summary>
+        /// Used to identify a message returned from the server 
+        /// </summary>
+        [JsonProperty]
+        [System.Text.Json.Serialization.JsonInclude]
+        public string Fingerprint;
 
         /// <summary>
         /// Returns the hash for a message. Cannot be used in browser/client!
