@@ -27,17 +27,19 @@ namespace Valour.Server.Database
     public class ValourDB : DbContext
     {
 
-        public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;";
+        public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;charset=utf8mb4;";
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
-            options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => options.EnableRetryOnFailure());
+            options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => { 
+                options.EnableRetryOnFailure(); 
+            });
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.HasCharSet(CharSet.Utf8Mb4);
+            //modelBuilder.HasCharSet(CharSet.Utf8Mb4);
         }
 
         // These are the database sets we can access

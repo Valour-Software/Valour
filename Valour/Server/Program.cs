@@ -57,6 +57,7 @@ namespace Valour.Server
 
             // Add API routes
             UploadAPI.AddRoutes(app);
+            ChannelAPI.AddRoutes(app);
 
             // Run
             app.Run();

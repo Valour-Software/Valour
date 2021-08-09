@@ -119,60 +119,39 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if the given user is authorized to access this planet
         /// </summary>
-        public async Task<bool> AuthorizedAsync(string token, Permission permission)
+        public async Task<bool> HasPermissionAsync(ServerPlanetMember member, PlanetPermission permission, ValourDB db)
         {
+            // Special case for viewing planets
             if (permission.Value == PlanetPermissions.View.Value)
             {
-                if (Public) return true;
-            }
-
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                AuthToken authToken = await db.AuthTokens.FindAsync(token);
-
-                return await AuthorizedAsync(authToken, permission);
-            }
-        }
-
-        /// <summary>
-        /// Returns if the given user is authorized to access this planet
-        /// </summary>
-        public async Task<bool> AuthorizedAsync(AuthToken authToken, Permission permission)
-        {
-            if (permission.Value == PlanetPermissions.View.Value)
-            {
-                if (Public || (await IsMemberAsync(authToken.User_Id)))
+                if (Public || (member != null))
                 {
                     return true;
                 }
-
             }
 
-            if (authToken == null)
+            // At this point all permissions require membership
+            if (member == null)
             {
                 return false;
             }
-            else
+
+            // Owner has all permissions
+            if (member.User_Id == Owner_Id)
             {
-
-                // Owner has all permissions
-                if (authToken.User_Id == Owner_Id)
-                {
-                    return true;
-                }
-
-                // In the future we do role magic here
+                return true;
             }
 
-            return false;
-        }
+            // Get user main role
+            var mainRole = await db.Entry(member).Collection(x => x.RoleMembership)
+                                                 .Query()
+                                                 .Include(x => x.Role)
+                                                 .OrderBy(x => x.Role.Position)
+                                                 .Select(x => x.Role)
+                                                 .FirstAsync();
 
-        public async Task<bool> HasPermissionAsync(ServerPlanetMember member, PlanetPermission permission)
-        {
-            if (member.User_Id == Owner_Id) return true;
-
-            var roles = await member.GetRolesAsync();
-            return roles[0].HasPermission(permission);
+            // Return permission state
+            return mainRole.HasPermission(permission);
         }
 
         /// <summary>

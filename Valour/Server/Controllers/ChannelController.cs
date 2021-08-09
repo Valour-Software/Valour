@@ -56,6 +56,7 @@ namespace Valour.Server.Controllers
             this.PushClient = pushClient;
         }
         
+        /*
         public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
@@ -114,6 +115,7 @@ namespace Valour.Server.Controllers
 
             return new TaskResult(true, "Successfully deleted.");
         }
+        */
 
         public async Task<TaskResult> SetParentId(ulong id, ulong parent_id, string token)
         {

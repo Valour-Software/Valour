@@ -104,23 +104,22 @@
 
             ulong user_id = ClientUserManager.User.Id;
             string token = ClientUserManager.UserSecretToken;
-            string json = "";
+            string result = "";
 
             if (channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.ChatChannel) {
-                json = await Http.GetStringAsync($"Channel/Delete?id={channelListContextMenu.SelectedItem.Id}" +
-                                                                    $"&user_id={user_id}" +
+                result = await Http.GetStringAsync($"Channel/Delete?channel_id={channelListContextMenu.SelectedItem.Id}" +
                                                                     $"&token={token}");
             }
 
             else {
-                json = await Http.GetStringAsync($"Category/Delete?id={channelListContextMenu.SelectedItem.Id}" +
+                result = await Http.GetStringAsync($"Category/Delete?id={channelListContextMenu.SelectedItem.Id}" +
                                                                     $"&user_id={user_id}" +
                                                                     $"&token={token}");
             }
 
-            TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+            
 
-            Console.WriteLine(result.Message);
+            Console.WriteLine(result);
 
         },
 

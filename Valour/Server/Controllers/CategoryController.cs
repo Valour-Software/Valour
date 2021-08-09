@@ -64,11 +64,13 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
+            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
+                                                                          .ThenInclude(x => x.Members.FirstOrDefault(x => x.User_Id == authToken.User_Id))
+                                                                          .FirstOrDefaultAsync(x => x.Id == id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
+            var member = category.Planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            if (!await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, Context))
             {
                 return new TaskResult(false, "You are not authorized to do this.");
             }
@@ -77,7 +79,7 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("RefreshChannelList", "");
+            PlanetHub.NotifyCategoryChange(category);
 
             return new TaskResult(true, "Successfully set name.");
         }
@@ -96,11 +98,13 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanetCategory category = await Context.PlanetCategories.FindAsync(id);
+            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
+                                                                          .ThenInclude(x => x.Members.FirstOrDefault(x => x.User_Id == authToken.User_Id))
+                                                                          .FirstOrDefaultAsync(x => x.Id == id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
+            var member = category.Planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, Context)))
             {
                 return new TaskResult(false, "You are not authorized to do this.");
             }
@@ -111,36 +115,24 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You can not delete your last category!");
             }
 
-            List<ServerPlanetCategory> categories = await Task.Run(() => Context.PlanetCategories.Where(x => x.Parent_Id == id).ToList());
-
-            List<ServerPlanetChatChannel> channels = await Task.Run(() => Context.PlanetChatChannels.Where(x => x.Parent_Id == id).ToList());
-
-            //Check if any channels in this category are the main channel
-            foreach(PlanetChatChannel channel in channels) {
-                if (channel.Id == planet.Main_Channel_Id) {
-                    return new TaskResult(false, "You can not delete your main channel!");
-                }
-            }
+            var childCategoryCount = await Context.PlanetCategories.CountAsync(x => x.Parent_Id == id);
+            var childChannelCount = await Context.PlanetChatChannels.CountAsync(x => x.Parent_Id == id);
 
             // require user to delete all child categories and channels
-            if (categories.Count() != 0 || channels.Count() != 0) {
-                return new TaskResult(false, "YOu have to delete all child channels and categories before deleting this category!");
+            if (childCategoryCount != 0 || childChannelCount != 0) {
+                return new TaskResult(false, "You have to delete all child channels and categories before deleting this category!");
             }
 
-            foreach(ServerPlanetCategory Category in categories)
-            {
-                Category.Parent_Id = null;
-                
-            }
+            // Remove permission nodes
 
-            ulong parentId = category.Planet_Id;
+            Context.CategoryPermissionsNodes.RemoveRange(
+                Context.CategoryPermissionsNodes.Where(x => x.Category_Id == id)
+            );
 
-            // remove permission nodes
-
-            Context.CategoryPermissionsNodes.RemoveRange(Context.CategoryPermissionsNodes.Where(x => x.Category_Id == id));
-
+            // Remove category
             Context.PlanetCategories.Remove(category);
         
+            // Save changes
             await Context.SaveChangesAsync();
 
             // Notify of update
