@@ -85,15 +85,18 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == Planet_Id);
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, Context))
             {
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
             Console.WriteLine(json);
-            var values = json;//JsonConvert.DeserializeObject<Dictionary<ulong, ulong>>(data);
+            var values = json;
 
             foreach (var value in values) {
                 ushort position = value.Key;
@@ -262,16 +265,22 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<Planet>> GetPlanet(ulong planet_id, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+
+            if (authToken == null) return new TaskResult<Planet>(false, "Please include auth", null);
+
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
                 return new TaskResult<Planet>(false, "The given planet id does not exist.", null);
             }
 
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.View))) {
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, Context))
+            {
                 return new TaskResult<Planet>(false, "You are not authorized to access this planet.", null);
             }
 
@@ -283,9 +292,19 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong user_id, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.View)))
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                return new TaskResult<PlanetChatChannel>(false, "The given planet id does not exist.", null);
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, Context))
             {
                 return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
             }
@@ -298,9 +317,19 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetName(ulong planet_id, string name, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                return new TaskResult(false, "The given planet id does not exist.");
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, Context))
             {
                 return new TaskResult(false, "You are not authorized to manage this planet.");
             }
@@ -325,9 +354,19 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetDescription(ulong planet_id, string description, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                return new TaskResult(false, "The given planet id does not exist.");
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, Context))
             {
                 return new TaskResult(false, "You are not authorized to manage this planet.");
             }
@@ -345,9 +384,19 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult> SetPublic(ulong planet_id, bool ispublic, string token)
         {
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (!(await planet.AuthorizedAsync(token, PlanetPermissions.Manage)))
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                return new TaskResult(false, "The given planet id does not exist.");
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, Context))
             {
                 return new TaskResult(false, "You are not authorized to manage this planet.");
             }
@@ -522,32 +571,35 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (authToken == null)
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
             {
-                return new TaskResult(false, "Failed to authorize user.");
+                return new TaskResult(false, "The given planet id does not exist.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Kick)))
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Kick, Context))
             {
-                return new TaskResult(false, "You are not authorized to do this.");
+                return new TaskResult(false, "You are not authorized to kick in this planet.");
             }
 
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Id == target_id && x.Planet_Id == planet_id);
+            ServerPlanetMember target = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Id == target_id);
 
-            if (member == null)
+            if (target == null)
             {
                 return new TaskResult(true, $"Could not find PlanetMember {target_id}");
             }
 
-            List<ServerPlanetRoleMember> roles = await Task.Run(() => Context.PlanetRoleMembers.Where(x => x.Member_Id == target_id && x.Planet_Id == planet_id).ToList());
+            List<ServerPlanetRoleMember> roles = await Task.Run(() => Context.PlanetRoleMembers.Where(x => x.Member_Id == target_id).ToList());
 
             foreach(ServerPlanetRoleMember role in roles) {
                 Context.PlanetRoleMembers.Remove(role);
             }
 
-            Context.PlanetMembers.Remove(member);
+            Context.PlanetMembers.Remove(target);
 
             await Context.SaveChangesAsync();
 
@@ -558,27 +610,29 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (authToken == null)
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
             {
-                return new TaskResult(false, "Failed to authorize user.");
+                return new TaskResult(false, "The given planet id does not exist.");
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Ban)))
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Ban, Context))
             {
-                return new TaskResult(false, "You are not authorized to do this.");
+                return new TaskResult(false, "You are not authorized to ban in this planet.");
             }
 
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Id == target_id &&
-                                                                                             x.Planet_Id == planet_id);
+            ServerPlanetMember target = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Id == target_id);
 
             PlanetBan ban = new PlanetBan()
             {
                 Id = IdManager.Generate(),
                 Reason = reason,
                 Planet_Id = planet_id,
-                User_Id = member.User_Id,
+                User_Id = target.User_Id,
                 Banner_Id = authToken.User_Id,
                 Time = DateTime.UtcNow,
                 Permanent = false
@@ -602,10 +656,10 @@ namespace Valour.Server.Controllers
                 Context.PlanetRoleMembers.Remove(role);
             }
 
-            Context.PlanetMembers.Remove(member);
+            Context.PlanetMembers.Remove(target);
             await Context.SaveChangesAsync();
 
-            return new TaskResult(true, $"Successfully banned user {member.Nickname}");
+            return new TaskResult(true, $"Successfully banned user {target.Nickname}");
         }
 
         /// <summary>

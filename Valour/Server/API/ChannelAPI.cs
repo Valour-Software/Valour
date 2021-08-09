@@ -75,7 +75,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
-                                                                         .ThenInclude(x => x.Members.FirstOrDefault(x => x.User_Id == authToken.User_Id))
+                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
 
             if (channel == null)

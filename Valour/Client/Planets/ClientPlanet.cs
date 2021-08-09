@@ -273,7 +273,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public static async Task<ClientPlanet> GetClientPlanetAsync(ulong id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanet?planet_id={id}&auth={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanet?planet_id={id}&token={ClientUserManager.UserSecretToken}");
 
             TaskResult<ClientPlanet> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanet>>(json);
 

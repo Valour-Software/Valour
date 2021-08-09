@@ -56,16 +56,19 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (authToken == null)
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
             {
-                return new TaskResult<List<PlanetInvite>>(false, "Failed to authorize user.", null);
+                return new TaskResult<List<PlanetInvite>>(false, "The given planet id does not exist.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Invite, Context))
             {
-                return new TaskResult<List<PlanetInvite>>(false, "You are not authorized to do this.", null);
+                return new TaskResult<List<PlanetInvite>>(false, "You are not authorized to view invites in this planet.", null);
             }
 
             List<PlanetInvite> invites = await Task.Run(() => Context.PlanetInvites.Where(x => x.Planet_Id == planet_id).ToList());
@@ -150,16 +153,19 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (authToken == null)
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == Planet_Id);
+
+            if (planet == null)
             {
-                return new TaskResult<PlanetInvite>(false, "Failed to authorize user.", null);
+                return new TaskResult<PlanetInvite>(false, "The given planet id does not exist.", null);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(Planet_Id);
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.Invite)))
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Invite, Context))
             {
-                return new TaskResult<PlanetInvite>(false, "You are not authorized to do this.", null);
+                return new TaskResult<PlanetInvite>(false, "You are not authorized to create invites in this planet.", null);
             }
 
             PlanetInvite invite = new PlanetInvite()
@@ -175,14 +181,15 @@ namespace Valour.Server.Controllers
             
             const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             
-            string code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-           
-            PlanetInvite test = await Context.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code);
-            
-            while (test != null) {
+            string code = "";
+            PlanetInvite test = null;
+
+            do
+            {
                 code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
                 test = await Context.PlanetInvites.Where(x => x.Code == code).FirstOrDefaultAsync();
             }
+            while (test != null);
 
             invite.Code = code;
 

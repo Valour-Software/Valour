@@ -177,13 +177,13 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You don't have access to this channel.");
             }
 
-            if (!(await channel.Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels)))
+            if (!(await channel.Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, Context)))
             {
                 return new TaskResult(false, "You don't have permission to manage channels.");
             }
 
             // If planet permission to manage roles, there is global permission
-            if (!(await channel.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles)))
+            if (!(await channel.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, Context)))
             {
                 // Otherwise, see if there's channel-specific perms
                 if (!(await channel.HasPermission(member, ChatChannelPermissions.ManagePermissions, Context)))
@@ -257,13 +257,13 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You don't have access to this category.");
             }
 
-            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories)))
+            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, Context)))
             {
                 return new TaskResult(false, "You don't have permission to manage categories.");
             }
 
             // If planet permission to manage roles, there is global permission
-            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles)))
+            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, Context)))
             {
                 // Otherwise, see if there's channel-specific perms
                 if (!(await category.HasPermission(member, ChatChannelPermissions.ManagePermissions, Context)))

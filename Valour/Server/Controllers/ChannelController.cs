@@ -121,23 +121,21 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            if (authToken == null)
+            if (authToken == null) return new TaskResult(false, "Include auth token");
+            if (!authToken.HasScope(UserPermissions.PlanetManagement)) return new TaskResult(false, "Your token doesn't have planet management scope.");
+
+            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.Include(x => x.Planet)
+                                                                              .ThenInclude(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                                              .FirstOrDefaultAsync(x => x.Id == id);
+
+            if (channel == null) return new TaskResult(false, "The given channel id does not exist.");
+
+
+            ServerPlanetMember member = channel.Planet.Members.FirstOrDefault();
+
+            if (!await channel.Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, Context))
             {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            if (!authToken.HasScope(UserPermissions.PlanetManagement))
-            {
-                return new TaskResult(false, "Your token doesn't have planet management scope.");
-            }
-
-            ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(id);
-
-            ServerPlanet planet = await ServerPlanet.FindAsync(channel.Planet_Id);
-
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
+                return new TaskResult(false, "You are not authorized to create invites in this planet.");
             }
 
             // Get parent category
@@ -164,30 +162,31 @@ namespace Valour.Server.Controllers
         /// </summary>
         public async Task<TaskResult<ulong>> CreateChannel(string name, ulong planet_id, ulong user_id, ulong parentid, string token)
         {
+
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+
+            if (authToken == null) return new TaskResult<ulong>(false, "Include auth token", 0);
+            if (!authToken.HasScope(UserPermissions.PlanetManagement)) return new TaskResult<ulong>(false, "Your token doesn't have planet management scope.", 0);
+
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null) return new TaskResult<ulong>(false, "The given channel id does not exist.", 0);
+
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+
+            if (!(await planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, Context)))
+            {
+                return new TaskResult<ulong>(false, "You are not authorized to do this.", 0);
+            }
+
             TaskResult nameValid = ServerPlanetChatChannel.ValidateName(name);
 
             if (!nameValid.Success)
             {
                 return new TaskResult<ulong>(false, nameValid.Message, 0);
-            }
-
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
-            }
-
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
-
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageChannels)))
-            {
-                return new TaskResult<ulong>(false, "You are not authorized to do this.", 0);
             }
 
             // User is verified and given channel info is valid by this point

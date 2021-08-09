@@ -184,7 +184,7 @@ namespace Valour.Server.Planets
                 await db.DisposeAsync();
             }
 
-            return roles; 
+            return roles;
         }
 
         /// <summary>
@@ -201,7 +201,7 @@ namespace Valour.Server.Planets
                 db = new ValourDB(ValourDB.DBOptions);
                 dbcreate = true;
             }
-            
+
             // Already a member
             if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))
             {
@@ -231,7 +231,7 @@ namespace Valour.Server.Planets
             await db.SaveChangesAsync();
 
             Console.WriteLine($"User {user.Username} ({user.Id}) has joined {Name} ({Id})");
-            
+
             // Clean up if created own db
             if (dbcreate) { await db.DisposeAsync(); }
         }

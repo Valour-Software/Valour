@@ -65,7 +65,7 @@ namespace Valour.Server.Controllers
             }
 
             ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
-                                                                          .ThenInclude(x => x.Members.FirstOrDefault(x => x.User_Id == authToken.User_Id))
+                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
                                                                           .FirstOrDefaultAsync(x => x.Id == id);
 
             var member = category.Planet.Members.FirstOrDefault();
@@ -88,18 +88,13 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
             if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
             ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
-                                                                          .ThenInclude(x => x.Members.FirstOrDefault(x => x.User_Id == authToken.User_Id))
+                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
                                                                           .FirstOrDefaultAsync(x => x.Id == id);
 
             var member = category.Planet.Members.FirstOrDefault();
@@ -109,9 +104,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult(false, "You are not authorized to do this.");
             }
 
-            List<ServerPlanetCategory> cate = await Task.Run(() => Context.PlanetCategories.Where(x => x.Planet_Id == category.Planet_Id).ToList());
-
-            if (cate.Count == 1) {
+            if (await Context.PlanetCategories.CountAsync(x => x.Planet_Id == category.Planet_Id) < 2) {
                 return new TaskResult(false, "You can not delete your last category!");
             }
 
@@ -145,21 +138,18 @@ namespace Valour.Server.Controllers
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
             if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult(false, "Failed to authorize user.");
             }
 
-            PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
+            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
+                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                                          .FirstOrDefaultAsync(x => x.Id == id);
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(category.Planet_Id);
+            var member = category.Planet.Members.FirstOrDefault();
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            if (!(await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, Context)))
             {
                 return new TaskResult(false, "You are not authorized to do this.");
             }
@@ -173,10 +163,9 @@ namespace Valour.Server.Controllers
 
             await Context.SaveChangesAsync();
 
-            await PlanetHub.Current.Clients.Group($"p-{planet.Id}").SendAsync("RefreshChannelList", "");
-            
+            PlanetHub.NotifyCategoryChange(category);
+
             return new TaskResult(true, "Successfully set parent id.");
-            
         }
 
         /// <summary>
@@ -194,19 +183,17 @@ namespace Valour.Server.Controllers
 
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
 
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
             if (authToken == null || authToken.User_Id != user_id)
             {
                 return new TaskResult<ulong>(false, "Failed to authorize user.", 0);
             }
 
-            ServerPlanet planet = await ServerPlanet.FindAsync(planet_id);
+            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
+                                                                      .FirstOrDefaultAsync(x => x.Id == planet_id);
 
-            if (!(await planet.AuthorizedAsync(authToken, PlanetPermissions.ManageCategories)))
+            var member = planet.Members.FirstOrDefault();
+
+            if (!(await planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, Context)))
             {
                 return new TaskResult<ulong>(false, "You are not authorized to do this.", 0);
             }
