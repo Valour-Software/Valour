@@ -23,6 +23,7 @@ using Valour.Server.Oauth;
 using Valour.Server.Categories;
 using Valour.Server.MPS.Proxy;
 using Valour.Server.MPS;
+using System.Diagnostics;
 
 
 /*  Valour - A free and secure chat client
@@ -492,12 +493,12 @@ namespace Valour.Server.Controllers
                 return new TaskResult<List<PlanetMemberInfo>>(false, $"Could not authenticate.", null);
             }
 
-            var members = Context.PlanetMembers.AsQueryable()
-                                               .Where(x => x.Planet_Id == planet_id)
+            var members = Context.PlanetMembers.Where(x => x.Planet_Id == planet_id)
                                                .Include(x => x.User)
-                                               .Include(x => x.RoleMembership
-                                               .OrderBy(x => x.Role.Position))
+                                               .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                                                .ThenInclude(x => x.Role);
+
+            //Console.WriteLine("Elapsed: " + sw.ElapsedMilliseconds);
 
             List<PlanetMemberInfo> info = new List<PlanetMemberInfo>();
 

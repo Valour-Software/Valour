@@ -39,6 +39,8 @@ namespace Valour.Server.Workers
 
         private static ValourDB Context;
 
+        public static Dictionary<ulong, ulong> ChannelMessageIndices = new Dictionary<ulong, ulong>();
+
         public static void AddToQueue(PlanetMessage message)
         {
             MessageQueue.Add(message);
