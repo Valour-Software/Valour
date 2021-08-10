@@ -109,27 +109,38 @@
 
         ulong parentid = contextMenu.SelectedCategory.Id;
 
-        string json = await Http.GetStringAsync($"Channel/CreateChannel?name={encodedName}" +
-                                                                   $"&planet_id={planetManager.GetCurrent().Id}" +
-                                                                   $"&user_id={user_id}" +
-                                                                   $"&parentid={parentid}" +
-                                                                   $"&token={token}");
+        var create_response = await Http.PostAsync($"Channel/Create?name={encodedName}" +
+                                                                 $"&planet_id={planetManager.GetCurrent().Id}" +
+                                                                 $"&parent_id={parentid}" +
+                                                                 $"&token={token}", null);
 
-        TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
-
-        if (result == null)
+        if (!create_response.IsSuccessStatusCode)
         {
-            imageSpan = "An error occured retrieving a response. Please try again.";
+            string errorText = $"Error ({create_response.StatusCode}): " + await create_response.Content.ReadAsStringAsync();
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
+            return;
         }
 
-        imageSpan = result.Message;
+        ulong channel_id;
+        bool id_parsed = ulong.TryParse(await create_response.Content.ReadAsStringAsync(), out channel_id);
+
+        if (!id_parsed)
+        {
+            string errorText = "Error: Failed to parse result.";
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
+            return;
+        }
+
+        imageSpan = "Success.";
 
         if (isprivate) {
             // set the default role channel view perms to false
 
             PermissionsNode PermissionsNode = new ChatChannelPermissionsNode()
             {
-                Channel_Id = result.Data,
+                Channel_Id = channel_id,
                 Planet_Id = planetManager.GetCurrent().Id,
                 Role_Id = planetManager.GetCurrent().Default_Role_Id,
                 Code_Mask = 0x00,
@@ -143,7 +154,12 @@
             HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
                                                                                                     (ChatChannelPermissionsNode)PermissionsNode);
 
-            Console.WriteLine(result.Message);
+            if (!response.IsSuccessStatusCode)
+            {
+                string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+                Console.WriteLine(errorText);
+                imageSpan = errorText;
+            }
 
             foreach (PlanetRole role in Roles)
             {
@@ -154,7 +170,7 @@
                 
                 PermissionsNode = new ChatChannelPermissionsNode()
                 {
-                    Channel_Id = result.Data,
+                    Channel_Id = channel_id,
                     Planet_Id = planetManager.GetCurrent().Id,
                     Role_Id = role.Id,
                     Code_Mask = 0x00,
@@ -167,21 +183,16 @@
 
                 response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
                                                                                                         (ChatChannelPermissionsNode)PermissionsNode);
-                if (result == null)
+                if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine("Error deserializing response for permission node update!");
+                    string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+                    Console.WriteLine(errorText);
+                    imageSpan = errorText;
                 }
-
-                if (!result.Success)
-                {
-                    Console.WriteLine("Error in permission node update!");
-                }
-
-                Console.WriteLine(result.Message);
             }
         }
 
-        // close model
+        // close modal
 
         createChannelModal.Component.SetVisibility(false);
 
