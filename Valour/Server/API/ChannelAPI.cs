@@ -5,12 +5,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Server.Planets;
+using Valour.Server.Workers;
 using Valour.Shared;
+using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 
 namespace Valour.Server.API
@@ -22,6 +25,252 @@ namespace Valour.Server.API
             app.MapPost("/channel/delete", Delete);
             app.MapPost("/channel/setparent", SetParent);
             app.MapPost("/channel/create", Create);
+
+            app.MapGet("/channel/getmessages", GetMessages);
+            app.MapGet("/channel/getlastmessages", GetLastMessages);
+        }
+
+        /// <summary>
+        /// Returns the last messages from a channel
+        /// </summary>
+
+        // Type:
+        // GET
+        // -----------------------------------
+        //
+        // Route:
+        // /channel/getlastmessages
+        // -----------------------------------
+        //
+        // Query parameters:
+        // -----------------------------------------------------------
+        // | auth       | Authentication key               | string  |
+        // | channel_id | Id of the channel                | ulong   |
+        // | count      | The amount of messages to return | int     |
+        // -----------------------------------------------------------
+        private static async Task GetLastMessages(HttpContext ctx, ValourDB db)
+        {
+            // Request parameter validation //
+
+            if (!ctx.Request.Query.TryGetValue("token", out var token))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Include token");
+                return;
+            }
+
+            if (!ctx.Request.Query.TryGetValue("channel_id", out var channel_id_in))
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Include channel_id");
+                return;
+            }
+
+            ulong channel_id;
+            bool channel_id_parse = ulong.TryParse(channel_id_in, out channel_id);
+
+            if (!channel_id_parse)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Could not parse channel_id");
+                return;
+            }
+
+            int count;
+
+            if (!ctx.Request.Query.TryGetValue("count", out var count_in))
+            {
+                count = 10;
+            }
+            else
+            {
+                bool count_parse = int.TryParse(count_in, out count);
+
+                if (!count_parse)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync("Could not parse count");
+                    return;
+                }
+
+                if (count > 64)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync("Max count is 64");
+                    return;
+                }
+            }
+
+            // Request authorization //
+
+            AuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+
+            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                         .FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            var member = channel.Planet.Members.FirstOrDefault();
+
+            if (member == null || !await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ViewMessages node");
+                return;
+            }
+
+            List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel_id, count);
+            List<PlanetMessage> messages = null;
+
+            count = count - staged.Count;
+
+            if (count > 0)
+            {
+                await Task.Run(() =>
+                {
+                    messages =
+                    db.PlanetMessages.Where(x => x.Channel_Id == channel_id)
+                                     .OrderByDescending(x => x.Message_Index)
+                                     .Take(count)
+                                     .Reverse()
+                                     .ToList();
+                });
+
+                messages.AddRange(staged);
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(messages);
+        }
+
+        /// <summary>
+        /// Returns the messages from a channel
+        /// </summary>
+
+        // Type:
+        // GET
+        // -----------------------------------
+        //
+        // Route:
+        // /channel/getmessages
+        // -----------------------------------
+        //
+        // Query parameters:
+        // -----------------------------------------------------------
+        // | auth       | Authentication key               | string  |
+        // | channel_id | Id of the channel                | ulong   |
+        // | index      | The index at which to start      | ulong   |
+        // | count      | The amount of messages to return | int     |
+        // -----------------------------------------------------------
+        private static async Task GetMessages(HttpContext ctx, ValourDB db)
+        {
+            // Request parameter validation //
+
+            if (!ctx.Request.Query.TryGetValue("token", out var token))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Include token");
+                return;
+            }
+
+            if (!ctx.Request.Query.TryGetValue("channel_id", out var channel_id_in))
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Include channel_id");
+                return;
+            }
+
+            ulong channel_id;
+            bool channel_id_parse = ulong.TryParse(channel_id_in, out channel_id);
+
+            if (!channel_id_parse)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Could not parse channel_id");
+                return;
+            }
+
+            ulong index;
+
+            if (!ctx.Request.Query.TryGetValue("index", out var index_in))
+            {
+                index = ulong.MaxValue;
+            }
+            else
+            {
+                bool index_parse = ulong.TryParse(index_in, out index);
+
+                if (!index_parse)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync("Could not parse index");
+                    return;
+                }
+            }
+
+            int count;
+
+            if (!ctx.Request.Query.TryGetValue("count", out var count_in))
+            {
+                count = 10;
+            }
+            else
+            {
+                bool count_parse = int.TryParse(count_in, out count);
+
+                if (!count_parse)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync("Could not parse count");
+                    return;
+                }
+
+                if (count > 64)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync("Max count is 64");
+                    return;
+                }
+            }
+
+            // Request authorization //
+
+            AuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+
+            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                         .FirstOrDefaultAsync(x => x.Id == channel_id);
+
+            var member = channel.Planet.Members.FirstOrDefault();
+
+            if (member == null || !await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ViewMessages node");
+                return;
+            }
+
+            List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel_id, count);
+            List<PlanetMessage> messages = null;
+
+            count = count - staged.Count;
+
+            if (count > 0)
+            {
+                await Task.Run(() =>
+                {
+                    messages =
+                    db.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
+                                     .OrderByDescending(x => x.Message_Index)
+                                     .Take(count)
+                                     .Reverse()
+                                     .ToList();
+                });
+
+                messages.AddRange(staged.Where(x => x.Message_Index < index));
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(messages);
         }
 
         /// <summary>

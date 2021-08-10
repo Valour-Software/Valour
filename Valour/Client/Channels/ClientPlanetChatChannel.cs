@@ -55,7 +55,8 @@ namespace Valour.Client.Channels
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetMessages?channel_id={Id}" +
                                                                                            $"&index={index}" +
-                                                                                           $"&count={count}");
+                                                                                           $"&count={count}" +
+                                                                                           $"&token={ClientUserManager.UserSecretToken}");
 
             List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
 
@@ -76,7 +77,8 @@ namespace Valour.Client.Channels
         public async Task<List<ClientPlanetMessage>> GetLastMessagesAsync(int count = 10)
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetLastMessages?channel_id={Id}" +
-                                                                                             $"&count={count}");
+                                                                                             $"&count={count}" +
+                                                                                             $"&token={ClientUserManager.UserSecretToken}");
 
             List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
 
