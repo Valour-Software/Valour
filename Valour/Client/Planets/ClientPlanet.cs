@@ -199,8 +199,8 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task RequestChannelsAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetPlanetChannels?planet_id={Id}" +
-                                                                                   $"&token={ClientUserManager.UserSecretToken}");
+            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetChannels?planet_id={Id}" +
+                                                                                        $"&token={ClientUserManager.UserSecretToken}");
 
             TaskResult<List<ClientPlanetChatChannel>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetChatChannel>>>(json);
 

@@ -38,6 +38,9 @@ namespace Valour.Server.Planets
         [JsonIgnore]
         public virtual ICollection<ServerPlanetMember> Members { get; set; }
 
+        [InverseProperty("Planet")]
+        public virtual ICollection<ServerPlanetChatChannel> ChatChannels { get; set; }
+
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base
         /// </summary>
