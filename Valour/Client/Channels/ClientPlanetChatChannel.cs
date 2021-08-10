@@ -97,23 +97,23 @@ namespace Valour.Client.Channels
         {
             string encodedName = HttpUtility.UrlEncode(name);
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetName?channel_id={Id}" +
-                                                                                     $"&name={encodedName}" +
-                                                                                     $"&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.PostAsync($"Channel/SetName?channel_id={Id}" +
+                                                                                 $"&name={encodedName}" +
+                                                                                 $"&token={ClientUserManager.UserSecretToken}", null);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to deserialize result from SetName in channel");
+                Console.WriteLine("Failed to set name");
+                Console.WriteLine(message);
             }
-
-            if (result.Success)
+            else
             {
                 this.Name = name;
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
 
         /// <summary>
@@ -123,23 +123,23 @@ namespace Valour.Client.Channels
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetDescription?channel_id={Id}" +
-                                                                                            $"&description={encodedDesc}" +
-                                                                                            $"&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.PostAsync($"Channel/SetDescription?channel_id={Id}" +
+                                                                                        $"&description={encodedDesc}" +
+                                                                                        $"&token={ClientUserManager.UserSecretToken}", null);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to deserialize result from SetDescription in channel");
+                Console.WriteLine("Failed to set description");
+                Console.WriteLine(message);
             }
-
-            if (result.Success)
+            else
             {
                 this.Description = desc;
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
         public string GetItemTypeName()
         {
@@ -151,23 +151,23 @@ namespace Valour.Client.Channels
         /// </summary>
         public async Task<TaskResult> SetPermissionInheritMode(bool value)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/SetPermissionInheritMode?channel_id={Id}" +
-                                                                                                      $"&value={value}" +
-                                                                                                      $"&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.PostAsync($"Channel/SetPermissionInherit?channel_id={Id}" +
+                                                                                              $"&inherit={value}" +
+                                                                                              $"&token={ClientUserManager.UserSecretToken}", null);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to deserialize result from SetPermissionInheritMode in channel");
+                Console.WriteLine("Failed to set inheritance");
+                Console.WriteLine(message);
             }
-
-            if (result.Success)
+            else
             {
                 this.Inherits_Perms = value;
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
 
         public async Task<PermissionsNode> GetPermissionsNode(PlanetRole role)

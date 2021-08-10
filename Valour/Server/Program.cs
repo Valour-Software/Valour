@@ -203,7 +203,14 @@ namespace Valour.Server
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Description = "Docs for my API", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Valour API", Description = "The official Valour API", Version = "v1.0" });
+                c.AddSecurityDefinition("Token", new OpenApiSecurityScheme()
+                {
+                    Description = "The token used for authorizing your account.",
+                    In = ParameterLocation.Query,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Token"
+                });
             });
         }
 
