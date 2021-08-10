@@ -50,40 +50,6 @@ namespace Valour.Server.Controllers
             this.Mapper = mapper;
         }
 
-        public async Task<TaskResult> SetName(string name, ulong id, ulong user_id, string token)
-        {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            ServerPlanetCategory category = await Context.PlanetCategories.Include(x => x.Planet)
-                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
-                                                                          .FirstOrDefaultAsync(x => x.Id == id);
-
-            var member = category.Planet.Members.FirstOrDefault();
-
-            if (!await category.Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, Context))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
-            }
-
-            category.Name = name;
-
-            await Context.SaveChangesAsync();
-
-            PlanetHub.NotifyCategoryChange(category);
-
-            return new TaskResult(true, "Successfully set name.");
-        }
-
         public async Task<TaskResult> Delete(ulong id, ulong user_id, string token)
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);

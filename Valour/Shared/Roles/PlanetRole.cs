@@ -31,6 +31,17 @@ namespace Valour.Shared.Roles
             };
         }
 
+        public static PlanetRole VictorRole = new PlanetRole()
+        {
+            Name = "Victor Class",
+            Id = ulong.MaxValue,
+            Position = uint.MaxValue,
+            Planet_Id = 0,
+            Color_Red = 255,
+            Color_Green = 0,
+            Color_Blue = 255
+        };
+
         /// <summary>
         /// The unique Id of this role
         /// </summary>

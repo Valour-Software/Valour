@@ -1,20 +1,29 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Valour.Server.Categories;
 using Valour.Server.Database;
+using Valour.Server.MPS;
 using Valour.Server.Oauth;
 using Valour.Server.Planets;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
+
+/*  Valour - A free and secure chat client
+ *  Copyright (C) 2021 Vooper Media LLC
+ *  This program is subject to the GNU Affero General Public license
+ *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+ */
 
 namespace Valour.Server.API
 {
@@ -25,10 +34,116 @@ namespace Valour.Server.API
             app.MapPost("/channel/delete", Delete);
             app.MapPost("/channel/setparent", SetParent);
             app.MapPost("/channel/create", Create);
+            app.MapPost("/channel/postmessage", PostMessage);
 
             app.MapGet("/channel/getmessages", GetMessages);
             app.MapGet("/channel/getlastmessages", GetLastMessages);
         }
+
+        /// <summary>
+        /// Attempts to post a message to the channel
+        /// </summary>
+
+        // Type:
+        // POST
+        // -----------------------------------
+        //
+        // Route:
+        // /channel/postmessage
+        // -----------------------------------
+        //
+        // Query parameters:
+        // ----------------------------------------
+        // | token | Authentication key | string  |
+        // ----------------------------------------
+        //
+        // POST Content:
+        // --------------------------------------------------
+        // | message | The message to post | PlanetMessage  |
+        // --------------------------------------------------
+        private static async Task PostMessage(HttpContext ctx, ValourDB db,
+                                              [FromBody][Required] PlanetMessage message, [Required] string token)
+        {
+
+
+            AuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                return;
+            }
+
+            if (message == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Include message data");
+                return;
+            }
+
+            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                         .FirstOrDefaultAsync(x => x.Id == message.Channel_Id);
+
+            if (channel == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Channel not found [id: {message.Channel_Id}]");
+                return;
+            }
+
+            var member = channel.Planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Could not find member using token");
+                return;
+            }
+
+            if (!await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ViewMessages node");
+                return;
+            }
+
+            if (!await channel.HasPermission(member, ChatChannelPermissions.PostMessages, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.PostMessages node");
+                return;
+            }
+
+            // Ensure author id is accurate
+            message.Author_Id = auth.User_Id;
+
+            if (message.Content != null && message.Content.Length > 2048)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Content is over 2048 chars");
+                return;
+            }
+
+            if (message.Embed_Data != null && message.Content.Length > 65535)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Embed is over 65535 chars");
+                return;
+            }
+
+            // Handle urls
+            message.Content = await MPSManager.HandleUrls(message.Content);
+
+            PlanetMessageWorker.AddToQueue(message);
+
+            StatWorker.IncreaseMessageCount();
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsync("Success");
+        }
+
 
         /// <summary>
         /// Returns the last messages from a channel
@@ -44,66 +159,32 @@ namespace Valour.Server.API
         //
         // Query parameters:
         // -----------------------------------------------------------
-        // | auth       | Authentication key               | string  |
+        // | token      | Authentication key               | string  |
         // | channel_id | Id of the channel                | ulong   |
         // | count      | The amount of messages to return | int     |
         // -----------------------------------------------------------
-        private static async Task GetLastMessages(HttpContext ctx, ValourDB db)
+        private static async Task GetLastMessages(HttpContext ctx, ValourDB db,
+                                                  [Required] string token, [Required] ulong channel_id, int count = 10)
         {
             // Request parameter validation //
 
-            if (!ctx.Request.Query.TryGetValue("token", out var token))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Include token");
-                return;
-            }
-
-            if (!ctx.Request.Query.TryGetValue("channel_id", out var channel_id_in))
+            if (count > 64)
             {
                 ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync("Include channel_id");
+                await ctx.Response.WriteAsync("Max count is 64");
                 return;
-            }
-
-            ulong channel_id;
-            bool channel_id_parse = ulong.TryParse(channel_id_in, out channel_id);
-
-            if (!channel_id_parse)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync("Could not parse channel_id");
-                return;
-            }
-
-            int count;
-
-            if (!ctx.Request.Query.TryGetValue("count", out var count_in))
-            {
-                count = 10;
-            }
-            else
-            {
-                bool count_parse = int.TryParse(count_in, out count);
-
-                if (!count_parse)
-                {
-                    ctx.Response.StatusCode = 400;
-                    await ctx.Response.WriteAsync("Could not parse count");
-                    return;
-                }
-
-                if (count > 64)
-                {
-                    ctx.Response.StatusCode = 400;
-                    await ctx.Response.WriteAsync("Max count is 64");
-                    return;
-                }
             }
 
             // Request authorization //
 
             AuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                return;
+            }
 
             ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
@@ -156,7 +237,7 @@ namespace Valour.Server.API
         //
         // Query parameters:
         // -----------------------------------------------------------
-        // | auth       | Authentication key               | string  |
+        // | token      | Authentication key               | string  |
         // | channel_id | Id of the channel                | ulong   |
         // | index      | The index at which to start      | ulong   |
         // | count      | The amount of messages to return | int     |
@@ -236,6 +317,13 @@ namespace Valour.Server.API
 
             AuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
 
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                return;
+            }
+
             ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
@@ -287,7 +375,7 @@ namespace Valour.Server.API
         //
         // Query parameters:
         // ---------------------------------------------------
-        // | auth      | Authentication key        | string  |
+        // | token     | Authentication key        | string  |
         // | planet_id | Id of target planet       | ulong   |
         // | parent_id | Id of the parent category | ulong   |
         // | name      | The name for the channel  | string  |
@@ -418,7 +506,7 @@ namespace Valour.Server.API
         //
         // Query parameters:
         // --------------------------------------------------
-        // | auth       | Authentication key       | string |
+        // | token      | Authentication key       | string |
         // | channel_id | Id of target channel     | ulong  |
         // | parent_id  | Id of the parent channel | ulong  |
         // --------------------------------------------------
@@ -535,7 +623,7 @@ namespace Valour.Server.API
         //
         // Query parameters:
         // ----------------------------------------------
-        // | auth       | Authentication key   | string |
+        // | token      | Authentication key   | string |
         // | channel_id | Id of target channel | ulong  |
         // ----------------------------------------------
 

@@ -160,6 +160,12 @@ namespace Valour.Client.Planets
         /// <returns></returns>
         public async Task LoadUserAsync()
         {
+            if (User_Id == ulong.MaxValue)
+            {
+                _user = User.Victor;
+                return;
+            }
+
             string json = await ClientUserManager.Http.GetStringAsync($"User/GetUser?id={User_Id}");
 
             TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(json);
@@ -240,6 +246,8 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<PlanetRole> GetPrimaryRoleAsync()
         {
+            if (Id == ulong.MaxValue) return PlanetRole.VictorRole;
+
             if (_roleids == null)
             {
                 await LoadRoleIdsAsync();
@@ -257,7 +265,11 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<string> GetColorHexAsync()
         {
-            return (await GetPrimaryRoleAsync()).GetColorHex();
+            var primRole = await GetPrimaryRoleAsync();
+
+            if (primRole == null) { return "#ffffff"; }
+
+            return primRole.GetColorHex();
         }
 
         /// <summary>

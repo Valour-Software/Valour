@@ -23,6 +23,7 @@ using Valour.Server.MPS;
 using System.Text.Json.Serialization;
 using Valour.Server.API;
 using System.Web;
+using Microsoft.OpenApi.Models;
 
 namespace Valour.Server
 {
@@ -79,6 +80,13 @@ namespace Valour.Server
                 app.UseHsts();
             }
 
+            app.UseSwagger();
+
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            });
+
             app.UseWebSockets();
 
             app.UseHttpsRedirection();
@@ -102,6 +110,8 @@ namespace Valour.Server
                     //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
                 });
             });
+
+            //app.UseDeveloperExceptionPage();
 
             PlanetHub.Current = app.Services.GetService<IHubContext<PlanetHub>>();
 
@@ -188,6 +198,13 @@ namespace Valour.Server
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
+
+            services.AddEndpointsApiExplorer();
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Description = "Docs for my API", Version = "v1" });
+            });
         }
 
         /// <summary>

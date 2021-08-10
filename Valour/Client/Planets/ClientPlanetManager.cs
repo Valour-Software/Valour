@@ -83,6 +83,13 @@ namespace Valour.Client.Planets
             signalRManager.hubConnection.On<string>("CategoryUpdate", UpdateCategory);
             signalRManager.hubConnection.On<string>("ChatChannelDeletion", ChatChannelDeletion);
             signalRManager.hubConnection.On<string>("CategoryDeletion", CategoryDeletion);
+
+            PlanetMemberCache.TryAdd(ulong.MaxValue, new ClientPlanetMember()
+            {
+                Nickname = "Victor",
+                Id = ulong.MaxValue,
+                Member_Pfp = "/media/victor-cyan.png"
+            });
         }
 
         public bool IsChatChannelOpen(ClientPlanetChatChannel channel)

@@ -110,6 +110,17 @@ namespace Valour.Shared.Users
                 UserState_Value = value.Value;
             }
         }
+
+        public static User Victor = new User()
+        {
+            Bot = true,
+            UserState_Value = 4,
+            Pfp_Url = "/media/victor-cyan.png",
+            Username = "Victor",
+            Valour_Staff = true,
+            Id = ulong.MaxValue
+        };
+
     }
 
 }
