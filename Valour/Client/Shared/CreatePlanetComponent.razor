@@ -84,7 +84,7 @@
                                                                $"&user_id={user_id}" +
                                                                $"&token={token}");
 
-            TaskResult<Planet> planetResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<Planet>>(json);
+            TaskResult<ClientPlanet> planetResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanet>>(json);
 
             if (!planetResult.Success)
             {
@@ -93,9 +93,9 @@
                 return;
             }
 
-            ClientPlanet planet = ClientPlanet.FromBase(planetResult.Data, Mapper);
+            var planet = planetResult.Data;
 
-            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync(Mapper);
+            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
 
             windowManager.ClearWindows();
 

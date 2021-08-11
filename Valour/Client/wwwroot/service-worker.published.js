@@ -41,7 +41,8 @@ async function onFetch(event) {
     if (event.request.method === 'GET') {
         // For all navigation requests, try to serve index.html from cache
         // If you need some URLs to be server-rendered, edit the following check to exclude those URLs
-        const shouldServeIndexHtml = event.request.mode === 'navigate';
+        const shouldServeIndexHtml = event.request.mode === 'navigate' &&
+            !event.request.url.includes('api');
 
         const request = shouldServeIndexHtml ? 'index.html' : event.request;
         const cache = await caches.open(cacheName);

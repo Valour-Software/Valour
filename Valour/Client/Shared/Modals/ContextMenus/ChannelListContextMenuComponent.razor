@@ -107,7 +107,7 @@
             string result = "";
 
             if (channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.ChatChannel) {
-                var response = await Http.PostAsync($"Channel/Delete?channel_id={channelListContextMenu.SelectedItem.Id}" +
+                var response = await Http.PostAsync($"api/channel/delete?channel_id={channelListContextMenu.SelectedItem.Id}" +
                                                                   $"&token={token}", 
                                                                   null);
 

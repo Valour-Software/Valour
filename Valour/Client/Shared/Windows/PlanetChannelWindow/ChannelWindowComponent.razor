@@ -388,7 +388,7 @@
 
         MessageHolder.AddQueuedMessage(message);
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage?token={ClientUserManager.UserSecretToken}", message);
+        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"api/channel/postmessage?token={ClientUserManager.UserSecretToken}", message);
 
         string res = await httpresponse.Content.ReadAsStringAsync();
 

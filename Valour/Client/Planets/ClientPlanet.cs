@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO.MemoryMappedFiles;
@@ -13,6 +12,7 @@ using Valour.Shared.Planets;
 using Valour.Shared.Categories;
 using Valour.Shared.Roles;
 using Valour.Client.Categories;
+using System.Web;
 
 namespace Valour.Client.Planets
 {
@@ -44,14 +44,6 @@ namespace Valour.Client.Planets
         // Cached values
         private List<ClientPlanetChatChannel> _channels = null;
         private List<ClientPlanetCategory> _categories = null;
-
-        /// <summary>
-        /// Returns a ServerPlanet using a Planet as a base
-        /// </summary>
-        public static ClientPlanet FromBase(Planet planet, IMapper mapper)
-        {
-            return mapper.Map<ClientPlanet>(planet);
-        }
 
         public async Task NotifyUpdateChannel(ClientPlanetChatChannel channel)
         {
@@ -118,13 +110,13 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Returns the primary channel of the planet
         /// </summary>
-        public async Task<ClientPlanetChatChannel> GetPrimaryChannelAsync(IMapper mapper)
+        public async Task<ClientPlanetChatChannel> GetPrimaryChannelAsync()
         {
             string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPrimaryChannel?planet_id={Id}" +
                                                                                               $"&user_id={ClientUserManager.User.Id}" +
                                                                                               $"&token={ClientUserManager.UserSecretToken}");
 
-            TaskResult<PlanetChatChannel> channelResult = JsonConvert.DeserializeObject<TaskResult<PlanetChatChannel>>(json);
+            TaskResult<ClientPlanetChatChannel> channelResult = JsonConvert.DeserializeObject<TaskResult<ClientPlanetChatChannel>>(json);
 
             if (channelResult == null)
             {
@@ -137,10 +129,7 @@ namespace Valour.Client.Planets
                 Console.WriteLine($"Failed to retrieve primary channel for planet {Id}: {channelResult.Message}");
             }
 
-            // Map to new
-            ClientPlanetChatChannel channel = mapper.Map<ClientPlanetChatChannel>(channelResult.Data);
-
-            return channel;
+            return channelResult.Data;
         }
 
         /// <summary>
@@ -199,22 +188,24 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task RequestChannelsAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetChannels?planet_id={Id}" +
-                                                                                        $"&token={ClientUserManager.UserSecretToken}");
+            string encoded_token = HttpUtility.UrlEncode(ClientUserManager.UserSecretToken);
 
-            TaskResult<List<ClientPlanetChatChannel>> result = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanetChatChannel>>>(json);
+            var id = this.Id;
 
-            if (result == null)
+            var response = await ClientUserManager.Http.GetAsync($"/api/Planet/GetChannels?planet_id={id}" +
+                                                                                   $"&token={encoded_token}");
+
+            var message = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet from the server.");
+                Console.WriteLine(message);
             }
 
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-            }
+            List<ClientPlanetChatChannel> channels = JsonConvert.DeserializeObject<List<ClientPlanetChatChannel>>(message);
 
-            _channels = result.Data;
+            _channels = channels;
         }
 
         /// <summary>
@@ -222,16 +213,21 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<TaskResult> SetName(string name)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/SetName?planet_id={Id}&name={name}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.PostAsync($"api/planet/setname?planet_id={Id}&name={name}&token={ClientUserManager.UserSecretToken}", null);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+            string message = await response.Content.ReadAsStringAsync();
 
-            if (result.Success)
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Failed to set planet name");
+                Console.WriteLine(response.Content);
+            }
+            else
             {
                 Name = name;
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
 
         /// <summary>

@@ -109,7 +109,7 @@
 
         ulong parentid = contextMenu.SelectedCategory.Id;
 
-        var create_response = await Http.PostAsync($"Channel/Create?name={encodedName}" +
+        var create_response = await Http.PostAsync($"api/channel/create?name={encodedName}" +
                                                                  $"&planet_id={planetManager.GetCurrent().Id}" +
                                                                  $"&parent_id={parentid}" +
                                                                  $"&token={token}", null);

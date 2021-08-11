@@ -16,6 +16,7 @@ using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.RegularExpressions;
 
 namespace Valour.Server.Planets
 {
@@ -40,6 +41,31 @@ namespace Valour.Server.Planets
 
         [InverseProperty("Planet")]
         public virtual ICollection<ServerPlanetChatChannel> ChatChannels { get; set; }
+
+        public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+        /// <summary>
+        /// Validates that a given name is allowable for a server
+        /// </summary>
+        public static TaskResult ValidateName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new TaskResult(false, "Planet names cannot be empty.");
+            }
+
+            if (name.Length > 32)
+            {
+                return new TaskResult(false, "Planet names must be 32 characters or less.");
+            }
+
+            if (!nameRegex.IsMatch(name))
+            {
+                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+            }
+
+            return new TaskResult(true, "The given name is valid.");
+        }
 
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base

@@ -31,16 +31,16 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapPost("/channel/delete", Delete);
-            app.MapPost("/channel/setparent", SetParent);
-            app.MapPost("/channel/create", Create);
-            app.MapPost("/channel/postmessage", PostMessage);
-            app.MapPost("/channel/setname", SetName);
-            app.MapPost("/channel/setdescription", SetDescription);
-            app.MapPost("/channel/SetPermissionInherit", SetPermissionInherit);
+            app.MapPost("/api/channel/delete", Delete);
+            app.MapPost("/api/channel/setparent", SetParent);
+            app.MapPost("/api/channel/create", Create);
+            app.MapPost("/api/channel/postmessage", PostMessage);
+            app.MapPost("/api/channel/setname", SetName);
+            app.MapPost("/api/channel/setdescription", SetDescription);
+            app.MapPost("/api/channel/setpermissioninherit", SetPermissionInherit);
 
-            app.MapGet("/channel/getmessages", GetMessages);
-            app.MapGet("/channel/getlastmessages", GetLastMessages);
+            app.MapGet("/api/channel/getmessages", GetMessages);
+            app.MapGet("/api/channel/getlastmessages", GetLastMessages);
         }
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/setpermissioninherit
+        // /api/channel/setpermissioninherit
         // -----------------------------------
         //
         // Query parameters:
@@ -128,7 +128,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/setdescription
+        // /api/channel/setdescription
         // -----------------------------------
         //
         // Query parameters:
@@ -205,7 +205,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/setname
+        // /api/channel/setname
         // -----------------------------------
         //
         // Query parameters:
@@ -292,7 +292,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/postmessage
+        // /api/channel/postmessage
         // -----------------------------------
         //
         // Query parameters:
@@ -397,7 +397,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/getlastmessages
+        // /api/channel/getlastmessages
         // -----------------------------------
         //
         // Query parameters:
@@ -475,7 +475,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/getmessages
+        // /api/channel/getmessages
         // -----------------------------------
         //
         // Query parameters:
@@ -555,7 +555,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/create
+        // /api/channel/create
         // -----------------------------------
         //
         // Query parameters:
@@ -639,7 +639,7 @@ namespace Valour.Server.API
         // POST
         // -----------------------------------
         // Route:
-        // /channel/setparent
+        // /api/channel/setparent
         //
         // -----------------------------------
         //
@@ -716,7 +716,7 @@ namespace Valour.Server.API
         // -----------------------------------
         //
         // Route:
-        // /channel/delete
+        // /api/channel/delete
         // -----------------------------------
         //
         // Query parameters:

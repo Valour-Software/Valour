@@ -53,7 +53,7 @@ namespace Valour.Client.Channels
         /// <returns>An enumerable list of planet messages</returns>
         public async Task<List<ClientPlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetMessages?channel_id={Id}" +
+            string json = await ClientUserManager.Http.GetStringAsync($"api/channel/getmessages?channel_id={Id}" +
                                                                                            $"&index={index}" +
                                                                                            $"&count={count}" +
                                                                                            $"&token={ClientUserManager.UserSecretToken}");
@@ -76,7 +76,7 @@ namespace Valour.Client.Channels
         /// <returns>An enumerable list of planet messages</returns>
         public async Task<List<ClientPlanetMessage>> GetLastMessagesAsync(int count = 10)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Channel/GetLastMessages?channel_id={Id}" +
+            string json = await ClientUserManager.Http.GetStringAsync($"api/channel/getlastmessages?channel_id={Id}" +
                                                                                              $"&count={count}" +
                                                                                              $"&token={ClientUserManager.UserSecretToken}");
 
@@ -97,7 +97,7 @@ namespace Valour.Client.Channels
         {
             string encodedName = HttpUtility.UrlEncode(name);
 
-            var response = await ClientUserManager.Http.PostAsync($"Channel/SetName?channel_id={Id}" +
+            var response = await ClientUserManager.Http.PostAsync($"api/channel/setname?channel_id={Id}" +
                                                                                  $"&name={encodedName}" +
                                                                                  $"&token={ClientUserManager.UserSecretToken}", null);
 
@@ -123,7 +123,7 @@ namespace Valour.Client.Channels
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
 
-            var response = await ClientUserManager.Http.PostAsync($"Channel/SetDescription?channel_id={Id}" +
+            var response = await ClientUserManager.Http.PostAsync($"api/channel/setdescription?channel_id={Id}" +
                                                                                         $"&description={encodedDesc}" +
                                                                                         $"&token={ClientUserManager.UserSecretToken}", null);
 
@@ -151,7 +151,7 @@ namespace Valour.Client.Channels
         /// </summary>
         public async Task<TaskResult> SetPermissionInheritMode(bool value)
         {
-            var response = await ClientUserManager.Http.PostAsync($"Channel/SetPermissionInherit?channel_id={Id}" +
+            var response = await ClientUserManager.Http.PostAsync($"api/channel/setpermissioninherit?channel_id={Id}" +
                                                                                               $"&inherit={value}" +
                                                                                               $"&token={ClientUserManager.UserSecretToken}", null);
 

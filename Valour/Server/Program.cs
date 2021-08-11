@@ -56,9 +56,12 @@ namespace Valour.Server
             // Configure application
             ConfigureApp(app);
 
+            app.MapGet("/api/ping", () => "pong");
+
             // Add API routes
             UploadAPI.AddRoutes(app);
             ChannelAPI.AddRoutes(app);
+            PlanetAPI.AddRoutes(app);
 
             // Run
             app.Run();

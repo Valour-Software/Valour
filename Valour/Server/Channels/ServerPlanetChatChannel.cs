@@ -39,9 +39,12 @@ namespace Valour.Server.Planets
 
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
         [ForeignKey("Parent_Id")]
+        [JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         public virtual ServerPlanetCategory Parent { get; set; }
 
         public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
