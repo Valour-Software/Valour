@@ -50,37 +50,49 @@ namespace Valour.Server.Planets
         public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
 
         /// <summary>
-        /// Returns the generic planet chat channel object
+        /// The regex used for name validation
         /// </summary>
-        [JsonIgnore]
-        public ServerPlanetChatChannel PlanetChatChannel
+        public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+        /// <summary>
+        /// Deletes this channel
+        /// </summary>
+        public async Task<TaskResult> TryDeleteAsync(ValourDB db)
         {
-            get
+            var planet = await GetPlanetAsync();
+
+            if (Id == planet.Main_Channel_Id)
             {
-                return (ServerPlanetChatChannel)this;
+                return new TaskResult(false, $"You cannot delete a planet's main channel [id: {Id}]");
             }
+
+            // Remove permission nodes
+            db.ChatChannelPermissionsNodes.RemoveRange(
+                db.ChatChannelPermissionsNodes.Where(x => x.Channel_Id == Id)
+            );
+
+            // Remove messages
+            db.PlanetMessages.RemoveRange(
+                db.PlanetMessages.Where(x => x.Channel_Id == Id)
+            );
+
+            // Remove channel
+            db.PlanetChatChannels.Remove(
+                await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == Id)
+            );
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            // Notify channel deletion
+            await PlanetHub.NotifyChatChannelDeletion(this);
+
+            return new TaskResult(true, "Success");
         }
 
         /// <summary>
-        /// Returns a ServerPlanetChatChannel using a PlanetChatChannel as a base
+        /// Returns the planet this channel belongs to
         /// </summary>
-        public static ServerPlanetChatChannel FromBase(PlanetChatChannel channel)
-        {
-            return MappingManager.Mapper.Map<ServerPlanetChatChannel>(channel);
-        }
-
-        /// <summary>
-        /// Retrieves a ServerPlanetChatChannel for the given id
-        /// </summary>
-        public static async Task<ServerPlanetChatChannel> FindAsync(ulong id)
-        {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                PlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(id);
-                return ServerPlanetChatChannel.FromBase(channel);
-            }
-        }
-
         public async Task<ServerPlanet> GetPlanetAsync(ValourDB db = null)
         {
             if (Planet != null) return Planet;
@@ -98,6 +110,9 @@ namespace Valour.Server.Planets
             return Planet;
         }
 
+        /// <summary>
+        /// Returns the parent category of this channel
+        /// </summary>
         public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db = null)
         {
             if (Parent != null) return Parent;
@@ -115,6 +130,9 @@ namespace Valour.Server.Planets
             return Parent;
         }
 
+        /// <summary>
+        /// Returns if a given member has a channel permission
+        /// </summary>
         public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
         {
             if (Planet == null)
@@ -186,8 +204,6 @@ namespace Valour.Server.Planets
             return false;
         }
 
-        public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
         /// <summary>
         /// Validates that a given name is allowable for a channel
         /// </summary>
@@ -206,35 +222,52 @@ namespace Valour.Server.Planets
             return new TaskResult(true, "The given name is valid.");
         }
 
-        public async Task SetNameAsync(string name, ValourDB db = null)
+        /// <summary>
+        /// Sets the name of this channel
+        /// </summary>
+        public async Task SetNameAsync(string name, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
             this.Name = name;
-
             db.PlanetChatChannels.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
         }
 
-        public async Task SetDescriptionAsync(string desc, ValourDB db = null)
+        /// <summary>
+        /// Sets the description of this channel
+        /// </summary>
+        public async Task SetDescriptionAsync(string desc, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
             this.Description = desc;
-
             db.PlanetChatChannels.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
         }
 
-        public void NotifyClientsChange()
+        /// <summary>
+        /// Sets the parent of this channel
+        /// </summary>
+        public async Task SetParentAsync(ulong parent_id, ValourDB db)
         {
-            PlanetHub.NotifyChatChannelChange(this);
+            this.Parent_Id = parent_id;
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+        }
+
+        /// <summary>
+        /// Sets the permissions inherit mode of this channel
+        /// </summary>
+        public async Task SetInheritsPermsAsync(bool inherits_perms, ValourDB db)
+        {
+            this.Inherits_Perms = inherits_perms;
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
         }
 
         /// <summary>
@@ -260,6 +293,14 @@ namespace Valour.Server.Planets
             if (createdb) { await db.DisposeAsync(); }
 
             return members;
+        }
+
+        /// <summary>
+        /// Notifies all clients that this channel has changed
+        /// </summary>
+        public void NotifyClientsChange()
+        {
+            PlanetHub.NotifyChatChannelChange(this);
         }
     }
 }

@@ -24,18 +24,21 @@ namespace Valour.Shared
     public class TaskResult<T>
     {
         [JsonProperty]
+        [System.Text.Json.Serialization.JsonInclude]
         public string Message { get; set; }
 
         [JsonProperty]
+        [System.Text.Json.Serialization.JsonInclude]
         public bool Success { get; set; }
 
         [JsonProperty]
+        [System.Text.Json.Serialization.JsonInclude]
         public T Data { get; set; }
 
-        public TaskResult(bool success, string response, T data)
+        public TaskResult(bool success, string message, T data)
         {
             Success = success;
-            Message = response;
+            Message = message;
             Data = data;
         }
 

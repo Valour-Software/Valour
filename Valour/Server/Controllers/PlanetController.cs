@@ -21,10 +21,6 @@ using Valour.Shared.Users;
 using Valour.Server.Users;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
-using Valour.Server.MPS.Proxy;
-using Valour.Server.MPS;
-using System.Diagnostics;
-
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -58,16 +54,10 @@ namespace Valour.Server.Controllers
         /// </summary>
         private readonly ValourDB Context;
 
-        /// <summary>
-        /// Mapper object
-        /// </summary>
-        private readonly IMapper Mapper;
-
         // Dependency injection
-        public PlanetController(ValourDB context, IMapper mapper)
+        public PlanetController(ValourDB context)
         {
             this.Context = context;
-            this.Mapper = mapper;
         }
 
         [HttpPost]
@@ -122,35 +112,9 @@ namespace Valour.Server.Controllers
         }
 
         /// <summary>
-        /// Returns a planet object (if permitted)
-        /// </summary>
-        public async Task<TaskResult<Planet>> GetPlanet(ulong planet_id, string token)
-        {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            if (authToken == null) return new TaskResult<Planet>(false, "Please include auth", null);
-
-            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
-                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            if (planet == null)
-            {
-                return new TaskResult<Planet>(false, "The given planet id does not exist.", null);
-            }
-
-            ServerPlanetMember member = planet.Members.FirstOrDefault();
-
-            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, Context))
-            {
-                return new TaskResult<Planet>(false, "You are not authorized to access this planet.", null);
-            }
-
-            return new TaskResult<Planet>(true, "Successfully retrieved planet.", planet);
-        }
-
-        /// <summary>
         /// Returns a planet's primary channel
         /// </summary>
+        [HttpGet]
         public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong user_id, string token)
         {
             AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
@@ -170,7 +134,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
             }
 
-            return new TaskResult<PlanetChatChannel>(true, "Successfully retireved channel.", await planet.GetPrimaryChannelAsync());
+            return new TaskResult<PlanetChatChannel>(true, "Successfully retrieved channel.", await planet.GetPrimaryChannelAsync(Context));
         }
 
         /// <summary>

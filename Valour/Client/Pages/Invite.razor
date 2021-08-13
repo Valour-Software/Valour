@@ -98,7 +98,7 @@
 
         ClientUserManager.Planets.Clear();
 
-        await ClientUserManager.RefreshPlanetsAsync(mapper);
+        await ClientUserManager.RefreshPlanetsAsync();
 
         navManager.NavigateTo("/");
     }

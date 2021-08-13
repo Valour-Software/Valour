@@ -136,13 +136,9 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the primary channel for the planet
         /// </summary>
-        public async Task<PlanetChatChannel> GetPrimaryChannelAsync()
+        public async Task<PlanetChatChannel> GetPrimaryChannelAsync(ValourDB db)
         {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                // TODO: Make a way to choose a primary channel rather than just grabbing the first one
-                return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
-            }
+             return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
         }
 
         /// <summary>

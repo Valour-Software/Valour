@@ -56,7 +56,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Attempt to re-login the user from local token
-        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage, mapper);
+        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage);
 
         Console.WriteLine(tokenResult.Message);
 

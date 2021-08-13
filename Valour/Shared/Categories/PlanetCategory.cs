@@ -18,29 +18,6 @@ namespace Valour.Shared.Categories
     /// </summary>
     public class PlanetCategory : Valour.Shared.Planets.ChannelListItem
     {
-        /// <summary>
-        /// The Id of this category
-        /// </summary>
-        public ulong Id { get; set; }
 
-        /// <summary>
-        /// The name of this category
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
-        /// The Id of the planet this category belongs to
-        /// </summary>
-        public ulong Planet_Id { get; set; }
-
-        /// <summary>
-        /// The id of the parent category, is null if theres no parent
-        /// </summary>
-        public ulong? Parent_Id { get; set;}
-
-        /// <summary>
-        /// Is the position in the category/channel list
-        /// </summary>
-        public ushort Position { get; set; }
     }
 }

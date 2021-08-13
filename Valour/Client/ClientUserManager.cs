@@ -97,6 +97,8 @@ namespace Valour.Client
                 User = result.Data;
                 UserSecretToken = token;
 
+                Http.DefaultRequestHeaders.Add("authorization", UserSecretToken);
+
                 Console.WriteLine($"Initialized user {User.Username}");
 
                 // Store token for future use

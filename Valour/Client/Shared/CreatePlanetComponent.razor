@@ -80,28 +80,25 @@
         {
             ulong planet_id = result.Data;
 
-            json = await Http.GetStringAsync($"Planet/GetPlanet?planet_id={planet_id}" +
-                                                               $"&user_id={user_id}" +
-                                                               $"&token={token}");
+            var response = await Http.GetAsync($"api/planet/{planet_id}");
 
-            TaskResult<ClientPlanet> planetResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanet>>(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            if (!planetResult.Success)
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Failed to retrieve planet: {planetResult.Message}");
+                Console.WriteLine($"Failed to retrieve planet {planet_id}");
+                Console.WriteLine(message);
                 imageSpan = "Created planet, but error occured retrieving. Please restart Valour.";
                 return;
             }
 
-            var planet = planetResult.Data;
+            ClientPlanet planet = JsonConvert.DeserializeObject<ClientPlanet>(message);
 
-            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+            ClientPlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
 
             windowManager.ClearWindows();
 
-            ClientPlanetChatChannel channel = ClientPlanetChatChannel.FromBase(mainChannel, Mapper);
-
-            windowManager.AddWindow(new ChatChannelWindow(0, channel));
+            windowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
 
             await windowManager.SetSelectedWindow(0);
 

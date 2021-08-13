@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -49,40 +50,79 @@ namespace Valour.Server.API
         public static void AddRoutes(WebApplication app)
         {
             app.MapPost("/api/planet/create", Create);
-            app.MapPost("/api/planet/setname", SetName);
 
-            app.MapGet("/api/planet/getchannelids", GetChannelIds);
-            app.MapGet("/api/planet/getchannels", GetChannels);
+
+            app.Map("/api/planet/{planet_id}/name", Name);
+
+            app.Map("/api/planet/{planet_id}", Planet);
+            app.MapGet("/api/planet/{planet_id}/channels/", GetChannels);
+            app.MapGet("/api/planet/{planet_id}/channelids/", GetChannelIds);
+            
         }
 
-        /// <summary>
-        /// Sets the name of a planet
-        /// </summary>
-        //
-        // Type:
-        // POST
-        // -----------------------------------
-        //
-        // Route:
-        // /api/planet/setname
-        // -----------------------------------
-        //
-        // Query parameters:
-        // --------------------------------------------
-        // | token     | Authentication key  | string |
-        // | planet_id | Id of the planet    | ulong  |
-        // | name      | Name of the planet  | string |
-        // --------------------------------------------
-        private static async Task SetName(HttpContext ctx, ValourDB db,
-                                          [Required] string token, [Required] ulong planet_id,
-                                          [Required] string name)
+        private static async Task Planet(HttpContext ctx, ValourDB db, ulong planet_id,
+                                      [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                      .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            var member = planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Member not found");
+                return;
+            }
+
+            switch (ctx.Request.Method)
+            {
+                case "GET":
+                    {
+                        // All members have access to the planet object by default.
+                        // I really have no clue why they wouldn't, so I'm not adding a View
+                        // permissions test. Fight me.
+                        ctx.Response.StatusCode = 200;
+                        await ctx.Response.WriteAsJsonAsync((Planet)planet);
+                        return;
+                    }
+                case "DELETE":
+                    {
+                        // User MUST be the owner of the planet
+                        if (planet.Owner_Id != auth.User_Id)
+                        {
+                            ctx.Response.StatusCode = 401;
+                            await ctx.Response.WriteAsync("Only owner can delete");
+                            return;
+                        }
+
+                        return;
+                    }
+            }
+
+            
+        }
+
+        private static async Task Name(HttpContext ctx, ValourDB db, ulong planet_id,
+                                      [FromHeader] string authorization)
+        {
+            string name = "";
+
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
                 return;
             }
 
@@ -144,15 +184,15 @@ namespace Valour.Server.API
         /// The created Planet object
         /// </returns>
         private static async Task Create(HttpContext ctx, ValourDB db,
-                                         [Required] string token, [Required] string name,
+                                         [FromHeader] string authorization, [Required] string name,
                                          [Required] string image_url)
         {
-            ServerAuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+            ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
                 return;
             }
 
@@ -279,15 +319,15 @@ namespace Valour.Server.API
         // | planet_id  | Id of the planet   | ulong  |
         // --------------------------------------------
         private static async Task GetChannels(HttpContext ctx, ValourDB db,
-                                              [Required] string token, [Required] ulong planet_id)
+                                              [FromHeader] string authorization, [Required] ulong planet_id)
         {
 
-            ServerAuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+            ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
                 return;
             }
 
@@ -343,14 +383,14 @@ namespace Valour.Server.API
         // | planet_id  | Id of the planet   | ulong  |
         // --------------------------------------------
         private static async Task GetChannelIds(HttpContext ctx, ValourDB db,
-                                                [Required] string token, [Required] ulong planet_id)
+                                                [FromHeader] string authorization, [Required] ulong planet_id)
         {
-            ServerAuthToken auth = await ServerAuthToken.TryAuthorize(token, db);
+            ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
                 ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {token}]");
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
                 return;
             }
 

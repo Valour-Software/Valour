@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web;
 using Valour.Client.Planets;
@@ -52,18 +53,19 @@ namespace Valour.Client.Categories
         {
             string encodedName = HttpUtility.UrlEncode(name);
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Category/SetName?category_id={Id}" +
-                                                                                      $"&name={encodedName}" +
-                                                                                      $"&token={ClientUserManager.UserSecretToken}");
+            StringContent content = new StringContent(encodedName);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/name", content);
 
-            if (result == null)
+            var message = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to deserialize result from SetName in channel");
+                Console.WriteLine($"Failed to set name for category {Id}");
+                Console.WriteLine(message);
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
 
         /// <summary>
@@ -73,18 +75,39 @@ namespace Valour.Client.Categories
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Category/SetDescription?category_id={Id}" +
-                                                                                             $"&description={encodedDesc}" +
-                                                                                             $"&token={ClientUserManager.UserSecretToken}");
+            StringContent content = new StringContent(encodedDesc);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/description", content);
 
-            if (result == null)
+            var message = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to deserialize result from SetDescription in channel");
+                Console.WriteLine($"Failed to set description for category {Id}");
+                Console.WriteLine(message);
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
+        }
+
+        /// <summary>
+        /// Attempts to set the parent of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> SetParentIdAsync(ulong parent_id)
+        {
+            StringContent content = new StringContent(parent_id.ToString());
+
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/parent_id", content);
+
+            var message = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Failed to set parent id for category {Id}");
+                Console.WriteLine(message);
+            }
+
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
 
         public string GetItemTypeName()
@@ -92,7 +115,7 @@ namespace Valour.Client.Categories
             return "Category";
         }
 
-        public async Task<PermissionsNode> GetPermissionsNode(PlanetRole role)
+        public async Task<PermissionsNode> GetPermissionsNodeAsync(PlanetRole role)
         {
             return await GetCategoryPermissionsNode(role);
         }

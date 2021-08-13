@@ -100,29 +100,12 @@
         {
             Console.WriteLine("Confirmed channel item deletion.");
 
-            //Delete(ulong id, ulong user_id, string token)
-
             ulong user_id = ClientUserManager.User.Id;
             string token = ClientUserManager.UserSecretToken;
-            string result = "";
 
-            if (channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.ChatChannel) {
-                var response = await Http.PostAsync($"api/channel/delete?channel_id={channelListContextMenu.SelectedItem.Id}" +
-                                                                  $"&token={token}", 
-                                                                  null);
+            var result = await channelListContextMenu.SelectedItem.TryDeleteAsync();
 
-                result = await response.Content.ReadAsStringAsync();
-            }
-
-            else {
-                result = await Http.GetStringAsync($"Category/Delete?id={channelListContextMenu.SelectedItem.Id}" +
-                                                                    $"&user_id={user_id}" +
-                                                                    $"&token={token}");
-            }
-
-            
-
-            Console.WriteLine(result);
+            Console.WriteLine("Deletion: " + result.Message);
 
         },
 

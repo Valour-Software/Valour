@@ -71,7 +71,7 @@
 
         if (loginResult.Success)
         {
-            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, localStorage, mapper);
+            TaskResult result = await ClientUserManager.InitializeUser(loginResult.Data, localStorage);
 
             if (result.Success)
             {

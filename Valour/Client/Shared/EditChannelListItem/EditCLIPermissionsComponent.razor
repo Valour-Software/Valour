@@ -199,7 +199,7 @@ else
 
     public async Task SwitchInherit()
     {
-        await ChatChannel.SetPermissionInheritMode(!ChatChannel.Inherits_Perms);
+        await ChatChannel.SetPermissionInheritModeAsync(!ChatChannel.Inherits_Perms);
         StateHasChanged();
     }
 
@@ -350,7 +350,7 @@ else
 
         Console.WriteLine($"Selected role {Selected_Role.Name}");
 
-        PermissionsNode = await Item.GetPermissionsNode(Selected_Role);
+        PermissionsNode = await Item.GetPermissionsNodeAsync(Selected_Role);
 
         changed = false;
 

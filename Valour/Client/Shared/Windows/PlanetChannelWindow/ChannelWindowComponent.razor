@@ -382,13 +382,13 @@
         });
         */
 
-        string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
-
-        Console.WriteLine("SEND: \n" + json);
-
         MessageHolder.AddQueuedMessage(message);
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"api/channel/postmessage?token={ClientUserManager.UserSecretToken}", message);
+        string json = JsonConvert.SerializeObject(message);
+
+        StringContent content = new StringContent(json);
+
+        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{Channel.Id}/messages", content);
 
         string res = await httpresponse.Content.ReadAsStringAsync();
 

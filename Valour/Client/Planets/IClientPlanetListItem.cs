@@ -21,12 +21,14 @@ namespace Valour.Client.Planets
         public Task<TaskResult> SetNameAsync(string name);
         public Task<TaskResult> SetDescriptionAsync(string desc);
 
+        public Task<TaskResult> TryDeleteAsync(); 
+
         public string GetItemTypeName();
 
         public ChannelListItemType ItemType { get; }
 
         public Task<ClientPlanet> GetPlanetAsync();
 
-        public Task<PermissionsNode> GetPermissionsNode(PlanetRole role);
+        public Task<PermissionsNode> GetPermissionsNodeAsync(PlanetRole role);
     }
 }

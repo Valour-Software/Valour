@@ -75,7 +75,7 @@
 
     public async Task OnPlanetClick(ClientPlanet planet)
     {
-        ClientPlanetChatChannel channel = await planet.GetPrimaryChannelAsync(Mapper);
+        ClientPlanetChatChannel channel = await planet.GetPrimaryChannelAsync();
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
 

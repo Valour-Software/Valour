@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -28,47 +29,79 @@ namespace Valour.Server.Categories
         public ChannelListItemType ItemType => ChannelListItemType.Category;
 
         /// <summary>
-        /// Validates that a given name is allowable for a server
+        /// Tries to delete the category while respecting constraints
         /// </summary>
-        public static TaskResult ValidateName(string name)
+        public async Task<TaskResult> TryDeleteAsync(ValourDB db)
         {
-            if (name.Length > 32)
+            var planet = await GetPlanetAsync();
+
+            if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
             {
-                return new TaskResult(false, "Planet names must be 32 characters or less.");
+                return new TaskResult(false, "Last category cannot be deleted");
             }
 
-            if (!nameRegex.IsMatch(name))
+            var childCategoryCount = await db.PlanetCategories.CountAsync(x => x.Parent_Id == Id);
+            var childChannelCount = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == Id);
+
+            if (childCategoryCount != 0 || childChannelCount != 0)
             {
-                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+                return new TaskResult(false, "Category must be empty");
             }
 
-            return new TaskResult(true, "The given name is valid.");
+            // Remove permission nodes
+
+            db.CategoryPermissionsNodes.RemoveRange(
+                db.CategoryPermissionsNodes.Where(x => x.Category_Id == Id)
+            );
+
+            // Remove category
+            db.PlanetCategories.Remove(
+                await db.PlanetCategories.FindAsync(Id)
+            );
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            // Notify of update
+            await PlanetHub.NotifyCategoryDeletion(this);
+
+            return new TaskResult(true, "Success");
         }
 
-        public async Task SetNameAsync(string name, ValourDB db = null)
+        /// <summary>
+        /// Sets the name of this category
+        /// </summary>
+        public async Task SetNameAsync(string name, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
             this.Name = name;
-
             db.PlanetCategories.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
         }
 
-        public async Task SetDescriptionAsync(string desc, ValourDB db = null)
+        /// <summary>
+        /// Sets the description of this category
+        /// </summary>
+        public async Task SetDescriptionAsync(string desc, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
             this.Description = desc;
-
             db.PlanetCategories.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
+        }
+
+        /// <summary>
+        /// Sets the parent of this category
+        /// </summary>
+        public async Task SetParentAsync(ulong parent_id, ValourDB db)
+        {
+            this.Parent_Id = parent_id;
+            db.PlanetCategories.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
         }
 
         public async Task<Planet> GetPlanetAsync(ValourDB db = null)
@@ -162,6 +195,24 @@ namespace Valour.Server.Categories
         public void NotifyClientsChange()
         {
             PlanetHub.NotifyCategoryChange(this);
+        }
+
+        /// <summary>
+        /// Validates that a given name is allowable for a server
+        /// </summary>
+        public static TaskResult ValidateName(string name)
+        {
+            if (name.Length > 32)
+            {
+                return new TaskResult(false, "Planet names must be 32 characters or less.");
+            }
+
+            if (!nameRegex.IsMatch(name))
+            {
+                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+            }
+
+            return new TaskResult(true, "The given name is valid.");
         }
     }
 }

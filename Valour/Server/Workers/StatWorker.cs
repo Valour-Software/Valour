@@ -40,8 +40,6 @@ namespace Valour.Server.Workers
             stats.MessagesSent += 1;
         }
 
-        public static IHostingEnvironment env;
-
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
