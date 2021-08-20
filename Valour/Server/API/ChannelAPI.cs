@@ -28,7 +28,7 @@ using Valour.Shared.Oauth;
 
 namespace Valour.Server.API
 {
-    public class ChannelAPI
+    public static class ChannelAPI
     {
         public static void AddRoutes(WebApplication app)
         {
@@ -63,7 +63,7 @@ namespace Valour.Server.API
             if (channel == null)
             {
                 ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id}]");
+                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id.ToString()}]");
                 return;
             }
 
@@ -144,7 +144,7 @@ namespace Valour.Server.API
             if (channel == null)
             {
                 ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id}]");
+                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id.ToString()}]");
                 return;
             }
 
@@ -229,7 +229,7 @@ namespace Valour.Server.API
             if (channel == null)
             {
                 ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id}]");
+                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id.ToString()}]");
                 return;
             }
 

@@ -108,6 +108,8 @@ namespace Valour.Server.Planets
             db.Planets.Update(this);
             await db.SaveChangesAsync();
 
+            NotifyClientsChange();
+
             return new TaskResult(true, "Success");
         }
 
@@ -120,6 +122,23 @@ namespace Valour.Server.Planets
 
             db.Planets.Update(this);
             await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
+        }
+
+        /// <summary>
+        /// Tries to set the planet open state
+        /// </summary>
+        public async Task<TaskResult> TrySetPublicAsync(bool pub, ValourDB db)
+        {
+            this.Public = pub;
+
+            db.Planets.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
 
             return new TaskResult(true, "Success");
         }
@@ -296,6 +315,11 @@ namespace Valour.Server.Planets
 
             // Clean up if created own db
             if (dbcreate) { await db.DisposeAsync(); }
+        }
+
+        public void NotifyClientsChange()
+        {
+            PlanetHub.NotifyPlanetChange(this);
         }
     }
 }

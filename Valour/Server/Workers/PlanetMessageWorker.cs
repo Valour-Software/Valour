@@ -1,8 +1,16 @@
-﻿using Valour.Server.Database;
+﻿using System;
+using Valour.Server.Database;
 using Valour.Shared.Messages;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Valour.Server.Planets;
 
 namespace Valour.Server.Workers
@@ -84,9 +92,9 @@ namespace Valour.Server.Workers
 
                 while (!task.IsCompleted)
                 {
-                    _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now}");
-                    _logger.LogInformation($"Queue size: {MessageQueue.Count}");
-                    _logger.LogInformation($"Saving {StagedMessages.Count} messages to DB.");
+                    _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now.ToString()}");
+                    _logger.LogInformation($"Queue size: {MessageQueue.Count.ToString()}");
+                    _logger.LogInformation($"Saving {StagedMessages.Count.ToString()} messages to DB.");
 
                     if (Context != null)
                     {
@@ -102,8 +110,8 @@ namespace Valour.Server.Workers
                     await Task.Delay(30000, stoppingToken);
                 }
 
-                _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now);
-                _logger.LogInformation("Restarting.", DateTimeOffset.Now);
+                _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now.ToString());
+                _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
             }
         }
     }

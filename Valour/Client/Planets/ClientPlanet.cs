@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Valour.Client.Channels;
@@ -6,8 +7,9 @@ using Valour.Shared;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Client.Categories;
-using System.Web;
 using Newtonsoft.Json;
+using System.Linq;
+using System.Net.Http.Json;
 
 namespace Valour.Client.Planets
 {
@@ -16,90 +18,66 @@ namespace Valour.Client.Planets
      *  This program is subject to the GNU Affero General Public license
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
-
-    /// <summary>
-    /// This class exists to add client funtionality to the Planet
-    /// class. It does not, and should not, have any extra fields or properties.
-    /// Just helper methods.
-    /// </summary>
     public class ClientPlanet : Planet 
     {
-
-        /// <summary>
-        /// Returns the generic planet object
-        /// </summary>
-        public Planet Planet
-        {
-            get
-            {
-                return (Planet)this;
-            }
-        }
-
         // Cached values
-        private List<ClientPlanetChatChannel> _channels = null;
-        private List<ClientPlanetCategory> _categories = null;
+        private List<ulong> _channel_ids = null;
+        private List<ulong> _category_ids = null;
 
         public async Task NotifyUpdateChannel(ClientPlanetChatChannel channel)
         {
-            if (_channels == null)
+            if (_channel_ids == null)
             {
                 await LoadChannelsAsync();
             }
 
-            int index = _channels.FindIndex(x => x.Id == channel.Id);
+            // Set in cache
+            ClientCache.Channels[channel.Id] = channel;
 
-            if (index == -1) {
-                // add to cache
-                _channels.Add(channel);
+            // Re-order channels
+            List<ClientPlanetChatChannel> channels = new List<ClientPlanetChatChannel>();
+
+            foreach (var id in _channel_ids)
+            {
+                channels.Add(ClientCache.Channels[id]);
             }
-            else {
-                // replace
-                _channels.RemoveAt(index);
-                _channels.Insert(index, channel);
-            }
+
+            _channel_ids = channels.OrderBy(x => x.Position).Select(x => x.Id).ToList();
         }
 
         public void NotifyDeleteChannel(ClientPlanetChatChannel channel)
         {
-            int index = _channels.FindIndex(x => x.Id == channel.Id);
+            _channel_ids.Remove(channel.Id);
 
-            if (index != -1)
-            {
-                _channels.RemoveAt(index);
-            }
+            ClientCache.Channels.Remove(channel.Id, out var old);
         }
 
         public async Task NotifyUpdateCategory(ClientPlanetCategory category)
         {
-            if (_categories == null)
+            if (_category_ids == null)
             {
-                await RequestCategoriesAsync();
+                await LoadCategoriesAsync();
             }
 
-            int index = _categories.FindIndex(x => x.Id == category.Id);
+            // Set in cache
+            ClientCache.Categories[category.Id] = category;
+            
+            // Reo-order categories
+            List<ClientPlanetCategory> categories = new List<ClientPlanetCategory>();
+            
+            foreach (var id in _category_ids)
+            {
+                categories.Add(ClientCache.Categories[id]);
+            }
 
-            if (index == -1)
-            {
-                // add to cache
-                _categories.Add(category);
-            }
-            else
-            {
-                // replace
-                _categories.RemoveAt(index);
-                _categories.Insert(index, category);
-            }
+            _category_ids = categories.OrderBy(x => x.Position).Select(x => x.Id).ToList();
         }
 
         public void NotifyDeleteCategory(ClientPlanetCategory category)
         {
-            int index = _categories.FindIndex(x => x.Id == category.Id);
+            _category_ids.Remove(category.Id);
 
-            if (index != -1)
-            {
-                _categories.RemoveAt(index);
-            }
+            ClientCache.Categories.Remove(category.Id, out var old);
         }
 
         /// <summary>
@@ -107,20 +85,12 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<ClientPlanetChatChannel> GetPrimaryChannelAsync()
         {
-            var response = await ClientUserManager.Http.GetAsync($"api/planet/{Id}/primary_channel");
-
-            var message = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
+            if (_channel_ids == null)
             {
-                Console.WriteLine("A fatal error occurred retrieving a planet's primary category.");
-                Console.WriteLine(message);
-                return null;
+                await LoadChannelsAsync();
             }
 
-            ClientPlanetChatChannel result = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(message);
-
-            return result;
+            return ClientCache.Channels[Main_Channel_Id];
         }
 
         /// <summary>
@@ -128,19 +98,25 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<List<ClientPlanetCategory>> GetCategoriesAsync(bool force_refresh = false)
         {
-
-            if (_categories == null || force_refresh)
+            if (_category_ids == null || force_refresh)
             {
-                await RequestCategoriesAsync();
+                await LoadCategoriesAsync();
             }
 
-            return _categories;
+            List<ClientPlanetCategory> categories = new List<ClientPlanetCategory>();
+
+            foreach (var id in _category_ids)
+            {
+                categories.Add(ClientCache.Categories[id]);
+            }
+
+            return categories;
         }
 
         /// <summary>
         /// Requests and caches categories from the server
         /// </summary>
-        public async Task RequestCategoriesAsync()
+        public async Task LoadCategoriesAsync()
         {
             var response = await ClientUserManager.Http.GetAsync($"api/planet/{Id}/categories");
 
@@ -155,7 +131,12 @@ namespace Valour.Client.Planets
 
             List<ClientPlanetCategory> result = JsonConvert.DeserializeObject<List<ClientPlanetCategory>>(message);
 
-            _categories = result;
+            foreach (var category in result)
+            {
+                ClientCache.Categories[category.Id] = category;
+            }
+            
+            _category_ids = result.OrderBy(x => x.Position).Select(x => x.Id).ToList();
         }
 
         /// <summary>
@@ -163,13 +144,19 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<List<ClientPlanetChatChannel>> GetChannelsAsync(bool force_refresh = false)
         {
-
-            if (_channels == null || force_refresh)
+            if (_channel_ids == null || force_refresh)
             {
                 await LoadChannelsAsync();
             }
 
-            return _channels;
+            List<ClientPlanetChatChannel> channels = new List<ClientPlanetChatChannel>();
+
+            foreach (var id in _channel_ids)
+            {
+                channels.Add(ClientCache.Channels[id]);
+            }
+            
+            return channels;
         }
 
         /// <summary>
@@ -177,8 +164,6 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task LoadChannelsAsync()
         {
-            string encoded_token = HttpUtility.UrlEncode(ClientUserManager.UserSecretToken);
-
             var response = await ClientUserManager.Http.GetAsync($"/api/planet/{Id}/channels");
 
             var message = await response.Content.ReadAsStringAsync();
@@ -191,7 +176,12 @@ namespace Valour.Client.Planets
 
             List<ClientPlanetChatChannel> channels = JsonConvert.DeserializeObject<List<ClientPlanetChatChannel>>(message);
 
-            _channels = channels;
+            foreach (var channel in channels)
+            {
+                ClientCache.Channels[channel.Id] = channel;
+            }
+            
+            _channel_ids = channels.OrderBy(x => x.Position).Select(x => x.Id).ToList();
         }
 
         /// <summary>
@@ -208,7 +198,7 @@ namespace Valour.Client.Planets
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Failed to set planet name");
-                Console.WriteLine(response.Content);
+                Console.WriteLine(message);
             }
             else
             {
@@ -225,14 +215,14 @@ namespace Valour.Client.Planets
         {
             StringContent content = new StringContent(description);
 
-            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id}/description", content);
+            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id.ToString()}/description", content);
 
             string message = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Failed to set planet description");
-                Console.WriteLine(response.Content);
+                Console.WriteLine(message);
             }
             else
             {
@@ -245,18 +235,25 @@ namespace Valour.Client.Planets
         /// <summary>
         /// Attempts to set the public value of the planet
         /// </summary>
-        public async Task<TaskResult> SetPublic(bool ispublic)
+        public async Task<TaskResult> SetPublic(bool is_public)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/SetPublic?planet_id={Id}&ispublic={ispublic}&token={ClientUserManager.UserSecretToken}");
+            JsonContent content = JsonContent.Create(is_public);
+            
+            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id.ToString()}/public", content);
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
-
-            if (result.Success)
+            string message = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
             {
-                Public = ispublic;
+                Console.WriteLine("Failed to set planet publicity");
+                Console.WriteLine(message);
+            }
+            else
+            {
+                Public = is_public;
             }
 
-            return result;
+            return new TaskResult(response.IsSuccessStatusCode, message);
         }
 
         /// <summary>

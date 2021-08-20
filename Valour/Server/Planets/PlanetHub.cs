@@ -105,6 +105,13 @@ namespace Valour.Server.Planets
             await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", json);
         }
 
+        public static async void NotifyPlanetChange(ServerPlanet planet)
+        {
+            string json = JsonConvert.SerializeObject(planet);
+
+            await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", json);
+        }
+
         public static async void NotifyInteractionEvent(InteractionEvent Interaction)
         {
             string json = JsonConvert.SerializeObject(Interaction);

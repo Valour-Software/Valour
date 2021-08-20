@@ -19,11 +19,6 @@ namespace Valour.Client.Categories
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
 
-    /// <summary>
-    /// This class exists to add client funtionality to the PlanetCategory
-    /// class. It does not, and should not, have any extra fields or properties.
-    /// Just helper methods.
-    /// </summary>
     public class ClientPlanetCategory : IPlanetCategory, IClientNamedItem, IClientPlanetListItem
     {
         /// <summary>

@@ -29,7 +29,7 @@ using Valour.Shared.Planets;
 
 namespace Valour.Server.API
 {
-    public class PlanetAPI
+    public static class PlanetAPI
     {
         // Constant planet variables //
 
@@ -51,21 +51,25 @@ namespace Valour.Server.API
         public static void AddRoutes(WebApplication app)
         {
             app.MapPost("/api/planet/create", Create);
-            app.Map    ("/api/planet/{planet_id}/name", Name);
-            app.Map    ("/api/planet/{planet_id}/description", Description);
-            app.Map    ("/api/planet/{planet_id}", Planet);
-            app.Map    ("/api/planet/{planet_id}/primary_channel", PrimaryChannel);
+            app.Map("/api/planet/{planet_id}/name", Name);
+            app.Map("/api/planet/{planet_id}/description", Description);
+            app.Map("/api/planet/{planet_id}/public", Public);
+            app.Map("/api/planet/{planet_id}", Planet);
+            app.Map("/api/planet/{planet_id}/primary_channel", PrimaryChannel);
 
             app.MapPost("/api/planet/{planet_id}/channels", CreateChannel);
-            app.MapGet ("/api/planet/{planet_id}/channels", GetChannels);
-            app.MapGet ("/api/planet/{planet_id}/channelids", GetChannelIds);
+            app.MapGet("/api/planet/{planet_id}/channels", GetChannels);
+            app.MapGet("/api/planet/{planet_id}/channelids", GetChannelIds);
 
             app.MapPost("/api/planet/{planet_id}/categories", CreateCategory);
-            app.MapGet ("/api/planet/{planet_id}/categories", GetCategories);
+            app.MapGet("/api/planet/{planet_id}/categories", GetCategories);
+
+            app.MapGet("api/planet/{planet_id}/members/user/{user_id}", GetMember);
+            app.MapGet("api/planet/{planet_id}/members/user/{user_id}/role_ids", GetMemberRoleIds);
         }
 
         private static async Task Planet(HttpContext ctx, ValourDB db, ulong planet_id,
-                                        [FromHeader] string authorization)
+            [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -77,7 +81,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                      .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -98,33 +102,31 @@ namespace Valour.Server.API
             switch (ctx.Request.Method)
             {
                 case "GET":
-                    {
-                        // All members have access to the planet object by default.
-                        // I really have no clue why they wouldn't, so I'm not adding a View
-                        // permissions test. Fight me.
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync((Planet)planet);
-                        return;
-                    }
+                {
+                    // All members have access to the planet object by default.
+                    // I really have no clue why they wouldn't, so I'm not adding a View
+                    // permissions test. Fight me.
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsJsonAsync((Planet) planet);
+                    return;
+                }
                 case "DELETE":
+                {
+                    // User MUST be the owner of the planet
+                    if (planet.Owner_Id != auth.User_Id)
                     {
-                        // User MUST be the owner of the planet
-                        if (planet.Owner_Id != auth.User_Id)
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Only owner can delete");
-                            return;
-                        }
-
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync("Only owner can delete");
                         return;
                     }
-            }
 
-            
+                    return;
+                }
+            }
         }
 
         private static async Task Name(HttpContext ctx, ValourDB db, ulong planet_id,
-                                      [FromHeader] string authorization)
+            [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -136,7 +138,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -164,48 +166,48 @@ namespace Valour.Server.API
             switch (ctx.Request.Method)
             {
                 case "GET":
+                {
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsJsonAsync(planet.Name);
+                    return;
+                }
+                case "PUT":
+                {
+                    if (!auth.HasScope(UserPermissions.PlanetManagement))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
+                        return;
+                    }
+
+                    if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
+                        return;
+                    }
+
+                    string body = await ctx.Request.ReadBodyStringAsync();
+
+                    var result = await planet.TrySetNameAsync(body, db);
+
+                    if (!result.Success)
+                    {
+                        ctx.Response.StatusCode = 400;
+                    }
+                    else
                     {
                         ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(planet.Name);
-                        return;
                     }
-                case "PUT":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
 
-                        if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        var result = await planet.TrySetNameAsync(body, db);
-
-                        if (!result.Success)
-                        {
-                            ctx.Response.StatusCode = 400;
-                        }
-                        else
-                        {
-                            ctx.Response.StatusCode = 200;
-                        }
-
-                        await ctx.Response.WriteAsync(result.Message);
-                        return;
-                    }
+                    await ctx.Response.WriteAsync(result.Message);
+                    return;
+                }
             }
         }
 
         private static async Task Description(HttpContext ctx, ValourDB db, ulong planet_id,
-                                      [FromHeader] string authorization)
+            [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -217,7 +219,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -245,49 +247,140 @@ namespace Valour.Server.API
             switch (ctx.Request.Method)
             {
                 case "GET":
+                {
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsJsonAsync(planet.Description);
+                    return;
+                }
+                case "PUT":
+                {
+                    if (!auth.HasScope(UserPermissions.PlanetManagement))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
+                        return;
+                    }
+
+                    if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
+                        return;
+                    }
+
+                    string body = await ctx.Request.ReadBodyStringAsync();
+
+                    var result = await planet.TrySetDescriptionAsync(body, db);
+
+                    if (!result.Success)
+                    {
+                        ctx.Response.StatusCode = 400;
+                    }
+                    else
                     {
                         ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(planet.Description);
-                        return;
                     }
+
+                    await ctx.Response.WriteAsync(result.Message);
+                    return;
+                }
+            }
+        }
+
+        private static async Task Public(HttpContext ctx, ValourDB db, ulong planet_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Planet not found [id: {planet_id}]");
+                return;
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Member not found");
+                return;
+            }
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks PlanetPermissions.View");
+                return;
+            }
+
+            switch (ctx.Request.Method)
+            {
+                case "GET":
+                {
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsJsonAsync(planet.Public);
+                    return;
+                }
                 case "PUT":
+                {
+                    if (!auth.HasScope(UserPermissions.PlanetManagement))
                     {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        var result = await planet.TrySetDescriptionAsync(body, db);
-
-                        if (!result.Success)
-                        {
-                            ctx.Response.StatusCode = 400;
-                        }
-                        else
-                        {
-                            ctx.Response.StatusCode = 200;
-                        }
-
-                        await ctx.Response.WriteAsync(result.Message);
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
                         return;
                     }
+
+                    if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
+                        return;
+                    }
+
+                    string body = await ctx.Request.ReadBodyStringAsync();
+
+                    bool parsed = false;
+                    parsed = bool.TryParse(body, out var in_public);
+
+                    if (!parsed)
+                    {
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync("Failed to parse body");
+                        return;
+                    }
+
+                    var result = await planet.TrySetPublicAsync(in_public, db);
+
+                    if (!result.Success)
+                    {
+                        ctx.Response.StatusCode = 400;
+                    }
+                    else
+                    {
+                        ctx.Response.StatusCode = 200;
+                    }
+
+                    await ctx.Response.WriteAsync(result.Message);
+                    return;
+                }
             }
         }
 
         private static async Task Create(HttpContext ctx, ValourDB db,
-                                         [FromHeader] string authorization, [Required] string name,
-                                         [Required] string image_url)
+            [FromHeader] string authorization, [Required] string name,
+            [Required] string image_url)
         {
             ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -400,13 +493,12 @@ namespace Valour.Server.API
             await planet.AddMemberAsync(user);
 
             ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsJsonAsync((Planet)planet);
+            await ctx.Response.WriteAsJsonAsync((Planet) planet);
         }
 
         private static async Task GetChannels(HttpContext ctx, ValourDB db,
-                                             [FromHeader] string authorization, [Required] ulong planet_id)
+            [FromHeader] string authorization, [Required] ulong planet_id)
         {
-
             ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
@@ -417,8 +509,8 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .Include(x => x.ChatChannels)
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .Include(x => x.ChatChannels)
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -436,7 +528,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<object> result = new List<object>();
+            List<ServerPlanetChatChannel> result = new List<ServerPlanetChatChannel>();
 
             foreach (var channel in planet.ChatChannels)
             {
@@ -451,7 +543,7 @@ namespace Valour.Server.API
         }
 
         private static async Task GetChannelIds(HttpContext ctx, ValourDB db,
-                                               [FromHeader] string authorization, [Required] ulong planet_id)
+            [FromHeader] string authorization, [Required] ulong planet_id)
         {
             ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -463,8 +555,8 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .Include(x => x.ChatChannels)
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .Include(x => x.ChatChannels)
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -497,9 +589,8 @@ namespace Valour.Server.API
         }
 
         private static async Task CreateChannel(HttpContext ctx, ValourDB db,
-                                               [FromHeader] string authorization)
+            [FromHeader] string authorization)
         {
-
             string body = await ctx.Request.ReadBodyStringAsync();
 
             if (string.IsNullOrWhiteSpace(body))
@@ -548,7 +639,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .FirstOrDefaultAsync(x => x.Id == channel_data.Planet_Id);
+                .FirstOrDefaultAsync(x => x.Id == channel_data.Planet_Id);
 
             var member = planet.Members.FirstOrDefault();
 
@@ -584,7 +675,7 @@ namespace Valour.Server.API
             ushort child_count = 0;
 
             child_count += (ushort) await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == channel_data.Parent_Id);
-            child_count += (ushort) await db.PlanetCategories.CountAsync(x => x.Parent_Id == channel_data.Parent_Id); 
+            child_count += (ushort) await db.PlanetCategories.CountAsync(x => x.Parent_Id == channel_data.Parent_Id);
 
             ServerPlanetChatChannel channel = new ServerPlanetChatChannel()
             {
@@ -611,7 +702,7 @@ namespace Valour.Server.API
         }
 
         private static async Task CreateCategory(HttpContext ctx, ValourDB db,
-                                                [FromHeader] string authorization)
+            [FromHeader] string authorization)
         {
             string body = await ctx.Request.ReadBodyStringAsync();
 
@@ -661,7 +752,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .FirstOrDefaultAsync(x => x.Id == category_data.Planet_Id);
+                .FirstOrDefaultAsync(x => x.Id == category_data.Planet_Id);
 
             var member = planet.Members.FirstOrDefault();
 
@@ -691,8 +782,8 @@ namespace Valour.Server.API
                     return;
                 }
 
-                child_count += (ushort)await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == parent_id);
-                child_count += (ushort)await db.PlanetCategories.CountAsync(x => x.Parent_Id == parent_id);
+                child_count += (ushort) await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == parent_id);
+                child_count += (ushort) await db.PlanetCategories.CountAsync(x => x.Parent_Id == parent_id);
             }
 
             // Request action //
@@ -723,9 +814,8 @@ namespace Valour.Server.API
         }
 
         private static async Task GetCategories(HttpContext ctx, ValourDB db,
-                                               [FromHeader] string authorization, [Required] ulong planet_id)
+            [FromHeader] string authorization, [Required] ulong planet_id)
         {
-
             ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
@@ -736,8 +826,8 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .Include(x => x.Categories)
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .Include(x => x.Categories)
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -755,7 +845,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<object> result = new List<object>();
+            List<ServerPlanetCategory> result = new List<ServerPlanetCategory>();
 
             foreach (var category in planet.Categories)
             {
@@ -770,7 +860,7 @@ namespace Valour.Server.API
         }
 
         private static async Task PrimaryChannel(HttpContext ctx, ValourDB db, ulong planet_id,
-                                      [FromHeader] string authorization)
+            [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -782,7 +872,7 @@ namespace Valour.Server.API
             }
 
             ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
             {
@@ -810,74 +900,182 @@ namespace Valour.Server.API
             switch (ctx.Request.Method)
             {
                 case "GET":
+                {
+                    ServerPlanetChatChannel mainChannel = await db.PlanetChatChannels.FindAsync(planet.Main_Channel_Id);
+
+                    if (mainChannel == null)
                     {
-                        object mainChannel = await db.PlanetChatChannels.FindAsync(planet.Main_Channel_Id);
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync($"Main channel not found [id: {planet.Main_Channel_Id}]\n" +
+                                                      $"Bug a developer, this should not happen.");
 
-                        if (mainChannel == null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Main channel not found [id: {planet.Main_Channel_Id}]\n" +
-                                                          $"Bug a developer, this should not happen.");
-
-                            return;
-                        }
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(mainChannel);
                         return;
                     }
+
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsJsonAsync(mainChannel);
+                    return;
+                }
                 case "PUT":
+                {
+                    if (!auth.HasScope(UserPermissions.PlanetManagement))
                     {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        ServerPlanetChatChannel in_channel = JsonSerializer.Deserialize<ServerPlanetChatChannel>(body);
-
-                        if (in_channel == null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Could not deserialize channel");
-                            return;
-                        }
-
-                        ServerPlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(in_channel.Id);
-
-                        if (channel == null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Could not find channel [id: {in_channel.Id}]");
-                            return;
-                        }
-
-                        if (channel.Planet.Id != planet.Id)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Channel belongs to different planet");
-                            return;
-                        }
-
-                        planet.Main_Channel_Id = channel.Id;
-                        await db.SaveChangesAsync();
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
-
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
                         return;
                     }
+
+                    if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, db))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync("Member lacks PlanetPermissions.Manage");
+                        return;
+                    }
+
+                    string body = await ctx.Request.ReadBodyStringAsync();
+
+                    ServerPlanetChatChannel in_channel = JsonSerializer.Deserialize<ServerPlanetChatChannel>(body);
+
+                    if (in_channel == null)
+                    {
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync($"Could not deserialize channel");
+                        return;
+                    }
+
+                    ServerPlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(in_channel.Id);
+
+                    if (channel == null)
+                    {
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync($"Could not find channel [id: {in_channel.Id}]");
+                        return;
+                    }
+
+                    if (channel.Planet.Id != planet.Id)
+                    {
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync($"Channel belongs to different planet");
+                        return;
+                    }
+
+                    planet.Main_Channel_Id = channel.Id;
+                    await db.SaveChangesAsync();
+
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsync("Success");
+
+                    return;
+                }
             }
+        }
+
+        private static async Task GetMember(HttpContext ctx, ValourDB db, ulong planet_id, ulong user_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Planet not found [id: {planet_id}]");
+                return;
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Member not found");
+                return;
+            }
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks PlanetPermissions.View");
+                return;
+            }
+
+            ServerPlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == user_id);
+            
+            if (target == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Member not found [user_id: {user_id.ToString()}, planet_id: {planet_id.ToString()}");
+
+                return;
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(target);
+            return;
+        }
+        
+        private static async Task GetMemberRoleIds(HttpContext ctx, ValourDB db, ulong planet_id, ulong user_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                .FirstOrDefaultAsync(x => x.Id == planet_id);
+
+            if (planet == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Planet not found [id: {planet_id}]");
+                return;
+            }
+
+            ServerPlanetMember member = planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Member not found");
+                return;
+            }
+
+            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks PlanetPermissions.View");
+                return;
+            }
+
+            ServerPlanetMember target = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
+                                                              .ThenInclude(x => x.Role)
+                                                              .FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == user_id);
+            
+            if (target == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Member not found [user_id: {user_id.ToString()}, planet_id: {planet_id.ToString()}");
+
+                return;
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(target.RoleMembership.Select(x => x.Role_Id));
+            return;
         }
     }
 }

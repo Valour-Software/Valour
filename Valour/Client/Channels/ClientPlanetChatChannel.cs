@@ -267,10 +267,5 @@ namespace Valour.Client.Channels
 
             return messages;
         }
-
-        public Task<TaskResult> TrySetName(string name)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

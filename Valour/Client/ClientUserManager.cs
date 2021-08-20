@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -80,7 +81,7 @@ namespace Valour.Client
                 return new TaskResult(false, "Failed to retrieve local token.");
             }
 
-            return  await InitializeUser(UserSecretToken, storage);
+            return await InitializeUser(UserSecretToken, storage);
         }
 
         /// <summary>
@@ -118,27 +119,23 @@ namespace Valour.Client
         /// </summary>
         public static async Task RefreshPlanetsAsync()
         {
-            string json = await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
+            string json =
+                await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
 
-            TaskResult<List<ClientPlanet>> response = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanet>>>(json);
+            TaskResult<List<ClientPlanet>> response =
+                JsonConvert.DeserializeObject<TaskResult<List<ClientPlanet>>>(json);
 
             Console.WriteLine(response.Message);
 
             if (response.Success)
             {
-                foreach (ClientPlanet planet in response.Data)
+                await Parallel.ForEachAsync(response.Data, async (planet, token) =>
                 {
                     // Load planet into cache
-                    //await ClientPlanetManager.Current.AddPlanetAsync(planet);
-
+                    await ClientPlanetManager.Current.AddPlanetAsync(planet);
                     Planets.Add(planet);
-                }
+                });
             }
-        }
-
-        public static void RefreshPlanets()
-        {
-            RefreshPlanetsAsync().RunSynchronously();
         }
 
         /// <summary>

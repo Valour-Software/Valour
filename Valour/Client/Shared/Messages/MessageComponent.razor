@@ -278,7 +278,9 @@
     {
         ShouldRenderValue = true;
         StateHasChanged();
-        ContentComponent.ReRender();
+        
+        ContentComponent?.ReRender();
+
         ShouldRenderValue = false;
     }
 

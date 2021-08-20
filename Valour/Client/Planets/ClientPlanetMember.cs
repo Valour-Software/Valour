@@ -190,24 +190,26 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task LoadRoleIdsAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberRoleIds?user_id={User_Id}&planet_id={Planet_Id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/planet/{Planet_Id.ToString()}/members/user/{User_Id.ToString()}/role_ids");
 
-            Console.WriteLine(json);
-
-            TaskResult<List<ulong>> result = JsonConvert.DeserializeObject<TaskResult<List<ulong>>>(json);
-
-            if (result == null)
+            var message = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving planet user roles from the server.");
+                Console.WriteLine(message);
+                return;
             }
 
-            if (!result.Success)
+            var roleIds = JsonConvert.DeserializeObject<List<ulong>>(message);
+
+            if (roleIds == null)
             {
-                Console.WriteLine(result.ToString());
-                Console.WriteLine($"Failed for {Id} in {Planet_Id}");
+                Console.WriteLine("Error deserializing planet roles response.");
+                return;
             }
-
-            _roleids = result.Data;
+            
+            _roleids = roleIds;
         }
 
         public async Task<ulong> GetAuthorityAsync()

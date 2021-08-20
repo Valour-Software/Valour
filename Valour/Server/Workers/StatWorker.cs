@@ -1,4 +1,11 @@
-﻿using Valour.Server.Database;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Valour.Server.Database;
 
 namespace Valour.Server.Workers
 {
@@ -51,12 +58,12 @@ namespace Valour.Server.Workers
                 });
                 while (!task.IsCompleted)
                 {
-                    _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now}");
+                    _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now.ToString()}");
                     await Task.Delay(60000, stoppingToken);
                 }
 
-                _logger.LogInformation("Stat Worker task stopped at: {time}", DateTimeOffset.Now);
-                _logger.LogInformation("Restarting.", DateTimeOffset.Now);
+                _logger.LogInformation("Stat Worker task stopped at: {time}", DateTimeOffset.Now.ToString());
+                _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
             }
         }
     }
