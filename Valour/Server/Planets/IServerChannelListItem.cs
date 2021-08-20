@@ -1,38 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Valour.Server.Categories;
 using Valour.Server.Database;
-using Valour.Shared.Planets;
+using Valour.Shared.Items;
 
-namespace Valour.Server.Planets
+namespace Valour.Server.Planets;
+
+public interface IServerChannelListItem : IChannelListItem
 {
-    public interface IServerChannelListItem
+    public static async Task<IServerChannelListItem> FindAsync(ItemType type, ulong id, ValourDB db)
     {
-        public ushort Position { get; set; }
-        public ulong? Parent_Id { get; set; }
-        public ulong Planet_Id { get; set; }
-        public ulong Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public ChannelListItemType ItemType { get; }
-
-        public Task SetNameAsync(string name, ValourDB db);
-        public Task SetDescriptionAsync(string desc, ValourDB db);
-        public void NotifyClientsChange();
-
-        public static async Task<IServerChannelListItem> FindAsync(ulong id, ChannelListItemType type, ValourDB context)
+        switch (type)
         {
-            if (type == ChannelListItemType.Category)
-            {
-                return await context.PlanetCategories.FindAsync(id);
-            }
-            else if (type == ChannelListItemType.ChatChannel)
-            {
-                return await context.PlanetChatChannels.FindAsync(id);
-            }
-
-            throw new Exception("Attempt to find channel list item type that has not been handled!");
+            case ItemType.Channel:
+                return await ServerPlanetChatChannel.FindAsync(id, db);
+            case ItemType.Category:
+                return await ServerPlanetCategory.FindAsync(id, db);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(ItemType));
         }
     }
+
+    public void NotifyClientsChange();
 }

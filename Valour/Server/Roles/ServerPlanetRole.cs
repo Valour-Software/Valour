@@ -1,21 +1,15 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Shared.Oauth;
-using Valour.Server.Users;
-using Valour.Shared.Channels;
 using Valour.Shared.Roles;
 using Valour.Server.Planets;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using Valour.Shared.Categories;
+using Valour.Server.Categories;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -55,7 +49,7 @@ namespace Valour.Server.Roles
             }
         }
 
-        public async Task<ChatChannelPermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db = null)
+        public async Task<ChatChannelPermissionsNode> GetChannelNodeAsync(ServerPlanetChatChannel channel, ValourDB db = null)
         {
             bool createdb = false;
             if (db == null)
@@ -71,7 +65,7 @@ namespace Valour.Server.Roles
             return res;
         }
 
-        public async Task<CategoryPermissionsNode> GetCategoryNodeAsync(PlanetCategory category, ValourDB db = null)
+        public async Task<CategoryPermissionsNode> GetCategoryNodeAsync(ServerPlanetCategory category, ValourDB db = null)
         {
             bool createdb = false;
             if (db == null)
@@ -87,7 +81,7 @@ namespace Valour.Server.Roles
             return res;
         }
 
-        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel)
+        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ServerPlanetChatChannel channel)
         {
             return await GetPermissionStateAsync(permission, channel.Id);
         }

@@ -5,13 +5,16 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Extensions;
 using Valour.Server.Oauth;
+using Valour.Server.Planets;
 using Valour.Shared;
 using Valour.Shared.Categories;
+using Valour.Shared.Items;
 using Valour.Shared.Oauth;
 
 namespace Valour.Server.API
@@ -25,6 +28,10 @@ namespace Valour.Server.API
             app.Map("/api/category/{category_id}/parent_id", ParentId);
             app.Map("/api/category/{category_id}/description", Description);
             //app.Map("/api/category/{category_id}/inherits_perms", PermissionsInherit);
+
+            app.MapGet ("/api/category/{category_id}/children", GetChildren);
+            app.MapPost("/api/category/{category_id}/children", InsertItem);
+            app.MapPost("/api/category/{category_id}/children/order", SetChildOrder);
         }
 
         private static async Task Category(HttpContext ctx, ValourDB db, ulong category_id,
@@ -71,7 +78,7 @@ namespace Valour.Server.API
                 case "GET":
                     {
                         ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync((PlanetCategory)category);
+                        await ctx.Response.WriteAsJsonAsync((IPlanetCategory)category);
                         return;
 
                     }
@@ -173,19 +180,18 @@ namespace Valour.Server.API
 
                         string body = await ctx.Request.ReadBodyStringAsync();
 
-                        TaskResult nameValid = ServerPlanetCategory.ValidateName(body);
+                        var result = await category.TrySetNameAsync(body, db);
 
-                        if (!nameValid.Success)
+                        if (!result.Success)
                         {
                             ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync(nameValid.Message);
-                            return;
+                        }
+                        else
+                        {
+                            ctx.Response.StatusCode = 200;
                         }
 
-                        await category.SetNameAsync(body, db);
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
+                        await ctx.Response.WriteAsync(result.Message);
                         return;
                     }
             }
@@ -330,40 +336,362 @@ namespace Valour.Server.API
 
                         string body = await ctx.Request.ReadBodyStringAsync();
 
-                        ulong parent_id;
-                        bool parsed = ulong.TryParse(body, out parent_id);
+                        ulong? parent_id;
 
-                        if (!parsed)
+                        if (body == "null" || body == "0" || body == "none")
                         {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Given value is invalid");
-                            return;
+                            parent_id = null;
+                        }
+                        else
+                        {
+                            ulong parsed_ul;
+                            bool parsed = ulong.TryParse(body, out parsed_ul);
+
+                            parent_id = parsed_ul;
+
+                            if (!parsed)
+                            {
+                                ctx.Response.StatusCode = 400;
+                                await ctx.Response.WriteAsync("Given value is invalid");
+                                return;
+                            }
                         }
 
-                        // Ensure parent category exists and belongs to the same planet
-                        var parent = await db.PlanetCategories.FindAsync(parent_id);
+                        TaskResult result = await category.TrySetParentAsync(parent_id, db);
 
-                        if (parent == null)
+                        if (!result.Success)
                         {
                             ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Category not found [id: {parent_id}]");
-                            return;
                         }
-
-                        if (parent.Planet_Id != category.Planet_Id)
+                        else
                         {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Category belongs to a different planet");
-                            return;
+                            ctx.Response.StatusCode = 200;
                         }
 
-                        await category.SetParentAsync(parent_id, db);
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
+                        await ctx.Response.WriteAsync(result.Message);
                         return;
                     }
             }
+        }
+
+        private static async Task GetChildren(HttpContext ctx, ValourDB db, ulong category_id,
+                                             [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+                                                                     .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                     .Include(x => x.Planet)
+                                                                     .ThenInclude(x => x.ChatChannels)
+                                                                     .Include(x => x.Planet)
+                                                                     .ThenInclude(x => x.Categories)
+                                                                     .FirstOrDefaultAsync(x => x.Id == category_id);
+
+            if (category == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Category not found [id: {category_id}]");
+                return;
+            }
+
+            var member = category.Planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member not found");
+                return;
+            }
+
+            if (!await category.HasPermission(member, CategoryPermissions.View, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks CategoryPermissions.View");
+                return;
+            }
+
+            List<IChannelListItem> children = new List<IChannelListItem>();
+
+            foreach (var channel in category.Planet.ChatChannels)
+            {
+                if (await channel.HasPermission(member, ChatChannelPermissions.View, db))
+                {
+                    children.Add(channel);
+                }
+            }
+
+            foreach (var cat in category.Planet.Categories)
+            {
+                if (await cat.HasPermission(member, CategoryPermissions.View, db))
+                {
+                    children.Add(cat);
+                }
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(children);
+            return;
+        }
+
+        private static async Task SetChildOrder(HttpContext ctx, ValourDB db, ulong category_id,
+                                               [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+                                                                     .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                     .FirstOrDefaultAsync(x => x.Id == category_id);
+
+            if (category == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Category not found [id: {category_id}]");
+                return;
+            }
+
+            var member = category.Planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member not found");
+                return;
+            }
+
+            if (!await category.HasPermission(member, CategoryPermissions.View, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks CategoryPermissions.View");
+                return;
+            }
+
+            if (!auth.HasScope(UserPermissions.PlanetManagement))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
+                return;
+            }
+
+            if (!await category.HasPermission(member, CategoryPermissions.ManageCategory, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks CategoryPermissions.ManageCategory");
+                return;
+            }
+
+            string body = await ctx.Request.ReadBodyStringAsync();
+
+            if (string.IsNullOrEmpty(body))
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Include order data.");
+                return;
+            }
+
+            List<CategoryContentData> orderData = JsonSerializer.Deserialize<List<CategoryContentData>>(body);
+
+            if (orderData == null || orderData.Count == 0)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Include order data.");
+                return;
+            }
+
+            List<IServerChannelListItem> changed = new List<IServerChannelListItem>();
+
+            foreach (CategoryContentData order in orderData)
+            {
+                IServerChannelListItem item = await IServerChannelListItem.FindAsync(order.ItemType, order.Id, db);
+
+                if (item == null)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync($"Item with id {order.Id} not found");
+                    return;
+                }
+
+                if (item.Planet_Id != category.Planet_Id)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync($"Item with id {order.Id} belongs to wrong planet {item.Planet_Id}");
+                    return;
+                }
+
+                // Only act if there is a difference
+                if (item.Parent_Id != category_id || item.Position != order.Position)
+                {
+                    // Prevent putting an item inside of itself
+                    if (item.Id != category_id)
+                    {
+                        item.Parent_Id = category_id;
+                        item.Position = order.Position;
+                        db.Update(item);
+                        changed.Add(item);
+                    }
+                }
+            }
+
+            // If all is successful, save and send updates
+            foreach (var item in changed)
+            {
+                // Send update to clients
+                item.NotifyClientsChange();
+            }
+
+            await db.SaveChangesAsync();
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsync("Success");
+            return;
+        }
+
+        private static async Task InsertItem(HttpContext ctx, ValourDB db, ulong category_id,
+                                            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+                                                                     .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                     .FirstOrDefaultAsync(x => x.Id == category_id);
+
+            if (category == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Category not found [id: {category_id}]");
+                return;
+            }
+
+            var member = category.Planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member not found");
+                return;
+            }
+
+            if (!await category.HasPermission(member, CategoryPermissions.View, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks CategoryPermissions.View");
+                return;
+            }
+
+            if (!auth.HasScope(UserPermissions.PlanetManagement))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
+                return;
+            }
+
+            if (!await category.HasPermission(member, CategoryPermissions.ManageCategory, db))
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Member lacks CategoryPermissions.ManageCategory");
+                return;
+            }
+
+            string body = await ctx.Request.ReadBodyStringAsync();
+
+            if (string.IsNullOrEmpty(body))
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Include item data.");
+                return;
+            }
+
+            IChannelListItem in_item = JsonSerializer.Deserialize<IChannelListItem>(body);
+
+            if (in_item == null || in_item.Planet_Id == 0)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync("Include item data.");
+                return;
+            }
+
+            IServerChannelListItem item = await IServerChannelListItem.FindAsync(in_item.ItemType, in_item.Id, db);
+
+            if (item == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Item not found [id: {in_item.Id}]");
+                return;
+            }
+
+            ServerPlanet item_planet = await db.Planets.FindAsync(item.Planet_Id);
+
+            if (item_planet == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Item planet not found [id: {in_item.Planet_Id}]");
+                return;
+            }
+
+            if (item_planet.Id != category.Planet_Id)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Item belongs to different planet");
+                return;
+            }
+
+            if (item.Parent_Id == category.Id)
+            {
+                ctx.Response.StatusCode = 200;
+                await ctx.Response.WriteAsync($"No change");
+                return;
+            }
+
+            // Ensure that if this is a category, it is not going into a category that contains itself!
+            if (item.ItemType == ItemType.Category)
+            {
+                ulong? parent_id = category.Parent_Id;
+
+                while (parent_id != null)
+                {
+                    // Recursion is a nono
+                    if (parent_id == item.Id)
+                    {
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync("Operation would result in recursion.");
+                        return;
+                    }
+
+                    parent_id = (await db.PlanetCategories.FindAsync(parent_id)).Parent_Id;
+                }
+            }
+
+            item.Parent_Id = category.Id;
+            item.Position = in_item.Position;
+
+            db.Update(item);
+            await db.SaveChangesAsync();
+
+            item.NotifyClientsChange();
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsync("Success");
+            return;
         }
     }
 }

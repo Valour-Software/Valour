@@ -1,18 +1,13 @@
-﻿using AutoMapper;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Web;
 using Valour.Client.Messages;
 using Valour.Client.Planets;
 using Valour.Shared;
-using Valour.Shared.Channels;
-using Valour.Shared.Oauth;
-using Valour.Shared.Planets;
+using Valour.Shared.Items;
 using Valour.Shared.Roles;
 
 namespace Valour.Client.Channels
@@ -27,8 +22,54 @@ namespace Valour.Client.Channels
     /// The clientside planet cache reduces the need to repeatedly ask the server
     /// for planet resources
     /// </summary>
-    public class ClientPlanetChatChannel : PlanetChatChannel, IClientPlanetListItem
+    public class ClientPlanetChatChannel : IPlanetChatChannel, IClientNamedItem, IClientPlanetListItem
     {
+        /// <summary>
+        /// The id of the channel
+        /// </summary>
+        public ulong Id { get; set; }
+
+        /// <summary>
+        /// The name of the channel
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The amount of messages ever sent in the channel
+        /// </summary>
+        public ulong Message_Count { get; set; }
+
+        /// <summary>
+        /// If true, this channel will inherit the permission nodes
+        /// from the category it belongs to
+        /// </summary>
+        public bool Inherits_Perms { get; set; }
+
+        /// <summary>
+        /// The position of the channel
+        /// </summary>
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// The id of the parent category
+        /// </summary>
+        public ulong? Parent_Id { get; set; }
+
+        /// <summary>
+        /// The id of the planet
+        /// </summary>
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The description of the channel
+        /// </summary>
+        public string Description { get; set; }
+
+        /// <summary>
+        /// The type of this item
+        /// </summary>
+        public ItemType ItemType => ItemType.Channel;
+
         public static async Task<ClientPlanetChatChannel> GetAsync(ulong id)
         {
             var response = await ClientUserManager.Http.GetAsync($"api/channel/{id}");
@@ -44,6 +85,19 @@ namespace Valour.Client.Channels
             ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(message);
 
             return channel;
+        }
+
+        /// <summary>
+        /// Attempts to delete this channel
+        /// </summary>
+        public async Task<TaskResult> TryDeleteAsync()
+        {
+            var response = await ClientUserManager.Http.DeleteAsync($"api/channel/{Id}");
+
+            return new TaskResult(
+                response.IsSuccessStatusCode,
+                await response.Content.ReadAsStringAsync()
+            );
         }
 
         public async Task<TaskResult> DeleteAsync()
@@ -68,37 +122,10 @@ namespace Valour.Client.Channels
             return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
 
-        public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
-
-        /// <summary>
-        /// Attempts to set the name of the channel and returns the result
-        /// </summary>
-        public async Task<TaskResult> SetNameAsync(string name)
-        {
-            string encodedName = HttpUtility.UrlEncode(name);
-
-            JsonContent content = JsonContent.Create(encodedName);
-            var response = await ClientUserManager.Http.PutAsync($"api/channel/{Id}/name", content);
-
-            var message = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine("Failed to set name");
-                Console.WriteLine(message);
-            }
-            else
-            {
-                this.Name = name;
-            }
-
-            return new TaskResult(response.IsSuccessStatusCode, message);
-        }
-
         /// <summary>
         /// Attempts to set the description of the channel and returns the result
         /// </summary>
-        public async Task<TaskResult> SetDescriptionAsync(string desc)
+        public async Task<TaskResult> TrySetDescriptionAsync(string desc)
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
 
@@ -150,7 +177,7 @@ namespace Valour.Client.Channels
         /// <summary>
         /// Sets the parent id of this channel
         /// </summary>
-        public async Task<TaskResult> SetParentIdAsync(ulong parent_id)
+        public async Task<TaskResult> TrySetParentIdAsync(ulong parent_id)
         {
             JsonContent content = JsonContent.Create(parent_id);
             var response = await ClientUserManager.Http.PutAsync($"api/channel/{Id}/parent_id", content);
@@ -239,6 +266,11 @@ namespace Valour.Client.Channels
             }
 
             return messages;
+        }
+
+        public Task<TaskResult> TrySetName(string name)
+        {
+            throw new NotImplementedException();
         }
     }
 }

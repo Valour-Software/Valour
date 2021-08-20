@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 using Valour.Shared.Planets;
 
 namespace Valour.Shared.Categories
@@ -15,6 +16,6 @@ namespace Valour.Shared.Categories
     {
         public ulong Id { get; set; }
         public ushort Position { get; set; }
-        public ChannelListItemType ItemType { get; set; }
+        public ItemType ItemType { get; set; }
     }
 }

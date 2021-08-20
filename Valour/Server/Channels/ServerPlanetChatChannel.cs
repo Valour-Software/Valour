@@ -1,25 +1,17 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Valour.Client.Users;
 using Valour.Server.Database;
-using Valour.Server.Mapping;
 using Valour.Shared.Oauth;
-using Valour.Server.Roles;
-using Valour.Server.Users;
-using Valour.Shared.Channels;
-using Valour.Shared.Planets;
 using Valour.Shared.Roles;
-using Valour.Shared.Users;
 using Newtonsoft.Json;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using Valour.Shared;
 using Valour.Server.Categories;
-using System.Diagnostics;
+using Valour.Shared.Items;
 
 namespace Valour.Server.Planets
 {
@@ -34,7 +26,7 @@ namespace Valour.Server.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ServerPlanetChatChannel : PlanetChatChannel, IServerChannelListItem
+    public class ServerPlanetChatChannel : IPlanetChatChannel, IServerChannelListItem
     {
 
         [ForeignKey("Planet_Id")]
@@ -47,7 +39,47 @@ namespace Valour.Server.Planets
         [System.Text.Json.Serialization.JsonIgnore]
         public virtual ServerPlanetCategory Parent { get; set; }
 
-        public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
+        /// <summary>
+        /// The id of this channel
+        /// </summary>
+        public ulong Id { get; set; }
+
+        /// <summary>
+        /// The name of this channel
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The number of messages within this channel
+        /// </summary>
+        public ulong Message_Count { get; set; }
+
+        /// <summary>
+        /// True of this channel inherits permissions from its category
+        /// </summary>
+        public bool Inherits_Perms { get; set; }
+
+        /// <summary>
+        /// The position of this channel
+        /// </summary>
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// The id of the parent category of this channel
+        /// </summary>
+        public ulong? Parent_Id { get; set; }
+
+        /// <summary>
+        /// The id of the planet this channel belongs to
+        /// </summary>
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The description of this channel
+        /// </summary>
+        public string Description { get; set; }
+
+        public ItemType ItemType => ItemType.Channel;
 
         /// <summary>
         /// The regex used for name validation
@@ -225,13 +257,18 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Sets the name of this channel
         /// </summary>
-        public async Task SetNameAsync(string name, ValourDB db)
+        public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
         {
+            TaskResult validName = ValidateName(name);
+            if (!validName.Success) return validName;
+
             this.Name = name;
             db.PlanetChatChannels.Update(this);
             await db.SaveChangesAsync();
 
             NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
         }
 
         /// <summary>
@@ -301,6 +338,11 @@ namespace Valour.Server.Planets
         public void NotifyClientsChange()
         {
             PlanetHub.NotifyChatChannelChange(this);
+        }
+
+        public static async Task<ServerPlanetChatChannel> FindAsync(ulong id, ValourDB db)
+        {
+            return await db.PlanetChatChannels.FindAsync(id);
         }
     }
 }

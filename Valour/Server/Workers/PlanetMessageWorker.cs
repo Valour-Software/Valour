@@ -1,20 +1,8 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
-using Valour.Server.Database;
+﻿using Valour.Server.Database;
 using Valour.Shared.Messages;
 using System.Collections.Concurrent;
-using Valour.Shared.Channels;
 using Newtonsoft.Json;
-using Valour.Server.Messages;
 using Microsoft.AspNetCore.SignalR;
-using Valour.Shared;
-using System.Collections.Generic;
-using System.Linq;
 using Valour.Server.Planets;
 
 namespace Valour.Server.Workers
@@ -67,7 +55,7 @@ namespace Valour.Server.Workers
                     {
                         ulong channel_id = Message.Channel_Id;
 
-                        PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
+                        ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
                         // Get index for message
                         ulong index = channel.Message_Count;

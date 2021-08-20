@@ -7,10 +7,8 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Extensions;
 using Valour.Server.MPS;
@@ -18,7 +16,7 @@ using Valour.Server.Oauth;
 using Valour.Server.Planets;
 using Valour.Server.Workers;
 using Valour.Shared;
-using Valour.Shared.Channels;
+using Valour.Shared.Items;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 
@@ -90,7 +88,7 @@ namespace Valour.Server.API
                 case "GET":
                     {
                         ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync((PlanetChatChannel)channel);
+                        await ctx.Response.WriteAsJsonAsync((IPlanetChatChannel)channel);
                         return;
 
                     }
@@ -277,19 +275,18 @@ namespace Valour.Server.API
 
                         string body = await ctx.Request.ReadBodyStringAsync();
 
-                        TaskResult nameValid = ServerPlanetChatChannel.ValidateName(body);
+                        var result = await channel.TrySetNameAsync(body, db);
 
-                        if (!nameValid.Success)
+                        if (!result.Success)
                         {
                             ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync(nameValid.Message);
-                            return;
+                        }
+                        else
+                        {
+                            ctx.Response.StatusCode = 200;
                         }
 
-                        await channel.SetNameAsync(body, db);
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
+                        await ctx.Response.WriteAsync(result.Message);
                         return;
                     }
             }
@@ -617,76 +614,5 @@ namespace Valour.Server.API
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsJsonAsync(messages);
         }
-
-        /// <summary>
-        /// Creates a channel
-        /// </summary>
-        private static async Task Create(HttpContext ctx, ValourDB db,
-                                         [FromHeader] string authorization, [Required] ulong planet_id,
-                                         [Required] ulong parent_id, [Required] string name)
-        {
-            // Request parameter validation //
-
-            TaskResult name_valid = ServerPlanetChatChannel.ValidateName(name);
-
-            if (!name_valid.Success)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Name is not valid [name: {name}]");
-                return;
-            }
-
-            // Request authorization //
-
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
-
-            if (!auth.HasScope(UserPermissions.PlanetManagement))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Token lacks UserPermissions.PlanetManagement scope");
-                return;
-            }
-
-            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                  .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            var member = planet.Members.FirstOrDefault();
-
-            if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member lacks PlanetPermissions.ManageChannels node");
-                return;
-            }
-
-            // Request action //
-
-            // Creates the channel
-
-            ServerPlanetChatChannel channel = new ServerPlanetChatChannel()
-            {
-                Id = IdManager.Generate(),
-                Name = name,
-                Planet_Id = planet_id,
-                Parent_Id = parent_id,
-                Message_Count = 0,
-                Description = "A chat channel",
-                Position = (ushort)(await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == parent_id))
-            };
-
-            // Add channel to database
-            await db.PlanetChatChannels.AddAsync(channel);
-
-            // Save changes to DB
-            await db.SaveChangesAsync();
-
-            // Send channel refresh
-            PlanetHub.NotifyChatChannelChange(channel);
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsync(channel.Id.ToString());
-        }
-
-
     }
 }

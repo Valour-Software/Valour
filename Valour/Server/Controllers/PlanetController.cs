@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Planets;
 using Valour.Shared;
-using Valour.Shared.Channels;
 using Valour.Shared.Categories;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
@@ -58,113 +57,6 @@ namespace Valour.Server.Controllers
         public PlanetController(ValourDB context)
         {
             this.Context = context;
-        }
-
-        [HttpPost]
-        public async Task<TaskResult> UpdateOrder([FromBody] Dictionary<ushort, List<ulong>> json, ulong user_id, string token, ulong Planet_Id)
-        {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-            
-            // Return the same if the token is for the wrong user to prevent someone
-            // from knowing if they cracked another user's token. This is basically 
-            // impossible to happen by chance but better safe than sorry in the case that
-            // the literal impossible odds occur, more likely someone gets a stolen token
-            // but is not aware of the owner but I'll shut up now - Spike
-            if (authToken == null || authToken.User_Id != user_id)
-            {
-                return new TaskResult(false, "Failed to authorize user.");
-            }
-
-            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
-                                                       .FirstOrDefaultAsync(x => x.Id == Planet_Id);
-
-            ServerPlanetMember member = planet.Members.FirstOrDefault();
-
-            if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, Context))
-            {
-                return new TaskResult(false, "You are not authorized to do this.");
-            }
-
-            Console.WriteLine(json);
-            var values = json;
-
-            foreach (var value in values) {
-                ushort position = value.Key;
-                ulong id = value.Value[0];
-
-                //checks if item is a channel
-                Console.WriteLine(value.Value[0]);
-                if (value.Value[1] == 0) {
-                    PlanetChatChannel channel = await Context.PlanetChatChannels.Where(x => x.Id == id).FirstOrDefaultAsync();
-                    channel.Position = position;
-                }
-                if (value.Value[1] == 1) {
-                    PlanetCategory category = await Context.PlanetCategories.Where(x => x.Id == id).FirstOrDefaultAsync();
-                    category.Position = position;
-                }
-
-                Console.WriteLine(value);
-            }
-            await Context.SaveChangesAsync();
-
-            await PlanetHub.Current.Clients.Group($"p-{Planet_Id}").SendAsync("RefreshChannelList", "");
-            return new TaskResult(true, "Updated Order!");
-        }
-
-        /// <summary>
-        /// Returns a planet's primary channel
-        /// </summary>
-        [HttpGet]
-        public async Task<TaskResult<PlanetChatChannel>> GetPrimaryChannel(ulong planet_id, ulong user_id, string token)
-        {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
-                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            if (planet == null)
-            {
-                return new TaskResult<PlanetChatChannel>(false, "The given planet id does not exist.", null);
-            }
-
-            ServerPlanetMember member = planet.Members.FirstOrDefault();
-
-            if (!await planet.HasPermissionAsync(member, PlanetPermissions.View, Context))
-            {
-                return new TaskResult<PlanetChatChannel>(false, "You are not authorized to access this planet.", null);
-            }
-
-            return new TaskResult<PlanetChatChannel>(true, "Successfully retrieved channel.", await planet.GetPrimaryChannelAsync(Context));
-        }
-
-        /// <summary>
-        /// Sets the description of a planet
-        /// </summary>
-        public async Task<TaskResult> SetDescription(ulong planet_id, string description, string token)
-        {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            ServerPlanet planet = await Context.Planets.Include(x => x.Members.Where(x => x.User_Id == authToken.User_Id))
-                                                       .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            if (planet == null)
-            {
-                return new TaskResult(false, "The given planet id does not exist.");
-            }
-
-            ServerPlanetMember member = planet.Members.FirstOrDefault();
-
-            if (!await planet.HasPermissionAsync(member, PlanetPermissions.Manage, Context))
-            {
-                return new TaskResult(false, "You are not authorized to manage this planet.");
-            }
-
-            planet.Description = description;
-
-            Context.Planets.Update(planet);
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, "Changed description successfully");
         }
 
         /// <summary>

@@ -8,7 +8,6 @@ using Valour.Client.Planets;
 using Valour.Client.Shared;
 using Valour.Client.Shared.Windows;
 using Valour.Client.Shared.Windows.PlanetChannelWindow;
-using Valour.Shared.Channels;
 
 namespace Valour.Client
 {

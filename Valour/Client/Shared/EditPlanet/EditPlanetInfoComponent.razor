@@ -41,13 +41,13 @@
     {
         if (nameValue != Planet.Name)
         {
-            TaskResult result = await Planet.SetName(nameValue);
+            TaskResult result = await Planet.TrySetNameAsync(nameValue);
             nameSpan = result.Message;
         }
 
         if (descValue != Planet.Description)
         {
-            TaskResult result = await Planet.SetDescription(descValue);
+            TaskResult result = await Planet.TrySetDescriptionAsync(descValue);
             descSpan = result.Message;
         }
 

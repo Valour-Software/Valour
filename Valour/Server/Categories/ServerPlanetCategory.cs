@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -10,23 +9,57 @@ using Valour.Server.Database;
 using Valour.Server.Planets;
 using Valour.Server.Roles;
 using Valour.Shared;
-using Valour.Shared.Categories;
+using Valour.Shared.Items;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 
 namespace Valour.Server.Categories
 {
-    public class ServerPlanetCategory : PlanetCategory, IServerChannelListItem
+    public class ServerPlanetCategory : IPlanetCategory, IServerChannelListItem
     {
 
         [JsonIgnore]
+        [System.Text.Json.Serialization.JsonIgnore]
         [ForeignKey("Planet_Id")]
         public virtual ServerPlanet Planet { get; set; }
 
         [JsonIgnore]
         public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
-        public ChannelListItemType ItemType => ChannelListItemType.Category;
+        /// <summary>
+        /// The id of this category
+        /// </summary>
+        public ulong Id { get; set; }
+
+        /// <summary>
+        /// The name of this category
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The position of this category
+        /// </summary>
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// The id of the parent of this category (if it exists)
+        /// </summary>
+        public ulong? Parent_Id { get; set; }
+
+        /// <summary>
+        /// The id of the planet containing this category
+        /// </summary>
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The description of this category
+        /// </summary>
+        public string Description { get; set; }
+
+        /// <summary>
+        /// The type of this item
+        /// </summary>
+        public ItemType ItemType => ItemType.Category;
 
         /// <summary>
         /// Tries to delete the category while respecting constraints
@@ -71,13 +104,18 @@ namespace Valour.Server.Categories
         /// <summary>
         /// Sets the name of this category
         /// </summary>
-        public async Task SetNameAsync(string name, ValourDB db)
+        public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
         {
+            TaskResult validName = ValidateName(name);
+            if (!validName.Success) return validName;
+
             this.Name = name;
             db.PlanetCategories.Update(this);
             await db.SaveChangesAsync();
 
             NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
         }
 
         /// <summary>
@@ -95,13 +133,25 @@ namespace Valour.Server.Categories
         /// <summary>
         /// Sets the parent of this category
         /// </summary>
-        public async Task SetParentAsync(ulong parent_id, ValourDB db)
+        public async Task<TaskResult> TrySetParentAsync(ulong? parent_id, ValourDB db)
         {
+            if (parent_id != null)
+            {
+                var parent = await db.PlanetCategories.FindAsync(parent_id);
+                if (parent == null) return new TaskResult(false, "Could not find parent");
+                if (parent.Planet_Id != Planet_Id) return new TaskResult(false, "Category belongs to a different planet");
+                if (parent.Id == Id) return new TaskResult(false, "Cannot be own parent");
+
+                // TODO: additional loop checking
+            }
+
             this.Parent_Id = parent_id;
             db.PlanetCategories.Update(this);
             await db.SaveChangesAsync();
 
             NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
         }
 
         public async Task<Planet> GetPlanetAsync(ValourDB db = null)
@@ -213,6 +263,11 @@ namespace Valour.Server.Categories
             }
 
             return new TaskResult(true, "The given name is valid.");
+        }
+
+        public static async Task<ServerPlanetCategory> FindAsync(ulong id, ValourDB db)
+        {
+            return await db.PlanetCategories.FindAsync(id);
         }
     }
 }

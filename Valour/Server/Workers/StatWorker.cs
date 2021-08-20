@@ -1,21 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
-using Valour.Server.Database;
-using Valour.Shared.Messages;
-using System.Collections.Concurrent;
-using Valour.Shared.Channels;
-using Newtonsoft.Json;
-using Valour.Server.Messages;
-using Microsoft.AspNetCore.SignalR;
-using Valour.Shared;
-using System.Collections.Generic;
-using System.Linq;
-using Valour.Server.Planets;
+﻿using Valour.Server.Database;
 
 namespace Valour.Server.Workers
 {

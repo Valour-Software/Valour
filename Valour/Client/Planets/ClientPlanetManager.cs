@@ -127,7 +127,7 @@ namespace Valour.Client.Planets
             }
 
             // Retrieve from server
-            ClientPlanet planet = await ClientPlanet.GetClientPlanetAsync(id);
+            ClientPlanet planet = await ClientPlanet.GetPlanetAsync(id);
 
             if (planet == null)
             {
@@ -464,7 +464,7 @@ namespace Valour.Client.Planets
 
             // Refresh channels and categories from server
 
-            await planet.RequestChannelsAsync();
+            await planet.LoadChannelsAsync();
             await planet.RequestCategoriesAsync();
 
             // Add to open planet list

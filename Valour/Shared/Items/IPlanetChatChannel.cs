@@ -1,8 +1,11 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
+using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -10,12 +13,12 @@ using System.Threading.Tasks;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Shared.Channels
+namespace Valour.Shared.Items
 {
     /// <summary>
     /// Represents a single chat channel within a planet
     /// </summary>
-    public class PlanetChatChannel : Valour.Shared.Planets.ChannelListItem, IChatChannel
+    public interface IPlanetChatChannel : IChannelListItem
     {
         /// <summary>
         /// The amount of messages ever sent in the channel

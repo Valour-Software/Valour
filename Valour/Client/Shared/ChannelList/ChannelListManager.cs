@@ -87,7 +87,7 @@ namespace Valour.Client.Shared.ChannelList
                 return;
 
             // Only categories can be put under a planet
-            if (currentDragItem.ItemType != Valour.Shared.Planets.ChannelListItemType.Category)
+            if (currentDragItem.ItemType != Valour.Shared.Items.ItemType.Category)
                 return;
 
             // Already parent
@@ -132,14 +132,17 @@ namespace Valour.Client.Shared.ChannelList
 
             ushort position = (ushort)target.ItemList.Count();
 
+            currentDragItem.Parent_Id = target.Category.Id;
+            currentDragItem.Position = position;
+
+            JsonContent content = JsonContent.Create(currentDragItem);
+
             // Add current item to target category
-            response = await ClientUserManager.Http.GetAsync($"Category/InsertItem?item_id={currentDragItem.Id}&item_type={currentDragItem.ItemType}" +
-                                                                                $"&category_id={target.Category.Id}&position={position}" +
-                                                                                $"&auth={ClientUserManager.UserSecretToken}");
+            response = await ClientUserManager.Http.PostAsync($"/api/category/{target.Category.Id}/children", content);
 
             Console.WriteLine($"Inserting {currentDragItem.Id} into {target.Category.Id} at position {position}");
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
+            string result = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine(result);
         }
@@ -196,7 +199,7 @@ namespace Valour.Client.Shared.ChannelList
                     pos++;
                 }
 
-                response = await ClientUserManager.Http.PostAsJsonAsync($"Category/SetContents?category_id={target.ParentCategory.Category.Id}&auth={ClientUserManager.UserSecretToken}", orderData);
+                response = await ClientUserManager.Http.PostAsJsonAsync($"api/category/{target.ParentCategory.Category.Id}/children/order", orderData);
 
                 TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
 

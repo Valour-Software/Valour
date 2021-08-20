@@ -1,34 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Net.Http.Json;
 using System.Threading.Tasks;
+using System.Web;
 using Valour.Shared;
-using Valour.Shared.Oauth;
-using Valour.Shared.Planets;
+using Valour.Shared.Items;
 using Valour.Shared.Roles;
 
 namespace Valour.Client.Planets
 {
-    public interface IClientPlanetListItem
+    public interface IClientPlanetListItem : IChannelListItem, IClientNamedItem
     {
-        public ushort Position { get; set; }
-        public ulong? Parent_Id { get; set; }
-        public ulong Planet_Id { get; set; }
-        public ulong Id { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-
-        public Task<TaskResult> SetNameAsync(string name);
-        public Task<TaskResult> SetDescriptionAsync(string desc);
-
+        public Task<TaskResult> TrySetDescriptionAsync(string desc);
+        public Task<TaskResult> TrySetParentIdAsync(ulong planet_id);
         public Task<TaskResult> TryDeleteAsync(); 
-
         public string GetItemTypeName();
-
-        public ChannelListItemType ItemType { get; }
-
         public Task<ClientPlanet> GetPlanetAsync();
-
         public Task<PermissionsNode> GetPermissionsNodeAsync(PlanetRole role);
     }
 }

@@ -10,13 +10,15 @@ using Valour.Server.Mapping;
 using Valour.Shared.Oauth;
 using Valour.Server.Roles;
 using Valour.Shared;
-using Valour.Shared.Channels;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
+using Valour.Server.Categories;
+using Valour.Client.Planets;
+using Valour.Shared.Items;
 
 namespace Valour.Server.Planets
 {
@@ -29,7 +31,7 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This class exists to add server funtionality to the Planet class.
     /// </summary>
-    public class ServerPlanet : Planet
+    public class ServerPlanet : Planet, IClientNamedItem
     {
         [InverseProperty("Planet")]
         [JsonIgnore]
@@ -41,6 +43,11 @@ namespace Valour.Server.Planets
 
         [InverseProperty("Planet")]
         public virtual ICollection<ServerPlanetChatChannel> ChatChannels { get; set; }
+
+        [InverseProperty("Planet")]
+        public virtual ICollection<ServerPlanetCategory> Categories { get; set; }
+
+        public ItemType ItemType => ItemType.Planet;
 
         public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
@@ -85,6 +92,36 @@ namespace Valour.Server.Planets
                 Planet planet = await db.Planets.FindAsync(id);
                 return ServerPlanet.FromBase(planet);
             }
+        }
+
+        /// <summary>
+        /// Tries to set the planet name
+        /// </summary>
+        public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
+        {
+            TaskResult nameValid = ValidateName(name);
+
+            if (!nameValid.Success) return nameValid;
+
+            this.Name = name;
+
+            db.Planets.Update(this);
+            await db.SaveChangesAsync();
+
+            return new TaskResult(true, "Success");
+        }
+
+        /// <summary>
+        /// Tries to set the planet description
+        /// </summary>
+        public async Task<TaskResult> TrySetDescriptionAsync(string desc, ValourDB db)
+        {
+            this.Description = desc;
+
+            db.Planets.Update(this);
+            await db.SaveChangesAsync();
+
+            return new TaskResult(true, "Success");
         }
 
         /// <summary>
@@ -136,7 +173,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the primary channel for the planet
         /// </summary>
-        public async Task<PlanetChatChannel> GetPrimaryChannelAsync(ValourDB db)
+        public async Task<ServerPlanetChatChannel> GetPrimaryChannelAsync(ValourDB db)
         {
              return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
         }

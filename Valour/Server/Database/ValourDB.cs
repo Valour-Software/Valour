@@ -1,21 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using System.Security.Claims;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
-using Valour.Shared.Oauth;
 using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using Valour.Server.Planets;
-using Valour.Shared.Channels;
-using Valour.Shared.Categories;
 using Valour.Server.Email;
 using Valour.Shared.Messages;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Shared;
 using Valour.Shared.Roles;
 using Valour.Server.Roles;
 using Valour.Server.Oauth;
@@ -49,7 +39,9 @@ namespace Valour.Server.Database
         /// This is only here to fulfill the need of the constructor.
         /// It does literally nothing at all.
         /// </summary>
-        public static DbContextOptions DBOptions;
+        public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => {
+            options.EnableRetryOnFailure();
+        }).Options;
 
         /// <summary>
         /// Table for message cache

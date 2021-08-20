@@ -8,9 +8,7 @@ using System.Threading.Tasks;
 using System.Web;
 using Valour.Client.Planets;
 using Valour.Shared;
-using Valour.Shared.Categories;
-using Valour.Shared.Oauth;
-using Valour.Shared.Planets;
+using Valour.Shared.Items;
 using Valour.Shared.Roles;
 
 namespace Valour.Client.Categories
@@ -26,14 +24,109 @@ namespace Valour.Client.Categories
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ClientPlanetCategory : PlanetCategory, IClientPlanetListItem
+    public class ClientPlanetCategory : IPlanetCategory, IClientNamedItem, IClientPlanetListItem
     {
         /// <summary>
-        /// Converts to a client version of planet category
+        /// The id of this category
         /// </summary>
-        public static ClientPlanetCategory FromBase(PlanetCategory channel, IMapper mapper)
+        public ulong Id { get; set; }
+
+        /// <summary>
+        /// The name of this category
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The position of this category
+        /// </summary>
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// The id of the parent of this category (if it exists)
+        /// </summary>
+        public ulong? Parent_Id { get; set; }
+
+        /// <summary>
+        /// The id of the planet this category belongs to
+        /// </summary>
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The description of this category
+        /// </summary>
+        public string Description { get; set; }
+
+        /// <summary>
+        /// The type of this item
+        /// </summary>
+        public ItemType ItemType => ItemType.Category;
+
+        /// <summary>
+        /// Attempts to delete this category
+        /// </summary>
+        public async Task<TaskResult> TryDeleteAsync()
         {
-            return mapper.Map<ClientPlanetCategory>(channel);
+            var response = await ClientUserManager.Http.DeleteAsync($"api/category/{Id}");
+
+            return new TaskResult(
+                response.IsSuccessStatusCode,
+                await response.Content.ReadAsStringAsync()
+            );
+        }
+
+        /// <summary>
+        /// Attempts to set the name of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> TrySetNameAsync(string name)
+        {
+            string encodedName = HttpUtility.UrlEncode(name);
+            StringContent content = new StringContent(encodedName);
+
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/name", content);
+
+            return new TaskResult(
+                response.IsSuccessStatusCode,
+                await response.Content.ReadAsStringAsync()
+            );
+        }
+
+        /// <summary>
+        /// Attempts to set the description of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> TrySetDescriptionAsync(string desc)
+        {
+            string encodedDesc = HttpUtility.UrlEncode(desc);
+            StringContent content = new StringContent(encodedDesc);
+
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/description", content);
+
+            return new TaskResult(
+                response.IsSuccessStatusCode,
+                await response.Content.ReadAsStringAsync()
+            );
+        }
+
+        /// <summary>
+        /// Attempts to set the parent of the channel and returns the result
+        /// </summary>
+        public async Task<TaskResult> TrySetParentIdAsync(ulong parent_id)
+        {
+            StringContent content = new StringContent(parent_id.ToString());
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/parent_id", content);
+
+            return new TaskResult(
+                response.IsSuccessStatusCode,
+                await response.Content.ReadAsStringAsync()
+            );
+        }
+
+        /// <summary>
+        /// Returns the string representation of the item type
+        /// </summary>
+        /// <returns></returns>
+        public string GetItemTypeName()
+        {
+            return "Category";
         }
 
         /// <summary>
@@ -44,82 +137,17 @@ namespace Valour.Client.Categories
             return await ClientPlanetManager.Current.GetPlanetAsync(Planet_Id);
         }
 
-        public ChannelListItemType ItemType => ChannelListItemType.Category;
-
         /// <summary>
-        /// Attempts to set the name of the channel and returns the result
+        /// Returns the permissions node for this category
         /// </summary>
-        public async Task<TaskResult> SetNameAsync(string name)
-        {
-            string encodedName = HttpUtility.UrlEncode(name);
-
-            StringContent content = new StringContent(encodedName);
-
-            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/name", content);
-
-            var message = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Failed to set name for category {Id}");
-                Console.WriteLine(message);
-            }
-
-            return new TaskResult(response.IsSuccessStatusCode, message);
-        }
-
-        /// <summary>
-        /// Attempts to set the description of the channel and returns the result
-        /// </summary>
-        public async Task<TaskResult> SetDescriptionAsync(string desc)
-        {
-            string encodedDesc = HttpUtility.UrlEncode(desc);
-
-            StringContent content = new StringContent(encodedDesc);
-
-            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/description", content);
-
-            var message = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Failed to set description for category {Id}");
-                Console.WriteLine(message);
-            }
-
-            return new TaskResult(response.IsSuccessStatusCode, message);
-        }
-
-        /// <summary>
-        /// Attempts to set the parent of the channel and returns the result
-        /// </summary>
-        public async Task<TaskResult> SetParentIdAsync(ulong parent_id)
-        {
-            StringContent content = new StringContent(parent_id.ToString());
-
-            var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/parent_id", content);
-
-            var message = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Failed to set parent id for category {Id}");
-                Console.WriteLine(message);
-            }
-
-            return new TaskResult(response.IsSuccessStatusCode, message);
-        }
-
-        public string GetItemTypeName()
-        {
-            return "Category";
-        }
-
         public async Task<PermissionsNode> GetPermissionsNodeAsync(PlanetRole role)
         {
             return await GetCategoryPermissionsNode(role);
         }
 
+        /// <summary>
+        /// Returns the category permissions node for this category
+        /// </summary>
         public async Task<CategoryPermissionsNode> GetCategoryPermissionsNode(PlanetRole role)
         {
 
@@ -147,6 +175,11 @@ namespace Valour.Client.Categories
 
             // Return the node - it may be null, but that's ok
             return result.Data;
+        }
+
+        public Task<TaskResult> TrySetName(string name)
+        {
+            throw new NotImplementedException();
         }
     }
 }
