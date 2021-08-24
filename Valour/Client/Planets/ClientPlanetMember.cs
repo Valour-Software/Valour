@@ -166,23 +166,20 @@ namespace Valour.Client.Planets
                 return;
             }
 
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetUser?id={User_Id}");
+            var response = await ClientUserManager.Http.GetAsync($"User/GetUser?id={User_Id.ToString()}");
 
-            TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(json);
-
-            if (result == null)
+            var message = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a user from the server.");
+                Console.WriteLine(message);
                 return;
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                return;
-            }
-
-            _user = result.Data;
+            
+            User result = JsonConvert.DeserializeObject<User>(message);
+            
+            _user = result;
         }
 
         /// <summary>
@@ -190,7 +187,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task LoadRoleIdsAsync()
         {
-            var response = await ClientUserManager.Http.GetAsync($"api/planet/{Planet_Id.ToString()}/members/user/{User_Id.ToString()}/role_ids");
+            var response = await ClientUserManager.Http.GetAsync($"api/members/planet/{Planet_Id.ToString()}/user/{User_Id.ToString()}/role_ids");
 
             var message = await response.Content.ReadAsStringAsync();
             
@@ -214,24 +211,20 @@ namespace Valour.Client.Planets
 
         public async Task<ulong> GetAuthorityAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}");
 
-            Console.WriteLine($"Got authority for {Id}: " + json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            TaskResult<ulong> result = JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving member authority from the server.");
+                Console.WriteLine(message);
+                return 0;
             }
+            
+            ulong result = JsonConvert.DeserializeObject<ulong>(message);
 
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                Console.WriteLine($"Failed for {Id} in {Planet_Id}");
-            }
-
-            return result.Data;
+            return result;
         }
 
         /// <summary>

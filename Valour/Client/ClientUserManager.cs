@@ -119,23 +119,32 @@ namespace Valour.Client
         /// </summary>
         public static async Task RefreshPlanetsAsync()
         {
-            string json =
-                await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
+            var response = await Http.GetAsync($"api/user/{User.Id.ToString()}/planets");
 
-            TaskResult<List<ClientPlanet>> response =
-                JsonConvert.DeserializeObject<TaskResult<List<ClientPlanet>>>(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine(response.Message);
-
-            if (response.Success)
+            if (!response.IsSuccessStatusCode)
             {
-                await Parallel.ForEachAsync(response.Data, async (planet, token) =>
-                {
-                    // Load planet into cache
-                    await ClientPlanetManager.Current.AddPlanetAsync(planet);
-                    Planets.Add(planet);
-                });
+                Console.WriteLine("Fatal error retrieving user planet membership");
+                Console.WriteLine(message);
+                return;
             }
+
+            List<ClientPlanet> planets = JsonConvert.DeserializeObject<List<ClientPlanet>>(message);
+
+            if (planets == null)
+            {
+                Console.WriteLine("Fatal error deserializing member list");
+                Console.WriteLine(message);
+                return;
+            }
+            
+            await Parallel.ForEachAsync(planets, async (planet, token) =>
+            {
+                // Load planet into cache
+                await ClientPlanetManager.Current.AddPlanetAsync(planet);
+                Planets.Add(planet);
+            });
         }
 
         /// <summary>

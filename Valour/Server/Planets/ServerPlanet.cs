@@ -94,6 +94,100 @@ namespace Valour.Server.Planets
             }
         }
 
+        public async Task<TaskResult<int>> KickMemberAsync(ServerPlanetMember member, 
+            ServerPlanetMember target, ValourDB db)
+        {
+            if (member == null) 
+                return new TaskResult<int>(false, "Member not found", 404);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Kick, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.View", 403);
+            
+            if (target == null) 
+                return new TaskResult<int>(false, $"Target not found", 404);
+            
+            if (member.Id == target.Id) 
+                return new TaskResult<int>(false, "You cannot kick yourself!", 400);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Kick, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.Kick", 403);
+
+            if (await member.GetAuthorityAsync() <= await target.GetAuthorityAsync())
+            {
+                return new TaskResult<int>(false, "You can only kick members with lower authority!", 403);
+            }
+            
+            // Remove roles
+            var roles = db.PlanetRoleMembers.Where(x => x.Member_Id == target.Id);
+
+            foreach(ServerPlanetRoleMember role in roles) {
+                db.PlanetRoleMembers.Remove(role);
+            }
+
+            // Remove member
+            db.PlanetMembers.Remove(target);
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            return new TaskResult<int>(true, $"Successfully kicked user", 200);
+        }
+
+        public async Task<TaskResult<int>> BanMemberAsync(ServerPlanetMember member,
+            ServerPlanetMember target, string reason, uint? duration, ValourDB db)
+        {
+            if (member == null) 
+                return new TaskResult<int>(false, "Member not found", 404);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Kick, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.View", 403);
+            
+            if (target == null) 
+                return new TaskResult<int>(false, $"Target not found", 404);
+            
+            if (member.Id == target.Id) 
+                return new TaskResult<int>(false, "You cannot ban yourself!", 400);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Ban, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.Ban", 403);
+
+            if (await member.GetAuthorityAsync() <= await target.GetAuthorityAsync())
+            {
+                return new TaskResult<int>(false, "You can only ban members with lower authority!", 403);
+            }
+
+            if (duration == 0) duration = null;
+
+            // Add ban to database
+            PlanetBan ban = new PlanetBan()
+            {
+                Id = IdManager.Generate(),
+                Reason = reason,
+                Time = DateTime.UtcNow,
+                Banner_Id = member.User_Id,
+                User_Id = target.User_Id,
+                Planet_Id = member.Planet_Id,
+                Minutes = duration
+            };
+
+            await db.PlanetBans.AddAsync(ban);
+            
+            // Remove roles
+            var roles = db.PlanetRoleMembers.Where(x => x.Member_Id == target.Id);
+
+            foreach(ServerPlanetRoleMember role in roles) {
+                db.PlanetRoleMembers.Remove(role);
+            }
+
+            // Remove member
+            db.PlanetMembers.Remove(target);
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            return new TaskResult<int>(true, $"Successfully banned user", 200);
+        }
+
         /// <summary>
         /// Tries to set the planet name
         /// </summary>

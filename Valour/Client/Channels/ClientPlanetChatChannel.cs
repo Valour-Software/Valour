@@ -205,27 +205,28 @@ namespace Valour.Client.Channels
         public async Task<ChatChannelPermissionsNode> GetChatChannelPermissionsNodeAsync(PlanetRole role)
         {
 
-            string json = await ClientUserManager.Http.GetStringAsync($"Permissions/GetChatChannelNode?channel_id={Id}" +
+            var response = await ClientUserManager.Http.GetAsync($"Permissions/GetChatChannelNode?channel_id={Id}" +
                                                                                                     $"&role_id={role.Id}" +
                                                                                                     $"&token={ClientUserManager.UserSecretToken}");
-            
-            TaskResult<ChatChannelPermissionsNode> result = JsonConvert.DeserializeObject<TaskResult<ChatChannelPermissionsNode>>(json);
 
-            if (result == null)
+            var message = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
             {
-                Console.WriteLine("Failed to deserialize result from GetPermissionsNode in channel");
+                Console.WriteLine("Critical error for GetPermissionsNode in channel");
+                Console.WriteLine(message);
                 return null;
             }
+            
+            ChatChannelPermissionsNode result = null;
 
-            if (!result.Success)
+            if (!string.IsNullOrWhiteSpace(message))
             {
-                Console.WriteLine("Permissions/GetChatChannelNode failed.");
-                Console.WriteLine(result.Message);
-                return null;
+                result = JsonConvert.DeserializeObject<ChatChannelPermissionsNode>(message);
             }
 
             // Return the node - it may be null, but that's ok
-            return result.Data;
+            return result;
         }
 
         /// <summary>

@@ -3,21 +3,24 @@
 @inject EditPlanetModal editPlanetModal
 
 <h3>Edit Roles</h3>
-<hr />
-<br />
+<hr/>
+<br/>
 
 <div class="settings-inner" id="edit-inner-settings">
 
     @{
         string editStyle = "display: none";
-        if (editMode) { editStyle = ""; }
+        if (editMode)
+        {
+            editStyle = "";
+        }
     }
 
     <div style="@editStyle">
         <div class="rolecreate-cont">
             <div class="form-group mt-2">
                 <label>Role Name</label>
-                <input class="form-control" @bind-value="@role.Name" />
+                <input class="form-control" @bind-value="@role.Name"/>
                 <span id="rolename-span" class="text-danger">@roleNameSpan</span>
             </div>
             <div class="form-group mt-2 ml-2">
@@ -41,9 +44,9 @@
             </div>
         </div>
 
-        <br />
-        <hr />
-        <br />
+        <br/>
+        <hr/>
+        <br/>
 
         <h5 style="display: inline-block">Role Permissions</h5>
         <h7 style="float: right">Code for nerds: @role.Permissions &nbsp;</h7>
@@ -73,7 +76,10 @@
 
     @{
         string delStyle = "display: none";
-        if (deleteMode) { delStyle = ""; }
+        if (deleteMode)
+        {
+            delStyle = "";
+        }
     }
 
 
@@ -81,7 +87,7 @@
         <h3>Delete: @role.Name</h3>
         <h4>Are you sure?</h4>
 
-        <br />
+        <br/>
 
         <div class="btn btn-outline-primary" style="display:inline-block" @onclick="GoBack">Cancel</div>
         <div class="btn btn-danger" @onclick="Delete">Confirm</div>
@@ -94,7 +100,10 @@
 
     @{
         string normStyle = "display: none";
-        if (!editMode && !deleteMode) { normStyle = ""; }
+        if (!editMode && !deleteMode)
+        {
+            normStyle = "";
+        }
     }
 
 
@@ -138,6 +147,7 @@
 </div>
 
 @code {
+
     [Parameter]
     public ClientPlanet Planet { get; set; }
 
@@ -188,7 +198,7 @@
             }
         }
 
-        //StateHasChanged();
+    //StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
@@ -201,7 +211,8 @@
 
     public async Task GoBack()
     {
-        role = new PlanetRole(){
+        role = new PlanetRole()
+        {
             Name = "New Role",
             Bold = false,
             Italics = false,
@@ -229,28 +240,23 @@
     {
         HttpResponseMessage response = null;
 
-        response = await ClientUserManager.Http.GetAsync($"Planet/DeleteRole?role_id={role.Id}" +
-                                                                          $"&token={ClientUserManager.UserSecretToken}");
+        response = await ClientUserManager.Http.GetAsync($"Planet/DeleteRole?role_id={role.Id.ToString()}" +
+                                                         $"&token={ClientUserManager.UserSecretToken}");
 
-        Console.WriteLine(await response.Content.ReadAsStringAsync());
+        var message = await response.Content.ReadAsStringAsync();
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(
-            await response.Content.ReadAsStringAsync());
+        Console.WriteLine(message);
 
-        if (result == null)
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(message);
+
+
+        if (result.Success)
         {
-            errorSpan = "No response from server!";
+            resultSpan = result.Message;
         }
         else
         {
-            if (result.Success)
-            {
-                resultSpan = result.Message;
-            }
-            else
-            {
-                errorSpan = result.Message;
-            }
+            errorSpan = result.Message;
         }
 
         deleteMode = false;
@@ -272,7 +278,7 @@
         for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
         {
             rolePermValues[i] = ((editRole.Permissions & PlanetPermissions.Permissions[i].Value)
-                                                      == PlanetPermissions.Permissions[i].Value);
+                                 == PlanetPermissions.Permissions[i].Value);
         }
 
         await JS.InvokeVoidAsync("SetColorPickerColor", role.GetColorHex());
@@ -282,7 +288,8 @@
 
     public async Task OnClickCreateMode()
     {
-        role = new PlanetRole(){
+        role = new PlanetRole()
+        {
             Name = "New Role",
             Bold = false,
             Italics = false,
@@ -301,59 +308,62 @@
         resultSpan = "";
         errorSpan = "";
 
-        // Get chosen color
+    // Get chosen color
         float[] color = await JS.InvokeAsync<float[]>("GetChosenColor");
 
-        role.Color_Red = (byte)Math.Round(color[0]);
-        role.Color_Green = (byte)Math.Round(color[1]);
-        role.Color_Blue = (byte)Math.Round(color[2]);
+        role.Color_Red = (byte) Math.Round(color[0]);
+        role.Color_Green = (byte) Math.Round(color[1]);
+        role.Color_Blue = (byte) Math.Round(color[2]);
 
         Console.WriteLine($"Chosen color: rgb({role.Color_Red}, {role.Color_Green}, {role.Color_Blue})");
 
-        // Create json payload to send to server for request
-        // Id and authority is handled by the server
+    // Create json payload to send to server for request
+    // Id and authority is handled by the server
 
-        //string json = JsonConvert.SerializeObject(role);
+    //string json = JsonConvert.SerializeObject(role);
 
         HttpResponseMessage response = null;
 
-        // If the id is not set, this is a new role to be created
+    // If the id is not set, this is a new role to be created
         if (role.Id == 0)
         {
             response = await ClientUserManager.Http.PostAsJsonAsync($"Planet/CreateRole?planet_id={Planet.Id}" +
-                                                                                         $"&token={ClientUserManager.UserSecretToken}", role);
+                                                                    $"&token={ClientUserManager.UserSecretToken}", role);
         }
-        // Otherwise we are editing a prior role
+    // Otherwise we are editing a prior role
         else
         {
             response = await ClientUserManager.Http.PostAsJsonAsync($"Planet/EditRole?planet_id={Planet.Id}" +
-                                                                                   $"&token={ClientUserManager.UserSecretToken}", role);
+                                                                    $"&token={ClientUserManager.UserSecretToken}", role);
         }
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(
-            await response.Content.ReadAsStringAsync());
+        var message = await response.Content.ReadAsStringAsync();
 
-        if (result == null)
+        if (!response.IsSuccessStatusCode)
         {
-            errorSpan = "No response from server!";
+            errorSpan = $"Error ({response.StatusCode}): {message}";
+            StateHasChanged();
+            return;
+        }
+
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(message);
+
+
+        if (result.Success)
+        {
+            resultSpan = result.Message;
+
+            // If creating, send back to role list afterwards
+            if (role.Id == 0)
+            {
+                editMode = false;
+            }
         }
         else
         {
-            if (result.Success)
-            {
-                resultSpan = result.Message;
-
-                // If creating, send back to role list afterwards
-                if (role.Id == 0)
-                {
-                    editMode = false;
-                }
-            }
-            else
-            {
-                errorSpan = result.Message;
-            }
+            errorSpan = result.Message;
         }
+
 
         StateHasChanged();
 
@@ -368,7 +378,6 @@
     // Handle role list changes that may occur while open
     public async Task OnRolesUpdate(PlanetRole role)
     {
-
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 
         if (oldRole == null)
@@ -380,9 +389,10 @@
 
         var index = Roles.IndexOf(oldRole);
 
-        // Set to new role
+    // Set to new role
         Roles[index] = role;
 
         StateHasChanged();
     }
+
 }

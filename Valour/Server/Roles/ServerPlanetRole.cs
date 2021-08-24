@@ -104,5 +104,13 @@ namespace Valour.Server.Roles
         {
             return Permission.HasPermission(Permissions, permission);
         }
+
+        /// <summary>
+        /// Tries to delete this role
+        /// </summary>
+        public async Task TryDeleteAsync(ServerPlanetMember member, ValourDB db)
+        {
+            
+        }
     }
 }

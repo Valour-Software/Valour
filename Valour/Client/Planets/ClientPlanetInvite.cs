@@ -27,24 +27,17 @@ namespace Valour.Shared.Planets
         /// </summary>
         public async Task<string> GetPlanetName()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Invite/GetPlanetName?invite_code={Code}");
-
-            TaskResult<string> result = JsonConvert.DeserializeObject<TaskResult<string>>(json);
-
-            if (result == null)
+            var response = await ClientUserManager.Http.GetAsync($"Invite/GetPlanetName?invite_code={Code}");
+            var message = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Critical error retrieving planet name for invite with code {Code}");
+                Console.WriteLine(message);
                 return "Error";
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine($"Error retrieving planet name for invite with code {Code}");
-                Console.WriteLine(result.Message);
-                return "Error";
-            }
-
-            return result.Data;
+            
+            return message;
         }
 
         /// <summary>
@@ -52,29 +45,18 @@ namespace Valour.Shared.Planets
         /// </summary>
         public async Task<string> GetPlanetIcon()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Invite/GetPlanetIcon?invite_code={Code}");
-
-            TaskResult<string> result = JsonConvert.DeserializeObject<TaskResult<string>>(json);
-
-            if (result == null)
+            var response = await ClientUserManager.Http.GetAsync($"Invite/GetPlanetIcon?invite_code={Code}");
+            
+            var message = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Critical error retrieving planet icon for invite with code {Code}");
+                Console.WriteLine($"Critical error retrieving planet name for invite with code {Code}");
+                Console.WriteLine(message);
                 return "Error";
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine($"Error retrieving planet icon for invite with code {Code}");
-                Console.WriteLine(result.Message);
-                return "Error";
-            }
-
-            return result.Data;
-        }
-
-        public static ClientPlanetInvite FromBase(PlanetInvite invite, IMapper mapper)
-        {
-            return mapper.Map<ClientPlanetInvite>(invite);
+            
+            return message;
         }
     }
 }

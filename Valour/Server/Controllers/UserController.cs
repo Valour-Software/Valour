@@ -373,7 +373,7 @@ namespace Valour.Server.Controllers
             catch (FormatException e)
             {
                 Console.WriteLine(e.Message);
-                return new TaskResult(false, "Email was invalid.");
+                return new TaskResult<string>(false, "Email was invalid.");
             }
         }
 

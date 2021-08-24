@@ -128,33 +128,10 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if the member has the given permission
         /// </summary>
-        public async Task<bool> HasPermissionAsync(PlanetPermission permission, ValourDB db = null)
+        public async Task<bool> HasPermissionAsync(PlanetPermission permission, ValourDB db)
         {
-            // Make sure we didn't include the planet already
-            if (Planet == null)
-            {
-                bool createdb = false;
-                if (db == null)
-                {
-                    db = new ValourDB(ValourDB.DBOptions);
-                    createdb = true;
-                }
-
-                Planet = await db.Planets.FindAsync(Planet_Id);
-
-                if (createdb)
-                {
-                    await db.DisposeAsync();
-                }
-            }
-
-            // Special case for owner
-            if (User_Id == Planet.Owner_Id)
-            {
-                return true;
-            }
-
-            return (await GetPrimaryRoleAsync(db)).HasPermission(permission);
+            Planet ??= await db.Planets.FindAsync(Planet_Id);
+            return await Planet.HasPermissionAsync(this, permission, db);
         }
 
         /// <summary>

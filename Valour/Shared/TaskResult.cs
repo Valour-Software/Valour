@@ -13,15 +13,35 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared
 {
-    public class TaskResult : TaskResult<string>
+    public struct TaskResult
     {
-        public TaskResult(bool success, string response) : base(success, response, null)
+        [JsonProperty]
+        [System.Text.Json.Serialization.JsonInclude]
+        public string Message { get; set; }
+
+        [JsonProperty]
+        [System.Text.Json.Serialization.JsonInclude]
+        public bool Success { get; set; }
+        
+        public TaskResult(bool success, string message)
         {
-
+            Success = success;
+            Message = message;
         }
-    }
 
-    public class TaskResult<T>
+        public override string ToString()
+        {
+            if (Success)
+            {
+                return $"[SUCC] {Message}";
+            }
+
+            return $"[FAIL] {Message}";
+        }
+
+    }
+    
+    public struct TaskResult<T>
     {
         [JsonProperty]
         [System.Text.Json.Serialization.JsonInclude]
@@ -34,6 +54,13 @@ namespace Valour.Shared
         [JsonProperty]
         [System.Text.Json.Serialization.JsonInclude]
         public T Data { get; set; }
+
+        public TaskResult(bool success, string message)
+        {
+            Success = success;
+            Message = message;
+            Data = default(T);
+        }
 
         public TaskResult(bool success, string message, T data)
         {

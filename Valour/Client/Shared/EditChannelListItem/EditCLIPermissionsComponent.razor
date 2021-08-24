@@ -272,19 +272,19 @@ else
                                                                                                 (CategoryPermissionsNode)PermissionsNode);
         }
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
+        var message = await response.Content.ReadAsStringAsync();
 
-        if (result == null)
-        {
-            Console.WriteLine("Error deserializing response for permission node update!");
-        }
-
-        if (!result.Success)
+        if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine("Error in permission node update!");
+            Console.WriteLine(message);
+            await RefreshButtons();
+            return;
         }
+        
+        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(message);
 
-        Console.WriteLine(result.Message);
+        Console.WriteLine("Permission node update: " + result.Message);
 
         await RefreshButtons();
     }

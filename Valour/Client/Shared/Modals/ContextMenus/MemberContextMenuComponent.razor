@@ -222,9 +222,10 @@
 
         TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
 
-        if (result == null)
+        if (!result.Success)
         {
             Console.WriteLine("Severe error occured during OnRoleClick response from server");
+            Console.WriteLine(result.Message);
             return;
         }
 

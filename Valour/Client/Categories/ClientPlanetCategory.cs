@@ -147,29 +147,28 @@ namespace Valour.Client.Categories
         {
 
             // For SOME reason the args need to be in this order
-            string json = await ClientUserManager.Http.GetStringAsync($"Permissions/GetCategoryNode?category_id={Id}" +
+            var response = await ClientUserManager.Http.GetAsync($"Permissions/GetCategoryNode?category_id={Id}" +
                                                                                                  $"&token={ClientUserManager.UserSecretToken}" +
                                                                                                  $"&role_id={role.Id}");
 
-            Console.WriteLine(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            TaskResult<CategoryPermissionsNode> result = JsonConvert.DeserializeObject<TaskResult<CategoryPermissionsNode>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Failed to deserialize result from GetPermissionsNode in category");
+                Console.WriteLine(message);
                 return null;
             }
 
-            if (!result.Success)
+            CategoryPermissionsNode result = null;
+
+            if (!string.IsNullOrWhiteSpace(message))
             {
-                Console.WriteLine("Permissions/GetCategoryNode failed.");
-                Console.WriteLine(result.Message);
-                return null;
+                result = JsonConvert.DeserializeObject<CategoryPermissionsNode>(message);
             }
-
+            
             // Return the node - it may be null, but that's ok
-            return result.Data;
+            return result;
         }
 
         public Task<TaskResult> TrySetName(string name)

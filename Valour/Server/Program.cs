@@ -61,7 +61,11 @@ namespace Valour.Server
             // Add API routes
             UploadAPI.AddRoutes(app);
             ChannelAPI.AddRoutes(app);
+            CategoryAPI.AddRoutes(app);
             PlanetAPI.AddRoutes(app);
+            UserAPI.AddRoutes(app);
+            MemberAPI.AddRoutes(app);
+            RoleAPI.AddRoutes(app);
 
             // Run
             app.Run();

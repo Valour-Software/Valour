@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Valour.Client.Categories;
 using Valour.Client.Channels;
 using Valour.Client.Messages;
@@ -165,34 +166,28 @@ namespace Valour.Client.Planets
         public async Task LoadPlanetRoles(ulong planet_id)
         {
             // Get planet roles
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRoles?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/planet/{planet_id.ToString()}/roles");
 
-            Console.WriteLine(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            TaskResult<List<PlanetRole>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetRole>>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
+                Console.WriteLine($"Critical error in getting planet roles for planet {planet_id.ToString()}");
+                Console.WriteLine(message);
                 return;
             }
+            
+            List<PlanetRole> result = JsonConvert.DeserializeObject<List<PlanetRole>>(message);
 
-            if (!result.Success)
-            {
-                Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
-                Console.WriteLine(result.Message);
-                return;
-            }
-
-            PlanetRolesListCache[planet_id] = result.Data.Select(x => x.Id).ToList();
+            PlanetRolesListCache[planet_id] = result.Select(x => x.Id).ToList();
 
             // Set roles into role cache
-            foreach (var role in result.Data)
+            foreach (var role in result)
             {
                 PlanetRolesCache[role.Id] = role;
             }
 
-            Console.WriteLine($"Loaded {result.Data.Count.ToString()} roles into cache for planet {planet_id.ToString()}");
+            Console.WriteLine($"Loaded {result.Count.ToString()} roles into cache for planet {planet_id.ToString()}");
         }
 
         /// <summary>
@@ -231,28 +226,22 @@ namespace Valour.Client.Planets
             }
 
             // Get planet roles
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRole?role_id={role_id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"Planet/GetPlanetRole?role_id={role_id}&token={ClientUserManager.UserSecretToken}");
 
-            Console.WriteLine(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            TaskResult<PlanetRole> result = JsonConvert.DeserializeObject<TaskResult<PlanetRole>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"Critical error in getting planet role with id {role_id}");
+                Console.WriteLine($"Critical error in getting planet role with id {role_id.ToString()}");
+                Console.WriteLine(message);
                 return null;
             }
+            
+            PlanetRole result = JsonConvert.DeserializeObject<PlanetRole>(message);
 
-            if (!result.Success)
-            {
-                Console.WriteLine($"Critical error in getting planet role with id {role_id}");
-                Console.WriteLine(result.Message);
-                return null;
-            }
+            PlanetRolesCache[role_id] = result;
 
-            PlanetRolesCache[role_id] = result.Data;
-
-            return result.Data;
+            return result;
         }
 
         public async Task SetUpdatedMember(ClientPlanetMember member)
@@ -278,15 +267,22 @@ namespace Valour.Client.Planets
 
         public async Task LoadAllPlanetMemberInfoAsync(ulong planet_id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberInfo?planet_id={planet_id.ToString()}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/planet/{planet_id.ToString()}/member_info");
 
-            //Console.WriteLine(json);
+            var message = await response.Content.ReadAsStringAsync();
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Critical error getting planet member info");
+                Console.WriteLine(message);
+                return;
+            }
 
-            TaskResult<List<PlanetMemberInfo>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetMemberInfo>>>(json);
+            List<PlanetMemberInfo> result = JsonConvert.DeserializeObject<List<PlanetMemberInfo>>(message);
 
             List<ClientPlanetMember> memberList = new List<ClientPlanetMember>();
 
-            foreach (PlanetMemberInfo info in result.Data)
+            foreach (var info in result)
             {
                 ClientPlanetMember member = ClientPlanetMember.FromBase(info.Member);
                 member.SetCacheValues(info);
@@ -321,29 +317,18 @@ namespace Valour.Client.Planets
 
             // Otherwise attempt to fetch from server
             // Retrieve from server
-            string json = await ClientUserManager.Http.GetStringAsync($"Member/GetMember?id={member_id.ToString()}&auth={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"Member/GetMember?id={member_id.ToString()}&auth={ClientUserManager.UserSecretToken}");
 
-            TaskResult<ClientPlanetMember> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetMember>>(json);
+            var message = await response.Content.ReadAsStringAsync();
 
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
+                Console.WriteLine(message);
                 return null;
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                return null;
-            }
-
-            ClientPlanetMember member = result.Data;
-
-            if (member == null)
-            {
-                Console.WriteLine($"Failed to fetch member with id {member_id.ToString()}.");
-                return null;
-            }
+            
+            ClientPlanetMember member = JsonConvert.DeserializeObject<ClientPlanetMember>(message);
 
             Console.WriteLine($"Fetched member {member_id.ToString()} for planet {member.Planet_Id.ToString()}.");
 
@@ -378,7 +363,7 @@ namespace Valour.Client.Planets
             }
 
             // Retrieve from server
-            var response = await ClientUserManager.Http.GetAsync($"planet/{planet_id.ToString()}/members/user/{user_id.ToString()}");
+            var response = await ClientUserManager.Http.GetAsync($"api/member/planet/{planet_id.ToString()}/user/{user_id.ToString()}");
 
             var message = await response.Content.ReadAsStringAsync();
             
