@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Valour.Shared.Oauth;
@@ -23,6 +24,7 @@ namespace Valour.Shared.Roles
         /// <summary>
         /// The channel this node applies to
         /// </summary>
+        [JsonPropertyName("Channel_Id")]
         public ulong Channel_Id { get; set; }
     }
 }

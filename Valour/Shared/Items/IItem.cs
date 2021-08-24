@@ -19,9 +19,11 @@ namespace Valour.Shared.Items
     public interface IItem
     {
         [JsonInclude]
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         [JsonInclude]
+        [JsonPropertyName("ItemType")]
         public ItemType ItemType { get; }
     }
 }

@@ -133,7 +133,7 @@ namespace Valour.Server.Planets
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", json);
         }
 
-        public static async Task NotifyRoleDeletion(ServerPlanetRole role)
+        public static async void NotifyRoleDeletion(ServerPlanetRole role)
         {
             string json = JsonConvert.SerializeObject(role);
 

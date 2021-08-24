@@ -15,6 +15,7 @@ namespace Valour.Shared.Items
     public interface INamedItem : IItem
     {
         [JsonInclude]
+        [JsonPropertyName("Name")]
         public string Name { get; set; }
     }
 }

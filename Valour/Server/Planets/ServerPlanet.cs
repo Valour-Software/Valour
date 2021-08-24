@@ -94,7 +94,7 @@ namespace Valour.Server.Planets
             }
         }
 
-        public async Task<TaskResult<int>> KickMemberAsync(ServerPlanetMember member, 
+        public async Task<TaskResult<int>> TryKickMemberAsync(ServerPlanetMember member, 
             ServerPlanetMember target, ValourDB db)
         {
             if (member == null) 
@@ -133,7 +133,7 @@ namespace Valour.Server.Planets
             return new TaskResult<int>(true, $"Successfully kicked user", 200);
         }
 
-        public async Task<TaskResult<int>> BanMemberAsync(ServerPlanetMember member,
+        public async Task<TaskResult<int>> TryBanMemberAsync(ServerPlanetMember member,
             ServerPlanetMember target, string reason, uint? duration, ValourDB db)
         {
             if (member == null) 

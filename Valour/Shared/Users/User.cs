@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 /*  Valour - A free and secure chat client
@@ -23,31 +24,37 @@ namespace Valour.Shared.Users
         /// The Id of the user
         /// </summary>
         [Key]
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         /// <summary>
         /// The main display name for the user
         /// </summary>
+        [JsonPropertyName("Username")]
         public string Username { get; set; }
 
         /// <summary>
         /// The url for the user's profile picture
         /// </summary>
+        [JsonPropertyName("Pfp_Url")]
         public string Pfp_Url { get; set; }
 
         /// <summary>
         /// The Date and Time that the user joined Valour
         /// </summary>
+        [JsonPropertyName("Join_DateTime")]
         public DateTime Join_DateTime { get; set; }
 
         /// <summary>
         /// True if the user is a bot
         /// </summary>
+        [JsonPropertyName("Bot")]
         public bool Bot { get; set; }
 
         /// <summary>
         /// True if the account has been disabled
         /// </summary>
+        [JsonPropertyName("Disabled")]
         public bool Disabled { get; set; }
 
         /// <summary>
@@ -55,21 +62,25 @@ namespace Valour.Shared.Users
         /// through a client modification to present non-official staff as staff is a breach of our
         /// license. Don't do that.
         /// </summary>
+        [JsonPropertyName("Valour_Staff")]
         public bool Valour_Staff { get; set; }
 
         /// <summary>
         /// The integer representation of the current user state
         /// </summary>
+        [JsonPropertyName("UserState_Value")]
         public int UserState_Value { get; set; }
 
         /// <summary>
         /// The last time this user was flagged as active (successful auth)
         /// </summary>
+        [JsonPropertyName("Last_Active")]
         public DateTime Last_Active { get; set; }
 
         /// <summary>
         /// The span of time from which the user was last active
         /// </summary>
+        [JsonPropertyName("Last_Active_Span")]
         public TimeSpan Last_Active_Span 
         { 
             get

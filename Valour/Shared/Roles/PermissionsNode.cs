@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Valour.Shared.Oauth;
@@ -22,26 +23,31 @@ namespace Valour.Shared.Roles
         /// <summary>
         /// The ID of this permission node
         /// </summary>
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         /// <summary>
         /// The permission code that this node has set
         /// </summary>
+        [JsonPropertyName("Code")]
         public ulong Code { get; set; }
 
         /// <summary>
         /// A mask used to determine if code bits are disabled
         /// </summary>
+        [JsonPropertyName("Code_Mask")]
         public ulong Code_Mask { get; set; }
 
         /// <summary>
         /// The planet this node applies to
         /// </summary>
+        [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
 
         /// <summary>
         /// The role this permissions node belongs to
         /// </summary>
+        [JsonPropertyName("Role_Id")]
         public ulong Role_Id { get; set; }
 
 

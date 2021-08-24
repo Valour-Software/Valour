@@ -139,7 +139,7 @@ namespace Valour.Client
                 return;
             }
             
-            await Parallel.ForEachAsync(planets, async (planet, token) =>
+            await Parallel.ForEachAsync(planets, new ParallelOptions(){ MaxDegreeOfParallelism = 10 }, async (planet, token) =>
             {
                 // Load planet into cache
                 await ClientPlanetManager.Current.AddPlanetAsync(planet);

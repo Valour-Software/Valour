@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using Valour.Server.Planets;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Server.Categories;
+using Valour.Shared;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -108,9 +110,79 @@ namespace Valour.Server.Roles
         /// <summary>
         /// Tries to delete this role
         /// </summary>
-        public async Task TryDeleteAsync(ServerPlanetMember member, ValourDB db)
+        public async Task<TaskResult<int>> TryDeleteAsync(ServerPlanetMember member, ValourDB db)
         {
+            if (member == null)
+                return new TaskResult<int>(false, "Member not found", 404);
             
+            if (member.Planet_Id != Planet_Id)
+                return new TaskResult<int>(false, "Member is of another planet", 403);
+            
+            if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.ManageRoles", 403);
+
+            if (await member.GetAuthorityAsync() <= GetAuthority())
+                return new TaskResult<int>(false, "Member authority is lower than role authority", 403);
+            
+            Planet ??= await db.Planets.FindAsync(Planet_Id);
+
+            if (Id == Planet.Default_Role_Id)
+                return new TaskResult<int>(false, "Cannot remove default role", 400);
+            
+            // Remove all members
+            var members = db.PlanetRoleMembers.Where(x => x.Role_Id == Id);
+            db.PlanetRoleMembers.RemoveRange(members);
+            
+            // Remove role nodes
+            var channelNodes = db.ChatChannelPermissionsNodes.Where(x => x.Role_Id == Id);
+            var categoryNodes = db.CategoryPermissionsNodes.Where(x => x.Role_Id == Id);
+            
+            db.ChatChannelPermissionsNodes.RemoveRange(channelNodes);
+            db.CategoryPermissionsNodes.RemoveRange(categoryNodes);
+            
+            // Remove self
+            db.PlanetRoles.Remove(this);
+
+            await db.SaveChangesAsync();
+            
+            // Notify clients
+            PlanetHub.NotifyRoleDeletion(this);
+
+            return new TaskResult<int>(true, "Removed role", 200);
+        }
+
+        public async Task<TaskResult<int>> TryUpdateAsync(ServerPlanetMember member, ServerPlanetRole newRole, ValourDB db)
+        {
+            if (member == null)
+                return new TaskResult<int>(false, "Member not found", 403);
+
+            if (member.Planet_Id != Planet_Id)
+                return new TaskResult<int>(false, "Member is of another planet", 403);
+            
+            if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.ManageRoles", 403);
+
+            if (await member.GetAuthorityAsync() <= GetAuthority())
+                return new TaskResult<int>(false, "Member authority is lower than role authority", 403);
+            
+            if (newRole.Id != Id)
+                return new TaskResult<int>(false, "Given role does not match id", 400);
+
+            this.Name = newRole.Name;
+            this.Position = newRole.Position;
+            this.Permissions = newRole.Permissions;
+            this.Color_Red = newRole.Color_Red;
+            this.Color_Green = newRole.Color_Green;
+            this.Color_Blue = newRole.Color_Blue;
+            this.Bold = newRole.Bold;
+            this.Italics = newRole.Italics;
+
+            db.PlanetRoles.Update(this);
+            await db.SaveChangesAsync();
+            
+            PlanetHub.NotifyRoleChange(this);
+
+            return new TaskResult<int>(true, "Success", 200);
         }
     }
 }

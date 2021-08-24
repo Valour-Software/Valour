@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Valour.Shared.Oauth;
@@ -23,16 +24,19 @@ namespace Valour.Shared.Roles
         /// <summary>
         /// The category this node applies to
         /// </summary>
+        [JsonPropertyName("Category_Id")]
         public ulong Category_Id { get; set; }
 
         /// <summary>
         /// The permission code for the chat channels within the category
         /// </summary>
+        [JsonPropertyName("ChatChannel_Code")]
         public ulong ChatChannel_Code { get; set; }
 
         /// <summary>
         /// The permission mask for the chat channels within the category
         /// </summary>
+        [JsonPropertyName("ChatChannel_Code_Mask")]
         public ulong ChatChannel_Code_Mask { get; set; }
 
         /// <summary>

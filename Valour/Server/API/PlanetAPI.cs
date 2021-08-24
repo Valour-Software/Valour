@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -51,7 +52,7 @@ namespace Valour.Server.API
         public static void AddRoutes(WebApplication app)
         {
             app.MapPost("api/planet/create", Create);
-            
+
             app.Map("api/planet/{planet_id}/name", Name);
             app.Map("api/planet/{planet_id}/description", Description);
             app.Map("api/planet/{planet_id}/public", Public);
@@ -68,18 +69,85 @@ namespace Valour.Server.API
             app.MapGet("api/planet/{planet_id}/member_info", GetMemberInfo);
 
             app.MapGet("api/planet/{planet_id}/roles", GetRoles);
+            app.MapPost("api/planet/{planet_id}/roles", AddRole);
 
             app.MapPost("api/planet/{planet_id}/members/{target_id}/kick", KickMember);
             app.MapPost("api/planet/{planet_id}/members/{target_id}/ban", BanMember);
         }
-        
+
+        private static async Task AddRole(HttpContext ctx, ValourDB db, ulong planet_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (auth is null)
+            {
+                Results.Unauthorized();
+                return;
+            }
+
+            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id &&
+                x.User_Id == auth.User_Id);
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 403;
+                await ctx.Response.WriteAsync($"Member not found");
+                return;
+            }
+
+            if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            {
+                ctx.Response.StatusCode = 403;
+                await ctx.Response.WriteAsync($"Member lacks PlanetPermissions.ManageRoles");
+                return;
+            }
+
+            //string egg = await ctx.Request.ReadBodyStringAsync();
+
+            ServerPlanetRole in_role =
+                await JsonSerializer.DeserializeAsync<ServerPlanetRole>(ctx.Request.Body);
+
+            if (in_role is null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Include new role");
+                return;
+            }
+
+            if (in_role.Planet_Id != planet_id)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Member planet does not match role planet");
+                return;
+            }
+
+            // Set ID
+            in_role.Id = IdManager.Generate();
+            // Set planet id
+            in_role.Planet_Id = planet_id;
+            // Set position
+            in_role.Position = (uint) await db.PlanetRoles.CountAsync(x => x.Planet_Id == planet_id);
+
+            await db.PlanetRoles.AddAsync(in_role);
+            await db.SaveChangesAsync();
+
+            ctx.Response.StatusCode = 201;
+            await ctx.Response.WriteAsJsonAsync(in_role.Id);
+            return;
+        }
+
         private static async Task BanMember(HttpContext ctx, ValourDB db, ulong planet_id, ulong target_id,
             [FromHeader] string authorization, string reason = "None provided", uint duration = 0)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
-            if (auth is null) { Results.Unauthorized(); return; }
-            
-            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id || x.Id == target_id))
+            if (auth is null)
+            {
+                Results.Unauthorized();
+                return;
+            }
+
+            ServerPlanet planet = await db.Planets
+                .Include(x => x.Members.Where(x => x.User_Id == auth.User_Id || x.Id == target_id))
                 .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet is null)
@@ -91,20 +159,25 @@ namespace Valour.Server.API
 
             ServerPlanetMember member = planet.Members.FirstOrDefault(x => x.User_Id == auth.User_Id);
             ServerPlanetMember target = planet.Members.FirstOrDefault(x => x.Id == target_id);
-            
-            var result = await planet.BanMemberAsync(member, target, reason, duration, db);
-            
+
+            var result = await planet.TryBanMemberAsync(member, target, reason, duration, db);
+
             ctx.Response.StatusCode = result.Data;
             await ctx.Response.WriteAsync(result.Message);
         }
-        
+
         private static async Task KickMember(HttpContext ctx, ValourDB db, ulong planet_id, ulong target_id,
             [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
-            if (auth is null) { Results.Unauthorized(); return; }
+            if (auth is null)
+            {
+                Results.Unauthorized();
+                return;
+            }
 
-            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id || x.Id == target_id))
+            ServerPlanet planet = await db.Planets
+                .Include(x => x.Members.Where(x => x.User_Id == auth.User_Id || x.Id == target_id))
                 .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet is null)
@@ -116,9 +189,9 @@ namespace Valour.Server.API
 
             ServerPlanetMember member = planet.Members.FirstOrDefault(x => x.User_Id == auth.User_Id);
             ServerPlanetMember target = planet.Members.FirstOrDefault(x => x.Id == target_id);
-            
-            var result = await planet.KickMemberAsync(member, target, db);
-            
+
+            var result = await planet.TryKickMemberAsync(member, target, db);
+
             ctx.Response.StatusCode = result.Data;
             await ctx.Response.WriteAsync(result.Message);
         }
@@ -646,16 +719,8 @@ namespace Valour.Server.API
         private static async Task CreateChannel(HttpContext ctx, ValourDB db,
             [FromHeader] string authorization)
         {
-            string body = await ctx.Request.ReadBodyStringAsync();
-
-            if (string.IsNullOrWhiteSpace(body))
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync("Please include channel in body");
-                return;
-            }
-
-            ServerPlanetChatChannel channel_data = JsonSerializer.Deserialize<ServerPlanetChatChannel>(body);
+            ServerPlanetChatChannel channel_data =
+                JsonSerializer.Deserialize<ServerPlanetChatChannel>(ctx.Request.Body);
 
             if (channel_data == null)
             {
@@ -759,16 +824,7 @@ namespace Valour.Server.API
         private static async Task CreateCategory(HttpContext ctx, ValourDB db,
             [FromHeader] string authorization)
         {
-            string body = await ctx.Request.ReadBodyStringAsync();
-
-            if (string.IsNullOrWhiteSpace(body))
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync("Please include category in body");
-                return;
-            }
-
-            ServerPlanetCategory category_data = JsonSerializer.Deserialize<ServerPlanetCategory>(body);
+            ServerPlanetCategory category_data = JsonSerializer.Deserialize<ServerPlanetCategory>(ctx.Request.Body);
 
             if (category_data == null)
             {
@@ -1036,7 +1092,7 @@ namespace Valour.Server.API
                 await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
                 return;
             }
-            
+
             ServerPlanet planet = await db.Planets
                 .Include(x => x.Members).ThenInclude(x => x.User)
                 .Include(x => x.Members).ThenInclude(x => x.RoleMembership.OrderBy(x => x.Role.Position))
@@ -1049,14 +1105,14 @@ namespace Valour.Server.API
                 await ctx.Response.WriteAsync($"Planet not found [id: {planet_id.ToString()}]");
                 return;
             }
-            
+
             if (!planet.Members.Any(x => x.User_Id == auth.User_Id))
             {
                 ctx.Response.StatusCode = 401;
                 await ctx.Response.WriteAsync($"Member not found");
                 return;
             }
-            
+
             List<PlanetMemberInfo> info = new List<PlanetMemberInfo>();
 
             foreach (var member in planet.Members)
@@ -1071,11 +1127,11 @@ namespace Valour.Server.API
 
                 info.Add(planetInfo);
             }
-            
+
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsJsonAsync(info);
         }
-        
+
         private static async Task GetRoles(HttpContext ctx, ValourDB db, ulong planet_id,
             [FromHeader] string authorization)
         {

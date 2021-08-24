@@ -2,15 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Valour.Shared.Users
 {
     public class UserState
     {
+        [JsonPropertyName("Name")]
         public string Name { get; set; }
+
+        [JsonPropertyName("Value")]
         public byte Value { get; set; }
+
+        [JsonPropertyName("Description")]
         public string Description { get; set; }
+
+        [JsonPropertyName("ClassName")]
         public string ClassName { get; set; }
 
         public static UserState Automatic = new UserState()

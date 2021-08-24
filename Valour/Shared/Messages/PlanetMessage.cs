@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Valour.Shared.Users;
 
 /*  Valour - A free and secure chat client
@@ -12,9 +13,10 @@ namespace Valour.Shared.Messages
 {
     public class PlanetMessage : Message
     {
-        //[JsonProperty("p")]
+        [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
 
+        [JsonPropertyName("Member_Id")]
         public ulong Member_Id { get; set; }
     }
 }
