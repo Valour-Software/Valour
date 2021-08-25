@@ -28,36 +28,43 @@ namespace Valour.Server.Categories
         /// <summary>
         /// The id of this category
         /// </summary>
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         /// <summary>
         /// The name of this category
         /// </summary>
+        [JsonPropertyName("Name")]
         public string Name { get; set; }
 
         /// <summary>
         /// The position of this category
         /// </summary>
+        [JsonPropertyName("Position")]
         public ushort Position { get; set; }
 
         /// <summary>
         /// The id of the parent of this category (if it exists)
         /// </summary>
+        [JsonPropertyName("Parent_Id")]
         public ulong? Parent_Id { get; set; }
 
         /// <summary>
         /// The id of the planet containing this category
         /// </summary>
+        [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
 
         /// <summary>
         /// The description of this category
         /// </summary>
+        [JsonPropertyName("Description")]
         public string Description { get; set; }
 
         /// <summary>
         /// The type of this item
         /// </summary>
+        [JsonPropertyName("ItemType")]
         public ItemType ItemType => ItemType.Category;
 
         /// <summary>

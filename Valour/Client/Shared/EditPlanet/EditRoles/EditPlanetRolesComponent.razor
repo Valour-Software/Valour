@@ -238,19 +238,21 @@
 
     public async Task Delete()
     {
-        var response = await ClientUserManager.Http.GetStreamAsync($"Planet/DeleteRole?role_id={role.Id}" +
-                                                                                    $"&token={ClientUserManager.UserSecretToken}");
+        HttpResponseMessage response = null;
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(response);
+        response = await ClientUserManager.Http.DeleteAsync($"api/role/{role.Id.ToString()}");
+        
+        var message = await response.Content.ReadAsStringAsync();
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Critical error deleting role");
+            Console.WriteLine(message);
+            errorSpan = "Error: " + message;
+            return;
+        }
 
-        if (result.Success)
-        {
-            resultSpan = result.Message;
-        }
-        else
-        {
-            errorSpan = result.Message;
-        }
+        resultSpan = message;
 
         deleteMode = false;
 
@@ -308,7 +310,7 @@
         role.Color_Green = (byte) Math.Round(color[1]);
         role.Color_Blue = (byte) Math.Round(color[2]);
 
-        Console.WriteLine($"Chosen color: rgb({role.Color_Red}, {role.Color_Green}, {role.Color_Blue})");
+        Console.WriteLine($"Chosen color: rgb({role.Color_Red.ToString()}, {role.Color_Green.ToString()}, {role.Color_Blue.ToString()})");
 
     // Create json payload to send to server for request
     // Id and authority is handled by the server
@@ -329,10 +331,10 @@
         {
             response = await ClientUserManager.Http.PutAsync($"api/role/{role.Id}", content);
         }
-
+        
         if (!response.IsSuccessStatusCode)
         {
-            errorSpan = $"Error ({response.StatusCode}): {await response.Content.ReadAsStringAsync()}";
+            errorSpan = $"Error ({response.StatusCode.ToString()}): {await response.Content.ReadAsStringAsync()}";
             StateHasChanged();
             return;
         }

@@ -51,6 +51,7 @@ namespace Valour.Server.API
                 .Include(x => x.Planet)
                 .FirstOrDefaultAsync(x => x.Planet_Id == role.Planet_Id &&
                 x.User_Id == auth.User_Id);
+            
             switch (ctx.Request.Method)
             {
                 case "GET":

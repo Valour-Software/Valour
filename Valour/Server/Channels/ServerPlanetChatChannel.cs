@@ -40,43 +40,52 @@ namespace Valour.Server.Planets
         /// <summary>
         /// The id of this channel
         /// </summary>
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         /// <summary>
         /// The name of this channel
         /// </summary>
+        [JsonPropertyName("Name")]
         public string Name { get; set; }
 
         /// <summary>
         /// The number of messages within this channel
         /// </summary>
+        [JsonPropertyName("Message_Count")]
         public ulong Message_Count { get; set; }
 
         /// <summary>
         /// True of this channel inherits permissions from its category
         /// </summary>
+        [JsonPropertyName("Inherits_Perms")]
         public bool Inherits_Perms { get; set; }
 
         /// <summary>
         /// The position of this channel
         /// </summary>
+        [JsonPropertyName("Position")]
         public ushort Position { get; set; }
 
         /// <summary>
         /// The id of the parent category of this channel
         /// </summary>
+        [JsonPropertyName("Parent_Id")]
         public ulong? Parent_Id { get; set; }
 
         /// <summary>
         /// The id of the planet this channel belongs to
         /// </summary>
+        [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
 
         /// <summary>
         /// The description of this channel
         /// </summary>
+        [JsonPropertyName("Description")]
         public string Description { get; set; }
 
+        [JsonPropertyName("ItemType")]
         public ItemType ItemType => ItemType.Channel;
 
         /// <summary>

@@ -16,9 +16,11 @@ namespace Valour.Shared
     public struct TaskResult
     {
         [JsonInclude]
+        [JsonPropertyName("Message")]
         public string Message { get; set; }
 
         [JsonInclude]
+        [JsonPropertyName("Success")]
         public bool Success { get; set; }
         
         public TaskResult(bool success, string message)
@@ -42,12 +44,15 @@ namespace Valour.Shared
     public struct TaskResult<T>
     {
         [JsonInclude]
+        [JsonPropertyName("Message")]
         public string Message { get; set; }
 
         [JsonInclude]
+        [JsonPropertyName("Success")]
         public bool Success { get; set; }
 
         [JsonInclude]
+        [JsonPropertyName("Data")]
         public T Data { get; set; }
 
         public TaskResult(bool success, string message)

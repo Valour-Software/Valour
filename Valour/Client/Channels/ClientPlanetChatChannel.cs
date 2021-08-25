@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Web;
@@ -9,6 +10,7 @@ using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Items;
 using Valour.Shared.Roles;
+using System.Text.Json.Serialization;
 
 namespace Valour.Client.Channels
 {
@@ -27,47 +29,56 @@ namespace Valour.Client.Channels
         /// <summary>
         /// The id of the channel
         /// </summary>
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         /// <summary>
         /// The name of the channel
         /// </summary>
+        [JsonPropertyName("Name")]
         public string Name { get; set; }
 
         /// <summary>
         /// The amount of messages ever sent in the channel
         /// </summary>
+        [JsonPropertyName("Message_Count")]
         public ulong Message_Count { get; set; }
 
         /// <summary>
         /// If true, this channel will inherit the permission nodes
         /// from the category it belongs to
         /// </summary>
+        [JsonPropertyName("Inherits_Perms")]
         public bool Inherits_Perms { get; set; }
 
         /// <summary>
         /// The position of the channel
         /// </summary>
+        [JsonPropertyName("Position")]
         public ushort Position { get; set; }
 
         /// <summary>
         /// The id of the parent category
         /// </summary>
+        [JsonPropertyName("Parent_Id")]
         public ulong? Parent_Id { get; set; }
 
         /// <summary>
         /// The id of the planet
         /// </summary>
+        [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
 
         /// <summary>
         /// The description of the channel
         /// </summary>
+        [JsonPropertyName("Description")]
         public string Description { get; set; }
 
         /// <summary>
         /// The type of this item
         /// </summary>
+        [JsonPropertyName("ItemType")]
         public ItemType ItemType => ItemType.Channel;
 
         public static async Task<ClientPlanetChatChannel> GetAsync(ulong id)

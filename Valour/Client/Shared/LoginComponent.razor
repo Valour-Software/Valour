@@ -65,9 +65,17 @@
         string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
         string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
 
-        var response = await Http.GetStreamAsync($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}");
+        var response = await Http.GetAsync($"User/RequestStandardToken?email={encodedEmail}&password={encodedPassword}", HttpCompletionOption.ResponseHeadersRead);
 
-        TaskResult<string> loginResult = await JsonSerializer.DeserializeAsync<TaskResult<string>>(response);
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Failed to request user token.");
+            passwordSpan = $"Failed to request user. Error code {response.StatusCode.ToString()}";
+            return;
+        }
+               
+            
+        TaskResult<string> loginResult = await JsonSerializer.DeserializeAsync<TaskResult<string>>(await response.Content.ReadAsStreamAsync());
 
         if (loginResult.Success)
         {

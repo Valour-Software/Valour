@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Server.Planets;
+using Valour.Shared;
 using Valour.Shared.Oauth;
 
 /*  Valour - A free and secure chat client
@@ -24,8 +25,64 @@ namespace Valour.Server.API
         /// </summary>
         public static void AddRoutes(WebApplication app)
         {
+            app.Map("api/member/{member_id}", Member);
+            
             app.MapGet("api/member/planet/{planet_id}/user/{user_id}", GetMemberWithIds);
             app.MapGet("api/member/planet/{planet_id}/user/{user_id}/role_ids", GetMemberRoleIds);
+        }
+        
+        private static async Task Member(HttpContext ctx, ValourDB db, ulong member_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (auth is null) { Results.Unauthorized(); return; }
+
+            ServerPlanetMember target_member = await db.PlanetMembers
+                .Include(x => x.Planet)
+                .FirstOrDefaultAsync(x => x.Id == member_id);
+
+            if (target_member == null)
+            {
+                ctx.Response.StatusCode = 403;
+                await ctx.Response.WriteAsync("Target not found");
+                return;
+            }
+            
+            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Id &&
+                x.User_Id == auth.User_Id);
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Auth member not found");
+                return;
+            }
+
+            switch (ctx.Request.Method)
+            {
+                case "GET":
+                {
+                    ctx.Response.StatusCode = 200;
+                    await ctx.Response.WriteAsJsonAsync(target_member);
+                    return;
+                }
+                case "DELETE":
+                {
+                    if (!auth.HasScope(UserPermissions.PlanetManagement))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        await ctx.Response.WriteAsync("Token lacks UserPermissions.PlanetManagement");
+                        return;
+                    }
+
+                    var result = await target_member.Planet.TryKickMemberAsync(member, target_member, db);
+
+                    ctx.Response.StatusCode = result.Data;
+                    await ctx.Response.WriteAsync(result.Message);
+
+                    return;
+                }
+            }
         }
 
         private static async Task GetMemberRoleIds(HttpContext ctx, ValourDB db, ulong planet_id, ulong user_id,

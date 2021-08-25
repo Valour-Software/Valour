@@ -199,6 +199,8 @@ namespace Valour.Server
                 options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
                 //options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
+                options.JsonSerializerOptions.PropertyNamingPolicy = null;
             }
             );
             services.AddRazorPages();

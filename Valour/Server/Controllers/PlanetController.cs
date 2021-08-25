@@ -60,61 +60,6 @@ namespace Valour.Server.Controllers
         }
 
         /// <summary>
-        /// Returns a role in a planet
-        /// </summary>
-        public async Task<TaskResult<PlanetRole>> GetPlanetRole(ulong role_id, string token)
-        {
-
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            PlanetRole role = await Context.PlanetRoles.FindAsync(role_id);
-
-            if (authToken == null)
-            {
-                return new TaskResult<PlanetRole>(false, "Failed to authorize user.", null);
-            }
-
-            ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == role.Planet_Id &&
-                                                                                             x.User_Id == authToken.User_Id);
-
-            if (member != null)
-            {
-                return new TaskResult<PlanetRole>(false, "Failed to authorize user.", null);
-            }
-
-            return new TaskResult<PlanetRole>(true, $"Retrieved role.", role);
-        }
-
-        /// <summary>
-        /// Returns the planet name
-        /// </summary>
-        public async Task<TaskResult<string>> GetPlanetName(ulong planet_id, string token)
-        {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
-
-            if (authToken == null)
-            {
-                return new TaskResult<string>(false, "Failed to authorize user.", null);
-            }
-
-            ServerPlanet planet = await Context.Planets.FindAsync(planet_id);
-
-            if (planet == null)
-            {
-                return new TaskResult<string>(false, $"Could not find planet {planet_id}", null);
-            }
-
-            ServerUser user = await Context.Users.FindAsync(authToken.User_Id);
-
-            if (!(await planet.IsMemberAsync(authToken.User_Id, Context)))
-            {
-                return new TaskResult<string>(false, "You are not a member.", null);
-            }
-
-            return new TaskResult<string>(true, $"Success", planet.Name);
-        }
-
-        /// <summary>
         /// Sets whether or not a member is in a role
         /// </summary>
         public async Task<TaskResult> SetMemberRoleMembership(ulong role_id, ulong member_id, bool value, string token)

@@ -93,7 +93,7 @@ namespace Valour.Server.Planets
                 return ServerPlanet.FromBase(planet);
             }
         }
-
+        
         public async Task<TaskResult<int>> TryKickMemberAsync(ServerPlanetMember member, 
             ServerPlanetMember target, ValourDB db)
         {
