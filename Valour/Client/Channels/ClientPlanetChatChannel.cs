@@ -73,7 +73,6 @@ namespace Valour.Client.Channels
         public static async Task<ClientPlanetChatChannel> GetAsync(ulong id)
         {
             var response = await ClientUserManager.Http.GetAsync($"api/channel/{id}", HttpCompletionOption.ResponseHeadersRead);
-            // new StreamReader(message).ReadToEnd()
 
             if (!response.IsSuccessStatusCode)
             {
@@ -207,17 +206,15 @@ namespace Valour.Client.Channels
                                                                                                     $"&role_id={role.Id}" +
                                                                                                     $"&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Critical error for GetPermissionsNode in channel");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
             // Return the deserialized node - it may be null, but that's ok
-            return await JsonSerializer.DeserializeAsync<ChatChannelPermissionsNode>(message);
+            return await JsonSerializer.DeserializeAsync<ChatChannelPermissionsNode>(await response.Content.ReadAsStreamAsync());
         }
 
         /// <summary>

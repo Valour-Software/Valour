@@ -330,16 +330,14 @@
             response = await ClientUserManager.Http.PutAsync($"api/role/{role.Id}", content);
         }
 
-        var message = await response.Content.ReadAsStreamAsync();
-
         if (!response.IsSuccessStatusCode)
         {
-            errorSpan = $"Error ({response.StatusCode}): {new StreamReader(message).ReadToEnd()}";
+            errorSpan = $"Error ({response.StatusCode}): {await response.Content.ReadAsStringAsync()}";
             StateHasChanged();
             return;
         }
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(message);
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
 
 
         if (result.Success)

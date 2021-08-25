@@ -272,17 +272,15 @@ else
                                                                                                 (CategoryPermissionsNode)PermissionsNode);
         }
 
-        var message = await response.Content.ReadAsStreamAsync();
-
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine("Error in permission node update!");
-            Console.WriteLine(new StreamReader(message).ReadToEnd());
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
             await RefreshButtons();
             return;
         }
         
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(message);
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
 
         Console.WriteLine("Permission node update: " + result.Message);
 

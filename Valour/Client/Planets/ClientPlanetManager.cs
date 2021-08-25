@@ -168,16 +168,14 @@ namespace Valour.Client.Planets
             // Get planet roles
             var response = await ClientUserManager.Http.GetAsync($"api/planet/{planet_id}/roles", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
             
-            List<PlanetRole> result = await JsonSerializer.DeserializeAsync<List<PlanetRole>>(message);
+            List<PlanetRole> result = await JsonSerializer.DeserializeAsync<List<PlanetRole>>(await response.Content.ReadAsStreamAsync());
 
             PlanetRolesListCache[planet_id] = result.Select(x => x.Id).ToList();
 
@@ -228,16 +226,14 @@ namespace Valour.Client.Planets
             // Get planet roles
             var response = await ClientUserManager.Http.GetAsync($"Planet/GetPlanetRole?role_id={role_id}&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Critical error in getting planet role with id {role_id}");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
             
-            PlanetRole result = await JsonSerializer.DeserializeAsync<PlanetRole>(message);
+            PlanetRole result = await JsonSerializer.DeserializeAsync<PlanetRole>(await response.Content.ReadAsStreamAsync());
 
             PlanetRolesCache[role_id] = result;
 
@@ -269,16 +265,14 @@ namespace Valour.Client.Planets
         {
             var response = await ClientUserManager.Http.GetAsync($"api/planet/{planet_id}/member_info", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-            
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Critical error getting planet member info");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
 
-            List<PlanetMemberInfo> result = await JsonSerializer.DeserializeAsync<List<PlanetMemberInfo>>(message);
+            List<PlanetMemberInfo> result = await JsonSerializer.DeserializeAsync<List<PlanetMemberInfo>>(await response.Content.ReadAsStreamAsync());
 
             List<ClientPlanetMember> memberList = new();
 
@@ -319,16 +313,14 @@ namespace Valour.Client.Planets
             // Retrieve from server
             var response = await ClientUserManager.Http.GetAsync($"Member/GetMember?id={member_id}&auth={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
             
-            ClientPlanetMember member = await JsonSerializer.DeserializeAsync<ClientPlanetMember>(message);
+            ClientPlanetMember member = await JsonSerializer.DeserializeAsync<ClientPlanetMember>(await response.Content.ReadAsStreamAsync());
 
             Console.WriteLine($"Fetched member {member_id} for planet {member.Planet_Id}.");
 
@@ -365,16 +357,14 @@ namespace Valour.Client.Planets
             // Retrieve from server
             var response = await ClientUserManager.Http.GetAsync($"api/member/planet/{planet_id}/user/{user_id}", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-            
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
-            ClientPlanetMember result = await JsonSerializer.DeserializeAsync<ClientPlanetMember>(message);
+            ClientPlanetMember result = await JsonSerializer.DeserializeAsync<ClientPlanetMember>(await response.Content.ReadAsStreamAsync());
             
             if (result == null)
             {

@@ -120,16 +120,14 @@ namespace Valour.Client.Planets
         {
             var response = await ClientUserManager.Http.GetAsync($"api/planet/{Id}/categories", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();  
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet's categories.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
 
-            List<ClientPlanetCategory> result = await JsonSerializer.DeserializeAsync<List<ClientPlanetCategory>>(message);
+            List<ClientPlanetCategory> result = await JsonSerializer.DeserializeAsync<List<ClientPlanetCategory>>(await response.Content.ReadAsStreamAsync());
 
             foreach (var category in result)
             {
@@ -166,15 +164,13 @@ namespace Valour.Client.Planets
         {
             var response = await ClientUserManager.Http.GetAsync($"/api/planet/{Id}/channels", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving planet channels from the server.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStreamAsync());
             }
 
-            List<ClientPlanetChatChannel> channels = await JsonSerializer.DeserializeAsync<List<ClientPlanetChatChannel>>(message);
+            List<ClientPlanetChatChannel> channels = await JsonSerializer.DeserializeAsync<List<ClientPlanetChatChannel>>(await response.Content.ReadAsStreamAsync());
 
             foreach (var channel in channels)
             {
@@ -263,16 +259,14 @@ namespace Valour.Client.Planets
         {
             var response = await ClientUserManager.Http.GetAsync($"api/planet/{id}");
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving the planet.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
-            return await JsonSerializer.DeserializeAsync<ClientPlanet>(message);
+            return await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
         }
 
         /// <summary>

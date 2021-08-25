@@ -71,15 +71,13 @@
                                                              $"&image_url={encodedImageUrl}" +
                                                              $"&token={token}", null);
 
-        var message = await response.Content.ReadAsStreamAsync();
-
         if (!response.IsSuccessStatusCode)
         {
-            imageSpan = $"Error ({response.StatusCode}): " + new StreamReader(message).ReadToEnd();
+            imageSpan = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
             return;
         }
 
-        ClientPlanet result = await JsonSerializer.DeserializeAsync<ClientPlanet>(message);
+        ClientPlanet result = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
 
         if (result == null)
         {

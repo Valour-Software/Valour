@@ -151,17 +151,15 @@ namespace Valour.Client.Categories
                                                                                                  $"&token={ClientUserManager.UserSecretToken}" +
                                                                                                  $"&role_id={role.Id}", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Failed to deserialize result from GetPermissionsNode in category");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
             // Return the deserialized node - it may be null, but that's ok
-            return await JsonSerializer.DeserializeAsync<CategoryPermissionsNode>(message);
+            return await JsonSerializer.DeserializeAsync<CategoryPermissionsNode>(await response.Content.ReadAsStreamAsync());
         }
 
         public Task<TaskResult> TrySetName(string name)

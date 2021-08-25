@@ -166,18 +166,16 @@ namespace Valour.Client.Planets
                 return;
             }
 
-            var response = await ClientUserManager.Http.GetAsync($"User/GetUser?id={User_Id}", HttpCompletionOption.ResponseHeadersRead);
-
-            var message = await response.Content.ReadAsStreamAsync();
+            var response = await ClientUserManager.Http.GetAsync($"User/GetUser?id={User_Id}", HttpCompletionOption.ResponseHeadersRead);        
             
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a user from the server.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
             
-            User result = await JsonSerializer.DeserializeAsync<User>(message);
+            User result = await JsonSerializer.DeserializeAsync<User>(await response.Content.ReadAsStreamAsync());
             
             _user = result;
         }
@@ -188,17 +186,15 @@ namespace Valour.Client.Planets
         public async Task LoadRoleIdsAsync()
         {
             var response = await ClientUserManager.Http.GetAsync($"api/members/planet/{Planet_Id}/user/{User_Id}/role_ids", HttpCompletionOption.ResponseHeadersRead);
-
-            var message = await response.Content.ReadAsStreamAsync();
             
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving planet user roles from the server.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
 
-            var roleIds = await JsonSerializer.DeserializeAsync<List<ulong>>(message);
+            var roleIds = await JsonSerializer.DeserializeAsync<List<ulong>>(await response.Content.ReadAsStreamAsync());
 
             if (roleIds == null)
             {
@@ -213,16 +209,14 @@ namespace Valour.Client.Planets
         {
             var response = await ClientUserManager.Http.GetAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
 
-            var message = await response.Content.ReadAsStreamAsync();
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving member authority from the server.");
-                Console.WriteLine(new StreamReader(message).ReadToEnd());
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return 0;
             }
            
-            return await JsonSerializer.DeserializeAsync<ulong>(message);
+            return await JsonSerializer.DeserializeAsync<ulong>(await response.Content.ReadAsStreamAsync());
         }
 
         /// <summary>
