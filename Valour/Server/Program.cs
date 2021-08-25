@@ -6,8 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
 using System;
+using System.Text.Json;
 using System.IO;
 using Valour.Server.Database;
 using Valour.Server.Users.Identity;
@@ -38,7 +38,7 @@ namespace Valour.Server
         public static void Main(string[] args)
         {
             // Load configs
-            LoadConfigs();
+            LoadConfigsAsync();
 
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
@@ -224,7 +224,7 @@ namespace Valour.Server
         /// <summary>
         /// Loads the json configs for services
         /// </summary>
-        public static void LoadConfigs()
+        public static async Task LoadConfigsAsync()
         {
             // Create directory if it doesn't exist
             if (!Directory.Exists(CONF_LOC))
@@ -237,7 +237,7 @@ namespace Valour.Server
             if (File.Exists(CONF_LOC + DBCONF_FILE))
             {
                 // If there is a config, read it
-                dbconfig = JsonConvert.DeserializeObject<DBConfig>(File.ReadAllText(CONF_LOC + DBCONF_FILE));
+                dbconfig = await JsonSerializer.DeserializeAsync<DBConfig>(File.OpenRead(CONF_LOC + DBCONF_FILE));
             }
             else
             {
@@ -250,7 +250,7 @@ namespace Valour.Server
                     Username = "user"
                 };
 
-                File.WriteAllText(CONF_LOC + DBCONF_FILE, JsonConvert.SerializeObject(dbconfig));
+                File.WriteAllText(CONF_LOC + DBCONF_FILE, JsonSerializer.Serialize(dbconfig));
                 Console.WriteLine("Error: No DB config was found. Creating file...");
             }
 
@@ -258,7 +258,7 @@ namespace Valour.Server
             if (File.Exists(CONF_LOC + EMCONF_FILE))
             {
                 // If there is a config, read it
-                emconfig = JsonConvert.DeserializeObject<EmailConfig>(File.ReadAllText(CONF_LOC + EMCONF_FILE));
+                emconfig = await JsonSerializer.DeserializeAsync<EmailConfig>(File.OpenRead(CONF_LOC + EMCONF_FILE));
             }
             else
             {
@@ -268,7 +268,7 @@ namespace Valour.Server
                     Api_Key = "api_key_goes_here"
                 };
 
-                File.WriteAllText(CONF_LOC + EMCONF_FILE, JsonConvert.SerializeObject(emconfig));
+                File.WriteAllText(CONF_LOC + EMCONF_FILE, JsonSerializer.Serialize(emconfig));
                 Console.WriteLine("Error: No Email config was found. Creating file...");
             }
 
@@ -279,7 +279,7 @@ namespace Valour.Server
             if (File.Exists(CONF_LOC + MPSCONF_FILE))
             {
                 // If there is a config, read it
-                vmpsconfig = JsonConvert.DeserializeObject<MPSConfig>(File.ReadAllText(CONF_LOC + MPSCONF_FILE));
+                vmpsconfig = await JsonSerializer.DeserializeAsync<MPSConfig>(File.OpenRead(CONF_LOC + MPSCONF_FILE));
             }
             else
             {
@@ -289,7 +289,7 @@ namespace Valour.Server
                     Api_Key = "api_key_goes_here"
                 };
 
-                File.WriteAllText(CONF_LOC + MPSCONF_FILE, JsonConvert.SerializeObject(vmpsconfig));
+                File.WriteAllText(CONF_LOC + MPSCONF_FILE, JsonSerializer.Serialize(vmpsconfig));
                 Console.WriteLine("Error: No MSP config was found. Creating file...");
             }
 
@@ -299,7 +299,7 @@ namespace Valour.Server
             if (File.Exists(CONF_LOC + VAPIDCONF_FILE))
             {
                 // If there is a config, read it
-                vapidconfig = JsonConvert.DeserializeObject<VapidConfig>(File.ReadAllText(CONF_LOC + VAPIDCONF_FILE));
+                vapidconfig = await JsonSerializer.DeserializeAsync<VapidConfig>(File.OpenRead(CONF_LOC + VAPIDCONF_FILE));
             }
             else
             {
@@ -311,7 +311,7 @@ namespace Valour.Server
                     PrivateKey = "private-key-here"
                 };
 
-                File.WriteAllText(CONF_LOC + VAPIDCONF_FILE, JsonConvert.SerializeObject(vapidconfig));
+                File.WriteAllText(CONF_LOC + VAPIDCONF_FILE, JsonSerializer.Serialize(vapidconfig));
                 Console.WriteLine("Error: No Vapid config was found. Creating file...");
             }
         }

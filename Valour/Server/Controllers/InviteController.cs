@@ -19,7 +19,6 @@ using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Client.Users;
 using Valour.Shared.Users.Identity;
-using Newtonsoft.Json;
 using Valour.Server.Oauth;
 
 /*  Valour - A free and secure chat client
@@ -47,9 +46,9 @@ namespace Valour.Server.Controllers
         // Dependency injection
         public InviteController(ValourDB context, UserManager userManager, IMapper mapper)
         {
-            this.Context = context;
-            this.UserManager = userManager;
-            this.Mapper = mapper;
+            Context = context;
+            UserManager = userManager;
+            Mapper = mapper;
         }
 
         public async Task<TaskResult<List<PlanetInvite>>> GetInvites(ulong user_id, string token, ulong planet_id)
@@ -168,7 +167,7 @@ namespace Valour.Server.Controllers
                 return new TaskResult<PlanetInvite>(false, "You are not authorized to create invites in this planet.", null);
             }
 
-            PlanetInvite invite = new PlanetInvite()
+            PlanetInvite invite = new()
             {
                 Id = IdManager.Generate(),
                 Planet_Id = Planet_Id,
@@ -177,7 +176,7 @@ namespace Valour.Server.Controllers
                 Hours = hours
             };
 
-            Random random = new Random();
+            Random random = new();
             
             const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Shared.Oauth;
 using Valour.Shared.Roles;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using Valour.Shared;
@@ -31,12 +31,10 @@ namespace Valour.Server.Planets
 
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
         [ForeignKey("Parent_Id")]
         [JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
         public virtual ServerPlanetCategory Parent { get; set; }
 
         /// <summary>
