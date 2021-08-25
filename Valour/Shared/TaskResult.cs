@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +15,10 @@ namespace Valour.Shared
 {
     public struct TaskResult
     {
-        [JsonProperty]
-        [System.Text.Json.Serialization.JsonInclude]
+        [JsonInclude]
         public string Message { get; set; }
 
-        [JsonProperty]
-        [System.Text.Json.Serialization.JsonInclude]
+        [JsonInclude]
         public bool Success { get; set; }
         
         public TaskResult(bool success, string message)
@@ -43,16 +41,13 @@ namespace Valour.Shared
     
     public struct TaskResult<T>
     {
-        [JsonProperty]
-        [System.Text.Json.Serialization.JsonInclude]
+        [JsonInclude]
         public string Message { get; set; }
 
-        [JsonProperty]
-        [System.Text.Json.Serialization.JsonInclude]
+        [JsonInclude]
         public bool Success { get; set; }
 
-        [JsonProperty]
-        [System.Text.Json.Serialization.JsonInclude]
+        [JsonInclude]
         public T Data { get; set; }
 
         public TaskResult(bool success, string message)
