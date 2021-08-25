@@ -107,7 +107,7 @@
         ulong parent_id = contextMenu.SelectedCategory.Id;
         ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
 
-        ClientPlanetChatChannel newChannel = new ClientPlanetChatChannel()
+        ClientPlanetChatChannel newChannel = new()
         {
             Name = name,
             Planet_Id = planet_id,
@@ -142,7 +142,7 @@
         if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode PermissionsNode = new ChatChannelPermissionsNode()
+            ChatChannelPermissionsNode PermissionsNode = new()
             {
                 Channel_Id = channel_id,
                 Planet_Id = planetManager.GetCurrent().Id,
@@ -156,7 +156,7 @@
             PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
             HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                    (ChatChannelPermissionsNode)PermissionsNode);
+                                                                                                    PermissionsNode);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -186,7 +186,7 @@
                 PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
                 response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                        (ChatChannelPermissionsNode)PermissionsNode);
+                                                                                                        PermissionsNode);
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();

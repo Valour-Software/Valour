@@ -89,7 +89,7 @@ else
         // Send subscription information to server
         var response = await ClientUserManager.Http.PostAsJsonAsync<Valour.Shared.Notifications.NotificationSubscription>($"Notification/SubmitSubscription?token={ClientUserManager.UserSecretToken}", not);
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
 
         Console.WriteLine(result);
     }
@@ -98,8 +98,8 @@ else
     public async Task<string> AppUpdate()
     {
         // Get latest version number
-        var response = await ClientUserManager.Http.GetAsync("User/GetCurrentVersion");
-        TaskResult<string> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<string>>(await response.Content.ReadAsStringAsync());
+        var json = await ClientUserManager.Http.GetStreamAsync("User/GetCurrentVersion");
+        TaskResult<string> result = await JsonSerializer.DeserializeAsync<TaskResult<string>>(json);
         newVersion = result.Data;
 
         Console.WriteLine("New version available");

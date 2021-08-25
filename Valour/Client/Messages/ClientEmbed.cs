@@ -170,13 +170,13 @@ namespace Valour.Client.Messages
 
         public List<EmbedFormDataItem> GetFormData()
         {
-            List<EmbedFormDataItem> data = new List<EmbedFormDataItem>();
+            List<EmbedFormDataItem> data = new();
 
             foreach (ClientEmbedItem item in Currently_Displayed)
             {
                 if (item.Type == EmbedItemType.InputBox)
                 {
-                    EmbedFormDataItem DataItem = new EmbedFormDataItem()
+                    EmbedFormDataItem DataItem = new()
                     {
                         Element_Id = item.Id,
                         Value = item.Value,

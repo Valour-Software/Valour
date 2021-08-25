@@ -45,9 +45,9 @@
 
         HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<InteractionEvent>($"Embed/InteractionEvent?token={ClientUserManager.UserSecretToken}", Interaction);
 
-        TaskResult response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(await httpresponse.Content.ReadAsStringAsync());
+        TaskResult response = await JsonSerializer.DeserializeAsync<TaskResult>(await httpresponse.Content.ReadAsStreamAsync());
 
-        Console.WriteLine(response.ToString());
+        Console.WriteLine(response);
     }
 
 }

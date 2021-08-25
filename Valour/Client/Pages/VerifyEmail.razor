@@ -37,9 +37,9 @@
 
         string encoded = System.Web.HttpUtility.UrlEncode(code);
 
-        string json = await Http.GetStringAsync($"User/VerifyEmail?code={encoded}");
+        var json = await Http.GetStreamAsync($"User/VerifyEmail?code={encoded}");
 
-        TaskResult taskResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+        TaskResult taskResult = await JsonSerializer.DeserializeAsync<TaskResult>(json);
 
         result = taskResult.Message;
 

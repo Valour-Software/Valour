@@ -65,9 +65,9 @@
             navManager.NavigateTo("/");
         }
         
-        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}&user_id={user_id}");
+        var json = await Http.GetStreamAsync($"Invite/GetInvite?code={code}&user_id={user_id}");
 
-        TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
+        TaskResult<ClientPlanetInvite> result = await JsonSerializer.DeserializeAsync<TaskResult<ClientPlanetInvite>>(json);
 
         if (result.Success == false) {
             errorSpan = result.Message;
@@ -111,9 +111,9 @@
 
         string link = $"/Invite/Join?code={InviteCode}&user_id={user_id}&token={token}";
 
-        string json = await Http.GetStringAsync(link);
+        var json = await Http.GetStreamAsync(link);
 
-        TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
 
         if (result.Success) {
             infoSpan = result.Message;

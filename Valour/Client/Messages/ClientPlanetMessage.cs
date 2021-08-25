@@ -124,8 +124,8 @@ namespace Valour.Client.Messages
 
         public void SetMentions(IEnumerable<Mention> mentions)
         {
-            this._mentions = mentions.ToList();
-            this.Mentions_Data = JsonSerializer.Serialize(mentions);
+            _mentions = mentions.ToList();
+            Mentions_Data = JsonSerializer.Serialize(mentions);
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace Valour.Client.Messages
             markdownParsed = true;
         }
 
-        private static HashSet<string> InlineTags = new HashSet<string>()
+        private static readonly HashSet<string> InlineTags = new()
         {
             "b", "/b", "em", "/em", "strong", "/strong",
             "blockquote", "/blockquote", "p", "/p",
@@ -160,7 +160,7 @@ namespace Valour.Client.Messages
             "code", "/code", "br"
         };
 
-        private static HashSet<string> SelfClosingTags = new HashSet<string>()
+        private static readonly HashSet<string> SelfClosingTags = new()
         {
             "br"
         };
@@ -219,15 +219,14 @@ namespace Valour.Client.Messages
                                 pos++;
                                 continue;
                             }
-                            ulong id = 0;
-                            bool parsed = ulong.TryParse(id_chars, out id);
+                            bool parsed = ulong.TryParse(id_chars, out ulong id);
                             if (!parsed)
                             {
                                 pos++;
                                 continue;
                             }
                             // Create object
-                            Mention memberMention = new Mention()
+                            Mention memberMention = new()
                             {
                                 Target_Id = id,
                                 Position = (ushort)pos,
@@ -314,7 +313,7 @@ namespace Valour.Client.Messages
                     // Closing
                     if (tag[0] == '/')
                     {
-                        ElementFragment end = new ElementFragment()
+                        ElementFragment end = new()
                         {
                             Closing = true,
                             Attributes = null,
@@ -328,7 +327,7 @@ namespace Valour.Client.Messages
                     // Opening
                     else
                     {
-                        ElementFragment start = new ElementFragment()
+                        ElementFragment start = new()
                         {
                             Closing = false,
                             Attributes = null,
@@ -358,7 +357,7 @@ namespace Valour.Client.Messages
         /// </summary>
         public List<MessageFragment> GetMessageFragments()
         {
-            Stopwatch sw = new Stopwatch();
+            Stopwatch sw = new();
 
             if (!generated)
             {
@@ -367,7 +366,7 @@ namespace Valour.Client.Messages
 
             sw.Start();
 
-            List<MessageFragment> fragments = new List<MessageFragment>();
+            List<MessageFragment> fragments = new();
 
             // Empty message catch
             if (string.IsNullOrWhiteSpace(Content))
@@ -402,7 +401,7 @@ namespace Valour.Client.Messages
             // Shortcut if there is no rich content
             if (fragments.Count == 0)
             {
-                MarkdownFragment fragment = new MarkdownFragment()
+                MarkdownFragment fragment = new()
                 {
                     Content = MarkdownContent,
                     Position = 0,
@@ -428,9 +427,9 @@ namespace Valour.Client.Messages
             {
                 if (rich.Position != 0)
                 {
-                    string markContent = MarkdownContent.Substring(start, rich.Position - start);
+                    string markContent = MarkdownContent[start..rich.Position];
 
-                    MarkdownFragment fragment = new MarkdownFragment()
+                    MarkdownFragment fragment = new()
                     {
                         Content = markContent,
                         Position = start,
@@ -446,10 +445,10 @@ namespace Valour.Client.Messages
                 start = (ushort)(rich.Position + rich.Length - 1);
             }
 
-            string endContent = MarkdownContent.Substring(start, MarkdownContent.Length - start);
+            string endContent = MarkdownContent[start..];
 
             // There will be one remaining fragment for whatever is left
-            MarkdownFragment end = new MarkdownFragment()
+            MarkdownFragment end = new()
             {
                 Content = endContent,
                 Position = start,

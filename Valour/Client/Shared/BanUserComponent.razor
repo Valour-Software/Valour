@@ -61,7 +61,7 @@
 
         var response = await Http.PostAsync($"api/planet/{planetManager.GetCurrent().Id}/members/{Selecteduser_id}/ban" +
                                                                    $"?reason={encodedreason}" +
-                                                                   $"&time={((uint)timeinminutes).ToString()}", null);
+                                                                   $"&time={(uint)timeinminutes}", null);
 
         var message = await response.Content.ReadAsStringAsync();
         

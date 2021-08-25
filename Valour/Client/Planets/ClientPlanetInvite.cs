@@ -6,8 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Valour.Shared;
 using Valour.Client;
-using Newtonsoft.Json;
-
 namespace Valour.Shared.Planets
 {
     /*  Valour - A free and secure chat client

@@ -186,11 +186,11 @@
 
             async () =>
             {
-                var result = await ClientUserManager.Http.GetAsync($"/Planet/KickUser?token={ClientUserManager.UserSecretToken}" +
+                var result = await ClientUserManager.Http.GetStringAsync($"/Planet/KickUser?token={ClientUserManager.UserSecretToken}" +
                                                                                    $"&planet_id={Member.Planet_Id}" +
                                                                                    $"&target_id={Member.Id}");
 
-                Console.WriteLine(await result.Content.ReadAsStringAsync());
+                Console.WriteLine(result);
             },
             async () =>
             {
@@ -213,14 +213,12 @@
 
     public async Task OnRoleClick(PlanetRole role, bool value)
     {
-        var response = await ClientUserManager.Http.GetAsync($"Planet/SetMemberRoleMembership?role_id={role.Id}" +
+        var json = await ClientUserManager.Http.GetStreamAsync($"Planet/SetMemberRoleMembership?role_id={role.Id}" +
                                                                                            $"&member_id={Member.Id}" +
                                                                                            $"&value={value}" +
                                                                                            $"&token={ClientUserManager.UserSecretToken}");
 
-        var json = await response.Content.ReadAsStringAsync();
-
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
 
         if (!result.Success)
         {

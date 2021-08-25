@@ -124,18 +124,18 @@ namespace Valour.Server
 
             /* Reference code for any future migrations */
 
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                foreach (ServerPlanetRole role in db.PlanetRoles.Include(x => x.Planet))
-                {
-                    if (role.Id == role.Planet.Default_Role_Id)
-                    {
-                        role.Position = uint.MaxValue;
-                    }
-                }
+            using ValourDB db = new(ValourDB.DBOptions);
+            db.Database.EnsureCreated();
 
-                db.SaveChanges();
+            foreach (ServerPlanetRole role in db.PlanetRoles.Include(x => x.Planet))
+            {
+                if (role.Id == role.Planet.Default_Role_Id)
+                {
+                    role.Position = uint.MaxValue;
+                }
             }
+
+            db.SaveChanges();
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)
@@ -191,8 +191,8 @@ namespace Valour.Server
 
             // Adds user manager to dependency injection
             services.AddScoped<UserManager>();
-            IdManager idManager = new IdManager();
-            services.AddSingleton<IdManager>(idManager);
+            IdManager idManager = new();
+            services.AddSingleton(idManager);
             services.AddSingleton<WebPushClient>();
             services.AddControllersWithViews().AddJsonOptions(options =>
             {
@@ -226,15 +226,14 @@ namespace Valour.Server
         /// </summary>
         public static void LoadConfigs()
         {
-            // Load database settings
-            DBConfig dbconfig = null;
-
             // Create directory if it doesn't exist
             if (!Directory.Exists(CONF_LOC))
             {
                 Directory.CreateDirectory(CONF_LOC);
             }
 
+            // Load database settings
+            DBConfig dbconfig;
             if (File.Exists(CONF_LOC + DBCONF_FILE))
             {
                 // If there is a config, read it
@@ -255,8 +254,7 @@ namespace Valour.Server
                 Console.WriteLine("Error: No DB config was found. Creating file...");
             }
 
-            EmailConfig emconfig = null;
-
+            EmailConfig emconfig;
             if (File.Exists(CONF_LOC + EMCONF_FILE))
             {
                 // If there is a config, read it
@@ -277,8 +275,7 @@ namespace Valour.Server
             // Initialize Email Manager
             EmailManager.SetupClient();
 
-            MPSConfig vmpsconfig = null;
-
+            MPSConfig vmpsconfig;
             if (File.Exists(CONF_LOC + MPSCONF_FILE))
             {
                 // If there is a config, read it
@@ -298,8 +295,7 @@ namespace Valour.Server
 
             vmpsconfig.Api_Key_Encoded = HttpUtility.UrlEncode(vmpsconfig.Api_Key);
 
-            VapidConfig vapidconfig = null;
-
+            VapidConfig vapidconfig;
             if (File.Exists(CONF_LOC + VAPIDCONF_FILE))
             {
                 // If there is a config, read it
