@@ -384,7 +384,7 @@
 
         MessageHolder.AddQueuedMessage(message);
 
-        string json = JsonConvert.SerializeObject(message);
+        string json = JsonSerializer.Serialize(message);
 
         StringContent content = new StringContent(json);
 
@@ -398,7 +398,7 @@
         {
             MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
-            ClientPlanetMessage errorMsg = new ClientPlanetMessage()
+            ClientPlanetMessage errorMsg = new()
             {
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {res}",
                 Author_Id = ulong.MaxValue,

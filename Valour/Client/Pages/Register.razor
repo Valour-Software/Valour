@@ -89,7 +89,7 @@
             navManager.NavigateTo("/AgeVeri");
         }
 
-        birthDay = Newtonsoft.Json.JsonConvert.DeserializeObject<DateTime>(birthDayString);
+        birthDay = JsonSerializer.Deserialize<DateTime>(birthDayString);
 
         if (birthDay == new DateTime())
         {
@@ -155,12 +155,13 @@
         string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
         string encodedReferral = System.Web.HttpUtility.UrlEncode(referral);
 
-        string json = await Http.GetStringAsync($"User/RegisterUser?username={encodedUsername}" +
+        var json = await Http.GetStreamAsync($"User/RegisterUser?username={encodedUsername}" +
                                                              $"&email={encodedEmail}" +
                                                              $"&password={encodedPassword}" +
                                                              $"&referrer={encodedReferral}");
 
-        TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
+        
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
 
         passwordSpan = result.Message;
 

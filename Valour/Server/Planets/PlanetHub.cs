@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -72,7 +72,7 @@ namespace Valour.Server.Planets
 
         public async Task JoinInteractionGroup(ulong planet_id, string token)
         {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
+            using (ValourDB Context = new(ValourDB.DBOptions)) {
 
                 // Authenticate user
                 AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
@@ -100,34 +100,34 @@ namespace Valour.Server.Planets
 
         public static async void NotifyMemberChange(ServerPlanetMember member)
         {
-            string json = JsonConvert.SerializeObject(member);
+            string json = JsonSerializer.Serialize(member);
 
             await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", json);
         }
 
         public static async void NotifyPlanetChange(ServerPlanet planet)
         {
-            string json = JsonConvert.SerializeObject(planet);
+            string json = JsonSerializer.Serialize(planet);
 
             await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", json);
         }
 
         public static async void NotifyInteractionEvent(InteractionEvent Interaction)
         {
-            string json = JsonConvert.SerializeObject(Interaction);
+            string json = JsonSerializer.Serialize(Interaction);
             await Current.Clients.Group($"i-{Interaction.Planet_Id}").SendAsync("InteractionEvent", json);
         }
 
         public static async void NotifyRoleChange(ServerPlanetRole role)
         {
-            string json = JsonConvert.SerializeObject(role);
+            string json = JsonSerializer.Serialize(role);
 
             // Send update to members
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", json);
         }
         public static async Task NotifyCategoryDeletion(ServerPlanetCategory category)
         {
-            string json = JsonConvert.SerializeObject(category);
+            string json = JsonSerializer.Serialize(category);
 
             // Send update to members
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", json);
@@ -135,7 +135,7 @@ namespace Valour.Server.Planets
 
         public static async void NotifyRoleDeletion(ServerPlanetRole role)
         {
-            string json = JsonConvert.SerializeObject(role);
+            string json = JsonSerializer.Serialize(role);
 
             // Send update to members
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", json);
@@ -143,7 +143,7 @@ namespace Valour.Server.Planets
 
         public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel)
         {
-            string json = JsonConvert.SerializeObject(channel);
+            string json = JsonSerializer.Serialize(channel);
 
             // Send update to members
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelDeletion", json);
@@ -151,7 +151,7 @@ namespace Valour.Server.Planets
 
         public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel)
         {
-            string json = JsonConvert.SerializeObject(channel);
+            string json = JsonSerializer.Serialize(channel);
 
             // Send update to members
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", json);
@@ -159,7 +159,7 @@ namespace Valour.Server.Planets
 
         public static async void NotifyCategoryChange(ServerPlanetCategory category)
         {
-            string json = JsonConvert.SerializeObject(category);
+            string json = JsonSerializer.Serialize(category);
 
             // Send update to members
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", json);

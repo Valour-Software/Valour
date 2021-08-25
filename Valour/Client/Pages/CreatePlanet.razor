@@ -71,15 +71,13 @@
                                                              $"&image_url={encodedImageUrl}" +
                                                              $"&token={token}", null);
 
-        string message = await response.Content.ReadAsStringAsync();
-
         if (!response.IsSuccessStatusCode)
         {
-            imageSpan = $"Error ({response.StatusCode}): " + message;
+            imageSpan = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
             return;
         }
 
-        ClientPlanet result = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanet>(message);
+        ClientPlanet result = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
 
         if (result == null)
         {

@@ -19,7 +19,6 @@ using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Client.Users;
 using Valour.Shared.Users.Identity;
-using Newtonsoft.Json;
 using Valour.Server.Roles;
 using Valour.Client.Planets;
 using Microsoft.AspNetCore.Http;
@@ -50,9 +49,9 @@ namespace Valour.Server.Controllers
         // Dependency injection
         public UserController(ValourDB context, UserManager userManager, IMapper mapper)
         {
-            this.Context = context;
-            this.UserManager = userManager;
-            this.Mapper = mapper;
+            Context = context;
+            UserManager = userManager;
+            Mapper = mapper;
         }
 
         /// <summary>

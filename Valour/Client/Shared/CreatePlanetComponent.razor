@@ -62,33 +62,30 @@
 
         var response = await Http.GetAsync($"api/planet/create?name={encodedName}" +
                                            $"&image_url={encodedImageUrl}" +
-                                           $"&user_id={user_id}");
-
-        var message = await response.Content.ReadAsStringAsync();
+                                           $"&user_id={user_id}",
+                                           HttpCompletionOption.ResponseHeadersRead);
 
         if (!response.IsSuccessStatusCode)
         {
-            imageSpan = "An error occured retrieving a response. Please try again. Error: " + message;
+            imageSpan = "An error occured retrieving a response. Please try again. Error: " + await response.Content.ReadAsStringAsync();
             return;
         }
 
-        ulong planet_id = Newtonsoft.Json.JsonConvert.DeserializeObject<ulong>(message);
+        ulong planet_id = await JsonSerializer.DeserializeAsync<ulong>(await response.Content.ReadAsStreamAsync());
 
         imageSpan = "Planet created.";
 
-        response = await Http.GetAsync($"api/planet/{planet_id.ToString()}");
-
-        message = await response.Content.ReadAsStringAsync();
+        response = await Http.GetAsync($"api/planet/{planet_id}", HttpCompletionOption.ResponseHeadersRead);
 
         if (!response.IsSuccessStatusCode)
         {
-            Console.WriteLine($"Failed to retrieve planet {planet_id.ToString()}");
-            Console.WriteLine(message);
+            Console.WriteLine($"Failed to retrieve planet {planet_id}");
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
             imageSpan = "Created planet, but error occured retrieving. Please restart Valour.";
             return;
         }
 
-        ClientPlanet planet = JsonConvert.DeserializeObject<ClientPlanet>(message);
+        ClientPlanet planet = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
 
         ClientPlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
 

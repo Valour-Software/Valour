@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,7 +12,6 @@ namespace Valour.Shared.Oauth
     /// </summary>
     public class LocalToken
     {
-        [JsonProperty]
         [JsonPropertyName("Token")]
         public string Token { get; set; }
     }

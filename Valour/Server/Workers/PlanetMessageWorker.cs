@@ -2,11 +2,11 @@
 using Valour.Server.Database;
 using Valour.Shared.Messages;
 using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,15 +27,13 @@ namespace Valour.Server.Workers
             _scopeFactory = scopeFactory;
         }
 
-        private static BlockingCollection<PlanetMessage> MessageQueue =
-            new BlockingCollection<PlanetMessage>(new ConcurrentQueue<PlanetMessage>());
+        private static BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
 
-        private static ConcurrentBag<PlanetMessage> StagedMessages =
-            new ConcurrentBag<PlanetMessage>();
+        private static ConcurrentBag<PlanetMessage> StagedMessages = new();
 
         private static ValourDB Context;
 
-        public static Dictionary<ulong, ulong> ChannelMessageIndices = new Dictionary<ulong, ulong>();
+        public static Dictionary<ulong, ulong> ChannelMessageIndices = new();
 
         public static void AddToQueue(PlanetMessage message)
         {
@@ -73,7 +71,7 @@ namespace Valour.Server.Workers
                         Message.Message_Index = index;
                         Message.TimeSent = DateTime.UtcNow;
 
-                        string json = JsonConvert.SerializeObject(Message);
+                        string json = JsonSerializer.Serialize(Message);
 
                         // This is not awaited on purpose
                         PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", json);

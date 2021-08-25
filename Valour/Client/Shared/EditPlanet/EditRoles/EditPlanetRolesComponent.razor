@@ -238,17 +238,10 @@
 
     public async Task Delete()
     {
-        HttpResponseMessage response = null;
+        var response = await ClientUserManager.Http.GetStreamAsync($"Planet/DeleteRole?role_id={role.Id}" +
+                                                                                    $"&token={ClientUserManager.UserSecretToken}");
 
-        response = await ClientUserManager.Http.GetAsync($"Planet/DeleteRole?role_id={role.Id.ToString()}" +
-                                                         $"&token={ClientUserManager.UserSecretToken}");
-
-        var message = await response.Content.ReadAsStringAsync();
-
-        Console.WriteLine(message);
-
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(message);
-
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(response);
 
         if (result.Success)
         {
@@ -315,7 +308,7 @@
         role.Color_Green = (byte) Math.Round(color[1]);
         role.Color_Blue = (byte) Math.Round(color[2]);
 
-        Console.WriteLine($"Chosen color: rgb({role.Color_Red.ToString()}, {role.Color_Green.ToString()}, {role.Color_Blue.ToString()})");
+        Console.WriteLine($"Chosen color: rgb({role.Color_Red}, {role.Color_Green}, {role.Color_Blue})");
 
     // Create json payload to send to server for request
     // Id and authority is handled by the server
@@ -329,24 +322,22 @@
     // If the id is not set, this is a new role to be created
         if (role.Id == 0)
         {
-            response = await ClientUserManager.Http.PostAsync($"api/planet/{Planet.Id.ToString()}/roles", content);
+            response = await ClientUserManager.Http.PostAsync($"api/planet/{Planet.Id}/roles", content);
         }
     // Otherwise we are editing a prior role
         else
         {
-            response = await ClientUserManager.Http.PutAsync($"api/role/{role.Id.ToString()}", content);
+            response = await ClientUserManager.Http.PutAsync($"api/role/{role.Id}", content);
         }
-
-        var message = await response.Content.ReadAsStringAsync();
 
         if (!response.IsSuccessStatusCode)
         {
-            errorSpan = $"Error ({response.StatusCode}): {message}";
+            errorSpan = $"Error ({response.StatusCode}): {await response.Content.ReadAsStringAsync()}";
             StateHasChanged();
             return;
         }
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(message);
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
 
 
         if (result.Success)

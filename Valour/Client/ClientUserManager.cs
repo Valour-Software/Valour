@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using System.Text.Json;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
@@ -89,9 +89,9 @@ namespace Valour.Client
         /// </summary>
         public static async Task<TaskResult> InitializeUser(string token, ILocalStorageService storage)
         {
-            string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
+            var json = await Http.GetStreamAsync($"User/GetUserWithToken?token={token}");
 
-            TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(response);
+            TaskResult<User> result = await JsonSerializer.DeserializeAsync<TaskResult<User>>(json);
 
             if (result.Success)
             {
@@ -119,23 +119,21 @@ namespace Valour.Client
         /// </summary>
         public static async Task RefreshPlanetsAsync()
         {
-            var response = await Http.GetAsync($"api/user/{User.Id.ToString()}/planets");
-
-            var message = await response.Content.ReadAsStringAsync();
+            var response = await Http.GetAsync($"api/user/{User.Id}/planets", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Fatal error retrieving user planet membership");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
 
-            List<ClientPlanet> planets = JsonConvert.DeserializeObject<List<ClientPlanet>>(message);
+            List<ClientPlanet> planets = await JsonSerializer.DeserializeAsync<List<ClientPlanet>>(await response.Content.ReadAsStreamAsync());
 
             if (planets == null)
             {
                 Console.WriteLine("Fatal error deserializing member list");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
             
@@ -152,7 +150,7 @@ namespace Valour.Client
         /// </summary>
         public static async Task StoreToken(ILocalStorageService storage)
         {
-            LocalToken tokenObj = new LocalToken()
+            LocalToken tokenObj = new()
             {
                 Token = UserSecretToken
             };

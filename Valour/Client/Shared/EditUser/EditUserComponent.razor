@@ -80,9 +80,9 @@ else
 
     public async Task LogOut()
     {
-        string json = await ClientUserManager.Http.GetStringAsync($"User/Logout?token={ClientUserManager.UserSecretToken}");
+        var json = await ClientUserManager.Http.GetStreamAsync($"User/Logout?token={ClientUserManager.UserSecretToken}");
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
 
         Console.WriteLine(result);
 

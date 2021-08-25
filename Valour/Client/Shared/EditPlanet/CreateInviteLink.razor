@@ -48,11 +48,11 @@
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        string json = await Http.GetStringAsync($"Invite/CreateInvite?planet_id={planet_id}" +
-                                                               $"&hours={nameValue}" +
-                                                               $"&token={token}");
+        var json = await Http.GetStreamAsync($"Invite/CreateInvite?planet_id={planet_id}" +
+                                                                $"&hours={nameValue}" +
+                                                                $"&token={token}");
 
-        TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
+        TaskResult<ClientPlanetInvite> result = await JsonSerializer.DeserializeAsync<TaskResult<ClientPlanetInvite>>(json);
 
         if (!result.Success)
         {

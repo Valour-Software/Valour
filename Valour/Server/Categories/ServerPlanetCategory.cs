@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
@@ -19,7 +19,6 @@ namespace Valour.Server.Categories
     {
 
         [JsonIgnore]
-        [System.Text.Json.Serialization.JsonIgnore]
         [ForeignKey("Planet_Id")]
         public virtual ServerPlanet Planet { get; set; }
 

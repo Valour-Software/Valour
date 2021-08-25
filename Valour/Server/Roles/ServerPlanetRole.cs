@@ -26,12 +26,10 @@ namespace Valour.Server.Roles
     {
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
-        [Newtonsoft.Json.JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
         [InverseProperty("Role")]
         [JsonIgnore]
-        [Newtonsoft.Json.JsonIgnore]
         public virtual ICollection<ServerChatChannelPermissionsNode> ChatChannelPermissionNodes { get; set; }
 
 

@@ -64,9 +64,9 @@
 
     // Spans
     string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
+    Dictionary<PlanetRole, bool> SelectedRoles = new();
 
-    List<PlanetRole> Roles = new List<PlanetRole>();
+    List<PlanetRole> Roles = new();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
@@ -106,7 +106,7 @@
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        ClientPlanetCategory category = new ClientPlanetCategory(){
+        ClientPlanetCategory category = new(){
             Name = name,
             Description = "A category",
             Parent_Id = parent_id,
@@ -130,7 +130,7 @@
         if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode PermissionsNode = new CategoryPermissionsNode()
+            CategoryPermissionsNode PermissionsNode = new()
             {
                 Category_Id = category_id,
                 Planet_Id = planetManager.GetCurrent().Id,
@@ -142,7 +142,7 @@
             PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
             response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                    (CategoryPermissionsNode)PermissionsNode);
+                                                                                                    PermissionsNode);
 
             foreach (PlanetRole role in Roles)
             {
@@ -151,7 +151,7 @@
                     continue;
                 }
                 
-                PermissionsNode = new CategoryPermissionsNode()
+                PermissionsNode = new()
                 {
                     Category_Id = category_id,
                     Planet_Id = planetManager.GetCurrent().Id,
@@ -163,7 +163,7 @@
                 PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
 
                 response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                        (CategoryPermissionsNode)PermissionsNode);
+                                                                                                        PermissionsNode);
                 // TODO: Clean this
             }
         }

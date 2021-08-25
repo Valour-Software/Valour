@@ -14,17 +14,14 @@ namespace Valour.Server.Roles
         
         [ForeignKey("Channel_Id")]
         [JsonIgnore]
-        [Newtonsoft.Json.JsonIgnore]
         public virtual ServerPlanetChatChannel Channel { get; set; }
 
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
-        [Newtonsoft.Json.JsonIgnore]
         public virtual ServerPlanet Planet { get; set; }
 
         [ForeignKey("Role_Id")]
         [JsonIgnore]
-        [Newtonsoft.Json.JsonIgnore]
         public virtual ServerPlanetRole Role { get; set; }
     }
 }

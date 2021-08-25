@@ -7,8 +7,8 @@ using Valour.Shared;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Client.Categories;
-using Newtonsoft.Json;
 using System.Linq;
+using System.Text.Json;
 using System.Net.Http.Json;
 
 namespace Valour.Client.Planets
@@ -35,7 +35,7 @@ namespace Valour.Client.Planets
             ClientCache.Channels[channel.Id] = channel;
 
             // Re-order channels
-            List<ClientPlanetChatChannel> channels = new List<ClientPlanetChatChannel>();
+            List<ClientPlanetChatChannel> channels = new();
 
             foreach (var id in _channel_ids)
             {
@@ -49,7 +49,7 @@ namespace Valour.Client.Planets
         {
             _channel_ids.Remove(channel.Id);
 
-            ClientCache.Channels.Remove(channel.Id, out var old);
+            ClientCache.Channels.Remove(channel.Id, out _);
         }
 
         public async Task NotifyUpdateCategory(ClientPlanetCategory category)
@@ -63,7 +63,7 @@ namespace Valour.Client.Planets
             ClientCache.Categories[category.Id] = category;
             
             // Reo-order categories
-            List<ClientPlanetCategory> categories = new List<ClientPlanetCategory>();
+            List<ClientPlanetCategory> categories = new();
             
             foreach (var id in _category_ids)
             {
@@ -77,7 +77,7 @@ namespace Valour.Client.Planets
         {
             _category_ids.Remove(category.Id);
 
-            ClientCache.Categories.Remove(category.Id, out var old);
+            ClientCache.Categories.Remove(category.Id, out _);
         }
 
         /// <summary>
@@ -103,7 +103,7 @@ namespace Valour.Client.Planets
                 await LoadCategoriesAsync();
             }
 
-            List<ClientPlanetCategory> categories = new List<ClientPlanetCategory>();
+            List<ClientPlanetCategory> categories = new();
 
             foreach (var id in _category_ids)
             {
@@ -118,18 +118,16 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task LoadCategoriesAsync()
         {
-            var response = await ClientUserManager.Http.GetAsync($"api/planet/{Id}/categories");
-
-            var message = await response.Content.ReadAsStringAsync();  
+            var response = await ClientUserManager.Http.GetAsync($"api/planet/{Id}/categories", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet's categories.");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
 
-            List<ClientPlanetCategory> result = JsonConvert.DeserializeObject<List<ClientPlanetCategory>>(message);
+            List<ClientPlanetCategory> result = await JsonSerializer.DeserializeAsync<List<ClientPlanetCategory>>(await response.Content.ReadAsStreamAsync());
 
             foreach (var category in result)
             {
@@ -149,7 +147,7 @@ namespace Valour.Client.Planets
                 await LoadChannelsAsync();
             }
 
-            List<ClientPlanetChatChannel> channels = new List<ClientPlanetChatChannel>();
+            List<ClientPlanetChatChannel> channels = new();
 
             foreach (var id in _channel_ids)
             {
@@ -164,17 +162,15 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task LoadChannelsAsync()
         {
-            var response = await ClientUserManager.Http.GetAsync($"/api/planet/{Id}/channels");
-
-            var message = await response.Content.ReadAsStringAsync();
+            var response = await ClientUserManager.Http.GetAsync($"/api/planet/{Id}/channels", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving planet channels from the server.");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStreamAsync());
             }
 
-            List<ClientPlanetChatChannel> channels = JsonConvert.DeserializeObject<List<ClientPlanetChatChannel>>(message);
+            List<ClientPlanetChatChannel> channels = await JsonSerializer.DeserializeAsync<List<ClientPlanetChatChannel>>(await response.Content.ReadAsStreamAsync());
 
             foreach (var channel in channels)
             {
@@ -189,7 +185,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<TaskResult> TrySetNameAsync(string name)
         {
-            StringContent content = new StringContent(name);
+            StringContent content = new(name);
 
             var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id}/name", content);
 
@@ -213,9 +209,9 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<TaskResult> TrySetDescriptionAsync(string description)
         {
-            StringContent content = new StringContent(description);
+            StringContent content = new(description);
 
-            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id.ToString()}/description", content);
+            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id}/description", content);
 
             string message = await response.Content.ReadAsStringAsync();
 
@@ -239,7 +235,7 @@ namespace Valour.Client.Planets
         {
             JsonContent content = JsonContent.Create(is_public);
             
-            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id.ToString()}/public", content);
+            var response = await ClientUserManager.Http.PutAsync($"api/planet/{Id}/public", content);
 
             string message = await response.Content.ReadAsStringAsync();
             
@@ -263,28 +259,14 @@ namespace Valour.Client.Planets
         {
             var response = await ClientUserManager.Http.GetAsync($"api/planet/{id}");
 
-            var message = await response.Content.ReadAsStringAsync();
-
-            Console.WriteLine(message);
-
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving the planet.");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
-            ClientPlanet planet = JsonConvert.DeserializeObject<ClientPlanet>(message);
-
-            return planet;
-        }
-
-        /// <summary>
-        /// Deserializes json
-        /// </summary>
-        public static ClientPlanet Deserialize(string json)
-        {
-            return JsonConvert.DeserializeObject<ClientPlanet>(json);
+            return await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
         }
 
         /// <summary>

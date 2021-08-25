@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -72,19 +72,16 @@ namespace Valour.Client.Channels
 
         public static async Task<ClientPlanetChatChannel> GetAsync(ulong id)
         {
-            var response = await ClientUserManager.Http.GetAsync($"api/channel/{id}");
-            var message = await response.Content.ReadAsStringAsync();
+            var response = await ClientUserManager.Http.GetAsync($"api/channel/{id}", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Failed to get channel {id}");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
-            ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(message);
-
-            return channel;
+            return await JsonSerializer.DeserializeAsync<ClientPlanetChatChannel>(await response.Content.ReadAsStreamAsync()); ;
         }
 
         /// <summary>
@@ -141,7 +138,7 @@ namespace Valour.Client.Channels
             }
             else
             {
-                this.Description = desc;
+                Description = desc;
             }
 
             return new TaskResult(response.IsSuccessStatusCode, message);
@@ -168,7 +165,7 @@ namespace Valour.Client.Channels
             }
             else
             {
-                this.Inherits_Perms = value;
+                Inherits_Perms = value;
             }
 
             return new TaskResult(response.IsSuccessStatusCode, message);
@@ -191,7 +188,7 @@ namespace Valour.Client.Channels
             }
             else
             {
-                this.Parent_Id = parent_id;
+                Parent_Id = parent_id;
             }
 
             return new TaskResult(response.IsSuccessStatusCode, message);
@@ -207,26 +204,17 @@ namespace Valour.Client.Channels
 
             var response = await ClientUserManager.Http.GetAsync($"Permissions/GetChatChannelNode?channel_id={Id}" +
                                                                                                     $"&role_id={role.Id}" +
-                                                                                                    $"&token={ClientUserManager.UserSecretToken}");
-
-            var message = await response.Content.ReadAsStringAsync();
+                                                                                                    $"&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
 
             if (response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Critical error for GetPermissionsNode in channel");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
-            
-            ChatChannelPermissionsNode result = null;
 
-            if (!string.IsNullOrWhiteSpace(message))
-            {
-                result = JsonConvert.DeserializeObject<ChatChannelPermissionsNode>(message);
-            }
-
-            // Return the node - it may be null, but that's ok
-            return result;
+            // Return the deserialized node - it may be null, but that's ok
+            return await JsonSerializer.DeserializeAsync<ChatChannelPermissionsNode>(await response.Content.ReadAsStreamAsync());
         }
 
         /// <summary>
@@ -237,9 +225,9 @@ namespace Valour.Client.Channels
         /// <returns>An enumerable list of planet messages</returns>
         public async Task<List<ClientPlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"api/channel/{Id}/messages?index={index}&count={count}");
+            var json = await ClientUserManager.Http.GetStreamAsync($"api/channel/{Id}/messages?index={index}&count={count}");
 
-            List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
+            List<ClientPlanetMessage> messages = await JsonSerializer.DeserializeAsync<List<ClientPlanetMessage>>(json);
 
             if (messages == null)
             {
@@ -257,9 +245,9 @@ namespace Valour.Client.Channels
         /// <returns>An enumerable list of planet messages</returns>
         public async Task<List<ClientPlanetMessage>> GetLastMessagesAsync(int count = 10)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"api/channel/{Id}/messages?count={count}");
+            var json = await ClientUserManager.Http.GetStreamAsync($"api/channel/{Id}/messages?count={count}");
 
-            List<ClientPlanetMessage> messages = JsonConvert.DeserializeObject<List<ClientPlanetMessage>>(json);
+            List<ClientPlanetMessage> messages = await JsonSerializer.DeserializeAsync<List<ClientPlanetMessage>>(json);
 
             if (messages == null)
             {

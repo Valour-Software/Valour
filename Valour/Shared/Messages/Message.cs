@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
-using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 
 /*  Valour - A free and secure chat client
@@ -70,8 +69,7 @@ namespace Valour.Shared.Messages
         /// <summary>
         /// Used to identify a message returned from the server 
         /// </summary>
-        [JsonProperty]
-        [System.Text.Json.Serialization.JsonInclude]
+        [JsonInclude]
         [JsonPropertyName("Fingerprint")]
         public string Fingerprint;
 

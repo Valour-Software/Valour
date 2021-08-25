@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using Newtonsoft.Json;
 using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -75,7 +75,7 @@ namespace Valour.Client.Categories
         public async Task<TaskResult> TrySetNameAsync(string name)
         {
             string encodedName = HttpUtility.UrlEncode(name);
-            StringContent content = new StringContent(encodedName);
+            StringContent content = new(encodedName);
 
             var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/name", content);
 
@@ -91,7 +91,7 @@ namespace Valour.Client.Categories
         public async Task<TaskResult> TrySetDescriptionAsync(string desc)
         {
             string encodedDesc = HttpUtility.UrlEncode(desc);
-            StringContent content = new StringContent(encodedDesc);
+            StringContent content = new(encodedDesc);
 
             var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/description", content);
 
@@ -106,7 +106,7 @@ namespace Valour.Client.Categories
         /// </summary>
         public async Task<TaskResult> TrySetParentIdAsync(ulong parent_id)
         {
-            StringContent content = new StringContent(parent_id.ToString());
+            StringContent content = new(parent_id.ToString());
             var response = await ClientUserManager.Http.PutAsync($"api/category/{Id}/parent_id", content);
 
             return new TaskResult(
@@ -149,26 +149,17 @@ namespace Valour.Client.Categories
             // For SOME reason the args need to be in this order
             var response = await ClientUserManager.Http.GetAsync($"Permissions/GetCategoryNode?category_id={Id}" +
                                                                                                  $"&token={ClientUserManager.UserSecretToken}" +
-                                                                                                 $"&role_id={role.Id}");
-
-            var message = await response.Content.ReadAsStringAsync();
+                                                                                                 $"&role_id={role.Id}", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("Failed to deserialize result from GetPermissionsNode in category");
-                Console.WriteLine(message);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
-            CategoryPermissionsNode result = null;
-
-            if (!string.IsNullOrWhiteSpace(message))
-            {
-                result = JsonConvert.DeserializeObject<CategoryPermissionsNode>(message);
-            }
-            
-            // Return the node - it may be null, but that's ok
-            return result;
+            // Return the deserialized node - it may be null, but that's ok
+            return await JsonSerializer.DeserializeAsync<CategoryPermissionsNode>(await response.Content.ReadAsStreamAsync());
         }
 
         public Task<TaskResult> TrySetName(string name)
