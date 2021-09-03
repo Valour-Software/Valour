@@ -14,9 +14,9 @@ namespace Valour.Shared.Items
     }
 
     /// <summary>
-    /// Common interface for Valour API items
+    /// Common class for Valour API items
     /// </summary>
-    public interface IItem
+    public class IItem
     {
         [JsonInclude]
         [JsonPropertyName("Id")]

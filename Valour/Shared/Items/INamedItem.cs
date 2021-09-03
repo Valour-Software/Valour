@@ -12,7 +12,7 @@ namespace Valour.Shared.Items
     /// </summary>
     
 
-    public interface INamedItem : IItem
+    public class INamedItem : IItem
     {
         [JsonInclude]
         [JsonPropertyName("Name")]

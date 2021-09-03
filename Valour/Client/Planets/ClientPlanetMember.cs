@@ -207,7 +207,7 @@ namespace Valour.Client.Planets
 
         public async Task<ulong> GetAuthorityAsync()
         {
-            var response = await ClientUserManager.Http.GetAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
+            var response = await ClientUserManager.Http.GetAsync($"api/member/{Id}/authority", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {

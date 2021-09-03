@@ -30,7 +30,7 @@ using Valour.Shared.Planets;
 
 namespace Valour.Server.API
 {
-    public static class PlanetAPI
+    public class PlanetAPI : BaseAPI
     {
         // Constant planet variables //
 
@@ -720,7 +720,7 @@ namespace Valour.Server.API
             [FromHeader] string authorization)
         {
             ServerPlanetChatChannel channel_data =
-                JsonSerializer.Deserialize<ServerPlanetChatChannel>(ctx.Request.Body);
+                await JsonSerializer.DeserializeAsync<ServerPlanetChatChannel>(ctx.Request.Body);
 
             if (channel_data == null)
             {
@@ -824,7 +824,7 @@ namespace Valour.Server.API
         private static async Task CreateCategory(HttpContext ctx, ValourDB db,
             [FromHeader] string authorization)
         {
-            ServerPlanetCategory category_data = JsonSerializer.Deserialize<ServerPlanetCategory>(ctx.Request.Body);
+            ServerPlanetCategory category_data = await JsonSerializer.DeserializeAsync<ServerPlanetCategory>(ctx.Request.Body);
 
             if (category_data == null)
             {

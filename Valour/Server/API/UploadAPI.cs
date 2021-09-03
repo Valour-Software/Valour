@@ -26,7 +26,7 @@ namespace Valour.Server.API
     /// <summary>
     /// Responsible for allowing user uploads of content
     /// </summary>
-    public static class UploadAPI
+    public class UploadAPI : BaseAPI
     {
         public static void AddRoutes(WebApplication app)
         {

@@ -96,16 +96,15 @@ namespace Valour.Client.Shared.ChannelList
 
             ushort position = (ushort)target.TopCategories.Count;
 
+
+            StringContent content = new StringContent("none");
+
             // Add current item to target category
-            var response = await ClientUserManager.Http.GetStreamAsync($"Planet/InsertCategory?category_id={currentDragItem.Id}" +
-                                                                       $"&planet_id={target.Planet.Id}&position={position}" +
-                                                                       $"&auth={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.PutAsync($"api/category/{currentDragItem.Id}/parent_id?position={position}", content);
 
             Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
 
-            TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(response);
-
-            Console.WriteLine(result);
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
         }
 
         /// <summary>
@@ -195,9 +194,7 @@ namespace Valour.Client.Shared.ChannelList
 
                 response = await ClientUserManager.Http.PostAsJsonAsync($"api/category/{target.ParentCategory.Category.Id}/children/order", orderData);
 
-                TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
-
-                Console.WriteLine(result);
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
 
                 //target.ParentCategory.Refresh();
             //}

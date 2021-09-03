@@ -19,7 +19,7 @@ using Valour.Shared.Oauth;
 
 namespace Valour.Server.API
 {
-    public static class CategoryAPI
+    public class CategoryAPI : BaseAPI
     {
         public static void AddRoutes(WebApplication app)
         {
@@ -271,9 +271,14 @@ namespace Valour.Server.API
             }
         }
 
-        private static async Task ParentId(HttpContext ctx, ValourDB db, ulong category_id,
+        private static async Task ParentId(HttpContext ctx, ValourDB db, ulong category_id, int? position,
                                       [FromHeader] string authorization)
         {
+            if (position == null)
+            {
+                position = -1;
+            }
+
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
@@ -327,18 +332,11 @@ namespace Valour.Server.API
                             return;
                         }
 
-                        if (!await category.HasPermission(member, CategoryPermissions.ManageCategory, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks CategoryPermissions.ManageCategory");
-                            return;
-                        }
-
                         string body = await ctx.Request.ReadBodyStringAsync();
 
                         ulong? parent_id;
 
-                        if (body == "null" || body == "0" || body == "none")
+                        if (body == "null" || body == "0" || body == "none" || string.IsNullOrWhiteSpace(body))
                         {
                             parent_id = null;
                         }
@@ -357,17 +355,9 @@ namespace Valour.Server.API
                             }
                         }
 
-                        TaskResult result = await category.TrySetParentAsync(parent_id, db);
+                        TaskResult<int> result = await category.TrySetParentAsync(member, parent_id, (int)position, db);
 
-                        if (!result.Success)
-                        {
-                            ctx.Response.StatusCode = 400;
-                        }
-                        else
-                        {
-                            ctx.Response.StatusCode = 200;
-                        }
-
+                        ctx.Response.StatusCode = result.Data;
                         await ctx.Response.WriteAsync(result.Message);
                         return;
                     }

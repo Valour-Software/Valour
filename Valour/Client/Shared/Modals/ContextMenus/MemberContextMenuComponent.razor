@@ -213,21 +213,27 @@
 
     public async Task OnRoleClick(PlanetRole role, bool value)
     {
-        var json = await ClientUserManager.Http.GetStreamAsync($"Planet/SetMemberRoleMembership?role_id={role.Id}" +
-                                                                                           $"&member_id={Member.Id}" +
-                                                                                           $"&value={value}" +
-                                                                                           $"&token={ClientUserManager.UserSecretToken}");
+        HttpResponseMessage response = null;
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
-
-        if (!result.Success)
+        if (value){
+            // Add role
+            JsonContent roleContent = JsonContent.Create(role);
+            response = await ClientUserManager.Http.PostAsync($"api/member/{Member.Id}/roles", roleContent);
+        }
+        else
         {
-            Console.WriteLine("Severe error occured during OnRoleClick response from server");
-            Console.WriteLine(result.Message);
-            return;
+            // Remove role
+            response = await ClientUserManager.Http.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
         }
 
-        Console.WriteLine(result.Message);
+        string result = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Severe error occured during OnRoleClick response from server");
+        }
+
+        Console.WriteLine(result);
 
         StateHasChanged();
     }

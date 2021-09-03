@@ -96,14 +96,21 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Deletes this channel
         /// </summary>
-        public async Task<TaskResult> TryDeleteAsync(ValourDB db)
+        public async Task<TaskResult<int>> TryDeleteAsync(ServerPlanetMember member, ValourDB db)
         {
-            var planet = await GetPlanetAsync();
+            Planet ??= await GetPlanetAsync(db);
 
-            if (Id == planet.Main_Channel_Id)
-            {
-                return new TaskResult(false, $"You cannot delete a planet's main channel [id: {Id}]");
-            }
+            if (Id == Planet.Main_Channel_Id)
+                return new TaskResult<int>(false, $"Cannot delete main channel", 400);
+
+            if (member == null) 
+                return new TaskResult<int>(false, "Member not found", 403);
+
+            if (!await HasPermission(member, ChatChannelPermissions.View, db)) 
+                return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.View", 403);
+
+            if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db)) 
+                return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.ManageChannel", 403);
 
             // Remove permission nodes
             db.ChatChannelPermissionsNodes.RemoveRange(
@@ -126,46 +133,24 @@ namespace Valour.Server.Planets
             // Notify channel deletion
             await PlanetHub.NotifyChatChannelDeletion(this);
 
-            return new TaskResult(true, "Success");
+            return new TaskResult<int>(true, "Success", 200);
         }
 
         /// <summary>
         /// Returns the planet this channel belongs to
         /// </summary>
-        public async Task<ServerPlanet> GetPlanetAsync(ValourDB db = null)
+        public async Task<ServerPlanet> GetPlanetAsync(ValourDB db)
         {
-            if (Planet != null) return Planet;
-
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-            }
-
-            Planet = await db.Planets.FindAsync(Planet_Id);
-
-            if (createdb) await db.DisposeAsync();
-
+            Planet ??= await db.Planets.FindAsync(Planet_Id);
             return Planet;
         }
 
         /// <summary>
         /// Returns the parent category of this channel
         /// </summary>
-        public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db = null)
+        public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db)
         {
-            if (Parent != null) return Parent;
-
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-            }
-
-            Parent = await db.PlanetCategories.FindAsync(Parent_Id);
-
-            if (createdb) await db.DisposeAsync();
-
+            Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
             return Parent;
         }
 
@@ -174,15 +159,10 @@ namespace Valour.Server.Planets
         /// </summary>
         public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
         {
-            if (Planet == null)
-            {
-                Planet = await GetPlanetAsync(db);
-            }
+            Planet ??= await GetPlanetAsync(db);
 
             if (Planet.Owner_Id == member.User_Id)
-            {
                 return true;
-            }
 
             // If true, we just ask the category
             if (Inherits_Perms)
@@ -249,14 +229,10 @@ namespace Valour.Server.Planets
         public static TaskResult ValidateName(string name)
         {
             if (name.Length > 32)
-            {
                 return new TaskResult(false, "Channel names must be 32 characters or less.");
-            }
 
             if (!nameRegex.IsMatch(name))
-            {
                 return new TaskResult(false, "Channel names may only include letters, numbers, dashes, and underscores.");
-            }
 
             return new TaskResult(true, "The given name is valid.");
         }

@@ -13,7 +13,7 @@ using Valour.Shared.Planets;
 
 namespace Valour.Server.API
 {
-    public static class UserAPI
+    public class UserAPI : BaseAPI
     {
         public static void AddRoutes(WebApplication app)
         {
