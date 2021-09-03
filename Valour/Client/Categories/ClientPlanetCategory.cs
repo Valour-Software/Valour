@@ -20,7 +20,7 @@ namespace Valour.Client.Categories
      *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
      */
 
-    public class ClientPlanetCategory : IPlanetCategory, IClientNamedItem, IClientPlanetListItem
+    public class ClientPlanetCategory : PlanetCategory, IClientNamedItem, IClientPlanetListItem
     {
         /// <summary>
         /// The id of this category

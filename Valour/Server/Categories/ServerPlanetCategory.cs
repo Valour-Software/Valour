@@ -15,7 +15,7 @@ using Valour.Shared.Planets;
 
 namespace Valour.Server.Categories
 {
-    public class ServerPlanetCategory : IPlanetCategory, IServerChannelListItem
+    public class ServerPlanetCategory : PlanetCategory, IServerChannelListItem
     {
 
         [JsonIgnore]
@@ -64,6 +64,7 @@ namespace Valour.Server.Categories
         /// <summary>
         /// The type of this item
         /// </summary>
+        [NotMapped]
         [JsonPropertyName("ItemType")]
         public ItemType ItemType => ItemType.Category;
 

@@ -9,7 +9,7 @@ namespace Valour.Shared.Items
     /// <summary>
     /// Represents a single chat Category within a planet
     /// </summary>
-    public interface IPlanetCategory : IChannelListItem
+    public class PlanetCategory : ChannelListItem
     {
 
     }

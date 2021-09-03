@@ -155,17 +155,14 @@
         string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
         string encodedReferral = System.Web.HttpUtility.UrlEncode(referral);
 
-        var json = await Http.GetStreamAsync($"User/RegisterUser?username={encodedUsername}" +
+        var response = await Http.PostAsync($"api/user/register?username={encodedUsername}" +
                                                              $"&email={encodedEmail}" +
                                                              $"&password={encodedPassword}" +
-                                                             $"&referrer={encodedReferral}");
+                                                             $"&referrer={encodedReferral}", null);
 
-        
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
+        passwordSpan = await response.Content.ReadAsStringAsync();
 
-        passwordSpan = result.Message;
-
-        if (result.Success)
+        if (response.IsSuccessStatusCode)
         {
             navManager.NavigateTo("/");
         }

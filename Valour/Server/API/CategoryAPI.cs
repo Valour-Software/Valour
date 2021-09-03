@@ -78,7 +78,7 @@ namespace Valour.Server.API
                 case "GET":
                     {
                         ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync((IPlanetCategory)category);
+                        await ctx.Response.WriteAsJsonAsync((PlanetCategory)category);
                         return;
 
                     }
@@ -407,7 +407,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<IChannelListItem> children = new List<IChannelListItem>();
+            List<ChannelListItem> children = new List<ChannelListItem>();
 
             foreach (var channel in category.Planet.ChatChannels)
             {
@@ -602,16 +602,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            string body = await ctx.Request.ReadBodyStringAsync();
-
-            if (string.IsNullOrEmpty(body))
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync("Include item data.");
-                return;
-            }
-
-            IChannelListItem in_item = JsonSerializer.Deserialize<IChannelListItem>(body);
+            ChannelListItem in_item = await JsonSerializer.DeserializeAsync<ChannelListItem>(ctx.Request.Body);
 
             if (in_item == null || in_item.Planet_Id == 0)
             {

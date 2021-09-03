@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Valour.Server.Categories;
 using Valour.Server.Database;
@@ -7,8 +8,28 @@ using Valour.Shared.Items;
 
 namespace Valour.Server.Planets
 {
-    public interface IServerChannelListItem : IChannelListItem
+    public interface IServerChannelListItem
     {
+        [JsonInclude]
+        [JsonPropertyName("Id")]
+        public ulong Id { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Planet_Id")]
+        public ulong Planet_Id { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Parent_Id")]
+        public ulong? Parent_Id { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Position")]
+        public ushort Position { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("ItemType")]
+        public ItemType ItemType { get; }
+
         public static async Task<IServerChannelListItem> FindAsync(ItemType type, ulong id, ValourDB db)
         {
             switch (type)

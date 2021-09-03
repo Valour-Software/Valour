@@ -26,7 +26,7 @@ namespace Valour.Server.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ServerPlanetChatChannel : IPlanetChatChannel, IServerChannelListItem
+    public class ServerPlanetChatChannel : PlanetChatChannel, IServerChannelListItem
     {
 
         [ForeignKey("Planet_Id")]
@@ -85,6 +85,7 @@ namespace Valour.Server.Planets
         [JsonPropertyName("Description")]
         public string Description { get; set; }
 
+        [NotMapped]
         [JsonPropertyName("ItemType")]
         public ItemType ItemType => ItemType.Channel;
 
