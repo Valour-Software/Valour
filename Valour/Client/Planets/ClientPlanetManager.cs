@@ -311,7 +311,7 @@ namespace Valour.Client.Planets
 
             // Otherwise attempt to fetch from server
             // Retrieve from server
-            var response = await ClientUserManager.Http.GetAsync($"Member/GetMember?id={member_id}&auth={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
+            var response = await ClientUserManager.Http.GetAsync($"api/member/{member_id}", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {

@@ -80,11 +80,9 @@ else
 
     public async Task LogOut()
     {
-        var json = await ClientUserManager.Http.GetStreamAsync($"User/Logout?token={ClientUserManager.UserSecretToken}");
+        var response = await ClientUserManager.Http.PostAsync($"api/user/logout", null);
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
-
-        Console.WriteLine(result);
+        Console.WriteLine(await response.Content.ReadAsStringAsync());
 
         navManager.NavigateTo("/", true);
     }

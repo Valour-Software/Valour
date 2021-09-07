@@ -35,13 +35,11 @@
             StateHasChanged();
         }
 
-        string encoded = System.Web.HttpUtility.UrlEncode(code);
+        StringContent content = new StringContent(code);
 
-        var json = await Http.GetStreamAsync($"User/VerifyEmail?code={encoded}");
+        var response = await Http.PostAsync($"api/user/verify", content);
 
-        TaskResult taskResult = await JsonSerializer.DeserializeAsync<TaskResult>(json);
-
-        result = taskResult.Message;
+        result = await response.Content.ReadAsStringAsync();
 
         StateHasChanged();
     }

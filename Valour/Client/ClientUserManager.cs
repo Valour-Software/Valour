@@ -89,29 +89,30 @@ namespace Valour.Client
         /// </summary>
         public static async Task<TaskResult> InitializeUser(string token, ILocalStorageService storage)
         {
-            var json = await Http.GetStreamAsync($"User/GetUserWithToken?token={token}");
+            StringContent content = new StringContent(token);
 
-            TaskResult<User> result = await JsonSerializer.DeserializeAsync<TaskResult<User>>(json);
+            var response = await Http.PostAsync($"api/user/withtoken", content);
 
-            if (result.Success)
+            if (!response.IsSuccessStatusCode)
             {
-                User = result.Data;
-                UserSecretToken = token;
-
-                Http.DefaultRequestHeaders.Add("authorization", UserSecretToken);
-
-                Console.WriteLine($"Initialized user {User.Username}");
-
-                // Store token for future use
-                await StoreToken(storage);
-
-                // Refresh user planet membership
-                await RefreshPlanetsAsync();
-
-                return new TaskResult(true, "Initialized user successfully!");
+                return new TaskResult(false, "An error occured retrieving the user.");
             }
 
-            return new TaskResult(false, "An error occured retrieving the user.");
+            User = await JsonSerializer.DeserializeAsync<User>(await response.Content.ReadAsStreamAsync());
+            UserSecretToken = token;
+
+
+            Http.DefaultRequestHeaders.Add("authorization", UserSecretToken);
+
+            Console.WriteLine($"Initialized user {User.Username}");
+
+            // Store token for future use
+            await StoreToken(storage);
+
+            // Refresh user planet membership
+            await RefreshPlanetsAsync();
+
+            return new TaskResult(true, "Initialized user successfully!");
         }
 
         /// <summary>

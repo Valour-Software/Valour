@@ -2,6 +2,11 @@
 namespace Valour.Server.API;
 public class BaseAPI
 {
+    public static void AddRoutes(WebApplication app)
+    {
+        app.MapGet("api/version", () => app.GetType().Assembly.GetName().Version.ToString());
+    }
+
     public static async Task TokenInvalid(HttpContext ctx)
     {
         ctx.Response.StatusCode = 401;

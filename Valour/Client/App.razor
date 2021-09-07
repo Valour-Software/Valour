@@ -98,7 +98,7 @@ else
     public async Task<string> AppUpdate()
     {
         // Get latest version number
-        var json = await ClientUserManager.Http.GetStreamAsync("User/GetCurrentVersion");
+        var json = await ClientUserManager.Http.GetStreamAsync("api/version");
         TaskResult<string> result = await JsonSerializer.DeserializeAsync<TaskResult<string>>(json);
         newVersion = result.Data;
 
