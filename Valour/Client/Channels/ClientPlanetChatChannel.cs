@@ -213,9 +213,7 @@ namespace Valour.Client.Channels
         public async Task<ChatChannelPermissionsNode> GetChatChannelPermissionsNodeAsync(PlanetRole role)
         {
 
-            var response = await ClientUserManager.Http.GetAsync($"Permissions/GetChatChannelNode?channel_id={Id}" +
-                                                                                                    $"&role_id={role.Id}" +
-                                                                                                    $"&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
+            var response = await ClientUserManager.Http.GetAsync($"api/node/channel/{Id}/{role.Id}", HttpCompletionOption.ResponseHeadersRead);
 
             if (response.IsSuccessStatusCode)
             {

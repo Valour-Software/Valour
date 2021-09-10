@@ -73,6 +73,27 @@ namespace Valour.Server.API
 
             app.MapPost("api/planet/{planet_id}/members/{target_id}/kick", KickMember);
             app.MapPost("api/planet/{planet_id}/members/{target_id}/ban", BanMember);
+
+            app.MapGet ("api/planet/{planet_id}/invites", GetInvites);
+        }
+
+        private static async Task GetInvites(HttpContext ctx, ValourDB db, ulong planet_id,
+            [FromHeader] string authorization)
+        {
+            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken == null) { await TokenInvalid(ctx); return; }
+
+            ServerPlanetMember member = await db.PlanetMembers
+                .Include(x => x.Planet)
+                .ThenInclude(x => x.Invites)
+                .FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == authToken.User_Id);
+
+            if (member == null) { await Unauthorized("Member not found", ctx); return; }
+
+            if (!await member.HasPermissionAsync(PlanetPermissions.Invite, db)) { await Unauthorized("Member lacks PlanetPermissions.Invite", ctx); return; }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(member.Planet.Invites);
         }
 
         private static async Task AddRole(HttpContext ctx, ValourDB db, ulong planet_id,
@@ -618,7 +639,7 @@ namespace Valour.Server.API
             // Save changes
             await db.SaveChangesAsync();
             // Add owner to planet
-            await planet.AddMemberAsync(user);
+            await planet.AddMemberAsync(user, db);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsJsonAsync(planet.Id);

@@ -43,11 +43,9 @@
             Form_Data = embed.GetFormData()
         };
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<InteractionEvent>($"Embed/InteractionEvent?token={ClientUserManager.UserSecretToken}", Interaction);
+        var response = await Http.PostAsJsonAsync<InteractionEvent>($"api/embed/interact", Interaction);
 
-        TaskResult response = await JsonSerializer.DeserializeAsync<TaskResult>(await httpresponse.Content.ReadAsStreamAsync());
-
-        Console.WriteLine(response);
+        Console.WriteLine(response.Content.ReadAsStringAsync());
     }
 
 }

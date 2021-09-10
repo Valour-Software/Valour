@@ -1,43 +1,18 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Server.Database;
-using Valour.Server.Oauth;
-using Valour.Shared;
-using Valour.Shared.Notifications;
-
-namespace Valour.Server.Controllers
+﻿
+namespace Valour.Server.API;
+public class NotificationsAPI : BaseAPI
 {
-
-    /*  Valour - A free and secure chat client
-     *  Copyright (C) 2021 Vooper Media LLC
-     *  This program is subject to the GNU Affero General Public license
-     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
-     */
-
-
     /// <summary>
-    /// This controller is responsible for allowing authentification of users
+    /// Adds the routes for this API section
     /// </summary>
-    [ApiController]
-    [Route("[controller]/[action]")]
-    public class NotificationController
+    public static void AddRoutes(WebApplication app)
     {
-        /// <summary>
-        /// Database context for controller
-        /// </summary>
-        private readonly ValourDB Context;
+    }
 
-        // Dependency injection
-        public NotificationController(ValourDB context)
-        {
-            this.Context = context;
-        }
+    // Bother with this later
 
-        public async Task<TaskResult> SubmitSubscription([FromBody] NotificationSubscription subscription, string token)
+    /*
+     public async Task<TaskResult> SubmitSubscription([FromBody] NotificationSubscription subscription, string token)
         {
             var auth = await ServerAuthToken.TryAuthorize(token, Context);
 
@@ -93,4 +68,5 @@ namespace Valour.Server.Controllers
             return new TaskResult(true, "Subscription was accepted.");
         } 
     }
+     */
 }

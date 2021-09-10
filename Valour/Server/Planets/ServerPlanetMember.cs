@@ -50,25 +50,10 @@ namespace Valour.Server.Planets
             return MappingManager.Mapper.Map<ServerPlanetMember>(member);
         }
 
-        public static async Task<ServerPlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db = null)
-        {
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-                createdb = true;
-            }
-
-            var res = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id &&
+        public static async Task<ServerPlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db)
+        { 
+            return await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id &&
                                                                       x.User_Id == user_id);
-
-            if (createdb)
-            {
-                await db.DisposeAsync();
-            }
-
-            return res;
-            
         }
 
         /// <summary>

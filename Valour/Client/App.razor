@@ -98,9 +98,15 @@ else
     public async Task<string> AppUpdate()
     {
         // Get latest version number
-        var json = await ClientUserManager.Http.GetStreamAsync("api/version");
-        TaskResult<string> result = await JsonSerializer.DeserializeAsync<TaskResult<string>>(json);
-        newVersion = result.Data;
+        var response = await ClientUserManager.Http.GetAsync("api/version");
+
+        if (response.IsSuccessStatusCode){
+            newVersion = await response.Content.ReadAsStringAsync();
+        }
+        else
+        {
+            newVersion = $"Server response error: {response.StatusCode}";
+        }
 
         Console.WriteLine("New version available");
         hideUpdate = false;

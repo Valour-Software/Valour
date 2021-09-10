@@ -103,7 +103,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for planet invites
         /// </summary>
-        public DbSet<PlanetInvite> PlanetInvites { get; set; }
+        public DbSet<ServerPlanetInvite> PlanetInvites { get; set; }
 
         /// <summary>
         /// Table for planet invites
@@ -132,7 +132,7 @@ namespace Valour.Server.Database
 
         public DbSet<ServerChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
 
-        public DbSet<CategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
+        public DbSet<ServerCategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
 
         public DbSet<ServerPlanetRole> PlanetRoles { get; set; }
 

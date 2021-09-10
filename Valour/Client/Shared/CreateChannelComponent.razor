@@ -185,8 +185,7 @@
                 PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
                 PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                        PermissionsNode);
+                response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"api/node/channel", PermissionsNode);
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();

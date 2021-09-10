@@ -5,13 +5,12 @@
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateCategoryModal createCategoryModal
-@using Valour.Shared.Categories
 
 <section>
     <h2 class="create-component-title">Create a Category</h2>
 
     <div asp-validation-summary="All" class="text-info"></div>
-    <div class="form-group mt-2">
+    <div class="form-group mt-2"> 
         <label>Category Name</label>
         <input class="form-control" @bind-value="@name" />
     </div>
@@ -141,8 +140,7 @@
 
             PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                    PermissionsNode);
+            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
 
             foreach (PlanetRole role in Roles)
             {
@@ -162,8 +160,7 @@
 
                 PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                        PermissionsNode);
+                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
                 // TODO: Clean this
             }
         }

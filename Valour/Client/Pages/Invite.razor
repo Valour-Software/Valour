@@ -44,7 +44,6 @@
 
     string PlanetName = "";
     string PlanetImage = "icon-512.png";
-    string InviteLink = "/Invite/Join/";
 
     string PlanetSpan = "Do you want to join";
 
@@ -65,29 +64,25 @@
             navManager.NavigateTo("/");
         }
         
-        var json = await Http.GetStreamAsync($"Invite/GetInvite?code={code}&user_id={user_id}");
+        var response = await Http.GetAsync($"api/invite/{code}");
 
-        TaskResult<ClientPlanetInvite> result = await JsonSerializer.DeserializeAsync<TaskResult<ClientPlanetInvite>>(json);
-
-        if (result.Success == false) {
-            errorSpan = result.Message;
+        if (!response.IsSuccessStatusCode) {
+            errorSpan = await response.Content.ReadAsStringAsync();
             Clicked = true;
             PlanetSpan = "";
             StateHasChanged();
             return;
         }
 
-        PlanetName = await result.Data.GetPlanetName();
-        PlanetImage = await result.Data.GetPlanetIcon();
+        var result = await JsonSerializer.DeserializeAsync<ClientPlanetInvite>(await response.Content.ReadAsStreamAsync());
+
+        PlanetName = await result.GetPlanetName();
+        PlanetImage = await result.GetPlanetIcon();
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
         string token = ClientUserManager.UserSecretToken;
 
-        InviteCode = result.Data.Code;
-
-        InviteLink = $"/Invite/Join?code={InviteCode}&token={token}";
-
-        //Console.WriteLine(InviteLink);
+        InviteCode = result.Code;
 
         StateHasChanged();
 
@@ -109,25 +104,22 @@
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        string link = $"/Invite/Join?code={InviteCode}&user_id={user_id}&token={token}";
+        var response = await Http.GetAsync($"api/invite/{InviteCode}/join");
 
-        var json = await Http.GetStreamAsync(link);
+        var message = await response.Content.ReadAsStringAsync();
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(json);
-
-        if (result.Success) {
-            infoSpan = result.Message;
+        if (!response.IsSuccessStatusCode)
+        {
+            errorSpan = message;
         }
-        else {
-            errorSpan = result.Message;
+        else
+        {
+            infoSpan = message;
         }
 
         Clicked = true;
 
         StateHasChanged();
-
-        
-
     }
 
 }

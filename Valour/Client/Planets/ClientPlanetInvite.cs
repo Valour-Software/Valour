@@ -25,7 +25,7 @@ namespace Valour.Shared.Planets
         /// </summary>
         public async Task<string> GetPlanetName()
         {
-            var response = await ClientUserManager.Http.GetAsync($"Invite/GetPlanetName?invite_code={Code}");
+            var response = await ClientUserManager.Http.GetAsync($"api/invite/{Code}/planet/name");
             var message = await response.Content.ReadAsStringAsync();
             
             if (!response.IsSuccessStatusCode)
@@ -43,7 +43,7 @@ namespace Valour.Shared.Planets
         /// </summary>
         public async Task<string> GetPlanetIcon()
         {
-            var response = await ClientUserManager.Http.GetAsync($"Invite/GetPlanetIcon?invite_code={Code}");
+            var response = await ClientUserManager.Http.GetAsync($"api/invite/{Code}/planet/icon_url");
             
             var message = await response.Content.ReadAsStringAsync();
             

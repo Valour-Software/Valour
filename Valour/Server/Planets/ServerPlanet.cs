@@ -47,6 +47,9 @@ namespace Valour.Server.Planets
         [InverseProperty("Planet")]
         public virtual ICollection<ServerPlanetCategory> Categories { get; set; }
 
+        [InverseProperty("Planet")]
+        public virtual ICollection<ServerPlanetInvite> Invites { get; set; }
+
         public ItemType ItemType => ItemType.Planet;
 
         public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -365,18 +368,8 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Adds a member to the server
         /// </summary>
-        public async Task AddMemberAsync(User user, ValourDB db = null)
+        public async Task AddMemberAsync(User user, ValourDB db)
         {
-
-            // Setup db if none provided
-            bool dbcreate = false;
-
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-                dbcreate = true;
-            }
-
             // Already a member
             if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))
             {
@@ -406,9 +399,6 @@ namespace Valour.Server.Planets
             await db.SaveChangesAsync();
 
             Console.WriteLine($"User {user.Username} ({user.Id}) has joined {Name} ({Id})");
-
-            // Clean up if created own db
-            if (dbcreate) { await db.DisposeAsync(); }
         }
 
         public void NotifyClientsChange()

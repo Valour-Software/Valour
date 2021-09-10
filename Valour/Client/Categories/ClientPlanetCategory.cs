@@ -155,9 +155,7 @@ namespace Valour.Client.Categories
         {
 
             // For SOME reason the args need to be in this order
-            var response = await ClientUserManager.Http.GetAsync($"Permissions/GetCategoryNode?category_id={Id}" +
-                                                                                                 $"&token={ClientUserManager.UserSecretToken}" +
-                                                                                                 $"&role_id={role.Id}", HttpCompletionOption.ResponseHeadersRead);
+            var response = await ClientUserManager.Http.GetAsync($"api/node/category/{Id}/{role.Id}", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {
