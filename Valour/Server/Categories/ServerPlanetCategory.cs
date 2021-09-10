@@ -1,15 +1,15 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Planets;
 using Valour.Server.Roles;
 using Valour.Shared;
-using Valour.Shared.Categories;
+using Valour.Shared.Items;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 
@@ -25,50 +25,168 @@ namespace Valour.Server.Categories
         [JsonIgnore]
         public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
-        public ChannelListItemType ItemType => ChannelListItemType.Category;
+        /// <summary>
+        /// The id of this category
+        /// </summary>
+        [JsonPropertyName("Id")]
+        public ulong Id { get; set; }
 
         /// <summary>
-        /// Validates that a given name is allowable for a server
+        /// The name of this category
         /// </summary>
-        public static TaskResult ValidateName(string name)
+        [JsonPropertyName("Name")]
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The position of this category
+        /// </summary>
+        [JsonPropertyName("Position")]
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// The id of the parent of this category (if it exists)
+        /// </summary>
+        [JsonPropertyName("Parent_Id")]
+        public ulong? Parent_Id { get; set; }
+
+        /// <summary>
+        /// The id of the planet containing this category
+        /// </summary>
+        [JsonPropertyName("Planet_Id")]
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The description of this category
+        /// </summary>
+        [JsonPropertyName("Description")]
+        public string Description { get; set; }
+
+        /// <summary>
+        /// The type of this item
+        /// </summary>
+        [NotMapped]
+        [JsonPropertyName("ItemType")]
+        public ItemType ItemType => ItemType.Category;
+
+        /// <summary>
+        /// Tries to delete the category while respecting constraints
+        /// </summary>
+        public async Task<TaskResult> TryDeleteAsync(ValourDB db)
         {
-            if (name.Length > 32)
+            var planet = await GetPlanetAsync();
+
+            if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
             {
-                return new TaskResult(false, "Planet names must be 32 characters or less.");
+                return new TaskResult(false, "Last category cannot be deleted");
             }
 
-            if (!nameRegex.IsMatch(name))
+            var childCategoryCount = await db.PlanetCategories.CountAsync(x => x.Parent_Id == Id);
+            var childChannelCount = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == Id);
+
+            if (childCategoryCount != 0 || childChannelCount != 0)
             {
-                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+                return new TaskResult(false, "Category must be empty");
             }
 
-            return new TaskResult(true, "The given name is valid.");
+            // Remove permission nodes
+
+            db.CategoryPermissionsNodes.RemoveRange(
+                db.CategoryPermissionsNodes.Where(x => x.Category_Id == Id)
+            );
+
+            // Remove category
+            db.PlanetCategories.Remove(
+                await db.PlanetCategories.FindAsync(Id)
+            );
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            // Notify of update
+            await PlanetHub.NotifyCategoryDeletion(this);
+
+            return new TaskResult(true, "Success");
         }
 
-        public async Task SetNameAsync(string name, ValourDB db = null)
+        /// <summary>
+        /// Sets the name of this category
+        /// </summary>
+        public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+            TaskResult validName = ValidateName(name);
+            if (!validName.Success) return validName;
 
             this.Name = name;
-
             db.PlanetCategories.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
         }
 
-        public async Task SetDescriptionAsync(string desc, ValourDB db = null)
+        /// <summary>
+        /// Sets the description of this category
+        /// </summary>
+        public async Task SetDescriptionAsync(string desc, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
             this.Description = desc;
-
             db.PlanetCategories.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
+        }
+
+        /// <summary>
+        /// Sets the parent of this category
+        /// </summary>
+        public async Task<TaskResult<int>> TrySetParentAsync(ServerPlanetMember member, ulong? parent_id, int position, ValourDB db)
+        {
+            if (member == null)
+                return new TaskResult<int>(false, "Member not found", 403);
+            if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
+                return new TaskResult<int>(false, "Member lacks CategoryPermissions.ManageCategory", 403);
+
+            if (parent_id != null)
+            {
+                var parent = await db.PlanetCategories.FindAsync(parent_id);
+                if (parent == null) return new TaskResult<int>(false, "Could not find parent", 404);
+                if (parent.Planet_Id != Planet_Id) return new TaskResult<int>(false, "Category belongs to a different planet", 400);
+                if (parent.Id == Id) return new TaskResult<int>(false, "Cannot be own parent", 400);
+
+                if (position == -1)
+                {
+                    var o_cats = await db.PlanetCategories.CountAsync(x => x.Parent_Id == parent_id);
+                    var o_chans = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == parent_id);
+                    this.Position = (ushort)(o_cats + o_chans);
+                }
+                else
+                {
+                    this.Position = (ushort)position;
+                }
+
+                // TODO: additional loop checking
+            }
+            else
+            {
+                if (position == -1)
+                {
+                    var o_cats = await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id && x.Parent_Id == null);
+                    this.Position = (ushort)o_cats;
+                }
+                else
+                {
+                    this.Position = (ushort)position;
+                }
+            }
+
+            this.Parent_Id = parent_id;
+            db.PlanetCategories.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+
+            return new TaskResult<int>(true, "Success", 200);
         }
 
         public async Task<Planet> GetPlanetAsync(ValourDB db = null)
@@ -162,6 +280,29 @@ namespace Valour.Server.Categories
         public void NotifyClientsChange()
         {
             PlanetHub.NotifyCategoryChange(this);
+        }
+
+        /// <summary>
+        /// Validates that a given name is allowable for a server
+        /// </summary>
+        public static TaskResult ValidateName(string name)
+        {
+            if (name.Length > 32)
+            {
+                return new TaskResult(false, "Planet names must be 32 characters or less.");
+            }
+
+            if (!nameRegex.IsMatch(name))
+            {
+                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+            }
+
+            return new TaskResult(true, "The given name is valid.");
+        }
+
+        public static async Task<ServerPlanetCategory> FindAsync(ulong id, ValourDB db)
+        {
+            return await db.PlanetCategories.FindAsync(id);
         }
     }
 }

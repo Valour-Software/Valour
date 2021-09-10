@@ -84,18 +84,16 @@
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        string json = await http.GetStringAsync($"Invite/GetInvites?planet_id={planet_id}" +
-                                                               $"&user_id={user_id}" +
-                                                               $"&token={token}");
+        var response = await http.GetAsync($"api/planet/{planet_id}/invites");
 
-        TaskResult<List<PlanetInvite>> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<List<PlanetInvite>>>(json);
-
-        if (!result.Success)
+        if (!response.IsSuccessStatusCode)
         {
+            Console.WriteLine("Failed to get planet invites.");
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
             return;
         }
 
-        Invites = result.Data;
+        Invites = await JsonSerializer.DeserializeAsync<List<PlanetInvite>>(await response.Content.ReadAsStreamAsync());
 
         StateHasChanged();
     }

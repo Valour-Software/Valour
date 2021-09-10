@@ -5,13 +5,12 @@
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateCategoryModal createCategoryModal
-@using Valour.Shared.Categories
 
 <section>
     <h2 class="create-component-title">Create a Category</h2>
 
     <div asp-validation-summary="All" class="text-info"></div>
-    <div class="form-group mt-2">
+    <div class="form-group mt-2"> 
         <label>Category Name</label>
         <input class="form-control" @bind-value="@name" />
     </div>
@@ -64,9 +63,9 @@
 
     // Spans
     string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
+    Dictionary<PlanetRole, bool> SelectedRoles = new();
 
-    List<PlanetRole> Roles = new List<PlanetRole>();
+    List<PlanetRole> Roles = new();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
@@ -101,38 +100,38 @@
             return;
         }
 
-        ulong parentid = contextMenu.SelectedCategory.Id;
-
-
-        // Encode non-friendly characters
-        string encodedName = System.Web.HttpUtility.UrlEncode(name);
-
+        ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
+        ulong parent_id = contextMenu.SelectedCategory.Id;
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        Console.WriteLine($"Parent Id: {parentid}");
+        ClientPlanetCategory category = new(){
+            Name = name,
+            Description = "A category",
+            Parent_Id = parent_id,
+            Planet_Id = planet_id
+        };
 
-        string json = await Http.GetStringAsync($"Category/CreateCategory?name={encodedName}" +
-                                                                   $"&planet_id={planetManager.GetCurrent().Id}" +
-                                                                   $"&user_id={user_id}" +
-                                                                   $"&parentid={parentid}" +
-                                                                   $"&token={token}");
+        JsonContent content = JsonContent.Create(category);
 
-        TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
+        var response = await Http.PostAsync($"api/planet/{planet_id}/categories", content);
 
-        if (result == null)
+        if (!response.IsSuccessStatusCode)
         {
             imageSpan = "An error occured retrieving a response. Please try again.";
+            return;
         }
 
-        imageSpan = result.Message;
+        ulong category_id = ulong.Parse(await response.Content.ReadAsStringAsync());
+
+        imageSpan = "Success";
 
         if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode PermissionsNode = new CategoryPermissionsNode()
+            CategoryPermissionsNode PermissionsNode = new()
             {
-                Category_Id = result.Data,
+                Category_Id = category_id,
                 Planet_Id = planetManager.GetCurrent().Id,
                 Role_Id = planetManager.GetCurrent().Default_Role_Id,
                 Code_Mask = 0x00,
@@ -141,10 +140,7 @@
 
             PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                    (CategoryPermissionsNode)PermissionsNode);
-
-            Console.WriteLine(result.Message);
+            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
 
             foreach (PlanetRole role in Roles)
             {
@@ -153,9 +149,9 @@
                     continue;
                 }
                 
-                PermissionsNode = new CategoryPermissionsNode()
+                PermissionsNode = new()
                 {
-                    Category_Id = result.Data,
+                    Category_Id = category_id,
                     Planet_Id = planetManager.GetCurrent().Id,
                     Role_Id = role.Id,
                     Code_Mask = 0x00,
@@ -164,19 +160,8 @@
 
                 PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                        (CategoryPermissionsNode)PermissionsNode);
-                if (result == null)
-                {
-                    Console.WriteLine("Error deserializing response for permission node update!");
-                }
-
-                if (!result.Success)
-                {
-                    Console.WriteLine("Error in permission node update!");
-                }
-
-                Console.WriteLine(result.Message);
+                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
+                // TODO: Clean this
             }
         }
 

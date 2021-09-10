@@ -186,11 +186,11 @@
 
             async () =>
             {
-                var result = await ClientUserManager.Http.GetAsync($"/Planet/KickUser?token={ClientUserManager.UserSecretToken}" +
+                var result = await ClientUserManager.Http.GetStringAsync($"/Planet/KickUser?token={ClientUserManager.UserSecretToken}" +
                                                                                    $"&planet_id={Member.Planet_Id}" +
                                                                                    $"&target_id={Member.Id}");
 
-                Console.WriteLine(await result.Content.ReadAsStringAsync());
+                Console.WriteLine(result);
             },
             async () =>
             {
@@ -213,22 +213,27 @@
 
     public async Task OnRoleClick(PlanetRole role, bool value)
     {
-        var response = await ClientUserManager.Http.GetAsync($"Planet/SetMemberRoleMembership?role_id={role.Id}" +
-                                                                                           $"&member_id={Member.Id}" +
-                                                                                           $"&value={value}" +
-                                                                                           $"&token={ClientUserManager.UserSecretToken}");
+        HttpResponseMessage response = null;
 
-        var json = await response.Content.ReadAsStringAsync();
-
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(json);
-
-        if (result == null)
+        if (value){
+            // Add role
+            JsonContent roleContent = JsonContent.Create(role);
+            response = await ClientUserManager.Http.PostAsync($"api/member/{Member.Id}/roles", roleContent);
+        }
+        else
         {
-            Console.WriteLine("Severe error occured during OnRoleClick response from server");
-            return;
+            // Remove role
+            response = await ClientUserManager.Http.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
         }
 
-        Console.WriteLine(result.Message);
+        string result = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Severe error occured during OnRoleClick response from server");
+        }
+
+        Console.WriteLine(result);
 
         StateHasChanged();
     }

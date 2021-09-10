@@ -1,5 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using System.Text.Json;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,6 @@ using Blazored.LocalStorage;
 using Valour.Shared.Planets;
 using System.Runtime.CompilerServices;
 using Valour.Client.Planets;
-using AutoMapper;
 
 namespace Valour.Client
 {
@@ -66,7 +66,7 @@ namespace Valour.Client
         /// <summary>
         /// Tries to initialize the user client by using a local token
         /// </summary>
-        public static async Task<TaskResult> TryInitializeWithLocalToken(ILocalStorageService storage, IMapper mapper)
+        public static async Task<TaskResult> TryInitializeWithLocalToken(ILocalStorageService storage)
         {
             if (User != null)
             {
@@ -81,63 +81,69 @@ namespace Valour.Client
                 return new TaskResult(false, "Failed to retrieve local token.");
             }
 
-            return  await InitializeUser(UserSecretToken, storage, mapper);
+            return await InitializeUser(UserSecretToken, storage);
         }
 
         /// <summary>
         /// Initializes the user using a valid user token
         /// </summary>
-        public static async Task<TaskResult> InitializeUser(string token, ILocalStorageService storage, IMapper mapper)
+        public static async Task<TaskResult> InitializeUser(string token, ILocalStorageService storage)
         {
-            string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
+            StringContent content = new StringContent(token);
 
-            TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(response);
+            var response = await Http.PostAsync($"api/user/withtoken", content);
 
-            if (result.Success)
+            if (!response.IsSuccessStatusCode)
             {
-                User = result.Data;
-                UserSecretToken = token;
-
-                Console.WriteLine($"Initialized user {User.Username}");
-
-                // Store token for future use
-                await StoreToken(storage);
-
-                // Refresh user planet membership
-                await RefreshPlanetsAsync(mapper);
-
-                return new TaskResult(true, "Initialized user successfully!");
+                return new TaskResult(false, "An error occured retrieving the user.");
             }
 
-            return new TaskResult(false, "An error occured retrieving the user.");
+            User = await JsonSerializer.DeserializeAsync<User>(await response.Content.ReadAsStreamAsync());
+            UserSecretToken = token;
+
+
+            Http.DefaultRequestHeaders.Add("authorization", UserSecretToken);
+
+            Console.WriteLine($"Initialized user {User.Username}");
+
+            // Store token for future use
+            await StoreToken(storage);
+
+            // Refresh user planet membership
+            await RefreshPlanetsAsync();
+
+            return new TaskResult(true, "Initialized user successfully!");
         }
 
         /// <summary>
         /// Retrieves and updates the current planets that the user is a member of
         /// </summary>
-        public static async Task RefreshPlanetsAsync(IMapper mapper)
+        public static async Task RefreshPlanetsAsync()
         {
-            string json = await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
+            var response = await Http.GetAsync($"api/user/{User.Id}/planets", HttpCompletionOption.ResponseHeadersRead);
 
-            TaskResult<List<ClientPlanet>> response = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanet>>>(json);
-
-            Console.WriteLine(response.Message);
-
-            if (response.Success)
+            if (!response.IsSuccessStatusCode)
             {
-                foreach (ClientPlanet planet in response.Data)
-                {
-                    // Load planet into cache
-                    //await ClientPlanetManager.Current.AddPlanetAsync(planet);
-
-                    Planets.Add(ClientPlanet.FromBase(planet, mapper));
-                }
+                Console.WriteLine("Fatal error retrieving user planet membership");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                return;
             }
-        }
 
-        public static void RefreshPlanets(IMapper mapper)
-        {
-            RefreshPlanetsAsync(mapper).RunSynchronously();
+            List<ClientPlanet> planets = await JsonSerializer.DeserializeAsync<List<ClientPlanet>>(await response.Content.ReadAsStreamAsync());
+
+            if (planets == null)
+            {
+                Console.WriteLine("Fatal error deserializing member list");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                return;
+            }
+            
+            await Parallel.ForEachAsync(planets, new ParallelOptions(){ MaxDegreeOfParallelism = 10 }, async (planet, token) =>
+            {
+                // Load planet into cache
+                await ClientPlanetManager.Current.AddPlanetAsync(planet);
+                Planets.Add(planet);
+            });
         }
 
         /// <summary>
@@ -145,7 +151,7 @@ namespace Valour.Client
         /// </summary>
         public static async Task StoreToken(ILocalStorageService storage)
         {
-            LocalToken tokenObj = new LocalToken()
+            LocalToken tokenObj = new()
             {
                 Token = UserSecretToken
             };

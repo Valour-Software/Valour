@@ -62,7 +62,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// True if the ban never expires
         /// </summary>
-        public bool Permanent { get; set; }
+        public bool Permanent => Minutes == null;
     }
 
 }

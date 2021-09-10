@@ -34,7 +34,7 @@
     @if (IsOpen)
     {
         <div class="channel-list" ondragover="event.preventDefault();" style="padding-left: 25px">
-            @foreach (ChannelListItem item in ItemList)
+            @foreach (var item in ItemList)
             {
                 ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
                 if (channel != null)

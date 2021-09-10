@@ -199,7 +199,7 @@ else
 
     public async Task SwitchInherit()
     {
-        await ChatChannel.SetPermissionInheritMode(!ChatChannel.Inherits_Perms);
+        await ChatChannel.SetPermissionInheritModeAsync(!ChatChannel.Inherits_Perms);
         StateHasChanged();
     }
 
@@ -272,19 +272,17 @@ else
                                                                                                 (CategoryPermissionsNode)PermissionsNode);
         }
 
-        TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
-
-        if (result == null)
-        {
-            Console.WriteLine("Error deserializing response for permission node update!");
-        }
-
-        if (!result.Success)
+        if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine("Error in permission node update!");
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
+            await RefreshButtons();
+            return;
         }
+        
+        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
 
-        Console.WriteLine(result.Message);
+        Console.WriteLine("Permission node update: " + result.Message);
 
         await RefreshButtons();
     }
@@ -350,7 +348,7 @@ else
 
         Console.WriteLine($"Selected role {Selected_Role.Name}");
 
-        PermissionsNode = await Item.GetPermissionsNode(Selected_Role);
+        PermissionsNode = await Item.GetPermissionsNodeAsync(Selected_Role);
 
         changed = false;
 

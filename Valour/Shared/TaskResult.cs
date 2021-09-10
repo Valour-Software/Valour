@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,29 +13,59 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared
 {
-    public class TaskResult : TaskResult<string>
+    public struct TaskResult
     {
-        public TaskResult(bool success, string response) : base(success, response, null)
-        {
-
-        }
-    }
-
-    public class TaskResult<T>
-    {
-        [JsonProperty]
+        [JsonInclude]
+        [JsonPropertyName("Message")]
         public string Message { get; set; }
 
-        [JsonProperty]
+        [JsonInclude]
+        [JsonPropertyName("Success")]
         public bool Success { get; set; }
-
-        [JsonProperty]
-        public T Data { get; set; }
-
-        public TaskResult(bool success, string response, T data)
+        
+        public TaskResult(bool success, string message)
         {
             Success = success;
-            Message = response;
+            Message = message;
+        }
+
+        public override string ToString()
+        {
+            if (Success)
+            {
+                return $"[SUCC] {Message}";
+            }
+
+            return $"[FAIL] {Message}";
+        }
+
+    }
+    
+    public struct TaskResult<T>
+    {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Success")]
+        public bool Success { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Data")]
+        public T Data { get; set; }
+
+        public TaskResult(bool success, string message)
+        {
+            Success = success;
+            Message = message;
+            Data = default(T);
+        }
+
+        public TaskResult(bool success, string message, T data)
+        {
+            Success = success;
+            Message = message;
             Data = data;
         }
 

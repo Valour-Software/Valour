@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -33,9 +33,9 @@ namespace Valour.Client.Users
             }
 
             // Retrieve from server
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetUser?id={id}");
+            var json = await ClientUserManager.Http.GetStreamAsync($"User/GetUser?id={id}");
 
-            User user = JsonConvert.DeserializeObject<User>(json);
+            User user = await JsonSerializer.DeserializeAsync<User>(json);
 
             if (user == null)
             {

@@ -10,12 +10,15 @@ using Valour.Server.Mapping;
 using Valour.Shared.Oauth;
 using Valour.Server.Roles;
 using Valour.Shared;
-using Valour.Shared.Channels;
 using Valour.Shared.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Users;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.RegularExpressions;
+using Valour.Server.Categories;
+using Valour.Client.Planets;
+using Valour.Shared.Items;
 
 namespace Valour.Server.Planets
 {
@@ -28,7 +31,7 @@ namespace Valour.Server.Planets
     /// <summary>
     /// This class exists to add server funtionality to the Planet class.
     /// </summary>
-    public class ServerPlanet : Planet
+    public class ServerPlanet : Planet, IClientNamedItem
     {
         [InverseProperty("Planet")]
         [JsonIgnore]
@@ -37,6 +40,42 @@ namespace Valour.Server.Planets
         [InverseProperty("Planet")]
         [JsonIgnore]
         public virtual ICollection<ServerPlanetMember> Members { get; set; }
+
+        [InverseProperty("Planet")]
+        public virtual ICollection<ServerPlanetChatChannel> ChatChannels { get; set; }
+
+        [InverseProperty("Planet")]
+        public virtual ICollection<ServerPlanetCategory> Categories { get; set; }
+
+        [InverseProperty("Planet")]
+        public virtual ICollection<ServerPlanetInvite> Invites { get; set; }
+
+        public ItemType ItemType => ItemType.Planet;
+
+        public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+        /// <summary>
+        /// Validates that a given name is allowable for a server
+        /// </summary>
+        public static TaskResult ValidateName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return new TaskResult(false, "Planet names cannot be empty.");
+            }
+
+            if (name.Length > 32)
+            {
+                return new TaskResult(false, "Planet names must be 32 characters or less.");
+            }
+
+            if (!nameRegex.IsMatch(name))
+            {
+                return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+            }
+
+            return new TaskResult(true, "The given name is valid.");
+        }
 
         /// <summary>
         /// Returns a ServerPlanet using a Planet as a base
@@ -56,6 +95,149 @@ namespace Valour.Server.Planets
                 Planet planet = await db.Planets.FindAsync(id);
                 return ServerPlanet.FromBase(planet);
             }
+        }
+        
+        public async Task<TaskResult<int>> TryKickMemberAsync(ServerPlanetMember member, 
+            ServerPlanetMember target, ValourDB db)
+        {
+            if (member == null) 
+                return new TaskResult<int>(false, "Member not found", 404);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Kick, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.View", 403);
+            
+            if (target == null) 
+                return new TaskResult<int>(false, $"Target not found", 404);
+            
+            if (member.Id == target.Id) 
+                return new TaskResult<int>(false, "You cannot kick yourself!", 400);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Kick, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.Kick", 403);
+
+            if (await member.GetAuthorityAsync() <= await target.GetAuthorityAsync())
+            {
+                return new TaskResult<int>(false, "You can only kick members with lower authority!", 403);
+            }
+            
+            // Remove roles
+            var roles = db.PlanetRoleMembers.Where(x => x.Member_Id == target.Id);
+
+            foreach(ServerPlanetRoleMember role in roles) {
+                db.PlanetRoleMembers.Remove(role);
+            }
+
+            // Remove member
+            db.PlanetMembers.Remove(target);
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            return new TaskResult<int>(true, $"Successfully kicked user", 200);
+        }
+
+        public async Task<TaskResult<int>> TryBanMemberAsync(ServerPlanetMember member,
+            ServerPlanetMember target, string reason, uint? duration, ValourDB db)
+        {
+            if (member == null) 
+                return new TaskResult<int>(false, "Member not found", 404);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Kick, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.View", 403);
+            
+            if (target == null) 
+                return new TaskResult<int>(false, $"Target not found", 404);
+            
+            if (member.Id == target.Id) 
+                return new TaskResult<int>(false, "You cannot ban yourself!", 400);
+            
+            if (!await HasPermissionAsync(member, PlanetPermissions.Ban, db))
+                return new TaskResult<int>(false, "Member lacks PlanetPermissions.Ban", 403);
+
+            if (await member.GetAuthorityAsync() <= await target.GetAuthorityAsync())
+            {
+                return new TaskResult<int>(false, "You can only ban members with lower authority!", 403);
+            }
+
+            if (duration == 0) duration = null;
+
+            // Add ban to database
+            PlanetBan ban = new PlanetBan()
+            {
+                Id = IdManager.Generate(),
+                Reason = reason,
+                Time = DateTime.UtcNow,
+                Banner_Id = member.User_Id,
+                User_Id = target.User_Id,
+                Planet_Id = member.Planet_Id,
+                Minutes = duration
+            };
+
+            await db.PlanetBans.AddAsync(ban);
+            
+            // Remove roles
+            var roles = db.PlanetRoleMembers.Where(x => x.Member_Id == target.Id);
+
+            foreach(ServerPlanetRoleMember role in roles) {
+                db.PlanetRoleMembers.Remove(role);
+            }
+
+            // Remove member
+            db.PlanetMembers.Remove(target);
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            return new TaskResult<int>(true, $"Successfully banned user", 200);
+        }
+
+        /// <summary>
+        /// Tries to set the planet name
+        /// </summary>
+        public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
+        {
+            TaskResult nameValid = ValidateName(name);
+
+            if (!nameValid.Success) return nameValid;
+
+            this.Name = name;
+
+            db.Planets.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
+        }
+
+        /// <summary>
+        /// Tries to set the planet description
+        /// </summary>
+        public async Task<TaskResult> TrySetDescriptionAsync(string desc, ValourDB db)
+        {
+            this.Description = desc;
+
+            db.Planets.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
+        }
+
+        /// <summary>
+        /// Tries to set the planet open state
+        /// </summary>
+        public async Task<TaskResult> TrySetPublicAsync(bool pub, ValourDB db)
+        {
+            this.Public = pub;
+
+            db.Planets.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
         }
 
         /// <summary>
@@ -107,72 +289,47 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the primary channel for the planet
         /// </summary>
-        public async Task<PlanetChatChannel> GetPrimaryChannelAsync()
+        public async Task<ServerPlanetChatChannel> GetPrimaryChannelAsync(ValourDB db)
         {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                // TODO: Make a way to choose a primary channel rather than just grabbing the first one
-                return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
-            }
+             return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
         }
 
         /// <summary>
         /// Returns if the given user is authorized to access this planet
         /// </summary>
-        public async Task<bool> AuthorizedAsync(string token, Permission permission)
+        public async Task<bool> HasPermissionAsync(ServerPlanetMember member, PlanetPermission permission, ValourDB db)
         {
+            // Special case for viewing planets
             if (permission.Value == PlanetPermissions.View.Value)
             {
-                if (Public) return true;
-            }
-
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                AuthToken authToken = await db.AuthTokens.FindAsync(token);
-
-                return await AuthorizedAsync(authToken, permission);
-            }
-        }
-
-        /// <summary>
-        /// Returns if the given user is authorized to access this planet
-        /// </summary>
-        public async Task<bool> AuthorizedAsync(AuthToken authToken, Permission permission)
-        {
-            if (permission.Value == PlanetPermissions.View.Value)
-            {
-                if (Public || (await IsMemberAsync(authToken.User_Id)))
+                if (Public || (member != null))
                 {
                     return true;
                 }
-
             }
 
-            if (authToken == null)
+            // At this point all permissions require membership
+            if (member == null)
             {
                 return false;
             }
-            else
+
+            // Owner has all permissions
+            if (member.User_Id == Owner_Id)
             {
-
-                // Owner has all permissions
-                if (authToken.User_Id == Owner_Id)
-                {
-                    return true;
-                }
-
-                // In the future we do role magic here
+                return true;
             }
 
-            return false;
-        }
+            // Get user main role
+            var mainRole = await db.Entry(member).Collection(x => x.RoleMembership)
+                                                 .Query()
+                                                 .Include(x => x.Role)
+                                                 .OrderBy(x => x.Role.Position)
+                                                 .Select(x => x.Role)
+                                                 .FirstAsync();
 
-        public async Task<bool> HasPermissionAsync(ServerPlanetMember member, PlanetPermission permission)
-        {
-            if (member.User_Id == Owner_Id) return true;
-
-            var roles = await member.GetRolesAsync();
-            return roles[0].HasPermission(permission);
+            // Return permission state
+            return mainRole.HasPermission(permission);
         }
 
         /// <summary>
@@ -205,24 +362,14 @@ namespace Valour.Server.Planets
                 await db.DisposeAsync();
             }
 
-            return roles; 
+            return roles;
         }
 
         /// <summary>
         /// Adds a member to the server
         /// </summary>
-        public async Task AddMemberAsync(User user, ValourDB db = null)
+        public async Task AddMemberAsync(User user, ValourDB db)
         {
-
-            // Setup db if none provided
-            bool dbcreate = false;
-
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-                dbcreate = true;
-            }
-            
             // Already a member
             if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))
             {
@@ -252,9 +399,11 @@ namespace Valour.Server.Planets
             await db.SaveChangesAsync();
 
             Console.WriteLine($"User {user.Username} ({user.Id}) has joined {Name} ({Id})");
-            
-            // Clean up if created own db
-            if (dbcreate) { await db.DisposeAsync(); }
+        }
+
+        public void NotifyClientsChange()
+        {
+            PlanetHub.NotifyPlanetChange(this);
         }
     }
 }

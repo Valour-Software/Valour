@@ -182,8 +182,14 @@ function insertTextAtCaret(text) {
 
 function OnMessageLoad(innerContent) {
 
-    for (let item of innerContent.getElementsByTagName('code')) {
-        hljs.highlightElement(item);
+    if (innerContent != null && innerContent.getElementsByTagName) {
+        var code_els = innerContent.getElementsByTagName('code');
+
+        if (code_els != null) {
+            for (let item of code_els) {
+                hljs.highlightElement(item);
+            }
+        }
     }
 
     //innerContent.getElementsByTagName('code').forEach(el => 

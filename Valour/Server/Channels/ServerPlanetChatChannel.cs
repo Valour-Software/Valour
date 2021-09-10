@@ -1,25 +1,17 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Valour.Client.Users;
 using Valour.Server.Database;
-using Valour.Server.Mapping;
 using Valour.Shared.Oauth;
-using Valour.Server.Roles;
-using Valour.Server.Users;
-using Valour.Shared.Channels;
-using Valour.Shared.Planets;
 using Valour.Shared.Roles;
-using Valour.Shared.Users;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using Valour.Shared;
 using Valour.Server.Categories;
-using System.Diagnostics;
+using Valour.Shared.Items;
 
 namespace Valour.Server.Planets
 {
@@ -42,87 +34,136 @@ namespace Valour.Server.Planets
         public virtual ServerPlanet Planet { get; set; }
 
         [ForeignKey("Parent_Id")]
+        [JsonIgnore]
         public virtual ServerPlanetCategory Parent { get; set; }
 
-        public ChannelListItemType ItemType => ChannelListItemType.ChatChannel;
+        /// <summary>
+        /// The id of this channel
+        /// </summary>
+        [JsonPropertyName("Id")]
+        public ulong Id { get; set; }
 
         /// <summary>
-        /// Returns the generic planet chat channel object
+        /// The name of this channel
         /// </summary>
-        [JsonIgnore]
-        public ServerPlanetChatChannel PlanetChatChannel
+        [JsonPropertyName("Name")]
+        public string Name { get; set; }
+
+        /// <summary>
+        /// The number of messages within this channel
+        /// </summary>
+        [JsonPropertyName("Message_Count")]
+        public ulong Message_Count { get; set; }
+
+        /// <summary>
+        /// True of this channel inherits permissions from its category
+        /// </summary>
+        [JsonPropertyName("Inherits_Perms")]
+        public bool Inherits_Perms { get; set; }
+
+        /// <summary>
+        /// The position of this channel
+        /// </summary>
+        [JsonPropertyName("Position")]
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// The id of the parent category of this channel
+        /// </summary>
+        [JsonPropertyName("Parent_Id")]
+        public ulong? Parent_Id { get; set; }
+
+        /// <summary>
+        /// The id of the planet this channel belongs to
+        /// </summary>
+        [JsonPropertyName("Planet_Id")]
+        public ulong Planet_Id { get; set; }
+
+        /// <summary>
+        /// The description of this channel
+        /// </summary>
+        [JsonPropertyName("Description")]
+        public string Description { get; set; }
+
+        [NotMapped]
+        [JsonPropertyName("ItemType")]
+        public ItemType ItemType => ItemType.Channel;
+
+        /// <summary>
+        /// The regex used for name validation
+        /// </summary>
+        public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+        /// <summary>
+        /// Deletes this channel
+        /// </summary>
+        public async Task<TaskResult<int>> TryDeleteAsync(ServerPlanetMember member, ValourDB db)
         {
-            get
-            {
-                return (ServerPlanetChatChannel)this;
-            }
+            Planet ??= await GetPlanetAsync(db);
+
+            if (Id == Planet.Main_Channel_Id)
+                return new TaskResult<int>(false, $"Cannot delete main channel", 400);
+
+            if (member == null) 
+                return new TaskResult<int>(false, "Member not found", 403);
+
+            if (!await HasPermission(member, ChatChannelPermissions.View, db)) 
+                return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.View", 403);
+
+            if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db)) 
+                return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.ManageChannel", 403);
+
+            // Remove permission nodes
+            db.ChatChannelPermissionsNodes.RemoveRange(
+                db.ChatChannelPermissionsNodes.Where(x => x.Channel_Id == Id)
+            );
+
+            // Remove messages
+            db.PlanetMessages.RemoveRange(
+                db.PlanetMessages.Where(x => x.Channel_Id == Id)
+            );
+
+            // Remove channel
+            db.PlanetChatChannels.Remove(
+                await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == Id)
+            );
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            // Notify channel deletion
+            await PlanetHub.NotifyChatChannelDeletion(this);
+
+            return new TaskResult<int>(true, "Success", 200);
         }
 
         /// <summary>
-        /// Returns a ServerPlanetChatChannel using a PlanetChatChannel as a base
+        /// Returns the planet this channel belongs to
         /// </summary>
-        public static ServerPlanetChatChannel FromBase(PlanetChatChannel channel)
+        public async Task<ServerPlanet> GetPlanetAsync(ValourDB db)
         {
-            return MappingManager.Mapper.Map<ServerPlanetChatChannel>(channel);
-        }
-
-        /// <summary>
-        /// Retrieves a ServerPlanetChatChannel for the given id
-        /// </summary>
-        public static async Task<ServerPlanetChatChannel> FindAsync(ulong id)
-        {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                PlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(id);
-                return ServerPlanetChatChannel.FromBase(channel);
-            }
-        }
-
-        public async Task<ServerPlanet> GetPlanetAsync(ValourDB db = null)
-        {
-            if (Planet != null) return Planet;
-
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-            }
-
-            Planet = await db.Planets.FindAsync(Planet_Id);
-
-            if (createdb) await db.DisposeAsync();
-
+            Planet ??= await db.Planets.FindAsync(Planet_Id);
             return Planet;
         }
 
-        public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db = null)
+        /// <summary>
+        /// Returns the parent category of this channel
+        /// </summary>
+        public async Task<ServerPlanetCategory> GetParentAsync(ValourDB db)
         {
-            if (Parent != null) return Parent;
-
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-            }
-
-            Parent = await db.PlanetCategories.FindAsync(Parent_Id);
-
-            if (createdb) await db.DisposeAsync();
-
+            Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
             return Parent;
         }
 
+        /// <summary>
+        /// Returns if a given member has a channel permission
+        /// </summary>
         public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
         {
-            if (Planet == null)
-            {
-                Planet = await GetPlanetAsync(db);
-            }
+            Planet ??= await GetPlanetAsync(db);
 
             if (Planet.Owner_Id == member.User_Id)
-            {
                 return true;
-            }
 
             // If true, we just ask the category
             if (Inherits_Perms)
@@ -183,55 +224,71 @@ namespace Valour.Server.Planets
             return false;
         }
 
-        public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
         /// <summary>
         /// Validates that a given name is allowable for a channel
         /// </summary>
         public static TaskResult ValidateName(string name)
         {
             if (name.Length > 32)
-            {
                 return new TaskResult(false, "Channel names must be 32 characters or less.");
-            }
 
             if (!nameRegex.IsMatch(name))
-            {
                 return new TaskResult(false, "Channel names may only include letters, numbers, dashes, and underscores.");
-            }
 
             return new TaskResult(true, "The given name is valid.");
         }
 
-        public async Task SetNameAsync(string name, ValourDB db = null)
+        /// <summary>
+        /// Sets the name of this channel
+        /// </summary>
+        public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
+            TaskResult validName = ValidateName(name);
+            if (!validName.Success) return validName;
 
             this.Name = name;
-
             db.PlanetChatChannels.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
+
+            return new TaskResult(true, "Success");
         }
 
-        public async Task SetDescriptionAsync(string desc, ValourDB db = null)
+        /// <summary>
+        /// Sets the description of this channel
+        /// </summary>
+        public async Task SetDescriptionAsync(string desc, ValourDB db)
         {
-            bool createdb = false;
-            if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
             this.Description = desc;
-
             db.PlanetChatChannels.Update(this);
             await db.SaveChangesAsync();
 
-            if (createdb) { await db.DisposeAsync(); }
+            NotifyClientsChange();
         }
 
-        public void NotifyClientsChange()
+        /// <summary>
+        /// Sets the parent of this channel
+        /// </summary>
+        public async Task SetParentAsync(ulong parent_id, ValourDB db)
         {
-            PlanetHub.NotifyChatChannelChange(this);
+            this.Parent_Id = parent_id;
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
+        }
+
+        /// <summary>
+        /// Sets the permissions inherit mode of this channel
+        /// </summary>
+        public async Task SetInheritsPermsAsync(bool inherits_perms, ValourDB db)
+        {
+            this.Inherits_Perms = inherits_perms;
+            db.PlanetChatChannels.Update(this);
+            await db.SaveChangesAsync();
+
+            NotifyClientsChange();
         }
 
         /// <summary>
@@ -257,6 +314,19 @@ namespace Valour.Server.Planets
             if (createdb) { await db.DisposeAsync(); }
 
             return members;
+        }
+
+        /// <summary>
+        /// Notifies all clients that this channel has changed
+        /// </summary>
+        public void NotifyClientsChange()
+        {
+            PlanetHub.NotifyChatChannelChange(this);
+        }
+
+        public static async Task<ServerPlanetChatChannel> FindAsync(ulong id, ValourDB db)
+        {
+            return await db.PlanetChatChannels.FindAsync(id);
         }
     }
 }

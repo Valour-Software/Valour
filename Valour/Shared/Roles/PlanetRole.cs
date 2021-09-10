@@ -1,9 +1,10 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Valour.Shared.Oauth;
 
@@ -31,41 +32,62 @@ namespace Valour.Shared.Roles
             };
         }
 
+        public static PlanetRole VictorRole = new PlanetRole()
+        {
+            Name = "Victor Class",
+            Id = ulong.MaxValue,
+            Position = uint.MaxValue,
+            Planet_Id = 0,
+            Color_Red = 255,
+            Color_Green = 0,
+            Color_Blue = 255
+        };
+
         /// <summary>
         /// The unique Id of this role
         /// </summary>
+        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
 
         /// <summary>
         /// The name of the role
         /// </summary>
+        [JsonPropertyName("Name")]
         public string Name { get; set; }
 
         /// <summary>
         /// The position of the role: Lower has more authority
         /// </summary>
+        [JsonPropertyName("Position")]
         public uint Position { get; set; }
 
         /// <summary>
         /// The ID of the planet or system this role belongs to
         /// </summary>
+        [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
 
         /// <summary>
         /// The planet permissions for the role
         /// </summary>
+        [JsonPropertyName("Permissions")]
         public ulong Permissions { get; set; }
 
         // RGB Components for role color
+        [JsonPropertyName("Color_Red")]
         public byte Color_Red { get; set; }
 
+        [JsonPropertyName("Color_Green")]
         public byte Color_Green { get; set; }
 
+        [JsonPropertyName("Color_Blue")]
         public byte Color_Blue { get; set; }
 
         // Formatting options
+        [JsonPropertyName("Bold")]
         public bool Bold { get; set; }
 
+        [JsonPropertyName("Italics")]
         public bool Italics { get; set; }
 
         public uint GetAuthority()

@@ -220,7 +220,10 @@
 
         primaryRole = await Author.GetPrimaryRoleAsync();
 
-        roleName = primaryRole.Name;
+        if (primaryRole != null)
+        {
+            roleName = primaryRole.Name;
+        }
 
         string pfp = await Author.GetPfpAsync();
 
@@ -275,7 +278,9 @@
     {
         ShouldRenderValue = true;
         StateHasChanged();
-        ContentComponent.ReRender();
+        
+        ContentComponent?.ReRender();
+
         ShouldRenderValue = false;
     }
 

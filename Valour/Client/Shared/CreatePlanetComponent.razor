@@ -1,6 +1,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper 
+@inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
 
 <div class="popup-box">
@@ -9,19 +9,19 @@
             <h2>Create a new Planet</h2>
 
             <h4>The birth of a community!</h4>
-            <hr />
+            <hr/>
             <div asp-validation-summary="All" class="text-info"></div>
             <div class="form-group mt-2">
                 <label>Community Name</label>
-                <input class="form-control" @bind-value="@name" />
+                <input class="form-control" @bind-value="@name"/>
                 <span id="name-span" style="color:#888888">@nameSpan</span>
             </div>
             <div class="form-group mt-2" style="display: inline-block; width:80%">
                 <label>Icon Url</label>
-                <input class="form-control" @bind-value="@image_url" @bind-value:event="oninput" />
+                <input class="form-control" @bind-value="@image_url" @bind-value:event="oninput"/>
                 <span id="image-span" style="color:#888888">@imageSpan</span>
             </div>
-            <img class="mt-2" src="@image_url" style="width: 64px; height: 64px; float:right" />
+            <img class="mt-2" src="@image_url" style="width: 64px; height: 64px; float:right"/>
             <div class="form-group mt-4">
                 <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Submit</button>
             </div>
@@ -40,79 +40,67 @@
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
-
-        // Require a name
+    // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
             name = "Please input a planet name.";
             return;
         }
 
-        // Default to valour logo
+    // Default to valour logo
         if (string.IsNullOrWhiteSpace(image_url))
         {
             image_url = "https://valour.gg/image.png";
         }
 
-        // Encode non-friendly characters
+    // Encode non-friendly characters
         string encodedName = System.Web.HttpUtility.UrlEncode(name);
         string encodedImageUrl = System.Web.HttpUtility.UrlEncode(image_url);
 
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        string json = await Http.GetStringAsync($"Planet/CreatePlanet?name={encodedName}" +
-                                                                   $"&image_url={encodedImageUrl}" +
-                                                                   $"&user_id={user_id}" +
-                                                                   $"&token={token}");
+        var response = await Http.GetAsync($"api/planet/create?name={encodedName}" +
+                                           $"&image_url={encodedImageUrl}" +
+                                           $"&user_id={user_id}",
+                                           HttpCompletionOption.ResponseHeadersRead);
 
-        TaskResult<ulong> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
-
-        if (result == null)
+        if (!response.IsSuccessStatusCode)
         {
-            imageSpan = "An error occured retrieving a response. Please try again.";
+            imageSpan = "An error occured retrieving a response. Please try again. Error: " + await response.Content.ReadAsStringAsync();
+            return;
         }
 
-        imageSpan = result.Message;
+        ulong planet_id = await JsonSerializer.DeserializeAsync<ulong>(await response.Content.ReadAsStreamAsync());
 
-        // Send user into planet if successful
-        if (result.Success)
+        imageSpan = "Planet created.";
+
+        response = await Http.GetAsync($"api/planet/{planet_id}", HttpCompletionOption.ResponseHeadersRead);
+
+        if (!response.IsSuccessStatusCode)
         {
-            ulong planet_id = result.Data;
-
-            json = await Http.GetStringAsync($"Planet/GetPlanet?planet_id={planet_id}" +
-                                                               $"&user_id={user_id}" +
-                                                               $"&token={token}");
-
-            TaskResult<Planet> planetResult = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<Planet>>(json);
-
-            if (!planetResult.Success)
-            {
-                Console.WriteLine($"Failed to retrieve planet: {planetResult.Message}");
-                imageSpan = "Created planet, but error occured retrieving. Please restart Valour.";
-                return;
-            }
-
-            ClientPlanet planet = ClientPlanet.FromBase(planetResult.Data, Mapper);
-
-            PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync(Mapper);
-
-            windowManager.ClearWindows();
-
-            ClientPlanetChatChannel channel = ClientPlanetChatChannel.FromBase(mainChannel, Mapper);
-
-            windowManager.AddWindow(new ChatChannelWindow(0, channel));
-
-            await windowManager.SetSelectedWindow(0);
-
-            // Return to index
-            navManager.NavigateTo("/", true);
-
+            Console.WriteLine($"Failed to retrieve planet {planet_id}");
+            Console.WriteLine(await response.Content.ReadAsStringAsync());
+            imageSpan = "Created planet, but error occured retrieving. Please restart Valour.";
+            return;
         }
+
+        ClientPlanet planet = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
+
+        ClientPlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+
+        windowManager.ClearWindows();
+
+        windowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
+
+        await windowManager.SetSelectedWindow(0);
+
+    // Return to index
+        navManager.NavigateTo("/", true);
     }
 
     private async Task OnImageInput()
     {
-
     }
+
 }

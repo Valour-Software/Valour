@@ -1,21 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
-using System.Security.Claims;
 using Valour.Server.Users;
 using Valour.Server.Users.Identity;
-using Valour.Shared.Oauth;
 using Valour.Shared.Users;
 using Valour.Shared.Planets;
 using Valour.Server.Planets;
-using Valour.Shared.Channels;
-using Valour.Shared.Categories;
 using Valour.Server.Email;
 using Valour.Shared.Messages;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Shared;
 using Valour.Shared.Roles;
 using Valour.Server.Roles;
 using Valour.Server.Oauth;
@@ -27,17 +17,19 @@ namespace Valour.Server.Database
     public class ValourDB : DbContext
     {
 
-        public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;";
+        public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;charset=utf8mb4;";
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
         {
-            options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => options.EnableRetryOnFailure());
+            options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => { 
+                options.EnableRetryOnFailure(); 
+            });
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.HasCharSet(CharSet.Utf8Mb4);
+            //modelBuilder.HasCharSet(CharSet.Utf8Mb4);
         }
 
         // These are the database sets we can access
@@ -47,7 +39,9 @@ namespace Valour.Server.Database
         /// This is only here to fulfill the need of the constructor.
         /// It does literally nothing at all.
         /// </summary>
-        public static DbContextOptions DBOptions;
+        public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => {
+            options.EnableRetryOnFailure();
+        }).Options;
 
         /// <summary>
         /// Table for message cache
@@ -109,7 +103,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Table for planet invites
         /// </summary>
-        public DbSet<PlanetInvite> PlanetInvites { get; set; }
+        public DbSet<ServerPlanetInvite> PlanetInvites { get; set; }
 
         /// <summary>
         /// Table for planet invites
@@ -138,7 +132,7 @@ namespace Valour.Server.Database
 
         public DbSet<ServerChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
 
-        public DbSet<CategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
+        public DbSet<ServerCategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
 
         public DbSet<ServerPlanetRole> PlanetRoles { get; set; }
 

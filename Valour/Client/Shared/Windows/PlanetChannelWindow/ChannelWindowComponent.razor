@@ -382,19 +382,34 @@
         });
         */
 
-        string json = Newtonsoft.Json.JsonConvert.SerializeObject(message);
-
-        Console.WriteLine("SEND: \n" + json);
-
         MessageHolder.AddQueuedMessage(message);
 
-        HttpResponseMessage httpresponse = await Http.PostAsJsonAsync<PlanetMessage>($"Channel/PostMessage?token={ClientUserManager.UserSecretToken}", message);
+        string json = JsonSerializer.Serialize(message);
+
+        StringContent content = new StringContent(json);
+
+        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{Channel.Id}/messages", content);
 
         string res = await httpresponse.Content.ReadAsStringAsync();
 
-        TaskResult response = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(res);
+        Console.WriteLine("Message post: " + res);
 
-        Console.WriteLine(response.ToString());
+        if (!httpresponse.IsSuccessStatusCode)
+        {
+            MessageHolder.RemoveQueuedMessage(message.Fingerprint);
+
+            ClientPlanetMessage errorMsg = new()
+            {
+                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {res}",
+                Author_Id = ulong.MaxValue,
+                Member_Id = ulong.MaxValue,
+                Channel_Id = Channel.Id,
+                Message_Index = ulong.MaxValue
+            };
+
+            MessageHolder.RemoveErrorMessage();
+            await MessageHolder.AddMessage(errorMsg);
+        }
     }
 
     public async Task UpdateScrollPosition()

@@ -62,7 +62,7 @@
     public async Task DeleteChannelListItem()
     {
 
-        bool IsCategory = channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.Category;
+        bool IsCategory = channelListContextMenu.SelectedItem.ItemType == ItemType.Category;
 
         if (IsCategory) {
 
@@ -100,27 +100,12 @@
         {
             Console.WriteLine("Confirmed channel item deletion.");
 
-            //Delete(ulong id, ulong user_id, string token)
-
             ulong user_id = ClientUserManager.User.Id;
             string token = ClientUserManager.UserSecretToken;
-            string json = "";
 
-            if (channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.ChatChannel) {
-                json = await Http.GetStringAsync($"Channel/Delete?id={channelListContextMenu.SelectedItem.Id}" +
-                                                                    $"&user_id={user_id}" +
-                                                                    $"&token={token}");
-            }
+            var result = await channelListContextMenu.SelectedItem.TryDeleteAsync();
 
-            else {
-                json = await Http.GetStringAsync($"Category/Delete?id={channelListContextMenu.SelectedItem.Id}" +
-                                                                    $"&user_id={user_id}" +
-                                                                    $"&token={token}");
-            }
-
-            TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
-
-            Console.WriteLine(result.Message);
+            Console.WriteLine("Deletion: " + result.Message);
 
         },
 

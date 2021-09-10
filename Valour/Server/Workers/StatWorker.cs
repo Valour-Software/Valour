@@ -1,21 +1,11 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
 using Valour.Server.Database;
-using Valour.Shared.Messages;
-using System.Collections.Concurrent;
-using Valour.Shared.Channels;
-using Newtonsoft.Json;
-using Valour.Server.Messages;
-using Microsoft.AspNetCore.SignalR;
-using Valour.Shared;
-using System.Collections.Generic;
-using System.Linq;
-using Valour.Server.Planets;
 
 namespace Valour.Server.Workers
 {
@@ -39,8 +29,6 @@ namespace Valour.Server.Workers
         {
             stats.MessagesSent += 1;
         }
-
-        public static IHostingEnvironment env;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
@@ -70,12 +58,12 @@ namespace Valour.Server.Workers
                 });
                 while (!task.IsCompleted)
                 {
-                    _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now}");
+                    _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now.ToString()}");
                     await Task.Delay(60000, stoppingToken);
                 }
 
-                _logger.LogInformation("Stat Worker task stopped at: {time}", DateTimeOffset.Now);
-                _logger.LogInformation("Restarting.", DateTimeOffset.Now);
+                _logger.LogInformation("Stat Worker task stopped at: {time}", DateTimeOffset.Now.ToString());
+                _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
             }
         }
     }

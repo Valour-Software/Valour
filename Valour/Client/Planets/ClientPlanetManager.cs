@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using Newtonsoft.Json;
 using System;
+using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoMapper;
 using Valour.Client.Categories;
 using Valour.Client.Channels;
 using Valour.Client.Messages;
@@ -30,21 +31,17 @@ namespace Valour.Client.Planets
         /// </summary>
         private ClientPlanet CurrentPlanet { get; set; }
 
-        private Dictionary<ulong, ClientPlanet> OpenPlanets = new Dictionary<ulong, ClientPlanet>();
-        private Dictionary<ulong, ClientPlanetChatChannel> OpenPlanetChatChannels = new Dictionary<ulong, ClientPlanetChatChannel>();
-        private List<ChatChannelWindow> OpenPlanetChatWindows = new List<ChatChannelWindow>();
-        private ConcurrentDictionary<ulong, PlanetRole> PlanetRolesCache = new ConcurrentDictionary<ulong, PlanetRole>();
-        private ConcurrentDictionary<ulong, ClientPlanet> PlanetCache = new ConcurrentDictionary<ulong, ClientPlanet>();
-
-        // Caches planet members by ID
-        private static ConcurrentDictionary<ulong, ClientPlanetMember> PlanetMemberCache = new ConcurrentDictionary<ulong, ClientPlanetMember>();
+        private Dictionary<ulong, ClientPlanet> OpenPlanets = new();
+        private Dictionary<ulong, ClientPlanetChatChannel> OpenPlanetChatChannels = new();
+        private List<ChatChannelWindow> OpenPlanetChatWindows = new();
+        private ConcurrentDictionary<ulong, PlanetRole> PlanetRolesCache = new();
 
         // Caches planet members by a key built from user ID and planet ID
-        private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberDualCache = new ConcurrentDictionary<string, ClientPlanetMember>();
+        private static ConcurrentDictionary<string, ClientPlanetMember> PlanetMemberDualCache = new();
 
         // Used to cache data for several open planets. Data is returned for the given planet id.
-        private ConcurrentDictionary<ulong, List<ulong>> PlanetRolesListCache = new ConcurrentDictionary<ulong, List<ulong>>();
-        private ConcurrentDictionary<ulong, List<ClientPlanetMember>> PlanetMembersListCache = new ConcurrentDictionary<ulong, List<ClientPlanetMember>>();
+        private ConcurrentDictionary<ulong, List<ulong>> PlanetRolesListCache = new();
+        private ConcurrentDictionary<ulong, List<ClientPlanetMember>> PlanetMembersListCache = new();
 
         public event Func<ClientPlanet, Task> OnPlanetChange;
 
@@ -63,6 +60,8 @@ namespace Valour.Client.Planets
 
         public event Func<ClientPlanetMember, Task> OnMemberUpdate;
 
+        public event Func<ClientPlanet, Task> OnPlanetUpdate;
+
         public event Func<ClientPlanetChatChannel, Task> OnChatChannelUpdate;
         public event Func<ClientPlanetChatChannel, Task> OnChatChannelDeletion;
         public event Func<ClientPlanetCategory, Task> OnCategoryDeletion;
@@ -73,7 +72,7 @@ namespace Valour.Client.Planets
 
         public ClientPlanetManager(SignalRManager signalrmanager)
         {
-            this.signalRManager = signalrmanager;
+            signalRManager = signalrmanager;
 
             signalRManager.hubConnection.On<string>("Relay", OnMessageRecieve);
             signalRManager.hubConnection.On<string>("RoleUpdate", UpdateRole);
@@ -83,6 +82,14 @@ namespace Valour.Client.Planets
             signalRManager.hubConnection.On<string>("CategoryUpdate", UpdateCategory);
             signalRManager.hubConnection.On<string>("ChatChannelDeletion", ChatChannelDeletion);
             signalRManager.hubConnection.On<string>("CategoryDeletion", CategoryDeletion);
+            signalRManager.hubConnection.On<string>("PlanetUpdate", UpdatePlanet);
+
+            ClientCache.Members.TryAdd(ulong.MaxValue, new ClientPlanetMember()
+            {
+                Nickname = "Victor",
+                Id = ulong.MaxValue,
+                Member_Pfp = "/media/victor-cyan.png"
+            });
         }
 
         public bool IsChatChannelOpen(ClientPlanetChatChannel channel)
@@ -102,10 +109,7 @@ namespace Valour.Client.Planets
 
         public async Task AddPlanetAsync(ClientPlanet planet)
         {
-            PlanetCache.AddOrUpdate(planet.Id, planet, (key, old) => planet);
-
-            // Pre-cache roles
-            await GetPlanetRoles(planet.Id);
+            ClientCache.Planets[planet.Id] = planet;
         }
 
         /// <summary>
@@ -114,13 +118,13 @@ namespace Valour.Client.Planets
         public async Task<ClientPlanet> GetPlanetAsync(ulong id)
         {
             // Attempt to retrieve from cache
-            if (PlanetCache.ContainsKey(id))
+            if (ClientCache.Planets.ContainsKey(id))
             {
-                return PlanetCache[id];
+                return ClientCache.Planets[id];
             }
 
             // Retrieve from server
-            ClientPlanet planet = await ClientPlanet.GetClientPlanetAsync(id);
+            ClientPlanet planet = await ClientPlanet.GetPlanetAsync(id);
 
             if (planet == null)
             {
@@ -129,7 +133,7 @@ namespace Valour.Client.Planets
             }
 
             // Add to cache
-            PlanetCache.TryAdd(id, planet);
+            ClientCache.Planets[id] = planet;
 
             return planet;
 
@@ -162,34 +166,26 @@ namespace Valour.Client.Planets
         public async Task LoadPlanetRoles(ulong planet_id)
         {
             // Get planet roles
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRoles?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/planet/{planet_id}/roles", HttpCompletionOption.ResponseHeadersRead);
 
-            Console.WriteLine(json);
-
-            TaskResult<List<PlanetRole>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetRole>>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
+            
+            List<PlanetRole> result = await JsonSerializer.DeserializeAsync<List<PlanetRole>>(await response.Content.ReadAsStreamAsync());
 
-            if (!result.Success)
-            {
-                Console.WriteLine($"Critical error in getting planet roles for planet {planet_id}");
-                Console.WriteLine(result.Message);
-                return;
-            }
-
-            PlanetRolesListCache[planet_id] = result.Data.Select(x => x.Id).ToList();
+            PlanetRolesListCache[planet_id] = result.Select(x => x.Id).ToList();
 
             // Set roles into role cache
-            foreach (var role in result.Data)
+            foreach (var role in result)
             {
-                PlanetRolesCache.AddOrUpdate(role.Id, role, (key, old) => role);
+                PlanetRolesCache[role.Id] = role;
             }
 
-            Console.WriteLine($"Loaded {result.Data.Count} roles into cache for planet {planet_id}");
+            Console.WriteLine($"Loaded {result.Count} roles into cache for planet {planet_id}");
         }
 
         /// <summary>
@@ -228,63 +224,59 @@ namespace Valour.Client.Planets
             }
 
             // Get planet roles
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetRole?role_id={role_id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"Planet/GetPlanetRole?role_id={role_id}&token={ClientUserManager.UserSecretToken}", HttpCompletionOption.ResponseHeadersRead);
 
-            Console.WriteLine(json);
-
-            TaskResult<PlanetRole> result = JsonConvert.DeserializeObject<TaskResult<PlanetRole>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine($"Critical error in getting planet role with id {role_id}");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
+            
+            PlanetRole result = await JsonSerializer.DeserializeAsync<PlanetRole>(await response.Content.ReadAsStreamAsync());
 
-            if (!result.Success)
-            {
-                Console.WriteLine($"Critical error in getting planet role with id {role_id}");
-                Console.WriteLine(result.Message);
-                return null;
-            }
+            PlanetRolesCache[role_id] = result;
 
-            PlanetRolesCache.TryAdd(role_id, result.Data);
-
-            return result.Data;
+            return result;
         }
 
         public async Task SetUpdatedMember(ClientPlanetMember member)
         {
             string dual_key = $"{member.Planet_Id}-{member.User_Id}";
 
-            PlanetMemberDualCache.AddOrUpdate(dual_key, member, (key, old) => member);
-            PlanetMemberCache.AddOrUpdate(member.Id, member, (key, old) => member);
+            PlanetMemberDualCache[dual_key] = member;
+            ClientCache.Members[member.Id] = member;
         }
 
         public async Task RemoveMember(ClientPlanetMember member)
         {
             string dual_key = $"{member.Planet_Id}-{member.User_Id}";
-
-            ClientPlanetMember o;
-            PlanetMemberDualCache.Remove(dual_key, out o);
-            PlanetMemberCache.Remove(member.Id, out o);
+            
+            PlanetMemberDualCache.Remove(dual_key, out _);
+            ClientCache.Members.Remove(member.Id, out _);
         }
 
         public async Task SetUpdatedRole(PlanetRole role)
         {
-            PlanetRolesCache.AddOrUpdate(role.Id, role, (key, old) => role);
+            PlanetRolesCache[role.Id] = role;
         }
 
         public async Task LoadAllPlanetMemberInfoAsync(ulong planet_id)
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberInfo?planet_id={planet_id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/planet/{planet_id}/member_info", HttpCompletionOption.ResponseHeadersRead);
 
-            //Console.WriteLine(json);
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Critical error getting planet member info");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                return;
+            }
 
-            TaskResult<List<PlanetMemberInfo>> result = JsonConvert.DeserializeObject<TaskResult<List<PlanetMemberInfo>>>(json);
+            List<PlanetMemberInfo> result = await JsonSerializer.DeserializeAsync<List<PlanetMemberInfo>>(await response.Content.ReadAsStreamAsync());
 
-            List<ClientPlanetMember> memberList = new List<ClientPlanetMember>();
+            List<ClientPlanetMember> memberList = new();
 
-            foreach (PlanetMemberInfo info in result.Data)
+            foreach (var info in result)
             {
                 ClientPlanetMember member = ClientPlanetMember.FromBase(info.Member);
                 member.SetCacheValues(info);
@@ -293,11 +285,11 @@ namespace Valour.Client.Planets
 
                 if (!PlanetMemberDualCache.ContainsKey(key))
                 {
-                    PlanetMemberDualCache.TryAdd(key, member);
+                    PlanetMemberDualCache[key] = member;
                 }
-                if (!PlanetMemberCache.ContainsKey(member.Id))
+                if (!ClientCache.Members.ContainsKey(member.Id))
                 {
-                    PlanetMemberCache.TryAdd(member.Id, member);
+                    ClientCache.Members[member.Id] = member;
                 }
 
                 memberList.Add(member);
@@ -312,43 +304,30 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<ClientPlanetMember> GetPlanetMemberAsync(ulong member_id)
         {
-            if (PlanetMemberCache.ContainsKey(member_id))
+            if (ClientCache.Members.ContainsKey(member_id))
             {
-                return PlanetMemberCache[member_id];
+                return ClientCache.Members[member_id];
             }
 
             // Otherwise attempt to fetch from server
             // Retrieve from server
-            string json = await ClientUserManager.Http.GetStringAsync($"Member/GetMember?id={member_id}&auth={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/member/{member_id}", HttpCompletionOption.ResponseHeadersRead);
 
-            TaskResult<ClientPlanetMember> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetMember>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                return null;
-            }
-
-            ClientPlanetMember member = result.Data;
-
-            if (member == null)
-            {
-                Console.WriteLine($"Failed to fetch member with id {member_id}.");
-                return null;
-            }
+            
+            ClientPlanetMember member = await JsonSerializer.DeserializeAsync<ClientPlanetMember>(await response.Content.ReadAsStreamAsync());
 
             Console.WriteLine($"Fetched member {member_id} for planet {member.Planet_Id}.");
 
             // Add to cache
             string key = $"{member.Planet_Id}-{member.User_Id}";
-            PlanetMemberDualCache.TryAdd(key, member);
-            PlanetMemberCache.TryAdd(member.Id, member);
+            PlanetMemberDualCache[key] = member;
+            ClientCache.Members[member.Id] = member;
 
             return member;
         }
@@ -376,25 +355,18 @@ namespace Valour.Client.Planets
             }
 
             // Retrieve from server
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMember?user_id={user_id}&planet_id={planet_id}&auth={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/member/planet/{planet_id}/user/{user_id}", HttpCompletionOption.ResponseHeadersRead);
 
-            TaskResult<ClientPlanetMember> result = JsonConvert.DeserializeObject<TaskResult<ClientPlanetMember>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a planet member from the server.");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return null;
             }
 
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                return null;
-            }
-
-            ClientPlanetMember member = result.Data;
-
-            if (member == null)
+            ClientPlanetMember result = await JsonSerializer.DeserializeAsync<ClientPlanetMember>(await response.Content.ReadAsStreamAsync());
+            
+            if (result == null)
             {
                 Console.WriteLine($"Failed to fetch planet user with user id {user_id} and planet id {planet_id}.");
                 return null;
@@ -403,10 +375,10 @@ namespace Valour.Client.Planets
             Console.WriteLine($"Fetched planet user {user_id} for planet {planet_id}");
 
             // Add to cache
-            PlanetMemberDualCache.TryAdd(key, member);
-            PlanetMemberCache.TryAdd(member.Id, member);
-
-            return member;
+            PlanetMemberDualCache[key] = result;
+            ClientCache.Members[result.Id] = result;
+            
+            return result;
 
         }
 
@@ -444,6 +416,9 @@ namespace Valour.Client.Planets
                 return;
             }
 
+            // Add to open planet list
+            OpenPlanets.Add(planet.Id, planet);
+
             Console.WriteLine("Opening planet " + planet.Name);
 
             // Load roles for planet
@@ -457,11 +432,8 @@ namespace Valour.Client.Planets
 
             // Refresh channels and categories from server
 
-            await planet.RequestChannelsAsync();
-            await planet.RequestCategoriesAsync();
-
-            // Add to open planet list
-            OpenPlanets.Add(planet.Id, planet);
+            await planet.LoadChannelsAsync();
+            await planet.LoadCategoriesAsync();
 
             Console.WriteLine($"Joined SignalR group for planet {planet.Id}");
 
@@ -632,7 +604,7 @@ namespace Valour.Client.Planets
 
         public async Task OnMessageRecieve(string json)
         {
-            ClientPlanetMessage message = Newtonsoft.Json.JsonConvert.DeserializeObject<ClientPlanetMessage>(json);
+            ClientPlanetMessage message = JsonSerializer.Deserialize<ClientPlanetMessage>(json);
 
             //Console.WriteLine("RECIEVE: ");
             //Console.WriteLine(json);
@@ -652,7 +624,7 @@ namespace Valour.Client.Planets
 
         public async Task RoleDeletion(string json)
         {
-            PlanetRole role = JsonConvert.DeserializeObject<PlanetRole>(json);
+            PlanetRole role = JsonSerializer.Deserialize<PlanetRole>(json);
 
             if (role == null)
             {
@@ -671,7 +643,7 @@ namespace Valour.Client.Planets
 
             // check every member
 
-            foreach (ClientPlanetMember member in PlanetMemberCache.Values)
+            foreach (ClientPlanetMember member in ClientCache.Members.Values)
             {
                 member.RemoveRoleId(role.Id);
             }
@@ -685,7 +657,7 @@ namespace Valour.Client.Planets
 
         public async Task UpdateRole(string json)
         {
-            PlanetRole role = JsonConvert.DeserializeObject<PlanetRole>(json);
+            PlanetRole role = JsonSerializer.Deserialize<PlanetRole>(json);
 
             if (role == null)
             {
@@ -710,7 +682,7 @@ namespace Valour.Client.Planets
 
         public async Task UpdateMember(string json)
         {
-            ClientPlanetMember member = JsonConvert.DeserializeObject<ClientPlanetMember>(json);
+            ClientPlanetMember member = JsonSerializer.Deserialize<ClientPlanetMember>(json);
 
             if (member == null)
             {
@@ -742,7 +714,7 @@ namespace Valour.Client.Planets
 
         public async Task UpdateChatChannel(string json)
         {
-            ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(json);
+            ClientPlanetChatChannel channel = JsonSerializer.Deserialize<ClientPlanetChatChannel>(json);
 
             if (channel == null)
             {
@@ -755,7 +727,7 @@ namespace Valour.Client.Planets
 
             // update planet cache
 
-            await PlanetCache[channel.Planet_Id].NotifyUpdateChannel(channel);
+            await ClientCache.Planets[channel.Planet_Id].NotifyUpdateChannel(channel);
 
             if (OnChatChannelUpdate != null)
             {
@@ -764,7 +736,7 @@ namespace Valour.Client.Planets
         }
         public async Task CategoryDeletion(string json)
         {
-            ClientPlanetCategory category = JsonConvert.DeserializeObject<ClientPlanetCategory>(json);
+            ClientPlanetCategory category = JsonSerializer.Deserialize<ClientPlanetCategory>(json);
 
             if (category == null)
             {
@@ -777,7 +749,7 @@ namespace Valour.Client.Planets
 
             // Update planet cache
 
-            PlanetCache[category.Planet_Id].NotifyDeleteCategory(category);
+            ClientCache.Planets[category.Planet_Id].NotifyDeleteCategory(category);
 
             if (OnCategoryDeletion != null)
             {
@@ -786,7 +758,7 @@ namespace Valour.Client.Planets
         }
         public async Task ChatChannelDeletion(string json)
         {
-            ClientPlanetChatChannel channel = JsonConvert.DeserializeObject<ClientPlanetChatChannel>(json);
+            ClientPlanetChatChannel channel = JsonSerializer.Deserialize<ClientPlanetChatChannel>(json);
 
             if (channel == null)
             {
@@ -799,7 +771,7 @@ namespace Valour.Client.Planets
 
             // Update planet cache
 
-            PlanetCache[channel.Planet_Id].NotifyDeleteChannel(channel);
+            ClientCache.Planets[channel.Planet_Id].NotifyDeleteChannel(channel);
 
             if (OnChatChannelDeletion != null)
             {
@@ -809,7 +781,7 @@ namespace Valour.Client.Planets
 
         public async Task UpdateCategory(string json)
         {
-            ClientPlanetCategory category = JsonConvert.DeserializeObject<ClientPlanetCategory>(json);
+            ClientPlanetCategory category = JsonSerializer.Deserialize<ClientPlanetCategory>(json);
 
             if (category == null)
             {
@@ -822,11 +794,34 @@ namespace Valour.Client.Planets
 
             // update planet cache
 
-            await PlanetCache[category.Planet_Id].NotifyUpdateCategory(category);
+            await ClientCache.Planets[category.Planet_Id].NotifyUpdateCategory(category);
 
             if (OnCategoryUpdate != null)
             {
                 await OnCategoryUpdate.Invoke(category);
+            }
+        }
+
+        public async Task UpdatePlanet(string json)
+        {
+            ClientPlanet planet = JsonSerializer.Deserialize<ClientPlanet>(json);
+
+            if (planet == null)
+            {
+                Console.WriteLine("Failed to deserialize planet in chat category update.");
+                return;
+            }
+
+            Console.WriteLine("RECIEVE: Planet update ping");
+            Console.WriteLine(json);
+
+            // update planet cache
+
+            ClientCache.Planets[planet.Id] = planet;
+
+            if (OnPlanetUpdate != null)
+            {
+                await OnPlanetUpdate.Invoke(planet);
             }
         }
     }

@@ -39,19 +39,17 @@ namespace Valour.Client.Messages
                                                     .Build();
         }
 
-        public static Regex sanitizeLink = new Regex("(?<=follow\">).+?(?=<)");
+        public static readonly Regex sanitizeLink = new("(?<=follow\">).+?(?=<)");
 
         public static string GetHtml(string content)
         {
             string markdown = "Error: Message could not be parsed.";
 
-            var mark = Markdown.Parse(content);
-
             try
             {
                 markdown = Markdown.ToHtml(content, pipeline);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine("Error parsing message!");
                 Console.WriteLine("This may be nothing to worry about, a user may have added an insane table or such.");

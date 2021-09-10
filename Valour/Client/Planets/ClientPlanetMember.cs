@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -127,7 +127,7 @@ namespace Valour.Client.Planets
         /// </summary>
         public PlanetMember GetPlanetMember()
         {
-            return (PlanetMember)this;
+            return this;
         }
 
         /// <summary>
@@ -160,23 +160,24 @@ namespace Valour.Client.Planets
         /// <returns></returns>
         public async Task LoadUserAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"User/GetUser?id={User_Id}");
+            if (User_Id == ulong.MaxValue)
+            {
+                _user = User.Victor;
+                return;
+            }
 
-            TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(json);
-
-            if (result == null)
+            var response = await ClientUserManager.Http.GetAsync($"User/GetUser?id={User_Id}", HttpCompletionOption.ResponseHeadersRead);        
+            
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving a user from the server.");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
                 return;
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                return;
-            }
-
-            _user = result.Data;
+            
+            User result = await JsonSerializer.DeserializeAsync<User>(await response.Content.ReadAsStreamAsync());
+            
+            _user = result;
         }
 
         /// <summary>
@@ -184,46 +185,38 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task LoadRoleIdsAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetPlanetMemberRoleIds?user_id={User_Id}&planet_id={Planet_Id}&token={ClientUserManager.UserSecretToken}");
-
-            Console.WriteLine(json);
-
-            TaskResult<List<ulong>> result = JsonConvert.DeserializeObject<TaskResult<List<ulong>>>(json);
-
-            if (result == null)
+            var response = await ClientUserManager.Http.GetAsync($"api/members/planet/{Planet_Id}/user/{User_Id}/role_ids", HttpCompletionOption.ResponseHeadersRead);
+            
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving planet user roles from the server.");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                return;
             }
 
-            if (!result.Success)
+            var roleIds = await JsonSerializer.DeserializeAsync<List<ulong>>(await response.Content.ReadAsStreamAsync());
+
+            if (roleIds == null)
             {
-                Console.WriteLine(result.ToString());
-                Console.WriteLine($"Failed for {Id} in {Planet_Id}");
+                Console.WriteLine("Error deserializing planet roles response.");
+                return;
             }
-
-            _roleids = result.Data;
+            
+            _roleids = roleIds;
         }
 
         public async Task<ulong> GetAuthorityAsync()
         {
-            string json = await ClientUserManager.Http.GetStringAsync($"Planet/GetMemberAuthority?member_id={Id}&token={ClientUserManager.UserSecretToken}");
+            var response = await ClientUserManager.Http.GetAsync($"api/member/{Id}/authority", HttpCompletionOption.ResponseHeadersRead);
 
-            Console.WriteLine($"Got authority for {Id}: " + json);
-
-            TaskResult<ulong> result = JsonConvert.DeserializeObject<TaskResult<ulong>>(json);
-
-            if (result == null)
+            if (!response.IsSuccessStatusCode)
             {
                 Console.WriteLine("A fatal error occurred retrieving member authority from the server.");
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                return 0;
             }
-
-            if (!result.Success)
-            {
-                Console.WriteLine(result.ToString());
-                Console.WriteLine($"Failed for {Id} in {Planet_Id}");
-            }
-
-            return result.Data;
+           
+            return await JsonSerializer.DeserializeAsync<ulong>(await response.Content.ReadAsStreamAsync());
         }
 
         /// <summary>
@@ -240,6 +233,8 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<PlanetRole> GetPrimaryRoleAsync()
         {
+            if (Id == ulong.MaxValue) return PlanetRole.VictorRole;
+
             if (_roleids == null)
             {
                 await LoadRoleIdsAsync();
@@ -257,7 +252,11 @@ namespace Valour.Client.Planets
         /// </summary>
         public async Task<string> GetColorHexAsync()
         {
-            return (await GetPrimaryRoleAsync()).GetColorHex();
+            var primRole = await GetPrimaryRoleAsync();
+
+            if (primRole == null) { return "#ffffff"; }
+
+            return primRole.GetColorHex();
         }
 
         /// <summary>
@@ -284,14 +283,6 @@ namespace Valour.Client.Planets
             }
 
             return (await GetUserAsync()).Username;
-        }
-
-        /// <summary>
-        /// Deserializes json
-        /// </summary>
-        public static ClientPlanetMember Deserialize(string json)
-        {
-            return JsonConvert.DeserializeObject<ClientPlanetMember>(json);
         }
     }
 }
