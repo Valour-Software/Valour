@@ -316,7 +316,9 @@
 
     void IDisposable.Dispose()
     {
-        Holder.RemoveRenderedMessage(this);
+        if (Holder !=  null){
+            Holder.RemoveRenderedMessage(this);
+        }
     }
 
     protected async Task OnPfpError()

@@ -1,10 +1,12 @@
 ﻿
+using Valour.Client.Planets;
+
 namespace Valour.Server.API;
 public class BaseAPI
 {
     public static void AddRoutes(WebApplication app)
     {
-        app.MapGet("api/version", () => app.GetType().Assembly.GetName().Version.ToString());
+        app.MapGet("api/version", () => new ClientPlanet().GetType().Assembly.GetName().Version.ToString());
     }
 
     public static async Task TokenInvalid(HttpContext ctx)
