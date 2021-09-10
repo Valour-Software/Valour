@@ -218,7 +218,7 @@ namespace Valour.Server
                 c.AddSecurityDefinition("Token", new OpenApiSecurityScheme()
                 {
                     Description = "The token used for authorizing your account.",
-                    In = ParameterLocation.Query,
+                    In = ParameterLocation.Header,
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Token"
                 });
