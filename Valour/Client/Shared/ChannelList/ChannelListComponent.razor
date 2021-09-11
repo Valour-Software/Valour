@@ -3,12 +3,9 @@
 @inject SignalRManager signalRManager
 
 <div class="category-list keep-scrolling" style="padding-bottom:80px">
-    @if (windowManager.GetSelectedWindow() is ChatChannelWindow)
+    @foreach (ClientPlanet planet in planetManager.GetOpenPlanets())
     {
-        @foreach (ClientPlanet planet in planetManager.GetOpenPlanets())
-        {
-            <ChannelListPlanetComponent Planet="planet" @key='"list-planet-" + planet.Id'></ChannelListPlanetComponent>
-        }
+        <ChannelListPlanetComponent Planet="planet" @key='"list-planet-" + planet.Id'></ChannelListPlanetComponent>
     }
 </div>
 
