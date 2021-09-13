@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
     <Company>Vooper Media LLC</Company>
-    <Product>Valour API</Product>
+    <Product>Valour Api</Product>
     <Authors>The Valour Team</Authors>
     <Description>The Valour API contains the tools needed to run a client or bot on the Valour platform.</Description>
     <PackageTags>Valour, API, Messaging, Bots</PackageTags>

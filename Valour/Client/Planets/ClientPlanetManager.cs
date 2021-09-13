@@ -355,7 +355,7 @@ namespace Valour.Client.Planets
             }
 
             // Retrieve from server
-            var response = await ClientUserManager.Http.GetAsync($"api/member/planet/{planet_id}/user/{user_id}", HttpCompletionOption.ResponseHeadersRead);
+            var response = await ClientUserManager.Http.GetAsync($"api/member/{planet_id}/{user_id}", HttpCompletionOption.ResponseHeadersRead);
 
             if (!response.IsSuccessStatusCode)
             {

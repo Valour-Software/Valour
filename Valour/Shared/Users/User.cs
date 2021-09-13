@@ -68,6 +68,12 @@ namespace Valour.Shared.Users
         public bool Valour_Staff { get; set; }
 
         /// <summary>
+        /// The user's currently set status - this could represent how they feel, their disdain for the political climate
+        /// of the modern world, their love for their mother's cooking, or their hate for lazy programmers.
+        /// </summary>
+        public string Status { get; set; }
+
+        /// <summary>
         /// The integer representation of the current user state
         /// </summary>
         [JsonPropertyName("UserState_Value")]

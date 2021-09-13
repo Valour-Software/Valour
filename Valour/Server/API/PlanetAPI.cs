@@ -51,6 +51,8 @@ namespace Valour.Server.API
         /// </summary>
         public static void AddRoutes(WebApplication app)
         {
+            // Planet routes //
+
             app.MapPost("api/planet/create", Create);
 
             app.Map("api/planet/{planet_id}/name", Name);
@@ -71,10 +73,12 @@ namespace Valour.Server.API
             app.MapGet("api/planet/{planet_id}/roles", GetRoles);
             app.MapPost("api/planet/{planet_id}/roles", AddRole);
 
+            app.MapGet("api/planet/{planet_id}/invites", GetInvites);
+
+            // Planet member routes //
+
             app.MapPost("api/planet/{planet_id}/members/{target_id}/kick", KickMember);
             app.MapPost("api/planet/{planet_id}/members/{target_id}/ban", BanMember);
-
-            app.MapGet ("api/planet/{planet_id}/invites", GetInvites);
         }
 
         private static async Task GetInvites(HttpContext ctx, ValourDB db, ulong planet_id,
@@ -1142,8 +1146,7 @@ namespace Valour.Server.API
                 {
                     Member = member,
                     User = member.User,
-                    RoleIds = member.RoleMembership.Select(x => x.Role_Id),
-                    State = "Currently browsing"
+                    RoleIds = member.RoleMembership.Select(x => x.Role_Id)
                 };
 
                 info.Add(planetInfo);

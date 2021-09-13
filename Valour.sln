@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Client", "Valour\Cli
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Shared", "Valour\Shared\Valour.Shared.csproj", "{D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.API", "Valour\API\Valour.API.csproj", "{63D4C93E-AC6B-4602-A230-CBD42C40C671}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Api", "Valour\API\Valour.Api.csproj", "{63D4C93E-AC6B-4602-A230-CBD42C40C671}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

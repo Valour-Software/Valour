@@ -56,6 +56,11 @@ namespace Valour.Server.Planets
                                                                       x.User_Id == user_id);
         }
 
+        public static async Task<ServerPlanetMember> FindAsync(ulong member_id, ValourDB db)
+        {
+            return await db.PlanetMembers.FindAsync(member_id);
+        }
+
         /// <summary>
         /// Returns all of the roles for a planet user
         /// </summary>

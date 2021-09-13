@@ -62,9 +62,6 @@ namespace Valour.Shared.Planets
         [JsonPropertyName("Member")]
         public PlanetMember Member { get; set; }
 
-        [JsonPropertyName("State")]
-        public string State { get; set; }
-
         [JsonPropertyName("RoleIds")]
         public IEnumerable<ulong> RoleIds { get; set; }
 
