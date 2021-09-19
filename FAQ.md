@@ -110,9 +110,6 @@ Valour staff would only have access to private messages if legally required to o
 <tr>
 <td><a href="#what-are-planets-and-systems">What are planets and systems?</a></td>
 </tr>
-<tr>
-<td><a href="#are-we-going-to-have-sub-categories">How can I set my profile picture?</a></td>
-</tr>
 </table>
 </details>
 
@@ -132,12 +129,6 @@ Planets are where your community will be on. There will be chat rooms and catego
 
 #### *How will Systems and Planets be organized?*
 System roles would be applied to every planet within the system. This would also apply the permission the system user has onto the planet and planets would have their roles as well. This means if someone was a system admin they would also be an admin on planets within the system almost acting like planets within a single planet.
-
-### Are we going to have sub-categories?
-Yes, you can have as many as you want on your planets.
-
-### How can I set my profile picture?
-Currently there is no way to have a profile picture unless done manually by a developer of Valour. However in the future you will be able to do it yourself.
 
 ## Making Valour Applications
 
@@ -160,6 +151,9 @@ Due to Valour's AGPL3 license, you can modify and use Valour however you want, b
 
 ### Will there be bots/automated accounts?
 Yes, there will be bots. You can use your account for self-botting as well if you wish. The only requirement needed for making bots is that you ensure they use the AGPL license. Refer to '[*Is there anything I have to worry about if I make something for Valour?*](#is-there-anything-i-have-to-worry-about-if-i-make-something-for-valour)' for more details.
+
+### Are there any API wrappers?
+Currently the only official API wrapper is [Valour.API](https://github.com/Vooper-Media-LLC/Valour/tree/main/Valour/API) for .NET which is under development. As it will be used by the Valour client it is guranteed to be up to date.
 
 ## Miscellaneous
 
