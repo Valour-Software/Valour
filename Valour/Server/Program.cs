@@ -24,6 +24,7 @@ using System.Text.Json.Serialization;
 using Valour.Server.API;
 using System.Web;
 using Microsoft.OpenApi.Models;
+using System.Net;
 
 namespace Valour.Server
 {
@@ -42,6 +43,16 @@ namespace Valour.Server
 
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.WebHost.ConfigureKestrel((context, options) =>
+            {
+                options.Listen(IPAddress.Any, 3001, listenOptions =>
+                {
+                    listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
+                    listenOptions.UseHttps();
+                });
+            });
+
             builder.Host.ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseUrls("http://localhost:3000", "https://localhost:3001");
