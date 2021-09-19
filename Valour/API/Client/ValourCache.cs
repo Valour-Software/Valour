@@ -2,7 +2,6 @@
 using Valour.Api.Planets;
 using Valour.Api.Users;
 using Valour.Client.Categories;
-using Valour.Client.Channels;
 
 namespace Valour.Api.Client;
 
@@ -14,8 +13,8 @@ namespace Valour.Api.Client;
 
 public static class ValourCache
 {
-    public static ConcurrentDictionary<ulong, ClientPlanetChatChannel> Channels { get; set; }
-    public static ConcurrentDictionary<ulong, ClientPlanetCategory> Categories { get; set; }
+    public static ConcurrentDictionary<ulong, PlanetChatChannel> Channels { get; set; }
+    public static ConcurrentDictionary<ulong, PlanetCategory> Categories { get; set; }
     public static ConcurrentDictionary<ulong, PlanetMember> Members { get; set; }
     public static ConcurrentDictionary<(ulong, ulong), PlanetMember> Members_DualId { get; set; } 
     public static ConcurrentDictionary<ulong, Planet> Planets { get; set; }
@@ -25,8 +24,8 @@ public static class ValourCache
     static ValourCache()
     {
         // Create cache containers
-        Channels = new ConcurrentDictionary<ulong, ClientPlanetChatChannel>();
-        Categories = new ConcurrentDictionary<ulong, ClientPlanetCategory>();
+        Channels = new ConcurrentDictionary<ulong, PlanetChatChannel>();
+        Categories = new ConcurrentDictionary<ulong, PlanetCategory>();
         Members = new ConcurrentDictionary<ulong, PlanetMember>();
         Members_DualId = new ConcurrentDictionary<(ulong, ulong), PlanetMember>();
         Planets = new ConcurrentDictionary<ulong, Planet>();

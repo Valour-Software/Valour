@@ -5,7 +5,7 @@ using Valour.Api.Planets;
 using Valour.Api.Users;
 using Valour.Shared;
 
-namespace Valour.API.Client;
+namespace Valour.Api.Client;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -114,6 +114,32 @@ public static class ValourClient
         JsonContent jsonContent = JsonContent.Create(content);
 
         var response = await Http.PutAsync(uri, jsonContent);
+
+        TaskResult result = new()
+        {
+            Message = await response.Content.ReadAsStringAsync(),
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed PUT response for the following:\n" +
+                              $"[{uri}]" +
+                              $"Code: {response.StatusCode}" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Deletes a resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult> DeleteAsync(string uri)
+    {
+        var response = await Http.DeleteAsync(uri);
 
         TaskResult result = new()
         {

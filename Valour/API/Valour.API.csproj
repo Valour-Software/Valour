@@ -10,6 +10,7 @@
     <PackageTags>Valour, API, Messaging, Bots</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageIcon>valour-logo.png</PackageIcon>
+    <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>

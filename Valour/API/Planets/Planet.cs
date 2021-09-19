@@ -24,8 +24,23 @@ public class Planet : Shared.Planets.Planet
     private List<ulong> _channel_ids = null;
     private List<ulong> _category_ids = null;
     private List<ulong> _role_ids = null;
-
     private List<ulong> _member_ids = null;
+
+    /// <summary>
+    /// Retrieves and returns a client planet by requesting from the server
+    /// </summary>
+    public static async Task<TaskResult<Planet>> FindAsync(ulong id, bool force_refresh = false)
+    {
+        if (!force_refresh && ValourCache.Planets.ContainsKey(id))
+            return new TaskResult<Planet>(true, "Success: Cached", ValourCache.Planets[id]);
+
+        var res = await ValourClient.GetJsonAsync<Planet>($"api/planet/{id}");
+
+        if (res.Success)
+            ValourCache.Planets[id] = res.Data;
+
+        return res;
+    }
 
     /// <summary>
     /// Returns the primary channel of the planet
@@ -102,6 +117,7 @@ public class Planet : Shared.Planets.Planet
         List<ClientPlanetChatChannel> channels = new();
 
         foreach (var id in _channel_ids)
+            // TODO: this
             channels.Add(ValourCache.Channels[id]);
 
         return new TaskResult<List<ClientPlanetChatChannel>>(true, "Success", channels);
@@ -169,14 +185,6 @@ public class Planet : Shared.Planets.Planet
     }
 
     /// <summary>
-    /// Retrieves and returns a client planet by requesting from the server
-    /// </summary>
-    public static async Task<Planet> GetPlanetAsync(ulong id)
-    {
-        return (await ValourClient.GetJsonAsync<Planet>($"api/planet/{id}")).Data;
-    }
-
-    /// <summary>
     /// Returns the members of the planet
     /// </summary>
     public async Task<TaskResult<List<PlanetMember>>> GetMembersAsync(bool force_refresh)
@@ -192,7 +200,14 @@ public class Planet : Shared.Planets.Planet
         List<PlanetMember> members = new List<PlanetMember>();
 
         foreach (var id in _member_ids)
-            members.Add(ValourCache.Members[id]);
+        {
+            var res = await PlanetMember.FindAsync(id);
+
+            if (!res.Success)
+                return new TaskResult<List<PlanetMember>>(false, res.Message);
+
+            members.Add(res.Data);
+        }
 
         return new TaskResult<List<PlanetMember>>(true, "Success", members);
     }
@@ -244,7 +259,14 @@ public class Planet : Shared.Planets.Planet
         List<PlanetRole> roles = new();
 
         foreach (var id in _role_ids)
-            roles.Add(ValourCache.Roles[id]);
+        {
+            var res = await PlanetRole.FindAsync(id, force_refresh);
+
+            if (!res.Success)
+                return new TaskResult<List<PlanetRole>>(false, res.Message);
+
+            roles.Add(res.Data);
+        }
 
         return new TaskResult<List<PlanetRole>>(true, "Success", roles);
     }
