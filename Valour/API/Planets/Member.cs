@@ -6,7 +6,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Valour.Api.Client;
 using Valour.Api.Users;
-using Valour.API.Client;
 using Valour.Shared;
 
 namespace Valour.Api.Planets;
@@ -17,7 +16,7 @@ namespace Valour.Api.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : Shared.Planets.PlanetMember
+public class Member : Shared.Planets.PlanetMember
 {
     /// <summary>
     /// Cached roles
@@ -27,17 +26,21 @@ public class PlanetMember : Shared.Planets.PlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<TaskResult<PlanetMember>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<TaskResult<Member>> FindAsync(ulong id, bool force_refresh = false)
     {
-        if (!force_refresh && ValourCache.Members.ContainsKey(id))
-            return new TaskResult<PlanetMember>(true, "Success: Cached", ValourCache.Members[id]);
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<Member>(id);
+            if (cached is not null)
+                return new TaskResult<Member>(true, "Success: Cached", cached);
+        }
 
-        var getResponse = await ValourClient.GetJsonAsync<PlanetMember>($"api/member/{id}");
+        var getResponse = await ValourClient.GetJsonAsync<Member>($"api/member/{id}");
 
         if (getResponse.Success)
         {
-            ValourCache.Members[id] = getResponse.Data;
-            ValourCache.Members_DualId[(getResponse.Data.Planet_Id, getResponse.Data.User_Id)] = getResponse.Data;
+            ValourCache.Put(id, getResponse.Data);
+            ValourCache.Put((getResponse.Data.Planet_Id, getResponse.Data.User_Id), getResponse.Data);
         }
 
         return getResponse;
@@ -46,17 +49,21 @@ public class PlanetMember : Shared.Planets.PlanetMember
     /// <summary>
     /// Returns the member for the given ids
     /// </summary>
-    public static async Task<TaskResult<PlanetMember>> FindAsync(ulong planet_id, ulong user_id, bool force_refresh = false)
+    public static async Task<TaskResult<Member>> FindAsync(ulong planet_id, ulong user_id, bool force_refresh = false)
     {
-        if (!force_refresh && ValourCache.Members_DualId.ContainsKey((planet_id, user_id)))
-            return new TaskResult<PlanetMember>(true, "Success: Cached", ValourCache.Members_DualId[(planet_id, user_id)]);
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<Member>((planet_id, user_id));
+            if (cached is not null)
+                return new TaskResult<Member>(true, "Success: Cached", cached);
+        }
 
-        var getResponse = await ValourClient.GetJsonAsync<PlanetMember>($"api/member/{planet_id}/{user_id}");
+        var getResponse = await ValourClient.GetJsonAsync<Member>($"api/member/{planet_id}/{user_id}");
 
         if (getResponse.Success)
         {
-            ValourCache.Members[getResponse.Data.Id] = getResponse.Data;
-            ValourCache.Members_DualId[(planet_id, user_id)] = getResponse.Data;
+            ValourCache.Put(getResponse.Data.Id, getResponse.Data);
+            ValourCache.Put((planet_id, user_id), getResponse.Data);
         }
 
         return getResponse;
@@ -65,47 +72,47 @@ public class PlanetMember : Shared.Planets.PlanetMember
     /// <summary>
     /// Returns the primary role of this member
     /// </summary>
-    public async Task<TaskResult<PlanetRole>> GetPrimaryRoleAsync(bool force_refresh = false)
+    public async Task<TaskResult<Role>> GetPrimaryRoleAsync(bool force_refresh = false)
     {
         if (_roleids is null || force_refresh)
         {
             var loadRes = await LoadRoleIdsAsync();
             if (!loadRes.Success)
-                return new TaskResult<PlanetRole>(false, loadRes.Message);
+                return new TaskResult<Role>(false, loadRes.Message);
         }
             
 
         if (_roleids.Count > 0)
-            return await PlanetRole.FindAsync(_roleids[0], force_refresh);
+            return await Role.FindAsync(_roleids[0], force_refresh);
 
-        return new TaskResult<PlanetRole>(false, "No roles found");
+        return new TaskResult<Role>(false, "No roles found");
     }
 
     /// <summary>
     /// Returns the roles of this member
     /// </summary>
-    public async Task<TaskResult<List<PlanetRole>>> GetRolesAsync(bool force_refresh = false)
+    public async Task<TaskResult<List<Role>>> GetRolesAsync(bool force_refresh = false)
     {
-        List<PlanetRole> roles = new List<PlanetRole>();
+        List<Role> roles = new List<Role>();
 
         if (_roleids is null || force_refresh)
         {
             var loadRes = await LoadRoleIdsAsync();
             if (!loadRes.Success)
-                return new TaskResult<List<PlanetRole>>(false, loadRes.Message);
+                return new TaskResult<List<Role>>(false, loadRes.Message);
         }
 
         foreach (var roleid in _roleids)
         {
-            var roleRes = await PlanetRole.FindAsync(roleid, force_refresh);
+            var roleRes = await Role.FindAsync(roleid, force_refresh);
 
             if (roleRes.Success)
                 roles.Add(roleRes.Data);
             else
-                return new TaskResult<List<PlanetRole>>(false, roleRes.Message);
+                return new TaskResult<List<Role>>(false, roleRes.Message);
         }
 
-        return new TaskResult<List<PlanetRole>>(true, "Success", roles);
+        return new TaskResult<List<Role>>(true, "Success", roles);
     }
 
     /// <summary>
@@ -223,7 +230,7 @@ public class PlanetMember : Shared.Planets.PlanetMember
 public class PlanetMemberInfo
 {
     [JsonPropertyName("Member")]
-    public PlanetMember Member { get; set; }
+    public Member Member { get; set; }
 
     [JsonPropertyName("RoleIds")]
     public List<ulong> RoleIds { get; set; }

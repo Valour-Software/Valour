@@ -119,8 +119,8 @@ public class PlanetMessage : Shared.Messages.PlanetMessage
     /// <summary>
     /// Returns the author of the message
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> GetAuthorAsync() =>
-        await PlanetMember.FindAsync(Member_Id);
+    public async Task<TaskResult<Member>> GetAuthorAsync() =>
+        await Member.FindAsync(Member_Id);
     
 
     private void ParseMarkdown()

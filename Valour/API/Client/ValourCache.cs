@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using Valour.Api.Authorization.Roles;
 using Valour.Api.Planets;
 using Valour.Api.Users;
 using Valour.Client.Categories;
@@ -13,24 +14,71 @@ namespace Valour.Api.Client;
 
 public static class ValourCache
 {
-    public static ConcurrentDictionary<ulong, PlanetChatChannel> Channels { get; set; }
-    public static ConcurrentDictionary<ulong, PlanetCategory> Categories { get; set; }
-    public static ConcurrentDictionary<ulong, PlanetMember> Members { get; set; }
-    public static ConcurrentDictionary<(ulong, ulong), PlanetMember> Members_DualId { get; set; } 
-    public static ConcurrentDictionary<ulong, Planet> Planets { get; set; }
-    public static ConcurrentDictionary<ulong, PlanetRole> Roles { get; set; }
-    public static ConcurrentDictionary<ulong, User> Users { get; set; }
+    /// <summary>
+    /// The high level cache object which contains the lower level caches
+    /// </summary>
+    public static Dictionary<Type, ConcurrentDictionary<object, object>> HCache = new();
 
-    static ValourCache()
+    /// <summary>
+    /// Places an item into the cache
+    /// </summary>
+    public static void Put<T>(object id, T obj) where T : class
     {
-        // Create cache containers
-        Channels = new ConcurrentDictionary<ulong, PlanetChatChannel>();
-        Categories = new ConcurrentDictionary<ulong, PlanetCategory>();
-        Members = new ConcurrentDictionary<ulong, PlanetMember>();
-        Members_DualId = new ConcurrentDictionary<(ulong, ulong), PlanetMember>();
-        Planets = new ConcurrentDictionary<ulong, Planet>();
-        Roles = new ConcurrentDictionary<ulong, PlanetRole>();
-        Users = new ConcurrentDictionary<ulong, User>();
+        if (obj == null)
+            return;
+
+        var type = typeof(T);
+
+        if (!HCache.ContainsKey(type))
+            HCache.Add(type, new ConcurrentDictionary<object, object>());
+
+        HCache[type][id] = obj;
+    }
+
+    /// <summary>
+    /// Returns true if the cache contains the item
+    /// </summary>
+    public static bool Contains<T>(object id) where T : class
+    {
+        var type = typeof(T);
+
+        if (!HCache.ContainsKey(typeof(T)))
+            return false;
+
+        return HCache[type].ContainsKey(id);
+    }
+
+    /// <summary>
+    /// Returns the item for the given id, or null if it does not exist
+    /// </summary>
+    public static T Get<T>(object id) where T : class
+    {
+        var type = typeof(T);
+
+        if (HCache.ContainsKey(type))
+            if (HCache[type].ContainsKey(id)) {
+                var obj = HCache[type][id];
+                if (obj is T)
+                    return (T)obj;
+
+                return null;
+            }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Removes an item if present in the cache
+    /// </summary>
+    public static void Remove<T>(object id) where T : class
+    {
+        var type = typeof(T);
+
+        if (HCache.ContainsKey(type))
+            if (HCache[type].ContainsKey(id))
+            {
+                HCache[type].Remove(id, out _);
+            }
     }
 }
 

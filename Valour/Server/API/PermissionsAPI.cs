@@ -15,8 +15,51 @@ public class PermissionsAPI : BaseAPI
         app.MapGet("api/node/channel/{channel_id}/{role_id}", GetChannelNode);
         app.MapGet("api/node/category/{category_id}/{role_id}", GetCategoryNode);
 
+        app.MapGet("api/node/channel/{node_id}", GetChannelNodeById);
+        app.MapGet("api/node/category/{node_id}", GetCategoryNodeById);
+
         app.MapPost("api/node/channel", SetChannelNode);
         app.MapPost("api/node/category", SetCategoryNode);
+    }
+
+    private static async Task GetChannelNodeById(HttpContext ctx, ValourDB db, ulong node_id,
+        [FromHeader] string authorization)
+    {
+        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        if (authToken is null) { await TokenInvalid(ctx); return; }
+
+        if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
+
+        var node = await db.ChatChannelPermissionsNodes.FindAsync(node_id);
+
+        if (node is null) { await NotFound("Node not found", ctx); return; }
+
+        var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
+
+        if (member is null) { await Unauthorized("Member not found", ctx); return; }
+
+        ctx.Response.StatusCode = 200;
+        await ctx.Response.WriteAsJsonAsync(node);
+    }
+
+    private static async Task GetCategoryNodeById(HttpContext ctx, ValourDB db, ulong node_id,
+        [FromHeader] string authorization)
+    {
+        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        if (authToken is null) { await TokenInvalid(ctx); return; }
+
+        if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
+
+        var node = await db.CategoryPermissionsNodes.FindAsync(node_id);
+
+        if (node is null) { await NotFound("Node not found", ctx); return; }
+
+        var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
+
+        if (member is null) { await Unauthorized("Member not found", ctx); return; }
+
+        ctx.Response.StatusCode = 200;
+        await ctx.Response.WriteAsJsonAsync(node);
     }
 
     private static async Task GetChannelNode(HttpContext ctx, ValourDB db, ulong channel_id, ulong role_id,

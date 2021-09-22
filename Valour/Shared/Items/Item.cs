@@ -17,7 +17,7 @@ namespace Valour.Shared.Items
     /// <summary>
     /// Common class for Valour API items
     /// </summary>
-    public class Item
+    public abstract class Item
     {
         [JsonInclude]
         [JsonPropertyName("Id")]

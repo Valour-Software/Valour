@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Net.Http.Json;
 using Valour.Api.Client;
-using Valour.API.Client;
 using Valour.Shared;
 
 namespace Valour.Api.Planets;
@@ -31,13 +30,17 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public static async Task<TaskResult<Planet>> FindAsync(ulong id, bool force_refresh = false)
     {
-        if (!force_refresh && ValourCache.Planets.ContainsKey(id))
-            return new TaskResult<Planet>(true, "Success: Cached", ValourCache.Planets[id]);
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<Planet>(id);
+            if (cached is not null)
+                return new TaskResult<Planet>(true, "Success: Cached", cached);
+        }
 
         var res = await ValourClient.GetJsonAsync<Planet>($"api/planet/{id}");
 
         if (res.Success)
-            ValourCache.Planets[id] = res.Data;
+            ValourCache.Put(id, res.Data);
 
         return res;
     }
@@ -45,38 +48,45 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Returns the primary channel of the planet
     /// </summary>
-    public async Task<TaskResult<ClientPlanetChatChannel>> GetPrimaryChannelAsync(bool force_refresh = false)
+    public async Task<TaskResult<Channel>> GetPrimaryChannelAsync(bool force_refresh = false)
     {
         if (_channel_ids == null || force_refresh)
         {
             var res = await LoadChannelsAsync();
 
             if (!res.Success)
-                return new TaskResult<ClientPlanetChatChannel>(false, res.Message);
+                return new TaskResult<Channel>(false, res.Message);
         }
 
-        return new TaskResult<ClientPlanetChatChannel>(true, "Success", ValourCache.Channels[Main_Channel_Id]);
+        return await Channel.FindAsync(Main_Channel_Id, force_refresh);
     }
 
     /// <summary>
     /// Returns the categories of this planet
     /// </summary>
-    public async Task<TaskResult<List<ClientPlanetCategory>>> GetCategoriesAsync(bool force_refresh = false)
+    public async Task<TaskResult<List<Category>>> GetCategoriesAsync(bool force_refresh = false)
     {
         if (_category_ids == null || force_refresh)
         {
             var res = await LoadCategoriesAsync();
 
             if (!res.Success)
-                return new TaskResult<List<ClientPlanetCategory>>(false, res.Message);
+                return new TaskResult<List<Category>>(false, res.Message);
         }
 
-        List<ClientPlanetCategory> categories = new();
+        List<Category> categories = new();
 
         foreach (var id in _category_ids)
-            categories.Add(ValourCache.Categories[id]);
+        {
+            var catResult = await Category.FindAsync(id);
 
-        return new TaskResult<List<ClientPlanetCategory>>(true, "Success", categories);
+            if (!catResult.Success)
+                return new TaskResult<List<Category>>(false, catResult.Message);
+
+            categories.Add(catResult.Data);
+        }
+
+        return new TaskResult<List<Category>>(true, "Success", categories);
     }
 
     /// <summary>
@@ -84,13 +94,13 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<TaskResult> LoadCategoriesAsync()
     {
-        var result = await ValourClient.GetJsonAsync<List<ClientPlanetCategory>>($"api/planet/{Id}/categories");
+        var result = await ValourClient.GetJsonAsync<List<Category>>($"api/planet/{Id}/categories");
 
         if (result.Success)
         {
             foreach (var category in result.Data)
             {
-                ValourCache.Categories[category.Id] = category;
+                ValourCache.Put(category.Id, category);
             }
 
             _category_ids = result.Data.OrderBy(x => x.Position).Select(x => x.Id).ToList();
@@ -104,23 +114,29 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Returns the channels of a planet
     /// </summary>
-    public async Task<TaskResult<List<ClientPlanetChatChannel>>> GetChannelsAsync(bool force_refresh = false)
+    public async Task<TaskResult<List<Channel>>> GetChannelsAsync(bool force_refresh = false)
     {
         if (_channel_ids == null || force_refresh)
         {
             var res = await LoadChannelsAsync();
 
             if (!res.Success)
-                return new TaskResult<List<ClientPlanetChatChannel>>(false, res.Message);
+                return new TaskResult<List<Channel>>(false, res.Message);
         }
 
-        List<ClientPlanetChatChannel> channels = new();
+        List<Channel> channels = new();
 
         foreach (var id in _channel_ids)
-            // TODO: this
-            channels.Add(ValourCache.Channels[id]);
+        {
+            var chanRes = await Channel.FindAsync(id);
 
-        return new TaskResult<List<ClientPlanetChatChannel>>(true, "Success", channels);
+            if (!chanRes.Success)
+                return new TaskResult<List<Channel>>(false, chanRes.Message);
+
+            channels.Add(chanRes.Data);
+        }
+
+        return new TaskResult<List<Channel>>(true, "Success", channels);
     }
 
     /// <summary>
@@ -128,13 +144,13 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<TaskResult> LoadChannelsAsync()
     {
-        var result = await ValourClient.GetJsonAsync<List<ClientPlanetChatChannel>>($"/api/planet/{Id}/channels");
+        var result = await ValourClient.GetJsonAsync<List<Channel>>($"/api/planet/{Id}/channels");
 
         if (result.Success)
         {
             foreach (var channel in result.Data)
             {
-                ValourCache.Channels[channel.Id] = channel;
+                ValourCache.Put(channel.Id, channel);
             }
 
             _channel_ids = result.Data.OrderBy(x => x.Position).Select(x => x.Id).ToList();
@@ -187,29 +203,29 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Returns the members of the planet
     /// </summary>
-    public async Task<TaskResult<List<PlanetMember>>> GetMembersAsync(bool force_refresh)
+    public async Task<TaskResult<List<Member>>> GetMembersAsync(bool force_refresh)
     {
         if (_member_ids is null || force_refresh)
         {
             var res = await LoadMemberDataAsync();
 
             if (!res.Success)
-                return new TaskResult<List<PlanetMember>>(false, res.Message);
+                return new TaskResult<List<Member>>(false, res.Message);
         }
 
-        List<PlanetMember> members = new List<PlanetMember>();
+        List<Member> members = new List<Member>();
 
         foreach (var id in _member_ids)
         {
-            var res = await PlanetMember.FindAsync(id);
+            var res = await Member.FindAsync(id);
 
             if (!res.Success)
-                return new TaskResult<List<PlanetMember>>(false, res.Message);
+                return new TaskResult<List<Member>>(false, res.Message);
 
             members.Add(res.Data);
         }
 
-        return new TaskResult<List<PlanetMember>>(true, "Success", members);
+        return new TaskResult<List<Member>>(true, "Success", members);
     }
 
     /// <summary>
@@ -233,9 +249,9 @@ public class Planet : Shared.Planets.Planet
             info.Member.SetLocalRoleIds(info.RoleIds);
 
             // Set in cache
-            ValourCache.Members[info.Member.Id] = info.Member;
-            ValourCache.Members_DualId[(info.Member.Planet_Id, info.Member.User_Id)] = info.Member;
-            ValourCache.Users[info.User.Id] = info.User;
+            ValourCache.Put(info.Member.Id, info.Member);
+            ValourCache.Put((info.Member.Planet_Id, info.Member.User_Id), info.Member);
+            ValourCache.Put(info.Member.User_Id, info.User);
 
             _member_ids.Add(info.Member.Id);
         }
@@ -246,29 +262,29 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Returns the roles of a planet
     /// </summary>
-    public async Task<TaskResult<List<PlanetRole>>> GetRolesAsync(bool force_refresh = false)
+    public async Task<TaskResult<List<Role>>> GetRolesAsync(bool force_refresh = false)
     {
         if (_role_ids is null || force_refresh)
         {
             var res = await LoadRolesAsync();
 
             if (!res.Success)
-                return new TaskResult<List<PlanetRole>>(false, res.Message);
+                return new TaskResult<List<Role>>(false, res.Message);
         }
 
-        List<PlanetRole> roles = new();
+        List<Role> roles = new();
 
         foreach (var id in _role_ids)
         {
-            var res = await PlanetRole.FindAsync(id, force_refresh);
+            var res = await Role.FindAsync(id, force_refresh);
 
             if (!res.Success)
-                return new TaskResult<List<PlanetRole>>(false, res.Message);
+                return new TaskResult<List<Role>>(false, res.Message);
 
             roles.Add(res.Data);
         }
 
-        return new TaskResult<List<PlanetRole>>(true, "Success", roles);
+        return new TaskResult<List<Role>>(true, "Success", roles);
     }
 
     /// <summary>
@@ -276,13 +292,13 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<TaskResult> LoadRolesAsync()
     {
-        var result = await ValourClient.GetJsonAsync<List<PlanetRole>>($"api/planet/{Id}/roles");
+        var result = await ValourClient.GetJsonAsync<List<Role>>($"api/planet/{Id}/roles");
 
         if (result.Success)
         {
             foreach (var role in result.Data)
             {
-                ValourCache.Roles[role.Id] = role;
+                ValourCache.Put(role.Id, role);
             }
 
             _role_ids = result.Data.OrderBy(x => x.Position).Select(x => x.Id).ToList();
@@ -296,28 +312,28 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> GetMemberAsync(ulong user_id, bool force_refresh = false)
+    public async Task<TaskResult<Member>> GetMemberAsync(ulong user_id, bool force_refresh = false)
     {
-        return await PlanetMember.FindAsync(Id, user_id, force_refresh);
+        return await Member.FindAsync(Id, user_id, force_refresh);
     }
 
     /// <summary>
     /// Ran to notify the planet that a channel has been updated
     /// </summary>
-    public async Task NotifyUpdateChannel(ClientPlanetChatChannel channel)
+    public async Task NotifyUpdateChannel(Channel channel)
     {
         if (_channel_ids == null)
             await LoadChannelsAsync();
 
         // Set in cache
-        ValourCache.Channels[channel.Id] = channel;
+        ValourCache.Put(channel.Id, channel);
 
         // Re-order channels
-        List<ClientPlanetChatChannel> channels = new();
+        List<Channel> channels = new();
 
         foreach (var id in _channel_ids)
         {
-            channels.Add(ValourCache.Channels[id]);
+            channels.Add(ValourCache.Get<Channel>(id));
         }
 
         _channel_ids = channels.OrderBy(x => x.Position).Select(x => x.Id).ToList();
@@ -326,30 +342,30 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Ran to notify the planet that a channel has been deleted
     /// </summary>
-    public void NotifyDeleteChannel(ClientPlanetChatChannel channel)
+    public void NotifyDeleteChannel(Channel channel)
     {
         _channel_ids.Remove(channel.Id);
 
-        ValourCache.Channels.Remove(channel.Id, out _);
+        ValourCache.Remove<Channel>(channel.Id);
     }
 
     /// <summary>
     /// Ran to notify the planet that a category has been updated
     /// </summary>
-    public async Task NotifyUpdateCategory(ClientPlanetCategory category)
+    public async Task NotifyUpdateCategory(Category category)
     {
         if (_category_ids == null)
             await LoadCategoriesAsync();
 
         // Set in cache
-        ValourCache.Categories[category.Id] = category;
+        ValourCache.Put(category.Id, category);
 
         // Reo-order categories
-        List<ClientPlanetCategory> categories = new();
+        List<Category> categories = new();
 
         foreach (var id in _category_ids)
         {
-            categories.Add(ValourCache.Categories[id]);
+            categories.Add(ValourCache.Get<Category>(id));
         }
 
         _category_ids = categories.OrderBy(x => x.Position).Select(x => x.Id).ToList();
@@ -358,11 +374,11 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Ran to notify the planet that a category has been deleted
     /// </summary>
-    public void NotifyDeleteCategory(ClientPlanetCategory category)
+    public void NotifyDeleteCategory(Category category)
     {
         _category_ids.Remove(category.Id);
 
-        ValourCache.Categories.Remove(category.Id, out _);
+        ValourCache.Remove<Category>(category.Id);
     }
 
 }

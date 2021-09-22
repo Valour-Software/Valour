@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Valour.Api.Client;
-using Valour.API.Client;
 using Valour.Shared;
 
 namespace Valour.Api.Planets;
@@ -15,20 +14,24 @@ namespace Valour.Api.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : Shared.Roles.PlanetRole
+public class Role : Shared.Roles.PlanetRole
 {
     /// <summary>
     /// Returns the planet role for the given id
     /// </summary>
-    public static async Task<TaskResult<PlanetRole>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<TaskResult<Role>> FindAsync(ulong id, bool force_refresh = false)
     {
-        if (!force_refresh && ValourCache.Roles.ContainsKey(id))
-            return new TaskResult<PlanetRole>(true, "Success: Cached", ValourCache.Roles[id]);
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<Role>(id);
+            if (cached is not null)
+                return new TaskResult<Role>(true, "Success: Cached", cached);
+        }
 
-        var getResponse = await ValourClient.GetJsonAsync<PlanetRole>($"api/role/{id}");
+        var getResponse = await ValourClient.GetJsonAsync<Role>($"api/role/{id}");
 
         if (getResponse.Success)
-            ValourCache.Roles[id] = getResponse.Data;
+            ValourCache.Put(id, getResponse.Data);
 
         return getResponse;
     }
