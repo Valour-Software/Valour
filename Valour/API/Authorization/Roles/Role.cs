@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Valour.Api.Client;
+﻿using Valour.Api.Client;
 using Valour.Shared;
 
-namespace Valour.Api.Planets;
+namespace Valour.Api.Roles;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
