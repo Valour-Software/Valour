@@ -1,4 +1,4 @@
-﻿@inject ClientPlanetManager planetManager
+﻿@inject PlanetManager planetManager
 @inject MemberContextMenu memberContextMenu
 @inject IJSRuntime JS
 @implements IDisposable
@@ -79,10 +79,10 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public ClientPlanetMessage Message { get; set; }
+    public PlanetMessage Message { get; set; }
 
     [Parameter]
-    public ClientPlanetMessage Last_Message { get; set; }
+    public PlanetMessage Last_Message { get; set; }
 
     [Parameter]
     public MessageHolderComponent Holder { get; set; }
@@ -97,7 +97,7 @@
     [Parameter]
     public bool Ghost { get; set; }
 
-    public ClientPlanetMember Author;
+    public Member Author;
 
     public bool ShouldRenderValue = false;
 
@@ -155,14 +155,14 @@
     [Parameter]
     public bool Submessage { get; set; }
 
-    private PlanetRole primaryRole;
+    private Role primaryRole;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
     }
 
-    public async Task SetMessage(ClientPlanetMessage message)
+    public async Task SetMessage(PlanetMessage message)
     {
         this.Message = message;
         await BuildMessage();
@@ -184,7 +184,7 @@
         StateHasChanged();
     }
 
-    public void SetLast(ClientPlanetMessage msg)
+    public void SetLast(PlanetMessage msg)
     {
         Last_Message = msg;
     }
@@ -245,11 +245,11 @@
             Holder.AddRenderedMessage(this);
         }
 
-        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+        PlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
 
-        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
+        PlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
 
-        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+        PlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
 
         await BuildMessage();
     }
@@ -284,7 +284,7 @@
         ShouldRenderValue = false;
     }
 
-    public async Task OnRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(Role role)
     {
         if (role.Id == primaryRole.Id)
         {
@@ -294,7 +294,7 @@
         }
     }
 
-    public async Task OnRoleDeletion(PlanetRole role)
+    public async Task OnRoleDeletion(Role role)
     {
         if (role.Id == primaryRole.Id)
         {
@@ -304,7 +304,7 @@
         }
     }
 
-    public async Task OnMemberUpdate(ClientPlanetMember member)
+    public async Task OnMemberUpdate(Member member)
     {
         if (member.Id == Author.Id)
         {

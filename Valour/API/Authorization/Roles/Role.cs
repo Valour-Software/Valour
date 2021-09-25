@@ -1,7 +1,7 @@
 ﻿using Valour.Api.Client;
 using Valour.Shared;
 
-namespace Valour.Api.Roles;
+namespace Valour.Api.Authorization.Roles;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
@@ -14,20 +14,20 @@ public class Role : Shared.Roles.PlanetRole
     /// <summary>
     /// Returns the planet role for the given id
     /// </summary>
-    public static async Task<TaskResult<Role>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<Role> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<Role>(id);
             if (cached is not null)
-                return new TaskResult<Role>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<Role>($"api/role/{id}");
+        var role = await ValourClient.GetJsonAsync<Role>($"api/role/{id}");
 
-        if (getResponse.Success)
-            ValourCache.Put(id, getResponse.Data);
+        if (role is not null)
+            ValourCache.Put(id, role);
 
-        return getResponse;
+        return role;
     }
 }

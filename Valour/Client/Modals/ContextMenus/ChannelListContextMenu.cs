@@ -24,7 +24,7 @@ namespace Valour.Client.Modals.ContextMenus
     public class ChannelListContextMenu
     {
         public readonly IJSRuntime JS;
-        public IClientPlanetListItem SelectedItem;
+        public IPlanetListItem SelectedItem;
         public ChannelListContextMenuComponent Component;
         public Func<Task> OpenEvent;
         
@@ -33,7 +33,7 @@ namespace Valour.Client.Modals.ContextMenus
             JS = js;
         }
 
-        public async Task Open(MouseEventArgs e, IClientPlanetListItem item)
+        public async Task Open(MouseEventArgs e, IPlanetListItem item)
         {
             Component.SetPosition(e.ClientX, e.ClientY);
             Component.SetVisibility(true);

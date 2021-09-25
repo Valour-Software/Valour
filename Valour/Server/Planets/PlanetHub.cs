@@ -53,10 +53,9 @@ namespace Valour.Server.Planets
             await Groups.AddToGroupAsync(Context.ConnectionId, $"p-{planet_id}");
         }
 
-        public async Task LeavePlanet(ulong planet_id)
-        {
+        public async Task LeavePlanet(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"p-{planet_id}");
-        }
+        
 
         public async Task JoinChannel(ulong channel_id, string token)
         {
@@ -65,10 +64,9 @@ namespace Valour.Server.Planets
             await Groups.AddToGroupAsync(Context.ConnectionId, $"c-{channel_id}");
         }
 
-        public async Task LeaveChannel(ulong channel_id)
-        {
+        public async Task LeaveChannel(ulong channel_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channel_id}");
-        }
+        
 
         public async Task JoinInteractionGroup(ulong planet_id, string token)
         {
@@ -93,76 +91,34 @@ namespace Valour.Server.Planets
             await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planet_id}");
         }
 
-        public async Task LeaveInteractionGroup(ulong planet_id)
-        {
+        public async Task LeaveInteractionGroup(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
-        }
 
-        public static async void NotifyMemberChange(ServerPlanetMember member)
-        {
-            string json = JsonSerializer.Serialize(member);
+        public static async void NotifyMemberChange(ServerPlanetMember member) =>
+            await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", member);
 
-            await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", json);
-        }
+        public static async void NotifyPlanetChange(ServerPlanet planet) =>
+            await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet);
 
-        public static async void NotifyPlanetChange(ServerPlanet planet)
-        {
-            string json = JsonSerializer.Serialize(planet);
+        public static async void NotifyInteractionEvent(InteractionEvent interaction) =>
+            await Current.Clients.Group($"i-{interaction.Planet_Id}").SendAsync("InteractionEvent", interaction);
 
-            await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", json);
-        }
+        public static async void NotifyRoleChange(ServerPlanetRole role) =>
+            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", role);
 
-        public static async void NotifyInteractionEvent(InteractionEvent Interaction)
-        {
-            string json = JsonSerializer.Serialize(Interaction);
-            await Current.Clients.Group($"i-{Interaction.Planet_Id}").SendAsync("InteractionEvent", json);
-        }
+        public static async Task NotifyCategoryDeletion(ServerPlanetCategory category) =>
+            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", category);
 
-        public static async void NotifyRoleChange(ServerPlanetRole role)
-        {
-            string json = JsonSerializer.Serialize(role);
+        public static async void NotifyRoleDeletion(ServerPlanetRole role) =>
+            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", role);
 
-            // Send update to members
-            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", json);
-        }
-        public static async Task NotifyCategoryDeletion(ServerPlanetCategory category)
-        {
-            string json = JsonSerializer.Serialize(category);
+        public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel) =>
+            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelDeletion", channel);
 
-            // Send update to members
-            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", json);
-        }
+        public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel) =>
+            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", channel);
 
-        public static async void NotifyRoleDeletion(ServerPlanetRole role)
-        {
-            string json = JsonSerializer.Serialize(role);
-
-            // Send update to members
-            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", json);
-        }
-
-        public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel)
-        {
-            string json = JsonSerializer.Serialize(channel);
-
-            // Send update to members
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelDeletion", json);
-        }
-
-        public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel)
-        {
-            string json = JsonSerializer.Serialize(channel);
-
-            // Send update to members
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", json);
-        }
-
-        public static async void NotifyCategoryChange(ServerPlanetCategory category)
-        {
-            string json = JsonSerializer.Serialize(category);
-
-            // Send update to members
-            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", json);
-        }
+        public static async void NotifyCategoryChange(ServerPlanetCategory category) =>
+            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category);
     }
 }

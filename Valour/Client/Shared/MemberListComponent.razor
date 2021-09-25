@@ -1,9 +1,9 @@
-﻿@inject ClientPlanetManager planetManager
+﻿@inject PlanetManager planetManager
 
 <div class="RoleList keep-scrolling">
     @if (MemberList != null)
     {
-        foreach (KeyValuePair<PlanetRole, List<ClientPlanetMember>> roleMemberList in RoleMemberLists)
+        foreach (KeyValuePair<Role, List<Member>> roleMemberList in RoleMemberLists)
         {
             <RoleComponent Role="@roleMemberList.Key" Members="@roleMemberList.Value"></RoleComponent>
         }
@@ -26,20 +26,20 @@
 
 @code {
 
-    public List<ClientPlanetMember> MemberList { get; set; }
-    public List<ClientPlanetMember> OrderedList { get; set; }
+    public List<Member> MemberList { get; set; }
+    public List<Member> OrderedList { get; set; }
 
-    public List<PlanetRole> PlanetRoles { get; set; }
+    public List<Role> Roles { get; set; }
 
-    public Dictionary<PlanetRole, List<ClientPlanetMember>> RoleMemberLists { get; set; }
-    public List<ClientPlanetMember> OnlineList { get; set; }
-    public List<ClientPlanetMember> OfflineList { get; set; }
+    public Dictionary<Role, List<Member>> RoleMemberLists { get; set; }
+    public List<Member> OnlineList { get; set; }
+    public List<Member> OfflineList { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        RoleMemberLists = new Dictionary<PlanetRole, List<ClientPlanetMember>>();
-        OnlineList = new List<ClientPlanetMember>();
-        OfflineList = new List<ClientPlanetMember>();
+        RoleMemberLists = new Dictionary<Role, List<Member>>();
+        OnlineList = new List<Member>();
+        OfflineList = new List<Member>();
 
         planetManager.OnPlanetChange += OnPlanetChange;
         planetManager.OnRoleUpdate += OnRoleUpdate;
@@ -47,7 +47,7 @@
         planetManager.OnRoleDeletion += OnRoleDeletion;
     }
 
-    public async Task OnMemberUpdate(ClientPlanetMember member)
+    public async Task OnMemberUpdate(Member member)
     {
         // not awaited on purpose
         if (member.Planet_Id == planetManager.GetCurrent().Id)
@@ -57,7 +57,7 @@
 
     }
 
-    public async Task OnRoleDeletion(PlanetRole role)
+    public async Task OnRoleDeletion(Role role)
     {
         // not awaited on purpose
         if (role.Planet_Id == planetManager.GetCurrent().Id)
@@ -66,7 +66,7 @@
         }
     }
 
-    public async Task OnRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(Role role)
     {
         // not awaited on purpose
         if (role.Planet_Id == planetManager.GetCurrent().Id)
@@ -115,7 +115,7 @@
             bool hadRole = false;
 
             // Try for a role
-            foreach (PlanetRole role in PlanetRoles)
+            foreach (Role role in Roles)
             {
                 // Ensure role should be listed
                 if (!role.HasPermission(PlanetPermissions.DisplayRole))
@@ -127,7 +127,7 @@
                     // Ensure there is a list
                     if (!RoleMemberLists.ContainsKey(role))
                     {
-                        RoleMemberLists.Add(role, new List<ClientPlanetMember>());
+                        RoleMemberLists.Add(role, new List<Member>());
                     }
 
                     RoleMemberLists[role].Add(member);
@@ -146,7 +146,7 @@
         }
     }
 
-    public async Task OnPlanetChange(ClientPlanet planet)
+    public async Task OnPlanetChange(Planet planet)
     {
         var t = Task.Run(async () =>
         {
@@ -154,12 +154,12 @@
             {
                 Console.WriteLine($"Member list is updating to {planet.Name}");
                 MemberList = await planetManager.GetCachedPlanetMembers(planet);
-                PlanetRoles = await planetManager.GetCurrent().GetRolesAsync();
+                Roles = await planetManager.GetCurrent().GetRolesAsync();
                 MemberList = MemberList.OrderByDescending(GetComparator).ToList();
             }
             else
             {
-                MemberList = new List<ClientPlanetMember>();
+                MemberList = new List<Member>();
             }
 
             await BuildRoleLists();
@@ -169,7 +169,7 @@
         });
     }
 
-    public long GetComparator(ClientPlanetMember m)
+    public long GetComparator(Member m)
     {
         var task = m.GetUserAsync();
         task.Wait();

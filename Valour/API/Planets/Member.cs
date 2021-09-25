@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using Valour.Api.Authorization.Roles;
 using Valour.Api.Client;
 using Valour.Api.Roles;
 using Valour.Api.Users;
@@ -22,136 +23,119 @@ public class Member : Shared.Planets.PlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<TaskResult<Member>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<Member> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<Member>(id);
             if (cached is not null)
-                return new TaskResult<Member>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<Member>($"api/member/{id}");
+        var member = await ValourClient.GetJsonAsync<Member>($"api/member/{id}");
 
-        if (getResponse.Success)
+        if (member is not null)
         {
-            ValourCache.Put(id, getResponse.Data);
-            ValourCache.Put((getResponse.Data.Planet_Id, getResponse.Data.User_Id), getResponse.Data);
+            ValourCache.Put(id, member);
+            ValourCache.Put((member.Planet_Id, member.User_Id), member);
         }
 
-        return getResponse;
+        return member;
     }
 
     /// <summary>
     /// Returns the member for the given ids
     /// </summary>
-    public static async Task<TaskResult<Member>> FindAsync(ulong planet_id, ulong user_id, bool force_refresh = false)
+    public static async Task<Member> FindAsync(ulong planet_id, ulong user_id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<Member>((planet_id, user_id));
             if (cached is not null)
-                return new TaskResult<Member>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<Member>($"api/member/{planet_id}/{user_id}");
+        var member = await ValourClient.GetJsonAsync<Member>($"api/member/{planet_id}/{user_id}");
 
-        if (getResponse.Success)
+        if (member is not null)
         {
-            ValourCache.Put(getResponse.Data.Id, getResponse.Data);
-            ValourCache.Put((planet_id, user_id), getResponse.Data);
+            ValourCache.Put(member.Id, member);
+            ValourCache.Put((planet_id, user_id), member);
         }
 
-        return getResponse;
+        return member;
     }
 
     /// <summary>
     /// Returns the primary role of this member
     /// </summary>
-    public async Task<TaskResult<Role>> GetPrimaryRoleAsync(bool force_refresh = false)
+    public async Task<Role> GetPrimaryRoleAsync(bool force_refresh = false)
     {
         if (_roleids is null || force_refresh)
         {
-            var loadRes = await LoadRoleIdsAsync();
-            if (!loadRes.Success)
-                return new TaskResult<Role>(false, loadRes.Message);
-        }
-            
+            await LoadRoleIdsAsync();
+        }     
 
         if (_roleids.Count > 0)
             return await Role.FindAsync(_roleids[0], force_refresh);
 
-        return new TaskResult<Role>(false, "No roles found");
+        return null;
     }
 
     /// <summary>
     /// Returns the roles of this member
     /// </summary>
-    public async Task<TaskResult<List<Role>>> GetRolesAsync(bool force_refresh = false)
+    public async Task<List<Role>> GetRolesAsync(bool force_refresh = false)
     {
         List<Role> roles = new List<Role>();
 
         if (_roleids is null || force_refresh)
         {
-            var loadRes = await LoadRoleIdsAsync();
-            if (!loadRes.Success)
-                return new TaskResult<List<Role>>(false, loadRes.Message);
+            await LoadRoleIdsAsync();
         }
 
         foreach (var roleid in _roleids)
         {
-            var roleRes = await Role.FindAsync(roleid, force_refresh);
+            var role = await Role.FindAsync(roleid, force_refresh);
 
-            if (roleRes.Success)
-                roles.Add(roleRes.Data);
-            else
-                return new TaskResult<List<Role>>(false, roleRes.Message);
+            if (role is not null)
+                roles.Add(role);
         }
 
-        return new TaskResult<List<Role>>(true, "Success", roles);
+        return roles;
     }
 
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async Task<TaskResult<bool>> HasRoleAsync(ulong id, bool force_refresh = false)
+    public async Task<bool> HasRoleAsync(ulong id, bool force_refresh = false)
     {
         if (_roleids is null || force_refresh)
         {
-            var loadRes = await LoadRoleIdsAsync();
-            if (!loadRes.Success)
-                return new TaskResult<bool>(false, loadRes.Message);
+            await LoadRoleIdsAsync();
         }
 
-        return new TaskResult<bool>(true, "Success", _roleids.Contains(id));
+        return _roleids.Contains(id);
     }
+
+    /// <summary>
+    /// Returns the authority of the member
+    /// </summary>
+    public async Task<ulong> GetAuthorityAsync() =>
+        await ValourClient.GetJsonAsync<ulong>($"api/member/{Id}/authority");
 
     /// <summary>
     /// Loads all role Ids from the server
     /// </summary>
-    public async Task<TaskResult> LoadRoleIdsAsync()
-    {
-        var result = await ValourClient.GetJsonAsync<List<ulong>>($"api/member/{Id}/role_ids");
-
-        if (result.Success)
-        {
-            _roleids = result.Data;
-            return new TaskResult(true, "Success: Fetched");
-        }
-        else
-        {
-            return new TaskResult(false, result.Message);
-        }
-    }
+    public async Task LoadRoleIdsAsync() => 
+        _roleids = await ValourClient.GetJsonAsync<List<ulong>>($"api/member/{Id}/role_ids");
 
     /// <summary>
     /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
     /// It will NOT change anything on the server.
     /// </summary>
-    public void SetLocalRoleIds(List<ulong> ids)
-    {
+    public void SetLocalRoleIds(List<ulong> ids) =>
         _roleids = ids;
-    }
 
     /// <summary>
     /// Returns the user of the member

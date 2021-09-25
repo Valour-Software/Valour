@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 

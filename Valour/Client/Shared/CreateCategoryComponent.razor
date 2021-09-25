@@ -1,7 +1,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper 
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateCategoryModal createCategoryModal
@@ -29,7 +29,7 @@
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
         <div class="create-component-roles-box">
-            @foreach (PlanetRole role in Roles)
+            @foreach (Role role in Roles)
             {
                 <div class="role">
                    <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
@@ -63,17 +63,17 @@
 
     // Spans
     string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new();
+    Dictionary<Role, bool> SelectedRoles = new();
 
-    List<PlanetRole> Roles = new();
+    List<Role> Roles = new();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
-        ClientPlanetMember SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+        Member SelfMember = await Member.GetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
-        foreach (PlanetRole item in await planetManager.GetCurrent().GetRolesAsync())
+        foreach (Role item in await planetManager.GetCurrent().GetRolesAsync())
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -83,7 +83,7 @@
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(Role role) {
         SelectedRoles[role] = !SelectedRoles[role];
     }
     private void PrivateSwitch() {
@@ -105,7 +105,7 @@
         ulong user_id = ClientUserManager.User.Id;
         string token = ClientUserManager.UserSecretToken;
 
-        ClientPlanetCategory category = new(){
+        Category category = new(){
             Name = name,
             Description = "A category",
             Parent_Id = parent_id,
@@ -142,7 +142,7 @@
 
             response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
 
-            foreach (PlanetRole role in Roles)
+            foreach (Role role in Roles)
             {
                 
                 if (!SelectedRoles[role]) {

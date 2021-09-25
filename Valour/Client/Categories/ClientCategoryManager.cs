@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Api.Planets;
 using Valour.Shared.Categories;
 
 namespace Valour.Client.Categories
@@ -11,7 +12,7 @@ namespace Valour.Client.Categories
     {
         private ConcurrentDictionary<ulong, bool> CategoryOpenStates = new ConcurrentDictionary<ulong, bool>();
 
-        public bool IsOpen(ClientPlanetCategory category)
+        public bool IsOpen(Category category)
         {
             return IsOpen(category.Id);
         }
@@ -26,7 +27,7 @@ namespace Valour.Client.Categories
             return CategoryOpenStates[category_id];
         }
 
-        public void SetOpen(ClientPlanetCategory category, bool value)
+        public void SetOpen(Category category, bool value)
         {
             SetOpen(category.Id, value);
         }

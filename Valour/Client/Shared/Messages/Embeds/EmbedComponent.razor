@@ -1,4 +1,4 @@
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 
 @if (embed != null) 
 {
@@ -57,7 +57,7 @@
     [Parameter]
     public ClientEmbed embed { get; set;}
     [Parameter]
-    public ClientPlanetMessage Message {get; set;}
+    public PlanetMessage Message {get; set;}
 
     protected override void OnInitialized() {
         StateHasChanged();

@@ -13,7 +13,7 @@ namespace Valour.Api.Messages;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetMessage : Shared.Messages.PlanetMessage
+public class Message : Shared.Messages.PlanetMessage
 {
     /// <summary>
     /// True if this message's content has been fully built
@@ -105,7 +105,7 @@ public class PlanetMessage : Shared.Messages.PlanetMessage
         }
     }
 
-    public PlanetMessage()
+    public Message()
     {
 
     }

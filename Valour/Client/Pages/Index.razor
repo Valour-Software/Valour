@@ -6,7 +6,7 @@
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JS
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject SignalRManager signalRManager
 
@@ -158,7 +158,7 @@ else
         StateHasChanged();
     }
 
-    public async Task OnPlanetChange(ClientPlanet planet)
+    public async Task OnPlanetChange(Planet planet)
     {
         if (planet != null)
         {

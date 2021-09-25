@@ -1,5 +1,5 @@
 ﻿@inject IJSRuntime JS
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject EditPlanetModal editPlanetModal
 
 <h3>Edit Roles</h3>
@@ -109,7 +109,7 @@
 
     <div class="container" id="edit-rows-container" style="@normStyle">
 
-        @foreach (PlanetRole role in Roles)
+        @foreach (Role role in Roles)
         {
             // For magic lambda
             var role_x = role;
@@ -149,13 +149,13 @@
 @code {
 
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
-    public List<PlanetRole> Roles = new List<PlanetRole>();
+    public List<Role> Roles = new List<Role>();
 
     // Stuff for role creation //
 
-    public PlanetRole role = new PlanetRole()
+    public Role role = new Role()
     {
         Name = "New Role",
         Color_Red = 255,
@@ -177,7 +177,7 @@
 
     // Stuff for role editing //
 
-    public PlanetRole Selected { get; set; }
+    public Role Selected { get; set; }
 
     public void PermClick(int id)
     {
@@ -211,7 +211,7 @@
 
     public async Task GoBack()
     {
-        role = new PlanetRole()
+        role = new Role()
         {
             Name = "New Role",
             Bold = false,
@@ -224,7 +224,7 @@
         StateHasChanged();
     }
 
-    public async Task OnClickDelete(PlanetRole deleteRole)
+    public async Task OnClickDelete(Role deleteRole)
     {
         resultSpan = "";
         errorSpan = "";
@@ -259,7 +259,7 @@
         StateHasChanged();
     }
 
-    public async Task OnClickEdit(PlanetRole editRole)
+    public async Task OnClickEdit(Role editRole)
     {
         resultSpan = "";
         errorSpan = "";
@@ -283,7 +283,7 @@
 
     public async Task OnClickCreateMode()
     {
-        role = new PlanetRole()
+        role = new Role()
         {
             Name = "New Role",
             Bold = false,
@@ -363,13 +363,13 @@
         editMode = false;
     }
 
-    public async Task OnRoleDeletion(PlanetRole role)
+    public async Task OnRoleDeletion(Role role)
     {
         Roles = await Planet.GetRolesAsync();
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(PlanetRole role)
+    public async Task OnRolesUpdate(Role role)
     {
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 

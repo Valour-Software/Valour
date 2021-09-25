@@ -21,7 +21,7 @@ namespace Valour.Client.Modals.ContextMenus
     public class MemberContextMenu
     {
         public readonly IJSRuntime JS;
-        public ClientPlanetMember SelectedMember;
+        public Member SelectedMember;
         public MemberContextMenuComponent Component;
         public Func<Task> OpenEvent;
 
@@ -30,7 +30,7 @@ namespace Valour.Client.Modals.ContextMenus
             JS = js;
         }
 
-        public async Task Open(MouseEventArgs e, ClientPlanetMember member){
+        public async Task Open(MouseEventArgs e, Member member){
             
             SelectedMember = member;
             Component.SetPosition(e.ClientX, e.ClientY);

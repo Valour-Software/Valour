@@ -1,7 +1,7 @@
 ﻿@inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject CreatePlanetModal createPlanetModal
 
 
@@ -19,7 +19,7 @@
 <hr />
 
 <div class="flex-row flex-wrap m-5">
-    @foreach (ClientPlanet planet in ClientUserManager.Planets)
+    @foreach (Planet planet in ClientUserManager.Planets)
     {
 
         <div class="home-server m-2" style="cursor: pointer" @onclick="(e => OnPlanetClick(planet))">
@@ -73,9 +73,9 @@
         navManager.NavigateTo("createplanet");
     }
 
-    public async Task OnPlanetClick(ClientPlanet planet)
+    public async Task OnPlanetClick(Planet planet)
     {
-        ClientPlanetChatChannel channel = await planet.GetPrimaryChannelAsync();
+        Channel channel = await planet.GetPrimaryChannelAsync();
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
 

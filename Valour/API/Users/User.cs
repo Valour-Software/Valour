@@ -8,21 +8,21 @@ public class User : Shared.Users.User
     /// <summary>
     /// Returns the user for the given id
     /// </summary>
-    public static async Task<TaskResult<User>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<User> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<User>(id);
             if (cached is not null)
-                return new TaskResult<User>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<User>($"api/user/{id}");
+        var user = await ValourClient.GetJsonAsync<User>($"api/user/{id}");
 
-        if (getResponse.Success)
-            ValourCache.Put(id, getResponse.Data);
+        if (user is not null)
+            ValourCache.Put(id, user);
 
-        return getResponse;
+        return user;
     }
 }
 

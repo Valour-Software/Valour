@@ -1,7 +1,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper 
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateChannelModal createChannelModal
@@ -30,7 +30,7 @@
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this channel?</label>
         <div class="create-component-roles-box">
-            @foreach (PlanetRole role in Roles)
+            @foreach (Role role in Roles)
             {
                 <div class="role">
                    <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
@@ -57,22 +57,33 @@
     </div>
 </section>
 @code {
+
+    [Parameter, EditorRequired]
+    public Planet Planet { get; set; }
+
     // Input fields
     string name;
 
     // Spans
     string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
+    Dictionary<Role, bool> SelectedRoles = new Dictionary<Role, bool>();
 
-    List<PlanetRole> Roles = new List<PlanetRole>();
+    List<Role> Roles = new List<Role>();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
-        ClientPlanetMember SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
-        ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
-        foreach (PlanetRole item in await planetManager.GetCurrent().GetRolesAsync())
+
+        Member SelfMember = (await Member.FindAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id)).Data;
+        ulong SelfAuthority = (await SelfMember.GetAuthorityAsync()).Data;
+
+        var roleResponse = await Planet.GetRolesAsync();
+
+        if (!roleResponse.Success)
+            return;
+
+        foreach (Role item in roleResponse.Data)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -82,7 +93,7 @@
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(Role role) {
         SelectedRoles[role] = !SelectedRoles[role];
     }
 
@@ -107,7 +118,7 @@
         ulong parent_id = contextMenu.SelectedCategory.Id;
         ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
 
-        ClientPlanetChatChannel newChannel = new()
+        Channel newChannel = new()
         {
             Name = name,
             Planet_Id = planet_id,
@@ -165,7 +176,7 @@
                 imageSpan = errorText;
             }
 
-            foreach (PlanetRole role in Roles)
+            foreach (Role role in Roles)
             {
                 
                 if (!SelectedRoles[role]) {

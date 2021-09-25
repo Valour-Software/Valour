@@ -3,7 +3,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject AutoMapper.IMapper mapper
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
@@ -74,7 +74,7 @@
             return;
         }
 
-        var result = await JsonSerializer.DeserializeAsync<ClientPlanetInvite>(await response.Content.ReadAsStreamAsync());
+        var result = await JsonSerializer.DeserializeAsync<PlanetInvite>(await response.Content.ReadAsStreamAsync());
 
         PlanetName = await result.GetPlanetName();
         PlanetImage = await result.GetPlanetIcon();

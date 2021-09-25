@@ -23,7 +23,7 @@ namespace Valour.Client.Shared.ChannelList
         }
 
         public int currentDragIndex;
-        public IClientPlanetListItem currentDragItem;
+        public IPlanetListItem currentDragItem;
 
         // Only of of these should be non-null at a time
         public ChannelListCategoryComponent currentDragParentCategory;
@@ -34,7 +34,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemClickInCategory(IClientPlanetListItem item, 
+        public void OnItemClickInCategory(IPlanetListItem item, 
                                           ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -46,7 +46,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemStartDragInCategory(IClientPlanetListItem item,
+        public void OnItemStartDragInCategory(IPlanetListItem item,
                                               ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -58,7 +58,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item</param>
         /// <param name="parent">The parent category</param>
-        public void SetTargetInCategory(IClientPlanetListItem item,
+        public void SetTargetInCategory(IPlanetListItem item,
                                         ChannelListCategoryComponent parent)
         {
             currentDragIndex = 0;

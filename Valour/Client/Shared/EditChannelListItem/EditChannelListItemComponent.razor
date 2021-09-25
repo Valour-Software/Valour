@@ -31,10 +31,10 @@
 
 @code {
     [Parameter]
-    public IClientPlanetListItem ChannelListItem { get; set; }
+    public IPlanetListItem ChannelListItem { get; set; }
     public bool isChannel;
-    public ClientPlanetChatChannel Channel;
-    public ClientPlanetCategory Category;
+    public Channel Channel;
+    public Category Category;
 
 
     public string GetTitle()
@@ -71,13 +71,13 @@
         if (ChannelListItem.ItemType == ItemType.Channel)
         {
             isChannel = true;
-            Channel = (ClientPlanetChatChannel)ChannelListItem;
+            Channel = (Channel)ChannelListItem;
             Category = null;
         }
         else
         {
             isChannel = false;
-            Category = (ClientPlanetCategory)ChannelListItem;
+            Category = (Category)ChannelListItem;
             Channel = null;
         }
     }

@@ -85,9 +85,9 @@
             return;
         }
 
-        ClientPlanet planet = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
+        Planet planet = await JsonSerializer.DeserializeAsync<Planet>(await response.Content.ReadAsStreamAsync());
 
-        ClientPlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+        Channel mainChannel = await planet.GetPrimaryChannelAsync();
 
         windowManager.ClearWindows();
 

@@ -4,7 +4,7 @@
 @using Valour.Shared.Planets
 
 @inject AddChannelContextMenu addChannelContextMenu
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject ClientCategoryManager categoryManager
 @inject ChannelListContextMenu listContextMenu
@@ -36,7 +36,7 @@
         <div class="channel-list" ondragover="event.preventDefault();" style="padding-left: 25px">
             @foreach (var item in ItemList)
             {
-                ClientPlanetChatChannel channel = item as ClientPlanetChatChannel;
+                Channel channel = item as Channel;
                 if (channel != null)
                 {
                     if (channel.Parent_Id == Category.Id)
@@ -46,7 +46,7 @@
                 }
                 else
                 {
-                    ClientPlanetCategory planetcategory = item as ClientPlanetCategory;
+                    Category planetcategory = item as Category;
                     @if (planetcategory.Parent_Id == Category.Id)
                     {
                         <ChannelListCategoryComponent ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
@@ -63,13 +63,13 @@
     public bool IsTopLevel { get; set; }
 
     [Parameter]
-    public ClientPlanetCategory Category { get; set; }
+    public Category Category { get; set; }
 
     [Parameter]
-    public List<ClientPlanetChatChannel> Channels { get; set; }
+    public List<Channel> Channels { get; set; }
 
     [Parameter]
-    public List<ClientPlanetCategory> Categories { get; set; }
+    public List<Category> Categories { get; set; }
 
     [Parameter]
     public ChatChannelWindow ChannelWindow { get; set; }
@@ -77,12 +77,12 @@
     [Parameter]
     public ChannelListCategoryComponent ParentCategory { get; set; }
 
-    public List<ClientPlanetChatChannel> ChildChannels { get; set; }
-    public List<ClientPlanetCategory> ChildCategories { get; set; }
+    public List<Channel> ChildChannels { get; set; }
+    public List<Category> ChildCategories { get; set; }
 
     public bool IsOpen { get; set; }
 
-    public List<IClientPlanetListItem> ItemList = new List<IClientPlanetListItem>();
+    public List<IPlanetListItem> ItemList = new List<IPlanetListItem>();
 
     protected override Task OnInitializedAsync()
     {
@@ -97,7 +97,7 @@
         ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
 
         if (ChildCategories == null)
-            ChildCategories = new List<ClientPlanetCategory>();
+            ChildCategories = new List<Category>();
 
         IsOpen = categoryManager.IsOpen(Category);
 
@@ -178,7 +178,7 @@
         Console.WriteLine("Opening context menu for channel/category addition");
         await addChannelContextMenu.Open(e, Category);
     }
-    public async Task OnCategoryDeletion(ClientPlanetCategory category)
+    public async Task OnCategoryDeletion(Category category)
     {
 
         var old = ChildCategories.FirstOrDefault(x => x.Id == category.Id);
@@ -192,7 +192,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(ClientPlanetCategory category)
+    public async Task OnCategoryUpdate(Category category)
     {
         if (Category.Id == category.Id)
         {
@@ -242,7 +242,7 @@
             }
         }
     }
-    public async Task OnChatChannelDeletion(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelDeletion(Channel channel)
     {
         if (channel.Parent_Id == Category.Id) {
             var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
@@ -252,7 +252,7 @@
         }
     }
 
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(Channel channel)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
@@ -300,7 +300,7 @@
     int currentDragIndex;
 
     // Get local index
-    public int GetIndex(IClientPlanetListItem item)
+    public int GetIndex(IPlanetListItem item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
     }

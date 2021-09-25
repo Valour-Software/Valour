@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Planets;
+using Valour.Api.Roles;
 using Valour.Shared;
 
 namespace Valour.Api.Authorization.Roles;
@@ -17,54 +18,54 @@ public class ChatChannelPermissionsNode : Shared.Roles.ChatChannelPermissionsNod
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static async Task<TaskResult<ChatChannelPermissionsNode>> FindAsync(Channel channel, Role role) =>
+    public static async Task<ChatChannelPermissionsNode> FindAsync(Channel channel, Role role) =>
         await FindAsync(channel.Id, role.Id);
 
 
     /// <summary>
     /// Returns the chat channel permissions node for the given id
     /// </summary>
-    public static async Task<TaskResult<ChatChannelPermissionsNode>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<ChatChannelPermissionsNode> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<ChatChannelPermissionsNode>(id);
             if (cached is not null)
-                return new TaskResult<ChatChannelPermissionsNode>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<ChatChannelPermissionsNode>($"api/node/channel/{id}");
+        var node = await ValourClient.GetJsonAsync<ChatChannelPermissionsNode>($"api/node/channel/{id}");
 
-        if (getResponse.Success)
+        if (node is not null)
         {
-            ValourCache.Put(id, getResponse.Data);
-            ValourCache.Put((getResponse.Data.Channel_Id, getResponse.Data.Role_Id), getResponse.Data);
+            ValourCache.Put(id, node);
+            ValourCache.Put((node.Channel_Id, node.Role_Id), node);
         }
 
-        return getResponse;
+        return node;
     }
 
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<TaskResult<ChatChannelPermissionsNode>> FindAsync(ulong channel_id, ulong role_id, bool force_refresh = false)
+    public static async Task<ChatChannelPermissionsNode> FindAsync(ulong channel_id, ulong role_id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<ChatChannelPermissionsNode>((channel_id, role_id));
             if (cached is not null)
-                return new TaskResult<ChatChannelPermissionsNode>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<ChatChannelPermissionsNode>($"api/node/channel/{channel_id}/{role_id}");
+        var node = await ValourClient.GetJsonAsync<ChatChannelPermissionsNode>($"api/node/channel/{channel_id}/{role_id}");
 
-        if (getResponse.Success)
+        if (node is not null)
         {
-            ValourCache.Put(getResponse.Data.Id, getResponse.Data);
-            ValourCache.Put((channel_id, role_id), getResponse.Data);
+            ValourCache.Put(node.Id, node);
+            ValourCache.Put((channel_id, role_id), node);
         }
 
-        return getResponse;
+        return node;
     }
 }
 

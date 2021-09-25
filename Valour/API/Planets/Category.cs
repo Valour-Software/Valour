@@ -16,21 +16,21 @@ public class Category : Shared.Items.PlanetCategory
     /// <summary>
     /// Returns the category for the given id
     /// </summary>
-    public static async Task<TaskResult<Category>> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<Category> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
             var cached = ValourCache.Get<Category>(id);
             if (cached is not null)
-                return new TaskResult<Category>(true, "Success: Cached", cached);
+                return cached;
         }
 
-        var getResponse = await ValourClient.GetJsonAsync<Category>($"api/category/{id}");
+        var category = await ValourClient.GetJsonAsync<Category>($"api/category/{id}");
 
-        if (getResponse.Success)
-            ValourCache.Put(id, getResponse.Data);
+        if (category is not null)
+            ValourCache.Put(id, category);
 
-        return getResponse;
+        return category;
     }
 
     /// <summary>
@@ -67,22 +67,20 @@ public class Category : Shared.Items.PlanetCategory
     /// Returns the planet of this category
     /// </summary>
 
-    public async Task<TaskResult<Planet>> GetPlanetAsync(bool force_refresh) =>
+    public async Task<Planet> GetPlanetAsync(bool force_refresh) =>
         await Planet.FindAsync(Planet_Id, force_refresh);
 
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<TaskResult<Shared.Roles.PermissionsNode>> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false)
-    {
-        var res = await GetCategoryPermissionsNodeAsync(role_id, force_refresh);
-        return new TaskResult<Shared.Roles.PermissionsNode>(res.Success, res.Message, res.Data);
-    }
+    public async Task<Shared.Roles.PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+        await GetCategoryPermissionsNodeAsync(role_id, force_refresh);
+
 
     /// <summary>
     /// Returns the category permissions node for the given role id
     /// </summary>
-    public async Task<TaskResult<CategoryPermissionsNode>> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public async Task<CategoryPermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await CategoryPermissionsNode.FindAsync(Id, role_id, force_refresh);
 }
 

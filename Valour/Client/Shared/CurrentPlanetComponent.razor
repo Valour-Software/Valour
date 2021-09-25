@@ -1,6 +1,6 @@
 ﻿@inject NavigationManager navManager
 @inject EditPlanetModal editPlanetModal
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 
 <div class="current-planet-info">
     @if (Planet != null)
@@ -20,7 +20,7 @@
 </div>
 
 @code {
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     public bool canEdit = false;
 
@@ -32,7 +32,7 @@
 
     // Must refresh if roles update because it may remove permission to
     // manage the planet
-    public async Task OnRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(Role role)
     {
         if (Planet.Id != role.Planet_Id)
             return;
@@ -40,7 +40,7 @@
         await Refresh();
     }
 
-    public async Task OnPlanetChange(ClientPlanet planet)
+    public async Task OnPlanetChange(Planet planet)
     {
         this.Planet = planet;
 

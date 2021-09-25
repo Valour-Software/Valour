@@ -8,7 +8,7 @@ using Valour.Shared.Roles;
 
 namespace Valour.Client.Planets
 {
-    public interface IClientPlanetListItem : IClientNamedItem
+    public interface IPlanetListItem : IClientNamedItem
     {
         [JsonInclude]
         [JsonPropertyName("Id")]
@@ -32,7 +32,7 @@ namespace Valour.Client.Planets
         public Task<TaskResult> TrySetParentIdAsync(ulong planet_id);
         public Task<TaskResult> TryDeleteAsync(); 
         public string GetItemTypeName();
-        public Task<ClientPlanet> GetPlanetAsync();
-        public Task<PermissionsNode> GetPermissionsNodeAsync(PlanetRole role);
+        public Task<Planet> GetPlanetAsync();
+        public Task<PermissionsNode> GetPermissionsNodeAsync(Role role);
     }
 }

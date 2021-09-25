@@ -1,9 +1,9 @@
-﻿@inject ClientPlanetManager planetManager
+﻿@inject PlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject SignalRManager signalRManager
 
 <div class="category-list keep-scrolling" style="padding-bottom:80px">
-    @foreach (ClientPlanet planet in planetManager.GetOpenPlanets())
+    @foreach (Planet planet in planetManager.GetOpenPlanets())
     {
         <ChannelListPlanetComponent Planet="planet" @key='"list-planet-" + planet.Id'></ChannelListPlanetComponent>
     }
@@ -18,7 +18,7 @@
         planetManager.OnPlanetOpen += OnPlanetOpen;
     }
 
-    public async Task OnPlanetOpen(ClientPlanet planet)
+    public async Task OnPlanetOpen(Planet planet)
     {
         if (planet == null)
             Console.WriteLine("Rebuilding channel list due to planet open: " + planet.Name);
@@ -28,7 +28,7 @@
         StateHasChanged();
     }
 
-    public async Task OnPlanetClose(ClientPlanet planet)
+    public async Task OnPlanetClose(Planet planet)
     {
         if (planet == null)
             Console.WriteLine("Rebuilding channel list due to planet close: " + planet.Name);
@@ -38,7 +38,7 @@
         StateHasChanged();
     }
 
-    public async Task OnPlanetChange(ClientPlanet planet)
+    public async Task OnPlanetChange(Planet planet)
     {
 
     }

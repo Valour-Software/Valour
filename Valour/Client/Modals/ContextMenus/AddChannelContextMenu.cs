@@ -1,13 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Client.Categories;
-using Valour.Client.Channels;
-using Valour.Client.Planets;
-using Valour.Client.Shared;
+using Valour.Api.Planets;
 using Valour.Client.Shared.Modals.ContextMenus;
 
 /*  Valour - A free and secure chat client
@@ -24,7 +17,7 @@ namespace Valour.Client.Modals.ContextMenus
     public class AddChannelContextMenu
     {
         public readonly IJSRuntime JS;
-        public ClientPlanetCategory SelectedCategory;
+        public Category SelectedCategory;
         public AddChannelContextMenuComponent Component;
         public Func<Task> OpenEvent;
 
@@ -33,7 +26,7 @@ namespace Valour.Client.Modals.ContextMenus
             JS = js;
         }
 
-        public async Task Open(MouseEventArgs e, ClientPlanetCategory category)
+        public async Task Open(MouseEventArgs e, Category category)
         {
             Component.SetPosition(e.ClientX, e.ClientY);
             Component.SetVisibility(true);

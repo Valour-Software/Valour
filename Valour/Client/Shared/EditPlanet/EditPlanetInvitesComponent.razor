@@ -1,5 +1,5 @@
 ﻿@inject HttpClient http
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 
 <h3>Planet Invitations</h3>
 <hr />
@@ -39,7 +39,7 @@
 
 @code {
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     public bool publicValue;
 

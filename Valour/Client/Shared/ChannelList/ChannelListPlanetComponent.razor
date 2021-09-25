@@ -1,4 +1,4 @@
-﻿@inject ClientPlanetManager planetManager
+﻿@inject PlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject ChannelListManager listManager
 
@@ -20,7 +20,7 @@
         <!-- The Modal -->
         @if (Open)
         {
-            @foreach (ClientPlanetCategory category in TopCategories)
+            @foreach (Category category in TopCategories)
             {
                 <ChannelListCategoryComponent Categories="Categories"
                                               Channels="Channels"
@@ -36,20 +36,20 @@
 
 @code {
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     public bool Open { get; set; }
 
-    public List<ClientPlanetCategory> TopCategories;
-    public List<ClientPlanetCategory> Categories { get; set; }
-    public List<ClientPlanetChatChannel> Channels { get; set; }
+    public List<Category> TopCategories;
+    public List<Category> Categories { get; set; }
+    public List<Channel> Channels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
-        Categories = new List<ClientPlanetCategory>();
-        Channels = new List<ClientPlanetChatChannel>();
-        TopCategories = new List<ClientPlanetCategory>();
+        Categories = new List<Category>();
+        Channels = new List<Channel>();
+        TopCategories = new List<Category>();
 
         // Handle list change
         planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
@@ -121,7 +121,7 @@
         StateHasChanged();
     }
 
-    public async Task OnChatChannelDeletion(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelDeletion(Channel channel)
     {
         var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
 
@@ -133,7 +133,7 @@
         }
     }
 
-    public async Task OnCategoryDeletion(ClientPlanetCategory category)
+    public async Task OnCategoryDeletion(Category category)
     {
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
@@ -145,7 +145,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(ClientPlanetCategory category)
+    public async Task OnCategoryUpdate(Category category)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
@@ -188,7 +188,7 @@
         GetTopLevelCategories();
     }
 
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(Channel channel)
     {
 
         //Console.WriteLine(channel.Name);

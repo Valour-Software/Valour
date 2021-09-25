@@ -30,6 +30,8 @@ namespace Valour.Server.API
 
             app.MapGet ("api/user/{user_id}/planets", GetPlanets);
 
+            app.MapGet("api/user/{user_id}/planet_ids", GetPlanetIds);
+
             app.MapPost("api/user/register", RegisterUser);
 
             app.MapPost("api/user/passwordreset", PasswordReset);
@@ -429,6 +431,24 @@ namespace Valour.Server.API
             await ctx.Response.WriteAsJsonAsync(user.Membership.Select(x => x.Planet));
         }
 
+        private static async Task GetPlanetIds(HttpContext ctx, ValourDB db, ulong user_id,
+                                            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null) { await TokenInvalid(ctx); return; }
+            if (!auth.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
+            if (auth.User_Id != user_id) { await Unauthorized("User id does not match token holder", ctx); return; }
+
+            ServerUser user = await db.Users
+                .Include(x => x.Membership)
+                .FirstOrDefaultAsync(x => x.Id == user_id);
+
+            if (user == null) { await NotFound("User not found", ctx); return; }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(user.Membership.Select(x => x.Planet_Id));
+        }
 
     }
 }

@@ -1,5 +1,5 @@
 @inject HttpClient Http
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 
 <div style="@Item.GetInlineStyle" class="embed-item">
     @if (Item.Name != null) {
@@ -21,14 +21,14 @@
     [Parameter]
     public ClientEmbedItem Item {get; set;}
     [Parameter]
-    public ClientPlanetMessage Message {get; set;}
+    public PlanetMessage Message {get; set;}
     [Parameter]
     public ClientEmbed embed { get; set;}
 
     public async Task OnEmbedButtonClick()
     {
 
-        ClientPlanetMember SelfMember = await planetManager.GetPlanetMemberAsync(ClientUserManager.User.Id, Message.Planet_Id);
+        Member SelfMember = await planetManager.GetPlanetMemberAsync(ClientUserManager.User.Id, Message.Planet_Id);
 
         InteractionEvent Interaction = new InteractionEvent()
         {

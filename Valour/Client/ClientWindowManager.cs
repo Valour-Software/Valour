@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Client.Channels;
-using Valour.Client.Messages;
+﻿using Valour.Api.Client;
+using Valour.Api.Planets;
 using Valour.Client.Planets;
-using Valour.Client.Shared;
-using Valour.Client.Shared.Windows;
 using Valour.Client.Shared.Windows.PlanetChannelWindow;
 
 namespace Valour.Client
@@ -27,6 +21,33 @@ namespace Valour.Client
         public ClientWindowManager()
         {
             Instance = this;
+            ValourClient.HubConnection.Reconnected += OnSignalRReconnect;
+        }
+
+        public async Task OnSignalRReconnect(string data)
+        {
+            foreach (ChatChannelWindow window in OpenWindows)
+            {
+                if (window is ChatChannelWindow)
+                {
+                    await window.Component.SetupNewChannelAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Swaps the channel a chat channel window is showing
+        /// </summary>
+        public async Task SwapWindowChannel(ChatChannelWindow window, Channel newChannel)
+        {
+            // Already that channel
+            if (window.Channel.Id == newChannel.Id)
+                return;
+
+            Console.WriteLine("Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);
+
+            await CloseChannel(window.Channel);
+            await 
         }
 
         public async Task SetSelectedWindow(int index)
@@ -175,21 +196,21 @@ namespace Valour.Client
         /// <summary>
         /// The channel this window represents
         /// </summary>
-        public ClientPlanetChatChannel Channel { get; set; }
+        public Channel Channel { get; set; }
 
         /// <summary>
         /// The component that belongs to this window
         /// </summary>
         public ChannelWindowComponent Component { get; set; }
 
-        public ChatChannelWindow(int index, ClientPlanetChatChannel channel) : base(index)
+        public ChatChannelWindow(int index, Channel channel) : base(index)
         {
             this.Channel = channel;
         }
 
         public override void OnClosed()
         {
-            ClientPlanetManager.Current.SetChannelWindowClosed(this);
+            PlanetManager.Current.SetChannelWindowClosed(this);
 
             // Must be after SetChannelWindowClosed
             base.OnClosed();

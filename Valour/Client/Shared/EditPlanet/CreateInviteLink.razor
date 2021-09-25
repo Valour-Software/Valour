@@ -1,6 +1,6 @@
 ﻿@inject HttpClient http
 @inject NavigationManager navManager
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @using Valour.Shared
 @inject HttpClient Http
 
@@ -25,7 +25,7 @@
 
 @code {
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     public int hoursValue;
 

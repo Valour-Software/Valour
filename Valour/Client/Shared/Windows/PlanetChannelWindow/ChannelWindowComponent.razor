@@ -1,7 +1,7 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 @inject IJSRuntime JS
-@inject ClientPlanetManager planetManager
+@inject PlanetManager planetManager
 @inject ClientWindowManager windowManager
 @implements IDisposable
 
@@ -71,7 +71,7 @@
 
     public MessageComponent DummyComponent { get; set; }
 
-    public ClientPlanetMessage DummyMessage { get; set; }
+    public PlanetMessage DummyMessage { get; set; }
 
     [Parameter]
     public ChatChannelWindow Window { get; set; }
@@ -82,11 +82,11 @@
     [Parameter]
     public MainWindowComponent MainWindow { get; set; }
 
-    public ClientPlanetChatChannel Channel;
+    public Channel Channel;
 
-    public ClientPlanet Planet;
+    public Planet Planet;
 
-    public ClientPlanetMember SelfMember;
+    public Member SelfMember;
 
     public Func<Task> ForceRefreshMessages;
 
@@ -106,7 +106,7 @@
         Window.Component = this;
 
         planetManager.OnMemberUpdate += OnPlanetMemberUpdate;
-        planetManager.OnRoleUpdate += OnPlanetRoleUpdate;
+        planetManager.OnRoleUpdate += OnRoleUpdate;
         planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
 
         await planetManager.OpenPlanetChatChannel(Window);
@@ -127,11 +127,11 @@
     void IDisposable.Dispose()
     {
         planetManager.OnMemberUpdate -= OnPlanetMemberUpdate;
-        planetManager.OnRoleUpdate -= OnPlanetRoleUpdate;
+        planetManager.OnRoleUpdate -= OnRoleUpdate;
         planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
     }
 
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(Channel channel)
     {
         if (Channel.Id == channel.Id)
         {
@@ -140,7 +140,7 @@
         }
     }
 
-    public async Task OnPlanetMemberUpdate(ClientPlanetMember member)
+    public async Task OnPlanetMemberUpdate(Member member)
     {
         if (member.Planet_Id != Planet.Id)
         {
@@ -157,7 +157,7 @@
         }
     }
 
-    public async Task OnPlanetRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(Role role)
     {
         if (role.Planet_Id != Planet.Id)
         {
@@ -197,7 +197,7 @@
         MessageHolder.AddMessages(await Channel.GetLastMessagesAsync(64));
     }
 
-    public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
+    public async Task OnWindowChannelChange(Channel newchannel)
     {
         var oldchannel = Window.Channel;
 
@@ -221,7 +221,7 @@
         await planetManager.ClosePlanetChatChannel(Window, Channel);
     }
 
-    public async Task OnRecieveMessage(ClientPlanetMessage message)
+    public async Task OnRecieveMessage(PlanetMessage message)
     {
         await MessageHolder.AddMessage(message);
         DummyComponent.SetLast(MessageHolder.GetLastMessage());
@@ -332,7 +332,7 @@
         }
         else
         {
-            DummyMessage = new ClientPlanetMessage()
+            DummyMessage = new PlanetMessage()
             {
                 Author_Id = SelfMember.User_Id,
                 Content = input,
@@ -351,13 +351,13 @@
 
     public async Task OnClickWindow()
     {
-        ClientPlanet planet = await ClientPlanetManager.Current.GetPlanetAsync(Channel.Planet_Id);
+        Planet planet = await PlanetManager.Current.GetPlanetAsync(Channel.Planet_Id);
         await planetManager.SetCurrentPlanet(planet);
     }
 
     public async Task PostMessage(string msg)
     {
-        ClientPlanetMessage message = new ClientPlanetMessage()
+        PlanetMessage message = new PlanetMessage()
         {
             Channel_Id = Channel.Id,
             Content = msg,
@@ -398,7 +398,7 @@
         {
             MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
-            ClientPlanetMessage errorMsg = new()
+            PlanetMessage errorMsg = new()
             {
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {res}",
                 Author_Id = ulong.MaxValue,

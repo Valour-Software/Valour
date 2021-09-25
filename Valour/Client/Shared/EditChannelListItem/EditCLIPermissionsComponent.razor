@@ -174,19 +174,19 @@ else
 
     public PermissionsNode PermissionsNode { get; set; }
 
-    public PlanetRole Selected_Role { get; set; }
+    public Role Selected_Role { get; set; }
 
-    public List<PlanetRole> Roles { get; set; }
+    public List<Role> Roles { get; set; }
 
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
-    public ClientPlanetChatChannel ChatChannel { get; set; }
+    public Channel ChatChannel { get; set; }
 
-    public ClientPlanetCategory Category { get; set; }
+    public Category Category { get; set; }
 
-    public ClientPlanetMember SelfMember { get; set; }
+    public Member SelfMember { get; set; }
 
-    public PlanetRole SelfPrimaryRole { get; set; }
+    public Role SelfPrimaryRole { get; set; }
 
     public ulong SelfAuthority { get; set; }
 
@@ -195,7 +195,7 @@ else
     public bool loading = true;
 
     [Parameter]
-    public IClientPlanetListItem Item { get; set; }
+    public IPlanetListItem Item { get; set; }
 
     public async Task SwitchInherit()
     {
@@ -292,7 +292,7 @@ else
         Planet = await Item.GetPlanetAsync();
         Roles = await Planet.GetRolesAsync();
 
-        ClientPlanetCategory category = Item as ClientPlanetCategory;
+        Category category = Item as Category;
 
         if (category != null)
         {
@@ -302,7 +302,7 @@ else
         }
         else
         {
-            ClientPlanetChatChannel channel = Item as ClientPlanetChatChannel;
+            Channel channel = Item as Channel;
 
             if (channel != null)
             {
@@ -319,7 +319,7 @@ else
             Selected_Role = Roles[0];
 
         // Get self membership
-        SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, Planet.Id);
+        SelfMember = await Member.GetMemberAsync(ClientUserManager.User.Id, Planet.Id);
         SelfAuthority = await SelfMember.GetAuthorityAsync();
         SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
 
@@ -342,7 +342,7 @@ else
         await OnRoleChange(Roles.FirstOrDefault(x => x.Id == newRoleId));
     }
 
-    public async Task OnRoleChange(PlanetRole role)
+    public async Task OnRoleChange(Role role)
     {
         Selected_Role = role;
 

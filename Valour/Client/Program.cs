@@ -38,7 +38,7 @@ namespace Valour.Client
                 }
             );
             builder.Services.AddSingleton<SignalRManager>();
-            builder.Services.AddSingleton<ClientPlanetManager>();
+            builder.Services.AddSingleton<PlanetManager>();
             builder.Services.AddSingleton<ClientWindowManager>();
             builder.Services.AddSingleton<ClientCategoryManager>();
             builder.Services.AddSingleton<ChannelListManager>();
@@ -77,9 +77,9 @@ namespace Valour.Client
 
             await signalRService.ConnectPlanetHub();
 
-            var planetMan = host.Services.GetRequiredService<ClientPlanetManager>();
+            var planetMan = host.Services.GetRequiredService<PlanetManager>();
 
-            ClientPlanetManager.Current = planetMan;
+            PlanetManager.Current = planetMan;
 
             await host.RunAsync();
         }

@@ -87,7 +87,7 @@
                 </p>
                 <div class="dropdown-content">
 
-                    @foreach (PlanetRole role in PlanetRoles)
+                    @foreach (Role role in Roles)
                     {
                         var curRole = role;
                         var hasRole = MemberRoles.Any(x => x.Id == role.Id);
@@ -107,10 +107,10 @@
 }
 
 @code {
-    public ClientPlanet Planet { get; set; }
-    public List<PlanetRole> PlanetRoles { get; set; }
-    public List<PlanetRole> MemberRoles { get; set; }
-    public ClientPlanetMember Member { get; set; }
+    public Planet Planet { get; set; }
+    public List<Role> Roles { get; set; }
+    public List<Role> MemberRoles { get; set; }
+    public Member Member { get; set; }
 
     [Parameter]
     public ModalHolderComponent Holder { get; set; }
@@ -122,12 +122,12 @@
     public double x;
     public double y;
 
-    public async Task OnMemberUpdate(ClientPlanetMember member)
+    public async Task OnMemberUpdate(Member member)
     {
         if (member.Id == Member.Id)
         {
             Member = member;
-            MemberRoles = await Member.GetPlanetRolesAsync();
+            MemberRoles = await Member.GetRolesAsync();
             StateHasChanged();
         }
     }
@@ -136,38 +136,38 @@
     {
         memberContextMenu.Component = this;
 
-        ClientPlanetManager.Current.OnPlanetChange += OnPlanetChange;
-        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
-        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
-        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
+        PlanetManager.Current.OnPlanetChange += OnPlanetChange;
+        PlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
+        PlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+        PlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
         memberContextMenu.OpenEvent += OnOpened;
         ModalHolderComponent.CloseModalEvent += OnModalClose;
     }
 
-    public async Task OnRoleDeletion(PlanetRole role)
+    public async Task OnRoleDeletion(Role role)
     {
-        PlanetRoles = await Planet.GetRolesAsync();
+        Roles = await Planet.GetRolesAsync();
     }
 
-    public async Task OnRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(Role role)
     {
-        PlanetRoles = await Planet.GetRolesAsync();
+        Roles = await Planet.GetRolesAsync();
     }
 
-    public async Task OnPlanetChange(ClientPlanet planet)
+    public async Task OnPlanetChange(Planet planet)
     {
         Planet = planet;
 
         if (planet == null)
             return;
 
-        PlanetRoles = await Planet.GetRolesAsync();
+        Roles = await Planet.GetRolesAsync();
     }
 
     public async Task OnOpened()
     {
         Member = memberContextMenu.SelectedMember;
-        MemberRoles = await Member.GetPlanetRolesAsync();
+        MemberRoles = await Member.GetRolesAsync();
         StateHasChanged();
     }
 
@@ -211,7 +211,7 @@
         StateHasChanged();
     }
 
-    public async Task OnRoleClick(PlanetRole role, bool value)
+    public async Task OnRoleClick(Role role, bool value)
     {
         HttpResponseMessage response = null;
 

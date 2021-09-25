@@ -24,22 +24,22 @@
 
     public int Selected { get; set; }
 
-    public List<ClientPlanetMember> Matches;
+    public List<Member> Matches;
 
     [Parameter]
-    public ClientPlanetChatChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
     [Parameter]
     public ChannelWindowComponent ChannelComponent { get; set; }
 
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
-    public List<ClientPlanetMember> Members;
+    public List<Member> Members;
 
     protected override async Task OnInitializedAsync()
     {
         Planet = await Channel.GetPlanetAsync();
-        Matches = new List<ClientPlanetMember>();
+        Matches = new List<Member>();
         Members = await Planet.GetCachedMembers();
     }
 

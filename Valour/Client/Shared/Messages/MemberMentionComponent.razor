@@ -1,4 +1,4 @@
-﻿@inject ClientPlanetManager planetManager
+﻿@inject PlanetManager planetManager
 
 <div class="@Class" style="color: @Role_Color">
     @if (Member == null)
@@ -32,7 +32,7 @@
     [Parameter]
     public Mention Mention { get; set; }
 
-    public ClientPlanetMember Member { get; set; }
+    public Member Member { get; set; }
 
     public string Role_Color = "#ffffff";
 
@@ -58,7 +58,7 @@
 
     public async Task Build()
     {
-        Member = await ClientPlanetMember.FindAsync(Mention.Target_Id);
+        Member = await Member.FindAsync(Mention.Target_Id);
 
         if (Member != null)
         {
