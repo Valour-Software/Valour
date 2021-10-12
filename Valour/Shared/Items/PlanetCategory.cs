@@ -4,13 +4,19 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using System.Text.Json.Serialization;
+
 namespace Valour.Shared.Items
 {
     /// <summary>
     /// Represents a single chat Category within a planet
     /// </summary>
-    public class PlanetCategory : ChannelListItem
+    public class PlanetCategory<T> : ChannelListItem<T> where T : Item<T>
     {
-
+        /// <summary>
+        /// The item type of this item
+        /// </summary>
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.Category;
     }
 }

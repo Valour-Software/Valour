@@ -31,6 +31,12 @@ namespace Valour.Shared.Messages
         public ulong Author_Id { get; set; }
 
         /// <summary>
+        /// The member's ID
+        /// </summary>
+        [JsonPropertyName("Author_Id")]
+        public ulong Member_Id { get; set; }
+
+        /// <summary>
         /// String representation of message
         /// </summary>
         [JsonPropertyName("Content")]

@@ -2,7 +2,7 @@
 using Valour.Api.Authorization.Roles;
 using Valour.Api.Planets;
 using Valour.Api.Users;
-using Valour.Client.Categories;
+using Valour.Shared.Items;
 
 namespace Valour.Api.Client;
 
@@ -22,17 +22,25 @@ public static class ValourCache
     /// <summary>
     /// Places an item into the cache
     /// </summary>
-    public static void Put<T>(object id, T obj) where T : class
+    public static async Task Put<T>(object id, T obj) where T : Item<T>
     {
+        // Empty object is ignored
         if (obj == null)
             return;
 
+        // Get the type of the item
         var type = typeof(T);
 
+        // If there isn't a cache for this type, create one
         if (!HCache.ContainsKey(type))
             HCache.Add(type, new ConcurrentDictionary<object, object>());
 
-        HCache[type][id] = obj;
+        // If there is already an object with this ID, update it
+        if (HCache[type].ContainsKey(id))
+            await ValourClient.UpdateItem(obj);
+        // Otherwise, place it into the cache
+        else
+            HCache[type][id] = obj;
     }
 
     /// <summary>
@@ -56,13 +64,8 @@ public static class ValourCache
         var type = typeof(T);
 
         if (HCache.ContainsKey(type))
-            if (HCache[type].ContainsKey(id)) {
-                var obj = HCache[type][id];
-                if (obj is T)
-                    return (T)obj;
-
-                return null;
-            }
+            if (HCache[type].ContainsKey(id)) 
+                return HCache[type][id] as T;
 
         return null;
     }

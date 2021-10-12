@@ -9,7 +9,7 @@ namespace Valour.Api.Authorization.Roles;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class Role : Shared.Roles.PlanetRole
+public class Role : Shared.Roles.PlanetRole<Role>
 {
     /// <summary>
     /// Returns the planet role for the given id
@@ -26,7 +26,7 @@ public class Role : Shared.Roles.PlanetRole
         var role = await ValourClient.GetJsonAsync<Role>($"api/role/{id}");
 
         if (role is not null)
-            ValourCache.Put(id, role);
+            await ValourCache.Put(id, role);
 
         return role;
     }

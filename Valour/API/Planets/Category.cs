@@ -2,6 +2,7 @@
 using Valour.Api.Authorization.Roles;
 using Valour.Api.Client;
 using Valour.Shared;
+using Valour.Shared.Items;
 
 namespace Valour.Api.Planets;
 
@@ -11,8 +12,10 @@ namespace Valour.Api.Planets;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class Category : Shared.Items.PlanetCategory
+public class Category : Shared.Items.PlanetCategory<Category>, IPlanetListItem
 {
+    public string GetItemTypeName() => "Category";
+
     /// <summary>
     /// Returns the category for the given id
     /// </summary>
@@ -28,10 +31,16 @@ public class Category : Shared.Items.PlanetCategory
         var category = await ValourClient.GetJsonAsync<Category>($"api/category/{id}");
 
         if (category is not null)
-            ValourCache.Put(id, category);
+            await ValourCache.Put(id, category);
 
         return category;
     }
+
+    /// <summary>
+    /// Returns the planet for this category
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync() =>
+        await Planet.FindAsync(Planet_Id);
 
     /// <summary>
     /// Deletes this category

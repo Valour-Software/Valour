@@ -2,6 +2,7 @@
 using Valour.Api.Client;
 using Valour.Api.Messages;
 using Valour.Shared;
+using Valour.Shared.Messages;
 
 namespace Valour.Api.Planets;
 
@@ -12,7 +13,7 @@ namespace Valour.Api.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class Channel : Shared.Items.PlanetChatChannel
+public class Channel : Shared.Items.PlanetChatChannel<Channel>, IPlanetListItem
 {
     /// <summary>
     /// Returns the channel for the given id
@@ -29,7 +30,7 @@ public class Channel : Shared.Items.PlanetChatChannel
         var channel = await ValourClient.GetJsonAsync<Channel>($"api/channel/{id}");
 
         if (channel is not null)
-            ValourCache.Put(id, channel);
+            await ValourCache.Put(id, channel);
 
         return channel;
     }
@@ -66,8 +67,9 @@ public class Channel : Shared.Items.PlanetChatChannel
     /// <summary>
     /// Sets the parent category id of the channel
     /// </summary>
-    public async Task<TaskResult> SetParentIdAsync(ulong id) => 
+    public async Task<TaskResult> SetParentIdAsync(ulong? id) => 
         await ValourClient.PutAsync($"api/channel/{Id}/parent_id", id);
+
 
     /// <summary>
     /// Returns the permissions node for the given role id
@@ -78,8 +80,8 @@ public class Channel : Shared.Items.PlanetChatChannel
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
-    public async Task<ChatChannelPermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await ChatChannelPermissionsNode.FindAsync(Id, role_id, force_refresh);
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+        await PermissionsNode.FindAsync(Id, role_id, force_refresh);
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)

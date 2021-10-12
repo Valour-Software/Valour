@@ -4,7 +4,7 @@ using Valour.Shared.Items;
 
 namespace Valour.Shared.Items
 {
-    public class ChannelListItem : NamedItem
+    public abstract class ChannelListItem<T> : NamedItem<T> where T : Item<T>
     {
         [JsonInclude]
         [JsonPropertyName("Position")]

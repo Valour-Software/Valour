@@ -153,12 +153,12 @@
         if (isprivate) {
             // set the default role channel view perms to false
 
-            ChatChannelPermissionsNode PermissionsNode = new()
+            PermissionsNode PermissionsNode = new()
             {
                 Channel_Id = channel_id,
                 Planet_Id = planetManager.GetCurrent().Id,
                 Role_Id = planetManager.GetCurrent().Default_Role_Id,
-                Code_Mask = 0x00,
+                Mask = 0x00,
                 Code = 0x00
             };
 
@@ -166,7 +166,7 @@
             PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
             PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
-            HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
+            HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<PermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
                                                                                                     PermissionsNode);
 
             if (!response.IsSuccessStatusCode)
@@ -183,12 +183,12 @@
                     continue;
                 }
                 
-                PermissionsNode = new ChatChannelPermissionsNode()
+                PermissionsNode = new PermissionsNode()
                 {
                     Channel_Id = channel_id,
                     Planet_Id = planetManager.GetCurrent().Id,
                     Role_Id = role.Id,
-                    Code_Mask = 0x00,
+                    Mask = 0x00,
                     Code = 0x00
                 };
 
@@ -196,7 +196,7 @@
                 PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
                 PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"api/node/channel", PermissionsNode);
+                response = await ClientUserManager.Http.PostAsJsonAsync<PermissionsNode>($"api/node/channel", PermissionsNode);
                 if (!response.IsSuccessStatusCode)
                 {
                     string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();

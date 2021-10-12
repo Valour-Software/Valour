@@ -26,7 +26,7 @@ namespace Valour.Server.Planets
     /// This class exists to add server funtionality to the PlanetMember
     /// class.
     /// </summary>
-    public class ServerPlanetMember : PlanetMember
+    public class ServerPlanetMember : PlanetMember<ServerPlanetMember>
     {
 
         // Relational DB stuff
@@ -41,14 +41,6 @@ namespace Valour.Server.Planets
         [InverseProperty("Member")]
         [JsonIgnore]
         public virtual ICollection<ServerPlanetRoleMember> RoleMembership { get; set; }
-
-        /// <summary>
-        /// Returns a ServerPlanet using a Planet as a base
-        /// </summary>
-        public static ServerPlanetMember FromBase(PlanetMember member)
-        {
-            return MappingManager.Mapper.Map<ServerPlanetMember>(member);
-        }
 
         public static async Task<ServerPlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db)
         { 

@@ -1,13 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Client.Planets;
-using Valour.Client.Shared.Messages;
 using Valour.Shared.Messages;
 
-namespace Valour.Api.Messages;
+namespace Valour.Client.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

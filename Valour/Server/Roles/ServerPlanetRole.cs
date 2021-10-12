@@ -22,7 +22,7 @@ using Valour.Shared;
 
 namespace Valour.Server.Roles
 {
-    public class ServerPlanetRole : PlanetRole
+    public class ServerPlanetRole : PlanetRole<ServerPlanetRole>
     {
         [ForeignKey("Planet_Id")]
         [JsonIgnore]
@@ -30,70 +30,39 @@ namespace Valour.Server.Roles
 
         [InverseProperty("Role")]
         [JsonIgnore]
-        public virtual ICollection<ServerChatChannelPermissionsNode> ChatChannelPermissionNodes { get; set; }
+        public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
 
-
-        /// <summary>
-        /// Returns a ServerPlanetRole using a PlanetRole as a base
-        /// </summary>
-        public static ServerPlanetRole FromBase(PlanetRole planetrole)
+        public ICollection<PermissionsNode> GetNodes(ValourDB db)
         {
-            return MappingManager.Mapper.Map<ServerPlanetRole>(planetrole);
+            PermissionNodes ??= db.PermissionsNodes.Where(x => x.Role_Id == Id).ToList();
+            return PermissionNodes;
         }
 
-        public List<ServerChatChannelPermissionsNode> GetAllChannelNodes()
+        public ICollection<PermissionsNode> GetChannelNodes(ValourDB db)
         {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
-            {
-                return Context.ChatChannelPermissionsNodes.Where(x => x.Planet_Id == Planet_Id).ToList();
-            }
+            PermissionNodes ??= db.PermissionsNodes.Where(x => x.Role_Id == Id).ToList();
+            return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.Channel).ToList();
         }
 
-        public async Task<ChatChannelPermissionsNode> GetChannelNodeAsync(ServerPlanetChatChannel channel, ValourDB db = null)
+        public ICollection<PermissionsNode> GetCategoryNodes(ValourDB db)
         {
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-            }
-
-            var res = await db.ChatChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Channel_Id == channel.Id &&
-                                                                                    x.Role_Id == Id);
-
-            if (createdb) await db.DisposeAsync();
-
-            return res;
+            PermissionNodes ??= db.PermissionsNodes.Where(x => x.Role_Id == Id).ToList();
+            return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.Category).ToList();
         }
 
-        public async Task<CategoryPermissionsNode> GetCategoryNodeAsync(ServerPlanetCategory category, ValourDB db = null)
-        {
-            bool createdb = false;
-            if (db == null)
-            {
-                db = new ValourDB(ValourDB.DBOptions);
-            }
+        public async Task<PermissionsNode> GetChannelNodeAsync(ServerPlanetChatChannel channel, ValourDB db) =>
+            await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == channel.Id &&
+                                                                         x.Target_Type == Shared.Items.ItemType.Channel);
 
-            var res = await db.CategoryPermissionsNodes.FirstOrDefaultAsync(x => x.Category_Id == category.Id &&
-                                                                              x.Role_Id == Id);
+        public async Task<PermissionsNode> GetCategoryNodeAsync(ServerPlanetCategory category, ValourDB db) =>
+            await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
+                                                                         x.Target_Type == Shared.Items.ItemType.Category);
 
-            if (createdb) await db.DisposeAsync();
+        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ServerPlanetChatChannel channel, ValourDB db) =>
+            await GetPermissionStateAsync(permission, channel.Id, db);
 
-            return res;
-        }
-
-        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ServerPlanetChatChannel channel)
-        {
-            return await GetPermissionStateAsync(permission, channel.Id);
-        }
-
-        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channel_id)
-        {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
-            {
-                ChatChannelPermissionsNode node = await Context.ChatChannelPermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Channel_Id == channel_id);
-                return node.GetPermissionState(permission);
-            }
-        }
+        public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channel_id, ValourDB db) =>
+            (await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Target_Id == channel_id)).GetPermissionState(permission);
 
         /// <summary>
         /// Returns if the role has the permission

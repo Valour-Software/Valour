@@ -18,7 +18,7 @@ namespace Valour.Shared.Items
     /// <summary>
     /// Represents a single chat channel within a planet
     /// </summary>
-    public class PlanetChatChannel : ChannelListItem
+    public class PlanetChatChannel<T> : ChannelListItem<T> where T : Item<T>
     {
         /// <summary>
         /// The amount of messages ever sent in the channel
@@ -32,5 +32,11 @@ namespace Valour.Shared.Items
         /// </summary>
         [JsonPropertyName("Inherits_Perms")]
         public bool Inherits_Perms { get; set; }
+
+        /// <summary>
+        /// The item type of this item
+        /// </summary>
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.Channel;
     }
 }

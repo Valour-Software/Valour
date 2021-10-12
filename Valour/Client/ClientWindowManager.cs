@@ -1,4 +1,5 @@
 ﻿using Valour.Api.Client;
+using Valour.Api.Messages;
 using Valour.Api.Planets;
 using Valour.Client.Planets;
 using Valour.Client.Shared.Windows.PlanetChannelWindow;
@@ -10,11 +11,19 @@ namespace Valour.Client
     /// </summary>
     public class ClientWindowManager
     {
-        private List<ClientWindow> OpenWindows = new List<ClientWindow>();
+        public Planet FocusedPlanet { get; private set; }
+
+        private List<ClientWindow> OpenWindows = new();
+
+        private List<ChatChannelWindow> OpenChatWindows = new();
 
         private ClientWindow SelectedWindow;
 
         public Func<Task> OnWindowSelect;
+
+        public event Func<Task> OnChannelWindowUpdate;
+
+        public event Func<Planet, Task> OnPlanetFocused;
 
         public static ClientWindowManager Instance;
 
@@ -22,6 +31,54 @@ namespace Valour.Client
         {
             Instance = this;
             ValourClient.HubConnection.Reconnected += OnSignalRReconnect;
+            ValourClient.OnMessageRecieve += OnMessageRecieved;
+        }
+
+        public async Task SetFocusedPlanet(Planet planet)
+        {
+            if (planet is null)
+            {
+                if (FocusedPlanet is null)
+                    return;
+            }
+            else
+            {
+                if (FocusedPlanet is not null)
+                    if (planet.Id == FocusedPlanet.Id)
+                        return;
+            }
+
+            FocusedPlanet = planet;
+
+            // Ensure focused planet is open
+            await ValourClient.OpenPlanet(planet);
+
+            if (planet is null)
+                Console.WriteLine("Set current planet to null");
+            else
+                Console.WriteLine($"Set focused planet to {planet.Name} ({planet.Id})");
+
+            await OnPlanetFocused?.Invoke(planet);
+        }
+
+        public async Task OnMessageRecieved(Message message)
+        {
+            if (!OpenChatWindows.Any(x => x.Channel.Id == message.Channel_Id))
+            {
+                Console.WriteLine($"Error: Recieved message for closed channel ({message.Channel_Id})");
+                return;
+            }
+
+            foreach (var window in OpenChatWindows.Where(x => x.Channel.Id == message.Channel_Id))
+            {
+                await window.Component.OnRecieveMessage(message);
+            }
+
+        }
+
+        public async Task RefreshOpenedChannels()
+        {
+            await OnChannelWindowUpdate.Invoke();
         }
 
         public async Task OnSignalRReconnect(string data)
@@ -46,8 +103,14 @@ namespace Valour.Client
 
             Console.WriteLine("Swapping chat channel " + window.Channel.Name + " for " + newChannel.Name);
 
-            await CloseChannel(window.Channel);
-            await 
+            if (!(OpenChatWindows.Any(x => x.Index != window.Index && x.Channel.Id == newChannel.Id)))
+            {
+                await ValourClient.CloseChannel(window.Channel);
+            }
+
+            window.Channel = newChannel;
+
+            await ValourClient.OpenChannel(newChannel);
         }
 
         public async Task SetSelectedWindow(int index)

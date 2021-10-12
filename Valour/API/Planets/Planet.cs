@@ -1,5 +1,6 @@
 ﻿using Valour.Api.Authorization.Roles;
 using Valour.Api.Client;
+using Valour.Api.Extensions;
 using Valour.Shared;
 
 namespace Valour.Api.Planets;
@@ -9,13 +10,13 @@ namespace Valour.Api.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : Shared.Planets.Planet
+public class Planet : Shared.Planets.Planet<Planet>
 {
     // Cached values
-    private List<ulong> _channel_ids = null;
-    private List<ulong> _category_ids = null;
-    private List<ulong> _role_ids = null;
-    private List<ulong> _member_ids = null;
+    private List<Channel> Channels { get; set; }
+    private List<Category> Categories { get; set; }
+    private List<Role> Roles { get; set; }
+    private List<Member> Members { get; set; }
 
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
@@ -32,7 +33,7 @@ public class Planet : Shared.Planets.Planet
         var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{id}");
 
         if (planet is not null)
-            ValourCache.Put(id, planet);
+            await ValourCache.Put(id, planet);
 
         return planet;
     }
@@ -42,7 +43,7 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<Channel> GetPrimaryChannelAsync(bool force_refresh = false)
     {
-        if (_channel_ids == null || force_refresh)
+        if (Channels == null || force_refresh)
         {
             await LoadChannelsAsync();
         }
@@ -55,22 +56,12 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<List<Category>> GetCategoriesAsync(bool force_refresh = false)
     {
-        if (_category_ids == null || force_refresh)
+        if (Categories == null || force_refresh)
         {
             await LoadCategoriesAsync();
         }
 
-        List<Category> categories = new();
-
-        foreach (var id in _category_ids)
-        {
-            var category = await Category.FindAsync(id);
-
-            if (category is not null)
-                categories.Add(category);
-        }
-
-        return categories;
+        return Categories;
     }
 
     /// <summary>
@@ -83,12 +74,29 @@ public class Planet : Shared.Planets.Planet
         if (categories is null)
             return;
 
+        // Update cache values
         foreach (var category in categories)
         {
-            ValourCache.Put(category.Id, category);
+            await ValourCache.Put(category.Id, category);
         }
 
-        _category_ids = categories.OrderBy(x => x.Position).Select(x => x.Id).ToList();
+        // Create container if needed
+        if (Categories == null)
+            Categories = new List<Category>();
+        else
+            Categories.Clear();
+
+        // Retrieve cache values (this is necessary to ensure single copies of items)
+        foreach (var category in categories)
+        {
+            var cCat = ValourCache.Get<Category>(category.Id);
+
+            if (cCat is not null)
+                Categories.Add(cCat);
+        }
+
+        // Sort via position
+        Categories.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
     /// <summary>
@@ -96,22 +104,12 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<List<Channel>> GetChannelsAsync(bool force_refresh = false)
     {
-        if (_channel_ids == null || force_refresh)
+        if (Channels == null || force_refresh)
         {
             await LoadChannelsAsync();
         }
 
-        List<Channel> channels = new();
-
-        foreach (var id in _channel_ids)
-        {
-            var channel = await Channel.FindAsync(id);
-
-            if (channel is not null)
-                channels.Add(channel);
-        }
-
-        return channels;
+        return Channels;
     }
 
     /// <summary>
@@ -126,10 +124,26 @@ public class Planet : Shared.Planets.Planet
 
         foreach (var channel in channels)
         {
-            ValourCache.Put(channel.Id, channel);
+            await ValourCache.Put(channel.Id, channel);
         }
 
-        _channel_ids = channels.OrderBy(x => x.Position).Select(x => x.Id).ToList();
+        // Create container if needed
+        if (Channels == null)
+            Channels = new List<Channel>();
+        else
+            Channels.Clear();
+
+        // Retrieve cache values (this is necessary to ensure single copies of items)
+        foreach (var channel in channels)
+        {
+            var cChan = ValourCache.Get<Channel>(channel.Id);
+
+            if (cChan is not null)
+                Channels.Add(cChan);
+        }
+
+        // Sort via position
+        Channels.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
     /// <summary>
@@ -137,8 +151,6 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<TaskResult> TrySetNameAsync(string name) =>
         await ValourClient.PutAsync($"api/planet/{Id}/name", name);
-
-
 
     /// <summary>
     /// Attempts to set the description of the planet
@@ -155,58 +167,46 @@ public class Planet : Shared.Planets.Planet
     /// <summary>
     /// Returns the members of the planet
     /// </summary>
-    public async Task<TaskResult<List<Member>>> GetMembersAsync(bool force_refresh)
+    public async Task<List<Member>> GetMembersAsync(bool force_refresh)
     {
-        if (_member_ids is null || force_refresh)
+        if (Members is null || force_refresh)
         {
-            var res = await LoadMemberDataAsync();
-
-            if (!res.Success)
-                return new TaskResult<List<Member>>(false, res.Message);
+            await LoadMemberDataAsync();
         }
 
-        List<Member> members = new List<Member>();
-
-        foreach (var id in _member_ids)
-        {
-            var res = await Member.FindAsync(id);
-
-            if (res.Success)
-                members.Add(res.Data);
-        }
-
-        return new TaskResult<List<Member>>(true, "Success", members);
+        return Members;
     }
 
     /// <summary>
     /// Loads the member data for the planet (this is quite heavy) 
     /// </summary>
-    public async Task<TaskResult> LoadMemberDataAsync()
+    public async Task LoadMemberDataAsync()
     {
         var result = await ValourClient.GetJsonAsync<List<PlanetMemberInfo>>($"api/planet/{Id}/member_info");
 
-        if (!result.Success)
-            return new TaskResult(false, result.Message);
-
-        if (_member_ids is null)
-            _member_ids = new List<ulong>();
+        if (Members is null)
+            Members = new List<Member>();
         else
-            _member_ids.Clear();
+            Members.Clear();
 
-        foreach (var info in result.Data)
+        foreach (var info in result)
         {
             // Set role id data manually
-            info.Member.SetLocalRoleIds(info.RoleIds);
+            await info.Member.SetLocalRoleIds(info.RoleIds);
 
             // Set in cache
-            ValourCache.Put(info.Member.Id, info.Member);
-            ValourCache.Put((info.Member.Planet_Id, info.Member.User_Id), info.Member);
-            ValourCache.Put(info.Member.User_Id, info.User);
-
-            _member_ids.Add(info.Member.Id);
+            await ValourCache.Put(info.Member.Id, info.Member);
+            await ValourCache.Put((info.Member.Planet_Id, info.Member.User_Id), info.Member);
+            await ValourCache.Put(info.Member.User_Id, info.User);
         }
 
-        return new TaskResult(true, "Success");
+        foreach (var info in result)
+        {
+            var member = ValourCache.Get<Member>(info.Member.Id);
+
+            if (member is not null)
+                Members.Add(member);
+        }
     }
 
     /// <summary>
@@ -214,22 +214,12 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task<List<Role>> GetRolesAsync(bool force_refresh = false)
     {
-        if (_role_ids is null || force_refresh)
+        if (Roles is null || force_refresh)
         {
             await LoadRolesAsync();
         }
 
-        List<Role> roles = new();
-
-        foreach (var id in _role_ids)
-        {
-            var role = await Role.FindAsync(id, force_refresh);
-
-            if (role is not null)
-                roles.Add(role);
-        }
-
-        return roles;
+        return Roles;
     }
 
     /// <summary>
@@ -244,10 +234,23 @@ public class Planet : Shared.Planets.Planet
 
         foreach (var role in roles)
         {
-            ValourCache.Put(role.Id, role);
+            await ValourCache.Put(role.Id, role);
         }
 
-        _role_ids = roles.OrderBy(x => x.Position).Select(x => x.Id).ToList();
+        if (Roles is null)
+            Roles = new List<Role>();
+        else
+            Roles.Clear();
+
+        foreach (var role in roles)
+        {
+            var cRole = await Role.FindAsync(role.Id);
+
+            if (cRole is not null)
+                Roles.Add(cRole);
+        }
+
+        Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
     /// <summary>
@@ -263,31 +266,28 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task NotifyUpdateChannel(Channel channel)
     {
-        if (_channel_ids == null)
+        if (Channels == null)
             await LoadChannelsAsync();
 
-        // Set in cache
-        ValourCache.Put(channel.Id, channel);
+        if (!Channels.Contains(channel))
+            return;
 
-        // Re-order channels
-        List<Channel> channels = new();
-
-        foreach (var id in _channel_ids)
-        {
-            channels.Add(ValourCache.Get<Channel>(id));
-        }
-
-        _channel_ids = channels.OrderBy(x => x.Position).Select(x => x.Id).ToList();
+        // Resort
+        Channels.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
     /// <summary>
     /// Ran to notify the planet that a channel has been deleted
     /// </summary>
-    public void NotifyDeleteChannel(Channel channel)
+    public async Task NotifyDeleteChannel(Channel channel)
     {
-        _channel_ids.Remove(channel.Id);
+        if (Channels == null)
+            await LoadChannelsAsync();
 
-        ValourCache.Remove<Channel>(channel.Id);
+        if (!Channels.Contains(channel))
+            return;
+
+        Channels.Remove(channel);
     }
 
     /// <summary>
@@ -295,31 +295,58 @@ public class Planet : Shared.Planets.Planet
     /// </summary>
     public async Task NotifyUpdateCategory(Category category)
     {
-        if (_category_ids == null)
+        if (Categories == null)
             await LoadCategoriesAsync();
 
-        // Set in cache
-        ValourCache.Put(category.Id, category);
+        if (!Categories.Contains(category))
+            return;
 
-        // Reo-order categories
-        List<Category> categories = new();
-
-        foreach (var id in _category_ids)
-        {
-            categories.Add(ValourCache.Get<Category>(id));
-        }
-
-        _category_ids = categories.OrderBy(x => x.Position).Select(x => x.Id).ToList();
+        // Resort
+        Categories.Sort((a, b) => a.Position.CompareTo(b.Position));
     }
 
     /// <summary>
     /// Ran to notify the planet that a category has been deleted
     /// </summary>
-    public void NotifyDeleteCategory(Category category)
+    public async Task NotifyDeleteCategory(Category category)
     {
-        _category_ids.Remove(category.Id);
+        if (Categories == null)
+            await LoadCategoriesAsync();
 
-        ValourCache.Remove<Category>(category.Id);
+        if (!Categories.Contains(category))
+            return;
+
+        Categories.Remove(category);
+    }
+
+    /// <summary>
+    /// Ran to notify the planet that a role has been updated
+    /// </summary>
+    public async Task NotifyUpdateRole(Role role)
+    {
+        if (Roles == null)
+            await LoadRolesAsync();
+
+        if (!Roles.Contains(role))
+            return;
+
+        // Resort
+        Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
+    }
+
+    /// <summary>
+    /// Ran to notify the planet that a role has been deleted
+    /// </summary>
+    public async Task NotifyDeleteRole(Role role)
+    {
+        if (Roles == null)
+            await LoadRolesAsync();
+
+        if (!Roles.Contains(role))
+            return;
+
+        // Resort
+        Roles.Remove(role);
     }
 
 }

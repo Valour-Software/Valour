@@ -210,12 +210,12 @@ else
             if (ChatChannel != null)
             {
                 // If there's no node, create a dummy one
-                PermissionsNode = new ChatChannelPermissionsNode()
+                PermissionsNode = new PermissionsNode()
                 {
                     Channel_Id = ChatChannel.Id,
                     Planet_Id = Item.Planet_Id,
                     Role_Id = Selected_Role.Id,
-                    Code_Mask = 0x00,
+                    Mask = 0x00,
                     Code = 0x00
                 };
             }
@@ -226,7 +226,7 @@ else
                     Category_Id = Category.Id,
                     Planet_Id = Item.Planet_Id,
                     Role_Id = Selected_Role.Id,
-                    Code_Mask = 0x00,
+                    Mask = 0x00,
                     Code = 0x00
                 };
             }
@@ -261,10 +261,10 @@ else
     {
         HttpResponseMessage response = null;
 
-        if (PermissionsNode is ChatChannelPermissionsNode)
+        if (PermissionsNode is PermissionsNode)
         {
-            response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                (ChatChannelPermissionsNode)PermissionsNode);
+            response = await ClientUserManager.Http.PostAsJsonAsync<PermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
+                                                                                                (PermissionsNode)PermissionsNode);
         }
         else if (PermissionsNode is CategoryPermissionsNode)
         {

@@ -2,9 +2,14 @@
 using System;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Valour.Api.Authorization.Roles;
+using Valour.Api.Extensions;
+using Valour.Api.Messages;
 using Valour.Api.Planets;
 using Valour.Api.Users;
 using Valour.Shared;
+using Valour.Shared.Items;
+using Valour.Shared.Messages;
 
 namespace Valour.Api.Client;
 
@@ -57,6 +62,11 @@ public static class ValourClient
     public static bool IsLoggedIn => Self != null;
 
     /// <summary>
+    /// True if SignalR has hooked events
+    /// </summary>
+    public static bool SignalREventsHooked { get; private set; }
+
+    /// <summary>
     /// Hub connection for SignalR client
     /// </summary>
     public static HubConnection HubConnection { get; private set; }
@@ -64,14 +74,14 @@ public static class ValourClient
     /// <summary>
     /// Currently opened planets
     /// </summary>
-    public static HashSet<ulong> OpenPlanetIds { get; private set; }
+    public static List<Planet> OpenPlanets { get; private set; }
 
     /// <summary>
     /// Currently opened channels
     /// </summary>
-    public static HashSet<ulong> OpenChannelIds {  get; private set; }
+    public static List<Channel> OpenChannels { get; private set; }
 
-    #region Events
+    #region Event Fields
 
     /// <summary>
     /// Run when SignalR opens a planet
@@ -83,55 +93,40 @@ public static class ValourClient
     /// </summary>
     public static event Func<Planet, Task> OnPlanetClose;
 
+    /// <summary>
+    /// Run when a message is recieved
+    /// </summary>
+    public static event Func<Message, Task> OnMessageRecieve;
+
     #endregion
 
-    #region SignalR channels
+    static ValourClient()
+    {
+        // Add victor dummy member
+        ValourCache.Put(ulong.MaxValue, new Member()
+        {
+            Nickname = "Victor",
+            Id = ulong.MaxValue,
+            Member_Pfp = "/media/victor-cyan.png"
+        }).RunSynchronously();
+
+        // Hook top level events
+        HookPlanetEvents();
+    }
+
+    #region SignalR Groups
 
     /// <summary>
     /// Returns if the given planet is open
     /// </summary>
     public static bool IsPlanetOpen(Planet planet) =>
-        OpenPlanetIds.Contains(planet.Id);
+        OpenPlanets.Contains(planet);
 
     /// <summary>
     /// Returns if the channel is open
     /// </summary>
     public static bool IsChannelOpen(Channel channel) =>
-        OpenChannelIds.Contains(channel.Id);
-
-    /// <summary>
-    /// Returns the currently open planets of the client
-    /// </summary>
-    public static async Task<List<Planet>> GetOpenPlanetsAsync()
-    {
-        List<Planet> planets = new();
-
-        foreach (ulong id in OpenPlanetIds)
-        {
-            var res = await Planet.FindAsync(id);
-            if (res.Success)
-                planets.Add(res.Data);
-        }
-
-        return planets;
-    }
-
-    /// <summary>
-    /// Returns the currently open channels of the client
-    /// </summary>
-    public static async Task<List<Channel>> GetOpenChannelsAsync() 
-    {
-        List<Channel> channels = new();
-
-        foreach (ulong id in OpenChannelIds)
-        {
-            var res = await Channel.FindAsync(id);
-            if (res.Success)
-                channels.Add(res.Data);
-        }
-
-        return channels;
-    }
+        OpenChannels.Contains(channel);
 
     /// <summary>
     /// Opens a SignalR connection to a planet
@@ -143,11 +138,11 @@ public static class ValourClient
             return;
 
         // Already open
-        if (OpenPlanetIds.Contains(planet.Id))
+        if (OpenPlanets.Contains(planet))
             return;
 
         // Mark as opened
-        OpenPlanetIds.Add(planet.Id);
+        OpenPlanets.Add(planet);
 
         Console.WriteLine($"Opening planet {planet.Name} ({planet.Id})");
 
@@ -180,14 +175,14 @@ public static class ValourClient
     public static async Task ClosePlanet(Planet planet)
     {
         // Already closed
-        if (!OpenPlanetIds.Contains(planet.Id))
+        if (!OpenPlanets.Contains(planet))
             return;
 
         // Close connection
         await HubConnection.SendAsync("LeavePlanet", planet.Id);
 
         // Remove from list
-        OpenPlanetIds.Remove(planet.Id);
+        OpenPlanets.Remove(planet);
 
         Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 
@@ -199,20 +194,158 @@ public static class ValourClient
         }
     }
 
+    /// <summary>
+    /// Opens a SignalR connection to a channel
+    /// </summary>
     public static async Task OpenChannel(Channel channel)
     {
-        // Not opened yet
-        if (!OpenChannelIds.Contains(channel.Id))
-        {
-            var planet = await channel.GetPlanetAsync();
-        }
-            
+        // Already opened
+        if (OpenChannels.Contains(channel))
+            return;
 
-        
+        var planet = await channel.GetPlanetAsync();
+
+        // Ensure planet is opened
+        await OpenPlanet(planet);
+
+        // Join channel SignalR group
+        await HubConnection.SendAsync("JoinChannel", channel.Id, Token);
+
+        // Add to open set
+        OpenChannels.Add(channel);
+
+        Console.WriteLine($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
+    }
+
+    /// <summary>
+    /// Closes a SignalR connection to a channel
+    /// </summary>
+    public static async Task CloseChannel(Channel channel)
+    {
+        // Not opened
+        if (!OpenChannels.Contains(channel))
+            return;
+
+        // Leaves channel SignalR group
+        await HubConnection.SendAsync("LeaveChannel", channel.Id);
+
+        // Remove from open set
+        OpenChannels.Remove(channel);
+
+        Console.WriteLine($"Left SignalR group for channel {channel.Name} ({channel.Id})");
+    }
+
+    #endregion
+
+    #region SignalR Events
+
+    /// <summary>
+    /// Updates an item's properties
+    /// </summary>
+    public static async Task UpdateItem<T>(T updated) where T : Item<T>
+    {
+        var local = ValourCache.Get<T>(updated.Id);
+        if (local != null)
+            updated.CopyAllTo(local);
+
+        // Invoke static "any" update
+        await local.InvokeAnyUpdated(local);
+
+        // Invoke specific item update
+        await local.InvokeUpdated();
+    }
+
+    /// <summary>
+    /// Updates an item's properties
+    /// </summary>
+    public static async Task DeleteItem<T>(T item) where T : Item<T>
+    {
+        var local = ValourCache.Get<T>(item.Id);
+
+        ValourCache.Remove<T>(item.Id);
+
+        // Invoke static "any" delete
+        await local.InvokeAnyDeleted(local);
+
+        // Invoke specific item deleted
+        await local.InvokeDeleted();
+    }
+
+    /// <summary>
+    /// Ran when a message is recieved
+    /// </summary>
+    private static async Task MessageRecieved(Message message)
+    {
 
     }
 
     #endregion
+
+    #region Planet Event Handling
+
+    private static void HookPlanetEvents()
+    {
+        Channel.OnAnyUpdated += OnChannelUpdated;
+        Channel.OnAnyDeleted += OnChannelDeleted;
+
+        Category.OnAnyUpdated += OnCategoryUpdated;
+        Category.OnAnyDeleted += OnCategoryDeleted;
+
+        Role.OnAnyUpdated += OnRoleUpdated;
+        Role.OnAnyDeleted += OnRoleDeleted;
+    }
+
+    private static async Task OnChannelUpdated(Channel channel)
+    {
+        var planet = await Planet.FindAsync(channel.Planet_Id);
+
+        if (planet is not null)
+            await planet.NotifyUpdateChannel(channel);
+    }
+
+    private static async Task OnCategoryUpdated(Category category)
+    {
+        var planet = await Planet.FindAsync(category.Planet_Id);
+
+        if (planet is not null)
+            await planet.NotifyUpdateCategory(category);
+    }
+
+    private static async Task OnRoleUpdated(Role role)
+    {
+        var planet = await Planet.FindAsync(role.Planet_Id);
+
+        if (planet is not null)
+            await planet.NotifyUpdateRole(role);
+    }
+
+    private static async Task OnChannelDeleted(Channel channel)
+    {
+        var planet = await Planet.FindAsync(channel.Planet_Id);
+
+        if (planet is not null)
+            await planet.NotifyDeleteChannel(channel);
+    }
+
+    private static async Task OnCategoryDeleted(Category category)
+    {
+        var planet = await Planet.FindAsync(category.Planet_Id);
+
+        if (planet is not null)
+            await planet.NotifyDeleteCategory(category);
+    }
+
+    private static async Task OnRoleDeleted(Role role)
+    {
+        var planet = await Planet.FindAsync(role.Planet_Id);
+
+        if (planet is not null)
+            await planet.NotifyDeleteRole(role);
+    }
+
+    #endregion
+
+    #region Initialization
 
     /// <summary>
     /// Logs in and prepares the client for use
@@ -244,37 +377,35 @@ public static class ValourClient
     /// <summary>
     /// Returns the joined planets of the client user
     /// </summary>
-    public static async Task<TaskResult<List<Planet>>> GetJoinedPlanetsAsync()
+    public static async Task<List<Planet>> GetJoinedPlanetsAsync()
     {
         var planets = new List<Planet>();
 
         foreach (var id in _joinedPlanetIds)
         {
-            var planetResponse = await Planet.FindAsync(id);
+            var planet = await Planet.FindAsync(id);
 
-            if (!planetResponse.Success)
-                return new TaskResult<List<Planet>>(false, planetResponse.Message);
-
-            planets.Add(planetResponse.Data);
+            if (planet is not null)
+                planets.Add(planet);
         }
 
-        return new TaskResult<List<Planet>>(true, "Success", planets);
+        return planets;
     }
 
     /// <summary>
     /// Loads the user's joined planet list from the server
     /// </summary>
-    public static async Task<TaskResult> LoadJoinedPlanetsAsync()
+    public static async Task LoadJoinedPlanetsAsync()
     {
-        var response = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planet_ids");
+        var planetIds = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planet_ids");
 
-        if (!response.Success)
-            return new TaskResult(false, response.Message);
+        if (planetIds is null)
+            return;
 
-        _joinedPlanetIds = response.Data;
-
-        return new TaskResult(true, "Success");
+        _joinedPlanetIds = planetIds;
     }
+
+    #endregion
 
     #region SignalR
 
@@ -293,6 +424,30 @@ public static class ValourClient
         HubConnection.Reconnected += OnReconnect;
 
         await HubConnection.StartAsync();
+
+        await HookSignalREvents();
+    }
+
+    private static async Task HookSignalREvents()
+    {
+        HubConnection.On<Message>("Relay", MessageRecieved);
+
+        HubConnection.On<Planet>("PlanetUpdate", UpdateItem);
+        HubConnection.On<Planet>("PlanetDeletion", DeleteItem);
+
+        HubConnection.On<Channel>("ChannelUpdate", UpdateItem);
+        HubConnection.On<Channel>("ChannelDeletion", DeleteItem);
+
+        HubConnection.On<Category>("CategoryUpdate", UpdateItem);
+        HubConnection.On<Category>("CategoryDeletion", DeleteItem);
+
+        HubConnection.On<Role>("RoleUpdate", UpdateItem);
+        HubConnection.On<Role>("RoleDeletion", DeleteItem);
+
+        HubConnection.On<Member>("MemberUpdate", UpdateItem);
+        HubConnection.On<Member>("MemberDeletion", DeleteItem);
+
+
     }
 
     /// <summary>
@@ -359,16 +514,16 @@ public static class ValourClient
     /// </summary>
     public static async Task HandleReconnect()
     {
-        foreach (ulong id in OpenPlanetIds)
+        foreach (var planet in OpenPlanets)
         {
-            await HubConnection.SendAsync("JoinPlanet", id, Token);
-            Console.WriteLine($"Rejoined SignalR group for planet {id}");
+            await HubConnection.SendAsync("JoinPlanet", planet.Id, Token);
+            Console.WriteLine($"Rejoined SignalR group for planet {planet.Id}");
         }
 
-        foreach (ulong id in OpenChannelIds)
+        foreach (var channel in OpenChannels)
         {
-            await HubConnection.SendAsync("JoinChannel", id, Token);
-            Console.WriteLine($"Rejoined SignalR group for channel {id}");
+            await HubConnection.SendAsync("JoinChannel", channel.Id, Token);
+            Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
         }
     }
 

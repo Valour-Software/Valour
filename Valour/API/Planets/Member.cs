@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Authorization.Roles;
 using Valour.Api.Client;
-using Valour.Api.Roles;
 using Valour.Api.Users;
 using Valour.Shared;
 
@@ -13,12 +12,12 @@ namespace Valour.Api.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class Member : Shared.Planets.PlanetMember
+public class Member : Shared.Planets.PlanetMember<Member>
 {
     /// <summary>
     /// Cached roles
     /// </summary>
-    private List<ulong> _roleids = null;
+    private List<Role> Roles = null;
 
     /// <summary>
     /// Returns the member for the given id
@@ -36,8 +35,8 @@ public class Member : Shared.Planets.PlanetMember
 
         if (member is not null)
         {
-            ValourCache.Put(id, member);
-            ValourCache.Put((member.Planet_Id, member.User_Id), member);
+            await ValourCache.Put(id, member);
+            await ValourCache.Put((member.Planet_Id, member.User_Id), member);
         }
 
         return member;
@@ -59,8 +58,8 @@ public class Member : Shared.Planets.PlanetMember
 
         if (member is not null)
         {
-            ValourCache.Put(member.Id, member);
-            ValourCache.Put((planet_id, user_id), member);
+            await ValourCache.Put(member.Id, member);
+            await ValourCache.Put((planet_id, user_id), member);
         }
 
         return member;
@@ -71,13 +70,13 @@ public class Member : Shared.Planets.PlanetMember
     /// </summary>
     public async Task<Role> GetPrimaryRoleAsync(bool force_refresh = false)
     {
-        if (_roleids is null || force_refresh)
+        if (Roles is null || force_refresh)
         {
-            await LoadRoleIdsAsync();
-        }     
+            await LoadRolesAsync();
+        }
 
-        if (_roleids.Count > 0)
-            return await Role.FindAsync(_roleids[0], force_refresh);
+        if (Roles.Count > 0)
+            return Roles[0];
 
         return null;
     }
@@ -87,22 +86,12 @@ public class Member : Shared.Planets.PlanetMember
     /// </summary>
     public async Task<List<Role>> GetRolesAsync(bool force_refresh = false)
     {
-        List<Role> roles = new List<Role>();
-
-        if (_roleids is null || force_refresh)
+        if (Roles is null || force_refresh)
         {
-            await LoadRoleIdsAsync();
+            await LoadRolesAsync();
         }
 
-        foreach (var roleid in _roleids)
-        {
-            var role = await Role.FindAsync(roleid, force_refresh);
-
-            if (role is not null)
-                roles.Add(role);
-        }
-
-        return roles;
+        return Roles;
     }
 
     /// <summary>
@@ -110,14 +99,20 @@ public class Member : Shared.Planets.PlanetMember
     /// </summary>
     public async Task<bool> HasRoleAsync(ulong id, bool force_refresh = false)
     {
-        if (_roleids is null || force_refresh)
+        if (Roles is null || force_refresh)
         {
-            await LoadRoleIdsAsync();
+            await LoadRolesAsync();
         }
 
-        return _roleids.Contains(id);
+        return Roles.Any(x => x.Id == id);
     }
 
+    /// <summary>
+    /// Returns if the member has the given role
+    /// </summary>
+    public async Task<bool> HasRoleAsync(Role role, bool force_refresh = false) =>
+        await HasRoleAsync(role.Id, force_refresh);
+    
     /// <summary>
     /// Returns the authority of the member
     /// </summary>
@@ -127,80 +122,74 @@ public class Member : Shared.Planets.PlanetMember
     /// <summary>
     /// Loads all role Ids from the server
     /// </summary>
-    public async Task LoadRoleIdsAsync() => 
-        _roleids = await ValourClient.GetJsonAsync<List<ulong>>($"api/member/{Id}/role_ids");
+    public async Task LoadRolesAsync(List<ulong> role_ids = null)
+    {
+        if (role_ids is null)
+            role_ids = await ValourClient.GetJsonAsync<List<ulong>>($"api/member/{Id}/role_ids");
+
+        if (Roles is null)
+            Roles = new List<Role>();
+        else
+            Roles.Clear();
+
+        foreach (var id in role_ids)
+        {
+            var role = await Role.FindAsync(id);
+
+            if (role is not null)
+                Roles.Add(role);
+        }
+
+        Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
+    }
 
     /// <summary>
     /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
     /// It will NOT change anything on the server.
     /// </summary>
-    public void SetLocalRoleIds(List<ulong> ids) =>
-        _roleids = ids;
+    public async Task SetLocalRoleIds(List<ulong> ids) =>
+        await LoadRolesAsync(ids);
 
     /// <summary>
     /// Returns the user of the member
     /// </summary>
-    public async Task<TaskResult<User>> GetUserAsync(bool force_refresh = false)
-    {
-        return await User.FindAsync(User_Id, force_refresh);
-    }
+    public async Task<User> GetUserAsync(bool force_refresh = false) =>
+        await User.FindAsync(User_Id, force_refresh);
 
     /// <summary>
     /// Returns the status of the member
     /// </summary>
-    public async Task<TaskResult<string>> GetStatusAsync(bool force_refresh)
-    {
-        var res = await GetUserAsync(force_refresh);
+    public async Task<string> GetStatusAsync(bool force_refresh) =>
+        (await GetUserAsync(force_refresh))?.Status ?? "";
 
-        if (!res.Success)
-            return new TaskResult<string>(false, res.Message);
-
-        return new TaskResult<string>(true, res.Message, res.Data.Status);
-    }
 
     /// <summary>
     /// Returns the role color of the member
     /// </summary>
-    public async Task<TaskResult<string>> GetRoleColorAsync(bool force_refresh)
-    {
-        var res = await GetPrimaryRoleAsync(force_refresh);
-
-        if (!res.Success)
-            return new TaskResult<string>(false, res.Message);
-
-        return new TaskResult<string>(true, res.Message, res.Data.GetColorHex());
-    }
+    public async Task<string> GetRoleColorAsync(bool force_refresh) =>
+        (await GetPrimaryRoleAsync(force_refresh))?.GetColorHex() ?? "ffffff";
+    
 
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async Task<TaskResult<string>> GetPfpUrlAsync(bool force_refresh)
+    public async Task<string> GetPfpUrlAsync(bool force_refresh)
     {
-        if (!string.IsNullOrWhiteSpace(Nickname))
-            return new TaskResult<string>(true, "Success", Nickname);
+        if (!string.IsNullOrWhiteSpace(Member_Pfp))
+            return Member_Pfp;
 
-        var res = await GetUserAsync(force_refresh);
-
-        if (!res.Success)
-            return new TaskResult<string>(false, res.Message);
-
-        return new TaskResult<string>(true, res.Message, res.Data.Username);
+        return (await GetUserAsync(force_refresh))?.Pfp_Url ?? "/media/icon-512.png";
     }
 
     /// <summary>
     /// Returns the name of the member
     /// </summary>
-    public async Task<TaskResult<string>> GetNameAsync(bool force_refresh)
+    public async Task<string> GetNameAsync(bool force_refresh)
     {
-        if (!string.IsNullOrWhiteSpace(Member_Pfp))
-            return new TaskResult<string>(true, "Success", Member_Pfp);
+        if (!string.IsNullOrWhiteSpace(Nickname))
+            return Nickname;
 
-        var res = await GetUserAsync(force_refresh);
-
-        if (!res.Success)
-            return new TaskResult<string>(false, res.Message);
-
-        return new TaskResult<string>(true, res.Message, res.Data.Pfp_Url);
+        return (await GetUserAsync(force_refresh))?.Username ?? "User not found";
     }
 }
 

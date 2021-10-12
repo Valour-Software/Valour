@@ -1,11 +1,12 @@
 ﻿using Markdig.Helpers;
 using System.Diagnostics;
 using System.Text.Json;
+using Valour.Api.Messages;
 using Valour.Api.Planets;
 using Valour.Shared;
 using Valour.Shared.Messages;
 
-namespace Valour.Api.Messages;
+namespace Valour.Client.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -13,7 +14,7 @@ namespace Valour.Api.Messages;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class Message : Shared.Messages.PlanetMessage
+public class Message : Valour.Shared.Messages.Message
 {
     /// <summary>
     /// True if this message's content has been fully built
@@ -119,9 +120,9 @@ public class Message : Shared.Messages.PlanetMessage
     /// <summary>
     /// Returns the author of the message
     /// </summary>
-    public async Task<TaskResult<Member>> GetAuthorAsync() =>
+    public async Task<Member> GetAuthorAsync() =>
         await Member.FindAsync(Member_Id);
-    
+
 
     private void ParseMarkdown()
     {
@@ -462,4 +463,3 @@ public class Message : Shared.Messages.PlanetMessage
         return finFragments;
     }
 }
-

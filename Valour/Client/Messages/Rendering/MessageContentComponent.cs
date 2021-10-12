@@ -1,12 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Client.Messages;
 
-namespace Valour.Client.Messages.Rendering;
+namespace Valour.Client.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -17,7 +12,7 @@ namespace Valour.Client.Messages.Rendering;
 public class MessageContentComponent : ComponentBase
 {
     [Parameter]
-    public ClientPlanetMessage Message { get; set; }
+    public Message Message { get; set; }
 
     public void ReRender()
     {

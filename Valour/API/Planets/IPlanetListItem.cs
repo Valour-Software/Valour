@@ -1,14 +1,16 @@
-﻿using System.Net.Http.Json;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using System.Web;
+using Valour.Api.Authorization.Roles;
 using Valour.Shared;
-using Valour.Shared.Items;
 using Valour.Shared.Roles;
 
-namespace Valour.Client.Planets
+namespace Valour.Api.Planets
 {
-    public interface IPlanetListItem : IClientNamedItem
+    public interface IPlanetListItem
     {
         [JsonInclude]
         [JsonPropertyName("Id")]
@@ -26,13 +28,11 @@ namespace Valour.Client.Planets
         [JsonPropertyName("Description")]
         public string Description { get; set; }
 
-
-
-        public Task<TaskResult> TrySetDescriptionAsync(string desc);
-        public Task<TaskResult> TrySetParentIdAsync(ulong planet_id);
-        public Task<TaskResult> TryDeleteAsync(); 
+        public Task<TaskResult> SetDescriptionAsync(string desc);
+        public Task<TaskResult> SetParentIdAsync(ulong? planet_id);
+        public Task<TaskResult> DeleteAsync();
         public string GetItemTypeName();
         public Task<Planet> GetPlanetAsync();
-        public Task<PermissionsNode> GetPermissionsNodeAsync(Role role);
+        public Task<Shared.Roles.PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh);
     }
 }

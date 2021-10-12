@@ -1,9 +1,10 @@
 ﻿using Valour.Api.Client;
 using Valour.Shared;
+using Valour.Shared.Items;
 
 namespace Valour.Api.Users;
 
-public class User : Shared.Users.User
+public class User : Shared.Users.User<User>
 {
     /// <summary>
     /// Returns the user for the given id
@@ -20,7 +21,7 @@ public class User : Shared.Users.User
         var user = await ValourClient.GetJsonAsync<User>($"api/user/{id}");
 
         if (user is not null)
-            ValourCache.Put(id, user);
+            await ValourCache.Put(id, user);
 
         return user;
     }
