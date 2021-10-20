@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Rendering;
+using Valour.Client.Shared.Messages;
 using Valour.Shared.Messages;
+using Valour.Shared.Messages.Mentions;
 
 namespace Valour.Client.Messages;
 

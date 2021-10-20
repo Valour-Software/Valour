@@ -6,10 +6,11 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Valour.Client.Categories;
-using Valour.Client.Channels;
 using Valour.Client.Planets;
 using Valour.Shared;
 using Valour.Shared.Categories;
+using Valour.Api.Planets;
+using Valour.Api.Client;
 
 namespace Valour.Client.Shared.ChannelList
 {
@@ -96,15 +97,13 @@ namespace Valour.Client.Shared.ChannelList
 
             ushort position = (ushort)target.TopCategories.Count;
 
-
-            StringContent content = new StringContent("none");
-
             // Add current item to target category
-            var response = await ClientUserManager.Http.PutAsync($"api/category/{currentDragItem.Id}/parent_id?position={position}", content);
+
+            var response = await ValourClient.PutAsync($"api/category/{currentDragItem.Id}/parent_id?position={position}", "none");
 
             Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
 
-            Console.WriteLine(await response.Content.ReadAsStringAsync());
+            Console.WriteLine(response.Message);
         }
 
         /// <summary>
@@ -130,14 +129,13 @@ namespace Valour.Client.Shared.ChannelList
             currentDragItem.Parent_Id = target.Category.Id;
             currentDragItem.Position = position;
 
-            JsonContent content = JsonContent.Create(currentDragItem);
-
             // Add current item to target category
-            var response = await ClientUserManager.Http.PostAsync($"/api/category/{target.Category.Id}/children", content);
+
+            var response = await ValourClient.PostAsync($"/api/category/{target.Category.Id}/children", currentDragItem);
 
             Console.WriteLine($"Inserting {currentDragItem.Id} into {target.Category.Id} at position {position}");
 
-            Console.WriteLine(await response.Content.ReadAsStringAsync());
+            Console.WriteLine(response.Message);
         }
 
         public async Task OnItemDropOnChatChannel(ChannelListChatChannelComponent target)
@@ -162,7 +160,7 @@ namespace Valour.Client.Shared.ChannelList
             target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
             currentDragItem.Parent_Id = target.ParentCategory.Category.Id;
 
-            HttpResponseMessage response = null;
+            TaskResult response;
             List<CategoryContentData> orderData = null;
 
             // Categories are not the same
@@ -192,9 +190,9 @@ namespace Valour.Client.Shared.ChannelList
                     pos++;
                 }
 
-                response = await ClientUserManager.Http.PostAsJsonAsync($"api/category/{target.ParentCategory.Category.Id}/children/order", orderData);
+                response = await ValourClient.PostAsync($"api/category/{target.ParentCategory.Category.Id}/children/order", orderData);
 
-                Console.WriteLine(await response.Content.ReadAsStringAsync());
+                Console.WriteLine(response.Message);
 
                 //target.ParentCategory.Refresh();
             //}

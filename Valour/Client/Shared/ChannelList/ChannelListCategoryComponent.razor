@@ -4,7 +4,6 @@
 @using Valour.Shared.Planets
 
 @inject AddChannelContextMenu addChannelContextMenu
-@inject PlanetManager planetManager
 @inject ClientWindowManager windowManager
 @inject ClientCategoryManager categoryManager
 @inject ChannelListContextMenu listContextMenu
@@ -86,12 +85,12 @@
 
     protected override Task OnInitializedAsync()
     {
-        planetManager.OnCategoryUpdate += OnCategoryUpdate;
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+        Category.OnAnyUpdated += OnCategoryUpdate;
+        Channel.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        planetManager.OnChatChannelDeletion += OnChatChannelDeletion;
-        planetManager.OnCategoryDeletion += OnCategoryDeletion;
+        Category.OnAnyDeleted += OnCategoryDeletion;
+        Channel.OnAnyDeleted += OnChatChannelDeletion;
 
         ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
@@ -117,8 +116,11 @@
 
     public void Dispose()
     {
-        planetManager.OnCategoryUpdate -= OnCategoryUpdate;
-        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+        Category.OnAnyUpdated -= OnCategoryUpdate;
+        Channel.OnAnyUpdated -= OnChatChannelUpdate;
+
+        Category.OnAnyDeleted -= OnCategoryDeletion;
+        Channel.OnAnyDeleted -= OnChatChannelDeletion;
     }
 
     public async Task OnClick()

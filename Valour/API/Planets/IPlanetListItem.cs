@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Valour.Api.Authorization.Roles;
 using Valour.Shared;
+using Valour.Shared.Items;
 using Valour.Shared.Roles;
 
 namespace Valour.Api.Planets
@@ -28,11 +29,17 @@ namespace Valour.Api.Planets
         [JsonPropertyName("Description")]
         public string Description { get; set; }
 
+        [JsonPropertyName("Name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("ItemType")]
+        public ItemType ItemType { get; }
+
         public Task<TaskResult> SetDescriptionAsync(string desc);
         public Task<TaskResult> SetParentIdAsync(ulong? planet_id);
         public Task<TaskResult> DeleteAsync();
         public string GetItemTypeName();
         public Task<Planet> GetPlanetAsync();
-        public Task<Shared.Roles.PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh);
+        public Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh);
     }
 }

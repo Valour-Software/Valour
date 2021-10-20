@@ -80,8 +80,10 @@ public class PermissionsAPI : BaseAPI
             return;
         }
 
+        var planet = await target.get
+
         // Check global permission first
-        if (!await channel.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
+        if (!await target.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
         {
             await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx);
             return;

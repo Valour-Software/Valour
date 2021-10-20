@@ -1,7 +1,6 @@
 ﻿@implements IDisposable
 
 @inject ClientWindowManager windowManager
-@inject PlanetManager planetManager
 @inject ChannelListContextMenu channelContextMenu
 @inject ChannelListManager listManager
 
@@ -27,7 +26,7 @@
     {
         get
         {
-            if (planetManager.IsChatChannelOpen(Channel))
+            if (ValourClient.IsChannelOpen(Channel))
             {
                 return "channel open";
             }
@@ -63,7 +62,8 @@
 
                 Console.WriteLine(Channel.Name);
                 await channelWindow.Component.OnWindowChannelChange(Channel);
-                await planetManager.RefreshOpenedChannels();
+
+                await windowManager.RefreshOpenedChannels();
             }
         }
 
@@ -76,8 +76,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
-        planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+        Channel.OnAnyUpdated += OnChatChannelUpdate;
+        windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
     }
 
     public async Task OnChatChannelUpdate(Channel channel)
@@ -91,6 +91,7 @@
 
     public void Dispose()
     {
-        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+        Channel.OnAnyUpdated -= OnChatChannelUpdate;
+        windowManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
     }
 }

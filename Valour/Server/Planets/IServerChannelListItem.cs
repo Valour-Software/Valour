@@ -30,6 +30,9 @@ namespace Valour.Server.Planets
         [JsonPropertyName("ItemType")]
         public ItemType ItemType { get; }
 
+        [JsonIgnore]
+        public ServerPlanet Planet { get; set; }
+
         public static async Task<IServerChannelListItem> FindAsync(ItemType type, ulong id, ValourDB db)
         {
             switch (type)
@@ -42,6 +45,8 @@ namespace Valour.Server.Planets
                     throw new ArgumentOutOfRangeException(nameof(ItemType));
             }
         }
+
+        public Task<ServerPlanet> GetPlanetAsync(ValourDB db);
 
         public void NotifyClientsChange();
     }

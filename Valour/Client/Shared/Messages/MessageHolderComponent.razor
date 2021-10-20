@@ -3,19 +3,19 @@
 <div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
     
     @{
-        PlanetMessage last = null;    
+        ClientPlanetMessage last = null;    
 
         if (Messages != null && Messages.Count > 0)
         {
             last = null;
 
-            foreach (PlanetMessage msg in Messages)
+            foreach (ClientPlanetMessage msg in Messages)
             {
                 string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
                 <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last"></MessageComponent>
 
-        last = msg;
+                last = msg;
             }
         }
 
@@ -27,7 +27,7 @@
                 last = Messages.Last();
             }
 
-            foreach (PlanetMessage msg in QueuedMessages)
+            foreach (ClientPlanetMessage msg in QueuedMessages)
             {
                 string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
@@ -44,9 +44,9 @@
     public ChatChannelWindow Window { get; set; }
 
     [Parameter]
-    public List<PlanetMessage> Messages { get; set; }
+    public List<ClientPlanetMessage> Messages { get; set; }
 
-    public List<PlanetMessage> QueuedMessages { get; set; }
+    public List<ClientPlanetMessage> QueuedMessages { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
 
@@ -54,7 +54,7 @@
 
     //public HashSet<string> Keys = new HashSet<string>();
 
-    public void AddQueuedMessage(PlanetMessage message)
+    public void AddQueuedMessage(ClientPlanetMessage message)
     {
         QueuedMessages.Add(message);
         StateHasChanged();
@@ -81,7 +81,7 @@
         Messages.Clear();
     }
 
-    public PlanetMessage GetLastMessage()
+    public ClientPlanetMessage GetLastMessage()
     {
         if (QueuedMessages != null && QueuedMessages.Count > 0){
             return QueuedMessages.Last();
@@ -94,7 +94,7 @@
         return null;
     }
 
-    public void AddMessages(List<PlanetMessage> messages, bool refresh = true)
+    public void AddMessages(List<ClientPlanetMessage> messages, bool refresh = true)
     {
         Messages.AddRange(messages);
 
@@ -104,7 +104,7 @@
         }
     }
 
-    public void InsertMessages(int position, List<PlanetMessage> messages, bool refresh = true)
+    public void InsertMessages(int position, List<ClientPlanetMessage> messages, bool refresh = true)
     {
         //foreach(var m in messages)
         //{
@@ -119,7 +119,7 @@
         }
     }
 
-    public async Task AddMessage(PlanetMessage message, bool refresh = true)
+    public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
     {
         QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
 
@@ -166,8 +166,8 @@
     protected override async Task OnInitializedAsync()
     {
         RenderedMessages = new List<MessageComponent>();
-        Messages = new List<PlanetMessage>();
-        QueuedMessages = new List<PlanetMessage>();
+        Messages = new List<ClientPlanetMessage>();
+        QueuedMessages = new List<ClientPlanetMessage>();
         StateHasChanged();
     }
 

@@ -1,7 +1,5 @@
-@inject HttpClient Http
 @inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper 
-@inject PlanetManager planetManager
 @inject IJSRuntime JS
 
 @using Valour.Shared.Categories
@@ -27,6 +25,11 @@
     </div>
 </section>
 @code {
+
+    [Parameter]
+    [EditorRequired]
+    public Planet Planet { get; set; }
+
     // Input fields
     ulong time;
 
@@ -52,25 +55,14 @@
         // Encode non-friendly characters
         string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
 
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
-
         ulong Selecteduser_id = await JS.InvokeAsync<ulong>("GetSelectedUserId");
 
         ulong timeinminutes = time*24*60;
 
-        var response = await Http.PostAsync($"api/planet/{planetManager.GetCurrent().Id}/members/{Selecteduser_id}/ban" +
+        var response = await ValourClient.PostAsync($"api/planet/{Planet.Id}/members/{Selecteduser_id}/ban" +
                                                                    $"?reason={encodedreason}" +
                                                                    $"&time={(uint)timeinminutes}", null);
-
-        var message = await response.Content.ReadAsStringAsync();
         
-        infoSpan = message;
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            Console.WriteLine("A critical error occured banning a member.");
-            Console.WriteLine(message);
-        }
+        infoSpan = response.Message;
     }
 }

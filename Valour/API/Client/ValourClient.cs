@@ -9,7 +9,6 @@ using Valour.Api.Planets;
 using Valour.Api.Users;
 using Valour.Shared;
 using Valour.Shared.Items;
-using Valour.Shared.Messages;
 
 namespace Valour.Api.Client;
 
@@ -96,7 +95,7 @@ public static class ValourClient
     /// <summary>
     /// Run when a message is recieved
     /// </summary>
-    public static event Func<Message, Task> OnMessageRecieve;
+    public static event Func<PlanetMessage, Task> OnMessageRecieve;
 
     #endregion
 
@@ -274,7 +273,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    private static async Task MessageRecieved(Message message)
+    private static async Task MessageRecieved(PlanetMessage message)
     {
 
     }
@@ -430,7 +429,7 @@ public static class ValourClient
 
     private static async Task HookSignalREvents()
     {
-        HubConnection.On<Message>("Relay", MessageRecieved);
+        HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
 
         HubConnection.On<Planet>("PlanetUpdate", UpdateItem);
         HubConnection.On<Planet>("PlanetDeletion", DeleteItem);

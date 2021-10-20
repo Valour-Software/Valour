@@ -1,5 +1,4 @@
-﻿@inject PlanetManager planetManager
-@inject MemberContextMenu memberContextMenu
+﻿@inject MemberContextMenu memberContextMenu
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -37,14 +36,14 @@
             <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
             <div class="time-container">
                 <p class="time">
-                    @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                    @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                 </p>
             </div>
         </div>
         <div class="message-content">
             @if (Author != null)
             {
-                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.Channel_Id"
+                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id"
            @onmouseup="OnAuthorNameClick">
                     @name
                 </p>
@@ -60,12 +59,12 @@
                 </p>
             }
             <p class="content" @ref="InnerRef">
-                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
                 {
 
-                    Console.WriteLine(Message.Embed.Pages.Length);
+                    Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
 
-                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                    <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
                 }
                 else
                 {
@@ -79,10 +78,10 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public PlanetMessage Message { get; set; }
+    public ClientPlanetMessage Message { get; set; }
 
     [Parameter]
-    public PlanetMessage Last_Message { get; set; }
+    public ClientPlanetMessage Last_Message { get; set; }
 
     [Parameter]
     public MessageHolderComponent Holder { get; set; }
@@ -150,6 +149,8 @@
 
     string name = "";
 
+    public ulong roleId;
+
     bool mentioned = false;
 
     [Parameter]
@@ -162,7 +163,7 @@
         await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
     }
 
-    public async Task SetMessage(PlanetMessage message)
+    public async Task SetMessage(ClientPlanetMessage message)
     {
         this.Message = message;
         await BuildMessage();
@@ -184,7 +185,7 @@
         StateHasChanged();
     }
 
-    public void SetLast(PlanetMessage msg)
+    public void SetLast(ClientPlanetMessage msg)
     {
         Last_Message = msg;
     }
@@ -202,9 +203,9 @@
         {
             var self_id = Holder.Window.Component.SelfMember.Id;
 
-            if (Message.Mentions_Data != null)
+            if (Message.BaseMessage.Mentions_Data != null)
             {
-                mentioned = Message.Mentions_Data.Contains(self_id.ToString());
+                mentioned = Message.BaseMessage.Mentions_Data.Contains(self_id.ToString());
             }
         }
 
@@ -212,20 +213,21 @@
             return;
         }
 
-        Author = await Message.GetAuthorAsync();
+        Author = await Message.BaseMessage.GetAuthorAsync();
 
         name = await Author.GetNameAsync();
 
-        roleColor = await Author.GetColorHexAsync();
+        roleColor = await Author.GetRoleColorAsync();
 
         primaryRole = await Author.GetPrimaryRoleAsync();
 
         if (primaryRole != null)
         {
             roleName = primaryRole.Name;
+            roleId = primaryRole.Id;
         }
 
-        string pfp = await Author.GetPfpAsync();
+        string pfp = await Author.GetPfpUrlAsync();
 
         //Console.WriteLine(Submessage);
         //Console.WriteLine(Message.Mentions_Data);
@@ -245,11 +247,9 @@
             Holder.AddRenderedMessage(this);
         }
 
-        PlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
-
-        PlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
-
-        PlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+        Member.OnAnyUpdated += OnMemberUpdate;
+        Role.OnAnyDeleted += OnRoleDeletion;
+        Role.OnAnyUpdated += OnRoleUpdate;
 
         await BuildMessage();
     }
@@ -258,7 +258,7 @@
     {
         if (Last_Message != null && Message != null)
         {
-            if (Last_Message.Author_Id == Message.Author_Id)
+            if (Last_Message.BaseMessage.Author_Id == Message.BaseMessage.Author_Id)
             {
                 Minimal = true;
                 return;
@@ -270,8 +270,10 @@
 
     public async Task UpdateForRoleChange()
     {
-        roleColor = await Author.GetColorHexAsync();
-        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        roleColor = await Author.GetRoleColorAsync();
+        var primRole = await Author.GetPrimaryRoleAsync();
+        roleName = primRole.Name;
+        roleId = primRole.Id;
     }
 
     public void ReRender()

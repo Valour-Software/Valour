@@ -2,6 +2,7 @@
 using Microsoft.JSInterop;
 using System;
 using System.Threading.Tasks;
+using Valour.Api.Planets;
 using Valour.Client.Channels;
 using Valour.Client.Shared.Modals;
 using Valour.Client.Shared.Modals.ContextMenus;
@@ -22,14 +23,16 @@ namespace Valour.Client.Modals
         public readonly IJSRuntime JS;
         public BanModalComponent Component;
         public Func<Task> OpenEvent;
+        public Planet Planet;
 
         public BanModal(IJSRuntime js)
         {
             JS = js;
         }
 
-        public async Task Open()
+        public async Task Open(Planet planet)
         {
+            this.Planet = planet;
 
             Component.SetVisibility(true);
 

@@ -2,7 +2,6 @@
 using Valour.Api.Client;
 using Valour.Api.Messages;
 using Valour.Shared;
-using Valour.Shared.Messages;
 
 namespace Valour.Api.Planets;
 
@@ -74,7 +73,7 @@ public class Channel : Shared.Items.PlanetChatChannel<Channel>, IPlanetListItem
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<Shared.Roles.PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await GetChannelPermissionsNodeAsync(role_id, force_refresh);
 
     /// <summary>
@@ -86,13 +85,13 @@ public class Channel : Shared.Items.PlanetChatChannel<Channel>, IPlanetListItem
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
-    public async Task<List<Message>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10) =>
-        await ValourClient.GetJsonAsync<List<Message>>($"api/channel/{Id}/messages?index={index}&count={count}");
+    public async Task<List<PlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10) =>
+        await ValourClient.GetJsonAsync<List<PlanetMessage>>($"api/channel/{Id}/messages?index={index}&count={count}");
 
     /// <summary>
     /// Returns the last (count) messages
     /// </summary>
-    public async Task<List<Message>> GetLastMessagesAsync(int count = 10) =>
-        await ValourClient.GetJsonAsync<List<Message>>($"api/channel/{Id}/messages?count={count}");
+    public async Task<List<PlanetMessage>> GetLastMessagesAsync(int count = 10) =>
+        await ValourClient.GetJsonAsync<List<PlanetMessage>>($"api/channel/{Id}/messages?count={count}");
 }
 

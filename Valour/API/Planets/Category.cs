@@ -82,14 +82,14 @@ public class Category : Shared.Items.PlanetCategory<Category>, IPlanetListItem
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<Shared.Roles.PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await GetCategoryPermissionsNodeAsync(role_id, force_refresh);
 
 
     /// <summary>
     /// Returns the category permissions node for the given role id
     /// </summary>
-    public async Task<CategoryPermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await CategoryPermissionsNode.FindAsync(Id, role_id, force_refresh);
+    public async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+        await PermissionsNode.FindAsync(Id, role_id, force_refresh);
 }
 

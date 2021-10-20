@@ -1,6 +1,7 @@
 ﻿using Valour.Api.Client;
 using Valour.Api.Messages;
 using Valour.Api.Planets;
+using Valour.Client.Messages;
 using Valour.Client.Planets;
 using Valour.Client.Shared.Windows.PlanetChannelWindow;
 
@@ -61,8 +62,12 @@ namespace Valour.Client
             await OnPlanetFocused?.Invoke(planet);
         }
 
-        public async Task OnMessageRecieved(Message message)
+        public async Task OnMessageRecieved(PlanetMessage in_message)
         {
+
+            // Create client wrapper
+            ClientPlanetMessage message = new ClientPlanetMessage(in_message);
+
             if (!OpenChatWindows.Any(x => x.Channel.Id == message.Channel_Id))
             {
                 Console.WriteLine($"Error: Recieved message for closed channel ({message.Channel_Id})");
@@ -273,7 +278,7 @@ namespace Valour.Client
 
         public override void OnClosed()
         {
-            PlanetManager.Current.SetChannelWindowClosed(this);
+            ClientWindowManager.Instance.CloseWindow(Index);
 
             // Must be after SetChannelWindowClosed
             base.OnClosed();

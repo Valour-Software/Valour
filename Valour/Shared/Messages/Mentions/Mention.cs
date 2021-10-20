@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Valour.Shared.Messages
+namespace Valour.Shared.Messages.Mentions
 {
     /*  Valour - A free and secure chat client
     *  Copyright (C) 2021 Vooper Media LLC

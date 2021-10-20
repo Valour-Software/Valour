@@ -1,7 +1,7 @@
 ﻿using Markdig;
 using System.Text.RegularExpressions;
 
-namespace Valour.Api.Messages;
+namespace Valour.Client.Messages;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC

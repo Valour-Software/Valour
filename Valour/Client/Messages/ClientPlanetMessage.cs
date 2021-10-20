@@ -3,18 +3,18 @@ using System.Diagnostics;
 using System.Text.Json;
 using Valour.Api.Messages;
 using Valour.Api.Planets;
-using Valour.Shared;
-using Valour.Shared.Messages;
+using Valour.Shared.Messages.Embeds;
+using Valour.Shared.Messages.Mentions;
 
 namespace Valour.Client.Messages;
 
 /*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
+*  Copyright (C) 2021 Vooper Media LLC
+*  This program is subject to the GNU Affero General Public license
+*  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+*/
 
-public class Message : Valour.Shared.Messages.Message
+public class ClientPlanetMessage
 {
     /// <summary>
     /// True if this message's content has been fully built
@@ -27,34 +27,75 @@ public class Message : Valour.Shared.Messages.Message
     private bool markdownParsed = false;
 
     /// <summary>
-    /// True if the embed data has been parsed
-    /// </summary>
-    private bool embedParsed = false;
-
-    /// <summary>
-    /// True if the mentions data has been parsed
-    /// </summary>
-    private bool mentionsParsed = false;
-
-    /// <summary>
-    /// The mentions contained within this message
-    /// </summary>
-    private List<Mention> _mentions;
-
-    /// <summary>
     /// The fragments used for building elements
     /// </summary>
     private List<ElementFragment> _elementFragments;
 
     /// <summary>
-    /// The inner embed data
-    /// </summary>
-    private Embed _embed;
-
-    /// <summary>
     /// The markdown-parsed version of the Content
     /// </summary>
     private string _markdownContent;
+
+    /// <summary>
+    /// The internal planet message
+    /// </summary>
+    public PlanetMessage BaseMessage { get; set; }
+
+    // Forward a bunch of stuff for my own sake
+    #region Forwarding
+
+    public async Task<Member> GetAuthorAsync() =>
+        await BaseMessage.GetAuthorAsync();
+
+    public ulong Id => BaseMessage.Id;
+
+    public ulong Author_Id => BaseMessage.Author_Id;
+
+    public ulong Planet_Id => BaseMessage.Planet_Id;
+
+    public ulong Member_Id => BaseMessage.Member_Id;
+
+    public string Content => BaseMessage.Content;
+
+    public DateTime TimeSent => BaseMessage.TimeSent;
+
+    public ulong Channel_Id => BaseMessage.Channel_Id;
+
+    public ulong Message_Index => BaseMessage.Message_Index;
+
+    public string Embed_Data => BaseMessage.Embed_Data;
+
+    public string Mentions_Data => BaseMessage.Mentions_Data;
+
+    public string Fingerprint => BaseMessage.Fingerprint;
+
+    public List<Mention> Mentions => BaseMessage.Mentions;
+
+    public Embed Embed => BaseMessage.Embed;
+
+    public void ClearMentions() => BaseMessage.ClearMentions();
+    
+    public void SetMentions(IEnumerable<Mention> mentions) =>
+        BaseMessage.SetMentions(mentions);
+
+    public bool IsEmbed() => BaseMessage.IsEmbed();
+
+    #endregion
+
+    public static List<ClientPlanetMessage> FromList(List<PlanetMessage> messages)
+    {
+        List<ClientPlanetMessage> result = new();
+
+        foreach (PlanetMessage message in messages)
+            result.Add(new ClientPlanetMessage(message));
+
+        return result;
+    }
+
+    public ClientPlanetMessage(PlanetMessage message)
+    {
+        this.BaseMessage = message;
+    }
 
     public string MarkdownContent
     {
@@ -69,64 +110,9 @@ public class Message : Valour.Shared.Messages.Message
         }
     }
 
-    public Embed Embed
-    {
-        get
-        {
-            if (!embedParsed)
-            {
-                if (!string.IsNullOrEmpty(Embed_Data))
-                {
-                    _embed = JsonSerializer.Deserialize<Embed>(Embed_Data);
-                }
-
-                embedParsed = true;
-            }
-
-            return _embed;
-        }
-    }
-
-    /// <summary>
-    /// The mentions for members within this message
-    /// </summary>
-    public List<Mention> Mentions
-    {
-        get
-        {
-            if (!mentionsParsed)
-            {
-                if (!string.IsNullOrEmpty(Mentions_Data))
-                {
-                    _mentions = JsonSerializer.Deserialize<List<Mention>>(Mentions_Data);
-                }
-            }
-
-            return _mentions;
-        }
-    }
-
-    public Message()
-    {
-
-    }
-
-    public void SetMentions(IEnumerable<Mention> mentions)
-    {
-        _mentions = mentions.ToList();
-        Mentions_Data = JsonSerializer.Serialize(mentions);
-    }
-
-    /// <summary>
-    /// Returns the author of the message
-    /// </summary>
-    public async Task<Member> GetAuthorAsync() =>
-        await Member.FindAsync(Member_Id);
-
-
     private void ParseMarkdown()
     {
-        _markdownContent = MarkdownManager.GetHtml(Content);
+        _markdownContent = MarkdownManager.GetHtml(BaseMessage.Content);
         markdownParsed = true;
     }
 
@@ -166,14 +152,7 @@ public class Message : Valour.Shared.Messages.Message
 
     public void GenerateForPost()
     {
-        if (_mentions == null)
-        {
-            _mentions = new List<Mention>();
-        }
-        else
-        {
-            _mentions.Clear();
-        }
+        BaseMessage.ClearMentions();
 
         int pos = 0;
 
@@ -233,7 +212,7 @@ public class Message : Valour.Shared.Messages.Message
                             Type = MentionType.Member
                         };
 
-                        Mentions.Add(memberMention);
+                        BaseMessage.Mentions.Add(memberMention);
                     }
                     // Other mentions go here
                     else
@@ -253,7 +232,7 @@ public class Message : Valour.Shared.Messages.Message
             pos++;
         }
 
-        Mentions_Data = JsonSerializer.Serialize(Mentions);
+        BaseMessage.Mentions_Data = JsonSerializer.Serialize(BaseMessage.Mentions);
     }
 
     /// <summary>
@@ -368,15 +347,15 @@ public class Message : Valour.Shared.Messages.Message
         List<MessageFragment> fragments = new();
 
         // Empty message catch
-        if (string.IsNullOrWhiteSpace(Content))
+        if (string.IsNullOrWhiteSpace(BaseMessage.Content))
         {
             return fragments;
         }
 
         // First insert rich components into list and sort by position
-        if (Mentions != null && Mentions.Count > 0)
+        if (BaseMessage.Mentions != null && BaseMessage.Mentions.Count > 0)
         {
-            foreach (var mention in Mentions)
+            foreach (var mention in BaseMessage.Mentions)
             {
                 MessageFragment fragment = null;
 

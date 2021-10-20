@@ -1,4 +1,6 @@
-﻿@inject PlanetManager planetManager
+﻿@using Valour.Shared.Messages
+@using Valour.Api.Planets
+@using Valour.Api.Client
 
 <div class="@Class" style="color: @Role_Color">
     @if (Member == null)
@@ -17,7 +19,7 @@
     {
         get
         {
-            if (Member == null || Member.User_Id != ClientUserManager.User.Id)
+            if (Member == null || Member.User_Id != ValourClient.Self.Id)
             {
                 return "mention";
             }
@@ -62,7 +64,7 @@
 
         if (Member != null)
         {
-            Role_Color = await Member.GetColorHexAsync();
+            Role_Color = await Member.GetRoleColorAsync();
         }
         else
         {

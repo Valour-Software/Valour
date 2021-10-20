@@ -101,11 +101,9 @@ namespace Valour.Server.Roles
             db.PlanetRoleMembers.RemoveRange(members);
             
             // Remove role nodes
-            var channelNodes = db.ChatChannelPermissionsNodes.Where(x => x.Role_Id == Id);
-            var categoryNodes = db.CategoryPermissionsNodes.Where(x => x.Role_Id == Id);
+            var nodes = GetNodes(db);
             
-            db.ChatChannelPermissionsNodes.RemoveRange(channelNodes);
-            db.CategoryPermissionsNodes.RemoveRange(categoryNodes);
+            db.PermissionsNodes.RemoveRange(nodes);
             
             // Remove self
             db.PlanetRoles.Remove(this);

@@ -159,21 +159,21 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// <summary>
     /// Returns the status of the member
     /// </summary>
-    public async Task<string> GetStatusAsync(bool force_refresh) =>
+    public async Task<string> GetStatusAsync(bool force_refresh = false) =>
         (await GetUserAsync(force_refresh))?.Status ?? "";
 
 
     /// <summary>
     /// Returns the role color of the member
     /// </summary>
-    public async Task<string> GetRoleColorAsync(bool force_refresh) =>
+    public async Task<string> GetRoleColorAsync(bool force_refresh = false) =>
         (await GetPrimaryRoleAsync(force_refresh))?.GetColorHex() ?? "ffffff";
     
 
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async Task<string> GetPfpUrlAsync(bool force_refresh)
+    public async Task<string> GetPfpUrlAsync(bool force_refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(Member_Pfp))
             return Member_Pfp;
@@ -184,7 +184,7 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// <summary>
     /// Returns the name of the member
     /// </summary>
-    public async Task<string> GetNameAsync(bool force_refresh)
+    public async Task<string> GetNameAsync(bool force_refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(Nickname))
             return Nickname;

@@ -1,6 +1,7 @@
 ﻿@inject MemberContextMenu memberContextMenu
 @inject BanModal banModal
 @inject ConfirmModal confirmModal
+@inject ClientWindowManager windowManager
 @implements IDisposable
 
 @if (visible)
@@ -136,10 +137,11 @@
     {
         memberContextMenu.Component = this;
 
-        PlanetManager.Current.OnPlanetChange += OnPlanetChange;
-        PlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
-        PlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
-        PlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
+        windowManager.OnPlanetFocused += OnPlanetChange;
+        Member.OnAnyUpdated += OnMemberUpdate;
+        Role.OnAnyUpdated += OnRoleUpdate;
+        Role.OnAnyDeleted += OnRoleDeletion;
+
         memberContextMenu.OpenEvent += OnOpened;
         ModalHolderComponent.CloseModalEvent += OnModalClose;
     }
@@ -173,7 +175,7 @@
 
     public async Task OpenBanModal()
     {
-        await banModal.Open();
+        await banModal.Open(Planet);
         SetVisibility(false);
     }
 
@@ -186,10 +188,8 @@
 
             async () =>
             {
-                var result = await ClientUserManager.Http.GetStringAsync($"/Planet/KickUser?token={ClientUserManager.UserSecretToken}" +
-                                                                                   $"&planet_id={Member.Planet_Id}" +
-                                                                                   $"&target_id={Member.Id}");
-
+                var result = ValourClient.GetJsonAsync<string>($"/Planet/KickUser?planet_id={Member.Planet_Id}" +
+                                                                               $"&target_id={Member.Id}");
                 Console.WriteLine(result);
             },
             async () =>
@@ -213,27 +213,21 @@
 
     public async Task OnRoleClick(Role role, bool value)
     {
-        HttpResponseMessage response = null;
+        TaskResult result;
 
         if (value){
             // Add role
             JsonContent roleContent = JsonContent.Create(role);
-            response = await ClientUserManager.Http.PostAsync($"api/member/{Member.Id}/roles", roleContent);
+
+            
+
+            result = await ValourClient.PostAsync($"api/member/{Member.Id}/roles", roleContent);
         }
         else
         {
             // Remove role
-            response = await ClientUserManager.Http.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
+            result = await ValourClient.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
         }
-
-        string result = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            Console.WriteLine("Severe error occured during OnRoleClick response from server");
-        }
-
-        Console.WriteLine(result);
 
         StateHasChanged();
     }
