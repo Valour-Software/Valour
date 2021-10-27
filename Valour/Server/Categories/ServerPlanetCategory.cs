@@ -15,7 +15,7 @@ using Valour.Shared.Planets;
 
 namespace Valour.Server.Categories
 {
-    public class ServerPlanetCategory : PlanetCategory, IServerChannelListItem
+    public class ServerPlanetCategory : PlanetCategory<ServerPlanetCategory>, IServerChannelListItem
     {
 
         [JsonIgnore]
@@ -90,8 +90,8 @@ namespace Valour.Server.Categories
 
             // Remove permission nodes
 
-            db.CategoryPermissionsNodes.RemoveRange(
-                db.CategoryPermissionsNodes.Where(x => x.Category_Id == Id)
+            db.PermissionsNodes.RemoveRange(
+                db.PermissionsNodes.Where(x => x.Target_Id == Id && x.Target_Type == ItemType.Category)
             );
 
             // Remove category
@@ -189,7 +189,7 @@ namespace Valour.Server.Categories
             return new TaskResult<int>(true, "Success", 200);
         }
 
-        public async Task<Planet> GetPlanetAsync(ValourDB db = null)
+        public async Task<ServerPlanet> GetPlanetAsync(ValourDB db = null)
         {
             if (Planet != null) return Planet;
 
@@ -208,7 +208,7 @@ namespace Valour.Server.Categories
 
         public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db = null)
         {
-            Planet planet = await GetPlanetAsync(db);
+            ServerPlanet planet = await GetPlanetAsync(db);
 
             if (planet.Owner_Id == member.User_Id)
             {
@@ -217,31 +217,18 @@ namespace Valour.Server.Categories
 
             var roles = await member.GetRolesAsync(db);
 
-            CategoryPermission catPerm = null;
-            ChatChannelPermission chatPerm = null;
-
-            catPerm = permission as CategoryPermission;
-            chatPerm = permission as ChatChannelPermission;
-
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
             // If we get an undecided, we continue to the next role down
             foreach (var role in roles)
             {
-                var node = await ServerPlanetRole.FromBase(role).GetCategoryNodeAsync(this);
+                var node = await role.GetCategoryNodeAsync(this, db);
 
                 // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
                 if (node == null)
                 {
                     if (role.Id == planet.Default_Role_Id)
                     {
-                        if (catPerm != null)
-                        {
-                            return Permission.HasPermission(CategoryPermissions.Default, permission);
-                        }
-                        else if (chatPerm != null)
-                        {
-                            return Permission.HasPermission(ChatChannelPermissions.Default, permission);
-                        }
+                        return Permission.HasPermission(CategoryPermissions.Default, permission);
                     }
 
                     continue;
@@ -249,14 +236,7 @@ namespace Valour.Server.Categories
 
                 PermissionState state = PermissionState.Undefined;
 
-                if (catPerm != null)
-                {
-                    state = node.GetPermissionState(permission);
-                }
-                else if (chatPerm != null)
-                {
-                    state = node.GetChatChannelPermissionState(permission);
-                }
+                state = node.GetPermissionState(permission);
 
                 if (state == PermissionState.Undefined)
                 {

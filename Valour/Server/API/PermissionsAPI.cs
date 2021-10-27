@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Valour.Api.Planets;
 using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Server.Planets;
@@ -70,7 +71,7 @@ public class PermissionsAPI : BaseAPI
 
         if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
-        var target = await node.GetTarget(db);
+        var target = await node.GetTargetAsync(db);
 
         if (target is null) { await NotFound("Node target not found", ctx); return; }
 
@@ -80,7 +81,7 @@ public class PermissionsAPI : BaseAPI
             return;
         }
 
-        var planet = await target.get
+        var planet = await target.GetPlanetAsync(db);
 
         // Check global permission first
         if (!await target.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
@@ -90,13 +91,13 @@ public class PermissionsAPI : BaseAPI
         }
 
         // Check for channel-specific perm
-        if (!await channel.HasPermission(member, ChatChannelPermissions.ManagePermissions, db))
+        if (!await target.HasPermission(member, ChatChannelPermissions.ManagePermissions, db))
         {
             await Unauthorized("Member lacks ChatChannelPermissions.ManagePermissions", ctx);
             return;
         }
 
-        var old = await db.ChatChannelPermissionsNodes.Include(x => x.Role).Include(x => x.Planet).Include(x => x.Channel).FirstOrDefaultAsync(x => x.Id == node.Id);
+        var old = await db.PermissionsNodes.Include(x => x.Role).Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == node.Id);
 
         if (old is not null)
         {
@@ -107,7 +108,7 @@ public class PermissionsAPI : BaseAPI
             }
 
             // Update
-            db.ChatChannelPermissionsNodes.Update(node);
+            db.PermissionsNodes.Update(node);
             await db.SaveChangesAsync();
 
             ctx.Response.StatusCode = 200;
@@ -116,9 +117,9 @@ public class PermissionsAPI : BaseAPI
         else
         {
             node.Id = IdManager.Generate();
-            node.Planet_Id = channel.Planet_Id;
+            node.Planet_Id = target.Planet_Id;
 
-            await db.ChatChannelPermissionsNodes.AddAsync(node);
+            await db.PermissionsNodes.AddAsync(node);
             await db.SaveChangesAsync();
 
             ctx.Response.StatusCode = 201;

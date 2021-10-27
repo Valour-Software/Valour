@@ -1,13 +1,5 @@
 using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using AutoMapper;
-using Valour.Client.Mapping;
-using Microsoft.JSInterop;
-using Valour.Client.Planets;
 using Valour.Client.Categories;
 using Microsoft.AspNetCore.Components;
 using Valour.Client.Modals.ContextMenus;
@@ -37,8 +29,7 @@ namespace Valour.Client
                     BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
                 }
             );
-            builder.Services.AddSingleton<SignalRManager>();
-            builder.Services.AddSingleton<PlanetManager>();
+
             builder.Services.AddSingleton<ClientWindowManager>();
             builder.Services.AddSingleton<ClientCategoryManager>();
             builder.Services.AddSingleton<ChannelListManager>();
@@ -57,29 +48,9 @@ namespace Valour.Client
             builder.Services.AddSingleton<CreatePlanetModal>();
             builder.Services.AddSingleton<EditChannelListItemModal>();
 
-            var mapConfig = new MapperConfiguration(x =>
-            {
-                x.AddProfile(new MappingProfile());
-            });
-
-            IMapper mapper = mapConfig.CreateMapper();
-
-            MappingManager.Mapper = mapper;
-
-            builder.Services.AddSingleton(mapper);
-
             var host = builder.Build();
 
             var navService = host.Services.GetRequiredService<NavigationManager>();
-            var signalRService = host.Services.GetRequiredService<SignalRManager>();
-
-            SignalRManager.Current = signalRService;
-
-            await signalRService.ConnectPlanetHub();
-
-            var planetMan = host.Services.GetRequiredService<PlanetManager>();
-
-            PlanetManager.Current = planetMan;
 
             await host.RunAsync();
         }

@@ -1,6 +1,6 @@
 ﻿@inject NavigationManager navManager
 @inject EditPlanetModal editPlanetModal
-@inject PlanetManager planetManager
+@inject ClientWindowManager windowManager
 
 <div class="current-planet-info">
     @if (Planet != null)
@@ -26,8 +26,8 @@
 
     protected async override Task OnInitializedAsync()
     {
-        planetManager.OnPlanetChange += OnPlanetChange;
-        planetManager.OnRoleUpdate += OnRoleUpdate;
+        windowManager.OnPlanetFocused += OnPlanetChange;
+        Role.OnAnyUpdated += OnRoleUpdate;
     }
 
     // Must refresh if roles update because it may remove permission to
@@ -57,7 +57,7 @@
 
         Console.WriteLine($"Updating current planet component for {Planet.Name}.");
 
-        var selfMember = await Planet.GetMemberAsync(ClientUserManager.User.Id);
+        var selfMember = await ValourClient.GetSelfMember(Planet);
         var selfRole = await selfMember.GetPrimaryRoleAsync();
 
         //Console.WriteLine("Self: " + selfMember.Nickname);

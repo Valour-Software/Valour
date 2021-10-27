@@ -53,7 +53,7 @@ namespace Valour.Server.API
         {
             // Planet routes //
 
-            app.MapPost("api/planet/create", Create);
+            app.MapPost("api/planet", Create);
 
             app.Map("api/planet/{planet_id}/name", Name);
             app.Map("api/planet/{planet_id}/description", Description);
@@ -260,7 +260,7 @@ namespace Valour.Server.API
                     // I really have no clue why they wouldn't, so I'm not adding a View
                     // permissions test. Fight me.
                     ctx.Response.StatusCode = 200;
-                    await ctx.Response.WriteAsJsonAsync((Planet) planet);
+                    await ctx.Response.WriteAsJsonAsync(planet);
                     return;
                 }
                 case "DELETE":
@@ -532,8 +532,7 @@ namespace Valour.Server.API
         }
 
         private static async Task Create(HttpContext ctx, ValourDB db,
-            [FromHeader] string authorization, [Required] string name,
-            [Required] string image_url)
+            [FromHeader] string authorization, [FromBody] ServerPlanet in_planet)
         {
             ServerAuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
 
@@ -544,7 +543,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            TaskResult nameValid = ServerPlanet.ValidateName(name);
+            TaskResult nameValid = ServerPlanet.ValidateName(in_planet.Name);
 
             if (!nameValid.Success)
             {
@@ -568,17 +567,17 @@ namespace Valour.Server.API
             }
 
             // Image handling via proxy
-            ProxyResponse proxyResponse = await MPSManager.GetProxy(image_url);
+            ProxyResponse proxyResponse = await MPSManager.GetProxy(in_planet.Image_Url);
 
             bool is_media = MPSManager.Media_Types.Contains(proxyResponse.Item.Mime_Type);
 
             if (proxyResponse.Item == null || !is_media)
             {
-                image_url = "https://valour.gg/image.png";
+                in_planet.Image_Url = "https://valour.gg/image.png";
             }
             else
             {
-                image_url = proxyResponse.Item.Url;
+                in_planet.Image_Url = proxyResponse.Item.Url;
             }
 
             ulong planet_id = IdManager.Generate();
@@ -620,10 +619,10 @@ namespace Valour.Server.API
             ServerPlanet planet = new ServerPlanet()
             {
                 Id = planet_id,
-                Name = name,
+                Name = in_planet.Name,
                 Member_Count = 1,
                 Description = "A Valour server.",
-                Image_Url = image_url,
+                Image_Url = in_planet.Image_Url,
                 Public = true,
                 Owner_Id = user.Id,
                 Default_Role_Id = defaultRole.Id,
@@ -1138,11 +1137,11 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<PlanetMemberInfo> info = new List<PlanetMemberInfo>();
+            List<PlanetMemberInfo<ServerPlanetMember, ServerUser>> info = new ();
 
             foreach (var member in planet.Members)
             {
-                PlanetMemberInfo planetInfo = new PlanetMemberInfo()
+                var planetInfo = new PlanetMemberInfo<ServerPlanetMember, ServerUser>()
                 {
                     Member = member,
                     User = member.User,

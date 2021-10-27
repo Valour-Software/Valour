@@ -90,6 +90,14 @@ public class Category : Shared.Items.PlanetCategory<Category>, IPlanetListItem
     /// Returns the category permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, force_refresh);
+        await PermissionsNode.FindAsync(Id, role_id, ItemType.Category, force_refresh);
+
+    /// <summary>
+    /// Returns the category's default channel permissions node for the given role id
+    /// </summary>
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+        await PermissionsNode.FindAsync(Id, role_id, ItemType.Channel, force_refresh);
+
+
 }
 

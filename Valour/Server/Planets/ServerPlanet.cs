@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Valour.Client.Users;
 using Valour.Server.Database;
 using Valour.Server.Mapping;
 using Valour.Shared.Oauth;
@@ -19,6 +18,7 @@ using System.Text.RegularExpressions;
 using Valour.Server.Categories;
 using Valour.Client.Planets;
 using Valour.Shared.Items;
+using Valour.Server.Users;
 
 namespace Valour.Server.Planets
 {
@@ -257,7 +257,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if a given user is a member (async)
         /// </summary>
-        public async Task<bool> IsMemberAsync(User user)
+        public async Task<bool> IsMemberAsync(ServerUser user)
         {
             return await IsMemberAsync(user.Id);
         }
@@ -273,7 +273,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if a given user is a member
         /// </summary>
-        public bool IsMember(User user)
+        public bool IsMember(ServerUser user)
         {
             return IsMember(user.Id);
         }
@@ -327,7 +327,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the default role for the planet
         /// </summary>
-        public async Task<PlanetRole> GetDefaultRole()
+        public async Task<ServerPlanetRole> GetDefaultRole()
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
@@ -360,7 +360,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Adds a member to the server
         /// </summary>
-        public async Task AddMemberAsync(User user, ValourDB db)
+        public async Task AddMemberAsync(ServerUser user, ValourDB db)
         {
             // Already a member
             if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))

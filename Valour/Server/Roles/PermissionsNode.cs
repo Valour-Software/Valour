@@ -19,7 +19,7 @@ public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
     /// i have created - spikey boy
     /// </summary>
 
-    public async Task<IServerChannelListItem> GetTarget(ValourDB db)
+    public async Task<IServerChannelListItem> GetTargetAsync(ValourDB db)
     {
         switch (Target_Type)
         {

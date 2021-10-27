@@ -199,7 +199,7 @@ else
 
     public async Task SwitchInherit()
     {
-        await ChatChannel.SetPermissionInheritModeAsync(!ChatChannel.Inherits_Perms);
+        await ChatChannel.SetPermInheritModeAsync(!ChatChannel.Inherits_Perms);
         StateHasChanged();
     }
 
@@ -212,22 +212,24 @@ else
                 // If there's no node, create a dummy one
                 PermissionsNode = new PermissionsNode()
                 {
-                    Channel_Id = ChatChannel.Id,
+                    Target_Id = ChatChannel.Id,
                     Planet_Id = Item.Planet_Id,
                     Role_Id = Selected_Role.Id,
                     Mask = 0x00,
-                    Code = 0x00
+                    Code = 0x00,
+                    Target_Type = ItemType.Channel
                 };
             }
             else if (Category != null)
             {
-                PermissionsNode = new CategoryPermissionsNode()
+                PermissionsNode = new PermissionsNode()
                 {
-                    Category_Id = Category.Id,
+                    Target_Id = Category.Id,
                     Planet_Id = Item.Planet_Id,
                     Role_Id = Selected_Role.Id,
                     Mask = 0x00,
-                    Code = 0x00
+                    Code = 0x00,
+                    Target_Type = ItemType.Category
                 };
             }
         }
@@ -236,21 +238,7 @@ else
         if (state == TriButtonComponent.TriButtonState.Yes) newState = PermissionState.True;
         else if (state == TriButtonComponent.TriButtonState.No) newState = PermissionState.False;
 
-        if (Category != null)
-        {
-            if (permission is ChatChannelPermission)
-            {
-                ((CategoryPermissionsNode)PermissionsNode).SetChatChannelPermission(permission, newState);
-            }
-            else
-            {
-                PermissionsNode.SetPermission(permission, newState);
-            }
-        }
-        else
-        {
-            PermissionsNode.SetPermission(permission, newState);
-        }
+        PermissionsNode.SetPermission(permission, newState);
 
         changed = true;
 
@@ -259,30 +247,17 @@ else
 
     public async Task OnSaveChanges()
     {
-        HttpResponseMessage response = null;
+        TaskResult response = await ValourClient.PostAsync($"api/node", PermissionsNode);
 
-        if (PermissionsNode is PermissionsNode)
-        {
-            response = await ClientUserManager.Http.PostAsJsonAsync<PermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                (PermissionsNode)PermissionsNode);
-        }
-        else if (PermissionsNode is CategoryPermissionsNode)
-        {
-            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"Permissions/UpdateCategoryNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                (CategoryPermissionsNode)PermissionsNode);
-        }
-
-        if (!response.IsSuccessStatusCode)
+        if (!response.Success)
         {
             Console.WriteLine("Error in permission node update!");
-            Console.WriteLine(await response.Content.ReadAsStringAsync());
+            Console.WriteLine(response.Message);
             await RefreshButtons();
             return;
         }
         
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
-
-        Console.WriteLine("Permission node update: " + result.Message);
+        Console.WriteLine("Permission node update: " + response.Message);
 
         await RefreshButtons();
     }
@@ -319,7 +294,7 @@ else
             Selected_Role = Roles[0];
 
         // Get self membership
-        SelfMember = await Member.GetMemberAsync(ClientUserManager.User.Id, Planet.Id);
+        SelfMember = await ValourClient.GetSelfMember(Planet);
         SelfAuthority = await SelfMember.GetAuthorityAsync();
         SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
 
@@ -348,7 +323,7 @@ else
 
         Console.WriteLine($"Selected role {Selected_Role.Name}");
 
-        PermissionsNode = await Item.GetPermissionsNodeAsync(Selected_Role);
+        PermissionsNode = await Item.GetPermissionsNodeAsync(Selected_Role.Id);
 
         changed = false;
 
@@ -404,11 +379,10 @@ else
                     continue;
 
                 TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
-                if (PermissionsNode != null)
+                if (PermissionsNode != null && PermissionsNode.Target_Type == ItemType.Category)
                 {
-                    CategoryPermissionsNode catNode = PermissionsNode as CategoryPermissionsNode;
-
-                    var pState = catNode.GetChatChannelPermissionState(ChatChannelPermissions.Permissions[i]);
+                    var channelPerms = await Category.GetChannelPermissionsNodeAsync(Selected_Role.Id);
+                    var pState = channelPerms.GetPermissionState(ChatChannelPermissions.Permissions[i]);
                     if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
                     else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
                 }

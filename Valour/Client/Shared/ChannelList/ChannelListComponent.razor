@@ -1,9 +1,7 @@
-﻿@inject PlanetManager planetManager
-@inject ClientWindowManager windowManager
-@inject SignalRManager signalRManager
+﻿@inject ClientWindowManager windowManager
 
 <div class="category-list keep-scrolling" style="padding-bottom:80px">
-    @foreach (Planet planet in planetManager.GetOpenPlanets())
+    @foreach (Planet planet in ValourClient.OpenPlanets)
     {
         <ChannelListPlanetComponent Planet="planet" @key='"list-planet-" + planet.Id'></ChannelListPlanetComponent>
     }
@@ -13,9 +11,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        planetManager.OnPlanetChange += OnPlanetChange;
-        planetManager.OnPlanetClose += OnPlanetClose;
-        planetManager.OnPlanetOpen += OnPlanetOpen;
+        windowManager.OnPlanetFocused += OnPlanetChange;
+        ValourClient.OnPlanetOpen += OnPlanetOpen;
+        ValourClient.OnPlanetClose += OnPlanetClose;
     }
 
     public async Task OnPlanetOpen(Planet planet)

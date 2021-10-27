@@ -36,10 +36,11 @@ namespace Valour.Api.Planets
         public ItemType ItemType { get; }
 
         public Task<TaskResult> SetDescriptionAsync(string desc);
+        public Task<TaskResult> SetNameAsync(string name);
         public Task<TaskResult> SetParentIdAsync(ulong? planet_id);
         public Task<TaskResult> DeleteAsync();
         public string GetItemTypeName();
         public Task<Planet> GetPlanetAsync();
-        public Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh);
+        public Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false);
     }
 }

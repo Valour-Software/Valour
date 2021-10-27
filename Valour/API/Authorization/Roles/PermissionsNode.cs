@@ -1,5 +1,6 @@
 ﻿using Valour.Api.Client;
 using Valour.Api.Planets;
+using Valour.Shared.Items;
 
 namespace Valour.Api.Authorization.Roles;
 
@@ -15,8 +16,8 @@ public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(Channel channel, Role role) =>
-        await FindAsync(channel.Id, role.Id);
+    public static async Task<PermissionsNode> FindAsync(Channel channel, Role role, ItemType itemType) =>
+        await FindAsync(channel.Id, role.Id, itemType);
 
 
     /// <summary>
@@ -36,7 +37,7 @@ public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
         if (node is not null)
         {
             await ValourCache.Put(id, node);
-            await ValourCache.Put((node.Target_Id, node.Role_Id), node);
+            await ValourCache.Put((node.Target_Id, (node.Role_Id, node.ItemType)), node);
         }
 
         return node;
@@ -45,21 +46,21 @@ public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(ulong channel_id, ulong role_id, bool force_refresh = false)
+    public static async Task<PermissionsNode> FindAsync(ulong target_id, ulong role_id, ItemType type, bool force_refresh = false)
     {
         if (!force_refresh)
         {
-            var cached = ValourCache.Get<PermissionsNode>((channel_id, role_id));
+            var cached = ValourCache.Get<PermissionsNode>((target_id, (role_id, type)));
             if (cached is not null)
                 return cached;
         }
 
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/channel/{channel_id}/{role_id}");
+        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/channel/{target_id}/{role_id}");
 
         if (node is not null)
         {
             await ValourCache.Put(node.Id, node);
-            await ValourCache.Put((channel_id, role_id), node);
+            await ValourCache.Put((target_id, (role_id, type)), node);
         }
 
         return node;

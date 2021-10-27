@@ -1,10 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using System;
-using System.Threading.Tasks;
-using Valour.Client.Channels;
+﻿using Microsoft.JSInterop;
 using Valour.Client.Shared.Modals;
-using Valour.Client.Shared.Modals.ContextMenus;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC

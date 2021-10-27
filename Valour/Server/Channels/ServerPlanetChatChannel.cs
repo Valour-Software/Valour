@@ -106,7 +106,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if a given member has a channel permission
         /// </summary>
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
+        public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db)
         {
             Planet ??= await GetPlanetAsync(db);
 

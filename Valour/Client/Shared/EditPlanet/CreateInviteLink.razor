@@ -1,6 +1,5 @@
 ﻿@inject HttpClient http
 @inject NavigationManager navManager
-@inject PlanetManager planetManager
 @using Valour.Shared
 @inject HttpClient Http
 
@@ -42,10 +41,10 @@
 
     public async Task OnSaveChanges()
     {
-        var invite = new PlanetInvite()
+        var invite = new Invite()
         {
             Planet_Id = Planet.Id,
-            Issuer_Id = ClientUserManager.User.Id,
+            Issuer_Id = ValourClient.Self.Id,
             Time = DateTime.UtcNow,
             Hours = hoursValue
         };

@@ -1,5 +1,4 @@
-﻿@inject PlanetManager planetManager
-@inject ClientWindowManager windowManager
+﻿@inject ClientWindowManager windowManager
 @inject ChannelListManager listManager
 
 <div class="@GetCssClass()" id="list-@Planet.Id">
@@ -52,16 +51,12 @@
         TopCategories = new List<Category>();
 
         // Handle list change
-        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
-        planetManager.OnChannelsUpdate += OnChannelsUpdate;
-
-        // Handle single change
-        planetManager.OnCategoryUpdate += OnCategoryUpdate;
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+        Category.OnAnyUpdated += OnCategoryUpdate;
+        Channel.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        planetManager.OnCategoryDeletion += OnCategoryDeletion;
-        planetManager.OnChatChannelDeletion += OnChatChannelDeletion;
+        Category.OnAnyDeleted += OnCategoryDeletion;
+        Channel.OnAnyDeleted += OnChatChannelDeletion;
 
         await GetCategories();
         await GetChannels();
@@ -107,18 +102,6 @@
                                   .ToList();
 
         Console.WriteLine($"Found {TopCategories.Count} top level categories");
-    }
-
-    public async Task OnChannelsUpdate()
-    {
-        await GetChannels();
-        StateHasChanged();
-    }
-
-    public async Task OnCategoriesUpdate()
-    {
-        await GetCategories();
-        StateHasChanged();
     }
 
     public async Task OnChatChannelDeletion(Channel channel)

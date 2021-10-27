@@ -113,6 +113,18 @@ public static class ValourClient
         HookPlanetEvents();
     }
 
+    /// <summary>
+    /// Returns the member for this client's user given a planet
+    /// </summary>
+    public static async Task<Member> GetSelfMember(Planet planet, bool force_refresh = false) =>
+        await GetSelfMember(planet.Id, force_refresh);
+
+    /// <summary>
+    /// Returns the member for this client's user given a planet id
+    /// </summary>
+    public static async Task<Member> GetSelfMember(ulong planet_id, bool force_refresh = false) =>
+        await Member.FindAsync(planet_id, Self.Id, force_refresh);
+
     #region SignalR Groups
 
     /// <summary>

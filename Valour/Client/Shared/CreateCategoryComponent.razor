@@ -1,7 +1,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper 
-@inject PlanetManager planetManager
+@inject AutoMapper.IMapper Mapper
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateCategoryModal createCategoryModal
@@ -71,9 +70,13 @@
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
-        Member SelfMember = await Member.GetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+
+        Member SelfMember = await ValourClient.GetSelfMember(createCategoryModal.Planet);
+
+        var roles = await createCategoryModal.Planet.GetRolesAsync();
+
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
-        foreach (Role item in await planetManager.GetCurrent().GetRolesAsync())
+        foreach (Role item in roles)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -102,8 +105,8 @@
 
         ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
         ulong parent_id = contextMenu.SelectedCategory.Id;
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
+        ulong user_id = ValourClient.Self.Id;
+        //string token = ValourClient.Token;
 
         Category category = new(){
             Name = name,
@@ -112,35 +115,34 @@
             Planet_Id = planet_id
         };
 
-        JsonContent content = JsonContent.Create(category);
+        var response = await ValourClient.PostAsync($"api/planet/{planet_id}/categories", category);
 
-        var response = await Http.PostAsync($"api/planet/{planet_id}/categories", content);
-
-        if (!response.IsSuccessStatusCode)
+        if (!response.Success)
         {
             imageSpan = "An error occured retrieving a response. Please try again.";
             return;
         }
 
-        ulong category_id = ulong.Parse(await response.Content.ReadAsStringAsync());
+        ulong category_id = ulong.Parse(response.Message);
 
         imageSpan = "Success";
 
         if (isprivate) {
             // set the default role channel view perms to false
 
-            CategoryPermissionsNode PermissionsNode = new()
+            PermissionsNode PermissionsNode = new()
             {
-                Category_Id = category_id,
-                Planet_Id = planetManager.GetCurrent().Id,
-                Role_Id = planetManager.GetCurrent().Default_Role_Id,
+                Target_Id = category_id,
+                Planet_Id = planet_id,
+                Role_Id = createCategoryModal.Planet.Default_Role_Id,
                 Mask = 0x00,
-                Code = 0x00
+                Code = 0x00,
+                Target_Type = ItemType.Category
             };
 
             PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
+            response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
 
             foreach (Role role in Roles)
             {
@@ -151,16 +153,17 @@
                 
                 PermissionsNode = new()
                 {
-                    Category_Id = category_id,
-                    Planet_Id = planetManager.GetCurrent().Id,
+                    Target_Id = category_id,
+                    Planet_Id = planet_id,
                     Role_Id = role.Id,
                     Mask = 0x00,
-                    Code = 0x00
+                    Code = 0x00,
+                    Target_Type = ItemType.Category
                 };
 
                 PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
+                response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
                 // TODO: Clean this
             }
         }

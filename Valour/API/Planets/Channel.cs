@@ -52,6 +52,12 @@ public class Channel : Shared.Items.PlanetChatChannel<Channel>, IPlanetListItem
         await Planet.FindAsync(Planet_Id);
 
     /// <summary>
+    /// Sets the name of this channel
+    /// </summary>
+    public async Task<TaskResult> SetNameAsync(string name) =>
+        await ValourClient.PutAsync($"api/channel/{Id}/name", name);
+
+    /// <summary>
     /// Sets the description of this channel
     /// </summary>
     public async Task<TaskResult> SetDescriptionAsync(string desc) => 
@@ -80,7 +86,7 @@ public class Channel : Shared.Items.PlanetChatChannel<Channel>, IPlanetListItem
     /// Returns the channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, force_refresh);
+        await PermissionsNode.FindAsync(Id, role_id, Shared.Items.ItemType.Channel, force_refresh);
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)

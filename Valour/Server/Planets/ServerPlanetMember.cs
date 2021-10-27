@@ -119,7 +119,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the user (async)
         /// </summary>
-        public async Task<User> GetUserAsync()
+        public async Task<ServerUser> GetUserAsync()
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
@@ -130,7 +130,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the user
         /// </summary>
-        public User GetUser()
+        public ServerUser GetUser()
         {
             return GetUserAsync().Result;
         }
@@ -153,7 +153,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the planet
         /// </summary>
-        public Planet GetPlanet()
+        public ServerPlanet GetPlanet()
         {
             if (Planet != null) return Planet;
             return GetPlanetAsync().Result;

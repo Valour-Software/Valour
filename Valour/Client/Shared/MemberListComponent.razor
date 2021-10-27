@@ -1,4 +1,4 @@
-﻿@inject PlanetManager planetManager
+﻿@inject ClientWindowManager windowManager
 
 <div class="RoleList keep-scrolling">
     @if (MemberList != null)
@@ -41,16 +41,16 @@
         OnlineList = new List<Member>();
         OfflineList = new List<Member>();
 
-        planetManager.OnPlanetChange += OnPlanetChange;
-        planetManager.OnRoleUpdate += OnRoleUpdate;
-        planetManager.OnMemberUpdate += OnMemberUpdate;
-        planetManager.OnRoleDeletion += OnRoleDeletion;
+        windowManager.OnPlanetFocused += OnPlanetChange;
+        Role.OnAnyUpdated += OnRoleUpdate;
+        Member.OnAnyUpdated += OnMemberUpdate;
+        Role.OnAnyDeleted += OnRoleDeletion;
     }
 
     public async Task OnMemberUpdate(Member member)
     {
         // not awaited on purpose
-        if (member.Planet_Id == planetManager.GetCurrent().Id)
+        if (member.Planet_Id == windowManager.FocusedPlanet.Id)
         {
             await RefreshOnRoleChange();
         }
@@ -60,7 +60,7 @@
     public async Task OnRoleDeletion(Role role)
     {
         // not awaited on purpose
-        if (role.Planet_Id == planetManager.GetCurrent().Id)
+        if (role.Planet_Id == windowManager.FocusedPlanet.Id)
         {
             await RefreshOnRoleChange();
         }
@@ -69,7 +69,7 @@
     public async Task OnRoleUpdate(Role role)
     {
         // not awaited on purpose
-        if (role.Planet_Id == planetManager.GetCurrent().Id)
+        if (role.Planet_Id == windowManager.FocusedPlanet.Id)
         {
             await RefreshOnRoleChange();
         }
@@ -110,7 +110,7 @@
             }
 
             // Get role ids
-            var roleids = await member.GetRoleIdsAsync();
+            var member_roles = await member.GetRolesAsync();
 
             bool hadRole = false;
 
@@ -122,7 +122,7 @@
                     continue;
 
                 // Member has role
-                if (roleids.Contains(role.Id))
+                if (member_roles.Contains(role))
                 {
                     // Ensure there is a list
                     if (!RoleMemberLists.ContainsKey(role))
@@ -153,8 +153,8 @@
             if (planet != null)
             {
                 Console.WriteLine($"Member list is updating to {planet.Name}");
-                MemberList = await planetManager.GetCachedPlanetMembers(planet);
-                Roles = await planetManager.GetCurrent().GetRolesAsync();
+                MemberList = await planet.GetMembersAsync();
+                Roles = await planet.GetRolesAsync();    
                 MemberList = MemberList.OrderByDescending(GetComparator).ToList();
             }
             else

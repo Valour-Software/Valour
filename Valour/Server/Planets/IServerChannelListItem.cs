@@ -5,6 +5,7 @@ using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Planets;
 using Valour.Shared.Items;
+using Valour.Shared.Oauth;
 
 namespace Valour.Server.Planets
 {
@@ -49,5 +50,7 @@ namespace Valour.Server.Planets
         public Task<ServerPlanet> GetPlanetAsync(ValourDB db);
 
         public void NotifyClientsChange();
+
+        public Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db);
     }
 }

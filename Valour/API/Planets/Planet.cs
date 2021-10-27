@@ -167,7 +167,7 @@ public class Planet : Shared.Planets.Planet<Planet>
     /// <summary>
     /// Returns the members of the planet
     /// </summary>
-    public async Task<List<Member>> GetMembersAsync(bool force_refresh)
+    public async Task<List<Member>> GetMembersAsync(bool force_refresh = false)
     {
         if (Members is null || force_refresh)
         {

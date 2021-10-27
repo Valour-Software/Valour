@@ -3,7 +3,7 @@
 @inject InfoModal infoModal
 @inject EditChannelListItemModal editModal
 @inject HttpClient Http
-@inject PlanetManager planetManager
+@inject ClientWindowManager windowManager
 
 @if (visible)
 {
@@ -70,9 +70,9 @@
 
             // get planet channels and categories
 
-            List<Channel> channels = await planetManager.GetCurrent().GetChannelsAsync();
+            List<Channel> channels = await windowManager.FocusedPlanet.GetChannelsAsync();
 
-            List<Category> categories = await planetManager.GetCurrent().GetCategoriesAsync();
+            List<Category> categories = await windowManager.FocusedPlanet.GetCategoriesAsync();
 
             if (channels.Where(x => x.Parent_Id == category_id).Count() > 0 || categories.Where(x => x.Parent_Id == category_id).Count() > 0) {
                 await infoModal.Open($"You can't delete this!",
@@ -100,10 +100,7 @@
         {
             Console.WriteLine("Confirmed channel item deletion.");
 
-            ulong user_id = ClientUserManager.User.Id;
-            string token = ClientUserManager.UserSecretToken;
-
-            var result = await channelListContextMenu.SelectedItem.TryDeleteAsync();
+            var result = await channelListContextMenu.SelectedItem.DeleteAsync();
 
             Console.WriteLine("Deletion: " + result.Message);
 

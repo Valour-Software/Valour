@@ -1,7 +1,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper 
-@inject PlanetManager planetManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateChannelModal createChannelModal
@@ -75,15 +74,16 @@
         Roles.Clear();
         SelectedRoles.Clear();
 
-        Member SelfMember = (await Member.FindAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id)).Data;
-        ulong SelfAuthority = (await SelfMember.GetAuthorityAsync()).Data;
+        Member SelfMember = await ValourClient.GetSelfMember(createChannelModal.Planet);
+
+        ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
 
         var roleResponse = await Planet.GetRolesAsync();
 
-        if (!roleResponse.Success)
+        if (roleResponse is not null)
             return;
 
-        foreach (Role item in roleResponse.Data)
+        foreach (Role item in roleResponse)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -112,8 +112,7 @@
         }
 
 
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
+        ulong user_id = ValourClient.Self.Id;
 
         ulong parent_id = contextMenu.SelectedCategory.Id;
         ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
@@ -155,23 +154,23 @@
 
             PermissionsNode PermissionsNode = new()
             {
-                Channel_Id = channel_id,
-                Planet_Id = planetManager.GetCurrent().Id,
-                Role_Id = planetManager.GetCurrent().Default_Role_Id,
+                Target_Id = channel_id,
+                Planet_Id = createChannelModal.Planet.Id,
+                Role_Id = createChannelModal.Planet.Default_Role_Id,
                 Mask = 0x00,
-                Code = 0x00
+                Code = 0x00,
+                Target_Type = ItemType.Channel
             };
 
             PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
             PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
             PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
-            HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<PermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                    PermissionsNode);
+            var response = await ValourClient.PostAsync($"api/node", PermissionsNode);
 
-            if (!response.IsSuccessStatusCode)
+            if (!response.Success)
             {
-                string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+                string errorText = $"Error: " + response.Message;
                 Console.WriteLine(errorText);
                 imageSpan = errorText;
             }
@@ -185,21 +184,23 @@
                 
                 PermissionsNode = new PermissionsNode()
                 {
-                    Channel_Id = channel_id,
-                    Planet_Id = planetManager.GetCurrent().Id,
+                    Target_Id = channel_id,
+                    Planet_Id = createChannelModal.Planet.Id,
                     Role_Id = role.Id,
                     Mask = 0x00,
-                    Code = 0x00
+                    Code = 0x00,
+                    Target_Type = ItemType.Channel
                 };
 
                 PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
                 PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
                 PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<PermissionsNode>($"api/node/channel", PermissionsNode);
-                if (!response.IsSuccessStatusCode)
+                response = await ValourClient.PostAsync($"api/node", PermissionsNode);
+
+                if (!response.Success)
                 {
-                    string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+                    string errorText = $"Error: " + response.Message;
                     Console.WriteLine(errorText);
                     imageSpan = errorText;
                 }

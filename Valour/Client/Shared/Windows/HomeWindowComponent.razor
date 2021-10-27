@@ -1,7 +1,6 @@
 ﻿@inject NavigationManager navManager
 @inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
-@inject PlanetManager planetManager
 @inject CreatePlanetModal createPlanetModal
 
 
@@ -19,7 +18,7 @@
 <hr />
 
 <div class="flex-row flex-wrap m-5">
-    @foreach (Planet planet in ClientUserManager.Planets)
+    @foreach (Planet planet in ValourClient.JoinedPlanets)
     {
 
         <div class="home-server m-2" style="cursor: pointer" @onclick="(e => OnPlanetClick(planet))">
@@ -85,8 +84,8 @@
         await windowManager.SetSelectedWindow(Window.Index);
 
         // Actually load planet
-        await planetManager.OpenPlanet(planet); // Required for member list bug
-        await planetManager.SetCurrentPlanet(planet);
+        await ValourClient.OpenPlanet(planet);
+        await windowManager.SetFocusedPlanet(planet);
 
         StateHasChanged();
 
