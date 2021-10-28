@@ -6,6 +6,7 @@ using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Server.Planets;
 using Valour.Shared.Messages;
+using Valour.Shared.Messages.Embeds;
 using Valour.Shared.Oauth;
 
 namespace Valour.Server.API;
@@ -18,7 +19,7 @@ public class EmbedAPI : BaseAPI
 
     private static async Task Interaction(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
     {
-        InteractionEvent e = await JsonSerializer.DeserializeAsync<InteractionEvent>(ctx.Request.Body);
+        EmbedInteractionEvent e = await JsonSerializer.DeserializeAsync<EmbedInteractionEvent>(ctx.Request.Body);
 
         var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }

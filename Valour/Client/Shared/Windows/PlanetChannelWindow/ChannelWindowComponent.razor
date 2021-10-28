@@ -111,7 +111,7 @@
 
         await ValourClient.OpenChannel(Channel);
 
-        SelfMember = await Member.FindAsync(ValourClient.Self.Id, Channel.Planet_Id);
+        SelfMember = await Member.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 

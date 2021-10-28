@@ -13,6 +13,7 @@ using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Messages;
 using Valour.Shared.Roles;
+using Valour.Shared.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -39,7 +40,7 @@ namespace Valour.Server.Planets
 
                 if (authToken == null) return;
 
-                PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
+                ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
                     x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id);
 
                 // If the user is not a member, cancel
@@ -77,7 +78,7 @@ namespace Valour.Server.Planets
 
                 if (authToken == null) return;
 
-                PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
+                ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
                     x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id);
 
                 // If the user is not a member, cancel
@@ -100,7 +101,7 @@ namespace Valour.Server.Planets
         public static async void NotifyPlanetChange(ServerPlanet planet) =>
             await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet);
 
-        public static async void NotifyInteractionEvent(InteractionEvent interaction) =>
+        public static async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
             await Current.Clients.Group($"i-{interaction.Planet_Id}").SendAsync("InteractionEvent", interaction);
 
         public static async void NotifyRoleChange(ServerPlanetRole role) =>

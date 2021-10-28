@@ -96,13 +96,13 @@
 
         name = await Member.GetNameAsync();
 
-        roleColor = await Member.GetColorHexAsync();
+        roleColor = await Member.GetRoleColorAsync();
 
         status = await Member.GetStatusAsync();
 
         state = user.UserState;
 
-        string pfp = await Member.GetPfpAsync();
+        string pfp = await Member.GetPfpUrlAsync();
 
         if (!string.IsNullOrWhiteSpace(pfp))
         {
@@ -114,7 +114,7 @@
     {
         pfpurl = "/icon-512.png";
 
-        int r = ClientUserManager.Random.Next(24) * 15;
+        int r = Random.Shared.Next(24) * 15;
 
         style = $"filter: hue-rotate({r}deg) saturate(2)";
 

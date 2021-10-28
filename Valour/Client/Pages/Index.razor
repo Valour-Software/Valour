@@ -120,6 +120,11 @@
 
 		windowManager.OnPlanetFocused += OnPlanetChange;
 		windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+		ValourClient.OnLogin += OnLoginAsync;
+	}
+
+	public async Task OnLoginAsync(){
+		StateHasChanged();
 	}
 
 	public void Dispose()

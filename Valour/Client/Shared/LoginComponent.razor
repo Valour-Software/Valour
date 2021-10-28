@@ -1,6 +1,5 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
-@inject AutoMapper.IMapper mapper
 @inject ILocalStorageService localStorage
 
 <body class="login-background">
@@ -84,12 +83,12 @@
         }
         else
         {
-            TaskResult result = await ClientUserManager.InitializeUser(message, localStorage);
+            var result = await ValourClient.InitializeUser(message);
 
             if (result.Success)
             {
                 resultSpan = result.Message;
-                navManager.NavigateTo("/", true);
+                //navManager.NavigateTo("/", true);
             }
             else {
                 passwordSpan = result.Message;

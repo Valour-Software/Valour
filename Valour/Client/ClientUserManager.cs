@@ -45,7 +45,7 @@ namespace Valour.Client
         {
             // Store token for future use
             await StoreToken(storage);
-            return await ValourClient.Initialize(token, nav.BaseUri.TrimEnd('/') + "/planethub");
+            return await ValourClient.InitializeUser(token);
         }
 
         /// <summary>

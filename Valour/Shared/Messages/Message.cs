@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json;
 using Valour.Shared.Messages.Embeds;
 using Valour.Shared.Messages.Mentions;
+using System.ComponentModel.DataAnnotations.Schema;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -36,7 +37,7 @@ namespace Valour.Shared.Messages
         /// <summary>
         /// The member's ID
         /// </summary>
-        [JsonPropertyName("Author_Id")]
+        [JsonPropertyName("Member_Id")]
         public ulong Member_Id { get; set; }
 
         /// <summary>
@@ -85,16 +86,19 @@ namespace Valour.Shared.Messages
         /// <summary>
         /// The mentions contained within this message
         /// </summary>
+        [NotMapped]
         private List<Mention> _mentions;
 
         /// <summary>
         /// True if the mentions data has been parsed
         /// </summary>
+        [NotMapped]
         private bool mentionsParsed = false;
 
         /// <summary>
         /// The inner embed data
         /// </summary>
+        [NotMapped]
         private Embed _embed;
 
         /// <summary>
@@ -105,6 +109,7 @@ namespace Valour.Shared.Messages
         /// <summary>
         /// The mentions for members within this message
         /// </summary>
+        [NotMapped]
         public List<Mention> Mentions
         {
             get
@@ -121,6 +126,7 @@ namespace Valour.Shared.Messages
             }
         }
 
+        [NotMapped]
         public Embed Embed
         {
             get

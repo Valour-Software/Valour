@@ -38,7 +38,7 @@ public static class ValourClient
     /// <summary>
     /// The planets this client has joined
     /// </summary>
-    public static List<Planet> JoinedPlanets { get; }
+    public static List<Planet> JoinedPlanets;
 
     /// <summary>
     /// The IDs of the client's joined planets
@@ -97,21 +97,39 @@ public static class ValourClient
     /// </summary>
     public static event Func<PlanetMessage, Task> OnMessageRecieve;
 
+    /// <summary>
+    /// Run when the user logs in
+    /// </summary>
+    public static event Func<Task> OnLogin;
+
+    public static event Func<Task> OnJoinedPlanetsUpdate;
+
     #endregion
 
     static ValourClient()
     {
         // Add victor dummy member
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         ValourCache.Put(ulong.MaxValue, new Member()
         {
             Nickname = "Victor",
             Id = ulong.MaxValue,
             Member_Pfp = "/media/victor-cyan.png"
-        }).RunSynchronously();
+        });
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+
+        OpenPlanets = new List<Planet>();
+        OpenChannels = new List<Channel>();
+        JoinedPlanets = new List<Planet>();
 
         // Hook top level events
         HookPlanetEvents();
     }
+
+    /// <summary>
+    /// Sets the HTTP client
+    /// </summary>
+    public static void SetHttpClient(HttpClient client) => _httpClient = client;
 
     /// <summary>
     /// Returns the member for this client's user given a planet
@@ -359,12 +377,18 @@ public static class ValourClient
     #region Initialization
 
     /// <summary>
+    /// Connects to SignalR hub
+    /// </summary>
+    public static async Task InitializeSignalR(string hub_uri = "https://valour.gg/planethub")
+    {
+        await ConnectSignalRHub(hub_uri);
+    }
+
+    /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
-    public static async Task<TaskResult<User>> Initialize(string token, string hub_uri = "https://valour.gg/planethub")
+    public static async Task<TaskResult<User>> InitializeUser(string token)
     {
-        // First connect to SignalR hub
-        await ConnectSignalRHub(hub_uri);
 
         var response = await PostAsyncWithResponse<User>($"api/user/withtoken", token);
 
@@ -382,38 +406,51 @@ public static class ValourClient
 
         Console.WriteLine($"Initialized user {Self.Username} ({Self.Id})");
 
+        await OnLogin?.Invoke();
+
+        await LoadJoinedPlanetsAsync();
+
         return new TaskResult<User>(true, "Success", Self);
     }
 
     /// <summary>
-    /// Returns the joined planets of the client user
+    /// Should only be run during initialization!
     /// </summary>
-    public static async Task<List<Planet>> GetJoinedPlanetsAsync()
+    public static async Task LoadJoinedPlanetsAsync()
     {
-        var planets = new List<Planet>();
+        var planets = await GetJsonAsync<List<Planet>>($"api/user/{Self.Id}/planets");
 
-        foreach (var id in _joinedPlanetIds)
+        // Add to cache
+        foreach (var planet in planets)
         {
-            var planet = await Planet.FindAsync(id);
-
-            if (planet is not null)
-                planets.Add(planet);
+            await ValourCache.Put(planet.Id, planet);
         }
 
-        return planets;
+        JoinedPlanets = planets;
+
+        _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
+
+        await OnJoinedPlanetsUpdate?.Invoke();
     }
 
     /// <summary>
-    /// Loads the user's joined planet list from the server
+    /// Refreshes the user's joined planet list from the server
     /// </summary>
-    public static async Task LoadJoinedPlanetsAsync()
+    public static async Task RefreshJoinedPlanetsAsync()
     {
         var planetIds = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planet_ids");
 
         if (planetIds is null)
             return;
 
-        _joinedPlanetIds = planetIds;
+        JoinedPlanets.Clear();
+
+        foreach (var id in planetIds)
+        {
+            JoinedPlanets.Add(await Planet.FindAsync(id));
+        }
+
+        await OnJoinedPlanetsUpdate?.Invoke();
     }
 
     #endregion
@@ -557,13 +594,17 @@ public static class ValourClient
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +
-                              $"[{uri}]" +
-                              $"Code: {response.StatusCode}" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
                               $"Message: {message}\n" +
                               $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
         }
         else
         {
+            if (typeof(T) == typeof(string)) return result;
+
             result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
@@ -589,10 +630,12 @@ public static class ValourClient
         {
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed PUT response for the following:\n" +
-                              $"[{uri}]" +
-                              $"Code: {response.StatusCode}" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
                               $"Message: {await response.Content.ReadAsStringAsync()}\n" +
                               $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
         }
 
         return result;
@@ -617,10 +660,42 @@ public static class ValourClient
         {
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed PUT response for the following:\n" +
-                              $"[{uri}]" +
-                              $"Code: {response.StatusCode}" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
                               $"Message: {await response.Content.ReadAsStringAsync()}\n" +
                               $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Posts a json resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult> PostAsync(string uri, string content)
+    {
+        StringContent jsonContent = new StringContent(content);
+
+        var response = await Http.PostAsync(uri, jsonContent);
+
+        TaskResult result = new()
+        {
+            Message = await response.Content.ReadAsStringAsync(),
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed POST response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
         }
 
         return result;
@@ -645,10 +720,45 @@ public static class ValourClient
         {
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
-                              $"[{uri}]" +
-                              $"Code: {response.StatusCode}" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
                               $"Message: {await response.Content.ReadAsStringAsync()}\n" +
                               $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Posts a json resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
+    {
+        StringContent jsonContent = new StringContent(content);
+
+        var response = await Http.PostAsync(uri, jsonContent);
+
+        TaskResult<T> result = new TaskResult<T>()
+        {
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed POST response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+        else
+        {
+            result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;
@@ -672,10 +782,12 @@ public static class ValourClient
         {
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
-                              $"[{uri}]" +
-                              $"Code: {response.StatusCode}" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
                               $"Message: {await response.Content.ReadAsStringAsync()}\n" +
                               $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
         }
         else
         {
@@ -702,10 +814,12 @@ public static class ValourClient
         {
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed PUT response for the following:\n" +
-                              $"[{uri}]" +
-                              $"Code: {response.StatusCode}" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
                               $"Message: {await response.Content.ReadAsStringAsync()}\n" +
                               $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
         }
 
         return result;

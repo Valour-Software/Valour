@@ -46,12 +46,14 @@ namespace Valour.Shared.Items
 
         public async Task InvokeUpdated()
         {
-            await OnUpdated?.Invoke();
+            if (OnUpdated != null)
+                await OnUpdated?.Invoke();
         }
 
         public async Task InvokeDeleted()
         {
-            await OnDeleted?.Invoke();
+            if (OnDeleted != null)
+                await OnDeleted?.Invoke();
         }
 
         public async Task InvokeAnyUpdated(T updated)

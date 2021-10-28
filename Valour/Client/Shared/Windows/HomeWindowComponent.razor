@@ -1,5 +1,4 @@
 ﻿@inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
 @inject CreatePlanetModal createPlanetModal
 
@@ -66,6 +65,16 @@
 
     [Parameter]
     public Valour.Client.Pages.Index IndexPage { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
+    }
+
+    public async Task OnJoinedPlanetsUpdate()
+    {
+        StateHasChanged();
+    }
 
     public async Task OnNewPlanetClick()
     {

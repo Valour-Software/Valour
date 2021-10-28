@@ -14,7 +14,8 @@ namespace Valour.Api.Extensions
             foreach (var sourceProperty in type.GetProperties())
             {
                 var targetProperty = type.GetProperty(sourceProperty.Name);
-                targetProperty.SetValue(target, sourceProperty.GetValue(source, null), null);
+                if (targetProperty.CanWrite)
+                    targetProperty.SetValue(target, sourceProperty.GetValue(source, null), null);
             }
             foreach (var sourceField in type.GetFields())
             {

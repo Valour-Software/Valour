@@ -166,7 +166,7 @@ namespace Valour.Server.API
 
             if (recovery == null) { await NotFound("Recovery request not found", ctx); return; }
 
-            TaskResult passwordValid = User.TestPasswordComplexity(request.Password);
+            TaskResult passwordValid = ServerUser.TestPasswordComplexity(request.Password);
 
             if (!passwordValid.Success) { await BadRequest(passwordValid.Message, ctx); return; }
 
@@ -208,7 +208,7 @@ namespace Valour.Server.API
             if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == email.ToLower())) { await BadRequest("Email taken", ctx); return; }
 
             // Test email
-            TaskResult<string> emailResult = User.TestEmail(email);
+            TaskResult<string> emailResult = ServerUser.TestEmail(email);
 
             if (!emailResult.Success) { await BadRequest(emailResult.Message, ctx); return; }
 
@@ -216,12 +216,12 @@ namespace Valour.Server.API
             email = emailResult.Data;
 
             // Test username
-            TaskResult usernameResult = User.TestUsername(username);
+            TaskResult usernameResult = ServerUser.TestUsername(username);
 
             if (!usernameResult.Success) { await BadRequest(usernameResult.Message, ctx); return; }
 
             // Test password complexity
-            TaskResult passwordResult = User.TestPasswordComplexity(password);
+            TaskResult passwordResult = ServerUser.TestPasswordComplexity(password);
 
             // Enforce password tests
             if (!passwordResult.Success) { await BadRequest(passwordResult.Message, ctx); return; }
@@ -232,7 +232,7 @@ namespace Valour.Server.API
 
             if (!string.IsNullOrWhiteSpace(referrer))
             {
-                User referUser = await db.Users.FirstOrDefaultAsync(x => x.Username.ToLower() == referrer.ToLower());
+                ServerUser referUser = await db.Users.FirstOrDefaultAsync(x => x.Username.ToLower() == referrer.ToLower());
 
                 if (referUser == null) { await BadRequest($"Could not find referrer {referrer}", ctx); return; }
 

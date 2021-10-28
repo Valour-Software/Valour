@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components;
 using Valour.Client.Modals.ContextMenus;
 using Valour.Client.Modals;
 using Valour.Client.Shared.ChannelList;
+using Valour.Api.Client;
 
 
 /*  Valour - A free and secure chat client
@@ -23,11 +24,17 @@ namespace Valour.Client
             builder.RootComponents.Add<App>("app");
 
             builder.Services.AddBlazoredLocalStorage();
+
+            var httpClient = new HttpClient
+            {
+                BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+            };
+
+            ValourClient.SetHttpClient(httpClient);
+            await ValourClient.InitializeSignalR(builder.HostEnvironment.BaseAddress.TrimEnd('/') + "/planethub");
+
             builder.Services.AddScoped(sp =>
-                new HttpClient
-                {
-                    BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
-                }
+                httpClient
             );
 
             builder.Services.AddSingleton<ClientWindowManager>();

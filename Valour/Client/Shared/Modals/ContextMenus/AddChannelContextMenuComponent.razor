@@ -1,18 +1,19 @@
 ﻿@inject AddChannelContextMenu addChannelContextMenu
 @inject CreateChannelModal createChannelModal
 @inject CreateCategoryModal createCategoryModal
+@inject ClientWindowManager windowManager
 
 @using System.Threading
 
 @if (visible)
 {
     <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
-        <div id="create-channel-btn" class="context-menu-item" @onclick="createChannelModal.Open">
+        <div id="create-channel-btn" class="context-menu-item" @onclick="() => createChannelModal.Open(Planet)">
             <p class="context-menu-item-text">
                 Add Channel
             </p>
         </div>
-        <div id="create-category-btn" class="context-menu-item" @onclick="createCategoryModal.Open">
+        <div id="create-category-btn" class="context-menu-item" @onclick="() => createCategoryModal.Open(Planet)">
             <p class="context-menu-item-text">
                 Add Category
             </p>
@@ -32,8 +33,11 @@
     [Parameter]
     public ModalHolderComponent Holder { get; set; }
 
+    public Planet Planet { get; set; }
+
     protected async override Task OnInitializedAsync()
     {
+        Planet = windowManager.FocusedPlanet;
         addChannelContextMenu.Component = this;
         ModalHolderComponent.CloseModalEvent += OnModalClose;
     }

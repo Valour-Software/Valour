@@ -278,8 +278,6 @@ namespace Valour.Client
 
         public override void OnClosed()
         {
-            ClientWindowManager.Instance.CloseWindow(Index);
-
             // Must be after SetChannelWindowClosed
             base.OnClosed();
 

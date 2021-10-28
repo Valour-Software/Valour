@@ -40,7 +40,7 @@
     {
         Planet = await Channel.GetPlanetAsync();
         Matches = new List<Member>();
-        Members = await Planet.GetCachedMembers();
+        Members = await Planet.GetMembersAsync();
     }
 
     public void SetVisible(bool value)
