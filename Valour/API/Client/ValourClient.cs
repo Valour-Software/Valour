@@ -95,7 +95,7 @@ public static class ValourClient
     /// <summary>
     /// Run when a message is recieved
     /// </summary>
-    public static event Func<PlanetMessage, Task> OnMessageRecieve;
+    public static event Func<PlanetMessage, Task> OnMessageRecieved;
 
     /// <summary>
     /// Run when the user logs in
@@ -305,7 +305,7 @@ public static class ValourClient
     /// </summary>
     private static async Task MessageRecieved(PlanetMessage message)
     {
-
+        await OnMessageRecieved?.Invoke(message);
     }
 
     #endregion
@@ -494,8 +494,6 @@ public static class ValourClient
 
         HubConnection.On<Member>("MemberUpdate", UpdateItem);
         HubConnection.On<Member>("MemberDeletion", DeleteItem);
-
-
     }
 
     /// <summary>

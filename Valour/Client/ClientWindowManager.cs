@@ -32,7 +32,7 @@ namespace Valour.Client
         {
             Instance = this;
             ValourClient.HubConnection.Reconnected += OnSignalRReconnect;
-            ValourClient.OnMessageRecieve += OnMessageRecieved;
+            ValourClient.OnMessageRecieved += OnMessageRecieved;
         }
 
         public async Task SetFocusedPlanet(Planet planet)
@@ -111,6 +111,7 @@ namespace Valour.Client
             if (!(OpenChatWindows.Any(x => x.Index != window.Index && x.Channel.Id == newChannel.Id)))
             {
                 await ValourClient.CloseChannel(window.Channel);
+                OpenChatWindows.Remove((ChatChannelWindow)window);
             }
 
             window.Channel = newChannel;
@@ -148,6 +149,9 @@ namespace Valour.Client
             window.Index = OpenWindows.Count;
             OpenWindows.Add(window);
 
+            if (window is ChatChannelWindow)
+                OpenChatWindows.Add((ChatChannelWindow)window);
+
             Console.WriteLine("Added window " + window.Index);
 
             ForceChatRefresh();
@@ -181,6 +185,7 @@ namespace Valour.Client
             }
 
             OpenWindows.Clear();
+            OpenChatWindows.Clear();
         }
 
         public void SetWindow(int index, ClientWindow window)
@@ -189,6 +194,9 @@ namespace Valour.Client
             {
                 return;
             }
+
+            if (window is ChatChannelWindow && !OpenChatWindows.Contains((ChatChannelWindow)window))
+                OpenChatWindows.Add((ChatChannelWindow)window);
 
             window.Index = index;
             CloseWindow(index);
@@ -199,14 +207,20 @@ namespace Valour.Client
 
         public void CloseWindow(int index)
         {
-            OpenWindows[index].OnClosed();
+            var window = OpenWindows[index];
+
+            window.OnClosed();
+
+            if (window is ChatChannelWindow)
+                OpenChatWindows.Remove((ChatChannelWindow)window);
+
             OpenWindows.RemoveAt(index);
 
             int newInd = 0;
 
-            foreach (ClientWindow window in OpenWindows)
+            foreach (ClientWindow w in OpenWindows)
             {
-                window.Index = newInd;
+                w.Index = newInd;
                 newInd++;
             }
 

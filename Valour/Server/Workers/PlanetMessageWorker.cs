@@ -71,10 +71,8 @@ namespace Valour.Server.Workers
                         Message.Message_Index = index;
                         Message.TimeSent = DateTime.UtcNow;
 
-                        string json = JsonSerializer.Serialize(Message);
-
                         // This is not awaited on purpose
-                        PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", json);
+                        PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", Message);
 
                         StagedMessages.Add(Message);
                     }
