@@ -86,6 +86,9 @@ public class ClientPlanetMessage
     {
         List<ClientPlanetMessage> result = new();
 
+        if (messages is null)
+            return result;
+
         foreach (PlanetMessage message in messages)
             result.Add(new ClientPlanetMessage(message));
 

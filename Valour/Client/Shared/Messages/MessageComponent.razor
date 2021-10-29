@@ -288,7 +288,7 @@
 
     public async Task OnRoleUpdate(Role role)
     {
-        if (role.Id == primaryRole.Id)
+        if (role != null && primaryRole != null && role.Id == primaryRole.Id)
         {
             primaryRole = role;
             await UpdateForRoleChange();

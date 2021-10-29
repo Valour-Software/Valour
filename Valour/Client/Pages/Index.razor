@@ -173,7 +173,8 @@
 			Console.WriteLine("Index planet change: null");
 		}
 
-		StateHasChanged();
+		// This is unnecessary and breaks things
+		//StateHasChanged();
 	}
 
 	protected override void OnAfterRender(bool firstRender)

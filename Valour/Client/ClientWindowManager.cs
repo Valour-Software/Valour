@@ -112,11 +112,28 @@ namespace Valour.Client
             {
                 await ValourClient.CloseChannel(window.Channel);
                 OpenChatWindows.Remove((ChatChannelWindow)window);
+                await ClosePlanetIfNeeded(await window.Channel.GetPlanetAsync());
             }
+
+            // Check for if planet should be closed
 
             window.Channel = newChannel;
 
             await ValourClient.OpenChannel(newChannel);
+        }
+
+        public async Task ClosePlanetIfNeeded(Planet planet)
+        {
+            if (planet == null)
+                return;
+
+            if (!OpenChatWindows.Any(x => x.Channel.Planet_Id == planet.Id))
+            {
+                await ValourClient.ClosePlanet(planet);
+
+                if (FocusedPlanet == planet)
+                    await SetFocusedPlanet(null);
+            }
         }
 
         public async Task SetSelectedWindow(int index)
@@ -131,6 +148,12 @@ namespace Valour.Client
             SelectedWindow = window;
 
             Console.WriteLine($"Set active window to {window.Index}");
+
+            if (window is ChatChannelWindow)
+            {
+                var chatW = window as ChatChannelWindow;
+                await SetFocusedPlanet(await chatW.Channel.GetPlanetAsync());
+            }
 
             if (OnWindowSelect != null)
             {
@@ -196,7 +219,10 @@ namespace Valour.Client
             }
 
             if (window is ChatChannelWindow && !OpenChatWindows.Contains((ChatChannelWindow)window))
-                OpenChatWindows.Add((ChatChannelWindow)window);
+            {
+                var chatW = window as ChatChannelWindow;
+                OpenChatWindows.Add(chatW);
+            }
 
             window.Index = index;
             CloseWindow(index);
@@ -205,14 +231,18 @@ namespace Valour.Client
             ForceChatRefresh();
         }
 
-        public void CloseWindow(int index)
+        public async void CloseWindow(int index)
         {
             var window = OpenWindows[index];
 
             window.OnClosed();
 
             if (window is ChatChannelWindow)
-                OpenChatWindows.Remove((ChatChannelWindow)window);
+            {
+                var chatW = (ChatChannelWindow)window;
+                OpenChatWindows.Remove(chatW);
+                await ClosePlanetIfNeeded(await chatW.Channel.GetPlanetAsync());
+            }
 
             OpenWindows.RemoveAt(index);
 

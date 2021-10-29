@@ -271,17 +271,20 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated) where T : Item<T>
+    public static async Task UpdateItem<T>(T updated, bool skipEvent = false) where T : Item<T>
     {
         var local = ValourCache.Get<T>(updated.Id);
         if (local != null)
             updated.CopyAllTo(local);
 
-        // Invoke static "any" update
-        await local.InvokeAnyUpdated(local);
+        if (!skipEvent)
+        {
+            // Invoke static "any" update
+            await local.InvokeAnyUpdated(local);
 
-        // Invoke specific item update
-        await local.InvokeUpdated();
+            // Invoke specific item update
+            await local.InvokeUpdated();
+        }
     }
 
     /// <summary>
@@ -480,19 +483,19 @@ public static class ValourClient
     {
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
 
-        HubConnection.On<Planet>("PlanetUpdate", UpdateItem);
+        HubConnection.On<Planet>("PlanetUpdate", i => UpdateItem(i));
         HubConnection.On<Planet>("PlanetDeletion", DeleteItem);
 
-        HubConnection.On<Channel>("ChannelUpdate", UpdateItem);
+        HubConnection.On<Channel>("ChannelUpdate", i => UpdateItem(i));
         HubConnection.On<Channel>("ChannelDeletion", DeleteItem);
 
-        HubConnection.On<Category>("CategoryUpdate", UpdateItem);
+        HubConnection.On<Category>("CategoryUpdate", i => UpdateItem(i));
         HubConnection.On<Category>("CategoryDeletion", DeleteItem);
 
-        HubConnection.On<Role>("RoleUpdate", UpdateItem);
+        HubConnection.On<Role>("RoleUpdate", i => UpdateItem(i));
         HubConnection.On<Role>("RoleDeletion", DeleteItem);
 
-        HubConnection.On<Member>("MemberUpdate", UpdateItem);
+        HubConnection.On<Member>("MemberUpdate", i => UpdateItem(i));
         HubConnection.On<Member>("MemberDeletion", DeleteItem);
     }
 

@@ -1,7 +1,7 @@
 ﻿@inject ClientWindowManager windowManager
 
 <div class="RoleList keep-scrolling">
-    @if (MemberList != null)
+    @if (MemberList != null && Planet != null)
     {
         foreach (KeyValuePair<Role, List<Member>> roleMemberList in RoleMemberLists)
         {
@@ -35,6 +35,8 @@
     public List<Member> OnlineList { get; set; }
     public List<Member> OfflineList { get; set; }
 
+    public Planet Planet { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         RoleMemberLists = new Dictionary<Role, List<Member>>();
@@ -42,6 +44,9 @@
         OfflineList = new List<Member>();
 
         windowManager.OnPlanetFocused += OnPlanetChange;
+
+        ValourClient.OnPlanetClose += OnPlanetClose;
+
         Role.OnAnyUpdated += OnRoleUpdate;
         Member.OnAnyUpdated += OnMemberUpdate;
         Role.OnAnyDeleted += OnRoleDeletion;
@@ -146,8 +151,19 @@
         }
     }
 
+    public async Task OnPlanetClose(Planet planet)
+    {
+        if (Planet.Id == planet.Id)
+        {
+            Planet = null;
+            StateHasChanged();
+        }
+    }
+
     public async Task OnPlanetChange(Planet planet)
     {
+        Planet = planet;
+
         var t = Task.Run(async () =>
         {
             if (planet != null)

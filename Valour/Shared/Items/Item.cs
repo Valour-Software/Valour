@@ -58,12 +58,14 @@ namespace Valour.Shared.Items
 
         public async Task InvokeAnyUpdated(T updated)
         {
-            await OnAnyUpdated?.Invoke(updated);
+            if (OnAnyUpdated != null)
+                await OnAnyUpdated?.Invoke(updated);
         }
 
         public async Task InvokeAnyDeleted(T deleted)
         {
-            await OnAnyDeleted?.Invoke(deleted);
+            if (OnAnyDeleted != null)
+                await OnAnyDeleted?.Invoke(deleted);
         }
 
         [JsonInclude]

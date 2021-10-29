@@ -121,7 +121,7 @@ namespace Valour.Server.Planets
                     Parent = await GetParentAsync(db);
                 }
 
-                return await Parent.HasPermission(member, permission);
+                return await Parent.HasPermission(member, permission, db);
             }
 
 

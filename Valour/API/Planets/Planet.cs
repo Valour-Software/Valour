@@ -77,7 +77,8 @@ public class Planet : Shared.Planets.Planet<Planet>
         // Update cache values
         foreach (var category in categories)
         {
-            await ValourCache.Put(category.Id, category);
+            // Skip event for bulk loading
+            await ValourCache.Put(category.Id, category, true);
         }
 
         // Create container if needed
@@ -124,7 +125,8 @@ public class Planet : Shared.Planets.Planet<Planet>
 
         foreach (var channel in channels)
         {
-            await ValourCache.Put(channel.Id, channel);
+            // Skip event for bulk loading
+            await ValourCache.Put(channel.Id, channel, true);
         }
 
         // Create container if needed
@@ -195,9 +197,10 @@ public class Planet : Shared.Planets.Planet<Planet>
             await info.Member.SetLocalRoleIds(info.RoleIds);
 
             // Set in cache
-            await ValourCache.Put(info.Member.Id, info.Member);
-            await ValourCache.Put((info.Member.Planet_Id, info.Member.User_Id), info.Member);
-            await ValourCache.Put(info.Member.User_Id, info.User);
+            // Skip event for bulk loading
+            await ValourCache.Put(info.Member.Id, info.Member, true);
+            await ValourCache.Put((info.Member.Planet_Id, info.Member.User_Id), info.Member, true);
+            await ValourCache.Put(info.Member.User_Id, info.User, true);
         }
 
         foreach (var info in result)
@@ -234,7 +237,8 @@ public class Planet : Shared.Planets.Planet<Planet>
 
         foreach (var role in roles)
         {
-            await ValourCache.Put(role.Id, role);
+            // Skip event for bulk loading
+            await ValourCache.Put(role.Id, role, true);
         }
 
         if (Roles is null)

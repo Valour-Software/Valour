@@ -114,10 +114,10 @@ namespace Valour.Server.Planets
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", role);
 
         public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel) =>
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelDeletion", channel);
+            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelDeletion", channel);
 
         public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel) =>
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChatChannelUpdate", channel);
+            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelUpdate", channel);
 
         public static async void NotifyCategoryChange(ServerPlanetCategory category) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category);

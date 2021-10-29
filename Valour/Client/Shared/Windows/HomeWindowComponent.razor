@@ -83,6 +83,10 @@
 
     public async Task OnPlanetClick(Planet planet)
     {
+        // Load planet first for personal reasons (let me keep the kids thanks)
+        await ValourClient.OpenPlanet(planet);
+        await windowManager.SetFocusedPlanet(planet);
+
         Channel channel = await planet.GetPrimaryChannelAsync();
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
@@ -91,10 +95,6 @@
 
         windowManager.SetWindow(Window.Index, newWindow);
         await windowManager.SetSelectedWindow(Window.Index);
-
-        // Actually load planet
-        await ValourClient.OpenPlanet(planet);
-        await windowManager.SetFocusedPlanet(planet);
 
         StateHasChanged();
 

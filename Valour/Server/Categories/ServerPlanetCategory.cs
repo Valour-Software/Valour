@@ -206,7 +206,7 @@ namespace Valour.Server.Categories
             return Planet;
         }
 
-        public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db = null)
+        public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db)
         {
             ServerPlanet planet = await GetPlanetAsync(db);
 
