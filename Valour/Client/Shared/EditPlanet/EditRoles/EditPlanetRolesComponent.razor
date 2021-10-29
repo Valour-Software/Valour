@@ -1,5 +1,4 @@
 ﻿@inject IJSRuntime JS
-@inject ClientPlanetManager planetManager
 @inject EditPlanetModal editPlanetModal
 
 <h3>Edit Roles</h3>
@@ -109,7 +108,7 @@
 
     <div class="container" id="edit-rows-container" style="@normStyle">
 
-        @foreach (PlanetRole role in Roles)
+        @foreach (Role role in Roles)
         {
             // For magic lambda
             var role_x = role;
@@ -149,13 +148,13 @@
 @code {
 
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
-    public List<PlanetRole> Roles = new List<PlanetRole>();
+    public List<Role> Roles = new List<Role>();
 
     // Stuff for role creation //
 
-    public PlanetRole role = new PlanetRole()
+    public Role role = new Role()
     {
         Name = "New Role",
         Color_Red = 255,
@@ -177,7 +176,7 @@
 
     // Stuff for role editing //
 
-    public PlanetRole Selected { get; set; }
+    public Role Selected { get; set; }
 
     public void PermClick(int id)
     {
@@ -204,14 +203,15 @@
     protected override async Task OnInitializedAsync()
     {
         Roles = await Planet.GetRolesAsync();
-        planetManager.OnRoleUpdate += OnRolesUpdate;
-        planetManager.OnRoleDeletion += OnRoleDeletion;
+
+        Role.OnAnyUpdated += OnRolesUpdate;
+        Role.OnAnyDeleted += OnRoleDeletion;
     }
 
 
     public async Task GoBack()
     {
-        role = new PlanetRole()
+        role = new Role()
         {
             Name = "New Role",
             Bold = false,
@@ -224,7 +224,7 @@
         StateHasChanged();
     }
 
-    public async Task OnClickDelete(PlanetRole deleteRole)
+    public async Task OnClickDelete(Role deleteRole)
     {
         resultSpan = "";
         errorSpan = "";
@@ -238,28 +238,22 @@
 
     public async Task Delete()
     {
-        HttpResponseMessage response = null;
+        var response = await ValourClient.DeleteAsync($"api/role/{role.Id.ToString()}");
 
-        response = await ClientUserManager.Http.DeleteAsync($"api/role/{role.Id.ToString()}");
-        
-        var message = await response.Content.ReadAsStringAsync();
-        
-        if (!response.IsSuccessStatusCode)
+        if (!response.Success)
         {
-            Console.WriteLine("Critical error deleting role");
-            Console.WriteLine(message);
-            errorSpan = "Error: " + message;
+            errorSpan = "Error: " + response.Message;
             return;
         }
 
-        resultSpan = message;
+        resultSpan = response.Message;
 
         deleteMode = false;
 
         StateHasChanged();
     }
 
-    public async Task OnClickEdit(PlanetRole editRole)
+    public async Task OnClickEdit(Role editRole)
     {
         resultSpan = "";
         errorSpan = "";
@@ -283,7 +277,7 @@
 
     public async Task OnClickCreateMode()
     {
-        role = new PlanetRole()
+        role = new Role()
         {
             Name = "New Role",
             Bold = false,
@@ -317,34 +311,20 @@
 
     //string json = JsonConvert.SerializeObject(role);
 
-        HttpResponseMessage response = null;
+        TaskResult response;
 
         JsonContent content = JsonContent.Create(role);
-        
-    // If the id is not set, this is a new role to be created
+
+        // If the id is not set, this is a new role to be created
         if (role.Id == 0)
-        {
-            response = await ClientUserManager.Http.PostAsync($"api/planet/{Planet.Id}/roles", content);
-        }
-    // Otherwise we are editing a prior role
+            response = await ValourClient.PostAsync($"api/planet/{Planet.Id}/roles", role);
+        // Otherwise we are editing a prior role
         else
-        {
-            response = await ClientUserManager.Http.PutAsync($"api/role/{role.Id}", content);
-        }
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            errorSpan = $"Error ({response.StatusCode.ToString()}): {await response.Content.ReadAsStringAsync()}";
-            StateHasChanged();
-            return;
-        }
+            response = await ValourClient.PutAsync($"api/role/{role.Id}", role);
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
-
-
-        if (result.Success)
+        if (response.Success)
         {
-            resultSpan = result.Message;
+            resultSpan = response.Message;
 
             // If creating, send back to role list afterwards
             if (role.Id == 0)
@@ -354,7 +334,7 @@
         }
         else
         {
-            errorSpan = result.Message;
+            errorSpan = response.Message;
         }
 
 
@@ -363,13 +343,13 @@
         editMode = false;
     }
 
-    public async Task OnRoleDeletion(PlanetRole role)
+    public async Task OnRoleDeletion(Role role)
     {
         Roles = await Planet.GetRolesAsync();
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(PlanetRole role)
+    public async Task OnRolesUpdate(Role role)
     {
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 

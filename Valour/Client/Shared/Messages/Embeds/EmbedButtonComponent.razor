@@ -1,49 +1,49 @@
 @inject HttpClient Http
-@inject ClientPlanetManager planetManager
+@using Valour.Api.Messages
 
 <div style="@Item.GetInlineStyle" class="embed-item">
     @if (Item.Name != null) {
         <div style="color:#@Item.TextColor;font-weight:bold;font-size:14px;">
-            @Item.DoMarkdown(Item.Name)
+            @((MarkupString)MarkdownManager.GetHtml(Item.Name))
         </div>
     }
     <button type="button" class="btn btn-@Item.Size" style="color:#@Item.TextColor;background-color:#@Item.Color;" @onclick="(async () => await OnEmbedButtonClick())">
         @if (Item.Link != null) {
-            <a href="@Item.Link" rel="nofollow" target="_blank">@Item.DoMarkdown(Item.Text)</a>
+            <a href="@Item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
         }
         else {
-            @Item.DoMarkdown(Item.Text)
+            @((MarkupString)MarkdownManager.GetHtml(Item.Text))
         }
     </button>
 </div>
 
 @code {
     [Parameter]
-    public ClientEmbedItem Item {get; set;}
+    public EmbedItem Item {get; set;}
     [Parameter]
     public ClientPlanetMessage Message {get; set;}
     [Parameter]
-    public ClientEmbed embed { get; set;}
+    public Embed embed { get; set;}
 
     public async Task OnEmbedButtonClick()
     {
 
-        ClientPlanetMember SelfMember = await planetManager.GetPlanetMemberAsync(ClientUserManager.User.Id, Message.Planet_Id);
+        Member SelfMember = await Member.FindAsync(Message.BaseMessage.Planet_Id, ValourClient.Self.Id);
 
-        InteractionEvent Interaction = new InteractionEvent()
+        EmbedInteractionEvent Interaction = new EmbedInteractionEvent()
         {
             Event = "Button Click",
             Element_Id = Item.Id,
-            Planet_Id = planetManager.GetCurrent().Id,
-            Message_Id = Message.Id,
-            Author_Member_Id = Message.Member_Id,
+            Planet_Id = Message.BaseMessage.Planet_Id,
+            Message_Id = Message.BaseMessage.Id,
+            Author_Member_Id = Message.BaseMessage.Member_Id,
             Member_Id = SelfMember.Id,
-            Channel_Id = Message.Channel_Id,
+            Channel_Id = Message.BaseMessage.Channel_Id,
             Time_Interacted = DateTime.UtcNow,
             Form_Data = embed.GetFormData()
         };
 
-        var response = await Http.PostAsJsonAsync<InteractionEvent>($"api/embed/interact", Interaction);
+        var response = await Http.PostAsJsonAsync<EmbedInteractionEvent>($"api/embed/interact", Interaction);
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }

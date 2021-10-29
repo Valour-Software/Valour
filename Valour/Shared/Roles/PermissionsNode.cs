@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 using Valour.Shared.Oauth;
 
 /*  Valour - A free and secure chat client
@@ -18,13 +20,8 @@ namespace Valour.Shared.Roles
     /// <summary>
     /// A permission node is a set of permissions for a specific thing
     /// </summary>
-    public class PermissionsNode
+    public class PermissionsNode<T> : Item<T> where T : Item<T>
     {
-        /// <summary>
-        /// The ID of this permission node
-        /// </summary>
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
 
         /// <summary>
         /// The permission code that this node has set
@@ -35,8 +32,8 @@ namespace Valour.Shared.Roles
         /// <summary>
         /// A mask used to determine if code bits are disabled
         /// </summary>
-        [JsonPropertyName("Code_Mask")]
-        public ulong Code_Mask { get; set; }
+        [JsonPropertyName("Mask")]
+        public ulong Mask { get; set; }
 
         /// <summary>
         /// The planet this node applies to
@@ -50,13 +47,29 @@ namespace Valour.Shared.Roles
         [JsonPropertyName("Role_Id")]
         public ulong Role_Id { get; set; }
 
+        /// <summary>
+        /// The id of the object this node applies to
+        /// </summary>
+        [JsonPropertyName("Target_Id")]
+        public ulong Target_Id { get; set; }
+
+        /// <summary>
+        /// The type of object this node applies to
+        /// </summary>
+        [JsonPropertyName("Target_Type")]
+        public ItemType Target_Type { get; set; }
+
+        [NotMapped]
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.PermissionsNode;
+
 
         /// <summary>
         /// Returns the node code for this permission node
         /// </summary>
         public PermissionNodeCode GetNodeCode()
         {
-            return new PermissionNodeCode(Code, Code_Mask);
+            return new PermissionNodeCode(Code, Mask);
         }
 
         /// <summary>
@@ -78,12 +91,12 @@ namespace Valour.Shared.Roles
                 Code &= ~perm.Value;
 
                 // Remove mask bit
-                Code_Mask &= ~perm.Value;
+                Mask &= ~perm.Value;
             }
             else if (state == PermissionState.True)
             {
                 // Add mask bit
-                Code_Mask |= perm.Value;
+                Mask |= perm.Value;
 
                 // Add true bit
                 Code |= perm.Value;
@@ -91,7 +104,7 @@ namespace Valour.Shared.Roles
             else
             {
                 // Remove mask bit
-                Code_Mask |= perm.Value;
+                Mask |= perm.Value;
 
                 // Remove true bit
                 Code &= ~perm.Value;

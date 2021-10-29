@@ -1,7 +1,5 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper 
-@inject ClientPlanetManager planetManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateChannelModal createChannelModal
@@ -30,7 +28,7 @@
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this channel?</label>
         <div class="create-component-roles-box">
-            @foreach (PlanetRole role in Roles)
+            @foreach (Role role in Roles)
             {
                 <div class="role">
                    <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
@@ -57,22 +55,34 @@
     </div>
 </section>
 @code {
+
+    [Parameter, EditorRequired]
+    public Planet Planet { get; set; }
+
     // Input fields
     string name;
 
     // Spans
     string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
+    Dictionary<Role, bool> SelectedRoles = new Dictionary<Role, bool>();
 
-    List<PlanetRole> Roles = new List<PlanetRole>();
+    List<Role> Roles = new List<Role>();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
-        ClientPlanetMember SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+
+        Member SelfMember = await ValourClient.GetSelfMember(createChannelModal.Planet);
+
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
-        foreach (PlanetRole item in await planetManager.GetCurrent().GetRolesAsync())
+
+        var roleResponse = await Planet.GetRolesAsync();
+
+        if (roleResponse is not null)
+            return;
+
+        foreach (Role item in roleResponse)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -82,7 +92,7 @@
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(Role role) {
         SelectedRoles[role] = !SelectedRoles[role];
     }
 
@@ -101,13 +111,12 @@
         }
 
 
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
+        ulong user_id = ValourClient.Self.Id;
 
         ulong parent_id = contextMenu.SelectedCategory.Id;
         ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
 
-        ClientPlanetChatChannel newChannel = new()
+        Channel newChannel = new()
         {
             Name = name,
             Planet_Id = planet_id,
@@ -142,53 +151,55 @@
         if (isprivate) {
             // set the default role channel view perms to false
 
-            ChatChannelPermissionsNode PermissionsNode = new()
+            PermissionsNode PermissionsNode = new()
             {
-                Channel_Id = channel_id,
-                Planet_Id = planetManager.GetCurrent().Id,
-                Role_Id = planetManager.GetCurrent().Default_Role_Id,
-                Code_Mask = 0x00,
-                Code = 0x00
+                Target_Id = channel_id,
+                Planet_Id = createChannelModal.Planet.Id,
+                Role_Id = createChannelModal.Planet.Default_Role_Id,
+                Mask = 0x00,
+                Code = 0x00,
+                Target_Type = ItemType.Channel
             };
 
             PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
             PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
             PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
-            HttpResponseMessage response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"Permissions/UpdateChatChannelNode?token={ClientUserManager.UserSecretToken}",
-                                                                                                    PermissionsNode);
+            var response = await ValourClient.PostAsync($"api/node", PermissionsNode);
 
-            if (!response.IsSuccessStatusCode)
+            if (!response.Success)
             {
-                string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+                string errorText = $"Error: " + response.Message;
                 Console.WriteLine(errorText);
                 imageSpan = errorText;
             }
 
-            foreach (PlanetRole role in Roles)
+            foreach (Role role in Roles)
             {
                 
                 if (!SelectedRoles[role]) {
                     continue;
                 }
                 
-                PermissionsNode = new ChatChannelPermissionsNode()
+                PermissionsNode = new PermissionsNode()
                 {
-                    Channel_Id = channel_id,
-                    Planet_Id = planetManager.GetCurrent().Id,
+                    Target_Id = channel_id,
+                    Planet_Id = createChannelModal.Planet.Id,
                     Role_Id = role.Id,
-                    Code_Mask = 0x00,
-                    Code = 0x00
+                    Mask = 0x00,
+                    Code = 0x00,
+                    Target_Type = ItemType.Channel
                 };
 
                 PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
                 PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
                 PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<ChatChannelPermissionsNode>($"api/node/channel", PermissionsNode);
-                if (!response.IsSuccessStatusCode)
+                response = await ValourClient.PostAsync($"api/node", PermissionsNode);
+
+                if (!response.Success)
                 {
-                    string errorText = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+                    string errorText = $"Error: " + response.Message;
                     Console.WriteLine(errorText);
                     imageSpan = errorText;
                 }

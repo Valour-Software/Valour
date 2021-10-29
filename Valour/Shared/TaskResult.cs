@@ -40,7 +40,79 @@ namespace Valour.Shared
         }
 
     }
-    
+
+    public struct HttpResult
+    {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Status")]
+        public int Status { get; set; }
+
+        public bool Success
+        {
+            get
+            {
+                int x = Status - 200;
+                if (x < 0) return false;
+                if (x > 99) return false;
+                return true;
+            }
+        }
+
+        public HttpResult(string message, int status)
+        {
+            Message = message;
+            Status = status;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Status}]: {Message}";
+        }
+    }
+
+    public struct HttpResult<T>
+    {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Status")]
+        public int Status { get; set; }
+
+
+        [JsonInclude]
+        [JsonPropertyName("Result")]
+        public T Result { get; set; }
+
+        public bool Success
+        {
+            get
+            {
+                int x = Status - 200;
+                if (x < 0) return false;
+                if (x > 99) return false;
+                return true;
+            }
+        }
+
+        public HttpResult(string message, int status, T result)
+        {
+            Message = message;
+            Status = status;
+            Result = result;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Status}]: {Message}";
+        }
+    }
+
     public struct TaskResult<T>
     {
         [JsonInclude]

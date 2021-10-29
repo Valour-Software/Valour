@@ -69,7 +69,7 @@ namespace Valour.Server.API
                         if (!await channel.HasPermission(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
 
                         ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync((PlanetChatChannel)channel);
+                        await ctx.Response.WriteAsJsonAsync(channel);
                         return;
 
                     }

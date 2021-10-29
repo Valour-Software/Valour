@@ -1,15 +1,15 @@
 
 <tr>
     <td style="width: 110px;">
-        @invite.Code
+        @Invite.Code
     </td>
     <td style="width: 300px;">
         @IssuerName
     </td>
     <th style="width: 125px;">
-        @invite.Time.ToLocalTime().ToShortDateString()
+        @Invite.Time.ToLocalTime().ToShortDateString()
     </th>
-    @if (invite.Hours != null) {
+    @if (Invite.Hours != null) {
         <th style="width: 125px;">
             @time.ToLocalTime().ToShortDateString()
         </th>
@@ -23,7 +23,7 @@
 
 @code {
     [Parameter]
-    public PlanetInvite invite { get; set; }
+    public Invite Invite { get; set; }
 
     public string IssuerName { get; set;}
 
@@ -31,9 +31,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ClientPlanetMember member = await ClientPlanetManager.Current.GetPlanetMemberAsync(invite.Issuer_Id, invite.Planet_Id);
+        Member member = await Member.FindAsync(Invite.Planet_Id, Invite.Issuer_Id);
         IssuerName = await member.GetNameAsync();
-        time = invite.Time.AddHours((double)invite.Hours);
+        time = Invite.Time.AddHours((double)Invite.Hours);
         StateHasChanged();
     }
 }

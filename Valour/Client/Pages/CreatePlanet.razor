@@ -3,7 +3,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
-@inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
@@ -59,32 +58,30 @@
             image_url = "https://valour.gg/image.png";
         }
 
-        // Encode non-friendly characters
-        string encodedName = System.Web.HttpUtility.UrlEncode(name);
-        string encodedImageUrl = System.Web.HttpUtility.UrlEncode(image_url);
-
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
-
-
-        var response = await Http.PostAsync($"api/planet/create?name={encodedName}" +
-                                                             $"&image_url={encodedImageUrl}" +
-                                                             $"&token={token}", null);
-
-        if (!response.IsSuccessStatusCode)
+        Planet planet = new Planet()
         {
-            imageSpan = $"Error ({response.StatusCode}): " + await response.Content.ReadAsStringAsync();
+            Name = name,
+            Image_Url = image_url
+        };
+
+        var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet", planet);
+
+        if (!response.Success)
+        {
+            imageSpan = $"Error: " + response.Message;
             return;
         }
 
-        ClientPlanet result = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
+        ulong planet_id = response.Data;
+
+        Planet result = await Planet.FindAsync(planet_id);
 
         if (result == null)
         {
-            imageSpan = "An error occured converting the response. Please try again.";
+            imageSpan = "An error occured retrieving the created planet. Please try again.";
         }
 
-        ClientPlanetChatChannel mainChannel = await result.GetPrimaryChannelAsync();
+        Channel mainChannel = await result.GetPrimaryChannelAsync();
 
         windowManager.ClearWindows();
 

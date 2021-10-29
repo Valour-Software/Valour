@@ -1,7 +1,5 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper 
-@inject ClientPlanetManager planetManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @inject CreateCategoryModal createCategoryModal
@@ -29,7 +27,7 @@
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
         <div class="create-component-roles-box">
-            @foreach (PlanetRole role in Roles)
+            @foreach (Role role in Roles)
             {
                 <div class="role">
                    <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
@@ -63,17 +61,21 @@
 
     // Spans
     string imageSpan = "";
-    Dictionary<PlanetRole, bool> SelectedRoles = new();
+    Dictionary<Role, bool> SelectedRoles = new();
 
-    List<PlanetRole> Roles = new();
+    List<Role> Roles = new();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
-        ClientPlanetMember SelfMember = await ClientPlanetMember.GetClientPlanetMemberAsync(ClientUserManager.User.Id, planetManager.GetCurrent().Id);
+
+        Member SelfMember = await ValourClient.GetSelfMember(createCategoryModal.Planet);
+
+        var roles = await createCategoryModal.Planet.GetRolesAsync();
+
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
-        foreach (PlanetRole item in await planetManager.GetCurrent().GetRolesAsync())
+        foreach (Role item in roles)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -83,7 +85,7 @@
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(Role role) {
         SelectedRoles[role] = !SelectedRoles[role];
     }
     private void PrivateSwitch() {
@@ -102,47 +104,46 @@
 
         ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
         ulong parent_id = contextMenu.SelectedCategory.Id;
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
+        ulong user_id = ValourClient.Self.Id;
+        //string token = ValourClient.Token;
 
-        ClientPlanetCategory category = new(){
+        Category category = new(){
             Name = name,
             Description = "A category",
             Parent_Id = parent_id,
             Planet_Id = planet_id
         };
 
-        JsonContent content = JsonContent.Create(category);
+        var response = await ValourClient.PostAsync($"api/planet/{planet_id}/categories", category);
 
-        var response = await Http.PostAsync($"api/planet/{planet_id}/categories", content);
-
-        if (!response.IsSuccessStatusCode)
+        if (!response.Success)
         {
             imageSpan = "An error occured retrieving a response. Please try again.";
             return;
         }
 
-        ulong category_id = ulong.Parse(await response.Content.ReadAsStringAsync());
+        ulong category_id = ulong.Parse(response.Message);
 
         imageSpan = "Success";
 
         if (isprivate) {
             // set the default role channel view perms to false
 
-            CategoryPermissionsNode PermissionsNode = new()
+            PermissionsNode PermissionsNode = new()
             {
-                Category_Id = category_id,
-                Planet_Id = planetManager.GetCurrent().Id,
-                Role_Id = planetManager.GetCurrent().Default_Role_Id,
-                Code_Mask = 0x00,
-                Code = 0x00
+                Target_Id = category_id,
+                Planet_Id = planet_id,
+                Role_Id = createCategoryModal.Planet.Default_Role_Id,
+                Mask = 0x00,
+                Code = 0x00,
+                Target_Type = ItemType.Category
             };
 
             PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
+            response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
 
-            foreach (PlanetRole role in Roles)
+            foreach (Role role in Roles)
             {
                 
                 if (!SelectedRoles[role]) {
@@ -151,16 +152,17 @@
                 
                 PermissionsNode = new()
                 {
-                    Category_Id = category_id,
-                    Planet_Id = planetManager.GetCurrent().Id,
+                    Target_Id = category_id,
+                    Planet_Id = planet_id,
                     Role_Id = role.Id,
-                    Code_Mask = 0x00,
-                    Code = 0x00
+                    Mask = 0x00,
+                    Code = 0x00,
+                    Target_Type = ItemType.Category
                 };
 
                 PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
 
-                response = await ClientUserManager.Http.PostAsJsonAsync<CategoryPermissionsNode>($"api/node/category", PermissionsNode);
+                response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
                 // TODO: Clean this
             }
         }

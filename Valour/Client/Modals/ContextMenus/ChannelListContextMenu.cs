@@ -1,14 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Client.Channels;
-using Valour.Client.Planets;
-using Valour.Client.Shared;
+using Valour.Api.Planets;
 using Valour.Client.Shared.Modals.ContextMenus;
-using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
@@ -24,7 +17,7 @@ namespace Valour.Client.Modals.ContextMenus
     public class ChannelListContextMenu
     {
         public readonly IJSRuntime JS;
-        public IClientPlanetListItem SelectedItem;
+        public IPlanetListItem SelectedItem;
         public ChannelListContextMenuComponent Component;
         public Func<Task> OpenEvent;
         
@@ -33,7 +26,7 @@ namespace Valour.Client.Modals.ContextMenus
             JS = js;
         }
 
-        public async Task Open(MouseEventArgs e, IClientPlanetListItem item)
+        public async Task Open(MouseEventArgs e, IPlanetListItem item)
         {
             Component.SetPosition(e.ClientX, e.ClientY);
             Component.SetVisibility(true);

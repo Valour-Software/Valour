@@ -14,7 +14,7 @@
     public MentionSelectComponent Parent { get; set; }
 
     [Parameter]
-    public ClientPlanetMember Member { get; set; }
+    public Member Member { get; set; }
 
     [Parameter]
     public bool Selected { get; set; }
@@ -32,14 +32,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        string pfp = await Member.GetPfpAsync();
+        string pfp = await Member.GetPfpUrlAsync();
 
         if (!string.IsNullOrWhiteSpace(pfp))
         {
             Pfp_Url = pfp;
         }
 
-        Role_Color = await Member.GetColorHexAsync();
+        Role_Color = await Member.GetRoleColorAsync();
 
         StateHasChanged();
     }
@@ -48,7 +48,7 @@
     {
         Pfp_Url = "/icon-512.png";
 
-        int r = ClientUserManager.Random.Next(24) * 15;
+        int r = Random.Shared.Next(24) * 15;
 
         Pfp_Style = $"filter: hue-rotate({r}deg) saturate(2);";
 

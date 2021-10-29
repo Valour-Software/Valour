@@ -1,6 +1,7 @@
 ﻿@implements IDisposable
+@using Valour.Shared.Messages.Mentions
 
-<div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class">
+<div id="m-@Message.BaseMessage.Channel_Id-@Message.BaseMessage.Message_Index" class="@Class">
     
 </div>
 
@@ -9,7 +10,7 @@
     [Parameter]
     public ClientPlanetMessage Message { get; set; }
 
-    private ClientPlanetMember Author;
+    private Member Author;
 
     [Parameter]
     public MessageHolderComponent Holder { get; set; }
@@ -43,9 +44,9 @@
 
         var self_id = Holder.Window.Component.SelfMember.Id;
 
-        if (Message.Mentions != null && Message.Mentions.Count > 0)
+        if (Message.BaseMessage.Mentions != null && Message.BaseMessage.Mentions.Count > 0)
         {
-            mentioned = Message.Mentions.Any(x => x.Type == MentionType.Member && x.Target_Id == self_id);
+            mentioned = Message.BaseMessage.Mentions.Any(x => x.Type == MentionType.Member && x.Target_Id == self_id);
         }
     }
 

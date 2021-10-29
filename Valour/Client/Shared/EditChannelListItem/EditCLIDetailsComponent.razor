@@ -25,7 +25,7 @@
 
 @code {
         [Parameter]
-        public IClientPlanetListItem Item { get; set; }
+        public IPlanetListItem Item { get; set; }
 
     public string nameValue;
     public string descValue;
@@ -52,7 +52,7 @@
 
         if (nameValue != Item.Name)
         {
-            TaskResult result = await Item.TrySetNameAsync(nameValue);
+            TaskResult result = await Item.SetNameAsync(nameValue);
 
             if (!result.Success)
             {
@@ -66,7 +66,7 @@
 
         if (descValue != Item.Description)
         {
-            TaskResult result = await Item.TrySetDescriptionAsync(descValue);
+            TaskResult result = await Item.SetDescriptionAsync(descValue);
 
             if (!result.Success)
             {

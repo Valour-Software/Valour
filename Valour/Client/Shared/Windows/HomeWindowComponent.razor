@@ -1,7 +1,5 @@
 ﻿@inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
-@inject ClientPlanetManager planetManager
 @inject CreatePlanetModal createPlanetModal
 
 
@@ -19,7 +17,7 @@
 <hr />
 
 <div class="flex-row flex-wrap m-5">
-    @foreach (ClientPlanet planet in ClientUserManager.Planets)
+    @foreach (Planet planet in ValourClient.JoinedPlanets)
     {
 
         <div class="home-server m-2" style="cursor: pointer" @onclick="(e => OnPlanetClick(planet))">
@@ -68,14 +66,28 @@
     [Parameter]
     public Valour.Client.Pages.Index IndexPage { get; set; }
 
+    protected async override Task OnInitializedAsync()
+    {
+        ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
+    }
+
+    public async Task OnJoinedPlanetsUpdate()
+    {
+        StateHasChanged();
+    }
+
     public async Task OnNewPlanetClick()
     {
         navManager.NavigateTo("createplanet");
     }
 
-    public async Task OnPlanetClick(ClientPlanet planet)
+    public async Task OnPlanetClick(Planet planet)
     {
-        ClientPlanetChatChannel channel = await planet.GetPrimaryChannelAsync();
+        // Load planet first for personal reasons (let me keep the kids thanks)
+        await ValourClient.OpenPlanet(planet);
+        await windowManager.SetFocusedPlanet(planet);
+
+        Channel channel = await planet.GetPrimaryChannelAsync();
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
 
@@ -83,10 +95,6 @@
 
         windowManager.SetWindow(Window.Index, newWindow);
         await windowManager.SetSelectedWindow(Window.Index);
-
-        // Actually load planet
-        await planetManager.OpenPlanet(planet); // Required for member list bug
-        await planetManager.SetCurrentPlanet(planet);
 
         StateHasChanged();
 

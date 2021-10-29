@@ -12,7 +12,7 @@ namespace Valour.Shared.Items
     /// </summary>
     
 
-    public class NamedItem : Item
+    public abstract class NamedItem<T> : Item<T> where T : Item<T>
     {
         [JsonInclude]
         [JsonPropertyName("Name")]

@@ -5,6 +5,10 @@ using System.Text;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Text.Json;
+using Valour.Shared.Messages.Embeds;
+using Valour.Shared.Messages.Mentions;
+using System.ComponentModel.DataAnnotations.Schema;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -29,6 +33,12 @@ namespace Valour.Shared.Messages
         /// </summary>
         [JsonPropertyName("Author_Id")]
         public ulong Author_Id { get; set; }
+
+        /// <summary>
+        /// The member's ID
+        /// </summary>
+        [JsonPropertyName("Member_Id")]
+        public ulong Member_Id { get; set; }
 
         /// <summary>
         /// String representation of message
@@ -72,6 +82,86 @@ namespace Valour.Shared.Messages
         [JsonInclude]
         [JsonPropertyName("Fingerprint")]
         public string Fingerprint;
+
+        /// <summary>
+        /// The mentions contained within this message
+        /// </summary>
+        [NotMapped]
+        private List<Mention> _mentions;
+
+        /// <summary>
+        /// True if the mentions data has been parsed
+        /// </summary>
+        [NotMapped]
+        private bool mentionsParsed = false;
+
+        /// <summary>
+        /// The inner embed data
+        /// </summary>
+        [NotMapped]
+        private Embed _embed;
+
+        /// <summary>
+        /// True if the embed data has been parsed
+        /// </summary>
+        private bool embedParsed = false;
+
+        /// <summary>
+        /// The mentions for members within this message
+        /// </summary>
+        [NotMapped]
+        public List<Mention> Mentions
+        {
+            get
+            {
+                if (!mentionsParsed)
+                {
+                    if (!string.IsNullOrEmpty(Mentions_Data))
+                    {
+                        _mentions = JsonSerializer.Deserialize<List<Mention>>(Mentions_Data);
+                    }
+                }
+
+                return _mentions;
+            }
+        }
+
+        [NotMapped]
+        public Embed Embed
+        {
+            get
+            {
+                if (!embedParsed)
+                {
+                    if (!string.IsNullOrEmpty(Embed_Data))
+                    {
+                        _embed = JsonSerializer.Deserialize<Embed>(Embed_Data);
+                    }
+
+                    embedParsed = true;
+                }
+
+                return _embed;
+            }
+        }
+
+        public void ClearMentions()
+        {
+            if (_mentions == null)
+            {
+                _mentions = new List<Mention>();
+            }
+            else
+            {
+                _mentions.Clear();
+            }
+        }
+
+        public void SetMentions(IEnumerable<Mention> mentions)
+        {
+            _mentions = mentions.ToList();
+            Mentions_Data = JsonSerializer.Serialize(mentions);
+        }
 
         /// <summary>
         /// Returns the hash for a message. Cannot be used in browser/client!

@@ -5,6 +5,7 @@ using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Planets;
 using Valour.Shared.Items;
+using Valour.Shared.Oauth;
 
 namespace Valour.Server.Planets
 {
@@ -30,6 +31,9 @@ namespace Valour.Server.Planets
         [JsonPropertyName("ItemType")]
         public ItemType ItemType { get; }
 
+        [JsonIgnore]
+        public ServerPlanet Planet { get; set; }
+
         public static async Task<IServerChannelListItem> FindAsync(ItemType type, ulong id, ValourDB db)
         {
             switch (type)
@@ -43,6 +47,10 @@ namespace Valour.Server.Planets
             }
         }
 
+        public Task<ServerPlanet> GetPlanetAsync(ValourDB db);
+
         public void NotifyClientsChange();
+
+        public Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db);
     }
 }

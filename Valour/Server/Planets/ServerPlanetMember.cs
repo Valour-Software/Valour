@@ -26,7 +26,7 @@ namespace Valour.Server.Planets
     /// This class exists to add server funtionality to the PlanetMember
     /// class.
     /// </summary>
-    public class ServerPlanetMember : PlanetMember
+    public class ServerPlanetMember : PlanetMember<ServerPlanetMember>
     {
 
         // Relational DB stuff
@@ -42,18 +42,15 @@ namespace Valour.Server.Planets
         [JsonIgnore]
         public virtual ICollection<ServerPlanetRoleMember> RoleMembership { get; set; }
 
-        /// <summary>
-        /// Returns a ServerPlanet using a Planet as a base
-        /// </summary>
-        public static ServerPlanetMember FromBase(PlanetMember member)
-        {
-            return MappingManager.Mapper.Map<ServerPlanetMember>(member);
-        }
-
         public static async Task<ServerPlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db)
         { 
             return await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id &&
                                                                       x.User_Id == user_id);
+        }
+
+        public static async Task<ServerPlanetMember> FindAsync(ulong member_id, ValourDB db)
+        {
+            return await db.PlanetMembers.FindAsync(member_id);
         }
 
         /// <summary>
@@ -122,7 +119,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the user (async)
         /// </summary>
-        public async Task<User> GetUserAsync()
+        public async Task<ServerUser> GetUserAsync()
         {
             using (ValourDB db = new ValourDB(ValourDB.DBOptions))
             {
@@ -133,7 +130,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the user
         /// </summary>
-        public User GetUser()
+        public ServerUser GetUser()
         {
             return GetUserAsync().Result;
         }
@@ -156,7 +153,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns the planet
         /// </summary>
-        public Planet GetPlanet()
+        public ServerPlanet GetPlanet()
         {
             if (Planet != null) return Planet;
             return GetPlanetAsync().Result;

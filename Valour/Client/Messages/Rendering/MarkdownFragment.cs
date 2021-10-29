@@ -5,17 +5,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Valour.Client.Messages.Rendering
-{
-    public class MarkdownFragment : MessageFragment
-    {
-        public string Content;
+namespace Valour.Client.Messages;
 
-        public override void BuildRenderTree(RenderTreeBuilder builder, ref int stage)
-        {
-            // Just write markdown. Pretty simple.
-            builder.AddMarkupContent(stage, Content);
-            stage++;
-        }
+/*  Valour - A free and secure chat client
+ *  Copyright (C) 2021 Vooper Media LLC
+ *  This program is subject to the GNU Affero General Public license
+ *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+ */
+
+public class MarkdownFragment : MessageFragment
+{
+    public string Content;
+
+    public override void BuildRenderTree(RenderTreeBuilder builder, ref int stage)
+    {
+        // Just write markdown. Pretty simple.
+        builder.AddMarkupContent(stage, Content);
+        stage++;
     }
 }
+

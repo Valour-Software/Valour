@@ -1,6 +1,5 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AutoMapper.IMapper Mapper
 @inject ClientWindowManager windowManager
 
 <div class="popup-box">
@@ -53,41 +52,34 @@
             image_url = "https://valour.gg/image.png";
         }
 
-    // Encode non-friendly characters
-        string encodedName = System.Web.HttpUtility.UrlEncode(name);
-        string encodedImageUrl = System.Web.HttpUtility.UrlEncode(image_url);
-
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
-
-        var response = await Http.GetAsync($"api/planet/create?name={encodedName}" +
-                                           $"&image_url={encodedImageUrl}" +
-                                           $"&user_id={user_id}",
-                                           HttpCompletionOption.ResponseHeadersRead);
-
-        if (!response.IsSuccessStatusCode)
+        var new_planet = new Planet()
         {
-            imageSpan = "An error occured retrieving a response. Please try again. Error: " + await response.Content.ReadAsStringAsync();
+            Name = name,
+            Image_Url =  image_url
+        };
+
+        var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet", new_planet);
+
+        if (!response.Success)
+        {
+            imageSpan = "An error occured retrieving a response. Please try again. Error: " + response.Message;
             return;
         }
 
-        ulong planet_id = await JsonSerializer.DeserializeAsync<ulong>(await response.Content.ReadAsStreamAsync());
+        ulong planet_id = response.Data;
 
         imageSpan = "Planet created.";
 
-        response = await Http.GetAsync($"api/planet/{planet_id}", HttpCompletionOption.ResponseHeadersRead);
+        var planet = await ValourClient.GetJsonAsync<Planet>("api/planet/{planet_id}");
 
-        if (!response.IsSuccessStatusCode)
+        if (planet is null)
         {
             Console.WriteLine($"Failed to retrieve planet {planet_id}");
-            Console.WriteLine(await response.Content.ReadAsStringAsync());
             imageSpan = "Created planet, but error occured retrieving. Please restart Valour.";
             return;
         }
 
-        ClientPlanet planet = await JsonSerializer.DeserializeAsync<ClientPlanet>(await response.Content.ReadAsStreamAsync());
-
-        ClientPlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+        Channel mainChannel = await planet.GetPrimaryChannelAsync();
 
         windowManager.ClearWindows();
 

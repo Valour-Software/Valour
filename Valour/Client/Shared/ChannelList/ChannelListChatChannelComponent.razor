@@ -1,7 +1,6 @@
 ﻿@implements IDisposable
 
 @inject ClientWindowManager windowManager
-@inject ClientPlanetManager planetManager
 @inject ChannelListContextMenu channelContextMenu
 @inject ChannelListManager listManager
 
@@ -18,7 +17,7 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public ClientPlanetChatChannel Channel { get; set; }
+    public Channel Channel { get; set; }
 
     [Parameter]
     public ChannelListCategoryComponent ParentCategory { get; set; }
@@ -27,7 +26,7 @@
     {
         get
         {
-            if (planetManager.IsChatChannelOpen(Channel))
+            if (ValourClient.IsChannelOpen(Channel))
             {
                 return "channel open";
             }
@@ -63,7 +62,8 @@
 
                 Console.WriteLine(Channel.Name);
                 await channelWindow.Component.OnWindowChannelChange(Channel);
-                await planetManager.RefreshOpenedChannels();
+
+                await windowManager.RefreshOpenedChannels();
             }
         }
 
@@ -76,11 +76,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
-        planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+        Channel.OnAnyUpdated += OnChatChannelUpdate;
+        windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
     }
 
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(Channel channel)
     {
         if (Channel.Id == channel.Id)
         {
@@ -91,6 +91,7 @@
 
     public void Dispose()
     {
-        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+        Channel.OnAnyUpdated -= OnChatChannelUpdate;
+        windowManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
     }
 }

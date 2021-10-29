@@ -1,4 +1,4 @@
-﻿@inject ClientPlanetManager planetManager
+﻿
 @if (Role != null)
 {
 <p class="rolename" style="color: @Role.GetColorHex()">
@@ -24,8 +24,8 @@ else
     public string DummyName { get; set; }
 
     [Parameter]
-    public PlanetRole Role { get; set; }
+    public Role Role { get; set; }
 
     [Parameter]
-    public List<ClientPlanetMember> Members {get; set;}
+    public List<Member> Members {get; set;}
 }

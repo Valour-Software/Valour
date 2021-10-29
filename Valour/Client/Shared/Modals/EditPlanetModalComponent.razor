@@ -1,22 +1,19 @@
 ﻿@inject EditPlanetModal editPlanetModal
-@inject ClientPlanetManager planetManager
+@inject ClientWindowManager windowManager
 
 @if (visible)
 {
-    @if (planetManager.GetCurrent() != null)
-    {
-        <!-- The Modal -->
-        <div class="modal edit-planet-modal" id="@Modal_Id">
-            <!-- Modal content -->
-            <div class="modal-content-EditPlanet" id="edit-planet-modal-inner">
-                <div class="popup-box">
-                    <div class="col-md-12" style="height: 100%; width: 100%;">
-                        <EditPlanetComponent Planet="@planetManager.GetCurrent()"></EditPlanetComponent>
-                    </div>
+    <!-- The Modal -->
+    <div class="modal edit-planet-modal" id="@Modal_Id">
+        <!-- Modal content -->
+        <div class="modal-content-EditPlanet" id="edit-planet-modal-inner">
+            <div class="popup-box">
+                <div class="col-md-12" style="height: 100%; width: 100%;">
+                    <EditPlanetComponent Planet="@windowManager.FocusedPlanet"></EditPlanetComponent>
                 </div>
             </div>
         </div>
-    }
+    </div>
 }
 
 @code {

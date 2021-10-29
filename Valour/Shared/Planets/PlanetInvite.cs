@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
 
@@ -20,15 +21,8 @@ namespace Valour.Shared.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class PlanetInvite
+    public class PlanetInvite<T> : Item<T> where T : Item<T>
     {
-        /// <summary>
-        /// The Id of this object
-        /// </summary>
-        [Key]
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
-
         /// <summary>
         /// the invite code
         /// </summary>
@@ -62,5 +56,9 @@ namespace Valour.Shared.Planets
         public bool IsPermanent() {
             return (Hours == null);
         }
+
+        [JsonInclude]
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.Invite;
     }
 }

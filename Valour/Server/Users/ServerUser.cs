@@ -9,7 +9,7 @@ using Valour.Shared.Users;
 
 namespace Valour.Server.Users
 {
-    public class ServerUser : User
+    public class ServerUser : User<ServerUser>
     {
         [InverseProperty("User")]
         public virtual UserEmail Email { get; set; }

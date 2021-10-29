@@ -2,13 +2,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
-@inject AutoMapper.IMapper mapper
 @inject IJSRuntime JS
-
-@if (ClientUserManager.Http == null)
-{
-    ClientUserManager.Http = Http;
-}
 
 @if (triedInitialLogin)
 {
@@ -56,7 +50,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         // Attempt to re-login the user from local token
-        TaskResult tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage);
+        TaskResult<User> tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage, navManager);
 
         Console.WriteLine(tokenResult.Message);
 
@@ -83,30 +77,20 @@ else
             Endpoint = endpoint,
             Auth = auth,
             Not_Key = key,
-            User_Id = ClientUserManager.User.Id
+            User_Id = ValourClient.Self.Id
         };
 
         // Send subscription information to server
-        var response = await ClientUserManager.Http.PostAsJsonAsync<Valour.Shared.Notifications.NotificationSubscription>($"Notification/SubmitSubscription?token={ClientUserManager.UserSecretToken}", not);
+        var response = await ValourClient.PostAsyncWithResponse<TaskResult>($"Notification/SubmitSubscription", not);
 
-        TaskResult result = await JsonSerializer.DeserializeAsync<TaskResult>(await response.Content.ReadAsStreamAsync());
-
-        Console.WriteLine(result);
+        Console.WriteLine(response.Message);
     }
 
     [JSInvokable("OnServiceUpdateAvailable")]
     public async Task<string> AppUpdate()
     {
         // Get latest version number
-        var response = await ClientUserManager.Http.GetAsync("api/version");
-
-        if (response.IsSuccessStatusCode){
-            newVersion = await response.Content.ReadAsStringAsync();
-        }
-        else
-        {
-            newVersion = $"Server response error: {response.StatusCode}";
-        }
+        newVersion = await ValourClient.GetJsonAsync<string>("api/version");
 
         Console.WriteLine("New version available");
         hideUpdate = false;

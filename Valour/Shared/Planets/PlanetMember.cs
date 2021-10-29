@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 using Valour.Shared.Planets;
 using Valour.Shared.Users;
 
@@ -20,15 +22,8 @@ namespace Valour.Shared.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class PlanetMember
+    public class PlanetMember<T> : NamedItem<T> where T : Item<T>
     {
-        /// <summary>
-        /// The Id of this member object
-        /// </summary>
-        [Key]
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
-
         /// <summary>
         /// The user within the planet
         /// </summary>
@@ -52,23 +47,30 @@ namespace Valour.Shared.Planets
         /// </summary>
         [JsonPropertyName("Member_Pfp")]
         public string Member_Pfp { get; set; }
+
+        [NotMapped]
+        new public string Name => Nickname;
+
+        [NotMapped]
+        [JsonInclude]
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.Member;
     }
 
     /// <summary>
     /// This class exists so the server can pass extra data to the client when needed
     /// </summary>
-    public class PlanetMemberInfo
+    public class PlanetMemberInfo<T, U> 
+        where T : Item<T>
+        where U : Item<U>
     {
         [JsonPropertyName("Member")]
-        public PlanetMember Member { get; set; }
-
-        [JsonPropertyName("State")]
-        public string State { get; set; }
+        public PlanetMember<T> Member { get; set; }
 
         [JsonPropertyName("RoleIds")]
         public IEnumerable<ulong> RoleIds { get; set; }
 
         [JsonPropertyName("User")]
-        public User User { get; set; }
+        public User<U> User { get; set; }
     }
 }

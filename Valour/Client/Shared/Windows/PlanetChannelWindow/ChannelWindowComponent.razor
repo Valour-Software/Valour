@@ -1,9 +1,9 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 @inject IJSRuntime JS
-@inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
 @implements IDisposable
+@using Valour.Api.Messages
 
 <div class="d-flex flex-column window" style="height:100%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
@@ -82,11 +82,11 @@
     [Parameter]
     public MainWindowComponent MainWindow { get; set; }
 
-    public ClientPlanetChatChannel Channel;
+    public Channel Channel;
 
-    public ClientPlanet Planet;
+    public Planet Planet;
 
-    public ClientPlanetMember SelfMember;
+    public Member SelfMember;
 
     public Func<Task> ForceRefreshMessages;
 
@@ -105,19 +105,19 @@
 
         Window.Component = this;
 
-        planetManager.OnMemberUpdate += OnPlanetMemberUpdate;
-        planetManager.OnRoleUpdate += OnPlanetRoleUpdate;
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+        Member.OnAnyUpdated += OnPlanetMemberUpdate;
+        Role.OnAnyUpdated += OnRoleUpdate;
+        Channel.OnAnyUpdated += OnChatChannelUpdate;
 
-        await planetManager.OpenPlanetChatChannel(Window);
+        await ValourClient.OpenChannel(Channel);
 
-        SelfMember = await planetManager.GetPlanetMemberAsync(ClientUserManager.User.Id, Channel.Planet_Id);
+        SelfMember = await Member.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ClientUserManager.UserSecretToken, ClientUserManager.User.Id, Planet.Id);
+        await JS.InvokeVoidAsync("SetSecretKey", ValourClient.Token, ValourClient.Self.Id, Planet.Id);
 
         await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
 
@@ -126,12 +126,12 @@
 
     void IDisposable.Dispose()
     {
-        planetManager.OnMemberUpdate -= OnPlanetMemberUpdate;
-        planetManager.OnRoleUpdate -= OnPlanetRoleUpdate;
-        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+        Member.OnAnyUpdated -= OnPlanetMemberUpdate;
+        Role.OnAnyUpdated -= OnRoleUpdate;
+        Channel.OnAnyUpdated -= OnChatChannelUpdate;
     }
 
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(Channel channel)
     {
         if (Channel.Id == channel.Id)
         {
@@ -140,7 +140,7 @@
         }
     }
 
-    public async Task OnPlanetMemberUpdate(ClientPlanetMember member)
+    public async Task OnPlanetMemberUpdate(Member member)
     {
         if (member.Planet_Id != Planet.Id)
         {
@@ -157,14 +157,14 @@
         }
     }
 
-    public async Task OnPlanetRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(Role role)
     {
         if (role.Planet_Id != Planet.Id)
         {
             return;
         }
 
-        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.Author.TryGetPrimaryRoleId() == role.Id))
+        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.roleId == role.Id))
         {
             await msg.RefreshMessage();
         }
@@ -176,7 +176,7 @@
         await IndexPage.ForceRefresh();
 
         // This must be last (again)
-        await planetManager.ClosePlanetChatChannel(Window, Channel);
+        await ValourClient.CloseChannel(Channel);
     }
 
     public async Task ReturnHome()
@@ -187,24 +187,24 @@
         MainWindow.RefreshWindow(newWindow);
 
         // This must be last
-        await planetManager.ClosePlanetChatChannel(Window, Channel);
+        await ValourClient.CloseChannel(Channel);
     }
 
     public async Task SetupNewChannelAsync()
     {
         MessageHolder.Clear();
 
-        MessageHolder.AddMessages(await Channel.GetLastMessagesAsync(64));
+        MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
     }
 
-    public async Task OnWindowChannelChange(ClientPlanetChatChannel newchannel)
+    public async Task OnWindowChannelChange(Channel newchannel)
     {
         var oldchannel = Window.Channel;
 
         Window.Channel = newchannel;
         Channel = newchannel;
 
-        await planetManager.ReplacePlanetChatChannel(Window, oldchannel, newchannel);
+        await windowManager.SwapWindowChannel(Window, newchannel);
 
         await SetupNewChannelAsync();
     }
@@ -218,7 +218,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await planetManager.ClosePlanetChatChannel(Window, Channel);
+        await ValourClient.CloseChannel(Channel);
     }
 
     public async Task OnRecieveMessage(ClientPlanetMessage message)
@@ -332,7 +332,7 @@
         }
         else
         {
-            DummyMessage = new ClientPlanetMessage()
+            var innerMessage = new PlanetMessage()
             {
                 Author_Id = SelfMember.User_Id,
                 Content = input,
@@ -340,6 +340,8 @@
                 Member_Id = SelfMember.Id,
                 TimeSent = DateTime.UtcNow
             };
+
+            DummyMessage = new ClientPlanetMessage(innerMessage);
 
             DummyMessage.GenerateForPost();
 
@@ -351,22 +353,23 @@
 
     public async Task OnClickWindow()
     {
-        ClientPlanet planet = await ClientPlanetManager.Current.GetPlanetAsync(Channel.Planet_Id);
-        await planetManager.SetCurrentPlanet(planet);
+        await windowManager.SetFocusedPlanet(await Channel.GetPlanetAsync());
     }
 
     public async Task PostMessage(string msg)
     {
-        ClientPlanetMessage message = new ClientPlanetMessage()
+        PlanetMessage innerMessage = new PlanetMessage()
         {
             Channel_Id = Channel.Id,
             Content = msg,
             TimeSent = DateTime.UtcNow,
-            Author_Id = ClientUserManager.User.Id,
+            Author_Id = ValourClient.Self.Id,
             Planet_Id = Channel.Planet_Id,
             Member_Id = SelfMember.Id,
             Fingerprint = Guid.NewGuid().ToString()
         };
+
+        ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
 
         message.GenerateForPost();
 
@@ -384,7 +387,7 @@
 
         MessageHolder.AddQueuedMessage(message);
 
-        string json = JsonSerializer.Serialize(message);
+        string json = JsonSerializer.Serialize(innerMessage);
 
         StringContent content = new StringContent(json);
 
@@ -398,7 +401,7 @@
         {
             MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
-            ClientPlanetMessage errorMsg = new()
+            PlanetMessage errorMsg = new()
             {
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {res}",
                 Author_Id = ulong.MaxValue,
@@ -408,7 +411,7 @@
             };
 
             MessageHolder.RemoveErrorMessage();
-            await MessageHolder.AddMessage(errorMsg);
+            await MessageHolder.AddMessage(new ClientPlanetMessage(errorMsg));
         }
     }
 
@@ -452,7 +455,7 @@
 
         await Window.Component.UpdateScrollPosition(); // This saves the scroll position
 
-        Holder.InsertMessages(0, messages);
+        Holder.InsertMessages(0, ClientPlanetMessage.FromList(messages));
 
         //Window.Component.StateHasChanged();
         await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly

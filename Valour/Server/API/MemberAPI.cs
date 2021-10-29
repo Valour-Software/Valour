@@ -28,17 +28,72 @@ namespace Valour.Server.API
         /// </summary>
         public static void AddRoutes(WebApplication app)
         {
-            app.Map      ("api/member/{member_id}", Member);
-            app.Map      ("api/member/{member_id}/role_membership", RoleMembership);
-            app.Map      ("api/member/{member_id}/roles", Roles);
-            app.MapGet   ("api/member/{member_id}/authority", GetAuthority);
+            app.MapGet   ("api/member/{member_id}", GetMember);
+            app.MapDelete("api/member/{member_id}", DeleteMember);
+
+            app.MapGet   ("api/member/{member_id}/role_membership", GetRoleMembership);
+            app.MapPost  ("api/member/{member_id}/role_membership", AddRoleMembership);
             app.MapDelete("api/member/{member_id}/role_membership/{role_member_id}", RemoveRoleMembership);
+
+            app.MapGet   ("api/member/{member_id}/roles", GetRoles);
+            app.MapGet   ("api/member/{member_id}/role_ids", GetRoleIds);
+            app.MapGet   ("api/member/{member_id}/authority", GetAuthority);
+            
             app.MapDelete("api/member/{member_id}/roles/{role_id}", RemoveRole);
 
             app.MapGet("api/member/{member_id}/primary_role", PrimaryRole);
 
-            app.MapGet("api/member/planet/{planet_id}/user/{user_id}", GetMemberWithIds);
-            app.MapGet("api/member/planet/{planet_id}/user/{user_id}/role_ids", GetMemberRoleIds);
+            app.MapGet("api/member/{planet_id}/{user_id}", GetMemberWithIds);
+            app.MapGet("api/member/{planet_id}/{user_id}/role_ids", GetMemberRoleIds);
+        }
+
+        private static async Task GetMember(HttpContext ctx, ValourDB db, ulong member_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken is null) { await TokenInvalid(ctx); return; }
+
+            var targetMember = await ServerPlanetMember.FindAsync(member_id, db);
+
+            if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
+
+            if (!await db.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == targetMember.Planet_Id))
+            {
+                await Unauthorized("Auth member not found", ctx); 
+                return;
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(targetMember);
+        }
+
+        private static async Task DeleteMember(HttpContext ctx, ValourDB db, ulong member_id,
+            [FromHeader] string authorization)
+        {
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken is null) { await TokenInvalid(ctx); return; }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
+
+            var targetMember = await ServerPlanetMember.FindAsync(member_id, db);
+
+            if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
+
+            var authMember = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == targetMember.Planet_Id);
+
+            if (authMember is null)
+            {
+                await Unauthorized("Auth member not found", ctx);
+                return;
+            }
+
+            if (!await authMember.HasPermissionAsync(PlanetPermissions.Kick, db)) { await Unauthorized("Member lacks PlanetPermissions.Kick", ctx); return; }
+
+            db.PlanetMembers.Remove(targetMember);
+            await db.SaveChangesAsync();
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsync("Success");
         }
 
         private static async Task GetAuthority(HttpContext ctx, ValourDB db, ulong member_id,
@@ -288,12 +343,38 @@ namespace Valour.Server.API
             return;
         }
 
+        private static async Task GetRoleIds(HttpContext ctx, ValourDB db, ulong member_id,
+            [FromHeader] string authorization)
+        {
+            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken is null) { await TokenInvalid(ctx); return; }
 
-        private static async Task Roles(HttpContext ctx, ValourDB db, ulong member_id,
+            if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
+
+            var targetMember = await db.PlanetMembers
+                .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
+                .ThenInclude(x => x.Role)
+                .FirstOrDefaultAsync(x => x.Id == member_id);
+
+            if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
+
+            if (!await db.PlanetMembers.AnyAsync(x => x.Planet_Id == targetMember.Planet_Id && x.User_Id == authToken.User_Id))
+            {
+                await Unauthorized("Member not found", ctx);
+                return;
+            }
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(targetMember.RoleMembership.Select(x => x.Role_Id)); 
+        }
+
+        private static async Task GetRoles(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
+
+            if (!auth.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
 
             ServerPlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
@@ -302,273 +383,95 @@ namespace Valour.Server.API
                 .FirstOrDefaultAsync(x => x.Id == member_id);
 
 
-            if (target_member is null)
-            {
-                ctx.Response.StatusCode = 404;
-                await ctx.Response.WriteAsync("Target member not found");
-                return;
-            }
+            if (target_member is null) { await NotFound("Target member not found", ctx); return; }
 
             // Ensure auth user is member of planet
-            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
-                                                                                        x.User_Id == auth.User_Id);
+            var member = await db.PlanetMembers.FirstOrDefaultAsync();
 
-            if (member is null)
+            if (!await db.PlanetMembers.AnyAsync(x => x.Planet_Id == target_member.Planet_Id && x.User_Id == auth.User_Id))
             {
-                ctx.Response.StatusCode = 403;
-                await ctx.Response.WriteAsync("Auth member not found");
+                await Unauthorized("Auth member not found", ctx);
                 return;
             }
 
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(target_member.RoleMembership.Select(x => x.Role));
-                        return;
-                    }
-                case "POST":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Token lacks PlanetPermissions.ManageRoles");
-                            return;
-                        }
-
-                        // Get body role object
-                        var inrole = await JsonSerializer.DeserializeAsync<ServerPlanetRole>(ctx.Request.Body);
-                        var role = await db.PlanetRoles.FindAsync(inrole.Id);
-
-                        if (role is null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Include role in body");
-                            return;
-                        }
-
-                        if (role.Planet_Id != member.Planet_Id || role.Planet_Id != target_member.Planet_Id)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Planet id mismatch");
-                            return;
-                        }
-
-                        var callerAuth = await member.GetAuthorityAsync();
-
-                        // Ensure role has less authority than user adding it
-                        if (role.GetAuthority() >= callerAuth)
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Can only add roles with lower authority than your own");
-                            return;
-                        }
-
-                        // Ensure target member has less authority than caller
-                        if (await target_member.GetAuthorityAsync() >= callerAuth)
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Target has higher or equal authority");
-                            return;
-                        }
-
-                        ServerPlanetRoleMember roleMember = new()
-                        {
-                            Id = IdManager.Generate(),
-                            Member_Id = target_member.Id,
-                            User_Id = target_member.User_Id,
-                            Planet_Id = target_member.Planet_Id,
-                            Role_Id = role.Id
-                        };
-
-                        await db.PlanetRoleMembers.AddAsync(roleMember);
-                        await db.SaveChangesAsync();
-
-                        ctx.Response.StatusCode = 201;
-                        await ctx.Response.WriteAsync(roleMember.Id.ToString());
-                        return;
-
-                    }
-            }
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(target_member.RoleMembership.Select(x => x.Role));
         }
 
-        private static async Task RoleMembership(HttpContext ctx, ValourDB db, ulong member_id,
+        private static async Task GetRoleMembership(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
-            if (auth is null) { await TokenInvalid(ctx); return; }
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken is null) { await TokenInvalid(ctx); return; }
+
+            if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
 
             ServerPlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
-                .Include(x => x.RoleMembership)
+                .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
+                .ThenInclude(x => x.Role)
                 .FirstOrDefaultAsync(x => x.Id == member_id);
 
+            if (target_member is null) { await NotFound("Target member not found", ctx); return; }
 
-            if (target_member is null)
-            {
-                ctx.Response.StatusCode = 404;
-                await ctx.Response.WriteAsync("Target member not found");
-                return;
-            }
+            var authMember = await ServerPlanetMember.FindAsync(authToken.User_Id, target_member.Planet_Id, db);
 
-            // Ensure auth user is member of planet
-            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
-                                                                                        x.User_Id == auth.User_Id);
+            if (authMember is null) { await Unauthorized("Auth member not found", ctx); return; }
 
-            if (member is null)
-            {
-                ctx.Response.StatusCode = 403;
-                await ctx.Response.WriteAsync("Auth member not found");
-                return;
-            }
-
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(target_member.RoleMembership);
-                        return;
-                    }
-                case "POST":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Token lacks PlanetPermissions.ManageRoles");
-                            return;
-                        }
-
-                        // Get body rolemember object
-                        var roleMember = await JsonSerializer.DeserializeAsync<ServerPlanetRoleMember>(ctx.Request.Body);
-
-                        if (roleMember is null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Include role member in body");
-                            return;
-                        }
-
-                        PlanetRole role = await db.PlanetRoles.FindAsync(roleMember.Role_Id);
-
-                        if (role is null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Role not found");
-                            return;
-                        }
-
-                        if (role.Planet_Id != member.Planet_Id || role.Planet_Id != target_member.Planet_Id)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Planet id mismatch");
-                            return;
-                        }
-
-                        var callerAuth = await member.GetAuthorityAsync();
-
-                        // Ensure role has less authority than user adding it
-                        if (role.GetAuthority() >= callerAuth)
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Can only add roles with lower authority than your own");
-                            return;
-                        }
-
-                        // Ensure target member has less authority than caller
-                        if (await target_member.GetAuthorityAsync() >= callerAuth)
-                        {
-                            ctx.Response.StatusCode = 403;
-                            await ctx.Response.WriteAsync("Target has higher or equal authority");
-                            return;
-                        }
-
-                        // Ensure things match properly
-                        roleMember.Member_Id = target_member.Id;
-                        roleMember.User_Id = target_member.User_Id;
-                        roleMember.Planet_Id = target_member.Planet_Id;
-
-                        // Add id
-                        roleMember.Id = IdManager.Generate();
-
-                        await db.PlanetRoleMembers.AddAsync(roleMember);
-                        await db.SaveChangesAsync();
-
-                        ctx.Response.StatusCode = 201;
-                        await ctx.Response.WriteAsync(roleMember.Id.ToString());
-                        return;
-
-                    }
-            }
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsJsonAsync(target_member.RoleMembership);
         }
 
-        private static async Task Member(HttpContext ctx, ValourDB db, ulong member_id,
+        private static async Task AddRoleMembership(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
-            if (auth is null) { await TokenInvalid(ctx); return; }
+            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken is null) { await TokenInvalid(ctx); return; }
+
+            if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
+            if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
             ServerPlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .FirstOrDefaultAsync(x => x.Id == member_id);
 
-            if (target_member == null)
+            if (target_member is null) { await NotFound("Target member not found", ctx); return; }
+
+            var authMember = await ServerPlanetMember.FindAsync(authToken.User_Id, target_member.Planet_Id, db);
+
+            if (authMember is null) { await Unauthorized("Auth member not found", ctx); return; }
+
+            if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db)) { await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx); return; }
+
+            var roleMember = await JsonSerializer.DeserializeAsync<ServerPlanetRoleMember>(ctx.Request.Body);
+
+            var role = await db.PlanetRoles.FindAsync(roleMember.Role_Id);
+
+            if (role is null) { await NotFound("Role not found", ctx); return; }
+
+            if (roleMember.Member_Id != target_member.Id || roleMember.User_Id != target_member.User_Id
+                || roleMember.Planet_Id != target_member.Planet_Id)
             {
-                ctx.Response.StatusCode = 403;
-                await ctx.Response.WriteAsync("Target not found");
+                await BadRequest("Id mismatch", ctx);
                 return;
             }
 
-            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Id &&
-                x.User_Id == auth.User_Id);
+            var authAuthority = await authMember.GetAuthorityAsync();
 
-            if (member == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Auth member not found");
-                return;
-            }
+            if (role.GetAuthority() >= authAuthority) { await Unauthorized("The role has greater authority than you", ctx); return; }
 
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(target_member);
-                        return;
-                    }
-                case "DELETE":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
+            if (await target_member.GetAuthorityAsync() > authAuthority) { await Unauthorized("The target member has greater authority than you", ctx); return; }
 
-                        var result = await target_member.Planet.TryKickMemberAsync(member, target_member, db);
+            // Add id
+            roleMember.Id = IdManager.Generate();
 
-                        ctx.Response.StatusCode = result.Data;
-                        await ctx.Response.WriteAsync(result.Message);
+            await db.PlanetRoleMembers.AddAsync(roleMember);
+            await db.SaveChangesAsync();
 
-                        return;
-                    }
-            }
+            ctx.Response.StatusCode = 201;
+            await ctx.Response.WriteAsync(roleMember.Id.ToString());
+            return;
+
         }
 
         private static async Task GetMemberRoleIds(HttpContext ctx, ValourDB db, ulong planet_id, ulong user_id,

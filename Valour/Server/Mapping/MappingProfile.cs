@@ -17,17 +17,7 @@ namespace Valour.Server.Mapping
     {
         public MappingProfile()
         {
-            CreateMap<Planet, ServerPlanet>();
-            CreateMap<ServerPlanet, Planet>();
 
-            CreateMap<PlanetMember, ServerPlanetMember>();
-            CreateMap<ServerPlanetMember, PlanetMember>();
-
-            CreateMap<PlanetRole, ServerPlanetRole>();
-            CreateMap<ServerPlanetRole, PlanetRole>();
-
-            CreateMap<ClientPlanetMember, ServerPlanetMember>();
-            CreateMap<ServerPlanetMember, ClientPlanetMember>();
         }
     }
 }

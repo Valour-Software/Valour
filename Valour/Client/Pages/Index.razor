@@ -6,193 +6,198 @@
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JS
-@inject ClientPlanetManager planetManager
 @inject ClientWindowManager windowManager
-@inject SignalRManager signalRManager
 
 <!-- Check login status -->
-@if (ClientUserManager.IsLoggedIn())
+@if (!ValourClient.IsLoggedIn)
 {
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-    <body style="height: 100%; position: fixed">
-        <div class="mainrow">
-            <div class="sidebar-menu">
-                <div class="sidebar" id="sidebar1">
-
-                    <div style="width: 250px">
-                        <img class="valour-logo" src="icon-512.png">
-
-                        <div style="display:inline-block; vertical-align: middle">
-                            <p class="valour-name">
-                                Valour
-                            </p>
-                            <p class="valour-version">
-                                Version @GetType().Assembly.GetName().Version.ToString() Pre-Pre-Alpha
-                            </p>
-                        </div>
-                    </div>
-
-
-                    <MemberListComponent></MemberListComponent>
-
-                </div>
-                <div class="sidebar-2" id="sidebar2">
-                    <CurrentPlanetComponent></CurrentPlanetComponent>
-
-                    <div class="top-bar">
-                    </div>
-                    <UserInfoComponent User="@ClientUserManager.User"></UserInfoComponent>
-                    <ChannelListComponent></ChannelListComponent>
-                </div>
-            </div>
-            <div class="channel-and-topbar" id="mainwindow">
-                <div class="topbar">
-                </div>
-                <div class="topline">
-                </div>
-                <!--
-                Todo: Logic for multiple main windows.
-                This will be fun.
-            -->
-                <!--
-                Add dummy window so Jacob doesn't cry
-            -->
-                @if (windowManager.GetWindowCount() == 0)
-                {
-                    windowManager.AddWindow(new HomeWindow(0));
-                }
-
-                @if (windowManager.GetWindowCount() < 4)
-                {
-                    <div class="add-window-button" @onclick="@OnAddWindow">
-                        <NewWindowComponent></NewWindowComponent>
-                    </div>
-                }
-
-                <div id="window-man" class="window-grid">
-
-                    @if (windowManager.GetWindowCount() == 1)
-                    {
-                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-                    }
-                    else if (windowManager.GetWindowCount() == 2)
-                    {
-                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-                        <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
-                    }
-                    else if (windowManager.GetWindowCount() == 3)
-                    {
-                        <div id="window-col1" class="window-col">
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-                        </div>
-                        <div id="window-col2" class="window-col">
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-                        </div>
-                    }
-                    else if (windowManager.GetWindowCount() == 4)
-                    {
-                        <div id="window-col1" class="window-col">
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-                        </div>
-                        <div id="window-col2" class="window-col">
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-                            <MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
-                        </div>
-                    }
-                </div>
-
-            </div>
-        </div>
-
-        <ModalHolderComponent></ModalHolderComponent>
-    </body>
-}
-else
-{
-    <LoginComponent></LoginComponent>
+	<LoginComponent></LoginComponent>
+	return;
 }
 
-@code{
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+<body style="height: 100%; position: fixed">
+	<div class="mainrow">
+		<div class="sidebar-menu">
+			<div class="sidebar" id="sidebar1">
 
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        planetManager.OnPlanetChange += OnPlanetChange;
-        planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
-    }
+				<div style="width: 250px">
+					<img class="valour-logo" src="icon-512.png">
 
-    public void Dispose()
-    {
-        planetManager.OnPlanetChange -= OnPlanetChange;
-        planetManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
-    }
+					<div style="display:inline-block; vertical-align: middle">
+						<p class="valour-name">
+							Valour
+						</p>
+						<p class="valour-version">
+							Version @GetType().Assembly.GetName().Version.ToString() Pre-Pre-Alpha
+						</p>
+					</div>
+				</div>
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await base.OnAfterRenderAsync(firstRender);
 
-        await SetupWindows();
-    }
+				<MemberListComponent></MemberListComponent>
 
-    private async Task SetupWindows()
-    {
-        await JS.InvokeVoidAsync("SizeEnable");
-    }
+			</div>
+			<div class="sidebar-2" id="sidebar2">
+				<CurrentPlanetComponent></CurrentPlanetComponent>
 
-    private async Task OnAddWindow()
-    {
-        if (windowManager.GetWindowCount() == 4)
-        {
-            return;
-        }
+				<div class="top-bar">
+				</div>
+				<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
+				<ChannelListComponent></ChannelListComponent>
+			</div>
+		</div>
+		<div class="channel-and-topbar" id="mainwindow">
+			<div class="topbar">
+			</div>
+			<div class="topline">
+			</div>
+			<!--
+				Todo: Logic for multiple main windows.
+				This will be fun.
+			-->
+			<!--
+				Add dummy window so Jacob doesn't cry
+			-->
+			@if (windowManager.GetWindowCount() == 0)
+			{
+				windowManager.AddWindow(new HomeWindow(0));
+			}
 
-        windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
+			@if (windowManager.GetWindowCount() < 4)
+			{
+				<div class="add-window-button" @onclick="@OnAddWindow">
+					<NewWindowComponent></NewWindowComponent>
+				</div>
+			}
 
-        StateHasChanged();
-    }
+			<div id="window-man" class="window-grid">
 
-    public async Task OnChannelWindowUpdate()
-    {
-        StateHasChanged();
-    }
+				@if (windowManager.GetWindowCount() == 1)
+				{
+					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+				}
+				else if (windowManager.GetWindowCount() == 2)
+				{
+					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
+				}
+				else if (windowManager.GetWindowCount() == 3)
+				{
+					<div id="window-col1" class="window-col">
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+					</div>
+					<div id="window-col2" class="window-col">
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+					</div>
+				}
+				else if (windowManager.GetWindowCount() == 4)
+				{
+					<div id="window-col1" class="window-col">
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+					</div>
+					<div id="window-col2" class="window-col">
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
+					</div>
+				}
+			</div>
 
-    public async Task OnPlanetChange(ClientPlanet planet)
-    {
-        if (planet != null)
-        {
-            Console.WriteLine("Index planet change: " + planet.Name);
-        }
-        else
-        {
-            Console.WriteLine("Index planet change: null");
-        }
+		</div>
+	</div>
 
-        StateHasChanged();
-    }
+	<ModalHolderComponent></ModalHolderComponent>
+</body>
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        JS.InvokeVoidAsync("FixClip");
-        JS.InvokeVoidAsync("FitMobile");
-    }
 
-    [JSInvokable("OnRefocus")]
-    public static async Task OnRefocus()
-    {
-        Console.WriteLine("Detected refocus event.");
-        await SignalRManager.Current.ForceRefresh();
-    }
+@code {
 
-    public async Task ForceRefresh()
-    {
-        StateHasChanged();
-    }
+	protected override async Task OnInitializedAsync()
+	{
+		await base.OnInitializedAsync();
 
-    [JSInvokable("OnClickInterop")]
-    public static async Task OnClickInterop(string target)
-    {
+		windowManager.OnPlanetFocused += OnPlanetChange;
+		windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+		ValourClient.OnLogin += OnLoginAsync;
+	}
 
-    }
+	public async Task OnLoginAsync(){
+		StateHasChanged();
+	}
+
+	public void Dispose()
+	{
+		windowManager.OnPlanetFocused -= OnPlanetChange;
+		windowManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		await base.OnAfterRenderAsync(firstRender);
+
+		await SetupWindows();
+	}
+
+	private async Task SetupWindows()
+	{
+		await JS.InvokeVoidAsync("SizeEnable");
+	}
+
+	private async Task OnAddWindow()
+	{
+		if (windowManager.GetWindowCount() == 4)
+		{
+			return;
+		}
+
+		windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
+
+		StateHasChanged();
+	}
+
+	public async Task OnChannelWindowUpdate()
+	{
+		StateHasChanged();
+	}
+
+	public async Task OnPlanetChange(Planet planet)
+	{
+		if (planet != null)
+		{
+			Console.WriteLine("Index planet change: " + planet.Name);
+		}
+		else
+		{
+			Console.WriteLine("Index planet change: null");
+		}
+
+		// This is unnecessary and breaks things
+		//StateHasChanged();
+	}
+
+	protected override void OnAfterRender(bool firstRender)
+	{
+		JS.InvokeVoidAsync("FixClip");
+		JS.InvokeVoidAsync("FitMobile");
+	}
+
+	[JSInvokable("OnRefocus")]
+	public static async Task OnRefocus()
+	{
+		Console.WriteLine("Detected refocus event.");
+		await ValourClient.ForceRefresh();
+	}
+
+	public async Task ForceRefresh()
+	{
+		StateHasChanged();
+	}
+
+	[JSInvokable("OnClickInterop")]
+	public static async Task OnClickInterop(string target)
+	{
+
+	}
 }

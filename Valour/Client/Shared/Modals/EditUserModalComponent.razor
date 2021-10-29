@@ -2,7 +2,7 @@
 
 @if (visible)
 {
-        @if (ClientUserManager.User != null)
+        @if (ValourClient.Self != null)
         {
             <!-- The Modal -->
             <div class="modal edit-user-modal" id="@Modal_Id">
@@ -10,7 +10,7 @@
                 <div class="modal-content-EditUser" id="edit-user-modal-inner">
                     <div class="popup-box">
                         <div class="col-md-12" style="height: 100%; width: 100%;">
-                            <EditUserComponent User="@ClientUserManager.User"></EditUserComponent>
+                            <EditUserComponent User="@ValourClient.Self"></EditUserComponent>
                         </div>
                     </div>
                 </div>

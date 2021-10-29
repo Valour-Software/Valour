@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -13,25 +14,13 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared.Planets
 {
-    public class Planet
+    public class Planet<T> : NamedItem<T> where T : Item<T>
     {
-        /// <summary>
-        /// The ID of the planet
-        /// </summary>
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
-
         /// <summary>
         /// The Id of the owner of this planet
         /// </summary>
         [JsonPropertyName("Owner_Id")]
         public ulong Owner_Id { get; set; }
-
-        /// <summary>
-        /// The name of the planet
-        /// </summary>
-        [JsonPropertyName("Name")]
-        public string Name { get; set; }
 
         /// <summary>
         /// The image url for the planet 
@@ -68,5 +57,11 @@ namespace Valour.Shared.Planets
         /// </summary>
         [JsonPropertyName("Main_Channel_Id")]
         public ulong Main_Channel_Id { get; set; }
+
+        /// <summary>
+        /// The item type of this item
+        /// </summary>
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.Planet;
     }
 }

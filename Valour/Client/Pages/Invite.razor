@@ -3,8 +3,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
-@inject ClientPlanetManager planetManager
-@inject AutoMapper.IMapper mapper
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="popup-box">
@@ -57,32 +55,26 @@
 
     protected async override Task OnInitializedAsync()
     {
-
-        ulong user_id = ClientUserManager.User.Id;
-
-        if (ClientUserManager.IsLoggedIn() != true) {
+        if (!ValourClient.IsLoggedIn) {
             navManager.NavigateTo("/");
         }
-        
-        var response = await Http.GetAsync($"api/invite/{code}");
 
-        if (!response.IsSuccessStatusCode) {
-            errorSpan = await response.Content.ReadAsStringAsync();
+        var invite = await ValourClient.GetJsonAsync<Invite>($"api/invite/{code}");
+
+        if (invite is null) {
+            errorSpan = "Failed to find invite.";
             Clicked = true;
             PlanetSpan = "";
             StateHasChanged();
             return;
         }
 
-        var result = await JsonSerializer.DeserializeAsync<ClientPlanetInvite>(await response.Content.ReadAsStreamAsync());
-
-        PlanetName = await result.GetPlanetName();
-        PlanetImage = await result.GetPlanetIcon();
+        PlanetName = invite.PlanetName;
+        PlanetImage = invite.PlanetImage;
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
-        string token = ClientUserManager.UserSecretToken;
 
-        InviteCode = result.Code;
+        InviteCode = invite.code;
 
         StateHasChanged();
 
@@ -90,20 +82,12 @@
 
     public async Task OnClose()
     {
-
-        ClientUserManager.Planets.Clear();
-
-        await ClientUserManager.RefreshPlanetsAsync();
-
+        await ValourClient.LoadJoinedPlanetsAsync();
         navManager.NavigateTo("/");
     }
 
     public async Task Joined()
     {
-
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
-
         var response = await Http.GetAsync($"api/invite/{InviteCode}/join");
 
         var message = await response.Content.ReadAsStringAsync();

@@ -70,16 +70,16 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await http.PostAsync($"Upload/ProfileImage?auth={ClientUserManager.UserSecretToken}", content);
+        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/ProfileImage", content);
 
-        if (result.IsSuccessStatusCode)
+        if (result.Success)
         {
-            Pfp_Url = await result.Content.ReadAsStringAsync();
+            Pfp_Url = result.Data;
             Pfp_Output = "Successfully changed profile picture.";
         }
         else
         {
-            Pfp_Error = await result.Content.ReadAsStringAsync();
+            Pfp_Error = result.Message;
         }
 
         StateHasChanged();

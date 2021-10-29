@@ -5,13 +5,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Shared.Oauth;
-using Valour.Shared.Roles;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.RegularExpressions;
 using Valour.Shared;
 using Valour.Server.Categories;
 using Valour.Shared.Items;
+using Valour.Server.Roles;
 
 namespace Valour.Server.Planets
 {
@@ -26,7 +26,7 @@ namespace Valour.Server.Planets
     /// class. It does not, and should not, have any extra fields or properties.
     /// Just helper methods.
     /// </summary>
-    public class ServerPlanetChatChannel : PlanetChatChannel, IServerChannelListItem
+    public class ServerPlanetChatChannel : PlanetChatChannel<ServerPlanetChatChannel>, IServerChannelListItem
     {
 
         [ForeignKey("Planet_Id")]
@@ -38,58 +38,6 @@ namespace Valour.Server.Planets
         public virtual ServerPlanetCategory Parent { get; set; }
 
         /// <summary>
-        /// The id of this channel
-        /// </summary>
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
-
-        /// <summary>
-        /// The name of this channel
-        /// </summary>
-        [JsonPropertyName("Name")]
-        public string Name { get; set; }
-
-        /// <summary>
-        /// The number of messages within this channel
-        /// </summary>
-        [JsonPropertyName("Message_Count")]
-        public ulong Message_Count { get; set; }
-
-        /// <summary>
-        /// True of this channel inherits permissions from its category
-        /// </summary>
-        [JsonPropertyName("Inherits_Perms")]
-        public bool Inherits_Perms { get; set; }
-
-        /// <summary>
-        /// The position of this channel
-        /// </summary>
-        [JsonPropertyName("Position")]
-        public ushort Position { get; set; }
-
-        /// <summary>
-        /// The id of the parent category of this channel
-        /// </summary>
-        [JsonPropertyName("Parent_Id")]
-        public ulong? Parent_Id { get; set; }
-
-        /// <summary>
-        /// The id of the planet this channel belongs to
-        /// </summary>
-        [JsonPropertyName("Planet_Id")]
-        public ulong Planet_Id { get; set; }
-
-        /// <summary>
-        /// The description of this channel
-        /// </summary>
-        [JsonPropertyName("Description")]
-        public string Description { get; set; }
-
-        [NotMapped]
-        [JsonPropertyName("ItemType")]
-        public ItemType ItemType => ItemType.Channel;
-
-        /// <summary>
         /// The regex used for name validation
         /// </summary>
         public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -99,7 +47,7 @@ namespace Valour.Server.Planets
         /// </summary>
         public async Task<TaskResult<int>> TryDeleteAsync(ServerPlanetMember member, ValourDB db)
         {
-            Planet ??= await GetPlanetAsync(db);
+            await GetPlanetAsync(db);
 
             if (Id == Planet.Main_Channel_Id)
                 return new TaskResult<int>(false, $"Cannot delete main channel", 400);
@@ -114,8 +62,8 @@ namespace Valour.Server.Planets
                 return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.ManageChannel", 403);
 
             // Remove permission nodes
-            db.ChatChannelPermissionsNodes.RemoveRange(
-                db.ChatChannelPermissionsNodes.Where(x => x.Channel_Id == Id)
+            db.PermissionsNodes.RemoveRange(
+                db.PermissionsNodes.Where(x => x.Target_Id == Id && x.ItemType == ItemType)
             );
 
             // Remove messages
@@ -138,7 +86,7 @@ namespace Valour.Server.Planets
         }
 
         /// <summary>
-        /// Returns the planet this channel belongs to
+        /// Returns the planet of the channel
         /// </summary>
         public async Task<ServerPlanet> GetPlanetAsync(ValourDB db)
         {
@@ -158,7 +106,7 @@ namespace Valour.Server.Planets
         /// <summary>
         /// Returns if a given member has a channel permission
         /// </summary>
-        public async Task<bool> HasPermission(ServerPlanetMember member, ChatChannelPermission permission, ValourDB db)
+        public async Task<bool> HasPermission(ServerPlanetMember member, Permission permission, ValourDB db)
         {
             Planet ??= await GetPlanetAsync(db);
 
@@ -173,7 +121,7 @@ namespace Valour.Server.Planets
                     Parent = await GetParentAsync(db);
                 }
 
-                return await Parent.HasPermission(member, permission);
+                return await Parent.HasPermission(member, permission, db);
             }
 
 
@@ -182,7 +130,7 @@ namespace Valour.Server.Planets
                                   .Query()
                                   .Where(x => x.Planet_Id == Planet.Id)
                                   .Include(x => x.Role)
-                                  .ThenInclude(x => x.ChatChannelPermissionNodes.Where(x => x.Channel_Id == Id))
+                                  .ThenInclude(x => x.PermissionNodes.Where(x => x.Target_Id == Id && x.ItemType == ItemType))
                                   .LoadAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
@@ -190,7 +138,7 @@ namespace Valour.Server.Planets
             foreach (var roleMembership in member.RoleMembership)
             {
                 var role = roleMembership.Role;
-                ChatChannelPermissionsNode node = role.ChatChannelPermissionNodes.FirstOrDefault();
+                PermissionsNode node = role.PermissionNodes.FirstOrDefault();
 
                 // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
                 if (node == null)

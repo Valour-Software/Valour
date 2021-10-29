@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 using Valour.Shared.Oauth;
 
 /*  Valour - A free and secure chat client
@@ -16,11 +17,11 @@ using Valour.Shared.Oauth;
 
 namespace Valour.Shared.Roles
 {
-    public class PlanetRole
+    public class PlanetRole<T> : NamedItem<T> where T : Item<T>
     {
-        public static PlanetRole GetDefault(ulong planet_id)
+        public static PlanetRole<T> GetDefault(ulong planet_id)
         {
-            return new PlanetRole()
+            return new PlanetRole<T>()
             {
                 Name = "Default",
                 Id = ulong.MaxValue,
@@ -32,7 +33,7 @@ namespace Valour.Shared.Roles
             };
         }
 
-        public static PlanetRole VictorRole = new PlanetRole()
+        public static PlanetRole<T> VictorRole = new PlanetRole<T>()
         {
             Name = "Victor Class",
             Id = ulong.MaxValue,
@@ -42,18 +43,6 @@ namespace Valour.Shared.Roles
             Color_Green = 0,
             Color_Blue = 255
         };
-
-        /// <summary>
-        /// The unique Id of this role
-        /// </summary>
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
-
-        /// <summary>
-        /// The name of the role
-        /// </summary>
-        [JsonPropertyName("Name")]
-        public string Name { get; set; }
 
         /// <summary>
         /// The position of the role: Lower has more authority
@@ -89,6 +78,9 @@ namespace Valour.Shared.Roles
 
         [JsonPropertyName("Italics")]
         public bool Italics { get; set; }
+
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.Role;
 
         public uint GetAuthority()
         {

@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -20,15 +21,8 @@ namespace Valour.Shared.Users
     /// <summary>
     /// This is the base User object, which contains everything needed for public use
     /// </summary>
-    public class User
+    public class User<T> : Item<T> where T : Item<T>
     {
-        /// <summary>
-        /// The Id of the user
-        /// </summary>
-        [Key]
-        [JsonPropertyName("Id")]
-        public ulong Id { get; set; }
-
         /// <summary>
         /// The main display name for the user
         /// </summary>
@@ -66,6 +60,12 @@ namespace Valour.Shared.Users
         /// </summary>
         [JsonPropertyName("Valour_Staff")]
         public bool Valour_Staff { get; set; }
+
+        /// <summary>
+        /// The user's currently set status - this could represent how they feel, their disdain for the political climate
+        /// of the modern world, their love for their mother's cooking, or their hate for lazy programmers.
+        /// </summary>
+        public string Status { get; set; }
 
         /// <summary>
         /// The integer representation of the current user state
@@ -124,7 +124,12 @@ namespace Valour.Shared.Users
             }
         }
 
-        public static User Victor = new User()
+        [NotMapped]
+        [JsonInclude]
+        [JsonPropertyName("ItemType")]
+        public override ItemType ItemType => ItemType.User;
+
+        public static User<T> Victor = new User<T>()
         {
             Bot = true,
             UserState_Value = 4,

@@ -1,5 +1,4 @@
 ﻿@inject HttpClient http
-@inject ClientPlanetManager planetManager
 
 <h3>Planet Invitations</h3>
 <hr />
@@ -27,7 +26,7 @@
                     <th style="width: 125px;">Created</th>
                     <th style="width: 125px;">Expires</th>
                 </tr>
-                @foreach(PlanetInvite invite in Invites) {
+                @foreach(Invite invite in Invites) {
                     <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
                 }
             </table>
@@ -39,7 +38,7 @@
 
 @code {
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     public bool publicValue;
 
@@ -47,7 +46,7 @@
 
     public bool linksChosen = true;
 
-    public List<PlanetInvite> Invites = new List<PlanetInvite>();
+    public List<Invite> Invites = new List<Invite>();
 
     public string linksButtonStyle = "settings-button left active";
     public string usersButtonStyle = "settings-button right";
@@ -79,21 +78,11 @@
 
         StateHasChanged();
 
-        ulong planet_id = planetManager.GetCurrent().Id;
+        ulong planet_id = Planet.Id;
 
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
+        ulong user_id = ValourClient.Self.Id;
 
-        var response = await http.GetAsync($"api/planet/{planet_id}/invites");
-
-        if (!response.IsSuccessStatusCode)
-        {
-            Console.WriteLine("Failed to get planet invites.");
-            Console.WriteLine(await response.Content.ReadAsStringAsync());
-            return;
-        }
-
-        Invites = await JsonSerializer.DeserializeAsync<List<PlanetInvite>>(await response.Content.ReadAsStreamAsync());
+        Invites = await ValourClient.GetJsonAsync<List<Invite>>($"api/planet/{planet_id}/invites");
 
         StateHasChanged();
     }

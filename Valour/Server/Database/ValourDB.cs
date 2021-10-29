@@ -6,7 +6,6 @@ using Valour.Shared.Planets;
 using Valour.Server.Planets;
 using Valour.Server.Email;
 using Valour.Shared.Messages;
-using Valour.Shared.Roles;
 using Valour.Server.Roles;
 using Valour.Server.Oauth;
 using Valour.Server.Categories;
@@ -130,9 +129,7 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
 
-        public DbSet<ServerChatChannelPermissionsNode> ChatChannelPermissionsNodes { get; set; }
-
-        public DbSet<ServerCategoryPermissionsNode> CategoryPermissionsNodes { get; set; }
+        public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
         public DbSet<ServerPlanetRole> PlanetRoles { get; set; }
 
