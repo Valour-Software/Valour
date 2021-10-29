@@ -131,7 +131,7 @@ namespace Valour.Client.Shared.ChannelList
 
             // Add current item to target category
 
-            var response = await ValourClient.PostAsync($"/api/category/{target.Category.Id}/children", currentDragItem);
+            var response = await ValourClient.PostAsync($"/api/category/{target.Category.Id}/children?type={currentDragItem.ItemType}", currentDragItem);
 
             Console.WriteLine($"Inserting {currentDragItem.Id} into {target.Category.Id} at position {position}");
 

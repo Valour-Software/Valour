@@ -549,7 +549,7 @@ namespace Valour.Server.API
             return;
         }
 
-        private static async Task InsertItem(HttpContext ctx, ValourDB db, ulong category_id,
+        private static async Task InsertItem(HttpContext ctx, ValourDB db, ulong category_id, ItemType type,
                                             [FromHeader] string authorization)
         {
             AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
@@ -602,7 +602,24 @@ namespace Valour.Server.API
                 return;
             }
 
-            IServerChannelListItem in_item = await JsonSerializer.DeserializeAsync<IServerChannelListItem>(ctx.Request.Body);
+            IServerChannelListItem in_item = null;
+
+            switch (type)
+            {
+                case ItemType.Channel:
+                    in_item = await JsonSerializer.DeserializeAsync<ServerPlanetChatChannel>(ctx.Request.Body);
+                    break;
+                case ItemType.Category:
+                    in_item = await JsonSerializer.DeserializeAsync<ServerPlanetCategory>(ctx.Request.Body);
+                    break;
+                default:
+                    {
+                        ctx.Response.StatusCode = 400;
+                        await ctx.Response.WriteAsync("Include valid item type");
+                        return;
+                    }
+            }
+
 
             if (in_item == null || in_item.Planet_Id == 0)
             {
