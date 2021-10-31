@@ -1,5 +1,4 @@
 ﻿@inject MemberContextMenu memberContextMenu
-@inject BanModal banModal
 @inject ConfirmModal confirmModal
 @inject ClientWindowManager windowManager
 @implements IDisposable
@@ -116,6 +115,9 @@
     [Parameter]
     public ModalHolderComponent Holder { get; set; }
 
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
     public bool visible = false;
 
     const string Modal_Id = "member-context-menu";
@@ -175,7 +177,9 @@
 
     public async Task OpenBanModal()
     {
-        await banModal.Open(Planet);
+        ModalParameters par = new();
+        par.Add("Planet", Planet);
+        Modal.Show<BanUserComponent>("Ban User", par);
         SetVisibility(false);
     }
 

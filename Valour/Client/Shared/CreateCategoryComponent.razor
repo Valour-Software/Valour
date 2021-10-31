@@ -2,7 +2,6 @@
 @inject NavigationManager navManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
-@inject CreateCategoryModal createCategoryModal
 
 <section>
     <h2 class="create-component-title">Create a Category</h2>
@@ -66,13 +65,19 @@
     List<Role> Roles = new();
     bool isprivate = false;
 
+    [Parameter, EditorRequired]
+    public Planet Planet { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
 
-        Member SelfMember = await ValourClient.GetSelfMember(createCategoryModal.Planet);
+        Member SelfMember = await ValourClient.GetSelfMember(Planet);
 
-        var roles = await createCategoryModal.Planet.GetRolesAsync();
+        var roles = await Planet.GetRolesAsync();
 
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
         foreach (Role item in roles)
@@ -133,7 +138,7 @@
             {
                 Target_Id = category_id,
                 Planet_Id = planet_id,
-                Role_Id = createCategoryModal.Planet.Default_Role_Id,
+                Role_Id = Planet.Default_Role_Id,
                 Mask = 0x00,
                 Code = 0x00,
                 Target_Type = ItemType.Category
@@ -145,11 +150,11 @@
 
             foreach (Role role in Roles)
             {
-                
+
                 if (!SelectedRoles[role]) {
                     continue;
                 }
-                
+
                 PermissionsNode = new()
                 {
                     Target_Id = category_id,
@@ -168,10 +173,7 @@
         }
 
         // close model
-
-        createCategoryModal.Component.SetVisibility(false);
-
-
+        await ModalInstance.CloseAsync();
     }
 
     private async Task OnImageInput()
