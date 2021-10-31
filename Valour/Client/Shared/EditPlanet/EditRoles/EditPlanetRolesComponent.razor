@@ -1,5 +1,4 @@
 ﻿@inject IJSRuntime JS
-@inject EditPlanetModal editPlanetModal
 
 <h3>Edit Roles</h3>
 <hr/>
@@ -289,7 +288,7 @@
         editMode = true;
 
         StateHasChanged();
-        await editPlanetModal.Open();
+        //await editPlanetModal.Open();
     }
 
     public async Task OnClickSave()

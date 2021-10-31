@@ -1,6 +1,4 @@
-﻿@inject EditUserModal editUserModal
-
-<div class="user-info">
+﻿<div class="user-info">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
     <p class="username">
         @if (User.Username.Length > 16) {
@@ -14,12 +12,15 @@
     </p>
     <div class="active">
     </div>
-    <img id="user-edit-button" class="settings" src="/media/Settings-Icon.svg" @onclick="editUserModal.Open">
+    <img id="user-edit-button" class="settings" src="/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditUserComponent>("Edit User")'>
 </div>
 
 @code {
     [Parameter]
     public User User { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     public string pfpurl = "/icon-512.png";
 

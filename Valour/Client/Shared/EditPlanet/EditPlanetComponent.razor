@@ -1,5 +1,6 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
+@inject ClientWindowManager windowManager
 
 @if (Planet != null)
 {
@@ -31,7 +32,7 @@
                             <EditPlanetBansComponent></EditPlanetBansComponent>
                             break;
                         case 4:
-                            <EditRolesComponent Planet="Planet"></EditRolesComponent>
+                            <EditPlanetRolesComponent Planet="Planet"></EditPlanetRolesComponent>
                             break;
                         default:
                             break;
@@ -70,7 +71,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-
+        Planet = windowManager.FocusedPlanet;
     }
 
     public void SetSelectedTab(int tab)

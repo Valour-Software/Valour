@@ -2,7 +2,6 @@
 @inject NavigationManager navManager
 @inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
-@inject CreateChannelModal createChannelModal
 @using Valour.Shared.Categories
 
 <section>
@@ -59,6 +58,9 @@
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
 
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+
     // Input fields
     string name;
 
@@ -73,7 +75,7 @@
         Roles.Clear();
         SelectedRoles.Clear();
 
-        Member SelfMember = await ValourClient.GetSelfMember(createChannelModal.Planet);
+        Member SelfMember = await ValourClient.GetSelfMember(Planet);
 
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
 
@@ -154,8 +156,8 @@
             PermissionsNode PermissionsNode = new()
             {
                 Target_Id = channel_id,
-                Planet_Id = createChannelModal.Planet.Id,
-                Role_Id = createChannelModal.Planet.Default_Role_Id,
+                Planet_Id = Planet.Id,
+                Role_Id = Planet.Default_Role_Id,
                 Mask = 0x00,
                 Code = 0x00,
                 Target_Type = ItemType.Channel
@@ -176,15 +178,15 @@
 
             foreach (Role role in Roles)
             {
-                
+
                 if (!SelectedRoles[role]) {
                     continue;
                 }
-                
+
                 PermissionsNode = new PermissionsNode()
                 {
                     Target_Id = channel_id,
-                    Planet_Id = createChannelModal.Planet.Id,
+                    Planet_Id = Planet.Id,
                     Role_Id = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
@@ -207,10 +209,7 @@
         }
 
         // close modal
-
-        createChannelModal.Component.SetVisibility(false);
-
-        
+        await ModalInstance.CloseAsync();   
     }
 
     private async Task OnImageInput()

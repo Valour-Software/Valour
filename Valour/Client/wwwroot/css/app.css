@@ -1174,17 +1174,23 @@ body {
     background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
 }
 
-/* Modal Content */
-.modal-content-CreatePlanet {
-    margin: auto;
-    padding: 0px;
-    max-width: 418px;
+.modal-main {
+    background-color: var(--main-2);
+    z-index: 200;
+    padding: 20px;
+    border-radius: 10px;
+    filter: drop-shadow(0px 0px 8px black);
+
+    height: 100%;
+    width: 100%;
+
+    max-height: 1000px;
+    max-width: 1000px;
 }
 
-.modal-content-CreateChannel {
-    margin: auto;
-    padding: 0px;
-    max-width: 418px;
+.modal-main .blazored-modal-content {
+    height: 100%;
+    width: 100%;
 }
 
 .login-background {
@@ -1446,17 +1452,20 @@ body {
 
 .edit-body {
     background-color: var(--main-2);
-    height: 100%;
     width: 100%;
+    height: 100%;
 }
 
 .edit-body .container {
+    background-color: var(--main-2);
     height: 100%;
     width: 100%;
 }
 
 .edit-body .row {
     height: 100%;
+    width: 100%;
+    margin: 0;
 }
 
 .settings-inner .row {
@@ -1562,7 +1571,7 @@ btn-role-edit:hover edit {
     transform: translate(0%, -50%);
 }
 
-@media screen and (max-width: 992px) {
+@media screen and (max-width: 770px) {
     .settings-row {
         flex-wrap: wrap;
     }
