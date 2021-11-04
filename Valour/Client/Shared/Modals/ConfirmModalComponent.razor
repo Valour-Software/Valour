@@ -1,40 +1,32 @@
-﻿@inject ConfirmModal confirmModal
+﻿<!-- This modal exists to allow parts of the app to ask for confirmation -->
 
-<!-- This modal exists to allow parts of the app to ask for confirmation -->
-
-@if (visible)
-{
-<div class="modal confirm-modal" id="confirm-modal">
-    <!-- Modal content -->
-    <div class="modal-confirm-content">
-        <div class="popup-box">
-            <div class="col-md-12">
-                <section>
-                    <h2>@confirmModal.title_text</h2>
-                    <h4>@confirmModal.desc_text</h4>
-                    <hr />
-                    <br />
-                    <div @onclick="confirmModal.OnCancel" class="btn btn-primary d-inline-block">@confirmModal.cancel_text</div>
-                    <div @onclick="confirmModal.OnConfirm" class="btn btn-danger d-inline-block">@confirmModal.confirm_text</div>
-                </section>
-            </div>
-        </div>
-    </div>
+<div class="col-md-12">
+	<section>
+		<h2>@Data.title_text</h2>
+		<h4>@Data.desc_text</h4>
+		<hr />
+		<br />
+		<div @onclick="OnCancel" class="btn btn-primary d-inline-block">@Data.cancel_text</div>
+		<div @onclick="OnConfirm" class="btn btn-danger d-inline-block">@Data.confirm_text</div>
+	</section>
 </div>
-}
 
-@code { 
+@code {
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
 
-    public bool visible = false;
+	[Parameter]
+	public ConfirmModalData Data { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        confirmModal.Component = this;
-    }
+	public async Task OnConfirm()
+	{
+		await Data.ConfirmEvent.Invoke();
+		await ModalInstance.CloseAsync();
+	}
 
-    public void SetVisibility(bool value)
-    {
-        visible = value;
-        StateHasChanged();
-    }
+	public async Task OnCancel()
+	{
+		await Data.CancelEvent.Invoke();
+		await ModalInstance.CancelAsync();
+	}
 }

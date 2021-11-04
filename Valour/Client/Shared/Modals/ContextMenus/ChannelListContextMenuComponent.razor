@@ -1,7 +1,4 @@
 ﻿@inject ChannelListContextMenu channelListContextMenu
-@inject ConfirmModal confirmModal
-@inject InfoModal infoModal
-@inject EditChannelListItemModal editModal
 @inject HttpClient Http
 @inject ClientWindowManager windowManager
 
@@ -32,6 +29,9 @@
 
     [Parameter]
     public ModalHolderComponent Holder { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     protected async override Task OnInitializedAsync()
     {
@@ -75,46 +75,55 @@
             List<Category> categories = await windowManager.FocusedPlanet.GetCategoriesAsync();
 
             if (channels.Where(x => x.Parent_Id == category_id).Count() > 0 || categories.Where(x => x.Parent_Id == category_id).Count() > 0) {
-                await infoModal.Open($"You can't delete this!",
-                                    "This is due to this category having channels and/or categories inside of it.",
-                                    "Okay",
 
-                async () =>
-                {
-                    Console.WriteLine("User Clicked Ok");
-                });
+                InfoModalData imodalData = 
+                new($"You can't delete this!",
+                    "This is due to this category having channels and/or categories inside of it.",
+                    "Okay",
+                    async () =>
+                    {
+                        Console.WriteLine("User Clicked Ok");
+                    }
+                );
 
-                return;
+                ModalParameters imodParams = new();
+                imodParams.Add("Data", imodalData);
+
+                Modal.Show<InfoModalComponent>("Info", imodParams, new ModalOptions() { Class = "modal-shrink-fit" });
             }
         }
 
-        
-        
 
-        await confirmModal.Open($"Delete {channelListContextMenu.SelectedItem.Name}?",
-                                "Are you sure?",
-                                "Continue",
-                                "Cancel",
+        ConfirmModalData modalData =
+        new($"Delete {channelListContextMenu.SelectedItem.Name}?",
+             "Are you sure?",
+             "Continue",
+             "Cancel", 
+             async () =>
+             {
+                 Console.WriteLine("Confirmed channel item deletion.");
+                 var result = await channelListContextMenu.SelectedItem.DeleteAsync();
+                 Console.WriteLine("Deletion: " + result.Message);
 
-        async () =>
-        {
-            Console.WriteLine("Confirmed channel item deletion.");
+             },
+             async () =>
+             {
+                 Console.WriteLine("Cancelled channel item deletion.");
+             }
+        );
 
-            var result = await channelListContextMenu.SelectedItem.DeleteAsync();
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
 
-            Console.WriteLine("Deletion: " + result.Message);
-
-        },
-
-        async () =>
-        {
-            Console.WriteLine("Cancelled channel item deletion.");
-        });
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
     }
 
     public async Task EditChannelListItem()
     {
-        await editModal.Open();
+        ModalParameters modParams = new();
+        modParams.Add("ChannelListItem", channelListContextMenu.SelectedItem);
+
+        Modal.Show<EditChannelListItemComponent>("Edit Channel Item", modParams);
         await channelListContextMenu.Close();
     }
 }
