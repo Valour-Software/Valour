@@ -1,190 +1,94 @@
-﻿@inject MemberContextMenu memberContextMenu
-@inject ClientWindowManager windowManager
-@implements IDisposable
+﻿<ContextMenu Id='member-context' CssClass='member-context' class='member-context'>
+	<Item OnClick='OnClickKick' CssClass='member-context-item'>Kick</Item>
+	<Item OnClick='OnClickBan' CssClass='member-context-item'>Ban</Item>
+	<Item CssClass='member-context-item'>
+		Roles
+		<SubMenu CssClass='member-context-sub'>
+			@foreach (var role in Roles)
+			{
+				var cRole = role;
+				var hasRole = MemberRoles.Any(x => x.Id == role.Id);
 
-@if (visible)
-{
-    <style>
-        /* The container - needed to position the dropdown content */
-        .role-dropdown {
-            position: relative;
-        }
+				<Item CssClass='member-context-item'>
+					<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
+						<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
+						<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
+										checked="@hasRole" disabled />
+					</div>
+				</Item>
+			}
+		</SubMenu>
+	</Item>
+</ContextMenu>
 
-        /* Dropdown Content (Hidden by Default) */
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 1;
-            top: -150px;
-            left: 150px;
-            height: 200px;
-            padding-top: 10px;
-            padding-bottom: 10px;
-            background-color: var(--main-1);
-            overflow-y: auto;
-        }
-
-        /* Links inside the dropdown */
-        .dropdown-content a {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-        }
-
-        /* Change color of dropdown links on hover */
-        .dropdown-content a:hover {
-            background-color: #f1f1f1
-        }
-
-        /* Show the dropdown menu on hover */
-        .role-dropdown:hover .dropdown-content {
-            display: block;
-        }
-
-        .dropdown-content::hover {
-            display: block;
-        }
-
-        /* Change the background color of the dropdown button when the dropdown content is shown */
-        .role-dropdown:hover .dropbtn {
-            background-color: #192630;
-        }
-
-        .user-context-delete {
-            color: #EF3A3A;
-        }
-
-        .role-checkbox {
-            margin-right: 5px;
-        }
-
-        .user-context-delete:hover {
-            color: white;
-            background: #EF3A3A;
-        }
-    </style>
-
-    <div class="context-menu member-context-menu" id="@Modal_Id" style="left:@(x)px;top:@(y)px">
-        <div class="context-menu-item user-context-delete" @onclick="OnClickKick">
-            <p class="context-menu-item-text">
-                Kick
-            </p>
-        </div>
-        <div class="context-menu-item user-context-delete" id="ban-button" @onclick="OpenBanModal">
-            <p class="context-menu-item-text" id="ban-button-inner">
-                Ban
-            </p>
-        </div>
-        @if (Planet != null)
-        {
-            <div class="context-menu-item role-dropdown">
-                <p class="context-menu-item-text">
-                    Roles
-                </p>
-                <div class="dropdown-content">
-
-                    @foreach (Role role in Roles)
-                    {
-                        var curRole = role;
-                        var hasRole = MemberRoles.Any(x => x.Id == role.Id);
-
-                        <div class="context-menu-item d-flex flex-row justify-content-between align-items-center"
-                             @onclick="(async () => await OnRoleClick(curRole, !hasRole))">
-                            <p class="context-menu-item-text" style="color:@role.GetColorHex()">@role.Name</p>
-                            <input class="role-checkbox" type="checkbox"
-                                   checked="@hasRole" disabled />
-                        </div>
-                    }
-                </div>
-
-            </div>
-        }
-    </div>
-}
 
 @code {
-    public Planet Planet { get; set; }
-    public List<Role> Roles { get; set; }
-    public List<Role> MemberRoles { get; set; }
-    public Member Member { get; set; }
 
-    [Parameter]
-    public ModalHolderComponent Holder { get; set; }
+	[CascadingParameter]
+	public IModalService Modal { get; set; }
 
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
+	public static Member Member { get; set; }
+	public static List<Role> Roles { get; set; }
+	public static List<Role> MemberRoles { get; set; }
 
-    public bool visible = false;
+	protected override async Task OnInitializedAsync()
+	{
+		Role.OnAnyUpdated += OnRoleUpdate;
+		Member.OnAnyUpdated += OnMemberUpdate;
+	}
 
-    const string Modal_Id = "member-context-menu";
+	public static async Task Initialize(Member member)
+	{
+		Member = member;
+		Roles = await (await member.GetPlanetAsync()).GetRolesAsync();
+		MemberRoles = await member.GetRolesAsync();
+	}
 
-    public double x;
-    public double y;
+	public async Task OnMemberUpdate(Member member)
+	{
+		if (member.Id == Member.Id)
+			StateHasChanged();
+	}
 
-    public async Task OnMemberUpdate(Member member)
-    {
-        if (member.Id == Member.Id)
-        {
-            Member = member;
-            MemberRoles = await Member.GetRolesAsync();
-            StateHasChanged();
-        }
-    }
+	public async Task OnRoleUpdate(Role role)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+			StateHasChanged();
+	}
 
-    protected override async Task OnInitializedAsync()
-    {
-        memberContextMenu.Component = this;
+	public async Task OnRoleDeleted(Role role)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+		{
+			Roles.RemoveAll(x => x.Id == role.Id);
+			MemberRoles.RemoveAll(x => x.Id == role.Id);
+			StateHasChanged();
+		}
+	}
 
-        windowManager.OnPlanetFocused += OnPlanetChange;
-        Member.OnAnyUpdated += OnMemberUpdate;
-        Role.OnAnyUpdated += OnRoleUpdate;
-        Role.OnAnyDeleted += OnRoleDeletion;
+	public async Task OnRoleClick(Role role, bool value)
+	{
+		Valour.Shared.Roles.PlanetRoleMember roleMember = new()
+		{
+			Member_Id = Member.Id,
+			Planet_Id = Member.Planet_Id,
+			Role_Id = role.Id,
+			User_Id = Member.User_Id
+		};
 
-        memberContextMenu.OpenEvent += OnOpened;
-        ModalHolderComponent.CloseModalEvent += OnModalClose;
-    }
+        if (value)
+            // Add role
+            await ValourClient.PostAsync($"api/member/{Member.Id}/role_membership", roleMember);
+        else
+            // Remove role
+            await ValourClient.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
 
-    public async Task OnRoleDeletion(Role role)
-    {
-        Roles = await Planet.GetRolesAsync();
-    }
-
-    public async Task OnRoleUpdate(Role role)
-    {
-        Roles = await Planet.GetRolesAsync();
-    }
-
-    public async Task OnPlanetChange(Planet planet)
-    {
-        Planet = planet;
-
-        if (planet == null)
-            return;
-
-        Roles = await Planet.GetRolesAsync();
-    }
-
-    public async Task OnOpened()
-    {
-        Member = memberContextMenu.SelectedMember;
-        MemberRoles = await Member.GetRolesAsync();
         StateHasChanged();
-    }
+	}
 
-    public async Task OpenBanModal()
-    {
-        ModalParameters par = new();
-        par.Add("Planet", Planet);
-        Modal.Show<BanUserComponent>("Ban User", par);
-        SetVisibility(false);
-    }
-
-    public async Task OnClickKick()
-    {
-        ConfirmModalData modalData =
+	public async Task OnClickKick()
+	{
+		ConfirmModalData modalData =
         new($"Kick {Member.Nickname}?",
              $"This will remove them from the planet.",
              "Confirm",
@@ -206,53 +110,12 @@
         modParams.Add("Data", modalData);
 
         Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
-    }
+	}
 
-    public void SetPosition(double x, double y)
-    {
-        this.x = x;
-        this.y = y;
-    }
-
-    public void SetVisibility(bool value)
-    {
-        this.visible = value;
-        StateHasChanged();
-    }
-
-    public async Task OnRoleClick(Role role, bool value)
-    {
-        TaskResult result;
-
-        if (value){
-            // Add role
-            JsonContent roleContent = JsonContent.Create(role);
-
-            
-
-            result = await ValourClient.PostAsync($"api/member/{Member.Id}/roles", roleContent);
-        }
-        else
-        {
-            // Remove role
-            result = await ValourClient.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
-        }
-
-        StateHasChanged();
-    }
-
-    public async Task OnModalClose(string modal_id)
-    {
-        if (Modal_Id == modal_id)
-        {
-            SetVisibility(false);
-        }
-    }
-
-    // Clean up properly
-    void IDisposable.Dispose()
-    {
-        memberContextMenu.OpenEvent -= OnOpened;
-    }
+	public async Task OnClickBan()
+	{
+		ModalParameters par = new();
+        par.Add("Member", Member);
+        Modal.Show<BanUserComponent>("Ban User", par);
+	}
 }
-

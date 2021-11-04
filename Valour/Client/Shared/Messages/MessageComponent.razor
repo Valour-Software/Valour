@@ -1,5 +1,4 @@
-﻿@inject MemberContextMenu memberContextMenu
-@inject IJSRuntime JS
+﻿@inject IJSRuntime JS
 @implements IDisposable
 
 @if (Message == null)
@@ -43,10 +42,11 @@
         <div class="message-content">
             @if (Author != null)
             {
-                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id"
-           @onmouseup="OnAuthorNameClick">
-                    @name
-                </p>
+                <ContextMenuTrigger MenuId="member-context" @onmousedown='() => MemberContextMenuComponent.Initialize(Author)' style='display:inline' >
+                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id">
+                        @name
+                    </p>
+                </ContextMenuTrigger>
 
                 <p class="role-name">
                     &nbsp;- @roleName
@@ -169,14 +169,6 @@
         await BuildMessage();
 
         ReRender();
-    }
-
-    public async Task OnAuthorNameClick(MouseEventArgs e)
-    {
-        if (e.Button == 2)
-        {
-            await memberContextMenu.Open(e, Author);
-        }
     }
 
     public async Task RefreshMessage()

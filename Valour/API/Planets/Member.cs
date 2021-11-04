@@ -112,6 +112,12 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// </summary>
     public async Task<bool> HasRoleAsync(Role role, bool force_refresh = false) =>
         await HasRoleAsync(role.Id, force_refresh);
+
+    /// <summary>
+    /// Returns the planet of the member
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync() =>
+        await Planet.FindAsync(Planet_Id);
     
     /// <summary>
     /// Returns the authority of the member

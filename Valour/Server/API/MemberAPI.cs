@@ -223,12 +223,12 @@ namespace Valour.Server.API
             if (role.GetAuthority() >= callerAuth)
             {
                 ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync("Can only add remove with lower authority than your own");
+                await ctx.Response.WriteAsync("Can only add or remove with lower authority than your own");
                 return;
             }
 
             // Ensure target member has less authority than caller
-            if (await target_member.GetAuthorityAsync() >= callerAuth)
+            if (target_member.User_Id != auth.User_Id && await target_member.GetAuthorityAsync() >= callerAuth)
             {
                 ctx.Response.StatusCode = 403;
                 await ctx.Response.WriteAsync("Target has higher or equal authority");
@@ -327,7 +327,7 @@ namespace Valour.Server.API
             }
 
             // Ensure target member has less authority than caller
-            if (await target_member.GetAuthorityAsync() >= callerAuth)
+            if (target_member.User_Id != auth.User_Id && await target_member.GetAuthorityAsync() >= callerAuth)
             {
                 ctx.Response.StatusCode = 403;
                 await ctx.Response.WriteAsync("Target has higher or equal authority");
@@ -444,6 +444,12 @@ namespace Valour.Server.API
             if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db)) { await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx); return; }
 
             var roleMember = await JsonSerializer.DeserializeAsync<ServerPlanetRoleMember>(ctx.Request.Body);
+
+            if (await db.PlanetRoleMembers.AnyAsync(x => x.Member_Id == member_id && x.Role_Id == roleMember.Role_Id))
+            {
+                await BadRequest("User already has role", ctx);
+                return;
+            }
 
             var role = await db.PlanetRoles.FindAsync(roleMember.Role_Id);
 

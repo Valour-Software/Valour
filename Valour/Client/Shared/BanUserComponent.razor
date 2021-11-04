@@ -26,8 +26,7 @@
 @code {
 
     [Parameter]
-    [EditorRequired]
-    public Planet Planet { get; set; }
+    public Member Member { get; set; }
 
     // Input fields
     ulong time;
@@ -54,11 +53,11 @@
         // Encode non-friendly characters
         string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
 
-        ulong Selecteduser_id = await JS.InvokeAsync<ulong>("GetSelectedUserId");
-
         ulong timeinminutes = time*24*60;
 
-        var response = await ValourClient.PostAsync($"api/planet/{Planet.Id}/members/{Selecteduser_id}/ban" +
+        var planet = await Member.GetPlanetAsync();
+
+        var response = await ValourClient.PostAsync($"api/planet/{planet.Id}/members/{Member.Id}/ban" +
                                                                    $"?reason={encodedreason}" +
                                                                    $"&time={(uint)timeinminutes}", null);
         
