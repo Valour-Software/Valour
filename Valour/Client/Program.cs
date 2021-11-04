@@ -48,10 +48,6 @@ namespace Valour.Client
             builder.Services.AddSingleton<MemberContextMenu>();
             builder.Services.AddSingleton<ChannelListContextMenu>();
             builder.Services.AddSingleton<AddChannelContextMenu>();
-            builder.Services.AddSingleton<ConfirmModal>();
-            builder.Services.AddSingleton<InfoModal>();
-            builder.Services.AddSingleton<CreatePlanetModal>();
-            builder.Services.AddSingleton<EditChannelListItemModal>();
 
             var host = builder.Build();
 

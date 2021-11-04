@@ -1188,6 +1188,17 @@ body {
     max-width: 1000px;
 }
 
+.modal-shrink-fit {
+    background-color: var(--main-2);
+    z-index: 200;
+    padding: 20px;
+    border-radius: 10px;
+    filter: drop-shadow(0px 0px 8px black);
+
+    max-height: 1000px;
+    max-width: 1000px;
+}
+
 .modal-main .blazored-modal-content {
     height: 100%;
     width: 100%;

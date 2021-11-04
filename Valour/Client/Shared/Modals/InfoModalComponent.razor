@@ -1,39 +1,33 @@
-@inject InfoModal infoModel
+<!-- This modal exists to allow parts of the app to give the user info -->
 
-<!-- This modal exists to allow parts of the app to ask for confirmation -->
-
-@if (visible)
-{
 <div class="modal info-modal" id="info-modal">
     <!-- Modal content -->
     <div class="modal-info-content">
         <div class="popup-box">
             <div class="col-md-12">
                 <section>
-                    <h2 style="font-size:1.5rem">@infoModel.title_text</h2>
-                    <h4 style="font-size:1rem">@infoModel.desc_text</h4>
+                    <h2 style="font-size:1.5rem">@Data.title_text</h2>
+                    <h4 style="font-size:1rem">@Data.desc_text</h4>
                     <hr />
                     <br />
-                    <div @onclick="infoModel.OnClick" class="btn btn-primary d-inline-block">@infoModel.button_text</div>
+                    <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
                 </section>
             </div>
         </div>
     </div>
 </div>
-}
 
 @code { 
 
-    public bool visible = false;
+    [CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        infoModel.Component = this;
-    }
+	[Parameter]
+	public InfoModalData Data { get; set; }
 
-    public void SetVisibility(bool value)
-    {
-        visible = value;
-        StateHasChanged();
-    }
+    public async Task OnClick()
+	{
+		await Data.ButtonEvent.Invoke();
+		await ModalInstance.CloseAsync();
+	}
 }
