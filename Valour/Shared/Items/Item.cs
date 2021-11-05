@@ -44,8 +44,15 @@ namespace Valour.Shared.Items
         /// </summary>
         public event Func<Task> OnDeleted;
 
+        public async virtual Task OnUpdate()
+        {
+
+        }
+
         public async Task InvokeUpdated()
         {
+            await OnUpdate();
+
             if (OnUpdated != null)
                 await OnUpdated?.Invoke();
         }

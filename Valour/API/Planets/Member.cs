@@ -19,6 +19,11 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// </summary>
     private List<Role> Roles = null;
 
+    public override async Task OnUpdate()
+    {
+        await LoadRolesAsync();
+    }
+
     /// <summary>
     /// Returns the member for the given id
     /// </summary>

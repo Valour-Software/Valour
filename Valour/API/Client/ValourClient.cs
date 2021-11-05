@@ -279,11 +279,11 @@ public static class ValourClient
 
         if (!skipEvent)
         {
-            // Invoke static "any" update
-            await local.InvokeAnyUpdated(local);
-
             // Invoke specific item update
             await local.InvokeUpdated();
+
+            // Invoke static "any" update
+            await local.InvokeAnyUpdated(local);
         }
     }
 
@@ -296,11 +296,11 @@ public static class ValourClient
 
         ValourCache.Remove<T>(item.Id);
 
-        // Invoke static "any" delete
-        await local.InvokeAnyDeleted(local);
-
         // Invoke specific item deleted
         await local.InvokeDeleted();
+
+        // Invoke static "any" delete
+        await local.InvokeAnyDeleted(local);
     }
 
     /// <summary>

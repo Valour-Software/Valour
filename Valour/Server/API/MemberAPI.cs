@@ -249,6 +249,8 @@ namespace Valour.Server.API
                 await db.SaveChangesAsync();
             }
 
+            PlanetHub.NotifyMemberChange(target_member);
+
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
 
@@ -336,6 +338,8 @@ namespace Valour.Server.API
 
             db.Remove(roleMember);
             await db.SaveChangesAsync();
+
+            PlanetHub.NotifyMemberChange(target_member);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -473,6 +477,8 @@ namespace Valour.Server.API
 
             await db.PlanetRoleMembers.AddAsync(roleMember);
             await db.SaveChangesAsync();
+
+            PlanetHub.NotifyMemberChange(target_member);
 
             ctx.Response.StatusCode = 201;
             await ctx.Response.WriteAsync(roleMember.Id.ToString());

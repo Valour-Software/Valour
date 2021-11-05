@@ -47,7 +47,10 @@
 	public async Task OnMemberUpdate(Member member)
 	{
 		if (member.Id == Member.Id)
+		{
+			MemberRoles = await Member.GetRolesAsync();
 			StateHasChanged();
+		}
 	}
 
 	public async Task OnRoleUpdate(Role role)
