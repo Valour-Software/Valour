@@ -27,7 +27,7 @@ namespace Valour.Shared.Items
         /// <summary>
         /// Run when any of this item type is updated
         /// </summary>
-        public static event Func<T, Task> OnAnyUpdated;
+        public static event Func<T, int, Task> OnAnyUpdated;
 
         /// <summary>
         /// Run when any of this item type is deleted
@@ -44,8 +44,15 @@ namespace Valour.Shared.Items
         /// </summary>
         public event Func<Task> OnDeleted;
 
-        public async Task InvokeUpdated()
+        public async virtual Task OnUpdate(int flags)
         {
+
+        }
+
+        public async Task InvokeUpdated(int flags)
+        {
+            await OnUpdate(flags);
+
             if (OnUpdated != null)
                 await OnUpdated?.Invoke();
         }
@@ -56,10 +63,10 @@ namespace Valour.Shared.Items
                 await OnDeleted?.Invoke();
         }
 
-        public async Task InvokeAnyUpdated(T updated)
+        public async Task InvokeAnyUpdated(T updated, int flags)
         {
             if (OnAnyUpdated != null)
-                await OnAnyUpdated?.Invoke(updated);
+                await OnAnyUpdated?.Invoke(updated, flags);
         }
 
         public async Task InvokeAnyDeleted(T deleted)

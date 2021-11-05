@@ -271,7 +271,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, bool skipEvent = false) where T : Item<T>
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item<T>
     {
         var local = ValourCache.Get<T>(updated.Id);
         if (local != null)
@@ -279,11 +279,11 @@ public static class ValourClient
 
         if (!skipEvent)
         {
-            // Invoke static "any" update
-            await local.InvokeAnyUpdated(local);
-
             // Invoke specific item update
-            await local.InvokeUpdated();
+            await local.InvokeUpdated(flags);
+
+            // Invoke static "any" update
+            await local.InvokeAnyUpdated(local, flags);
         }
     }
 
@@ -296,11 +296,11 @@ public static class ValourClient
 
         ValourCache.Remove<T>(item.Id);
 
-        // Invoke static "any" delete
-        await local.InvokeAnyDeleted(local);
-
         // Invoke specific item deleted
         await local.InvokeDeleted();
+
+        // Invoke static "any" delete
+        await local.InvokeAnyDeleted(local);
     }
 
     /// <summary>
@@ -327,7 +327,7 @@ public static class ValourClient
         Role.OnAnyDeleted += OnRoleDeleted;
     }
 
-    private static async Task OnChannelUpdated(Channel channel)
+    private static async Task OnChannelUpdated(Channel channel, int flags)
     {
         var planet = await Planet.FindAsync(channel.Planet_Id);
 
@@ -335,7 +335,7 @@ public static class ValourClient
             await planet.NotifyUpdateChannel(channel);
     }
 
-    private static async Task OnCategoryUpdated(Category category)
+    private static async Task OnCategoryUpdated(Category category, int flags)
     {
         var planet = await Planet.FindAsync(category.Planet_Id);
 
@@ -343,7 +343,7 @@ public static class ValourClient
             await planet.NotifyUpdateCategory(category);
     }
 
-    private static async Task OnRoleUpdated(Role role)
+    private static async Task OnRoleUpdated(Role role, int flags)
     {
         var planet = await Planet.FindAsync(role.Planet_Id);
 
@@ -483,19 +483,19 @@ public static class ValourClient
     {
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
 
-        HubConnection.On<Planet>("PlanetUpdate", i => UpdateItem(i));
+        HubConnection.On<Planet, int>("PlanetUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Planet>("PlanetDeletion", DeleteItem);
 
-        HubConnection.On<Channel>("ChannelUpdate", i => UpdateItem(i));
+        HubConnection.On<Channel, int>("ChannelUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Channel>("ChannelDeletion", DeleteItem);
 
-        HubConnection.On<Category>("CategoryUpdate", i => UpdateItem(i));
+        HubConnection.On<Category, int>("CategoryUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Category>("CategoryDeletion", DeleteItem);
 
-        HubConnection.On<Role>("RoleUpdate", i => UpdateItem(i));
+        HubConnection.On<Role, int>("RoleUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Role>("RoleDeletion", DeleteItem);
 
-        HubConnection.On<Member>("MemberUpdate", i => UpdateItem(i));
+        HubConnection.On<Member, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Member>("MemberDeletion", DeleteItem);
     }
 

@@ -194,7 +194,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(Category category)
+    public async Task OnCategoryUpdate(Category category, int flags)
     {
         if (Category.Id == category.Id)
         {
@@ -254,7 +254,7 @@
         }
     }
 
-    public async Task OnChatChannelUpdate(Channel channel)
+    public async Task OnChatChannelUpdate(Channel channel, int flags)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);

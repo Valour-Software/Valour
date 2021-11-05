@@ -19,6 +19,14 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// </summary>
     private List<Role> Roles = null;
 
+    public const int FLAG_UPDATE_ROLES = 0x01;
+
+    public override async Task OnUpdate(int flags)
+    {
+        if ((flags & FLAG_UPDATE_ROLES) != 0)
+            await LoadRolesAsync();
+    }
+
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
@@ -112,6 +120,12 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// </summary>
     public async Task<bool> HasRoleAsync(Role role, bool force_refresh = false) =>
         await HasRoleAsync(role.Id, force_refresh);
+
+    /// <summary>
+    /// Returns the planet of the member
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync() =>
+        await Planet.FindAsync(Planet_Id);
     
     /// <summary>
     /// Returns the authority of the member

@@ -22,7 +22,7 @@ public static class ValourCache
     /// <summary>
     /// Places an item into the cache
     /// </summary>
-    public static async Task Put<T>(object id, T obj, bool skipEvent = false) where T : Item<T>
+    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : Item<T>
     {
         // Empty object is ignored
         if (obj == null)
@@ -37,7 +37,7 @@ public static class ValourCache
 
         // If there is already an object with this ID, update it
         if (HCache[type].ContainsKey(id))
-            await ValourClient.UpdateItem(obj, skipEvent);
+            await ValourClient.UpdateItem(obj, flags, skipEvent);
         // Otherwise, place it into the cache
         else
             HCache[type][id] = obj;

@@ -43,9 +43,17 @@ namespace Valour.Client
             builder.Services.AddSingleton<ChannelListManager>();
 
             builder.Services.AddBlazoredModal();
+            builder.Services.AddBlazorContextMenu(options =>
+            {
+                options.ConfigureTemplate("main", template =>
+                {
+                    template.Animation = BlazorContextMenu.Animation.FadeIn;
+                    template.MenuCssClass = "context-menu";
+                    template.MenuItemCssClass = "context-menu-item";
+                });
+            });
 
             // Context menus and modals
-            builder.Services.AddSingleton<MemberContextMenu>();
             builder.Services.AddSingleton<ChannelListContextMenu>();
             builder.Services.AddSingleton<AddChannelContextMenu>();
 

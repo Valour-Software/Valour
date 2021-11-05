@@ -348,7 +348,7 @@
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(Role role)
+    public async Task OnRolesUpdate(Role role, int flags)
     {
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 

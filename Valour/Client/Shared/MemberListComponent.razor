@@ -52,7 +52,7 @@
         Role.OnAnyDeleted += OnRoleDeletion;
     }
 
-    public async Task OnMemberUpdate(Member member)
+    public async Task OnMemberUpdate(Member member, int flags)
     {
         // not awaited on purpose
         if (member.Planet_Id == windowManager.FocusedPlanet.Id)
@@ -71,7 +71,7 @@
         }
     }
 
-    public async Task OnRoleUpdate(Role role)
+    public async Task OnRoleUpdate(Role role, int flags)
     {
         // not awaited on purpose
         if (role.Planet_Id == windowManager.FocusedPlanet.Id)
