@@ -278,7 +278,7 @@
         ShouldRenderValue = false;
     }
 
-    public async Task OnRoleUpdate(Role role)
+    public async Task OnRoleUpdate(Role role, int flags)
     {
         if (role != null && primaryRole != null && role.Id == primaryRole.Id)
         {
@@ -298,7 +298,7 @@
         }
     }
 
-    public async Task OnMemberUpdate(Member member)
+    public async Task OnMemberUpdate(Member member, int flags)
     {
         if (member.Id == Author.Id)
         {

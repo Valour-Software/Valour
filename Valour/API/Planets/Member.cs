@@ -19,9 +19,12 @@ public class Member : Shared.Planets.PlanetMember<Member>
     /// </summary>
     private List<Role> Roles = null;
 
-    public override async Task OnUpdate()
+    public const int FLAG_UPDATE_ROLES = 0x01;
+
+    public override async Task OnUpdate(int flags)
     {
-        await LoadRolesAsync();
+        if ((flags & FLAG_UPDATE_ROLES) != 0)
+            await LoadRolesAsync();
     }
 
     /// <summary>

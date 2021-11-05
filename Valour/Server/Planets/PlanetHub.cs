@@ -95,17 +95,17 @@ namespace Valour.Server.Planets
         public async Task LeaveInteractionGroup(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
 
-        public static async void NotifyMemberChange(ServerPlanetMember member) =>
-            await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", member);
+        public static async void NotifyMemberChange(ServerPlanetMember member, int flags = 0) =>
+            await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", member, flags);
 
-        public static async void NotifyPlanetChange(ServerPlanet planet) =>
-            await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet);
+        public static async void NotifyPlanetChange(ServerPlanet planet, int flags = 0) =>
+            await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet, flags);
 
         public static async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
             await Current.Clients.Group($"i-{interaction.Planet_Id}").SendAsync("InteractionEvent", interaction);
 
-        public static async void NotifyRoleChange(ServerPlanetRole role) =>
-            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", role);
+        public static async void NotifyRoleChange(ServerPlanetRole role, int flags = 0) =>
+            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", role, flags);
 
         public static async Task NotifyCategoryDeletion(ServerPlanetCategory category) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", category);
@@ -116,10 +116,10 @@ namespace Valour.Server.Planets
         public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel) =>
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelDeletion", channel);
 
-        public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel) =>
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelUpdate", channel);
+        public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel, int flags = 0) =>
+            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelUpdate", channel, flags);
 
-        public static async void NotifyCategoryChange(ServerPlanetCategory category) =>
-            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category);
+        public static async void NotifyCategoryChange(ServerPlanetCategory category, int flags = 0) =>
+            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category, flags);
     }
 }
