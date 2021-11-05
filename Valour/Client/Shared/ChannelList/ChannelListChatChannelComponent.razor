@@ -80,7 +80,7 @@
         windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
     }
 
-    public async Task OnChatChannelUpdate(Channel channel)
+    public async Task OnChatChannelUpdate(Channel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {

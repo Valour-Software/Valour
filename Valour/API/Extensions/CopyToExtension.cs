@@ -20,7 +20,8 @@ namespace Valour.Api.Extensions
             foreach (var sourceField in type.GetFields())
             {
                 var targetField = type.GetField(sourceField.Name);
-                targetField.SetValue(target, sourceField.GetValue(source));
+                if (!targetField.IsStatic)
+                    targetField.SetValue(target, sourceField.GetValue(source));
             }
         }
     }
