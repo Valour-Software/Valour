@@ -307,91 +307,12 @@ function SetupWindow(index) {
 
 // When the user clicks anywhere outside of the modal, close it
 window.onpointerdown = function (event) {
-
     var id = 'null';
     if (event.target != null) {
         id = event.target.id;
     }
 
     DotNet.invokeMethodAsync('Valour.Client', 'OnClickInterop', id);
-
-    if (event.target.id != "add-channel-context-menu" &&
-        event.target.id != "add-channel-button") {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "add-channel-context-menu");
-    }
-
-    if (!isDescendant(event.target, "create-channel-modal-box") &&
-        !isDescendant(event.target, "create-channel-btn")) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-channel-modal");
-    }
-
-    if (!isDescendant(event.target, "create-category-modal-box") &&
-        !isDescendant(event.target, "create-category-btn")) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-category-modal");
-    }
-
-    //console.log(event.target.id);
-
-    if (!isDescendant(event.target, "ban-modal-box") &&
-        event.target.id != "ban-button" &&
-        event.target.id != "ban-button-inner") {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "ban-modal");
-    }
-
-    if (!isDescendant(event.target, "create-planet-modal-inner") &&
-        !isDescendant(event.target, "create-planet-button")) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "create-planet-modal");
-    }
-
-    //console.log(event.target.id);
-    //console.log(event.target.className);
-
-    if (!isDescendant(event.target, "edit-planet-modal-inner") &&
-        event.target.id != "edit-planet-button" && !event.target.className.includes('pcr')) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-planet-modal");
-    }
-
-    if (!isDescendant(event.target, "edit-channel-list-item-modal-inner") &&
-        !isDescendant(event.target, "edit-channel-list-item-btn")) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-channel-list-item-modal");
-    }
-
-    if (!isDescendant(event.target, "edit-user-modal-inner") &&
-        event.target.id != "user-edit-button") {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "edit-user-modal");
-    }
-
-    if (!isDescendant(event.target, "member-context-menu")) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "member-context-menu");
-    }
-
-    if (!isDescendant(event.target, "channel-context-menu")) {
-        DotNet.invokeMethodAsync('Valour.Client', 'CloseModalInterop', "channel-context-menu");
-    }
-}
-
-const isDescendant = (el, parentId) => {
-    let isChild = false
-
-    if (el.id === parentId) { //is this the element itself?
-        isChild = true
-    }
-
-    while (el = el.parentNode) {
-        if (el.id == parentId) {
-            isChild = true
-        }
-    }
-
-    return isChild
-}
-
-function GetParentId() {
-    return parseInt(ParentIdForModel)
-}
-
-function GetSelectedUserId() {
-    return parseInt(SelectedUserId)
 }
 
 async function postData(url = '', data = {}) {

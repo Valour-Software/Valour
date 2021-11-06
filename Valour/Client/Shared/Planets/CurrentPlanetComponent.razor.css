@@ -1,0 +1,41 @@
+.current-planet-info {
+    padding-top: 16px;
+    margin-left: 16px;
+    height: 115px;
+}
+
+.planet-name {
+    display: inline-block;
+}
+
+.settings {
+    display: inline-block;
+    margin: 0px;
+    margin-top: 10.96px;
+    margin-bottom: 10.96px;
+    margin-right: 10.96px;
+    margin-left: 36.4px;
+    float: right;
+    cursor: pointer;
+}
+
+.planet-desc {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    display: block;
+    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
+    font-size: 16px;
+    margin: 0px;
+    width: 100%;
+}
+
+.planet-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    display: inline-block;
+    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
+    font-size: 24px;
+}

@@ -1000,12 +1000,6 @@ body {
     mix-blend-mode: normal;
 }
 
-.channel-info {
-    padding: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid var(--main-5);
-}
-
 .channel-info .channel-buttons {
     float: right;
 }
@@ -1036,50 +1030,6 @@ body {
 .modal-content-EditUser .popup-box {
     height: 100%;
     width: 100%;
-}
-
-.current-planet-info {
-    padding-top: 16px;
-    margin-left: 16px;
-    height: 115px;
-}
-
-    .current-planet-info .planet-name {
-        display: inline-block;
-    }
-
-    .current-planet-info .settings {
-        display: inline-block;
-        margin: 0px;
-        margin-top: 10.96px;
-        margin-bottom: 10.96px;
-        margin-right: 10.96px;
-        margin-left: 36.4px;
-        float: right;
-        cursor: pointer;
-    }
-
-.channel-info .description {
-    display: inline-block;
-    width: 50%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: bottom;
-    margin-left: 16px;
-    margin-bottom: 8px;
-}
-
-.channel-info:hover .description {
-    white-space: pre-wrap;
-    overflow: visible;
-    margin-bottom: 8px;
-}
-
-.channel-info .title {
-    vertical-align: top;
-    display: inline-block;
-    font-size: 20px;
 }
 
 .tri-button {
@@ -1339,27 +1289,6 @@ btn-role-edit:hover edit {
     bottom: 10px;
 }
 
-.current-planet-info .planet-desc {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    word-wrap: break-word;
-    display: block;
-    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
-    font-size: 16px;
-    margin: 0px;
-    width: 100%;
-}
-
-.current-planet-info .planet-title {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    word-wrap: break-word;
-    display: inline-block;
-    max-height: 2.4em; /* a x number of line to show (ex : 2 line)  */
-    font-size: 24px;
-}
-
 /* Hide scrollbar for Chrome, Safari and Opera */
 .keep-scrolling::-webkit-scrollbar {
     display: none;
@@ -1428,10 +1357,6 @@ btn-role-edit:hover edit {
 
 #window-3:focus {
     outline: 2px solid var(--main5);
-}
-
-.content > p > strong{
-   font-weight: bold
 }
 
 td, th {
@@ -1533,32 +1458,6 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* End slider stuff */
-
-/* Dropout menu for user context*/
-
-/* Tri button stuff */
-.tri-button-back {
-    fill: #040d14;
-}
-
-.tri-button-hightlight {
-    opacity: 0.2;
-    pointer-events: none;
-}
-
-.tri-button-yes {
-    fill: #05ff00;
-}
-
-.tri-button-disabled {
-    fill: #ffad19;
-}
-
-.tri-button-no {
-    fill: #ef3a3a;
-}
-
 /* Invite page stuff */
 .invite-title {
     text-align: center;
@@ -1607,38 +1506,4 @@ blockquote {
     -ms-user-select: none; /* Internet Explorer/Edge */
     user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome, Edge, Opera and Firefox */
-}
-
-/* New context menus. They must be here, isolations will *not* work! */
-.context {
-    border: 3px solid var(--main-2);
-    background-color: var(--main-1) !important;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
-    -webkit-box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
-    border-radius: 5px;
-}
-
-.context-sub {
-    border: 3px solid var(--main-2);
-    background-color: var(--main-1) !important;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
-    -webkit-box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
-    border-radius: 5px;
-}
-
-.context:hover {
-    
-}
-
-.context-item {
-    border-radius: 5px;
-    border-bottom: 1px rgba(255, 255, 255, 20%) solid;
-    margin: 0;
-}
-.context-item:last-child {
-    border-bottom: none;
-}
-
-.context-item:hover {
-    background-color: rgba(255, 255, 255, 40%) !important;
 }

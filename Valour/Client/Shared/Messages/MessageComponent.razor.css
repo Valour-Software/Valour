@@ -273,3 +273,7 @@
     max-width: 90%;
     display: block;
 }
+
+::deep .content > p > strong{
+    font-weight: bold
+ }
