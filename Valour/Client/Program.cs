@@ -2,7 +2,6 @@ using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Valour.Client.Categories;
 using Microsoft.AspNetCore.Components;
-using Valour.Client.Modals.ContextMenus;
 using Valour.Client.Modals;
 using Valour.Client.Shared.ChannelList;
 using Valour.Api.Client;
@@ -52,10 +51,6 @@ namespace Valour.Client
                     template.MenuItemCssClass = "context-menu-item";
                 });
             });
-
-            // Context menus and modals
-            builder.Services.AddSingleton<ChannelListContextMenu>();
-            builder.Services.AddSingleton<AddChannelContextMenu>();
 
             var host = builder.Build();
 

@@ -1938,7 +1938,7 @@ blockquote {
 }
 
 /* New context menus. They must be here, isolations will *not* work! */
-.member-context {
+.context {
     border: 3px solid var(--main-1);
     background-color: var(--main-5) !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
@@ -1946,7 +1946,7 @@ blockquote {
     border-radius: 5px;
 }
 
-.member-context-sub {
+.context-sub {
     border: 3px solid var(--main-1);
     background-color: var(--main-5) !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
@@ -1954,18 +1954,18 @@ blockquote {
     border-radius: 5px;
 }
 
-.member-context:hover {
+.context:hover {
     
 }
 
-.member-context-item {
+.context-item {
     border-bottom: 1px black solid;
     margin: 0;
 }
-.member-context-item:last-child {
+.context-item:last-child {
     border-bottom: none;
 }
 
-.member-context-item:hover {
+.context-item:hover {
     background-color: rgba(0, 0, 0, 40%) !important;
 }

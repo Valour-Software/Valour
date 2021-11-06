@@ -1,6 +1,5 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 @using Valour.Shared.Categories
 
@@ -57,6 +56,9 @@
 
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
+
+    [Parameter]
+    public Category Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -115,8 +117,8 @@
 
         ulong user_id = ValourClient.Self.Id;
 
-        ulong parent_id = contextMenu.SelectedCategory.Id;
-        ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
+        ulong parent_id = Parent.Id;
+        ulong planet_id = Planet.Id;
 
         Channel newChannel = new()
         {

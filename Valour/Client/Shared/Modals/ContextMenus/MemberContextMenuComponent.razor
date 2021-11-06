@@ -1,15 +1,15 @@
-﻿<ContextMenu Id='member-context' CssClass='member-context' class='member-context'>
-	<Item OnClick='OnClickKick' CssClass='member-context-item'>Kick</Item>
-	<Item OnClick='OnClickBan' CssClass='member-context-item'>Ban</Item>
-	<Item CssClass='member-context-item'>
+﻿<ContextMenu Id='member-context' CssClass='context' class='member-context'>
+	<Item OnClick='OnClickKick' CssClass='context-item'>Kick</Item>
+	<Item OnClick='OnClickBan' CssClass='context-item'>Ban</Item>
+	<Item CssClass='context-item'>
 		Roles
-		<SubMenu CssClass='member-context-sub'>
+		<SubMenu CssClass='context-sub'>
 			@foreach (var role in Roles)
 			{
 				var cRole = role;
 				var hasRole = MemberRoles.Any(x => x.Id == role.Id);
 
-				<Item CssClass='member-context-item'>
+				<Item CssClass='context-item'>
 					<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
 						<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
 						<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"

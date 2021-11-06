@@ -1,17 +1,20 @@
 ﻿@implements IDisposable
 
 @inject ClientWindowManager windowManager
-@inject ChannelListContextMenu channelContextMenu
 @inject ChannelListManager listManager
 
-<div class="@Chosen_CSS" 
-     @onclick="OnClick" 
-     @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
-     @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id" @oncontextmenu="OnContextMenu">
-    <img class="chat-icon" src="media/Channel-Icon.svg">
-    <p class="channel-name">
-        @Channel.Name
-    </p>
+<div @onmousedown:stopPropagation='true'>
+    <ContextMenuTrigger MenuId='list-context' @onmousedown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
+        <div class="@Chosen_CSS" 
+            @onclick="OnClick"
+            @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
+            @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id">
+            <img class="chat-icon" src="media/Channel-Icon.svg">
+            <p class="channel-name">
+                @Channel.Name
+            </p>
+        </div>
+    </ContextMenuTrigger>
 </div>
 
 @code {
@@ -67,11 +70,6 @@
             }
         }
 
-    }
-
-    public async Task OnContextMenu(MouseEventArgs e)
-    {
-        await channelContextMenu.Open(e, Channel);
     }
 
     protected override async Task OnInitializedAsync()
