@@ -77,11 +77,11 @@ label {
     color: var(--font-color);
 }
 
-    .form-control:disabled {
-        background-color: var(--border-color);
-        border-color: var(--alt-border-color);
-        color: var(--font-color);
-    }
+.form-control:disabled {
+    background-color: var(--border-color);
+    border-color: var(--alt-border-color);
+    color: var(--font-color);
+}
 
 body {
     /* Theming */
@@ -92,68 +92,6 @@ body {
 
 .chat-holder {
     padding-right: 0.5rem;
-}
-
-.message {
-    width: 100%;
-    max-width: 100%;
-    padding-bottom: 0px;
-    padding-left: 4px;
-    position: relative;
-    min-height: 51.333px;
-}
-
-.message.mentioned {
-    border-left: 2px solid #ffac6c;
-    background: rgba(168, 115, 87, 0.15);
-}
-
-.multi-message {
-    width: 100%;
-    max-width: 100%;
-    margin-top: 0px;
-    margin-bottom: 0px;
-    padding-bottom: 0px;
-    padding-left: 4px;
-    position: relative;
-}
-
-.multi-message.mentioned {
-    border-left: 2px solid #ffac6c;
-    background: rgba(168, 115, 87, 0.15);
-}
-
-.mentioned .content {
-    margin-left: -2px !important;
-}
-
-.multi-message-content {
-    width: 100%;
-    margin-top: 0px;
-    margin-bottom: 0px;
-}
-
-.message:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.multi-message:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.ping-box {
-    background: #FD3B3B;
-    transform: matrix(-1, 0, 0, 1, 0, 0);
-    width: 3px;
-    height: 77px;
-}
-
-.message .ping {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 20px;
-    line-height: 23px;
 }
 
 .textbox {
@@ -192,221 +130,10 @@ body {
 
 }
 
-.message.ping {
-    background: rgba(253, 59, 59, 0.24);
-}
-
-.message.first {
-    margin-top: 41px;
-}
-
-.message .author-pfp {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    margin-top: 8px;
-    margin-left: 4px;
-    margin-right: 4px;
-}
-
-.message .author-name {
-    display: inline-block;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-size: 16px;
-    line-height: 25px;
-    margin: 0px;
-    margin-top: 0px;
-    vertical-align: top;
-}
-
-.message .role-name {
-    color: #ffffff;
-    opacity: 0.3;
-    font-style: italic;
-    display: inline-block;
-    margin: 0px;
-    margin-top: 4px;
-}
-
-.message .message-content {
-    display: inline-block;
-    margin-left: 3px;
-    margin-top: 4px;
-    vertical-align: top;
-    padding-left: 52px;
-    width: 100%;
-}
-
-.multi-message .message-content {
-    display: inline-block;
-    margin-left: 7px;
-    margin-top: 4px;
-    vertical-align: top;
-    width: 100%;
-}
-
-.content p {
-    margin: 0px;
-    word-break: break-word;
-}
-
-.content code {
-    margin: 0px;
-    word-break: break-word;
-}
-
-.content pre {
-    margin: 0px;
-    border-radius: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    word-break: break-word;
-    max-width: 90%;
-    padding: 5px;
-}
-
-.content img:before {
-    display: normal;
-    content: attr(href);
-    visibility: visible;
-}
-
-.content img {
-    max-width: 300px;
-    max-height: 300px;
-    margin-bottom: 10px;
-    display: block;
-    transition: all 0.125s ease;
-    transition-delay: 0s;
-}
-
-    .content img:hover {
-        max-width: 500px;
-        max-height: 500px;
-        transition: all 0.125s ease;
-        transition-delay: 0.5s;
-    }
-
-@media screen and (max-width: 992px) {
-    .content img {
-        max-width: 90%;
-        max-height: 90%;
-    }
-
-    .content img:hover {
-    }
-}
-
-.content a {
-    font-size: 0px;
-}
-
-.content a:after {
-    font-size: 16px;
-    content: attr(href);
-    visibility: visible;
-    left: 55px;
-    vertical-align: central;
-}
-
-.content .youtube {
-    max-width: 90%;
-    display: block;
-}
-
 video {
     /* override other styles to make responsive */
     width: 90% !important;
     height: auto !important;
-}
-
-.content .table {
-    max-width: 90%;
-    display: block;
-}
-
-
-.multi-message .content {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 300;
-    font-size: 16px;
-    line-height: 23px;
-    color: #FFFFFF;
-    margin: 0px;
-    margin-bottom: 0px;
-    word-break: break-all;
-    user-select: text;
-    padding-left: 48px;
-    width: 100%;
-    overflow: hidden;
-}
-
-.message .content {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 300;
-    font-size: 16px;
-    line-height: 23px;
-    color: #FFFFFF;
-    margin: 0px;
-    word-break: break-all;
-    user-select: text;
-    width: 100%;
-    overflow: hidden;
-}
-
-.message .time-container {
-    min-width: 48px;
-    position: absolute;
-    top: 0px;
-    top: 37px;
-}
-
-.multi-message .time-container {
-    min-width: 48px;
-    position: absolute;
-    top: 0px;
-}
-
-.message .time {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 11px;
-    line-height: 14px;
-    color: #7A7A7A;
-    margin: 0px;
-    display: none;
-    text-align: center;
-}
-
-.message:hover .time {
-    display: block;
-}
-
-.message:hover .author-pfp {
-    width: 30px;
-    height: 30px;
-    margin-left: 8px;
-    margin-right: 8px;
-}
-
-.multi-message:hover .time {
-    visibility: visible;
-}
-
-.multi-message .time {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 11px;
-    line-height: 14px;
-    color: #7A7A7A;
-    margin: 0px;
-    margin-top: 8px;
-    visibility: hidden;
-    text-align: center;
 }
 
 .topline {
@@ -1864,39 +1591,6 @@ blockquote {
     padding-left: 5px;
     margin: 0px;
     background-color: rgba(255, 255, 255, 0.01);
-}
-
-.cbtn-Normal {
-
-}
-  
-.create-component-title {
-    text-align: center;
-}
-
-.create-component-enter-info {
-    color: rgba(255, 255, 255, 0.75);
-}
-
-.create-component-enter-box {
-    background: #192630;
-    border: 1px solid #030B11;
-    box-sizing: border-box;
-    border-radius: 8px;
-}
-
-.create-component-roles-box {
-    background: #192630;
-    width:100%;
-    border-radius: 8px;
-    margin-top:12px;
-}
-
-.create-component-roles-box .role {
-    padding-left: 9px;
-    padding-right: 9px;
-    padding-top: 6px;
-    padding-bottom: 6px;
 }
 
 /* Fix for safari */

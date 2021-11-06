@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 
 <section>
-    <h2 class="create-component-title">Create a Category</h2>
+    <h2 class="title">Create a Category</h2>
 
     <div asp-validation-summary="All" class="text-info"></div>
     <div class="form-group mt-2"> 
@@ -24,7 +24,7 @@
 
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
-        <div class="create-component-roles-box">
+        <div class="roles-box">
             @foreach (Role role in Roles)
             {
                 <div class="role">
