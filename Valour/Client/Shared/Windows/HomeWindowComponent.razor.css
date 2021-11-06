@@ -1,0 +1,44 @@
+.home-server {
+    /*border: 1px solid rgba(255, 255, 255, 0.2);*/
+    border-radius: 5px;
+    width: 150px;
+    height: 160px;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.07);
+    display: inline-block;
+}
+
+.planet-card-icon {
+    width: 100px;
+    height: 100px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    align-self: end;
+    border-radius: 50%;
+    -webkit-transition: -webkit-transform .2s ease-in-out;
+    transition: transform .2s ease-in-out;
+}
+
+.planet-create-icon {
+    width: 100px;
+    height: 100px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    align-self: end;
+    -webkit-transition: -webkit-transform .2s ease-in-out;
+    transition: transform .2s ease-in-out;
+}
+
+.planet-create-icon:hover {
+    -webkit-transform: scale(1.05);
+    transform: scale(1.05);
+}
+
+.planet-card-icon:hover {
+    -webkit-transform: scale(1.05);
+    transform: scale(1.05);
+}
