@@ -1939,16 +1939,16 @@ blockquote {
 
 /* New context menus. They must be here, isolations will *not* work! */
 .context {
-    border: 3px solid var(--main-1);
-    background-color: var(--main-5) !important;
+    border: 3px solid var(--main-2);
+    background-color: var(--main-1) !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
     -webkit-box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
     border-radius: 5px;
 }
 
 .context-sub {
-    border: 3px solid var(--main-1);
-    background-color: var(--main-5) !important;
+    border: 3px solid var(--main-2);
+    background-color: var(--main-1) !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
     -webkit-box-shadow: 0 10px 20px rgba(0, 0, 0, 20%) !important;
     border-radius: 5px;
@@ -1959,7 +1959,8 @@ blockquote {
 }
 
 .context-item {
-    border-bottom: 1px black solid;
+    border-radius: 5px;
+    border-bottom: 1px rgba(255, 255, 255, 20%) solid;
     margin: 0;
 }
 .context-item:last-child {
@@ -1967,5 +1968,5 @@ blockquote {
 }
 
 .context-item:hover {
-    background-color: rgba(0, 0, 0, 40%) !important;
+    background-color: rgba(255, 255, 255, 40%) !important;
 }
