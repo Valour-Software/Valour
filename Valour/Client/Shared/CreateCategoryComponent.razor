@@ -1,6 +1,5 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject AddChannelContextMenu contextMenu
 @inject IJSRuntime JS
 
 <section>
@@ -68,6 +67,9 @@
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
 
+    [Parameter]
+    public Category Parent { get; set; }
+
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
 
@@ -107,8 +109,12 @@
             return;
         }
 
-        ulong planet_id = contextMenu.SelectedCategory.Planet_Id;
-        ulong parent_id = contextMenu.SelectedCategory.Id;
+        ulong planet_id = Planet.Id;
+        ulong? parent_id = null;
+        
+        if (Parent != null)
+            parent_id = Parent.Id;
+        
         ulong user_id = ValourClient.Self.Id;
         //string token = ValourClient.Token;
 

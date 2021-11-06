@@ -1,80 +1,79 @@
-﻿@inject ChannelListContextMenu channelListContextMenu
-@inject HttpClient Http
-@inject ClientWindowManager windowManager
+<ContextMenu Id='list-context' CssClass='context'>
 
-@if (visible)
-{
-    <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
-        <div id="edit-channel-list-item-btn" class="context-menu-item" @onclick="EditChannelListItem">
-            <p class="context-menu-item-text">
-                Edit
-            </p>
-        </div>
-        <div class="context-menu-item delete-context-menu-item" @onclick="DeleteChannelListItem">
-            <p class="context-menu-item-text">
-                Delete
-            </p>
-        </div>
-    </div>
-}
+    @if (SelectedItem.ItemType == ItemType.Category){
+        <Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</Item>
+        <Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</Item>
+    }
+
+    <Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</Item>
+    <Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</Item>
+</ContextMenu>
 
 @code {
-
-    public bool visible = false;
-
-    public double x;
-    public double y;
-
-    const string Modal_Id = "channel-context-menu";
-
-    [Parameter]
-    public ModalHolderComponent Holder { get; set; }
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    protected async override Task OnInitializedAsync()
-    {
-        channelListContextMenu.Component = this;
-        ModalHolderComponent.CloseModalEvent += OnModalClose;
+    public static IPlanetListItem SelectedItem { get; set; }
+
+    public static ChannelListContextMenuComponent Instance;
+
+    public static async Task SetSelectedItem(IPlanetListItem item){
+
+        Console.WriteLine(item.ItemType.ToString());
+
+        SelectedItem = item;
+        Instance.Refresh();
     }
 
-    public void SetPosition(double x, double y)
-    {
-        this.x = x;
-        this.y = y;
+    protected override async Task OnInitializedAsync(){
+        Instance = this;
     }
 
-    public void SetVisibility(bool value)
-    {
-        this.visible = value;
+    public void Refresh(){
         StateHasChanged();
     }
 
-    public async Task OnModalClose(string modal_id)
-    {
-        if (Modal_Id == modal_id)
-        {
-            SetVisibility(false);
+    public async Task OpenCreateChannel(){
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+
+        if (SelectedItem.ItemType == ItemType.Category){
+            modalParams.Add("Parent", SelectedItem);
         }
+        else{
+            modalParams.Add("Parent", null);
+        }
+
+        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+    }
+    
+    public async Task OpenCreateCategory(){
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+
+        if (SelectedItem.ItemType == ItemType.Category){
+            modalParams.Add("Parent", SelectedItem);
+        }
+        else{
+            modalParams.Add("Parent", null);
+        }
+
+        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
     }
 
-    public async Task DeleteChannelListItem()
-    {
+    public async Task DeleteChannelListItem(){
+        if (SelectedItem.ItemType == ItemType.Category){
+            var planet = await SelectedItem.GetPlanetAsync();
 
-        bool IsCategory = channelListContextMenu.SelectedItem.ItemType == ItemType.Category;
+            var channels = await planet.GetChannelsAsync();
+            var categories = await planet.GetCategoriesAsync();
 
-        if (IsCategory) {
-
-            ulong category_id = channelListContextMenu.SelectedItem.Id;
-
-            // get planet channels and categories
-
-            List<Channel> channels = await windowManager.FocusedPlanet.GetChannelsAsync();
-
-            List<Category> categories = await windowManager.FocusedPlanet.GetCategoriesAsync();
-
-            if (channels.Where(x => x.Parent_Id == category_id).Count() > 0 || categories.Where(x => x.Parent_Id == category_id).Count() > 0) {
+            // Ensure category has no children if we are deleting it
+            if (channels.Count(x => x.Parent_Id == SelectedItem.Id) > 0 || 
+                categories.Count(x => x.Parent_Id == SelectedItem.Id) > 0){
 
                 InfoModalData imodalData = 
                 new($"You can't delete this!",
@@ -93,16 +92,15 @@
             }
         }
 
-
         ConfirmModalData modalData =
-        new($"Delete {channelListContextMenu.SelectedItem.Name}?",
+        new($"Delete {SelectedItem.Name}?",
              "Are you sure?",
              "Continue",
              "Cancel", 
              async () =>
              {
                  Console.WriteLine("Confirmed channel item deletion.");
-                 var result = await channelListContextMenu.SelectedItem.DeleteAsync();
+                 var result = await SelectedItem.DeleteAsync();
                  Console.WriteLine("Deletion: " + result.Message);
 
              },
@@ -121,10 +119,7 @@
     public async Task EditChannelListItem()
     {
         ModalParameters modParams = new();
-        modParams.Add("ChannelListItem", channelListContextMenu.SelectedItem);
-
+        modParams.Add("ChannelListItem", SelectedItem);
         Modal.Show<EditChannelListItemComponent>("Edit Channel Item", modParams);
-        await channelListContextMenu.Close();
     }
 }
-

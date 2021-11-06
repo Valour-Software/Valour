@@ -42,7 +42,7 @@
         <div class="message-content">
             @if (Author != null)
             {
-                <ContextMenuTrigger MenuId="member-context" @onmousedown='() => MemberContextMenuComponent.Initialize(Author)' style='display:inline' >
+                <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await MemberContextMenuComponent.Initialize(Author)' style='display:inline' >
                     <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id">
                         @name
                     </p>
