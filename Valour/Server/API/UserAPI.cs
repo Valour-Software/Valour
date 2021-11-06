@@ -181,9 +181,8 @@ namespace Valour.Server.API
             // Modify old credentials
 
             // Generate salt
-            byte[] salt = new byte[32];
-            PasswordManager.GenerateSalt(salt);
-
+            byte[] salt = PasswordManager.GenerateSalt();
+            
             // Generate password hash
             byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
 
@@ -242,8 +241,7 @@ namespace Valour.Server.API
             // At this point the safety checks are complete
 
             // Generate random salt
-            byte[] salt = new byte[32];
-            PasswordManager.GenerateSalt(salt);
+            byte[] salt = PasswordManager.GenerateSalt();
 
             // Generate password hash
             byte[] hash = PasswordManager.GetHashForPassword(password, salt);

@@ -173,7 +173,7 @@
     public async Task CloseWindow()
     {
         windowManager.CloseWindow(Window.Index);
-        await IndexPage.ForceRefresh();
+        IndexPage.ForceRefresh();
 
         // This must be last (again)
         await ValourClient.CloseChannel(Channel);

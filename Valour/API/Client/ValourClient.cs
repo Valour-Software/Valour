@@ -476,10 +476,10 @@ public static class ValourClient
 
         await HubConnection.StartAsync();
 
-        await HookSignalREvents();
+        HookSignalREvents();
     }
 
-    private static async Task HookSignalREvents()
+    private static void HookSignalREvents()
     {
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
 

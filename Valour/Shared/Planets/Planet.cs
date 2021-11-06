@@ -32,7 +32,7 @@ namespace Valour.Shared.Planets
         /// The description of the planet
         /// </summary>
         [JsonPropertyName("Description")]
-        public string? Description { get; set; }
+        public string Description { get; set; }
 
         /// <summary>
         /// If the server requires express allowal to join a planet
