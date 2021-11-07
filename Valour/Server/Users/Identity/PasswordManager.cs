@@ -39,12 +39,9 @@ namespace Valour.Shared.Users.Identity
         /// <summary>
         /// Generates random salt for use in passwords
         /// </summary>
-        public static void GenerateSalt(byte[] salt)
+        public static byte[] GenerateSalt()
         {
-            using (var random = new RNGCryptoServiceProvider())
-            {
-                random.GetNonZeroBytes(salt);
-            }
+            return RandomNumberGenerator.GetBytes(HASH_SIZE);
         }
     }
 }

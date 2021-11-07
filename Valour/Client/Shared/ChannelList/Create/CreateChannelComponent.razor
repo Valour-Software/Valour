@@ -1,18 +1,19 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject IJSRuntime JS
+@using Valour.Shared.Categories
 
 <section>
-    <h2 class="create-component-title">Create a Category</h2>
+    <h2 class="title">Create a Channel</h2>
 
     <div asp-validation-summary="All" class="text-info"></div>
-    <div class="form-group mt-2"> 
-        <label>Category Name</label>
+    <div class="form-group mt-2">
+        <label>Channel Name</label>
         <input class="form-control" @bind-value="@name" />
     </div>
     <div style="margin-top:20px;">
         <div class="perm-list-name mb-1">
-            Private Category
+            Private Channel
         </div>
         <div type="button" style="float: right">
             <label class="switch">
@@ -23,8 +24,8 @@
     </div>
 
     @if (isprivate) {
-        <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
-        <div class="create-component-roles-box">
+        <label style="margin-top: 12px;">Who can see and send messages in this channel?</label>
+        <div class="roles-box">
             @foreach (Role role in Roles)
             {
                 <div class="role">
@@ -51,18 +52,7 @@
         </center>
     </div>
 </section>
-
 @code {
-
-    // Input fields
-    string name;
-
-    // Spans
-    string imageSpan = "";
-    Dictionary<Role, bool> SelectedRoles = new();
-
-    List<Role> Roles = new();
-    bool isprivate = false;
 
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
@@ -73,16 +63,30 @@
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
 
+    // Input fields
+    string name;
+
+    // Spans
+    string imageSpan = "";
+    Dictionary<Role, bool> SelectedRoles = new Dictionary<Role, bool>();
+
+    List<Role> Roles = new List<Role>();
+    bool isprivate = false;
+
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
 
         Member SelfMember = await ValourClient.GetSelfMember(Planet);
 
-        var roles = await Planet.GetRolesAsync();
-
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
-        foreach (Role item in roles)
+
+        var roleResponse = await Planet.GetRolesAsync();
+
+        if (roleResponse is not null)
+            return;
+
+        foreach (Role item in roleResponse)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -95,6 +99,7 @@
     private void SwitchRole(Role role) {
         SelectedRoles[role] = !SelectedRoles[role];
     }
+
     private void PrivateSwitch() {
         isprivate = !isprivate;
     }
@@ -105,54 +110,73 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
-            name = "Please input a category name.";
+            name = "Please input a channel name.";
             return;
         }
 
-        ulong planet_id = Planet.Id;
-        ulong? parent_id = null;
-        
-        if (Parent != null)
-            parent_id = Parent.Id;
-        
-        ulong user_id = ValourClient.Self.Id;
-        //string token = ValourClient.Token;
 
-        Category category = new(){
+        ulong user_id = ValourClient.Self.Id;
+
+        ulong parent_id = Parent.Id;
+        ulong planet_id = Planet.Id;
+
+        Channel newChannel = new()
+        {
             Name = name,
-            Description = "A category",
-            Parent_Id = parent_id,
-            Planet_Id = planet_id
+            Planet_Id = planet_id,
+            Parent_Id = parent_id
         };
 
-        var response = await ValourClient.PostAsync($"api/planet/{planet_id}/categories", category);
+        JsonContent content = JsonContent.Create(newChannel);
 
-        if (!response.Success)
+        var create_response = await Http.PostAsync($"api/planet/{planet_id}/channels", content);
+
+        if (!create_response.IsSuccessStatusCode)
         {
-            imageSpan = "An error occured retrieving a response. Please try again.";
+            string errorText = $"Error ({create_response.StatusCode}): " + await create_response.Content.ReadAsStringAsync();
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
             return;
         }
 
-        ulong category_id = ulong.Parse(response.Message);
+        ulong channel_id;
+        bool id_parsed = ulong.TryParse(await create_response.Content.ReadAsStringAsync(), out channel_id);
 
-        imageSpan = "Success";
+        if (!id_parsed)
+        {
+            string errorText = "Error: Failed to parse result.";
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
+            return;
+        }
+
+        imageSpan = "Success.";
 
         if (isprivate) {
             // set the default role channel view perms to false
 
             PermissionsNode PermissionsNode = new()
             {
-                Target_Id = category_id,
-                Planet_Id = planet_id,
+                Target_Id = channel_id,
+                Planet_Id = Planet.Id,
                 Role_Id = Planet.Default_Role_Id,
                 Mask = 0x00,
                 Code = 0x00,
-                Target_Type = ItemType.Category
+                Target_Type = ItemType.Channel
             };
 
-            PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
+            PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
+            PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
+            PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
-            response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
+            var response = await ValourClient.PostAsync($"api/node", PermissionsNode);
+
+            if (!response.Success)
+            {
+                string errorText = $"Error: " + response.Message;
+                Console.WriteLine(errorText);
+                imageSpan = errorText;
+            }
 
             foreach (Role role in Roles)
             {
@@ -161,25 +185,33 @@
                     continue;
                 }
 
-                PermissionsNode = new()
+                PermissionsNode = new PermissionsNode()
                 {
-                    Target_Id = category_id,
-                    Planet_Id = planet_id,
+                    Target_Id = channel_id,
+                    Planet_Id = Planet.Id,
                     Role_Id = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    Target_Type = ItemType.Category
+                    Target_Type = ItemType.Channel
                 };
 
-                PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
+                PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
+                PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
+                PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
-                // TODO: Clean this
+                response = await ValourClient.PostAsync($"api/node", PermissionsNode);
+
+                if (!response.Success)
+                {
+                    string errorText = $"Error: " + response.Message;
+                    Console.WriteLine(errorText);
+                    imageSpan = errorText;
+                }
             }
         }
 
-        // close model
-        await ModalInstance.CloseAsync();
+        // close modal
+        await ModalInstance.CloseAsync();   
     }
 
     private async Task OnImageInput()

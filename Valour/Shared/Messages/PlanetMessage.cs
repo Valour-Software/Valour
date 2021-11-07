@@ -14,8 +14,5 @@ namespace Valour.Shared.Messages
     {
         [JsonPropertyName("Planet_Id")]
         public ulong Planet_Id { get; set; }
-
-        [JsonPropertyName("Member_Id")]
-        public ulong Member_Id { get; set; }
     }
 }

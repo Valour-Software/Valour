@@ -1,0 +1,135 @@
+﻿@using System.Net.Http.Headers
+@inject HttpClient http
+
+<h3>Basic Planet Information</h3>
+<hr />
+<br />
+
+<div class="settings-inner">
+    <p>Name</p>
+    <input class="form-control" type="text" @bind-value="@nameValue" />
+    <span class="text-danger">@nameSpan</span>
+
+    <br />
+
+    <p>Description</p>
+    <input class="form-control" type="text" @bind-value="@descValue" />
+    <span class="text-danger">@descSpan</span>
+
+    <br/>
+
+    <p>Icon</p>
+
+    <div>
+        <img @bind-src='Image_Url' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
+        <div style="display:inline-block">
+            <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
+            <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
+            <span id="error-span" style="display:block" class="text-danger">@Image_Error</span>
+        </div>
+    </div>
+
+    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
+</div>
+
+
+@code {
+
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    public string nameValue;
+    public string descValue;
+
+    public string nameSpan;
+    public string descSpan;
+
+    // Image fields
+    public string Image_Url;
+    public string Image_Output;
+    public string Image_Error;
+
+    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
+    {
+        { "accept", ".png,.jpg,.jpeg,.gif" },
+    };
+
+    protected async Task OnPfpError()
+    {
+        Image_Url = "/icon-512.png";
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Image_Url = Planet.Image_Url;
+        nameValue = Planet.Name;
+        descValue = Planet.Description;
+
+        StateHasChanged();
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        Image_Output = "";
+        Image_Error = "";
+
+        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
+
+        var file = e.File;
+
+        if (file == null)
+        {
+            Image_Error = "Could not load file as an image.";
+        }
+
+        if (file.Size > 8388608)
+        {
+            Image_Error = "Max planet image size is 8mb.";
+        }
+
+        byte[] data = new byte[file.Size];
+
+        await file.OpenReadStream(2621440).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/PlanetImage?planet_id={Planet.Id}", content);
+
+        if (result.Success)
+        {
+            Image_Url = result.Data;
+            Console.WriteLine("Response from VMPS: " + result.Data);
+            Image_Output = "Successfully changed profile picture.";
+        }
+        else
+        {
+            Image_Error = result.Message;
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnSaveChanges()
+    {
+        if (nameValue != Planet.Name)
+        {
+            TaskResult result = await Planet.TrySetNameAsync(nameValue);
+            nameSpan = result.Message;
+        }
+
+        if (descValue != Planet.Description)
+        {
+            TaskResult result = await Planet.TrySetDescriptionAsync(descValue);
+            descSpan = result.Message;
+        }
+
+        StateHasChanged();
+    }
+
+}

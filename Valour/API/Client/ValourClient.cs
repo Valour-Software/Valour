@@ -476,10 +476,10 @@ public static class ValourClient
 
         await HubConnection.StartAsync();
 
-        await HookSignalREvents();
+        HookSignalREvents();
     }
 
-    private static async Task HookSignalREvents()
+    private static void HookSignalREvents()
     {
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
 
@@ -759,11 +759,49 @@ public static class ValourClient
         }
         else
         {
-            result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;
     }
+
+    /// <summary>
+    /// Posts a multipart resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, MultipartFormDataContent content)
+    {
+        var response = await Http.PostAsync(uri, content);
+
+        TaskResult<T> result = new TaskResult<T>()
+        {
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed POST response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+        else
+        {
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+        }
+
+        return result;
+    }
+
 
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
@@ -792,7 +830,10 @@ public static class ValourClient
         }
         else
         {
-            result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;

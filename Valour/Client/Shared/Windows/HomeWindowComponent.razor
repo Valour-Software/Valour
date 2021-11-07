@@ -103,9 +103,9 @@
         await RefreshWindow.InvokeAsync(windowManager.GetWindow(Window.Index));
     }
 
-    public async Task CloseWindow()
+    public void CloseWindow()
     {
         windowManager.CloseWindow(Window.Index);
-        await IndexPage.ForceRefresh();
+        IndexPage.ForceRefresh();
     }
 }

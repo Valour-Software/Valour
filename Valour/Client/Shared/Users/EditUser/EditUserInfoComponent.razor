@@ -7,7 +7,7 @@
 
 <div>
     <h5>Profile Image (pfp)</h5>
-    <img style="width:128px; border:solid 4px white; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
+    <img style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
     <div style="display:inline-block">
         <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
         <span id="result-span" style="display:block" class="text-info">@Pfp_Output</span>
