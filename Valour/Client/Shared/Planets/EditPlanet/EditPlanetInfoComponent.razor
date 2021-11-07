@@ -1,4 +1,5 @@
-﻿@inject HttpClient http
+﻿@using System.Net.Http.Headers
+@inject HttpClient http
 
 <h3>Basic Planet Information</h3>
 <hr />
@@ -15,11 +16,22 @@
     <input class="form-control" type="text" @bind-value="@descValue" />
     <span class="text-danger">@descSpan</span>
 
+    <div>
+        <h5>Planet Icon</h5>
+        <img style="width:128px; border:solid 4px white; margin: 5px; border-radius: 5px;" src="@Image_Url" @onerror="OnPfpError" />
+        <div style="display:inline-block">
+            <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
+            <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
+            <span id="error-span" style="display:block" class="text-danger">@Image_Error</span>
+        </div>
+    </div>
+
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 </div>
 
 
 @code {
+
     [Parameter]
     public Planet Planet { get; set; }
 
@@ -29,10 +41,72 @@
     public string nameSpan;
     public string descSpan;
 
+    // Image fields
+    public string Image_Url;
+    public string Image_Output;
+    public string Image_Error;
+
+    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
+    {
+        { "accept", ".png,.jpg,.jpeg,.gif" }
+    };
+
+    protected async Task OnPfpError()
+    {
+        Image_Url = "/icon-512.png";
+
+        StateHasChanged();
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        Image_Url = Planet.Image_Url;
         nameValue = Planet.Name;
         descValue = Planet.Description;
+
+        StateHasChanged();
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        Image_Output = "";
+        Image_Error = "";
+
+        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
+
+        var file = e.File;
+
+        if (file == null)
+        {
+            Image_Error = "Could not load file as an image.";
+        }
+
+        if (file.Size > 2621440)
+        {
+            Image_Error = "Max planet image size is 2mb.";
+        }
+
+        byte[] data = new byte[file.Size];
+
+        await file.OpenReadStream(2621440).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/ProfileImage", content);
+
+        if (result.Success)
+        {
+            Image_Url = result.Data;
+            Image_Output = "Successfully changed profile picture.";
+        }
+        else
+        {
+            Image_Error = result.Message;
+        }
 
         StateHasChanged();
     }
