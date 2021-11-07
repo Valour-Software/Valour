@@ -16,9 +16,12 @@
     <input class="form-control" type="text" @bind-value="@descValue" />
     <span class="text-danger">@descSpan</span>
 
+    <br/>
+
+    <p>Icon</p>
+
     <div>
-        <h5>Planet Icon</h5>
-        <img style="width:128px; border:solid 4px white; margin: 5px; border-radius: 5px;" src="@Image_Url" @onerror="OnPfpError" />
+        <img @bind-src='Image_Url' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
         <div style="display:inline-block">
             <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
             <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
@@ -48,7 +51,7 @@
 
     Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
     {
-        { "accept", ".png,.jpg,.jpeg,.gif" }
+        { "accept", ".png,.jpg,.jpeg,.gif" },
     };
 
     protected async Task OnPfpError()
@@ -81,9 +84,9 @@
             Image_Error = "Could not load file as an image.";
         }
 
-        if (file.Size > 2621440)
+        if (file.Size > 8388608)
         {
-            Image_Error = "Max planet image size is 2mb.";
+            Image_Error = "Max planet image size is 8mb.";
         }
 
         byte[] data = new byte[file.Size];
@@ -96,11 +99,12 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/ProfileImage", content);
+        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/PlanetImage?planet_id={Planet.Id}", content);
 
         if (result.Success)
         {
             Image_Url = result.Data;
+            Console.WriteLine("Response from VMPS: " + result.Data);
             Image_Output = "Successfully changed profile picture.";
         }
         else

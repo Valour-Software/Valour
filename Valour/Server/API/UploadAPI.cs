@@ -7,7 +7,11 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Oauth;
+using Valour.Shared.Roles;
+using Valour.Shared.Oauth;
 using System.IO;
+
+using Microsoft.EntityFrameworkCore;
 
 using Microsoft.AspNetCore.Hosting;
 using Valour.Server.MPS;
@@ -129,21 +133,41 @@ namespace Valour.Server.API
             }
         }
 
-        private static async Task PlanetImageRoute(HttpContext context, HttpClient http, ValourDB db, ulong planet_id)
+        private static async Task PlanetImageRoute(HttpContext context, HttpClient http, ValourDB db, ulong planet_id,
+                                                   [FromHeader] string authorization)
         {
-            if (!context.Request.Query.TryGetValue("auth", out var auth))
-            {
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("Unauthorized. Include auth.");
-                return;
-            }
-
-            var authToken = await ServerAuthToken.TryAuthorize(auth, db);
+            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
 
             if (authToken == null)
             {
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized.");
+                return;
+            }
+
+            if (!authToken.HasScope(UserPermissions.PlanetManagement)){
+                await Unauthorized("Token lacks UserPermissions.PlanetManagement scope", context);
+                return;
+            }
+
+            var planet = await db.Planets.FindAsync(planet_id);
+
+            if (planet is null){
+                await BadRequest("Planet not found", context);
+                return;
+            }
+
+            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
+                                                                         x.Planet_Id == planet_id);
+
+
+            if (member is null){
+                await BadRequest("Member not found", context);
+                return;
+            }
+
+            if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db)){
+                await Unauthorized("Member lacks PlanetPermissions.Manage", context);
                 return;
             }
 
@@ -218,7 +242,6 @@ namespace Valour.Server.API
             // Change user pfp in database
             if (response.IsSuccessStatusCode)
             {
-                var planet = await db.Planets.FindAsync(planet_id);
                 planet.Image_Url = await response.Content.ReadAsStringAsync();
                 await db.SaveChangesAsync();
             }
