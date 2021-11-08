@@ -18,11 +18,7 @@
 <div class="flex-row flex-wrap m-5">
     @foreach (Planet planet in ValourClient.JoinedPlanets)
     {
-
-        <div class="home-server m-2" style="cursor: pointer" @onclick="(e => OnPlanetClick(planet))">
-            <h6 class="text-center">@planet.Name</h6>
-            <img class="planet-card-icon" src="@planet.Image_Url" />
-        </div>
+        <PlanetCardComponent Planet='planet' Window='Window'></PlanetCardComponent>
     }
 
     <div class="home-server m-2" @onclick='() => Modal.Show<CreatePlanetComponent>("Create Planet", new ModalOptions() { Class = "modal-shrink-fit" })' style="cursor: pointer;" id="create-planet-button">
@@ -57,10 +53,10 @@
 @code {
 
     [Parameter]
-    public HomeWindow Window { get; set; }
+    public MainWindowComponent MainWindow { get; set; }
 
     [Parameter]
-    public EventCallback<ClientWindow> RefreshWindow { get; set; }
+    public HomeWindow Window { get; set; }
 
     [Parameter]
     public Valour.Client.Pages.Index IndexPage { get; set; }
@@ -81,26 +77,6 @@
     public async Task OnNewPlanetClick()
     {
         navManager.NavigateTo("createplanet");
-    }
-
-    public async Task OnPlanetClick(Planet planet)
-    {
-        // Load planet first for personal reasons (let me keep the kids thanks)
-        await ValourClient.OpenPlanet(planet);
-        await windowManager.SetFocusedPlanet(planet);
-
-        Channel channel = await planet.GetPrimaryChannelAsync();
-
-        Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
-
-        var newWindow = new ChatChannelWindow(Window.Index, channel);
-
-        windowManager.SetWindow(Window.Index, newWindow);
-        await windowManager.SetSelectedWindow(Window.Index);
-
-        StateHasChanged();
-
-        await RefreshWindow.InvokeAsync(windowManager.GetWindow(Window.Index));
     }
 
     public void CloseWindow()

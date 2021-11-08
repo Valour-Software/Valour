@@ -1,0 +1,34 @@
+@inject ClientWindowManager windowManager
+
+<div class="home-server m-2" style="cursor: pointer" @onclick="OnClick">
+    <h6 class="text-center">@Planet.Name</h6>
+    <img class="planet-card-icon" src="@Planet.Image_Url" />
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [Parameter]
+    public HomeWindow Window { get; set; }
+
+    public async Task OnClick()
+    {
+        // Load planet first for personal reasons (let me keep the kids thanks)
+        await ValourClient.OpenPlanet(Planet);
+        await windowManager.SetFocusedPlanet(Planet);
+
+        Channel channel = await Planet.GetPrimaryChannelAsync();
+
+        Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
+
+        var newWindow = new ChatChannelWindow(Window.Index, channel);
+
+        windowManager.SetWindow(Window.Index, newWindow);
+        await windowManager.SetSelectedWindow(Window.Index);
+
+        Window.MainComponent.RefreshWindow(newWindow);
+
+        StateHasChanged();
+    }
+}

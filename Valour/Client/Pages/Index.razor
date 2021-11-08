@@ -75,32 +75,32 @@
 
 				@if (windowManager.GetWindowCount() == 1)
 				{
-					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+					<MainWindowComponent @ref='windowManager.GetWindow(0).MainComponent' IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
 				}
 				else if (windowManager.GetWindowCount() == 2)
 				{
-					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
+					<MainWindowComponent @ref='windowManager.GetWindow(1).MainComponent' IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+					<MainWindowComponent @ref='windowManager.GetWindow(2).MainComponent' IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
 				}
 				else if (windowManager.GetWindowCount() == 3)
 				{
 					<div id="window-col1" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(1).MainComponent' IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
 					</div>
 					<div id="window-col2" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(2).MainComponent' IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(3).MainComponent' IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
 					</div>
 				}
 				else if (windowManager.GetWindowCount() == 4)
 				{
 					<div id="window-col1" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(1).MainComponent' IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(2).MainComponent' IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
 					</div>
 					<div id="window-col2" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(3).MainComponent' IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
+						<MainWindowComponent @ref='windowManager.GetWindow(4).MainComponent' IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
 					</div>
 				}
 			</div>

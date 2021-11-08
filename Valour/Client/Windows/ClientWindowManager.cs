@@ -5,7 +5,7 @@ using Valour.Client.Messages;
 using Valour.Client.Planets;
 using Valour.Client.Shared.Windows.PlanetChannelWindow;
 
-namespace Valour.Client
+namespace Valour.Client.Windows
 {
     /// <summary>
     /// This tracks and manages the open windows for the client
@@ -269,66 +269,6 @@ namespace Valour.Client
                     chat.Component.MessageHolder.ForceRefresh();
                 }
             }
-        }
-    }
-
-    public class ClientWindow
-    {
-        /// <summary>
-        /// The index of this window
-        /// </summary>
-        public int Index { get; set; }
-
-        /// <summary>
-        /// True if a render is needed
-        /// </summary>
-        public bool NeedsRender { get; set; }
-
-        public ClientWindow(int index)
-        {
-            this.Index = index;
-        }
-
-        public virtual void OnClosed()
-        {
-
-        }
-    }
-
-    public class HomeWindow : ClientWindow
-    {
-        public HomeWindow(int index) : base(index)
-        {
-            
-        }
-    }
-
-    public class ChatChannelWindow : ClientWindow
-    {
-        /// <summary>
-        /// The channel this window represents
-        /// </summary>
-        public Channel Channel { get; set; }
-
-        /// <summary>
-        /// The component that belongs to this window
-        /// </summary>
-        public ChannelWindowComponent Component { get; set; }
-
-        public ChatChannelWindow(int index, Channel channel) : base(index)
-        {
-            this.Channel = channel;
-        }
-
-        public override void OnClosed()
-        {
-            // Must be after SetChannelWindowClosed
-            base.OnClosed();
-
-            Task.Run(async () =>
-            {
-                await Component.OnWindowClosed();
-            });
         }
     }
 }
