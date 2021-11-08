@@ -1,5 +1,5 @@
 using Valour.Api.Planets;
-using Valour.Client.Shared.Windows.PlanetChannelWindow;
+using Valour.Client.Shared.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows;
 
@@ -15,6 +15,8 @@ public class ChatChannelWindow : ClientWindow
     /// </summary>
     public ChannelWindowComponent Component { get; set; }
 
+    public override Type GetComponentType() =>
+        typeof(ChannelWindowComponent);
     public ChatChannelWindow(int index, Channel channel) : base(index)
     {
         this.Channel = channel;

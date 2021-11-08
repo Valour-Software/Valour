@@ -53,13 +53,7 @@
 @code {
 
     [Parameter]
-    public MainWindowComponent MainWindow { get; set; }
-
-    [Parameter]
     public HomeWindow Window { get; set; }
-
-    [Parameter]
-    public Valour.Client.Pages.Index IndexPage { get; set; }
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
@@ -82,6 +76,5 @@
     public void CloseWindow()
     {
         windowManager.CloseWindow(Window.Index);
-        IndexPage.ForceRefresh();
     }
 }

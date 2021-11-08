@@ -24,10 +24,8 @@
 
         var newWindow = new ChatChannelWindow(Window.Index, channel);
 
-        windowManager.SetWindow(Window.Index, newWindow);
+        await windowManager.SetWindow(Window.Index, newWindow);
         await windowManager.SetSelectedWindow(Window.Index);
-
-        Window.MainComponent.RefreshWindow(newWindow);
 
         StateHasChanged();
     }

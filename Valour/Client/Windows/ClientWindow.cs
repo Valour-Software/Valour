@@ -1,8 +1,7 @@
-namespace Valour.Client.Windows;
-
 using Valour.Client.Shared.Windows;
 
-public class ClientWindow
+namespace Valour.Client.Windows;
+public abstract class ClientWindow
 {
     /// <summary>
     /// The index of this window
@@ -14,15 +13,12 @@ public class ClientWindow
     /// </summary>
     public bool NeedsRender { get; set; }
 
-    /// <summary>
-    /// The main window parent component
-    /// </summary>
-    public MainWindowComponent MainComponent { get; set; }
-
     public ClientWindow(int index)
     {
         this.Index = index;
     }
+
+    public abstract Type GetComponentType();
 
     public virtual void OnClosed()
     {

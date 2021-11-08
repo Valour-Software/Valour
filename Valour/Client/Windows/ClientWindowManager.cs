@@ -3,7 +3,7 @@ using Valour.Api.Messages;
 using Valour.Api.Planets;
 using Valour.Client.Messages;
 using Valour.Client.Planets;
-using Valour.Client.Shared.Windows.PlanetChannelWindow;
+using Valour.Client.Shared.Windows;
 
 namespace Valour.Client.Windows
 {
@@ -28,6 +28,7 @@ namespace Valour.Client.Windows
 
         public static ClientWindowManager Instance;
 
+        public static WindowHolderComponent WindowHolder;
         public ClientWindowManager()
         {
             Instance = this;
@@ -178,6 +179,7 @@ namespace Valour.Client.Windows
             Console.WriteLine("Added window " + window.Index);
 
             ForceChatRefresh();
+            WindowHolder.Refresh();
         }
 
         public int GetWindowCount()
@@ -187,7 +189,7 @@ namespace Valour.Client.Windows
 
         public ClientWindow GetWindow(int index)
         {
-            if (index > OpenWindows.Count - 1)
+            if (index > OpenWindows.Count - 1 || index < 0)
             {
                 return null;
             }
@@ -209,9 +211,11 @@ namespace Valour.Client.Windows
 
             OpenWindows.Clear();
             OpenChatWindows.Clear();
+
+            WindowHolder.Refresh();
         }
 
-        public void SetWindow(int index, ClientWindow window)
+        public async Task SetWindow(int index, ClientWindow window)
         {
             if (OpenWindows[index] == window)
             {
@@ -225,13 +229,17 @@ namespace Valour.Client.Windows
             }
 
             window.Index = index;
-            CloseWindow(index);
+
+            // Don't refresh! We're doing that ourselves
+            await CloseWindow(index, false);
+
             OpenWindows.Insert(index, window);
 
             ForceChatRefresh();
-        }
 
-        public async void CloseWindow(int index)
+            WindowHolder.Refresh();
+        }
+        public async Task CloseWindow(int index, bool refresh = true)
         {
             var window = OpenWindows[index];
 
@@ -248,13 +256,19 @@ namespace Valour.Client.Windows
 
             int newInd = 0;
 
-            foreach (ClientWindow w in OpenWindows)
+            if (OpenWindows.Count > 0)
             {
-                w.Index = newInd;
-                newInd++;
+                foreach (ClientWindow w in OpenWindows)
+                {
+                    w.Index = newInd;
+                    newInd++;
+                }
             }
 
-            //ForceChatRefresh();
+            if (refresh)
+            {
+                WindowHolder.Refresh();
+            }
         }
 
         public void ForceChatRefresh()

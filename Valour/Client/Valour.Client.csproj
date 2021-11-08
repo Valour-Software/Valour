@@ -10,14 +10,14 @@
 
   <ItemGroup>
     <None Remove="Shared\Modals\ContextMenus\MemberContextMenuComponent.old" />
-    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
-    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
+    <None Remove="Shared\Windows\ChannelWindows\MentionSelectComponent.razor.css" />
+    <None Remove="Shared\Windows\ChannelWindows\MentionSelectMemberComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Shared\Modals\ContextMenus\MemberContextMenuComponent.old" />
-    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
-    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
+    <Content Include="Shared\Windows\ChannelWindows\MentionSelectComponent.razor.css" />
+    <Content Include="Shared\Windows\ChannelWindows\MentionSelectMemberComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>

@@ -76,12 +76,6 @@
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
-    [Parameter]
-    public Valour.Client.Pages.Index IndexPage { get; set; }
-
-    [Parameter]
-    public MainWindowComponent MainWindow { get; set; }
-
     public Channel Channel;
 
     public Planet Planet;
@@ -172,22 +166,14 @@
 
     public async Task CloseWindow()
     {
-        windowManager.CloseWindow(Window.Index);
-        IndexPage.ForceRefresh();
-
-        // This must be last (again)
-        await ValourClient.CloseChannel(Channel);
+        await windowManager.CloseWindow(Window.Index);
     }
 
     public async Task ReturnHome()
     {
         HomeWindow newWindow = new HomeWindow(Window.Index);
 
-        windowManager.SetWindow(Window.Index, newWindow);
-        MainWindow.RefreshWindow(newWindow);
-
-        // This must be last
-        await ValourClient.CloseChannel(Channel);
+        await windowManager.SetWindow(Window.Index, newWindow);
     }
 
     public async Task SetupNewChannelAsync()
