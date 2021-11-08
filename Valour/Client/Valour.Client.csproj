@@ -6,7 +6,7 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
     <Version>0.1.0.0</Version>
-    <ImplicitUsings>true</ImplicitUsings>
+    <ImplicitUsings>true</ImplicitUsings> 
   </PropertyGroup>
 
   <ItemGroup>
