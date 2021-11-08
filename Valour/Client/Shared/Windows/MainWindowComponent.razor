@@ -12,9 +12,9 @@
 
 <div id="window-@Window.Index" class="@StyleClass" @onclick="OnWindowClick">
 
-    @if (Window is HomeWindow)
+    @if (Window is Valour.Client.Windows.HomeWindow)
     {
-        <HomeWindowComponent Window="@((HomeWindow)Window)" IndexPage="IndexPage" RefreshWindow="RefreshWindow"></HomeWindowComponent>
+        <HomeWindowComponent MainWindow="this" Window="@((Valour.Client.Windows.HomeWindow)Window)" IndexPage="IndexPage"></HomeWindowComponent>
     }
     else if (Window is ChatChannelWindow)
     {
