@@ -90,6 +90,8 @@
 
     public MentionSelectComponent MentionSelector { get; set; }
 
+    public bool Should_Render { get; set; }
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
@@ -107,15 +109,20 @@
 
         SelfMember = await Member.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
 
+        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ValourClient.Token, ValourClient.Self.Id, Planet.Id);
-
         await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
 
         await SetupNewChannelAsync();
+    }
+
+    protected override bool ShouldRender()
+    {
+        return Should_Render;
     }
 
     void IDisposable.Dispose()
@@ -130,6 +137,7 @@
         if (Channel.Id == channel.Id)
         {
             this.Channel = channel;
+            Should_Render = true;
             StateHasChanged();
         }
     }
@@ -199,6 +207,8 @@
     {
         await base.OnAfterRenderAsync(firstRender);
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+
+        Should_Render = false;
     }
 
     public async Task OnWindowClosed()
@@ -275,6 +285,7 @@
             }
         }
 
+        Should_Render = true;
         StateHasChanged();
     }
 
@@ -282,6 +293,8 @@
     public async Task MentionSubmit()
     {
         await MentionSelector.Submit();
+
+        Should_Render = true;
         StateHasChanged();
     }
 
@@ -334,6 +347,7 @@
             await DummyComponent.SetMessage(DummyMessage);
         }
 
+        Should_Render = true;
         StateHasChanged();
     }
 
