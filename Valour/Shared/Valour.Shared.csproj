@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <Company>Vooper Media LLC</Company>
     <Product>Valour Shared Library</Product>
     <Authors>The Valour Team</Authors>
