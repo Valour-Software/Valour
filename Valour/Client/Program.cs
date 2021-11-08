@@ -6,6 +6,7 @@ using Valour.Client.Modals;
 using Valour.Client.Shared.ChannelList;
 using Valour.Api.Client;
 using Blazored.Modal;
+using Valour.Client.Windows;
 
 
 /*  Valour - A free and secure chat client

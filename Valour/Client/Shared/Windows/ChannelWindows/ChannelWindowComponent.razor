@@ -76,12 +76,6 @@
     [Parameter]
     public ChatChannelWindow Window { get; set; }
 
-    [Parameter]
-    public Valour.Client.Pages.Index IndexPage { get; set; }
-
-    [Parameter]
-    public MainWindowComponent MainWindow { get; set; }
-
     public Channel Channel;
 
     public Planet Planet;
@@ -95,6 +89,8 @@
     public MessageHolderComponent MessageHolder { get; set; }
 
     public MentionSelectComponent MentionSelector { get; set; }
+
+    public bool Should_Render { get; set; }
 
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
@@ -113,15 +109,20 @@
 
         SelfMember = await Member.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
 
+        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
-        await JS.InvokeVoidAsync("SetSecretKey", ValourClient.Token, ValourClient.Self.Id, Planet.Id);
-
         await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
 
         await SetupNewChannelAsync();
+    }
+
+    protected override bool ShouldRender()
+    {
+        return Should_Render;
     }
 
     void IDisposable.Dispose()
@@ -136,6 +137,7 @@
         if (Channel.Id == channel.Id)
         {
             this.Channel = channel;
+            Should_Render = true;
             StateHasChanged();
         }
     }
@@ -172,22 +174,14 @@
 
     public async Task CloseWindow()
     {
-        windowManager.CloseWindow(Window.Index);
-        IndexPage.ForceRefresh();
-
-        // This must be last (again)
-        await ValourClient.CloseChannel(Channel);
+        await windowManager.CloseWindow(Window.Index);
     }
 
     public async Task ReturnHome()
     {
         HomeWindow newWindow = new HomeWindow(Window.Index);
 
-        windowManager.SetWindow(Window.Index, newWindow);
-        MainWindow.RefreshWindow(newWindow);
-
-        // This must be last
-        await ValourClient.CloseChannel(Channel);
+        await windowManager.SetWindow(Window.Index, newWindow);
     }
 
     public async Task SetupNewChannelAsync()
@@ -213,6 +207,8 @@
     {
         await base.OnAfterRenderAsync(firstRender);
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+
+        Should_Render = false;
     }
 
     public async Task OnWindowClosed()
@@ -289,6 +285,7 @@
             }
         }
 
+        Should_Render = true;
         StateHasChanged();
     }
 
@@ -296,6 +293,8 @@
     public async Task MentionSubmit()
     {
         await MentionSelector.Submit();
+
+        Should_Render = true;
         StateHasChanged();
     }
 
@@ -348,6 +347,7 @@
             await DummyComponent.SetMessage(DummyMessage);
         }
 
+        Should_Render = true;
         StateHasChanged();
     }
 

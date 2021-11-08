@@ -1,4 +1,4 @@
-.home-server {
+::deep .home-server {
     /*border: 1px solid rgba(255, 255, 255, 0.2);*/
     border-radius: 5px;
     width: 150px;
@@ -8,7 +8,7 @@
     display: inline-block;
 }
 
-.planet-card-icon {
+::deep .planet-card-icon {
     width: 100px;
     height: 100px;
     display: block;
@@ -38,7 +38,7 @@
     transform: scale(1.05);
 }
 
-.planet-card-icon:hover {
+::deep .planet-card-icon:hover {
     -webkit-transform: scale(1.05);
     transform: scale(1.05);
 }

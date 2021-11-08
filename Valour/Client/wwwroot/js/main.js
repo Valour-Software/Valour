@@ -335,12 +335,6 @@ function httpGet(theUrl) {
     return JSON.parse(xmlHttp.responseText);
 }
 
-function SetSecretKey(key, id, planetid) {
-    SecretKey = key
-    user_id = id
-    Planet_Id = planetid
-}
-
 function SetDate() {
     if (document.getElementById('ageVeriInput')) document.getElementById('ageVeriInput').valueAsDate = new Date()
 }

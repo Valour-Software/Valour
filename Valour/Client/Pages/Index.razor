@@ -52,59 +52,9 @@
 			</div>
 			<div class="topline">
 			</div>
-			<!--
-				Todo: Logic for multiple main windows.
-				This will be fun.
-			-->
-			<!--
-				Add dummy window so Jacob doesn't cry
-			-->
-			@if (windowManager.GetWindowCount() == 0)
-			{
-				windowManager.AddWindow(new HomeWindow(0));
-			}
 
-			@if (windowManager.GetWindowCount() < 4)
-			{
-				<div class="add-window-button" @onclick="@OnAddWindow">
-					<NewWindowComponent></NewWindowComponent>
-				</div>
-			}
-
-			<div id="window-man" class="window-grid">
-
-				@if (windowManager.GetWindowCount() == 1)
-				{
-					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-				}
-				else if (windowManager.GetWindowCount() == 2)
-				{
-					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-					<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window-full"></MainWindowComponent>
-				}
-				else if (windowManager.GetWindowCount() == 3)
-				{
-					<div id="window-col1" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window-full"></MainWindowComponent>
-					</div>
-					<div id="window-col2" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-					</div>
-				}
-				else if (windowManager.GetWindowCount() == 4)
-				{
-					<div id="window-col1" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(0)" StyleClass="main-window"></MainWindowComponent>
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(1)" StyleClass="main-window"></MainWindowComponent>
-					</div>
-					<div id="window-col2" class="window-col">
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(2)" StyleClass="main-window"></MainWindowComponent>
-						<MainWindowComponent IndexPage="this" Window="windowManager.GetWindow(3)" StyleClass="main-window"></MainWindowComponent>
-					</div>
-				}
-			</div>
-
+			<!-- It's so nice when it's hidden away, just like my fears -->
+			<WindowHolderComponent @ref='ClientWindowManager.WindowHolder'></WindowHolderComponent>
 		</div>
 	</div>
 
@@ -123,7 +73,8 @@
 		ValourClient.OnLogin += OnLoginAsync;
 	}
 
-	public async Task OnLoginAsync(){
+	public async Task OnLoginAsync()
+	{
 		StateHasChanged();
 	}
 
@@ -143,18 +94,6 @@
 	private async Task SetupWindows()
 	{
 		await JS.InvokeVoidAsync("SizeEnable");
-	}
-
-	private async Task OnAddWindow()
-	{
-		if (windowManager.GetWindowCount() == 4)
-		{
-			return;
-		}
-
-		windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
-
-		StateHasChanged();
 	}
 
 	public async Task OnChannelWindowUpdate()
