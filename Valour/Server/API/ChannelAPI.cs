@@ -33,14 +33,14 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapGet("/api/channel/{channel_id}/messages", GetMessages);
-            app.MapPost("/api/channel/{channel_id}/messages", PostMessage);
+            app.MapGet("api/channel/{channel_id}/messages", GetMessages);
+            app.MapPost("api/channel/{channel_id}/messages", PostMessage);
 
-            app.Map("/api/channel/{channel_id}", Channel);
-            app.Map("/api/channel/{channel_id}/name", Name);
-            app.Map("/api/channel/{channel_id}/parent_id", ParentId);
-            app.Map("/api/channel/{channel_id}/description", Description);
-            app.Map("/api/channel/{channel_id}/inherits_perms", PermissionsInherit);
+            app.Map("api/channel/{channel_id}", Channel);
+            app.Map("api/channel/{channel_id}/name", Name);
+            app.Map("api/channel/{channel_id}/parent_id", ParentId);
+            app.Map("api/channel/{channel_id}/description", Description);
+            app.Map("api/channel/{channel_id}/inherits_perms", PermissionsInherit);
         }
 
 

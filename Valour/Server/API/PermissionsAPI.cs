@@ -30,7 +30,13 @@ public class PermissionsAPI : BaseAPI
 
         var node = await db.PermissionsNodes.FindAsync(node_id);
 
-        if (node is null) { await NotFound("Node not found", ctx); return; }
+        // A node not existing is fine
+        if (node is null) 
+        {  
+            ctx.Response.StatusCode = 404;
+            await ctx.Response.WriteAsync("null");
+            return; 
+        }
 
         var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Target_Id, db);
 
@@ -50,7 +56,13 @@ public class PermissionsAPI : BaseAPI
 
         var node = await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == target_id && x.Role_Id == role_id);
 
-        if (node is null) { await NotFound("Node not found", ctx); return; }
+        // A node not existing is fine
+        if (node is null) 
+        {  
+            ctx.Response.StatusCode = 404;
+            await ctx.Response.WriteAsync("null");
+            return; 
+        }
 
         var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
 
@@ -71,21 +83,39 @@ public class PermissionsAPI : BaseAPI
 
         if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
+        var planet = await member.GetPlanetAsync();
+
         var target = await node.GetTargetAsync(db);
+
+        if (target.Planet_Id != planet.Id){
+            await BadRequest("Target does not belong to member's planet!", ctx);
+            return;
+        }
+
+        target.Planet = planet;
 
         if (target is null) { await NotFound("Node target not found", ctx); return; }
 
-        if (await member.GetAuthorityAsync() < node.Role.GetAuthority())
+        var role = await db.PlanetRoles.FindAsync(node.Role_Id);
+        role.Planet = planet;
+
+        if (role is null){
+            await NotFound("Node role not found", ctx); 
+            return;
+        }
+
+        if (role.Planet_Id != node.Planet_Id){
+            await BadRequest("Role does not belong to target planet!", ctx);
+            return;
+        }
+
+        if (await member.GetAuthorityAsync() < role.GetAuthority())
         {
             await Unauthorized("Role has greater authority", ctx);
             return;
         }
 
-        var planet = await target.GetPlanetAsync(db);
-
-        // Check global permission first
-        if (!await target.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
-        {
+        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db)){
             await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx);
             return;
         }
@@ -97,7 +127,7 @@ public class PermissionsAPI : BaseAPI
             return;
         }
 
-        var old = await db.PermissionsNodes.Include(x => x.Role).Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == node.Id);
+        var old = await db.PermissionsNodes.Include(x => x.Role).FirstOrDefaultAsync(x => x.Id == node.Id);
 
         if (old is not null)
         {

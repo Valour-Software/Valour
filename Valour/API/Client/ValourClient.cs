@@ -593,6 +593,11 @@ public static class ValourClient
         {
             var message = await response.Content.ReadAsStringAsync();
 
+            // This means the null is expected
+            if (message == "null"){
+                return default(T);
+            }
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +
                               $"[{uri}]\n" +
