@@ -116,11 +116,7 @@ namespace Valour.Server.Planets
             // If true, we just ask the category
             if (Inherits_Perms)
             {
-                if (Parent == null)
-                {
-                    Parent = await GetParentAsync(db);
-                }
-
+                Parent ??= await GetParentAsync(db);
                 return await Parent.HasPermission(member, permission, db);
             }
 

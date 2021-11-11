@@ -30,7 +30,13 @@ public class PermissionsAPI : BaseAPI
 
         var node = await db.PermissionsNodes.FindAsync(node_id);
 
-        if (node is null) { await NotFound("Node not found", ctx); return; }
+        // A node not existing is fine
+        if (node is null) 
+        {  
+            ctx.Response.StatusCode = 404;
+            await ctx.Response.WriteAsync("null");
+            return; 
+        }
 
         var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Target_Id, db);
 
@@ -50,7 +56,13 @@ public class PermissionsAPI : BaseAPI
 
         var node = await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == target_id && x.Role_Id == role_id);
 
-        if (node is null) { await NotFound("Node not found", ctx); return; }
+        // A node not existing is fine
+        if (node is null) 
+        {  
+            ctx.Response.StatusCode = 404;
+            await ctx.Response.WriteAsync("null");
+            return; 
+        }
 
         var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
 
@@ -63,6 +75,8 @@ public class PermissionsAPI : BaseAPI
     private static async Task SetNode(HttpContext ctx, ValourDB db, [FromBody] PermissionsNode node,
         [FromHeader] string authorization)
     {
+        // Start Authorization //
+
         var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
 
         var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
@@ -71,21 +85,59 @@ public class PermissionsAPI : BaseAPI
 
         if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
+        // End Start Authorization //
+
+        // Get role //
+
+        ServerPlanetRole role = null;
+
+        var oldNode = await db.PermissionsNodes
+            .Include(x => x.Role)
+            .ThenInclude(x => x.Planet)
+            .FirstOrDefaultAsync(x => x.Id == node.Id);
+
+        if (oldNode is null){
+            role = await db.PlanetRoles
+                .Include(x => x.Planet)
+                .FirstOrDefaultAsync(x => x.Id == node.Role_Id);
+        }
+        else{
+            role = oldNode.Role;
+            node.Role_Id = role.Id;
+
+            db.Entry(oldNode).State = EntityState.Detached;
+        }
+
+        if (role is null){
+            await NotFound("Role not found", ctx); 
+            return;
+        }
+
+        // Get planet from role
+        var planet = role.Planet;
+        member.Planet = planet;
+        node.Planet = planet;
+
+        // End role stuff //
+        
         var target = await node.GetTargetAsync(db);
+
+        target.Planet = planet;
 
         if (target is null) { await NotFound("Node target not found", ctx); return; }
 
-        if (await member.GetAuthorityAsync() < node.Role.GetAuthority())
+        if (target.Planet_Id != planet.Id){
+            await BadRequest("Target does not belong to node's planet!", ctx);
+            return;
+        }
+
+        if (await member.GetAuthorityAsync() < role.GetAuthority())
         {
             await Unauthorized("Role has greater authority", ctx);
             return;
         }
 
-        var planet = await target.GetPlanetAsync(db);
-
-        // Check global permission first
-        if (!await target.Planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
-        {
+        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db)){
             await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx);
             return;
         }
@@ -97,16 +149,8 @@ public class PermissionsAPI : BaseAPI
             return;
         }
 
-        var old = await db.PermissionsNodes.Include(x => x.Role).Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == node.Id);
-
-        if (old is not null)
+        if (oldNode is not null)
         {
-            if (old.Planet_Id != node.Planet_Id || old.Role_Id != node.Role_Id)
-            {
-                await BadRequest("Id mismatch", ctx);
-                return;
-            }
-
             // Update
             db.PermissionsNodes.Update(node);
             await db.SaveChangesAsync();

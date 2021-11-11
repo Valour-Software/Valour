@@ -55,7 +55,7 @@ public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
                 return cached;
         }
 
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/channel/{target_id}/{role_id}");
+        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/{target_id}/{role_id}");
 
         if (node is not null)
         {

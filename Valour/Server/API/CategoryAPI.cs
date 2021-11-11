@@ -23,15 +23,15 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.Map("/api/category/{category_id}", Category);
-            app.Map("/api/category/{category_id}/name", Name);
-            app.Map("/api/category/{category_id}/parent_id", ParentId);
-            app.Map("/api/category/{category_id}/description", Description);
+            app.Map("api/category/{category_id}", Category);
+            app.Map("api/category/{category_id}/name", Name);
+            app.Map("api/category/{category_id}/parent_id", ParentId);
+            app.Map("api/category/{category_id}/description", Description);
             //app.Map("/api/category/{category_id}/inherits_perms", PermissionsInherit);
 
-            app.MapGet ("/api/category/{category_id}/children", GetChildren);
-            app.MapPost("/api/category/{category_id}/children", InsertItem);
-            app.MapPost("/api/category/{category_id}/children/order", SetChildOrder);
+            app.MapGet ("api/category/{category_id}/children", GetChildren);
+            app.MapPost("api/category/{category_id}/children", InsertItem);
+            app.MapPost("api/category/{category_id}/children/order", SetChildOrder);
         }
 
         private static async Task Category(HttpContext ctx, ValourDB db, ulong category_id,
