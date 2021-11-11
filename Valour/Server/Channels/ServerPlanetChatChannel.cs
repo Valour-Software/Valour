@@ -126,7 +126,7 @@ namespace Valour.Server.Planets
                                   .Query()
                                   .Where(x => x.Planet_Id == Planet.Id)
                                   .Include(x => x.Role)
-                                  .ThenInclude(x => x.PermissionNodes.Where(x => x.Target_Id == Id && x.ItemType == ItemType))
+                                  .ThenInclude(x => x.PermissionNodes.Where(x => x.Target_Id == Id))
                                   .LoadAsync();
 
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
