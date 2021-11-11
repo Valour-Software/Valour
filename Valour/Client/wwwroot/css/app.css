@@ -14,6 +14,8 @@
     --main-3: #121e27;
     --main-4: #192630;
     --main-5: #212f3a;
+    --v-purple: #bf06fd;
+    --v-blue: #0c06fd;
 }
 
 .full-screen {
@@ -1424,4 +1426,47 @@ blockquote {
     -ms-user-select: none; /* Internet Explorer/Edge */
     user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome, Edge, Opera and Firefox */
+}
+
+/* Loading screen */
+@keyframes logo-anim {
+    0% {
+        filter: hue-rotate(0);
+    }
+    100% {
+        filter: hue-rotate(360deg);
+    }
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.color-shift {
+    animation: logo-anim 3s infinite, fadein 0.4s;
+}
+
+.loading-container {
+    height: 100%;
+    width: 100%;
+}
+
+.loading-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.loading-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 24px;
+    user-select: none;
+}
+
+.loading-logo {
+    width: 128px;
+    user-select: none;
 }
