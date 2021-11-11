@@ -72,6 +72,7 @@ namespace Valour.Server.API
 
             app.MapGet("api/planet/{planet_id}/roles", GetRoles);
             app.MapPost("api/planet/{planet_id}/roles", AddRole);
+            app.MapPost("api/planet/{planet_id}/roles/order", SetRoleOrder);
 
             app.MapGet("api/planet/{planet_id}/invites", GetInvites);
 
@@ -566,19 +567,8 @@ namespace Valour.Server.API
                 }
             }
 
-            // Image handling via proxy
-            ProxyResponse proxyResponse = await MPSManager.GetProxy(in_planet.Image_Url);
-
-            bool is_media = MPSManager.Media_Types.Contains(proxyResponse.Item.Mime_Type);
-
-            if (proxyResponse.Item == null || !is_media)
-            {
-                in_planet.Image_Url = "https://valour.gg/image.png";
-            }
-            else
-            {
-                in_planet.Image_Url = proxyResponse.Item.Url;
-            }
+            // Start with default image
+            in_planet.Image_Url = "/media/logo/logo-512.png";
 
             ulong planet_id = IdManager.Generate();
 
@@ -1197,6 +1187,75 @@ namespace Valour.Server.API
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsJsonAsync(planet.Roles);
+        }
+    
+        // Takes an incoming list of role ids and uses that to set the role ordering
+        private static async Task SetRoleOrder(HttpContext ctx, ValourDB db, ulong planet_id,
+            [FromBody] List<ulong> role_ids,
+            [FromHeader] string authorization)
+        {
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (auth is null) { await TokenInvalid(ctx); return; }
+
+            // Ensure token has scope
+            if (!auth.HasScope(UserPermissions.PlanetManagement))
+            { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
+
+            ServerPlanetMember member = await db.PlanetMembers
+                .Include(x => x.Planet)
+                .FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == auth.User_Id);
+
+            // Ensure user is member
+            if (member is null) 
+            { await Unauthorized("Member not found", ctx); return; }
+
+            if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            { await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx); return; }
+
+            // Lay out variables
+            var planet = member.Planet;
+            var authority = await member.GetAuthorityAsync();
+
+            // Container for roles being edited
+            List<ServerPlanetRole> roles = new();
+
+            uint c_pos = 0;
+
+            foreach (ulong id in role_ids){
+                var role = await db.PlanetRoles.FindAsync(id);
+
+                // Ensure planet matches
+                if (role.Planet_Id != planet.Id) { await BadRequest("Role doesn't belong to planet!", ctx); return; }
+
+                // Check if there's an attempted change to the role position
+                if (role.Position != c_pos){
+                    // If it's different, ensure the user has permission to change this
+                    // They must have HIGHER authority than the role to change it
+                    if (role.GetAuthority() >= authority){
+                        await Unauthorized("Cannot edit a role above your authority", ctx);
+                        return;
+                    }
+                }
+
+                roles.Add(role);
+
+                role.Position = c_pos;
+
+                c_pos++;
+            }
+
+            if (roles.Last().Id != planet.Default_Role_Id){
+                await BadRequest("Default role must be last!", ctx);
+                return;
+            }
+
+            // Enact changes
+            foreach (var role in roles){
+                db.PlanetRoles.Update(role);
+                PlanetHub.NotifyRoleChange(role);
+            }
+
+            await db.SaveChangesAsync();
         }
     }
 }

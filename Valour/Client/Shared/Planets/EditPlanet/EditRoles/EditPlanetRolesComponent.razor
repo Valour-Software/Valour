@@ -70,35 +70,13 @@
                 </div>
             </div>
         }
-    </div>
 
-    @{
-        string delStyle = "display: none";
-        if (deleteMode)
-        {
-            delStyle = "";
-        }
-    }
-
-
-    <div style="@delStyle">
-        <h3>Delete: @role.Name</h3>
-        <h4>Are you sure?</h4>
-
-        <br/>
-
-        <div class="btn btn-outline-primary" style="display:inline-block" @onclick="GoBack">Cancel</div>
-        <div class="btn btn-danger" @onclick="Delete">Confirm</div>
-
-        <div class="mt-2">
-            <span id="result-span" class="text-info">@resultSpan</span>
-            <span id="error-span" class="text-danger" style="display:block">@errorSpan</span>
-        </div>
+        <button @onclick='() => DeleteRole(Selected)' style="color: red; border-color: red" class="mt-4 btn v-button">Delete this role</button>
     </div>
 
     @{
         string normStyle = "display: none";
-        if (!editMode && !deleteMode)
+        if (!editMode)
         {
             normStyle = "";
         }
@@ -112,34 +90,20 @@
             // For magic lambda
             var role_x = role;
 
-            <div class="row mt-2" id="row-edit-holder">
-                <div class="role-edit-row" id="role-edit-row">
-                    <div class="role-edit">
-                        <p style="color:@role.GetColorHex()">
-                            @role.Name
-                        </p>
-                    </div>
-                    <div id="role-edit-btn" class="btn-role-edit edit" @onclick="() => OnClickEdit(role_x)">
-                        <p class="center-t">
-                            Edit
-                        </p>
-                    </div>
-                    <div id="role-delete-btn" class="btn-role-edit delete" @onclick="() => OnClickDelete(role_x)">
-                        <p class="center-t">
-                            Delete
-                        </p>
-                    </div>
-                </div>
+            <div  
+                @onmousedown='e => OnRoleItemClick(role_x)' 
+                @ondragstart='() => OnRoleDrag(role_x)' 
+                @ondrop='async () => await OnRoleDrop(role_x)' 
+                draggable="true"
+                ondragover="event.preventDefault();" 
+                style='border-color: @role.GetColorHex()' class='roles-row' @onclick="() => OnClickEdit(role_x)">
+                <p class='roles-name' style="color:@role.GetColorHex()">
+                        @role.Name
+                </p> 
             </div>
         }
 
-        <div class="row mt-2">
-            <div class="btn-role-edit create" @onclick="OnClickCreateMode">
-                <p class="center-t">
-                    Create
-                </p>
-            </div>
-        </div>
+        <button class="mt-4 btn v-button" @onclick="OnClickCreateMode">Create a role</button>
 
     </div>
 </div>
@@ -163,8 +127,6 @@
 
     public bool editMode = false;
 
-    public bool deleteMode = false;
-
     public string roleNameSpan = "";
 
     public string resultSpan = "";
@@ -176,6 +138,40 @@
     // Stuff for role editing //
 
     public Role Selected { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public Role dragging_role;
+
+    public void OnRoleDrag(Role role){
+        dragging_role = role;
+    }
+
+    public async Task OnRoleDrop(Role dropped_on){
+
+        var dropped_on_index = Roles.IndexOf(dropped_on);
+
+        // Cannot move default role
+        if (dragging_role.Id == Planet.Default_Role_Id ||
+            dropped_on.Id == Planet.Default_Role_Id)
+            return;
+
+        Roles.Remove(dragging_role);
+        Roles.Insert(dropped_on_index, dragging_role);
+
+        var ids = Roles.Select(x => x.Id);
+
+        var result = await ValourClient.PostAsync($"api/planet/{dropped_on.Planet_Id}/roles/order", ids);
+
+        Console.WriteLine(result.Message);
+
+        // StateHasChanged();
+    }
+
+    public async Task OnRoleItemClick(Role role){
+        dragging_role = role;
+    }
 
     public void PermClick(int id)
     {
@@ -217,49 +213,21 @@
             Italics = false,
             Planet_Id = Planet.Id
         };
-        deleteMode = false;
+
         editMode = false;
-
-        StateHasChanged();
-    }
-
-    public async Task OnClickDelete(Role deleteRole)
-    {
-        resultSpan = "";
-        errorSpan = "";
-
-        role = deleteRole;
-        deleteMode = true;
-        editMode = false;
-
-        StateHasChanged();
-    }
-
-    public async Task Delete()
-    {
-        var response = await ValourClient.DeleteAsync($"api/role/{role.Id.ToString()}");
-
-        if (!response.Success)
-        {
-            errorSpan = "Error: " + response.Message;
-            return;
-        }
-
-        resultSpan = response.Message;
-
-        deleteMode = false;
 
         StateHasChanged();
     }
 
     public async Task OnClickEdit(Role editRole)
     {
+        Selected = editRole;
+
         resultSpan = "";
         errorSpan = "";
 
         role = editRole;
         editMode = true;
-        deleteMode = false;
 
         rolePermValues = new bool[PlanetPermissions.Permissions.Length];
 
@@ -272,6 +240,36 @@
         await JS.InvokeVoidAsync("SetColorPickerColor", role.GetColorHex());
 
         StateHasChanged();
+    }
+
+    public async Task DeleteRole(Role role)
+    {
+        ConfirmModalData cData =
+        new ConfirmModalData(
+            $"Delete {role.Name}?",
+            "This cannot be undone",
+            "Confirm",
+            "Cancel",
+            async () => {
+                var response = await ValourClient.DeleteAsync($"api/role/{role.Id.ToString()}");
+
+                if (!response.Success)
+                {
+                    errorSpan = "Error: " + response.Message;
+                    return;
+                }
+
+                StateHasChanged();
+            },
+            async () => {
+                StateHasChanged();
+            }
+        );
+
+        ModalParameters mParams = new();
+        mParams.Add("Data", cData);
+
+        Modal.Show<ConfirmModalComponent>("Role Delete Confirm", mParams, new ModalOptions() { Class = "modal-shrink-fit" });
     }
 
     public async Task OnClickCreateMode()

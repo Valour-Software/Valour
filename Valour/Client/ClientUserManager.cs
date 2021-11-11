@@ -44,8 +44,9 @@ namespace Valour.Client
         public static async Task<TaskResult<User>> InitializeUser(string token, ILocalStorageService storage, NavigationManager nav)
         {
             // Store token for future use
+            var user = await ValourClient.InitializeUser(token);
             await StoreToken(storage);
-            return await ValourClient.InitializeUser(token);
+            return user;
         }
 
         /// <summary>
