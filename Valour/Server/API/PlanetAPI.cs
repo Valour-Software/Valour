@@ -1190,7 +1190,7 @@ namespace Valour.Server.API
         }
     
         // Takes an incoming list of role ids and uses that to set the role ordering
-        private static async Task SetOrder(HttpContext ctx, ValourDB db, ulong planet_id,
+        private static async Task SetRoleOrder(HttpContext ctx, ValourDB db, ulong planet_id,
             [FromBody] List<ulong> role_ids,
             [FromHeader] string authorization)
         {
@@ -1237,14 +1237,22 @@ namespace Valour.Server.API
                     }
                 }
 
+                roles.Add(role);
+
                 role.Position = c_pos;
 
                 c_pos++;
             }
 
+            if (roles.Last().Id != planet.Default_Role_Id){
+                await BadRequest("Default role must be last!", ctx);
+                return;
+            }
+
             // Enact changes
             foreach (var role in roles){
                 db.PlanetRoles.Update(role);
+                PlanetHub.NotifyRoleChange(role);
             }
 
             await db.SaveChangesAsync();

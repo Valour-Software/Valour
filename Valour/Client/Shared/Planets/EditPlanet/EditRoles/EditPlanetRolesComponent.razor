@@ -90,7 +90,13 @@
             // For magic lambda
             var role_x = role;
 
-            <div style='border-color: @role.GetColorHex()' class='roles-row' @onclick="() => OnClickEdit(role_x)">
+            <div  
+                @onmousedown='e => OnRoleItemClick(role_x)' 
+                @ondragstart='() => OnRoleDrag(role_x)' 
+                @ondrop='async () => await OnRoleDrop(role_x)' 
+                draggable="true"
+                ondragover="event.preventDefault();" 
+                style='border-color: @role.GetColorHex()' class='roles-row' @onclick="() => OnClickEdit(role_x)">
                 <p class='roles-name' style="color:@role.GetColorHex()">
                         @role.Name
                 </p> 
@@ -135,6 +141,37 @@
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
+
+    public Role dragging_role;
+
+    public void OnRoleDrag(Role role){
+        dragging_role = role;
+    }
+
+    public async Task OnRoleDrop(Role dropped_on){
+
+        var dropped_on_index = Roles.IndexOf(dropped_on);
+
+        // Cannot move default role
+        if (dragging_role.Id == Planet.Default_Role_Id ||
+            dropped_on.Id == Planet.Default_Role_Id)
+            return;
+
+        Roles.Remove(dragging_role);
+        Roles.Insert(dropped_on_index, dragging_role);
+
+        var ids = Roles.Select(x => x.Id);
+
+        var result = await ValourClient.PostAsync($"api/planet/{dropped_on.Planet_Id}/roles/order", ids);
+
+        Console.WriteLine(result.Message);
+
+        // StateHasChanged();
+    }
+
+    public async Task OnRoleItemClick(Role role){
+        dragging_role = role;
+    }
 
     public void PermClick(int id)
     {
