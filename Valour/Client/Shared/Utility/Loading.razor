@@ -2,5 +2,11 @@
     <div class='loading-center'>
         <img src='/media/logo/logo-512.png' class='loading-logo color-shift'>
         <p class="loading-title">Valour</p>
+        <p class="loading-subtext">@Subtext</p>
     </div>
 </div>
+
+@code {
+    [Parameter]
+    public string Subtext { get; set; }
+}

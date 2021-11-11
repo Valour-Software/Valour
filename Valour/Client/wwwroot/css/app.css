@@ -1466,6 +1466,12 @@ blockquote {
     user-select: none;
 }
 
+.loading-subtext {
+    text-align: center;
+    font-size: 16px;
+    user-select: none;
+}
+
 .loading-logo {
     width: 128px;
     user-select: none;
