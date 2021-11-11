@@ -217,18 +217,28 @@ namespace Valour.Server.Categories
 
             var roles = await member.GetRolesAsync(db);
 
+            var do_channel = permission is ChatChannelPermission;
+
             // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
             // If we get an undecided, we continue to the next role down
             foreach (var role in roles)
             {
-                var node = await role.GetCategoryNodeAsync(this, db);
+                PermissionsNode node = null;
+
+                if (do_channel)
+                    node = await role.GetChannelNodeAsync(this, db);
+                else
+                    node = await role.GetCategoryNodeAsync(this, db);
 
                 // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
                 if (node == null)
                 {
                     if (role.Id == planet.Default_Role_Id)
                     {
-                        return Permission.HasPermission(CategoryPermissions.Default, permission);
+                        if (do_channel)
+                            return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+                        else 
+                            return Permission.HasPermission(CategoryPermissions.Default, permission);
                     }
 
                     continue;

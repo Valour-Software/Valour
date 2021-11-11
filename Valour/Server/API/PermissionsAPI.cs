@@ -75,6 +75,8 @@ public class PermissionsAPI : BaseAPI
     private static async Task SetNode(HttpContext ctx, ValourDB db, [FromBody] PermissionsNode node,
         [FromHeader] string authorization)
     {
+        // Start Authorization //
+
         var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
 
         var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
@@ -83,29 +85,49 @@ public class PermissionsAPI : BaseAPI
 
         if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
-        var planet = await member.GetPlanetAsync();
+        // End Start Authorization //
 
-        var target = await node.GetTargetAsync(db);
+        // Get role //
 
-        if (target.Planet_Id != planet.Id){
-            await BadRequest("Target does not belong to member's planet!", ctx);
+        ServerPlanetRole role = null;
+
+        var oldNode = await db.PermissionsNodes
+            .Include(x => x.Role)
+            .ThenInclude(x => x.Planet)
+            .FirstOrDefaultAsync(x => x.Id == node.Id);
+
+        if (oldNode is null){
+            role = await db.PlanetRoles
+                .Include(x => x.Planet)
+                .FirstOrDefaultAsync(x => x.Id == node.Role_Id);
+        }
+        else{
+            role = oldNode.Role;
+            node.Role_Id = role.Id;
+
+            db.Entry(oldNode).State = EntityState.Detached;
+        }
+
+        if (role is null){
+            await NotFound("Role not found", ctx); 
             return;
         }
+
+        // Get planet from role
+        var planet = role.Planet;
+        member.Planet = planet;
+        node.Planet = planet;
+
+        // End role stuff //
+        
+        var target = await node.GetTargetAsync(db);
 
         target.Planet = planet;
 
         if (target is null) { await NotFound("Node target not found", ctx); return; }
 
-        var role = await db.PlanetRoles.FindAsync(node.Role_Id);
-        role.Planet = planet;
-
-        if (role is null){
-            await NotFound("Node role not found", ctx); 
-            return;
-        }
-
-        if (role.Planet_Id != node.Planet_Id){
-            await BadRequest("Role does not belong to target planet!", ctx);
+        if (target.Planet_Id != planet.Id){
+            await BadRequest("Target does not belong to node's planet!", ctx);
             return;
         }
 
@@ -127,16 +149,8 @@ public class PermissionsAPI : BaseAPI
             return;
         }
 
-        var old = await db.PermissionsNodes.Include(x => x.Role).FirstOrDefaultAsync(x => x.Id == node.Id);
-
-        if (old is not null)
+        if (oldNode is not null)
         {
-            if (old.Planet_Id != node.Planet_Id || old.Role_Id != node.Role_Id)
-            {
-                await BadRequest("Id mismatch", ctx);
-                return;
-            }
-
             // Update
             db.PermissionsNodes.Update(node);
             await db.SaveChangesAsync();

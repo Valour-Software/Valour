@@ -54,6 +54,10 @@ namespace Valour.Server.Roles
             await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == channel.Id &&
                                                                          x.Target_Type == Shared.Items.ItemType.Channel);
 
+        public async Task<PermissionsNode> GetChannelNodeAsync(ServerPlanetCategory category, ValourDB db) =>
+            await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
+                                                                         x.Target_Type == Shared.Items.ItemType.Channel);
+
         public async Task<PermissionsNode> GetCategoryNodeAsync(ServerPlanetCategory category, ValourDB db) =>
             await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
                                                                          x.Target_Type == Shared.Items.ItemType.Category);
