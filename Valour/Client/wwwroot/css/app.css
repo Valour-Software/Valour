@@ -1108,57 +1108,88 @@ body {
     min-width: 200px;
 }
 
-.role-edit-row {
-    height: 32px;
+.roles-row {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    user-select: none;
+    border-radius: 5px;
+    margin-right: 1px;
+    margin-left: 1px;
+    margin-top: 4px;
+    margin-bottom: 1px;
+    border: 0px solid;
 }
 
-.role-edit {
-    position: relative;
-    display: inline-block;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 5px;
-    width: 50%;
-    height: 30px;
-    margin-right: 20px;
-    padding-left: 10px;
+.roles-row:hover {
+    border: 1px solid;
+    margin-right: 0px;
+    margin-left: 0px;
+    margin-top: 3px;
+    margin-bottom: 0px;
+}
+
+.roles-row:active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.roles-name {
+    margin: 0;
+    line-height: 32px;
+    margin-left: 10px;
+    user-select: none;
+}
+
+.roles-buttons {
+    position: absolute;
+    right: 0;
+    transform: translate(-50%, -50%);
+    user-select: none;
 }
 
 .btn-role-edit {
+    opacity: 85%;
+    background-color: rgba(0, 0, 0, 0);
+    color: #fff;
     position: relative;
     display: inline-block;
+    border: 1px solid #fff;
     border-radius: 5px 0px 0px 5px;
     width: 10%;
-    min-width: 40px;
+    min-width: 60px;
     height: 30px;
     margin: 0px;
     cursor: pointer;
 }
 
-btn-role-edit:hover edit {
-    background-color: rgba(0, 100, 255, 0.3);
+.btn-role-text {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    position: absolute;
 }
 
 .btn-role-edit.edit {
-    background-color: rgba(0, 100, 255, 0.4);
     border-radius: 5px 0px 0px 5px;
 }
 .btn-role-edit.edit:hover {
-    background-color: rgba(0, 100, 255, 0.6);
+    color: var(--v-blue);
 }
 .btn-role-edit.edit:active {
-    background-color: rgba(0, 100, 255, 0.8);
+    color: #fff;
+    background-color: var(--v-blue);
 }
 
 .btn-role-edit.delete {
-    background-color: rgba(255, 0, 0, 0.4);
     border-radius: 0px 5px 5px 0px;
 }
 .btn-role-edit.delete:hover {
-    background-color: rgba(255, 0, 0, 0.6);
+    color: var(--v-purple);
 }
 
 .btn-role-edit.delete:active {
-    background-color: rgba(255, 0, 0, 0.8);
+    color: #fff;
+    background-color: var(--v-purple);
 }
 
 .btn-role-edit.create {
@@ -1186,12 +1217,6 @@ btn-role-edit:hover edit {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-}
-
-.role-edit p {
-    position: absolute;
-    top: 50%;
-    transform: translate(0%, -50%);
 }
 
 @media screen and (max-width: 770px) {
