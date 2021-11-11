@@ -566,19 +566,8 @@ namespace Valour.Server.API
                 }
             }
 
-            // Image handling via proxy
-            ProxyResponse proxyResponse = await MPSManager.GetProxy(in_planet.Image_Url);
-
-            bool is_media = MPSManager.Media_Types.Contains(proxyResponse.Item.Mime_Type);
-
-            if (proxyResponse.Item == null || !is_media)
-            {
-                in_planet.Image_Url = "https://valour.gg/image.png";
-            }
-            else
-            {
-                in_planet.Image_Url = proxyResponse.Item.Url;
-            }
+            // Start with default image
+            in_planet.Image_Url = "/media/logo/logo-512.png";
 
             ulong planet_id = IdManager.Generate();
 

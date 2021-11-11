@@ -16,6 +16,7 @@
     --main-5: #212f3a;
     --v-purple: #bf06fd;
     --v-blue: #0c06fd;
+    --v-cyan: #00faff;
 }
 
 .full-screen {
@@ -25,6 +26,18 @@
     padding: 0px;
     overflow-x: hidden;
     overflow-y: hidden;  
+}
+
+.v-button {
+    color: #fff;
+    border-color: #fff;
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 90%;
+}
+
+.v-button:hover {
+    color: var(--v-cyan);
+    border-color: var(--v-cyan);
 }
 
 a {
