@@ -409,7 +409,8 @@ public static class ValourClient
 
         Console.WriteLine($"Initialized user {Self.Username} ({Self.Id})");
 
-        await OnLogin?.Invoke();
+        if (OnLogin != null)
+            await OnLogin?.Invoke();
 
         await LoadJoinedPlanetsAsync();
 
@@ -433,7 +434,8 @@ public static class ValourClient
 
         _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
 
-        await OnJoinedPlanetsUpdate?.Invoke();
+        if (OnJoinedPlanetsUpdate != null)
+            await OnJoinedPlanetsUpdate?.Invoke();
     }
 
     /// <summary>
