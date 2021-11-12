@@ -111,7 +111,9 @@ namespace Valour.Client.Windows
             {
                 await ValourClient.CloseChannel(window.Channel);
                 OpenChatWindows.Remove((ChatChannelWindow)window);
-                await ClosePlanetIfNeeded(await window.Channel.GetPlanetAsync());
+
+                if (newChannel.Planet_Id !=  window.Channel.Planet_Id)
+                    await ClosePlanetIfNeeded(await window.Channel.GetPlanetAsync());
             }
 
             // Check for if planet should be closed

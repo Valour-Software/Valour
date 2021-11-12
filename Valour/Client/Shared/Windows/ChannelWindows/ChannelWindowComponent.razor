@@ -193,9 +193,6 @@
 
     public async Task SwapChannel(Channel newchannel)
     {
-        var oldchannel = Window.Channel;
-
-        Window.Channel = newchannel;
         Channel = newchannel;
 
         await windowManager.SwapWindowChannel(Window, newchannel);
