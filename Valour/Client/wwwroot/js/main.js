@@ -1,5 +1,16 @@
 ﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
 
+window.clipboardCopy = {
+    copyText: function(text) {
+        navigator.clipboard.writeText(text).then(function () {
+            // alert("Copied to clipboard!");
+        })
+        .catch(function (error) {
+            alert(error);
+        });
+    }
+};
+
 function EventForContextMenu(event) {
     if (event.target.className.includes("EnableRightCLick")) {
         return;

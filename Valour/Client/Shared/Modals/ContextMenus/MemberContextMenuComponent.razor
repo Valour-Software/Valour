@@ -1,4 +1,6 @@
-﻿<ContextMenu Id='member-context' CssClass='context' class='member-context'>
+﻿@inject IJSRuntime JS
+
+<ContextMenu Id='member-context' CssClass='context' class='member-context'>
 	<Item OnClick='OnClickKick' CssClass='context-item'>Kick</Item>
 	<Item OnClick='OnClickBan' CssClass='context-item'>Ban</Item>
 	<Item CssClass='context-item'>
@@ -17,6 +19,15 @@
 					</div>
 				</Item>
 			}
+		</SubMenu>
+	</Item>
+	<Item CssClass='context-item'>
+		Copy
+		<SubMenu CssClass='context-sub'>
+			<Item OnClick='OnClickCopyNickname' CssClass='context-item'>Nickname</Item>
+			<Item OnClick='OnClickCopyUsername' CssClass='context-item'>Username</Item>
+			<Item OnClick='OnClickCopyMemberId' CssClass='context-item'>Member Id</Item>
+			<Item OnClick='OnClickCopyUserId' CssClass='context-item'>User Id</Item>
 		</SubMenu>
 	</Item>
 </ContextMenu>
@@ -67,6 +78,24 @@
 			MemberRoles.RemoveAll(x => x.Id == role.Id);
 			StateHasChanged();
 		}
+	}
+
+	public async Task OnClickCopyNickname(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", await Member.GetNameAsync());
+	}
+
+	public async Task OnClickCopyUsername(){
+		var user = await Member.GetUserAsync();
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Username);
+	}
+
+	public async Task OnClickCopyMemberId(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", Member.Id);
+	}
+
+	public async Task OnClickCopyUserId(){
+		var user = await Member.GetUserAsync();
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
 	}
 
 	public async Task OnRoleClick(Role role, bool value)
