@@ -1,4 +1,4 @@
-![Valour logo](Valour/Client/wwwroot/favicon.ico)
+![Valour logo](Valour/Client/wwwroot/media/logo/logo-128.png)
 
 # Valour
 
