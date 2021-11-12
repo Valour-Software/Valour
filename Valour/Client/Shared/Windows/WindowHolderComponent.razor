@@ -3,10 +3,6 @@
 <!--
 	Add dummy window so Jacob doesn't cry
 -->
-@if (windowManager.GetWindowCount() == 0)
-{
-	windowManager.AddWindow(new HomeWindow(0));
-}
 
 @if (windowManager.GetWindowCount() < 4)
 {
@@ -98,19 +94,27 @@
 </div>
 
 @code {
+
+	protected override async Task OnInitializedAsync(){
+		if (windowManager.GetWindowCount() == 0)
+		{
+			await windowManager.AddWindow(new HomeWindow(0));
+		}
+	}
+
 	public void Refresh()
 	{
 		StateHasChanged();
 	}
 
-	private void AddWindow()
+	private async Task AddWindow()
 	{
 		if (windowManager.GetWindowCount() == 4)
 		{
 			return;
 		}
 
-		windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
+		await windowManager.AddWindow(new HomeWindow(windowManager.GetWindowCount() - 1));
 
 		StateHasChanged();
 	}

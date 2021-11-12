@@ -69,7 +69,6 @@
 		await base.OnInitializedAsync();
 
 		windowManager.OnPlanetFocused += OnPlanetChange;
-		windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
 		ValourClient.OnLogin += OnLoginAsync;
 	}
 
@@ -81,7 +80,6 @@
 	public void Dispose()
 	{
 		windowManager.OnPlanetFocused -= OnPlanetChange;
-		windowManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -94,11 +92,6 @@
 	private async Task SetupWindows()
 	{
 		await JS.InvokeVoidAsync("SizeEnable");
-	}
-
-	public async Task OnChannelWindowUpdate()
-	{
-		StateHasChanged();
 	}
 
 	public async Task OnPlanetChange(Planet planet)

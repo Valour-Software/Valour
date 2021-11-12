@@ -93,6 +93,16 @@ public static class ValourClient
     public static event Func<Planet, Task> OnPlanetClose;
 
     /// <summary>
+    /// Run when SignalR opens a channel
+    /// </summary>
+    public static event Func<Channel, Task> OnChannelOpen;
+
+    /// <summary>
+    /// Run when SignalR closes a channel
+    /// </summary>
+    public static event Func<Channel, Task> OnChannelClose;
+
+    /// <summary>
     /// Run when a message is recieved
     /// </summary>
     public static event Func<PlanetMessage, Task> OnMessageRecieved;
@@ -149,13 +159,13 @@ public static class ValourClient
     /// Returns if the given planet is open
     /// </summary>
     public static bool IsPlanetOpen(Planet planet) =>
-        OpenPlanets.Contains(planet);
+        OpenPlanets.Any(x => x.Id == planet.Id);
 
     /// <summary>
     /// Returns if the channel is open
     /// </summary>
     public static bool IsChannelOpen(Channel channel) =>
-        OpenChannels.Contains(channel);
+        OpenChannels.Any(x => x.Id == channel.Id);
 
     /// <summary>
     /// Opens a SignalR connection to a planet
@@ -244,6 +254,9 @@ public static class ValourClient
         OpenChannels.Add(channel);
 
         Console.WriteLine($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
+
+        if (OnChannelOpen is not null)
+            await OnChannelOpen.Invoke(channel);
     }
 
     /// <summary>
@@ -262,6 +275,9 @@ public static class ValourClient
         OpenChannels.Remove(channel);
 
         Console.WriteLine($"Left SignalR group for channel {channel.Name} ({channel.Id})");
+
+        if (OnChannelClose is not null)
+            await OnChannelClose.Invoke(channel);
     }
 
     #endregion

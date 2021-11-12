@@ -12,6 +12,7 @@
     <PackageIcon>valour-logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <EnablePreviewFeatures>True</EnablePreviewFeatures> 
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <ItemGroup>

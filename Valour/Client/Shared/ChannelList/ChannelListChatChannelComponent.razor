@@ -38,11 +38,6 @@
         }
     }
 
-    public async Task OnChannelWindowUpdate()
-    {
-        StateHasChanged();
-    }
-
     public async Task OnClick()
     {
 
@@ -64,32 +59,32 @@
                 }
 
                 Console.WriteLine(Channel.Name);
-                await channelWindow.Component.OnWindowChannelChange(Channel);
-
-                await windowManager.RefreshOpenedChannels();
+                await channelWindow.Component.SwapChannel(Channel);
             }
         }
 
+        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
     {
+        // Console.WriteLine("Init " + Channel.Name);
+
         Channel.OnAnyUpdated += OnChatChannelUpdate;
-        windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
     }
 
     public async Task OnChatChannelUpdate(Channel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {
-            this.Channel = channel;
             StateHasChanged();
         }
     }
 
     public void Dispose()
     {
+        // Console.WriteLine("Disposed " + Channel.Name);
+
         Channel.OnAnyUpdated -= OnChatChannelUpdate;
-        windowManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
     }
 }
