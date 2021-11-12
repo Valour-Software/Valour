@@ -201,6 +201,9 @@
         await windowManager.SwapWindowChannel(Window, newchannel);
 
         await SetupNewChannelAsync();
+
+        Should_Render = true;
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
