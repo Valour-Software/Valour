@@ -85,7 +85,7 @@
 
         windowManager.ClearWindows();
 
-        windowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
+        await windowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
         await windowManager.SetSelectedWindow(0);
 
         // Return to index

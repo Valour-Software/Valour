@@ -191,16 +191,16 @@
         MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
     }
 
-    public async Task OnWindowChannelChange(Channel newchannel)
+    public async Task SwapChannel(Channel newchannel)
     {
-        var oldchannel = Window.Channel;
-
-        Window.Channel = newchannel;
         Channel = newchannel;
 
         await windowManager.SwapWindowChannel(Window, newchannel);
 
         await SetupNewChannelAsync();
+
+        Should_Render = true;
+        StateHasChanged();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

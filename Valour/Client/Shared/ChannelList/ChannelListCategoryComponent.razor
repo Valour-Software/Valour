@@ -33,7 +33,7 @@
                         {
                             if (channel.Parent_Id == Category.Id)
                             {
-                                <ChannelListChatChannelComponent ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>        
+                                <ChannelListChatChannelComponent @key='channel.Id' ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>        
                             }
                         }
                         else
@@ -41,7 +41,7 @@
                             Category planetcategory = item as Category;
                             @if (planetcategory.Parent_Id == Category.Id)
                             {
-                                <ChannelListCategoryComponent ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
+                                <ChannelListCategoryComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
                             }
                         }
                     }
@@ -293,10 +293,5 @@
     public int GetIndex(IPlanetListItem item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
-    }
-
-    public void Refresh()
-    {
-        StateHasChanged();
     }
 }

@@ -231,13 +231,11 @@ video {
 }
 
 .sidebar-2 .category .channel:nth-child(1) {
-    margin-top: 10px;
+    margin-top: 2px;
 }
 
 .sidebar-2 .category .channel {
-    width: 257px;
-    margin-left: 6px;
-    margin-bottom: 2px;
+    width: 95%;
     border-radius: 5px;
     cursor: pointer;
 }
@@ -538,7 +536,7 @@ video {
 .sidebar-user {
     width: 240px;
     height: 56px;
-    background-color: rgba(255, 255, 255, 0.07);
+    background-color: var(--main-2);
     margin-right: auto;
 }
 
@@ -1261,7 +1259,7 @@ body {
 .RoleList {
     overflow-y: scroll;
     overflow-x: hidden;
-    height: calc(99.5% - 80px);
+    height: 100%;
 }
 
 .UserList {

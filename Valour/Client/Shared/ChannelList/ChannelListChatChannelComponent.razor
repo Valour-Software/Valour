@@ -38,11 +38,6 @@
         }
     }
 
-    public async Task OnChannelWindowUpdate()
-    {
-        StateHasChanged();
-    }
-
     public async Task OnClick()
     {
 
@@ -64,32 +59,44 @@
                 }
 
                 Console.WriteLine(Channel.Name);
-                await channelWindow.Component.OnWindowChannelChange(Channel);
-
-                await windowManager.RefreshOpenedChannels();
+                await channelWindow.Component.SwapChannel(Channel);
             }
         }
 
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        Channel.OnAnyUpdated += OnChatChannelUpdate;
-        windowManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
+        StateHasChanged();
     }
 
     public async Task OnChatChannelUpdate(Channel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {
-            this.Channel = channel;
             StateHasChanged();
         }
     }
 
+    public async Task OnChannelStateChange(Channel channel)
+    {
+        if (channel.Id == Channel.Id)
+            StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Console.WriteLine("Init " + Channel.Name);
+
+        Channel.OnAnyUpdated += OnChatChannelUpdate;
+
+        ValourClient.OnChannelOpen += OnChannelStateChange;
+        ValourClient.OnChannelClose += OnChannelStateChange;
+    }
+
     public void Dispose()
     {
+        // Console.WriteLine("Disposed " + Channel.Name);
+
         Channel.OnAnyUpdated -= OnChatChannelUpdate;
-        windowManager.OnChannelWindowUpdate -= OnChannelWindowUpdate;
+
+        ValourClient.OnChannelOpen -= OnChannelStateChange;
+        ValourClient.OnChannelClose -= OnChannelStateChange;
     }
 }

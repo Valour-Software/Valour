@@ -22,13 +22,16 @@ namespace Valour.Client.Windows
 
         public Func<Task> OnWindowSelect;
 
-        public event Func<Task> OnChannelWindowUpdate;
-
         public event Func<Planet, Task> OnPlanetFocused;
 
         public static ClientWindowManager Instance;
 
         public static WindowHolderComponent WindowHolder;
+
+        public static event Func<ChatChannelWindow, Task> OnChannelWindowOpen;
+        public static event Func<ChatChannelWindow, Task> OnChannelWindowClose;
+        public static event Func<ChatChannelWindow, Task> OnChannelWindowUpdate;
+
         public ClientWindowManager()
         {
             Instance = this;
@@ -82,11 +85,6 @@ namespace Valour.Client.Windows
 
         }
 
-        public async Task RefreshOpenedChannels()
-        {
-            await OnChannelWindowUpdate.Invoke();
-        }
-
         public async Task OnSignalRReconnect(string data)
         {
             foreach (ChatChannelWindow window in OpenWindows)
@@ -113,7 +111,9 @@ namespace Valour.Client.Windows
             {
                 await ValourClient.CloseChannel(window.Channel);
                 OpenChatWindows.Remove((ChatChannelWindow)window);
-                await ClosePlanetIfNeeded(await window.Channel.GetPlanetAsync());
+
+                if (newChannel.Planet_Id !=  window.Channel.Planet_Id)
+                    await ClosePlanetIfNeeded(await window.Channel.GetPlanetAsync());
             }
 
             // Check for if planet should be closed
@@ -121,6 +121,9 @@ namespace Valour.Client.Windows
             window.Channel = newChannel;
 
             await ValourClient.OpenChannel(newChannel);
+
+            if (OnChannelWindowUpdate is not null)
+                await OnChannelWindowUpdate.Invoke(window);
         }
 
         public async Task ClosePlanetIfNeeded(Planet planet)
@@ -168,18 +171,25 @@ namespace Valour.Client.Windows
             return SelectedWindow;
         }
 
-        public void AddWindow(ClientWindow window)
+        public async Task AddWindow(ClientWindow window)
         {
             window.Index = OpenWindows.Count;
             OpenWindows.Add(window);
 
-            if (window is ChatChannelWindow)
-                OpenChatWindows.Add((ChatChannelWindow)window);
+            if (window is ChatChannelWindow){
+                var cWin = window as ChatChannelWindow;
+                OpenChatWindows.Add(cWin);
+
+                if (OnChannelWindowOpen != null)
+                    await OnChannelWindowOpen.Invoke(cWin);
+            }
 
             Console.WriteLine("Added window " + window.Index);
 
             ForceChatRefresh();
-            WindowHolder.Refresh();
+
+            if (WindowHolder != null)
+                WindowHolder.Refresh();
         }
 
         public int GetWindowCount()
@@ -197,9 +207,13 @@ namespace Valour.Client.Windows
             return OpenWindows[index];
         }
 
-        public IEnumerable<ClientWindow> GetWindows()
+        public List<ClientWindow> GetWindows()
         {
             return OpenWindows;
+        }
+
+        public List<ChatChannelWindow> GetChannelWindows(){
+            return OpenChatWindows;
         }
 
         public void ClearWindows()
@@ -247,9 +261,12 @@ namespace Valour.Client.Windows
 
             if (window is ChatChannelWindow)
             {
-                var chatW = (ChatChannelWindow)window;
+                var chatW = window as ChatChannelWindow;
                 OpenChatWindows.Remove(chatW);
                 await ClosePlanetIfNeeded(await chatW.Channel.GetPlanetAsync());
+
+                if (OnChannelWindowClose != null)
+                    await OnChannelWindowClose.Invoke(chatW);
             }
 
             OpenWindows.RemoveAt(index);

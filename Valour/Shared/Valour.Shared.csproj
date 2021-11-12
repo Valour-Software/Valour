@@ -11,11 +11,12 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageIcon>valour-logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="6.0.0-rc.2.21480.10" />
-    <PackageReference Include="System.Net.Http.Json" Version="6.0.0-rc.2.21480.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="6.0.0" />
+    <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
