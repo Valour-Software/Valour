@@ -13,6 +13,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <EnablePreviewFeatures>True</EnablePreviewFeatures> 
     <DebugType>portable</DebugType>
+    <Version>0.1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
