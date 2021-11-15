@@ -30,21 +30,10 @@
 .textbox {
     background: rgba(255, 255, 255, 0.12);
     border-radius: 10px;
-    margin-top: 30px;
-    margin-bottom: 20px;
-    width: 95%;
-    margin-left: auto;
-    margin-right: auto;
     color: white;
-    word-break: break-word;
-    /*overflow-y: scroll; */
-    overflow-wrap: break-word;
-    resize: none;
-    border: none;
-    outline: none;
-    padding: 16px;
-    overflow-y: hidden;
-    cursor: text;
+    min-height: 32px;
+    position: relative;
+    margin: 10px;
 }
 
 .textbox-inner {
@@ -57,4 +46,35 @@
     color: white;
     vertical-align: bottom;
     text-align: start;
+    padding: 12px;
+    padding-left: 45px;
 }
+
+.upload {
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.25);
+    color: var(--main-1);
+    border-radius: 50%;
+    position: absolute;
+    font-size: 35px;
+    text-align: center;
+    line-height: 18px;
+    cursor: pointer;
+    left: 12px;
+    bottom: 9px;
+    user-select: none;
+}
+
+.upload:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.upload:active {
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+.textbox-holder {
+
+}
+  
