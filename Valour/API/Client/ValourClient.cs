@@ -248,7 +248,7 @@ public static class ValourClient
         await OpenPlanet(planet);
 
         // Join channel SignalR group
-        await HubConnection.SendAsync("JoinChannel", channel.Id, Token);
+        await HubConnection.SendAsync("JoinChannel", channel.Id, Token); 
 
         // Add to open set
         OpenChannels.Add(channel);
