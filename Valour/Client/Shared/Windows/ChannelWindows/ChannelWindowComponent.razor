@@ -4,6 +4,7 @@
 @inject ClientWindowManager windowManager
 @implements IDisposable
 @using Valour.Api.Messages
+@using System.Net.Http.Headers
 
 <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
@@ -47,7 +48,8 @@
         <MentionSelectComponent @ref="MentionSelector" ChannelComponent="this" Channel="Channel"></MentionSelectComponent>
 
         <div class="textbox" onclick="this.children[1].focus()">
-            <div class='upload'>+</div>
+            <InputFile id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <div class='upload' onclick="document.getElementById('upload-core').click()">+</div>
             <div contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
             </div>
         </div>
@@ -55,6 +57,7 @@
 </div>
 
 @code {
+
     /// <summary>
     /// True if the client has negotiated a channel connection
     /// </summary>
@@ -117,6 +120,51 @@
         await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
 
         await SetupNewChannelAsync();
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
+
+        var file = e.File;
+
+        if (file == null)
+        {
+            Console.WriteLine("Could not load file as an image.");
+        }
+
+        if (file.Size > 10240000)
+        {
+            Console.WriteLine("Max upload size is 10mb.");
+        }
+
+        byte[] data = new byte[file.Size];
+
+        await file.OpenReadStream(10240000).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await ValourClient.PostAsyncWithResponse<string[]>($"Upload/Image", content);
+
+        if (result.Success)
+        {
+            string images = "";
+            foreach (var url in result.Data){
+                images += (url + "\n");
+            }
+
+            await PostMessage(images);
+        }
+        else
+        {
+            Console.WriteLine(result.Message);
+        }
+
+        StateHasChanged();
     }
 
     protected override bool ShouldRender()
