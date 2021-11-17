@@ -111,7 +111,8 @@ body {
 
 video {
     /* override other styles to make responsive */
-    width: 90% !important;
+    width: 70% !important;
+    max-width: 400px;
     height: auto !important;
 }
 
@@ -1511,4 +1512,10 @@ blockquote {
 .loading-logo {
     width: 128px;
     user-select: none;
+}
+
+/* Media player */
+audio::-webkit-media-controls-play-button,
+audio::-webkit-media-controls-panel {
+  background-color: var(--main-1);
 }

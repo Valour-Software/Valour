@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Valour.Server.Database;
 using Valour.Server.Oauth;
+using Valour.Server.Planets;
 using Valour.Shared.Roles;
 using Valour.Shared.Oauth;
 using System.IO;
@@ -34,24 +35,17 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapPost("/upload/profileimage", ProfileImageRoute);
-            app.MapPost("/upload/planetimage", PlanetImageRoute);
-            app.MapPost("/upload/image", ImageRoute);
+            app.MapPost("/upload/{type}", UploadRoute);
         }
 
-
-        // 10240000
-        private static async Task ImageRoute(HttpContext context, HttpClient http, ValourDB db, 
-            [FromHeader] string authorization){
-
+        private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db, 
+            string type, [FromHeader] string authorization, ulong planet_id = 0)
+        {
             var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            if (authToken == null) { await TokenInvalid(context); return; }
 
-            if (authToken == null)
-            {
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("Unauthorized.");
-                return;
-            }
+            if (string.IsNullOrWhiteSpace(type))
+                Console.WriteLine("Include a valid upload type");
 
             if (context.Request.ContentLength < 512)
             {
@@ -68,43 +62,15 @@ namespace Valour.Server.API
                 return;
             }
 
-            int fileCount = context.Request.Form.Files.Count;
-
-            Console.WriteLine("Count: " + fileCount);
-
-            if (fileCount == 0)
+            if (context.Request.Form.Files == null ||
+                context.Request.Form.Files.Count == 0)
             {
                 context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Please attach an image");
-                return;
+                await context.Response.WriteAsync("Include file");
+                return; 
             }
 
-            if (fileCount > 1)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Please attach one image only");
-                return;
-            }
-
-            var file = context.Request.Form.Files[0];
-
-            if (file.Length > 10240000)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Max total size is 10mb");
-                return;
-            }
-
-            // Ensure it conforms to limits
-
-            if (!MPSManager.Image_Types.Contains(file.ContentType))
-            {
-                context.Response.StatusCode = 415;
-                await context.Response.WriteAsync("Ensure file is an image.");
-                return;
-            }
-
-            // Forward to VMPS
+            var file = context.Request.Form.Files.FirstOrDefault();
 
             byte[] data = new byte[file.Length];
 
@@ -116,213 +82,47 @@ namespace Valour.Server.API
 
             content.Add(arrContent, "file", file.Name);
 
-            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/Image?auth={MPSConfig.Current.Api_Key_Encoded}", content);
+            ServerPlanetMember member = null;
 
-            context.Response.StatusCode = (int)response.StatusCode;
-            await response.Content.CopyToAsync(context.Response.BodyWriter.AsStream());
-        }
+            // Authorization
 
-        private static async Task ProfileImageRoute(HttpContext context, HttpClient http, ValourDB db, 
-            [FromHeader] string authorization)
-        {
-            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
-
-            if (authToken == null)
-            {
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("Unauthorized.");
-                return;
-            }
-
-            if (context.Request.ContentLength < 512)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Must be greater than 512 bytes");
-                return;
-            }
-
-            // Max file size is 2mb
-            if (context.Request.ContentLength > 2621440)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Max file size is 2mb");
-                return;
-            }
-
-            int fileCount = context.Request.Form.Files.Count;
-
-            Console.WriteLine("Count: " + fileCount);
-
-            if (fileCount == 0)
-            {
-                context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Please attach an image");
-                return;
-            }
-
-            if (fileCount > 1)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Please attach one image only");
-                return;
-            }
-
-            var file = context.Request.Form.Files[0];
-
-            if (file.Length > 2621440)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Max total size is 2mb");
-                return;
-            }
-
-            // Ensure it conforms to limits
-
-            if (!MPSManager.Image_Types.Contains(file.ContentType))
-            {
-                context.Response.StatusCode = 415;
-                await context.Response.WriteAsync("Ensure file is an image.");
-                return;
-            }
-
-            // Forward to VMPS
-
-            byte[] data = new byte[file.Length];
-
-            await file.OpenReadStream().ReadAsync(data);
-
-            var content = new MultipartFormDataContent();
-            var arrContent = new ByteArrayContent(data);
-            arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-
-            content.Add(arrContent, "file", file.Name);
-
-            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/ProfileImage?auth={MPSConfig.Current.Api_Key_Encoded}", content);
-
-            context.Response.StatusCode = (int)response.StatusCode;
-            await response.Content.CopyToAsync(context.Response.BodyWriter.AsStream());
-
-            // Change user pfp in database
-            if (response.IsSuccessStatusCode)
-            {
-                var user = await db.Users.FindAsync(authToken.User_Id);
-                user.Pfp_Url = await response.Content.ReadAsStringAsync();
-                await db.SaveChangesAsync();
-            }
-        }
-
-        private static async Task PlanetImageRoute(HttpContext context, HttpClient http, ValourDB db, ulong planet_id,
-                                                   [FromHeader] string authorization)
-        {
-            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
-
-            if (authToken == null)
-            {
-                context.Response.StatusCode = 401;
-                await context.Response.WriteAsync("Unauthorized.");
-                return;
-            }
-
-            if (!authToken.HasScope(UserPermissions.PlanetManagement)){
-                await Unauthorized("Token lacks UserPermissions.PlanetManagement scope", context);
-                return;
-            }
-
-            var planet = await db.Planets.FindAsync(planet_id);
-
-            if (planet is null){
-                await BadRequest("Planet not found", context);
-                return;
-            }
-
-            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
+            if (type == "planet"){
+                member = await db.PlanetMembers.Include(x => x.Planet)
+                                               .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
                                                                          x.Planet_Id == planet_id);
-
-
-            if (member is null){
-                await BadRequest("Member not found", context);
-                return;
+                
+                if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db)){
+                    await Unauthorized("Member lacks PlanetPermissions.Manage", context);
+                    return;
+                }
             }
 
-            if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db)){
-                await Unauthorized("Member lacks PlanetPermissions.Manage", context);
-                return;
+            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
+
+            if (response.IsSuccessStatusCode){
+                switch (type){
+                    case "profile": 
+                    {
+                        var user = await db.Users.FindAsync(authToken.User_Id);
+                        var url = await response.Content.ReadAsStringAsync();
+                        user.Pfp_Url = url;
+                        await db.SaveChangesAsync();
+                        break;
+                    }
+                    case "planet": 
+                    {
+                        var url = await response.Content.ReadAsStringAsync();
+                        member.Planet.Image_Url = url;
+                        await db.SaveChangesAsync();
+                        PlanetHub.NotifyPlanetChange(member.Planet);
+                        break;
+                    }
+                }
             }
 
-            if (context.Request.ContentLength < 512)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Must be greater than 512 bytes");
-                return;
-            }
-
-            // Max file size is 2mb
-            if (context.Request.ContentLength > 8388608)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Max file size is 8mb");
-                return;
-            }
-
-            int fileCount = context.Request.Form.Files.Count;
-
-            Console.WriteLine("Count: " + fileCount);
-
-            if (fileCount == 0)
-            {
-                context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Please attach an image");
-                return;
-            }
-
-            if (fileCount > 1)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Please attach one image only");
-                return;
-            }
-
-            var file = context.Request.Form.Files[0];
-
-            if (file.Length > 8388608)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Max total size is 8mb");
-                return;
-            }
-
-            // Ensure it conforms to limits
-
-            if (!MPSManager.Image_Types.Contains(file.ContentType))
-            {
-                context.Response.StatusCode = 415;
-                await context.Response.WriteAsync("Ensure file is an image.");
-                return;
-            }
-
-            // Forward to VMPS
-
-            byte[] data = new byte[file.Length];
-
-            await file.OpenReadStream().ReadAsync(data);
-
-            var content = new MultipartFormDataContent();
-            var arrContent = new ByteArrayContent(data);
-            arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-
-            content.Add(arrContent, "file", file.Name);
-
-            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/PlanetImage?auth={MPSConfig.Current.Api_Key_Encoded}", content);
 
             context.Response.StatusCode = (int)response.StatusCode;
             await response.Content.CopyToAsync(context.Response.BodyWriter.AsStream());
-
-            // Change user pfp in database
-            if (response.IsSuccessStatusCode)
-            {
-                planet.Image_Url = await response.Content.ReadAsStringAsync();
-                await db.SaveChangesAsync();
-            }
         }
     }
 }
