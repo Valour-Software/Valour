@@ -99,13 +99,13 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/PlanetImage?planet_id={Planet.Id}", content);
+        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/planet?planet_id={Planet.Id}", content);
 
         if (result.Success)
         {
             Image_Url = result.Data;
             Console.WriteLine("Response from VMPS: " + result.Data);
-            Image_Output = "Successfully changed profile picture.";
+            Image_Output = "Successfully changed planet icon.";
         }
         else
         {

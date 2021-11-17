@@ -1,5 +1,10 @@
 ﻿using Markdig;
+using Markdig.Extensions;
 using System.Text.RegularExpressions;
+using Markdig.Extensions.MediaLinks;
+using Valour.Client.Messages;
+
+#nullable enable
 
 namespace Valour.Client.Messages;
 
@@ -13,12 +18,21 @@ public static class MarkdownManager
 {
     public static MarkdownPipeline pipeline;
 
+    public static MarkdownPipelineBuilder UseVooperMediaLinks(this MarkdownPipelineBuilder pipeline, MediaOptions? options = null)
+    {
+        if (!pipeline.Extensions.Contains<VooperMediaLinkExtension>())
+        {
+            pipeline.Extensions.Add(new VooperMediaLinkExtension(options));
+        }
+        return pipeline;
+    }
+
     static MarkdownManager()
     {
 
         pipeline = new MarkdownPipelineBuilder().DisableHtml()
+                                                .UseVooperMediaLinks()
                                                 .UseAutoLinks()
-                                                .UseMediaLinks()
                                                 .UseMathematics()
                                                 .UseAbbreviations()
                                                 .UseCitations()

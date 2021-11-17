@@ -122,6 +122,18 @@
         await SetupNewChannelAsync();
     }
 
+    public static HashSet<string> ImageContent = new HashSet<string>()
+    {
+        "image/gif",
+        "image/jpeg",
+        "image/png",
+        "image/tiff",
+        "image/vnd.microsoft.icon",
+        "image/x-icon",
+        "image/vnd.djvu",
+        "image/svg+xml"
+    };
+
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
         //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
@@ -148,16 +160,18 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string[]>($"Upload/Image", content);
+        string type = "file";
+
+        if (ImageContent.Contains(file.ContentType)){
+            type = "image";
+        }
+
+        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/{type}", content);
 
         if (result.Success)
         {
-            string images = "";
-            foreach (var url in result.Data){
-                images += (url + "\n");
-            }
-
-            await PostMessage(images);
+            string url = result.Data;
+            await PostMessage(url);
         }
         else
         {
