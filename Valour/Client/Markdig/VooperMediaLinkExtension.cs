@@ -120,6 +120,7 @@ public class VooperMediaLinkExtension : IMarkdownExtension
 
             htmlAttributes.AddPropertyIfNotExist("controls", null);
             htmlAttributes.AddPropertyIfNotExist("preload", "metadata");
+            htmlAttributes.AddPropertyIfNotExist("playsinline", null);
 
             if (!string.IsNullOrEmpty(Options.Class))
                 htmlAttributes.AddClass(Options.Class);
