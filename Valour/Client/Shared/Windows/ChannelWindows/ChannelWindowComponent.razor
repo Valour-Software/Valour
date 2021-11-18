@@ -47,8 +47,8 @@
 
         <MentionSelectComponent @ref="MentionSelector" ChannelComponent="this" Channel="Channel"></MentionSelectComponent>
 
-        <div class="textbox" onclick="this.children[1].focus()">
-            <InputFile id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+        <div class="textbox" onclick="this.children[1].focus()" @ref='dropZoneElement'>
+            <InputFile id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles" @ref='inputFile'></InputFile>
             <div class='upload' onclick="document.getElementById('upload-core').click()">+</div>
             <div contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
             </div>
@@ -94,6 +94,11 @@
 
     public bool Should_Render { get; set; }
 
+    // Drop zone stuff
+    public InputFile inputFile;
+    ElementReference dropZoneElement;
+    IJSObjectReference _dropZoneInstance;
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
@@ -118,6 +123,8 @@
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
         await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
+
+        await JS.InvokeAsync<IJSObjectReference>("initializeFileDropZone", dropZoneElement, inputFile.Element);
 
         await SetupNewChannelAsync();
     }
