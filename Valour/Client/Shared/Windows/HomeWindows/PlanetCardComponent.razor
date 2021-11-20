@@ -2,7 +2,7 @@
 
 <div class="home-server m-2" style="cursor: pointer" @onclick="OnClick">
     <h6 class="text-center">@Planet.Name</h6>
-    <img class="planet-card-icon" src="@Planet.Image_Url" />
+    <img style='@image_style' class="planet-card-icon" src="@icon_url" @onerror='OnIconError' />
 </div>
 
 @code {
@@ -11,6 +11,14 @@
 
     [Parameter]
     public HomeWindow Window { get; set; }
+
+    public string icon_url = "/media/logo/logo-512.png";
+
+    public string image_style = "";
+
+    protected override async Task OnInitializedAsync(){
+        icon_url = Planet.Image_Url;
+    }
 
     public async Task OnClick()
     {
@@ -26,6 +34,17 @@
 
         await windowManager.SetWindow(Window.Index, newWindow);
         await windowManager.SetSelectedWindow(Window.Index);
+
+        StateHasChanged();
+    }
+
+    protected async Task OnIconError()
+    {
+        icon_url = "/media/logo/logo-512.png";
+
+        int r = Random.Shared.Next(24) * 15;
+
+        image_style = $"filter: hue-rotate({r}deg)";
 
         StateHasChanged();
     }
