@@ -1513,9 +1513,3 @@ blockquote {
     width: 128px;
     user-select: none;
 }
-
-/* Media player */
-audio::-webkit-media-controls-play-button,
-audio::-webkit-media-controls-panel {
-  background-color: var(--main-1);
-}

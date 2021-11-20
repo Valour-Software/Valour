@@ -5,6 +5,7 @@
 @implements IDisposable
 @using Valour.Api.Messages
 @using System.Net.Http.Headers
+@using Valour.Client.Shared.Windows.ChannelWindows.FileUpload;
 
 <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
@@ -77,6 +78,9 @@
 
     [Parameter]
     public ChatChannelWindow Window { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     public Channel Channel;
 
@@ -173,17 +177,27 @@
             type = "image";
         }
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/{type}", content);
+        ModalParameters modalParams = new();
+        modalParams.Add("File", file);
+        modalParams.Add("Data", data);
+        modalParams.Add("OnConfirm", 
+            async () => {
+                var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/{type}", content);
 
-        if (result.Success)
-        {
-            string url = result.Data;
-            await PostMessage(url);
-        }
-        else
-        {
-            Console.WriteLine(result.Message);
-        }
+                if (result.Success)
+                {
+                    string url = result.Data;
+
+                    await PostMessage(url);
+                }
+                else
+                {
+                    Console.WriteLine(result.Message);
+                }
+            }
+        );
+
+        Modal.Show<FileUploadComponent>("File Upload", modalParams, new ModalOptions(){ Class = "modal-shrink-fit" });
 
         StateHasChanged();
     }

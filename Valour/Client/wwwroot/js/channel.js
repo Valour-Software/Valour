@@ -253,3 +253,13 @@ function initializeFileDropZone(dropZoneElement, inputFile) {
         }
     }
 }
+
+function loadVideo3(buffer, contentType) {
+    // var arrayBuffer = _base64ToArrayBuffer(base64);
+
+    const blob = new Blob([buffer], { type: contentType});
+    var dataUrl = window.URL.createObjectURL(blob);
+
+    var video = document.getElementById("video-preview");
+    video.src = dataUrl;
+}
