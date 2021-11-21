@@ -97,7 +97,7 @@ namespace Valour.Server.API
                 }
             }
 
-            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
+            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{authToken.User_Id}/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
 
             if (response.IsSuccessStatusCode){
                 switch (type){

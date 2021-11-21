@@ -2,5 +2,8 @@
     max-width: 70vw;
     max-height: 70vh;
     min-width: 200px;
+
+    text-align: center;
+
     /* min-height: 200px; */
 }
