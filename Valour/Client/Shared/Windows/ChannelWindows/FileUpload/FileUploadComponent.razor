@@ -1,6 +1,6 @@
 @inject IJSRuntime JS
 
-<div class="col-md-12">
+<div class="col-md-12" @onkeydown='OnKeyDown'>
 	<section>
 		<h4>Upload?</h4>
 
@@ -68,7 +68,10 @@
             await JS.InvokeVoidAsync("loadVideo3", Data, mime);
     }
 
-    
+    public async Task OnKeyDown(KeyboardEventArgs e){
+        if (e.Key.ToLower() == "enter")
+            await OnClickConfirm();
+    }
 
     public DisplayType GetDisplayType(IBrowserFile file){
         mime = file.ContentType.ToLower();
