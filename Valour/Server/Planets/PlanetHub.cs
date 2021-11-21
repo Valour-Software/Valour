@@ -9,6 +9,7 @@ using Valour.Server.Categories;
 using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Server.Roles;
+using Valour.Server.Users;
 using Valour.Shared.Oauth;
 using Valour.Shared.Planets;
 using Valour.Shared.Messages;
@@ -56,7 +57,7 @@ namespace Valour.Server.Planets
 
         public async Task LeavePlanet(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"p-{planet_id}");
-        
+
 
         public async Task JoinChannel(ulong channel_id, string token)
         {
@@ -67,7 +68,7 @@ namespace Valour.Server.Planets
 
         public async Task LeaveChannel(ulong channel_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channel_id}");
-        
+
 
         public async Task JoinInteractionGroup(ulong planet_id, string token)
         {
@@ -97,6 +98,19 @@ namespace Valour.Server.Planets
 
         public static async void NotifyMemberChange(ServerPlanetMember member, int flags = 0) =>
             await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", member, flags);
+
+        public static async void NotifyUserChange(ServerUser _user, int flags = 0) {
+            using (ValourDB Context = new(ValourDB.DBOptions))
+            {
+                ServerUser user = await Context.Users
+                    .Include(x => x.Membership)
+                    .FirstOrDefaultAsync(x => x.Id == _user.Id);
+                foreach (ServerPlanetMember member in user.Membership)
+                {
+                    await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("UserUpdate", user, flags);
+                }
+            }
+        }
 
         public static async void NotifyPlanetChange(ServerPlanet planet, int flags = 0) =>
             await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet, flags);

@@ -515,6 +515,8 @@ public static class ValourClient
 
         HubConnection.On<Member, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Member>("MemberDeletion", DeleteItem);
+
+        HubConnection.On<User, int>("UserUpdate", (i, d) => UpdateItem(i, d));
     }
 
     /// <summary>

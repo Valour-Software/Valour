@@ -108,7 +108,17 @@
         {
             pfpurl = pfp;
         }
+
+        user.OnUpdated += (async () => {
+            pfp = await Member.GetPfpUrlAsync();
+            if (!string.IsNullOrWhiteSpace(pfp))
+            {
+                pfpurl = pfp;
+                StateHasChanged();
+            }
+        });
     }
+
 
     protected async Task OnPfpError()
     {
