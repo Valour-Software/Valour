@@ -9,18 +9,18 @@
         <div class="preview-scale">
             @switch (type){
                 case DisplayType.Image:
-                    <img src="data:@mime;base64,@base64" />
+                    <img style="max-width: 50vw%; max-height: 50vh;" src="data:@mime;base64,@base64" />
                     break;
                 case DisplayType.Video:
-                    <video style='width:100% !important' id='video-preview' type='@mime' src="data:@mime;base64,@base64" controls>
+                    <video style='max-width: 50vw%; max-height: 50vh;' id='video-preview' type='@mime' src="data:@mime;base64,@base64" controls>
                     </video>
                     break;
                 case DisplayType.Audio:
-                    <audio style="min-height: 0px;" type='@mime' src="data:@mime;base64,@base64" controls>
+                    <audio style="min-height: 0px; max-width: 50vw%; max-height: 50vh;" type='@mime' src="data:@mime;base64,@base64" controls>
                     </audio>
                     break;
             }
-        </div>
+        </div>    
 
         <br/>
 
