@@ -228,6 +228,17 @@
         {
             pfpurl = pfp;
         }
+
+        User user = await Author.GetUserAsync();
+
+        user.OnUpdated += (async () => {
+            pfp = user.Pfp_Url;
+            if (user != null && !string.IsNullOrWhiteSpace(pfp))
+            {
+                pfpurl = pfp;
+                ReRender();
+            }
+        });
     }
 
     protected override async Task OnInitializedAsync()

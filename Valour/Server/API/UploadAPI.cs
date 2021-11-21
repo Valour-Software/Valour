@@ -107,6 +107,7 @@ namespace Valour.Server.API
                         var url = await response.Content.ReadAsStringAsync();
                         user.Pfp_Url = url;
                         await db.SaveChangesAsync();
+                        PlanetHub.NotifyUserChange(user);
                         break;
                     }
                     case "planet": 

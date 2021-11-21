@@ -63,6 +63,7 @@ namespace Valour.Shared.Users
 
         public static UserState[] States = new UserState[]
         {
+            Automatic,
             Offline,
             Away,
             DoNotDisturb,
