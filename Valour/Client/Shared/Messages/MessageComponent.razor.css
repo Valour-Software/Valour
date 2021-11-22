@@ -244,8 +244,13 @@
 
 @media screen and (max-width: 992px) {
     ::deep .content img {
-        max-width: 90%;
-        max-height: 90%;
+        max-width: 300px;
+        max-height: 300px;
+        width: 90%;
+        /* display: block; */
+        height: 90%;
+        object-fit: contain;
+        object-position: left;
     }
 
     ::deep .content img:hover {

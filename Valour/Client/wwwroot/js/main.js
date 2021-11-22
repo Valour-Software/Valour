@@ -305,7 +305,7 @@ function SetupWindow(index) {
 
         if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
             Math.abs(window.outerHeight()))
-            < 25) {
+            < 75) {
 
             scrollStates[index] = 1;
             console.log("Within snap range.");
