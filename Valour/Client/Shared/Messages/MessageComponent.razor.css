@@ -229,6 +229,10 @@
 ::deep .content img {
     max-width: 300px;
     max-height: 300px;
+    width: 90%;
+    height: 90%;
+    object-fit: contain;
+    object-position: left;
     margin-bottom: 10px;
     display: block;
     transition: all 0.125s ease;
@@ -240,16 +244,6 @@
     max-height: 500px;
     transition: all 0.125s ease;
     transition-delay: 0.5s;
-}
-
-@media screen and (max-width: 992px) {
-    ::deep .content img {
-        max-width: 90%;
-        max-height: 90%;
-    }
-
-    ::deep .content img:hover {
-    }
 }
 
 ::deep .content a {
