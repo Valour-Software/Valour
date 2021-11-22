@@ -289,17 +289,24 @@ public static class ValourClient
     /// </summary>
     public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item<T>
     {
+        Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
+
         var local = ValourCache.Get<T>(updated.Id);
+
         if (local != null)
             updated.CopyAllTo(local);
 
         if (!skipEvent)
         {
-            // Invoke specific item update
-            await local.InvokeUpdated(flags);
+            if (local != null) {
+                await local.InvokeUpdated(flags);
+                await local.InvokeAnyUpdated(local, flags);
+            }
+            else {
+                await updated.InvokeAnyUpdated(updated, flags);
+            }
 
-            // Invoke static "any" update
-            await local.InvokeAnyUpdated(local, flags);
+            Console.WriteLine("Invoked update events for " + updated.Id);
         }
     }
 
