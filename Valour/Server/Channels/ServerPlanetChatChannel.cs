@@ -63,7 +63,7 @@ namespace Valour.Server.Planets
 
             // Remove permission nodes
             db.PermissionsNodes.RemoveRange(
-                db.PermissionsNodes.Where(x => x.Target_Id == Id && x.ItemType == ItemType)
+                db.PermissionsNodes.Where(x => x.Target_Id == Id)
             );
 
             // Remove messages

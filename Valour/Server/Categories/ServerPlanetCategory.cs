@@ -91,7 +91,7 @@ namespace Valour.Server.Categories
             // Remove permission nodes
 
             db.PermissionsNodes.RemoveRange(
-                db.PermissionsNodes.Where(x => x.Target_Id == Id && x.Target_Type == ItemType.Category)
+                db.PermissionsNodes.Where(x => x.Target_Id == Id)
             );
 
             // Remove category

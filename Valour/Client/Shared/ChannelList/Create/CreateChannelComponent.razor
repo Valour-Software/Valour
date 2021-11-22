@@ -123,32 +123,22 @@
         Channel newChannel = new()
         {
             Name = name,
+            Description = "A chat channel",
             Planet_Id = planet_id,
             Parent_Id = parent_id
         };
 
-        JsonContent content = JsonContent.Create(newChannel);
+        var result = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet/{planet_id}/channels", newChannel);
 
-        var create_response = await Http.PostAsync($"api/planet/{planet_id}/channels", content);
-
-        if (!create_response.IsSuccessStatusCode)
+        if (!result.Success)
         {
-            string errorText = $"Error ({create_response.StatusCode}): " + await create_response.Content.ReadAsStringAsync();
+            string errorText = result.Message;
             Console.WriteLine(errorText);
             imageSpan = errorText;
             return;
         }
 
-        ulong channel_id;
-        bool id_parsed = ulong.TryParse(await create_response.Content.ReadAsStringAsync(), out channel_id);
-
-        if (!id_parsed)
-        {
-            string errorText = "Error: Failed to parse result.";
-            Console.WriteLine(errorText);
-            imageSpan = errorText;
-            return;
-        }
+        ulong channel_id = result.Data;
 
         imageSpan = "Success.";
 
