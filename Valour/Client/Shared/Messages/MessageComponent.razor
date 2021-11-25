@@ -6,6 +6,11 @@
     return;
 }
 
+@if (HideSelf)
+{
+    return;
+}
+
 <div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class" style="@Style">
 
     @if (Minimal)
@@ -17,14 +22,16 @@
         </div>
         <div class="message-content">
             <p class="content" @ref="InnerRef">
-                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
-                {
-                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-                }
-                else
-                {
-                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                }
+                <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => MessageContextMenuComponent.Initialize(Message)'>
+                    @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                    {
+                        <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                    }
+                </ContextMenuTrigger>
             </p>
         </div>
 
@@ -59,17 +66,19 @@
                 </p>
             }
             <p class="content" @ref="InnerRef">
-                @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
-                {
+                <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => MessageContextMenuComponent.Initialize(Message)'>
+                    @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                    {
 
-                    Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
+                        Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
 
-                    <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
-                }
-                else
-                {
-                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                }
+                        <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                    }
+                </ContextMenuTrigger>
             </p>
         </div>
     }
@@ -150,6 +159,8 @@
     string name = "";
 
     public ulong roleId;
+
+    public bool HideSelf = false;
 
     bool mentioned = false;
 

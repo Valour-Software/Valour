@@ -168,6 +168,7 @@ namespace Valour.Shared.Oauth
         public static readonly ChatChannelPermission ManagePermissions;
         public static readonly ChatChannelPermission Embed;
         public static readonly ChatChannelPermission AttachContent;
+        public static readonly ChatChannelPermission DeleteMessages;
 
         static ChatChannelPermissions()
         {
@@ -179,6 +180,7 @@ namespace Valour.Shared.Oauth
             ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
             Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
             AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
+            DeleteMessages = new ChatChannelPermission(0x80, "Delete Messages", "Allow members to delete other users' messages.");
 
             Permissions = new ChatChannelPermission[]
             {
@@ -189,7 +191,8 @@ namespace Valour.Shared.Oauth
                 ManageChannel,
                 ManagePermissions,
                 Embed,
-                AttachContent
+                AttachContent,
+                DeleteMessages
             };
 
             Default = Permission.CreateCode(View, ViewMessages, PostMessages);

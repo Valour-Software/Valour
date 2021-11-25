@@ -1,8 +1,10 @@
 ﻿using Markdig.Helpers;
 using System.Diagnostics;
 using System.Text.Json;
+using Valour.Api.Client;
 using Valour.Api.Messages;
 using Valour.Api.Planets;
+using Valour.Shared;
 using Valour.Shared.Messages.Embeds;
 using Valour.Shared.Messages.Mentions;
 
@@ -99,6 +101,9 @@ public class ClientPlanetMessage
     {
         this.BaseMessage = message;
     }
+
+    public async Task<TaskResult> DeleteAsync() =>
+        await ValourClient.DeleteAsync($"api/channel/{Channel_Id}/messages/{Id}");
 
     public string MarkdownContent
     {

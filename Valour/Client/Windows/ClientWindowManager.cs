@@ -37,6 +37,7 @@ namespace Valour.Client.Windows
             Instance = this;
             ValourClient.HubConnection.Reconnected += OnSignalRReconnect;
             ValourClient.OnMessageRecieved += OnMessageRecieved;
+            ValourClient.OnMessageDeletion += OnMessageDeletion;
         }
 
         public async Task SetFocusedPlanet(Planet planet)
@@ -64,6 +65,16 @@ namespace Valour.Client.Windows
                 Console.WriteLine($"Set focused planet to {planet.Name} ({planet.Id})");
 
             await OnPlanetFocused?.Invoke(planet);
+        }
+
+        public async Task OnMessageDeletion(PlanetMessage _message)
+        {
+            // Create client wrapper
+            ClientPlanetMessage message = new ClientPlanetMessage(_message);
+            foreach (var window in OpenChatWindows.Where(x => x.Channel.Id == message.Channel_Id))
+            {
+                await window.Component.OnMessageDeletion(message);
+            }
         }
 
         public async Task OnMessageRecieved(PlanetMessage in_message)

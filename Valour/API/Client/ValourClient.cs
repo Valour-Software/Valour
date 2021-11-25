@@ -108,6 +108,11 @@ public static class ValourClient
     public static event Func<PlanetMessage, Task> OnMessageRecieved;
 
     /// <summary>
+    /// Run when a message is deleted
+    /// </summary>
+    public static event Func<PlanetMessage, Task> OnMessageDeletion;
+
+    /// <summary>
     /// Run when the user logs in
     /// </summary>
     public static event Func<Task> OnLogin;
@@ -334,6 +339,14 @@ public static class ValourClient
         await OnMessageRecieved?.Invoke(message);
     }
 
+    /// <summary>
+    /// Ran when a message is deleted
+    /// </summary>
+    private static async Task MessageDeletion(PlanetMessage message)
+    {
+        await OnMessageDeletion?.Invoke(message);
+    }
+
     #endregion
 
     #region Planet Event Handling
@@ -507,6 +520,7 @@ public static class ValourClient
     private static void HookSignalREvents()
     {
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
+        HubConnection.On<PlanetMessage>("MessageDeletion", MessageDeletion);
 
         HubConnection.On<Planet, int>("PlanetUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Planet>("PlanetDeletion", DeleteItem);

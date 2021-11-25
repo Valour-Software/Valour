@@ -299,6 +299,14 @@
         await ValourClient.CloseChannel(Channel);
     }
 
+    public async Task OnMessageDeletion(ClientPlanetMessage message)
+    {
+        await MessageHolder.RemoveMessage(message);
+        DummyComponent.SetLast(MessageHolder.GetLastMessage());
+        DummyComponent.CheckMinimal();
+        DummyComponent.ReRender();
+    }
+
     public async Task OnRecieveMessage(ClientPlanetMessage message)
     {
         await MessageHolder.AddMessage(message);

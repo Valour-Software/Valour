@@ -1,4 +1,6 @@
-﻿using Valour.Api.Planets;
+﻿using Valour.Api.Client;
+using Valour.Api.Planets;
+using Valour.Shared;
 
 namespace Valour.Api.Messages;
 

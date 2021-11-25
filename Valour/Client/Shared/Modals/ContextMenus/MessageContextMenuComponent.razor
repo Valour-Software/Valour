@@ -1,0 +1,38 @@
+﻿<ContextMenu Id='message-context' CssClass='context'>
+    @if (CanDelete().Result)
+    {
+        <Item CssClass='context-item' OnClick='OnDeleteMessageClick'>Delete Message</Item>
+    }
+</ContextMenu>
+
+@code {
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    public static ClientPlanetMessage Message { get; set; }
+
+    public static void Initialize(ClientPlanetMessage message){
+        Message = message;
+    }
+
+    public async Task OnDeleteMessageClick(){
+        await Message.DeleteAsync();
+    }
+
+    public async Task<bool> CanDelete()
+    {
+        if (Message.Author_Id == ValourClient.Self.Id)
+        {
+            return true;
+        }
+        // spike please add client-side permission checking code to channels and categories
+
+        Planet planet = await Planet.FindAsync(Message.Planet_Id);
+
+        if (planet.Owner_Id == ValourClient.Self.Id) {
+            return true;
+        }
+
+        return false;
+    }
+}

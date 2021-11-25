@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -35,6 +36,7 @@ namespace Valour.Server.API
         {
             app.MapGet("api/channel/{channel_id}/messages", GetMessages);
             app.MapPost("api/channel/{channel_id}/messages", PostMessage);
+            app.MapDelete("api/channel/{channel_id}/messages/{Message_id}", DeleteMessage);
 
             app.Map("api/channel/{channel_id}", Channel);
             app.Map("api/channel/{channel_id}/name", Name);
@@ -619,6 +621,93 @@ namespace Valour.Server.API
             PlanetMessageWorker.AddToQueue(message);
 
             StatWorker.IncreaseMessageCount();
+
+            ctx.Response.StatusCode = 200;
+            await ctx.Response.WriteAsync("Success");
+        }
+
+        private static async Task DeleteMessage(HttpContext ctx, ValourDB db, ulong channel_id,
+                                         [FromHeader] string authorization, ulong message_id)
+        {
+
+
+
+            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+
+            if (auth == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
+                return;
+            }
+
+            bool FromStageMessages = true;
+
+            PlanetMessage msg = PlanetMessageWorker.TryGetMessage(message_id);
+
+            if (msg == null)
+            {
+                msg = await db.PlanetMessages.FirstOrDefaultAsync(x => x.Id == message_id);
+                FromStageMessages = false;
+            }
+
+            if (msg == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync($"Failed to delete message: could not find message!");
+                return;
+            }
+
+            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+                                                                         .FirstOrDefaultAsync(x => x.Id == msg.Channel_Id);
+
+            if (channel == null)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsync($"Channel not found [id: {msg.Channel_Id}]");
+                return;
+            }
+
+            var member = channel.Planet.Members.FirstOrDefault();
+
+            if (member == null)
+            {
+                ctx.Response.StatusCode = 401;
+                await ctx.Response.WriteAsync("Could not find member using token");
+                return;
+            }
+
+            bool IsAuthor = false;
+
+            if (msg.Author_Id == auth.User_Id)
+            {
+                IsAuthor = true;
+            }
+            else
+            {
+                if (!await channel.HasPermission(member, ChatChannelPermissions.DeleteMessages, db))
+                {
+                    ctx.Response.StatusCode = 401;
+                    await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.DeleteMessages node and is not author of message");
+                    return;
+                }
+
+                IsAuthor = false;
+            }
+
+            if (FromStageMessages)
+            {
+                PlanetMessageWorker.RemoveFromStaged(msg);
+            }
+
+            else
+            {
+                db.PlanetMessages.Remove(msg);
+                await db.SaveChangesAsync();
+            }
+
+            PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("MessageDeletion", msg);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
