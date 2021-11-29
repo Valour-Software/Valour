@@ -1,0 +1,150 @@
+@inject IJSRuntime JS
+
+<Item OnClick='OnClickKick' CssClass='context-item'>Kick</Item>
+<Item OnClick='OnClickBan' CssClass='context-item'>Ban</Item>
+<Item CssClass='context-item'>
+	Roles
+	<SubMenu CssClass='context-sub'>
+		@foreach (var role in Roles)
+		{
+			var cRole = role;
+			var hasRole = MemberRoles.Any(x => x.Id == role.Id);
+
+			<Item CssClass='context-item'>
+				<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
+					<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
+					<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
+									checked="@hasRole" disabled />
+				</div>
+			</Item>
+		}
+	</SubMenu>
+</Item>
+<Item CssClass='context-item'>
+	Copy
+	<SubMenu CssClass='context-sub'>
+		<Item OnClick='OnClickCopyNickname' CssClass='context-item'>Nickname</Item>
+		<Item OnClick='OnClickCopyUsername' CssClass='context-item'>Username</Item>
+		<Item OnClick='OnClickCopyMemberId' CssClass='context-item'>Member Id</Item>
+		<Item OnClick='OnClickCopyUserId' CssClass='context-item'>User Id</Item>
+	</SubMenu>
+</Item>
+
+@code {
+
+    [CascadingParameter]
+	public IModalService Modal { get; set; }
+
+	public static Member Member { get; set; }
+	public static List<Role> Roles { get; set; }
+	public static List<Role> MemberRoles { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		Role.OnAnyUpdated += OnRoleUpdate;
+		Member.OnAnyUpdated += OnMemberUpdate;
+	}
+
+	public static async Task Initialize(Member member)
+	{
+		Member = member;
+		Roles = await (await member.GetPlanetAsync()).GetRolesAsync();
+		MemberRoles = await member.GetRolesAsync();
+	}
+        
+	public async Task OnMemberUpdate(Member member, int flags)
+	{
+		if (member.Id == Member.Id)
+		{
+			MemberRoles = await Member.GetRolesAsync();
+			StateHasChanged();
+		}
+	}
+
+	public async Task OnRoleUpdate(Role role, int flags)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+			StateHasChanged();
+	}
+
+	public async Task OnRoleDeleted(Role role)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+		{
+			Roles.RemoveAll(x => x.Id == role.Id);
+			MemberRoles.RemoveAll(x => x.Id == role.Id);
+			StateHasChanged();
+		}
+	}
+
+	public async Task OnClickCopyNickname(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", await Member.GetNameAsync());
+	}
+
+	public async Task OnClickCopyUsername(){
+		var user = await Member.GetUserAsync();
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Username);
+	}
+
+	public async Task OnClickCopyMemberId(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", Member.Id);
+	}
+
+	public async Task OnClickCopyUserId(){
+		var user = await Member.GetUserAsync();
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
+	}
+
+	public async Task OnRoleClick(Role role, bool value)
+	{
+		Valour.Shared.Roles.PlanetRoleMember roleMember = new()
+		{
+			Member_Id = Member.Id,
+			Planet_Id = Member.Planet_Id,
+			Role_Id = role.Id,
+			User_Id = Member.User_Id
+		};
+
+        if (value)
+            // Add role
+            await ValourClient.PostAsync($"api/member/{Member.Id}/role_membership", roleMember);
+        else
+            // Remove role
+            await ValourClient.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
+
+        StateHasChanged();
+	}
+
+	public async Task OnClickKick()
+	{
+		ConfirmModalData modalData =
+        new($"Kick {Member.Nickname}?",
+             $"This will remove them from the planet.",
+             "Confirm",
+             "Cancel", 
+             async () =>
+             {
+                 var result = ValourClient.GetJsonAsync<string>($"/Planet/KickUser?planet_id={Member.Planet_Id}" +
+                                                                               $"&target_id={Member.Id}");
+                 Console.WriteLine(result);
+
+             },
+             async () =>
+             {
+
+             }
+        );
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
+
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+	}
+
+	public async Task OnClickBan()
+	{
+		ModalParameters par = new();
+        par.Add("Member", Member);
+        Modal.Show<BanUserComponent>("Ban User", par);
+	}
+}

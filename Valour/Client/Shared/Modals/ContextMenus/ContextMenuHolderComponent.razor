@@ -4,18 +4,6 @@
     <AddChannelContextMenuComponent></AddChannelContextMenuComponent>
 
     <MemberContextMenuComponent></MemberContextMenuComponent>
+
+    <MessageContextMenuComponent></MessageContextMenuComponent>
 </div>
-
-@code {
-
-    public static Func<string, Task> CloseModalEvent;
-
-    [JSInvokable("CloseModalInterop")]
-    public static async Task CloseModalInterop(string modal_id)
-    {
-        if (CloseModalEvent != null)
-        {
-            await CloseModalEvent.Invoke(modal_id);
-        }
-    }
-}

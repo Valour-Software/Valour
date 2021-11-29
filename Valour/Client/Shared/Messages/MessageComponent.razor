@@ -42,7 +42,7 @@
         <div class="message-content">
             @if (Author != null)
             {
-                <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await MemberContextMenuComponent.Initialize(Author)' style='display:inline' >
+                <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline' >
                     <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id">
                         @name
                     </p>
@@ -58,19 +58,21 @@
                     User not found
                 </p>
             }
-            <p class="content" @ref="InnerRef">
-                @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
-                {
+            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message)'>
+                <p class="content" @ref="InnerRef">
+                    @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                    {
 
-                    Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
+                        Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
 
-                    <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
-                }
-                else
-                {
-                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                }
-            </p>
+                        <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                    }
+                </p>
+            </ContextMenuTrigger>
         </div>
     }
 </div>
