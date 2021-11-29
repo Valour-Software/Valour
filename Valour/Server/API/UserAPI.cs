@@ -44,7 +44,7 @@ namespace Valour.Server.API
 
             app.MapPost("api/user/withtoken", WithToken);
 
-            app.MapPost("api/user/verify", VerifyEmail);
+            app.MapPost("api/user/verify/{code}", VerifyEmail);
         }
 
         private static async Task GetUser(HttpContext ctx, ValourDB db, ulong user_id, [FromHeader] string authorization)
@@ -61,10 +61,8 @@ namespace Valour.Server.API
             await ctx.Response.WriteAsJsonAsync(user);
         }
 
-        private static async Task VerifyEmail(HttpContext ctx, ValourDB db)
+        private static async Task VerifyEmail(HttpContext ctx, ValourDB db, string code)
         {
-            string code = await ctx.Request.ReadBodyStringAsync();
-
             var confirmCode = await db.EmailConfirmCodes
                 .Include(x => x.User)
                 .ThenInclude(x => x.Email)
@@ -348,11 +346,11 @@ namespace Valour.Server.API
                                 To verify your new account, please use the following link: 
                               </p>
                               <p style='font-family:Helvetica;'>
-                                <a href='https://valour.gg/VerifyEmail/{code}'>Verify</a>
+                                <a href='https://valour.gg/verify/{code}'>Verify</a>
                               </p>
                             </body>";
 
-            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/VerifyEmail/{code}";
+            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/verify/{code}";
 
             await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
 
