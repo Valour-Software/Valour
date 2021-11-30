@@ -1,6 +1,7 @@
 ﻿using Valour.Api.Client;
 using Valour.Shared;
 using Valour.Shared.Items;
+using Valour.Shared.Oauth;
 
 namespace Valour.Api.Users;
 
@@ -25,5 +26,8 @@ public class User : Shared.Users.User<User>
 
         return user;
     }
+
+    public async Task<List<OauthApp>> GetOauthAppAsync() =>
+        await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
 }
 

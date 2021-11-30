@@ -1,13 +1,13 @@
 @page "/oauth"
 
-<img src='/media/logo/logo-64.png' style='position: absolute; right: 20px; top: 20px;'>
+<img src='/media/logo/logo-64.png' style='position: absolute; left: 50%; bottom: 20px; transform: translate(-50%, 0);'>
 
 <br/>
 <div style="text-align: center;">
     <h2>Valour Oauth</h2>
     <h4>Manage your Oauth applications</h4>
 
-    <a class="m-2" href='javascript:void(0);'>Manage my Oauth apps</a>
+    <a class="m-2" href='javascript:void(0);' @onclick='OnManageClick'>Manage my Oauth apps</a>
 
     <a class="m-2" href='javascript:void(0);' @onclick='OnCreateClick'>Create an Oauth app</a>
 </div>
@@ -21,6 +21,17 @@
     {
         Modal.Show<CreateAppComponent>(
             "Create App", 
+            new ModalOptions()
+            { 
+                Class = "modal-shrink-fit"
+            }
+        );
+    }
+
+    public async Task OnManageClick(MouseEventArgs e)
+    {
+        Modal.Show<ViewAppsComponent>(
+            "View Apps", 
             new ModalOptions()
             { 
                 Class = "modal-shrink-fit"

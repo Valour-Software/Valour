@@ -29,7 +29,7 @@ namespace Valour.Server.MPS
             return data;
         }
 
-        public static Regex Url_Regex = new Regex(@"(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\-\.\?\,\'\/\\\+&%\$#_]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_]+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        public static Regex Url_Regex = new Regex(@"(!\[\]\()?(http|https|)\:\/\/[0-9a-zA-Z]([-.\w]*[0-9a-zA-Z])*(:(0-9)*)*(\/?)([=a-zA-Z0-9\-\.\?\,\'\/\\\+&%\$#_]*)?([=a-zA-Z0-9\-\?\,\'\/\+&%\$#_]+)(\))?", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public static List<string> Media_Bypass = new List<string>()
         {
@@ -95,6 +95,8 @@ namespace Valour.Server.MPS
 
         public static async Task<string> HandleUrls(string content)
         {
+            //Console.WriteLine("content: " + content);
+
             MatchCollection matches = Url_Regex.Matches(content);
 
             foreach (Match match in matches)
@@ -103,10 +105,30 @@ namespace Valour.Server.MPS
 
                 foreach (string s in Media_Bypass)
                 {
-                    if (match.Value.ToLower().Replace("www.", "").StartsWith(s))
+                    var m = match.Value;
+
+                    //Console.WriteLine("pm: " + m);
+
+                    bool cm = m.StartsWith("![](") && m.EndsWith(')');
+
+                    //Console.WriteLine("cm: " + cm);
+
+                    if (cm){
+                        m = m.Substring(0, m.Length - 1);
+                        m = m.Substring(4, m.Length - 4);
+                    }
+
+                    //Console.WriteLine("m: " + m);
+
+                    if (m.ToLower().Replace("www.", "").StartsWith(s))
                     {
+                        if (!cm)
+                            content = content.Replace(m, $"![]({m})");
+
+                        Console.WriteLine("Hello: " + content);
+
                         bypass = true;
-                        content = content.Replace(match.Value, $"![]({match.Value})");
+                        
                         break;
                     }
                 }

@@ -17,6 +17,23 @@ public class OauthAPI : BaseAPI
     {
         app.MapPost("/api/oauth/app", CreateApp);
         app.MapGet("api/oauth/app/{app_id}", GetApp);
+
+        app.MapGet("api/user/{user_id}/apps", GetApps);
+    }
+
+    public static async Task GetApps(HttpContext context, ValourDB db, [FromHeader] string authorization) 
+    {
+        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+
+        if (authToken is null){
+            await Unauthorized("Include token", context);
+            return;
+        }
+
+        var apps = db.OauthApps.Where(x => x.Owner_Id == authToken.User_Id);
+
+        context.Response.StatusCode = 200;
+        await context.Response.WriteAsJsonAsync(apps);
     }
 
     public static async Task GetApp(HttpContext context, ValourDB db, ulong app_id)

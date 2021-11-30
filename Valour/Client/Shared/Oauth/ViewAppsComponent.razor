@@ -1,0 +1,23 @@
+﻿<div>
+    <h4>Your Applications</h4>
+
+    @foreach (var app in Apps)
+    {
+        <div class="app">
+            <img src='@app.Image_Url' class='app-icon' />
+            <p class='app-name'>@app.Name</p>
+        </div>   
+    }
+</div>
+
+
+@code 
+{
+    public List<OauthApp> Apps { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Apps = await ValourClient.Self.GetOauthAppAsync();
+    }
+}
+
