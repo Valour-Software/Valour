@@ -75,6 +75,7 @@ namespace Valour.Server
             RoleAPI       .AddRoutes(app);
             EmbedAPI      .AddRoutes(app);
             PermissionsAPI.AddRoutes(app);
+            OauthAPI      .AddRoutes(app);
 
             // Run
             app.Run();

@@ -61,7 +61,7 @@
 
 		descSpan = "Planet created.";
 
-		var planet = await ValourClient.GetJsonAsync<Planet>("api/planet/{planet_id}");
+		var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{planet_id}");
 
 		if (planet is null)
 		{

@@ -1,0 +1,30 @@
+@page "/oauth"
+
+<img src='/media/logo/logo-64.png' style='position: absolute; right: 20px; top: 20px;'>
+
+<br/>
+<div style="text-align: center;">
+    <h2>Valour Oauth</h2>
+    <h4>Manage your Oauth applications</h4>
+
+    <a class="m-2" href='javascript:void(0);'>Manage my Oauth apps</a>
+
+    <a class="m-2" href='javascript:void(0);' @onclick='OnCreateClick'>Create an Oauth app</a>
+</div>
+
+@code
+{
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public async Task OnCreateClick(MouseEventArgs e)
+    {
+        Modal.Show<CreateAppComponent>(
+            "Create App", 
+            new ModalOptions()
+            { 
+                Class = "modal-shrink-fit"
+            }
+        );
+    }
+}

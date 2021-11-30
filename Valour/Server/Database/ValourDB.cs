@@ -129,6 +129,11 @@ namespace Valour.Server.Database
         /// </summary>
         public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
 
+        /// <summary>
+        /// Table for Oauth apps
+        /// </summary>
+        public DbSet<OauthApp> OauthApps { get; set; }
+
         public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
         public DbSet<ServerPlanetRole> PlanetRoles { get; set; }

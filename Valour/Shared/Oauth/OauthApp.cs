@@ -25,7 +25,7 @@ namespace Valour.Shared.Oauth
         /// </summary>
         [Key]
         [JsonPropertyName("Id")]
-        public string Id { get; set; }
+        public ulong Id { get; set; }
 
         /// <summary>
         /// The secret key for the app
