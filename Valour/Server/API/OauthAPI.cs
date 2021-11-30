@@ -17,8 +17,28 @@ public class OauthAPI : BaseAPI
     {
         app.MapPost("/api/oauth/app", CreateApp);
         app.MapGet("api/oauth/app/{app_id}", GetApp);
+        app.MapDelete("api/oauth/app/{app_id}", DeleteApp);
 
         app.MapGet("api/user/{user_id}/apps", GetApps);
+    }
+
+    public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization){
+        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        
+        if (authToken is null){
+            await Unauthorized("Include token", context);
+            return;
+        }
+
+        var app = await db.OauthApps.FindAsync(app_id);
+
+        if (app.Owner_Id != authToken.User_Id){
+            await Unauthorized("You do not own this app!", context);
+            return;
+        }
+
+        db.Remove(app);
+        await db.SaveChangesAsync();
     }
 
     public static async Task GetApps(HttpContext context, ValourDB db, [FromHeader] string authorization) 

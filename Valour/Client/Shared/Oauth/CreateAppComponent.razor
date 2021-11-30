@@ -35,6 +35,9 @@
 	// Spans
 	string nameSpan = "The name of your application";
 
+	[CascadingParameter]
+	public BlazoredModalInstance Instance { get; set; }
+
 	private async Task OnClickSubmit(MouseEventArgs e)
 	{
 		// Require a name
@@ -78,7 +81,9 @@
 
 
 		// Go to app page
-		navManager.NavigateTo($"/oauth/{app_id}", true);
+		//navManager.NavigateTo($"/oauth/apps/{app_id}", true);
+
+		await Instance.CloseAsync();
     }
 
 }

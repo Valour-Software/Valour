@@ -9,7 +9,6 @@ using Valour.Server.Database;
 using Valour.Server.Oauth;
 using Valour.Server.Planets;
 using Valour.Shared.Roles;
-using Valour.Shared.Oauth;
 using System.IO;
 
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +38,7 @@ namespace Valour.Server.API
         }
 
         private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db, 
-            string type, [FromHeader] string authorization, ulong planet_id = 0)
+            string type, [FromHeader] string authorization, ulong item_id = 0)
         {
             var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
             if (authToken == null) { await TokenInvalid(context); return; }
@@ -89,10 +88,31 @@ namespace Valour.Server.API
             if (type == "planet"){
                 member = await db.PlanetMembers.Include(x => x.Planet)
                                                .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
-                                                                         x.Planet_Id == planet_id);
+                                                                         x.Planet_Id == item_id);
                 
-                if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db)){
+                if (member is null){
+                    await NotFound("Could not find member", context);
+                    return;
+                }
+
+                if (!await member.HasPermissionAsync(Shared.Oauth.PlanetPermissions.Manage, db)){
                     await Unauthorized("Member lacks PlanetPermissions.Manage", context);
+                    return;
+                }
+            }
+
+            OauthApp app = null;
+
+            if (type == "app"){
+                app = await db.OauthApps.FindAsync(item_id);
+
+                if (app is null){
+                    await NotFound("Could not find app", context);
+                    return;
+                }
+
+                if (app.Owner_Id != authToken.User_Id){
+                    await Unauthorized("You do not own the app!", context);
                     return;
                 }
             }
@@ -117,6 +137,16 @@ namespace Valour.Server.API
                         PlanetHub.NotifyPlanetChange(member.Planet);
                         break;
                     }
+                    case "app":
+                    {
+                        var url = await response.Content.ReadAsStringAsync();
+                        app.Image_Url = url;
+                        await db.SaveChangesAsync();
+                        break;
+                    }
+                    default:
+                        break;
+
                 }
             }
 

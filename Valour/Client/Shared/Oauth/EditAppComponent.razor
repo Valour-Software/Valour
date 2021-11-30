@@ -1,0 +1,125 @@
+@using System.Net.Http.Headers
+@inject HttpClient http
+@inject IJSRuntime JS
+
+<div style="text-align: center;">
+    <h5>Editing</h5>
+    <h4 class='name'>@App.Name</h4>
+    <br/>
+    <img src="@App.Image_Url" onclick="document.getElementById('upload-core').click()" class='icon' />
+
+    <div style='display: none'>
+        <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
+    </div>
+
+    <br/>
+
+    <span id="result-span" style="display:block" class="text-info">@Icon_Output</span>
+    <span id="error-span" style="display:block" class="text-danger">@Icon_Error</span>
+
+    <br/>
+
+    <p class="m-2 mb-4">Your app has been used @App.Uses times.</p>
+
+    <button class='btn v-button btn-copy' @onclick='OnCopySecret'></button>
+    <button class='btn v-button' @onclick='OnClickDelete'>Delete</button>
+</div>
+
+@code 
+{
+    Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
+    {
+        { "accept", ".png,.jpg,.jpeg,.gif" },
+        { "id", "upload-core"}
+    };
+
+    [Parameter]
+    public OauthApp App { get; set; }
+
+    [Parameter]
+    public ViewAppsComponent ViewComponent { get; set;}
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public string Icon_Output = "";
+    public string Icon_Error = "";
+
+    public async Task OnClickDelete(){
+        ConfirmModalData data = new(
+            $"Delete {App.Name}?",
+            "This cannot be undone!",
+            "Confirm",
+            "Cancel",
+            async () => {
+                var res = await ValourClient.DeleteAsync($"api/oauth/app/{App.Id}");
+
+                if (res.Success)
+                    Icon_Output = "Deleted.";
+                else
+                    Icon_Error = res.Message;
+
+                StateHasChanged();
+                ViewComponent.Apps.Remove(App);
+                ViewComponent.Refresh();
+            },
+            async () => {
+
+            }
+        );
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", data);
+
+        Modal.Show<ConfirmModalComponent>("Confirm Modal", modParams, new ModalOptions { Class = "modal-shrink-fit" });
+    }
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        Icon_Output = "";
+        Icon_Error = "";
+
+        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
+
+        var file = e.File;
+
+        if (file == null)
+        {
+            Icon_Error = "Could not load file as an image.";
+        }
+
+        if (file.Size > 10240000)
+        {
+            Icon_Error = "Max app icon size is 10mb.";
+        }
+
+        byte[] data = new byte[file.Size];
+
+        await file.OpenReadStream(10240000).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        var result = await ValourClient.PostAsyncWithResponse<string>($"upload/app?item_id={App.Id}", content);
+
+        if (result.Success)
+        {
+            App.Image_Url = result.Data;
+            Icon_Output = "Successfully changed app icon.";
+        }
+        else
+        {
+            Icon_Error = result.Message;
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnCopySecret(){
+        await JS.InvokeVoidAsync("clipboardCopy.copyText", App.Secret);
+    }
+
+}

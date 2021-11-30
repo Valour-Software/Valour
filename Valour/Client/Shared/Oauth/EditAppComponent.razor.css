@@ -1,0 +1,29 @@
+.name {
+    color: var(--v-cyan);
+}
+
+.icon {
+    width: 128px;
+    height: 128px;
+    cursor: pointer;
+}
+
+.icon:hover {
+    filter: opacity(0.8);
+}
+
+.icon:active {
+    filter: opacity(0.5);
+}
+
+.btn-copy {
+    width: 100px;
+}
+
+.btn-copy:after {
+    content: 'Copy Text';
+}
+
+.btn-copy:active:after {
+    content: 'Copied!';
+}
