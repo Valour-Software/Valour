@@ -4,17 +4,19 @@
     @if (Apps is null)
     {
         <br/> 
-        <h2>Loading...</h2>
+        <p>Loading...</p>
     }
-
-    @foreach (var app in Apps)
+    else
     {
-        var app_n = app;
+        foreach (var app in Apps)
+        {
+            var app_n = app;
 
-        <div class="app" @onclick='() => OpenEditApp(app_n)'>
-            <img src='@app.Image_Url' class='app-icon' />
-            <p class='app-name'>@app.Name</p>
-        </div>  
+            <div class="app" @onclick='() => OpenEditApp(app_n)'>
+                <img src='@app.Image_Url' class='app-icon' />
+                <p class='app-name'>@app.Name</p>
+            </div>  
+        }
     }
 </div>
 

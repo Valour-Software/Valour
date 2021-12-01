@@ -17,11 +17,11 @@
 }
 
 .btn-copy {
-    width: 100px;
+    width: 120px;
 }
 
 .btn-copy:after {
-    content: 'Copy Text';
+    content: 'Copy Secret';
 }
 
 .btn-copy:active:after {

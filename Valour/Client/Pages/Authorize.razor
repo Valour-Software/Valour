@@ -1,0 +1,72 @@
+@page "/api/authorize"
+
+@if (isError) {
+    <div style="text-align: center;">
+        <h4>Whoops! We have an issue.</h4>
+        <p class="m-2">@errorString</p>
+    </div>
+    return;
+}
+
+
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "response_type")]
+    public string response_type { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "client_id")]
+    public ulong client_id { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "redirect_uri")]
+    public string redirect_uri { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "scope")]
+    public ulong scope { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "state")]
+    public string state { get; set; }
+
+    public bool isError = false;
+    public string errorString = "An unknown error occured.";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ValourClient.Self is null){
+            isError = true;
+            errorString = "Please log in!";
+            return;
+        }
+
+        response_type = response_type.ToLower();
+
+        if (response_type == null || string.IsNullOrWhiteSpace(response_type))
+        {
+            isError = true;
+            errorString = "Response type is missing.";
+            return;
+        }
+
+        switch (response_type){
+            case "code": {
+                OauthApp app = await db.OauthApps.FindAsync(client_id);
+
+                if (app is null){
+                    await NotFound($"Could not find app with id {client_id}", context);
+                    return;
+                }
+
+                break;
+            }
+            default: {
+                await NotFound($"Response type {response_type} is not yet supported!", context);
+                return;
+            }
+        }
+    }
+}

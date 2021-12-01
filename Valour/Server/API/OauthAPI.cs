@@ -52,17 +52,37 @@ public class OauthAPI : BaseAPI
 
         var apps = db.OauthApps.Where(x => x.Owner_Id == authToken.User_Id);
 
+        foreach (var app in apps) {
+            // If not owner, hide secret
+            if (authToken.User_Id != app.Owner_Id){
+                app.Secret = "";
+            }
+        }
+
         context.Response.StatusCode = 200;
         await context.Response.WriteAsJsonAsync(apps);
     }
 
-    public static async Task GetApp(HttpContext context, ValourDB db, ulong app_id)
+    public static async Task GetApp(HttpContext context, ValourDB db, ulong app_id, 
+    [FromHeader] string authorization)
     {
+        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+
+        if (authToken is null){
+            await TokenInvalid(context);
+            return;
+        }
+
         var app = await db.OauthApps.FindAsync(app_id);
 
         if (app is null){
             await NotFound("App not found", context);
             return;
+        }
+
+        // If not owner, hide secret
+        if (authToken.User_Id != app.Owner_Id){
+            app.Secret = "";
         }
 
         context.Response.StatusCode = 200;
