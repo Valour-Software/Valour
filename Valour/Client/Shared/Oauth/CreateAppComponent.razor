@@ -47,7 +47,7 @@
 			return;
 		}
 
-		var new_app = new OauthApp()
+		var new_app = new Api.Oauth.OauthApp()
 		{
 			Name = name,
             Image_Url = "media/logo/logo-512.png",
@@ -69,7 +69,7 @@
 
         ////////////////////////////////
 
-		var app = await ValourClient.GetJsonAsync<OauthApp>($"api/oauth/app/{app_id}");
+		var app = Api.Oauth.OauthApp.FindAsync(app_id);
 
 		if (app is null)
 		{

@@ -27,7 +27,7 @@ public class User : Shared.Users.User<User>
         return user;
     }
 
-    public async Task<List<OauthApp>> GetOauthAppAsync() =>
-        await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
+    public async Task<List<Api.Oauth.OauthApp>> GetOauthAppAsync() =>
+        await ValourClient.GetJsonAsync<List<Api.Oauth.OauthApp>>($"api/user/{Id}/apps");
 }
 

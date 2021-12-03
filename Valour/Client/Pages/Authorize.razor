@@ -1,4 +1,6 @@
-@page "/api/authorize"
+@page "/authorize"
+
+@inject NavigationManager navManager
 
 @if (isError) {
     <div style="text-align: center;">
@@ -7,6 +9,58 @@
     </div>
     return;
 }
+
+@if (App is null){
+    <div style="text-align: center;">
+        <h4>Loading!</h4>
+        <p class="m-2">We promise it's worth the wait.</p>
+    </div>
+    return;
+}
+
+<body class="login-background">
+    <div class="popup-box">
+        <div class="col-md-12">
+            <section>
+                <h2 class="invite-title">Do you authorize</h2>
+                <div style="text-align: center">
+                    <h3 class="text-info invite-name">@App.Name</h3>
+                    &nbsp;
+                    <h3 class="invite-name">to</h3>
+                </div>
+
+                <div style="text-align: center;">
+                    <img class="app-icon" src="@App.Image_Url" />
+                </div>
+
+                <ul>
+                    @for (int i = 0; i < UserPermissions.Permissions.Length; i++){
+                        if ((UserPermissions.Permissions[i].Value & u_scope) == UserPermissions.Permissions[i].Value){
+
+                            var perm = UserPermissions.Permissions[i];
+
+                            <li class="mb-4">
+                                <h5>@perm.Name</h5>
+                                <p>@perm.Description</p>
+                            </li>
+                        }
+                    }
+                </ul>
+
+                
+
+                <br />
+
+                <span class="text-info center-text" style="text-align:center">@infoSpan</span>
+                <span class="text-danger center-text" style="text-align:center">@errorSpan</span>
+
+                <div style="text-align: center;">
+                    <button class='btn v-button' @onclick='OnAuthorizeAsync'>Authorize</button>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
 
 
 
@@ -17,7 +71,8 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "client_id")]
-    public ulong client_id { get; set; }
+    public string client_id { get; set; }
+    public ulong u_client_id;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "redirect_uri")]
@@ -25,7 +80,8 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "scope")]
-    public ulong scope { get; set; }
+    public string scope { get; set; }
+    public ulong u_scope;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "state")]
@@ -34,39 +90,101 @@
     public bool isError = false;
     public string errorString = "An unknown error occured.";
 
+    public Api.Oauth.OauthApp App { get; set; }
+
+    public string infoSpan;
+    public string errorSpan;
+
 
     protected override async Task OnInitializedAsync()
     {
         if (ValourClient.Self is null){
             isError = true;
             errorString = "Please log in!";
+            StateHasChanged();
             return;
         }
-
-        response_type = response_type.ToLower();
 
         if (response_type == null || string.IsNullOrWhiteSpace(response_type))
         {
             isError = true;
             errorString = "Response type is missing.";
+            StateHasChanged();
             return;
         }
 
+        response_type = response_type.ToLower();
+
+        if (scope == null || string.IsNullOrWhiteSpace(scope))
+        {
+            isError = true;
+            errorString = "Scope is missing.";
+            StateHasChanged();
+            return;
+        }
+
+        bool suc_0 = ulong.TryParse(scope, out u_scope);
+
+        if (!suc_0){
+            isError = true;
+            errorString = $"Failed to parse scope.";
+            StateHasChanged();
+            return;
+        }
+
+        bool suc = ulong.TryParse(client_id, out ulong u_client_id);
+
+        if (!suc){
+            isError = true;
+            errorString = $"Failed to parse {client_id}";
+            StateHasChanged();
+            return;
+        }
+
+        App = await Api.Oauth.OauthApp.FindAsync(u_client_id);
+
+        if (App is null){
+            isError = true;
+            errorString = $"Could not find app with id {client_id}";
+            StateHasChanged();
+            return;
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnAuthorizeAsync()
+    {
         switch (response_type){
             case "code": {
-                OauthApp app = await db.OauthApps.FindAsync(client_id);
 
-                if (app is null){
-                    await NotFound($"Could not find app with id {client_id}", context);
-                    return;
-                }
+                var model = new AuthorizeModel(){
+                    client_id = u_client_id,
+                    redirect_uri = redirect_uri,
+                    user_id = ValourClient.Self.Id,
+                    response_type = response_type,
+                    scope = u_scope,
+                    state = state
+                };
+
+                var res = await ValourClient.Http.PostAsJsonAsync($"api/oauth/authorize", model);
+
+                var content = await res.Content.ReadAsStringAsync();
+
+                Console.WriteLine(content);
+
+                //navManager.NavigateTo($"https://" + res.Message, true);
 
                 break;
             }
             default: {
-                await NotFound($"Response type {response_type} is not yet supported!", context);
+                isError = true;
+                errorString = $"Response type {response_type} is not yet supported!";
+                StateHasChanged();
                 return;
             }
         }
+
+        StateHasChanged();
     }
 }

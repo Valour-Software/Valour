@@ -20,6 +20,36 @@ public class OauthAPI : BaseAPI
         app.MapDelete("api/oauth/app/{app_id}", DeleteApp);
 
         app.MapGet("api/user/{user_id}/apps", GetApps);
+
+        app.MapPost("api/oauth/authorize", Authorize);
+    }
+
+    public static List<Shared.Oauth.AuthorizeModel> OauthReqCache = new();
+
+
+    public static async Task<object> Authorize(
+        ValourDB db, HttpContext context,
+        [FromBody] Shared.Oauth.AuthorizeModel model, 
+        [FromHeader] string authorization)
+    {
+        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+
+        if (authToken is null){
+            await TokenInvalid(context);
+            return null;
+        }
+
+        if (authToken.User_Id != model.user_id){
+            await Unauthorized("Token is invalid for this model", context);
+            return null;
+        }
+
+        model.code = Guid.NewGuid().ToString();
+        OauthReqCache.Add(model);
+
+        //context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+
+        return Results.Redirect(model.redirect_uri);// + $"?code={model.code}&state={model.state}");
     }
 
     public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization){
