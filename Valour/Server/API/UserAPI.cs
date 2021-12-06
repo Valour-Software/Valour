@@ -1,22 +1,14 @@
-﻿using System.Linq;
-using System.Net.Mail;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Valour.Server.Database;
+using Valour.Database;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Users;
 using Valour.Server.Email;
 using Valour.Server.Extensions;
-using Valour.Server.Oauth;
-using Valour.Server.Planets;
-using Valour.Server.Users;
 using Valour.Server.Users.Identity;
 using Valour.Shared;
 using Valour.Shared.Oauth;
-using Valour.Shared.Planets;
 using Valour.Shared.Users;
 using Valour.Shared.Users.Identity;
 
@@ -225,7 +217,7 @@ namespace Valour.Server.API
 
 
             // Manage referral
-            Referral refer = null;
+            Database.Items.Users.Referral refer = null;
 
             if (!string.IsNullOrWhiteSpace(referrer))
             {
@@ -233,7 +225,7 @@ namespace Valour.Server.API
 
                 if (referUser == null) { await BadRequest($"Could not find referrer {referrer}", ctx); return; }
 
-                refer = new Referral() { Referrer_Id = referUser.Id };
+                refer = new Database.Items.Users.Referral() { Referrer_Id = referUser.Id };
             }
 
             // At this point the safety checks are complete

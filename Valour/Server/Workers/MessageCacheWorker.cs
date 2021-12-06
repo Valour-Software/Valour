@@ -1,13 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
-using Valour.Server.Database;
-using Valour.Shared.Messages;
-using System.Linq;
+using Valour.Database;
 
 namespace Valour.Server.Workers
 {

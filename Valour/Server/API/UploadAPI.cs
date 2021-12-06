@@ -1,22 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Valour.Server.Database;
-using Valour.Server.Oauth;
-using Valour.Server.Planets;
-using Valour.Shared.Roles;
-using System.IO;
-
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-
-using Microsoft.AspNetCore.Hosting;
 using Valour.Server.MPS;
-using Microsoft.AspNetCore.Builder;
 using System.Net.Http.Headers;
+using Valour.Database;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets;
 
 namespace Valour.Server.API
 {

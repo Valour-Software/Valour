@@ -1,18 +1,11 @@
-﻿using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Valour.Server.Database;
-using Valour.Server.Extensions;
-using Valour.Server.Oauth;
-using Valour.Server.Planets;
-using Valour.Server.Roles;
+using Valour.Database;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets;
 using Valour.Shared.Oauth;
-using Valour.Shared.Planets;
-using Valour.Shared.Roles;
+
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

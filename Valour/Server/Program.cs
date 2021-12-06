@@ -1,22 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using System;
 using System.Text.Json;
-using System.IO;
-using Valour.Server.Database;
 using Valour.Server.Users.Identity;
 using Valour.Server.Email;
-using AutoMapper;
-using Valour.Server.Mapping;
 using Valour.Server.Workers;
-using Valour.Server.Planets;
-using Valour.Server.Roles;
 using Valour.Server.Notifications;
 using WebPush;
 using Valour.Server.MPS;
@@ -25,6 +13,8 @@ using Valour.Server.API;
 using System.Web;
 using Microsoft.OpenApi.Models;
 using System.Net;
+using Valour.Database;
+using Valour.Database.Items.Planets;
 
 namespace Valour.Server
 {
@@ -178,18 +168,7 @@ namespace Valour.Server
 
             services.AddSignalR();
 
-            var mapConfig = new MapperConfiguration(x =>
-            {
-                x.AddProfile(new MappingProfile());
-            });
-
-            IMapper mapper = mapConfig.CreateMapper();
-
-            services.AddSingleton(mapper);
-
             services.AddHttpClient();
-
-            MappingManager.Mapper = mapper;
 
             services.AddDbContextPool<ValourDB>(options =>
             {

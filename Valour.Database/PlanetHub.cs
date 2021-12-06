@@ -1,19 +1,10 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Text.Json;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Server.Categories;
-using Valour.Server.Database;
-using Valour.Server.Oauth;
-using Valour.Server.Roles;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Shared.Oauth;
-using Valour.Shared.Planets;
-using Valour.Shared.Messages;
-using Valour.Shared.Roles;
 using Valour.Shared.Messages.Embeds;
+using Microsoft.AspNetCore.SignalR;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -21,7 +12,7 @@ using Valour.Shared.Messages.Embeds;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Planets
+namespace Valour.Database
 {
     public class PlanetHub : Hub
     {

@@ -1,11 +1,9 @@
 ﻿
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Valour.Api.Planets;
-using Valour.Server.Database;
-using Valour.Server.Oauth;
-using Valour.Server.Planets;
-using Valour.Server.Roles;
+using Valour.Database;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets;
 using Valour.Shared.Oauth;
 
 namespace Valour.Server.API;

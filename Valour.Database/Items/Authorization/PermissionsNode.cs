@@ -1,10 +1,13 @@
-﻿
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Server.Database;
-using Valour.Server.Planets;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Valour.Database.Items.Planets;
 
-namespace Valour.Server.Roles;
+/*  Valour - A free and secure chat client
+ *  Copyright (C) 2021 Vooper Media LLC
+ *  This program is subject to the GNU Affero General Public license
+ *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+ */
+
+namespace Valour.Database.Items.Authorization;
 public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
 {
     [ForeignKey("Planet_Id")]

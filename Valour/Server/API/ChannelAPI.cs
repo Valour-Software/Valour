@@ -1,23 +1,13 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Valour.Server.Categories;
-using Valour.Server.Database;
+using Valour.Database;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets;
 using Valour.Server.Extensions;
 using Valour.Server.MPS;
-using Valour.Server.Oauth;
-using Valour.Server.Planets;
 using Valour.Server.Workers;
 using Valour.Shared;
-using Valour.Shared.Items;
 using Valour.Shared.Messages;
 using Valour.Shared.Oauth;
 

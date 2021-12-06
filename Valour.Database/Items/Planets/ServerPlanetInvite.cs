@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Planets;
 
-namespace Valour.Server.Planets;
+namespace Valour.Database.Items.Planets;
 public class ServerPlanetInvite : PlanetInvite<ServerPlanetInvite>
 {
     [ForeignKey("Planet_Id")]
