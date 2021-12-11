@@ -1,468 +1,447 @@
-﻿using AutoMapper;
-using Markdig.Helpers;
-using System;
-using System.Collections.Generic;
+﻿using Markdig.Helpers;
 using System.Diagnostics;
-using System.Linq;
-using System.Runtime.Serialization;
 using System.Text.Json;
-using System.Threading.Tasks;
-using Valour.Client.Messages.Rendering;
-using Valour.Client.Planets;
-using Valour.Client.Users;
-using Valour.Shared.Messages;
-using Valour.Shared.Users;
+using Valour.Api.Items.Messages;
+using Valour.Api.Items.Planets.Members;
+using Valour.Shared.Items.Messages.Embeds;
+using Valour.Shared.Items.Messages.Mentions;
 
-namespace Valour.Client.Messages
+namespace Valour.Client.Messages;
+
+/*  Valour - A free and secure chat client
+*  Copyright (C) 2021 Vooper Media LLC
+*  This program is subject to the GNU Affero General Public license
+*  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+*/
+
+public class ClientPlanetMessage
 {
-    /*  Valour - A free and secure chat client
-     *  Copyright (C) 2021 Vooper Media LLC
-     *  This program is subject to the GNU Affero General Public license
-     *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
-     */
+    /// <summary>
+    /// True if this message's content has been fully built
+    /// </summary>
+    private bool generated = false;
 
     /// <summary>
-    /// This class exists to add client funtionality to the PlanetMessage
-    /// class.
+    /// True if the markdown has already been generated
     /// </summary>
-    public class ClientPlanetMessage : PlanetMessage
+    private bool markdownParsed = false;
+
+    /// <summary>
+    /// The fragments used for building elements
+    /// </summary>
+    private List<ElementFragment> _elementFragments;
+
+    /// <summary>
+    /// The markdown-parsed version of the Content
+    /// </summary>
+    private string _markdownContent;
+
+    /// <summary>
+    /// The internal planet message
+    /// </summary>
+    public PlanetMessage BaseMessage { get; set; }
+
+    // Forward a bunch of stuff for my own sake
+    #region Forwarding
+
+    public async Task<PlanetMember> GetAuthorAsync() =>
+        await BaseMessage.GetAuthorAsync();
+
+    public ulong Id => BaseMessage.Id;
+
+    public ulong Author_Id => BaseMessage.Author_Id;
+
+    public ulong Planet_Id => BaseMessage.Planet_Id;
+
+    public ulong Member_Id => BaseMessage.Member_Id;
+
+    public string Content => BaseMessage.Content;
+
+    public DateTime TimeSent => BaseMessage.TimeSent;
+
+    public ulong Channel_Id => BaseMessage.Channel_Id;
+
+    public ulong Message_Index => BaseMessage.Message_Index;
+
+    public string Embed_Data => BaseMessage.Embed_Data;
+
+    public string Mentions_Data => BaseMessage.Mentions_Data;
+
+    public string Fingerprint => BaseMessage.Fingerprint;
+
+    public List<Mention> Mentions => BaseMessage.Mentions;
+
+    public Embed Embed => BaseMessage.Embed;
+
+    public void ClearMentions() => BaseMessage.ClearMentions();
+    
+    public void SetMentions(IEnumerable<Mention> mentions) =>
+        BaseMessage.SetMentions(mentions);
+
+    public bool IsEmbed() => BaseMessage.IsEmbed();
+
+    #endregion
+
+    public static List<ClientPlanetMessage> FromList(List<PlanetMessage> messages)
     {
-        /// <summary>
-        /// True if this message's content has been fully built
-        /// </summary>
-        private bool generated = false;
+        List<ClientPlanetMessage> result = new();
 
-        /// <summary>
-        /// True if the markdown has already been generated
-        /// </summary>
-        private bool markdownParsed = false;
+        if (messages is null)
+            return result;
 
-        /// <summary>
-        /// True if the embed data has been parsed
-        /// </summary>
-        private bool embedParsed = false;
+        foreach (PlanetMessage message in messages)
+            result.Add(new ClientPlanetMessage(message));
 
-        /// <summary>
-        /// True if the mentions data has been parsed
-        /// </summary>
-        private bool mentionsParsed = false;
+        return result;
+    }
 
-        /// <summary>
-        /// The mentions contained within this message
-        /// </summary>
-        private List<Mention> _mentions;
+    public ClientPlanetMessage(PlanetMessage message)
+    {
+        this.BaseMessage = message;
+    }
 
-        /// <summary>
-        /// The fragments used for building elements
-        /// </summary>
-        private List<ElementFragment> _elementFragments;
-
-        /// <summary>
-        /// The inner embed data
-        /// </summary>
-        private ClientEmbed _embed;
-
-        /// <summary>
-        /// The markdown-parsed version of the Content
-        /// </summary>
-        private string _markdownContent;
-
-        public string MarkdownContent
+    public string MarkdownContent
+    {
+        get
         {
-            get
+            if (!markdownParsed)
             {
-                if (!markdownParsed)
+                ParseMarkdown();
+            }
+
+            return _markdownContent;
+        }
+    }
+
+    private void ParseMarkdown()
+    {
+        _markdownContent = MarkdownManager.GetHtml(BaseMessage.Content);
+        markdownParsed = true;
+    }
+
+    private static readonly HashSet<string> InlineTags = new()
+    {
+        "b",
+        "/b",
+        "em",
+        "/em",
+        "strong",
+        "/strong",
+        "blockquote",
+        "/blockquote",
+        "p",
+        "/p",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "/h1",
+        "/h2",
+        "/h3",
+        "/h4",
+        "/h5",
+        "/h6",
+        "code",
+        "/code",
+        "br"
+    };
+
+    private static readonly HashSet<string> SelfClosingTags = new()
+    {
+        "br"
+    };
+
+    public void GenerateForPost()
+    {
+        BaseMessage.ClearMentions();
+
+        int pos = 0;
+
+        string text = MarkdownContent;
+
+        while (pos < text.Length)
+        {
+            if (text[pos] == '«')
+            {
+                int s_len = text.Length - pos;
+                // Must be at least this long ( «@x-x» )
+                if (s_len < 6)
                 {
-                    ParseMarkdown();
+                    pos++;
+                    continue;
                 }
-
-                return _markdownContent;
-            }
-        }
-
-        public ClientEmbed Embed
-        {
-            get
-            {
-                if (!embedParsed)
+                // Mentions (<@x-)
+                if (text[pos + 1] == '@' &&
+                    text[pos + 3] == '-')
                 {
-                    if (!string.IsNullOrEmpty(Embed_Data))
+                    // Member mention (<@m-)
+                    if (text[pos + 2] == 'm')
                     {
-                        _embed = JsonSerializer.Deserialize<ClientEmbed>(Embed_Data);
-                    }
-
-                    embedParsed = true;
-                }
-
-                return _embed;
-            }
-        }
-
-        /// <summary>
-        /// The mentions for members within this message
-        /// </summary>
-        public List<Mention> Mentions
-        {
-            get
-            {
-                if (!mentionsParsed)
-                {
-                    if (!string.IsNullOrEmpty(Mentions_Data))
-                    {
-                        _mentions = JsonSerializer.Deserialize<List<Mention>>(Mentions_Data);
-                    }
-                }
-
-                return _mentions;
-            }
-        }
-
-        public ClientPlanetMessage()
-        {
-
-        }
-
-        public void SetMentions(IEnumerable<Mention> mentions)
-        {
-            this._mentions = mentions.ToList();
-            this.Mentions_Data = JsonSerializer.Serialize(mentions);
-        }
-
-        /// <summary>
-        /// Returns client version using shared implementation
-        /// </summary>
-        public static ClientPlanetMessage FromBase(PlanetMessage message, IMapper mapper)
-        {
-            return mapper.Map<ClientPlanetMessage>(message);
-        }
-
-
-        /// <summary>
-        /// Returns the author of the message
-        /// </summary>
-        public async Task<ClientPlanetMember> GetAuthorAsync()
-        {
-            return await ClientPlanetManager.Current.GetPlanetMemberAsync(Member_Id);
-        }
-
-        private void ParseMarkdown()
-        {
-            _markdownContent = MarkdownManager.GetHtml(Content);
-            markdownParsed = true;
-        }
-
-        private static HashSet<string> InlineTags = new HashSet<string>()
-        {
-            "b", "/b", "em", "/em", "strong", "/strong",
-            "blockquote", "/blockquote", "p", "/p",
-            "h1", "h2", "h3", "h4", "h5", "h6",
-            "/h1", "/h2", "/h3", "/h4", "/h5", "/h6",
-            "code", "/code", "br"
-        };
-
-        private static HashSet<string> SelfClosingTags = new HashSet<string>()
-        {
-            "br"
-        };
-
-        public void GenerateForPost()
-        {
-            if (_mentions == null)
-            {
-                _mentions = new List<Mention>();
-            }
-            else
-            {
-                _mentions.Clear();
-            }
-
-            int pos = 0;
-
-            string text = MarkdownContent;
-
-            while (pos < text.Length)
-            {
-                if (text[pos] == '«')
-                {
-                    int s_len = text.Length - pos;
-                    // Must be at least this long ( «@x-x» )
-                    if (s_len < 6)
-                    {
-                        pos++;
-                        continue;
-                    }
-                    // Mentions (<@x-)
-                    if (text[pos + 1] == '@' &&
-                        text[pos + 3] == '-')
-                    {
-                        // Member mention (<@m-)
-                        if (text[pos + 2] == 'm')
+                        // Extract id
+                        char c = ' ';
+                        int offset = 4;
+                        string id_chars = "";
+                        while (offset < s_len &&
+                               (c = text[pos + offset]).IsDigit())
                         {
-                            // Extract id
-                            char c = ' ';
-                            int offset = 4;
-                            string id_chars = "";
-                            while (offset < s_len &&
-                                   (c = text[pos + offset]).IsDigit())
-                            {
-                                id_chars += c;
-                                offset++;
-                            }
-                            // Make sure ending tag is '>'
-                            if (c != '»')
-                            {
-                                pos++;
-                                continue;
-                            }
-                            if (string.IsNullOrWhiteSpace(id_chars))
-                            {
-                                pos++;
-                                continue;
-                            }
-                            ulong id = 0;
-                            bool parsed = ulong.TryParse(id_chars, out id);
-                            if (!parsed)
-                            {
-                                pos++;
-                                continue;
-                            }
-                            // Create object
-                            Mention memberMention = new Mention()
-                            {
-                                Target_Id = id,
-                                Position = (ushort)pos,
-                                Length = (ushort)(6 + id_chars.Length),
-                                Type = MentionType.Member
-                            };
-
-                            Mentions.Add(memberMention);
+                            id_chars += c;
+                            offset++;
                         }
-                        // Other mentions go here
-                        else
+                        // Make sure ending tag is '>'
+                        if (c != '»')
                         {
                             pos++;
                             continue;
                         }
-                    }
-                    // Put future things here
-                    else
-                    {
-                        pos++;
-                        continue;
-                    }
-                }
-
-                pos++;
-            }
-
-            Mentions_Data = JsonSerializer.Serialize(Mentions);
-        }
-
-        /// <summary>
-        /// Parses (should parse AFTER markdown is generated!)
-        /// </summary>
-        public void GenerateMessage()
-        {
-            if (_elementFragments == null)
-            {
-                _elementFragments = new List<ElementFragment>(2);
-            }
-            else
-            {
-                _elementFragments.Clear();
-            }
-
-            int pos = 0;
-
-            string text = MarkdownContent;
-
-            // Scan over full text
-            while (pos < text.Length)
-            {
-
-                // Custom support for markdown things that are broken horribly.
-                // Detect html tags and build fragments
-                if (text[pos] == '<')
-                {
-                    // A pure '<' can only be generated from markup, meaning we should
-                    // always be able to find an end tag. I think.
-
-                    int offset = pos + 1;
-                    string tag = "";
-
-                    while (text[offset] != '>')
-                    {
-                        tag += text[offset];
-                        offset++;
-                    }
-
-                    if (InlineTags.Contains(tag))
-                    {
-                        // Allow these tags but be careful and block
-                        // any we don't intend to be handled this way
-                    }
-                    else
-                    {
-                        pos++;
-                        continue;
-                    }
-
-                    // We should now have the full tag
-
-                    // Check if this is a closing tag
-
-                    // Closing
-                    if (tag[0] == '/')
-                    {
-                        ElementFragment end = new ElementFragment()
+                        if (string.IsNullOrWhiteSpace(id_chars))
                         {
-                            Closing = true,
-                            Attributes = null,
-                            Length = (ushort)(2 + (offset - pos)),
-                            Position = (ushort)pos,
-                            Tag = tag
-                        };
-
-                        _elementFragments.Add(end);
-                    }
-                    // Opening
-                    else
-                    {
-                        ElementFragment start = new ElementFragment()
-                        {
-                            Closing = false,
-                            Attributes = null,
-                            Length = (ushort)(2 + (offset - pos)),
-                            Position = (ushort)pos,
-                            Tag = tag
-                        };
-
-                        if (SelfClosingTags.Contains(tag))
-                        {
-                            start.Self_Closing = true;
+                            pos++;
+                            continue;
                         }
+                        bool parsed = ulong.TryParse(id_chars, out ulong id);
+                        if (!parsed)
+                        {
+                            pos++;
+                            continue;
+                        }
+                        // Create object
+                        Mention memberMention = new()
+                        {
+                            Target_Id = id,
+                            Position = (ushort)pos,
+                            Length = (ushort)(6 + id_chars.Length),
+                            Type = MentionType.Member
+                        };
 
-                        _elementFragments.Add(start);
+                        BaseMessage.Mentions.Add(memberMention);
+                    }
+                    // Other mentions go here
+                    else
+                    {
+                        pos++;
+                        continue;
                     }
                 }
-
-                pos++;
-
+                // Put future things here
+                else
+                {
+                    pos++;
+                    continue;
+                }
             }
 
-            generated = true;
+            pos++;
         }
 
-        /// <summary>
-        /// Returns the message fragments used to render this message
-        /// </summary>
-        public List<MessageFragment> GetMessageFragments()
+        BaseMessage.Mentions_Data = JsonSerializer.Serialize(BaseMessage.Mentions);
+    }
+
+    /// <summary>
+    /// Parses (should parse AFTER markdown is generated!)
+    /// </summary>
+    public void GenerateMessage()
+    {
+        if (_elementFragments == null)
         {
-            Stopwatch sw = new Stopwatch();
+            _elementFragments = new List<ElementFragment>(2);
+        }
+        else
+        {
+            _elementFragments.Clear();
+        }
 
-            if (!generated)
+        int pos = 0;
+
+        string text = MarkdownContent;
+
+        // Scan over full text
+        while (pos < text.Length)
+        {
+
+            // Custom support for markdown things that are broken horribly.
+            // Detect html tags and build fragments
+            if (text[pos] == '<')
             {
-                GenerateMessage();
-            }
+                // A pure '<' can only be generated from markup, meaning we should
+                // always be able to find an end tag. I think.
 
-            sw.Start();
+                int offset = pos + 1;
+                string tag = "";
 
-            List<MessageFragment> fragments = new List<MessageFragment>();
-
-            // Empty message catch
-            if (string.IsNullOrWhiteSpace(Content))
-            {
-                return fragments;
-            }
-
-            // First insert rich components into list and sort by position
-            if (Mentions != null && Mentions.Count > 0)
-            {
-                foreach (var mention in Mentions)
+                while (text[offset] != '>')
                 {
-                    MessageFragment fragment = null;
-
-                    if (mention.Type == MentionType.Member)
-                    {
-                        fragment = new MemberMentionFragment()
-                        {
-                            Mention = mention,
-                            Position = mention.Position,
-                            Length = mention.Length
-                        };
-                    }
-
-                    if (fragment != null)
-                    {
-                        fragments.Add(fragment);
-                    }
+                    tag += text[offset];
+                    offset++;
                 }
-            }
 
-            // Shortcut if there is no rich content
-            if (fragments.Count == 0)
-            {
-                MarkdownFragment fragment = new MarkdownFragment()
+                if (InlineTags.Contains(tag))
                 {
-                    Content = MarkdownContent,
-                    Position = 0,
-                    Length = (ushort)MarkdownContent.Length
-                };
-
-                fragments.Add(fragment);
-
-                return fragments;
-            }
-
-            // Add fancy inline-supported fragments
-            fragments.AddRange(_elementFragments);
-
-            // Sort rich components
-            var orderedRich = fragments.OrderBy(x => x.Position);
-            var finFragments = orderedRich.ToList();
-
-            ushort start = 0;
-            // Now split the content at each rich starting position
-            // and insert the first half into the fragments
-            foreach (var rich in orderedRich)
-            {
-                if (rich.Position != 0)
+                    // Allow these tags but be careful and block
+                    // any we don't intend to be handled this way
+                }
+                else
                 {
-                    string markContent = MarkdownContent.Substring(start, rich.Position - start);
+                    pos++;
+                    continue;
+                }
 
-                    MarkdownFragment fragment = new MarkdownFragment()
+                // We should now have the full tag
+
+                // Check if this is a closing tag
+
+                // Closing
+                if (tag[0] == '/')
+                {
+                    ElementFragment end = new()
                     {
-                        Content = markContent,
-                        Position = start,
-                        Length = (ushort)markContent.Length
+                        Closing = true,
+                        Attributes = null,
+                        Length = (ushort)(2 + (offset - pos)),
+                        Position = (ushort)pos,
+                        Tag = tag
                     };
 
-                    int index = finFragments.IndexOf(rich);
-
-                    // Insert right before rich element
-                    finFragments.Insert(index, fragment);
+                    _elementFragments.Add(end);
                 }
+                // Opening
+                else
+                {
+                    ElementFragment start = new()
+                    {
+                        Closing = false,
+                        Attributes = null,
+                        Length = (ushort)(2 + (offset - pos)),
+                        Position = (ushort)pos,
+                        Tag = tag
+                    };
 
-                start = (ushort)(rich.Position + rich.Length - 1);
+                    if (SelfClosingTags.Contains(tag))
+                    {
+                        start.Self_Closing = true;
+                    }
+
+                    _elementFragments.Add(start);
+                }
             }
 
-            string endContent = MarkdownContent.Substring(start, MarkdownContent.Length - start);
+            pos++;
 
-            // There will be one remaining fragment for whatever is left
-            MarkdownFragment end = new MarkdownFragment()
+        }
+
+        generated = true;
+    }
+
+    /// <summary>
+    /// Returns the message fragments used to render this message
+    /// </summary>
+    public List<MessageFragment> GetMessageFragments()
+    {
+        Stopwatch sw = new();
+
+        if (!generated)
+        {
+            GenerateMessage();
+        }
+
+        sw.Start();
+
+        List<MessageFragment> fragments = new();
+
+        // Empty message catch
+        if (string.IsNullOrWhiteSpace(BaseMessage.Content))
+        {
+            return fragments;
+        }
+
+        // First insert rich components into list and sort by position
+        if (BaseMessage.Mentions != null && BaseMessage.Mentions.Count > 0)
+        {
+            foreach (var mention in BaseMessage.Mentions)
             {
-                Content = endContent,
-                Position = start,
-                Length = (ushort)endContent.Length
+                MessageFragment fragment = null;
+
+                if (mention.Type == MentionType.Member)
+                {
+                    fragment = new MemberMentionFragment()
+                    {
+                        Mention = mention,
+                        Position = mention.Position,
+                        Length = mention.Length
+                    };
+                }
+
+                if (fragment != null)
+                {
+                    fragments.Add(fragment);
+                }
+            }
+        }
+
+        // Shortcut if there is no rich content
+        if (fragments.Count == 0)
+        {
+            MarkdownFragment fragment = new()
+            {
+                Content = MarkdownContent,
+                Position = 0,
+                Length = (ushort)MarkdownContent.Length
             };
 
-            finFragments.Add(end);
+            fragments.Add(fragment);
 
-            sw.Stop();
-
-            Console.WriteLine("Elapsed: " + sw.Elapsed.Milliseconds);
-
-            return finFragments;
+            return fragments;
         }
+
+        // Add fancy inline-supported fragments
+        fragments.AddRange(_elementFragments);
+
+        // Sort rich components
+        var orderedRich = fragments.OrderBy(x => x.Position);
+        var finFragments = orderedRich.ToList();
+
+        ushort start = 0;
+        // Now split the content at each rich starting position
+        // and insert the first half into the fragments
+        foreach (var rich in orderedRich)
+        {
+            if (rich.Position != 0)
+            {
+                string markContent = MarkdownContent[start..rich.Position];
+
+                MarkdownFragment fragment = new()
+                {
+                    Content = markContent,
+                    Position = start,
+                    Length = (ushort)markContent.Length
+                };
+
+                int index = finFragments.IndexOf(rich);
+
+                // Insert right before rich element
+                finFragments.Insert(index, fragment);
+            }
+
+            start = (ushort)(rich.Position + rich.Length - 1);
+        }
+
+        string endContent = MarkdownContent[start..];
+
+        // There will be one remaining fragment for whatever is left
+        MarkdownFragment end = new()
+        {
+            Content = endContent,
+            Position = start,
+            Length = (ushort)endContent.Length
+        };
+
+        finFragments.Add(end);
+
+        sw.Stop();
+
+        Console.WriteLine("Elapsed: " + sw.Elapsed.Milliseconds);
+
+        return finFragments;
     }
 }

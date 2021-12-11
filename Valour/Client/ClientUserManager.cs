@@ -1,20 +1,9 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Valour.Shared;
-using Valour.Shared.Users;
-using Valour.Shared.Oauth;
-using System.Security.Cryptography;
+﻿using Valour.Shared;
+using Valour.Shared.Items.Authorization;
 using Blazored.LocalStorage;
-using Valour.Shared.Planets;
-using System.Runtime.CompilerServices;
-using Valour.Client.Planets;
-using AutoMapper;
+using Valour.Api.Client;
+using Microsoft.AspNetCore.Components;
+using Valour.Api.Items.Users;
 
 namespace Valour.Client
 {
@@ -31,113 +20,33 @@ namespace Valour.Client
     public static class ClientUserManager
     {
         /// <summary>
-        /// This is the currently logged in user for the client
-        /// </summary>
-        public static User User { get; set; }
-
-        /// <summary>
-        /// This is the token the user is currently using to stay logged in
-        /// </summary>
-        public static string UserSecretToken { get; set; }
-
-        /// <summary>
-        /// Cache for joined planet objects
-        /// </summary>
-        public static List<ClientPlanet> Planets = new List<ClientPlanet>();
-
-        /// <summary>
-        /// Http client
-        /// </summary>
-        public static HttpClient Http;
-
-        /// <summary>
-        /// Random helper
-        /// </summary>
-        public static Random Random = new Random();
-
-        /// <summary>
-        /// True if the user is logged in
-        /// </summary>
-        public static bool IsLoggedIn()
-        {
-            return !(User == null);
-        }
-
-        /// <summary>
         /// Tries to initialize the user client by using a local token
         /// </summary>
-        public static async Task<TaskResult> TryInitializeWithLocalToken(ILocalStorageService storage, IMapper mapper)
+        public static async Task<TaskResult<User>> TryInitializeWithLocalToken(ILocalStorageService storage, NavigationManager nav)
         {
-            if (User != null)
-            {
-                return new TaskResult(false, "There's already a user logged in!");
-            }
+            if (ValourClient.IsLoggedIn)
+                return new TaskResult<User>(false, "There's already a user logged in!");
 
-            await RetrieveToken(storage);
+            var token = await RetrieveToken(storage);
 
             // Cancel if no token is found
-            if (UserSecretToken == null || string.IsNullOrWhiteSpace(UserSecretToken))
+            if (token == null || string.IsNullOrWhiteSpace(token.Token))
             {
-                return new TaskResult(false, "Failed to retrieve local token.");
+                return new TaskResult<User>(false, "Failed to retrieve local token.");
             }
 
-            return  await InitializeUser(UserSecretToken, storage, mapper);
+            return await InitializeUser(token.Token, storage, nav);
         }
 
         /// <summary>
         /// Initializes the user using a valid user token
         /// </summary>
-        public static async Task<TaskResult> InitializeUser(string token, ILocalStorageService storage, IMapper mapper)
+        public static async Task<TaskResult<User>> InitializeUser(string token, ILocalStorageService storage, NavigationManager nav)
         {
-            string response = await Http.GetStringAsync($"User/GetUserWithToken?token={token}");
-
-            TaskResult<User> result = JsonConvert.DeserializeObject<TaskResult<User>>(response);
-
-            if (result.Success)
-            {
-                User = result.Data;
-                UserSecretToken = token;
-
-                Console.WriteLine($"Initialized user {User.Username}");
-
-                // Store token for future use
-                await StoreToken(storage);
-
-                // Refresh user planet membership
-                await RefreshPlanetsAsync(mapper);
-
-                return new TaskResult(true, "Initialized user successfully!");
-            }
-
-            return new TaskResult(false, "An error occured retrieving the user.");
-        }
-
-        /// <summary>
-        /// Retrieves and updates the current planets that the user is a member of
-        /// </summary>
-        public static async Task RefreshPlanetsAsync(IMapper mapper)
-        {
-            string json = await Http.GetStringAsync($"Planet/GetPlanetMembership?user_id={User.Id}&token={UserSecretToken}");
-
-            TaskResult<List<ClientPlanet>> response = JsonConvert.DeserializeObject<TaskResult<List<ClientPlanet>>>(json);
-
-            Console.WriteLine(response.Message);
-
-            if (response.Success)
-            {
-                foreach (ClientPlanet planet in response.Data)
-                {
-                    // Load planet into cache
-                    //await ClientPlanetManager.Current.AddPlanetAsync(planet);
-
-                    Planets.Add(ClientPlanet.FromBase(planet, mapper));
-                }
-            }
-        }
-
-        public static void RefreshPlanets(IMapper mapper)
-        {
-            RefreshPlanetsAsync(mapper).RunSynchronously();
+            // Store token for future use
+            var user = await ValourClient.InitializeUser(token);
+            await StoreToken(storage);
+            return user;
         }
 
         /// <summary>
@@ -145,9 +54,9 @@ namespace Valour.Client
         /// </summary>
         public static async Task StoreToken(ILocalStorageService storage)
         {
-            LocalToken tokenObj = new LocalToken()
+            LocalToken tokenObj = new()
             {
-                Token = UserSecretToken
+                Token = ValourClient.Token
             };
 
             await storage.SetItemAsync("token", tokenObj);
@@ -158,14 +67,8 @@ namespace Valour.Client
         /// <summary>
         /// Attempts to retrieve a prior user token
         /// </summary>
-        public static async Task RetrieveToken(ILocalStorageService storage)
-        {
-            LocalToken tokenObj = await storage.GetItemAsync<LocalToken>("token");
-
-            if (tokenObj != null)
-            {
-                UserSecretToken = tokenObj.Token;
-            }
-        }
+        public static async Task<LocalToken> RetrieveToken(ILocalStorageService storage) =>
+            await storage.GetItemAsync<LocalToken>("token");
+        
     }
 }

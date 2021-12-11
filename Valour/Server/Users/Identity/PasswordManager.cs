@@ -36,53 +36,12 @@ namespace Valour.Shared.Users.Identity
             }
         }
 
-        public static Regex hasUpper = new Regex(@"[A-Z]");
-        public static Regex hasLower = new Regex(@"[a-z]");
-        public static Regex hasNumbers = new Regex(@"\d");
-        public static Regex hasSymbols = new Regex(@"\W");
-
-        /// <summary>
-        /// Returns success if a password meets complexity rules
-        /// </summary>
-        public static TaskResult TestComplexity(string password)
-        {
-            if (password.Length < 12)
-            {
-                return new TaskResult(false, $"Failed: Please use a password at least 12 characters in length.");
-            }
-
-            if (!hasUpper.IsMatch(password))
-            {
-                return new TaskResult(false, $"Failed: Please use a password that contains an uppercase character.");
-            }
-
-            if (!hasLower.IsMatch(password))
-            {
-                return new TaskResult(false, $"Failed: Please use a password that contains an lowercase character.");
-            }
-
-            if (!hasNumbers.IsMatch(password))
-            {
-                return new TaskResult(false, $"Failed: Please use a password that contains a number.");
-            }
-
-            if (!hasSymbols.IsMatch(password))
-            {
-                return new TaskResult(false, $"Failed: Please use a password that contains a symbol.");
-            }
-
-            return new TaskResult(true, $"Success: The given password passed all tests.");
-        }
-
         /// <summary>
         /// Generates random salt for use in passwords
         /// </summary>
-        public static void GenerateSalt(byte[] salt)
+        public static byte[] GenerateSalt()
         {
-            using (var random = new RNGCryptoServiceProvider())
-            {
-                random.GetNonZeroBytes(salt);
-            }
+            return RandomNumberGenerator.GetBytes(HASH_SIZE);
         }
     }
 }

@@ -1,76 +1,88 @@
-@inject ClientPlanetManager planetManager
+@using Valour.Api.Items.Messages
 
-@if (embed != null) 
+@if (embed is null)
 {
-    <div class="embed">
-        @if (embed.Currently_Displayed != null) 
-        {
-            @foreach (ClientEmbedItem item in embed.Currently_Displayed)
-            {
-                @switch (item.Type)
-                {
-                    case EmbedItemType.Text:
-                        <div style="@item.GetInlineStyle" class="embed-item">
-                            @if (item.Name != null) {
-                                <div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
-                                    @item.DoMarkdown(item.Name)
-                                </div>
-                            }
-                            <div style="color:#@item.TextColor;font-size:14px;">
-                                @if (item.Link != null) {
-                                    <a href="@item.Link" rel="nofollow" target="_blank">@item.DoMarkdown(item.Text)</a>
-                                }
-                                else {
-                                    @item.DoMarkdown(item.Text)
-                                }
-                            </div>
-                        </div>
-                        break;
-                    case EmbedItemType.Button:
-                        @if (item.Center) {
-                            <center>
-                                <EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
-                            </center>
-                        }
-                        else {
-                            <EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
-                        }
-                        break;
-                    case EmbedItemType.InputBox:
-                        <EmbedInputBoxComponent Item="item" embed="embed"></EmbedInputBoxComponent>
-                        break;
-                }
-            }
-            @if (embed.Pages.Length > 1) {
-                <div style="margin-left: 80%;">
-                    <button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
-                    <p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
-                    <button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
-                </div>
-            }
-        }
-    </div>
+	return;
 }
+
+<div class="embed">
+	@if (embed.Currently_Displayed != null)
+	{
+		@foreach (EmbedItem item in embed.Currently_Displayed)
+		{
+			@switch (item.Type)
+			{
+				case EmbedItemType.Text:
+					<div style="@item.GetInlineStyle" class="embed-item">
+						@if (item.Name != null)
+						{
+							<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
+								@((MarkupString)MarkdownManager.GetHtml(item.Name))
+							</div>
+						}
+						<div style="color:#@item.TextColor;font-size:14px;">
+							@if (item.Link != null)
+							{
+								<a href="@item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
+							}
+							else
+							{
+								@((MarkupString)MarkdownManager.GetHtml(item.Text))
+							}
+						</div>
+					</div>
+					break;
+				case EmbedItemType.Button:
+					@if (item.Center)
+					{
+						<center>
+							<EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
+						</center>
+					}
+					else
+					{
+						<EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
+					}
+					break;
+				case EmbedItemType.InputBox:
+					<EmbedInputBoxComponent Item="item" embed="embed"></EmbedInputBoxComponent>
+					break;
+			}
+		}
+		@if (embed.Pages.Length > 1)
+		{
+			<div style="margin-left: 80%;">
+				<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
+				<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
+				<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+			</div>
+		}
+	}
+</div>
+
 
 @code {
 
-    [Parameter]
-    public ClientEmbed embed { get; set;}
-    [Parameter]
-    public ClientPlanetMessage Message {get; set;}
+	[Parameter]
+	public Embed embed { get; set; }
+	[Parameter]
+	public ClientPlanetMessage Message { get; set; }
 
-    protected override void OnInitialized() {
-        StateHasChanged();
-    }
+	protected override void OnInitialized()
+	{
+		StateHasChanged();
+	}
 
-    public void NextPage() {
-        embed.NextPage();
-        StateHasChanged();
-    }
+	public void NextPage()
+	{
+		embed.NextPage();
+		StateHasChanged();
+	}
 
-    public void PrevPage() {
-        embed.PrevPage();
-        StateHasChanged();
-    }
+	public void PrevPage()
+	{
+		embed.PrevPage();
+		StateHasChanged();
+	}
 
 }

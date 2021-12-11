@@ -9,7 +9,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Client", "Valour\Cli
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Shared", "Valour\Shared\Valour.Shared.csproj", "{D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.API", "Valour\API\Valour.API.csproj", "{63D4C93E-AC6B-4602-A230-CBD42C40C671}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Api", "Valour\API\Valour.Api.csproj", "{63D4C93E-AC6B-4602-A230-CBD42C40C671}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F} = {D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Database", "Valour.Database\Valour.Database.csproj", "{924E3410-FBEC-431E-9A27-75618E3576A1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F} = {D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +41,10 @@ Global
 		{63D4C93E-AC6B-4602-A230-CBD42C40C671}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{63D4C93E-AC6B-4602-A230-CBD42C40C671}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{63D4C93E-AC6B-4602-A230-CBD42C40C671}.Release|Any CPU.Build.0 = Release|Any CPU
+		{924E3410-FBEC-431E-9A27-75618E3576A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{924E3410-FBEC-431E-9A27-75618E3576A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{924E3410-FBEC-431E-9A27-75618E3576A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{924E3410-FBEC-431E-9A27-75618E3576A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

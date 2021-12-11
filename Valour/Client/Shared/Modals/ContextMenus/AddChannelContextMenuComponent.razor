@@ -1,70 +1,37 @@
-﻿@inject AddChannelContextMenu addChannelContextMenu
-@inject CreateChannelModal createChannelModal
-@inject CreateCategoryModal createCategoryModal
-
-@using System.Threading
-
-@if (visible)
-{
-    <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
-        <div id="create-channel-btn" class="context-menu-item" @onclick="createChannelModal.Open">
-            <p class="context-menu-item-text">
-                Add Channel
-            </p>
-        </div>
-        <div id="create-category-btn" class="context-menu-item" @onclick="createCategoryModal.Open">
-            <p class="context-menu-item-text">
-                Add Category
-            </p>
-        </div>
-    </div>
-}
+﻿<ContextMenu Id='add-context' CssClass='context'>
+    @if (!Is_Planet){
+        <Item CssClass='context-item' OnClick='OnChannelClick'>Add Channel</Item>
+    }
+    <Item CssClass='context-item' OnClick='OnCategoryClick'>Add Category</Item>
+</ContextMenu>
 
 @code {
 
-    public bool visible = false;
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
-    public double x;
-    public double y;
+    public static bool Is_Planet { get; set; }
+    public static Planet Planet { get; set; }
+    public static Category Category { get; set; }
 
-    const string Modal_Id = "add-channel-context-menu";
+    public static void ReInitialize(Planet planet, Category category){
+        Planet = planet;
+        Category = category;
 
-    [Parameter]
-    public ModalHolderComponent Holder { get; set; }
-
-    protected async override Task OnInitializedAsync()
-    {
-        addChannelContextMenu.Component = this;
-        ModalHolderComponent.CloseModalEvent += OnModalClose;
+        Is_Planet = (category != null);
     }
 
-    public void SetPosition(double x, double y)
-    {
-        this.x = x;
-        this.y = y;
+    public void OnChannelClick(){
+        var modalParams = new ModalParameters();
+        modalParams.Add("Planet", Planet);
+        modalParams.Add("Parent", Category);
+        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
     }
 
-    public void SetVisibility(bool value)
-    {
-        this.visible = value;
-        StateHasChanged();
-    }
-
-    public async Task OnModalClose(string modal_id)
-    {
-        if (Modal_Id == modal_id)
-        {
-            // This is honestly a poor solution but it needs to wait a moment
-            
-            // anything below 125ms causes the model to not open
-            await Task.Delay(125);
-
-            SetVisibility(false);
-        }
-    }
-
-    public async Task AddCategory()
-    {
-
+    public void OnCategoryClick(){
+        var modalParams = new ModalParameters();
+        modalParams.Add("Planet", Planet);
+        modalParams.Add("Parent", Category);
+        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
     }
 }

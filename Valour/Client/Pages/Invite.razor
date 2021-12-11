@@ -3,8 +3,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
-@inject ClientPlanetManager planetManager
-@inject AutoMapper.IMapper mapper
 
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="popup-box">
@@ -44,7 +42,6 @@
 
     string PlanetName = "";
     string PlanetImage = "icon-512.png";
-    string InviteLink = "/Invite/Join/";
 
     string PlanetSpan = "Do you want to join";
 
@@ -58,36 +55,26 @@
 
     protected async override Task OnInitializedAsync()
     {
-
-        ulong user_id = ClientUserManager.User.Id;
-
-        if (ClientUserManager.IsLoggedIn() != true) {
+        if (!ValourClient.IsLoggedIn) {
             navManager.NavigateTo("/");
         }
-        
-        string json = await Http.GetStringAsync($"Invite/GetInvite?code={code}&user_id={user_id}");
 
-        TaskResult<ClientPlanetInvite> result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult<ClientPlanetInvite>>(json);
+        var invite = await ValourClient.GetJsonAsync<Invite>($"api/invite/{code}");
 
-        if (result.Success == false) {
-            errorSpan = result.Message;
+        if (invite is null) {
+            errorSpan = "Failed to find invite.";
             Clicked = true;
             PlanetSpan = "";
             StateHasChanged();
             return;
         }
 
-        PlanetName = await result.Data.GetPlanetName();
-        PlanetImage = await result.Data.GetPlanetIcon();
+        PlanetName = invite.PlanetName;
+        PlanetImage = invite.PlanetImage;
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
-        string token = ClientUserManager.UserSecretToken;
 
-        InviteCode = result.Data.Code;
-
-        InviteLink = $"/Invite/Join?code={InviteCode}&token={token}";
-
-        //Console.WriteLine(InviteLink);
+        InviteCode = invite.code;
 
         StateHasChanged();
 
@@ -95,39 +82,28 @@
 
     public async Task OnClose()
     {
-
-        ClientUserManager.Planets.Clear();
-
-        await ClientUserManager.RefreshPlanetsAsync(mapper);
-
+        await ValourClient.LoadJoinedPlanetsAsync();
         navManager.NavigateTo("/");
     }
 
     public async Task Joined()
     {
+        var response = await Http.GetAsync($"api/invite/{InviteCode}/join");
 
-        ulong user_id = ClientUserManager.User.Id;
-        string token = ClientUserManager.UserSecretToken;
+        var message = await response.Content.ReadAsStringAsync();
 
-        string link = $"/Invite/Join?code={InviteCode}&user_id={user_id}&token={token}";
-
-        string json = await Http.GetStringAsync(link);
-
-        TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
-
-        if (result.Success) {
-            infoSpan = result.Message;
+        if (!response.IsSuccessStatusCode)
+        {
+            errorSpan = message;
         }
-        else {
-            errorSpan = result.Message;
+        else
+        {
+            infoSpan = message;
         }
 
         Clicked = true;
 
         StateHasChanged();
-
-        
-
     }
 
 }

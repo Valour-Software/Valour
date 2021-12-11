@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -22,7 +21,6 @@ namespace Valour.Server.Email
         /// <summary>
         /// The API key for the email service
         /// </summary>
-        [JsonProperty]
         public string Api_Key { get; set; }
 
         /// <summary>

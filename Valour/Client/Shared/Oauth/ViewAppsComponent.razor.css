@@ -1,0 +1,27 @@
+.app {
+    border-top: 1px black solid;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.app:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.app:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.app-icon {
+    margin-bottom: 2px;
+    width: 32px;
+    height: 32px;
+    display: inline-block;
+}
+
+.app-name {
+    line-height: 32px;
+    display: inline-block;
+    margin: 0;
+    margin-left: 5px;
+}

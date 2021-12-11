@@ -1,5 +1,4 @@
-﻿@inject ClientPlanetManager planetManager
-@inject ClientWindowManager windowManager
+﻿@inject ClientWindowManager windowManager
 @inject ChannelListManager listManager
 
 <div class="@GetCssClass()" id="list-@Planet.Id">
@@ -12,21 +11,18 @@
                 @Planet.Name
             </p>
         </div>
-        <p class="add-channel-button" id="add-channel-button">
-            +
-        </p>
     </div>
     <div style="padding-left: 25px">
         <!-- The Modal -->
         @if (Open)
         {
-            @foreach (ClientPlanetCategory category in TopCategories)
+            @foreach (Category category in TopCategories)
             {
                 <ChannelListCategoryComponent Categories="Categories"
                                               Channels="Channels"
                                               Category="category"
                                               IsTopLevel="true"
-                                              @key='"list-category-" + category.Id'>
+                                              @key='category.Id'>
                 </ChannelListCategoryComponent>
             }
 
@@ -36,32 +32,28 @@
 
 @code {
     [Parameter]
-    public ClientPlanet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     public bool Open { get; set; }
 
-    public List<ClientPlanetCategory> TopCategories;
-    public List<ClientPlanetCategory> Categories { get; set; }
-    public List<ClientPlanetChatChannel> Channels { get; set; }
+    public List<Category> TopCategories;
+    public List<Category> Categories { get; set; }
+    public List<ChatChannel> Channels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
-        Categories = new List<ClientPlanetCategory>();
-        Channels = new List<ClientPlanetChatChannel>();
-        TopCategories = new List<ClientPlanetCategory>();
+        Categories = new List<Category>();
+        Channels = new List<ChatChannel>();
+        TopCategories = new List<Category>();
 
         // Handle list change
-        planetManager.OnCategoriesUpdate += OnCategoriesUpdate;
-        planetManager.OnChannelsUpdate += OnChannelsUpdate;
-
-        // Handle single change
-        planetManager.OnCategoryUpdate += OnCategoryUpdate;
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
+        Category.OnAnyUpdated += OnCategoryUpdate;
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        planetManager.OnCategoryDeletion += OnCategoryDeletion;
-        planetManager.OnChatChannelDeletion += OnChatChannelDeletion;
+        Category.OnAnyDeleted += OnCategoryDeletion;
+        ChatChannel.OnAnyDeleted += OnChatChannelDeletion;
 
         await GetCategories();
         await GetChannels();
@@ -109,19 +101,7 @@
         Console.WriteLine($"Found {TopCategories.Count} top level categories");
     }
 
-    public async Task OnChannelsUpdate()
-    {
-        await GetChannels();
-        StateHasChanged();
-    }
-
-    public async Task OnCategoriesUpdate()
-    {
-        await GetCategories();
-        StateHasChanged();
-    }
-
-    public async Task OnChatChannelDeletion(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelDeletion(ChatChannel channel)
     {
         var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
 
@@ -133,7 +113,7 @@
         }
     }
 
-    public async Task OnCategoryDeletion(ClientPlanetCategory category)
+    public async Task OnCategoryDeletion(Category category)
     {
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
@@ -145,7 +125,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(ClientPlanetCategory category)
+    public async Task OnCategoryUpdate(Category category, int flags)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
@@ -188,7 +168,7 @@
         GetTopLevelCategories();
     }
 
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
     {
 
         //Console.WriteLine(channel.Name);

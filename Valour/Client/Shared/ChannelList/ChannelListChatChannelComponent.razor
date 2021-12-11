@@ -1,24 +1,26 @@
 ﻿@implements IDisposable
 
 @inject ClientWindowManager windowManager
-@inject ClientPlanetManager planetManager
-@inject ChannelListContextMenu channelContextMenu
 @inject ChannelListManager listManager
 
-<div class="@Chosen_CSS" 
-     @onclick="OnClick" 
-     @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
-     @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id" @oncontextmenu="OnContextMenu">
-    <img class="chat-icon" src="media/Channel-Icon.svg">
-    <p class="channel-name">
-        @Channel.Name
-    </p>
+<div @onmousedown:stopPropagation='true'>
+    <ContextMenuTrigger MenuId='list-context' @onmousedown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
+        <div class="@Chosen_CSS" 
+            @onclick="OnClick"
+            @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
+            @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id">
+            <img class="chat-icon" src="media/Channel-Icon.svg">
+            <p class="channel-name">
+                @Channel.Name
+            </p>
+        </div>
+    </ContextMenuTrigger>
 </div>
 
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public ClientPlanetChatChannel Channel { get; set; }
+    public ChatChannel Channel { get; set; }
 
     [Parameter]
     public ChannelListCategoryComponent ParentCategory { get; set; }
@@ -27,18 +29,13 @@
     {
         get
         {
-            if (planetManager.IsChatChannelOpen(Channel))
+            if (ValourClient.IsChannelOpen(Channel))
             {
                 return "channel open";
             }
 
             return "channel";
         }
-    }
-
-    public async Task OnChannelWindowUpdate()
-    {
-        StateHasChanged();
     }
 
     public async Task OnClick()
@@ -62,35 +59,44 @@
                 }
 
                 Console.WriteLine(Channel.Name);
-                await channelWindow.Component.OnWindowChannelChange(Channel);
-                await planetManager.RefreshOpenedChannels();
+                await channelWindow.Component.SwapChannel(Channel);
             }
         }
 
+        StateHasChanged();
     }
 
-    public async Task OnContextMenu(MouseEventArgs e)
-    {
-        await channelContextMenu.Open(e, Channel);
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
-        planetManager.OnChatChannelUpdate += OnChatChannelUpdate;
-        planetManager.OnChannelWindowUpdate += OnChannelWindowUpdate;
-    }
-
-    public async Task OnChatChannelUpdate(ClientPlanetChatChannel channel)
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {
-            this.Channel = channel;
             StateHasChanged();
         }
     }
 
+    public async Task OnChannelStateChange(ChatChannel channel)
+    {
+        if (channel.Id == Channel.Id)
+            StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Console.WriteLine("Init " + Channel.Name);
+
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+
+        ValourClient.OnChannelOpen += OnChannelStateChange;
+        ValourClient.OnChannelClose += OnChannelStateChange;
+    }
+
     public void Dispose()
     {
-        planetManager.OnChatChannelUpdate -= OnChatChannelUpdate;
+        // Console.WriteLine("Disposed " + Channel.Name);
+
+        ChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+
+        ValourClient.OnChannelOpen -= OnChannelStateChange;
+        ValourClient.OnChannelClose -= OnChannelStateChange;
     }
 }

@@ -1,12 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
-using Valour.Server.Database;
-using Valour.Shared.Messages;
+using Valour.Database;
 
 namespace Valour.Server.Workers
 {
@@ -36,17 +28,16 @@ namespace Valour.Server.Workers
                             {
                                 ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
                                 DateTime now = DateTime.UtcNow;
-                                foreach (PlanetMessage message in context.PlanetMessages)
-                                {
-                                    if (message.TimeSent.AddHours(24) < now)
-                                    {
-                                        context.PlanetMessages.Remove(message);
-                                    }
-                                    await context.SaveChangesAsync();
-                                }
+                                var cutOff = now.AddHours(-24);
+
+                                context.PlanetMessages.RemoveRange(
+                                    context.PlanetMessages.Where(x => x.TimeSent < cutOff));
+
+                                await context.SaveChangesAsync();
                             }
                             Console.WriteLine("Checked Message Cache");
-                            Thread.Sleep(1000*60*60);
+
+                            await Task.Delay(1000 * 60 * 60);
                         }
                         catch(System.Exception e)
                         {

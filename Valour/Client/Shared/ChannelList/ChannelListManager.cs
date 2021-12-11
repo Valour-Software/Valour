@@ -1,15 +1,7 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Valour.Client.Categories;
-using Valour.Client.Channels;
-using Valour.Client.Planets;
-using Valour.Shared;
+﻿using Valour.Shared;
 using Valour.Shared.Categories;
+using Valour.Api.Client;
+using Valour.Api.Items.Planets.Channels;
 
 namespace Valour.Client.Shared.ChannelList
 {
@@ -23,7 +15,7 @@ namespace Valour.Client.Shared.ChannelList
         }
 
         public int currentDragIndex;
-        public IClientPlanetListItem currentDragItem;
+        public IPlanetChannel currentDragItem;
 
         // Only of of these should be non-null at a time
         public ChannelListCategoryComponent currentDragParentCategory;
@@ -34,7 +26,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemClickInCategory(IClientPlanetListItem item, 
+        public void OnItemClickInCategory(IPlanetChannel item, 
                                           ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -46,7 +38,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemStartDragInCategory(IClientPlanetListItem item,
+        public void OnItemStartDragInCategory(IPlanetChannel item,
                                               ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -58,7 +50,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item</param>
         /// <param name="parent">The parent category</param>
-        public void SetTargetInCategory(IClientPlanetListItem item,
+        public void SetTargetInCategory(IPlanetChannel item,
                                         ChannelListCategoryComponent parent)
         {
             currentDragIndex = 0;
@@ -87,27 +79,22 @@ namespace Valour.Client.Shared.ChannelList
                 return;
 
             // Only categories can be put under a planet
-            if (currentDragItem.ItemType != Valour.Shared.Planets.ChannelListItemType.Category)
+            if (currentDragItem.ItemType != Valour.Shared.Items.ItemType.Category)
                 return;
 
             // Already parent
             if (target.Planet.Id == currentDragItem.Parent_Id)
                 return;
 
-            HttpResponseMessage response = null;
-
-            ushort position = (ushort)target.TopCategories.Count();
+            ushort position = (ushort)target.TopCategories.Count;
 
             // Add current item to target category
-            response = await ClientUserManager.Http.GetAsync($"Planet/InsertCategory?category_id={currentDragItem.Id}" +
-                                                                                $"&planet_id={target.Planet.Id}&position={position}" +
-                                                                                $"&auth={ClientUserManager.UserSecretToken}");
+
+            var response = await ValourClient.PutAsync($"api/category/{currentDragItem.Id}/parent_id?position={position}", "none");
 
             Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
-
-            Console.WriteLine(result);
+            Console.WriteLine(response.Message);
         }
 
         /// <summary>
@@ -128,20 +115,18 @@ namespace Valour.Client.Shared.ChannelList
             if (target.Category.Id == currentDragItem.Id)
                 return;
 
-            HttpResponseMessage response = null;
-
             ushort position = (ushort)target.ItemList.Count();
 
+            currentDragItem.Parent_Id = target.Category.Id;
+            currentDragItem.Position = position;
+
             // Add current item to target category
-            response = await ClientUserManager.Http.GetAsync($"Category/InsertItem?item_id={currentDragItem.Id}&item_type={currentDragItem.ItemType}" +
-                                                                                $"&category_id={target.Category.Id}&position={position}" +
-                                                                                $"&auth={ClientUserManager.UserSecretToken}");
+
+            var response = await ValourClient.PostAsync($"/api/category/{target.Category.Id}/children?type={currentDragItem.ItemType}", currentDragItem);
 
             Console.WriteLine($"Inserting {currentDragItem.Id} into {target.Category.Id} at position {position}");
 
-            TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
-
-            Console.WriteLine(result);
+            Console.WriteLine(response.Message);
         }
 
         public async Task OnItemDropOnChatChannel(ChannelListChatChannelComponent target)
@@ -166,7 +151,7 @@ namespace Valour.Client.Shared.ChannelList
             target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
             currentDragItem.Parent_Id = target.ParentCategory.Category.Id;
 
-            HttpResponseMessage response = null;
+            TaskResult response;
             List<CategoryContentData> orderData = null;
 
             // Categories are not the same
@@ -196,11 +181,9 @@ namespace Valour.Client.Shared.ChannelList
                     pos++;
                 }
 
-                response = await ClientUserManager.Http.PostAsJsonAsync($"Category/SetContents?category_id={target.ParentCategory.Category.Id}&auth={ClientUserManager.UserSecretToken}", orderData);
+                response = await ValourClient.PostAsync($"api/category/{target.ParentCategory.Category.Id}/children/order", orderData);
 
-                TaskResult result = JsonConvert.DeserializeObject<TaskResult>(await response.Content.ReadAsStringAsync());
-
-                Console.WriteLine(result);
+                Console.WriteLine(response.Message);
 
                 //target.ParentCategory.Refresh();
             //}

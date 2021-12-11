@@ -1,139 +1,125 @@
-﻿@inject ChannelListContextMenu channelListContextMenu
-@inject ConfirmModal confirmModal
-@inject InfoModal infoModal
-@inject EditChannelListItemModal editModal
-@inject HttpClient Http
-@inject ClientPlanetManager planetManager
+<ContextMenu Id='list-context' CssClass='context'>
 
-@if (visible)
-{
-    <div class="context-menu" id="@Modal_Id" style="left: @(x)px; top: @(y)px;">
-        <div id="edit-channel-list-item-btn" class="context-menu-item" @onclick="EditChannelListItem">
-            <p class="context-menu-item-text">
-                Edit
-            </p>
-        </div>
-        <div class="context-menu-item delete-context-menu-item" @onclick="DeleteChannelListItem">
-            <p class="context-menu-item-text">
-                Delete
-            </p>
-        </div>
-    </div>
-}
+    @if (SelectedItem.ItemType == ItemType.Category){
+        <Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</Item>
+        <Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</Item>
+    }
+
+    <Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</Item>
+    <Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</Item>
+</ContextMenu>
 
 @code {
 
-    public bool visible = false;
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
-    public double x;
-    public double y;
+    public static IPlanetChannel SelectedItem { get; set; }
 
-    const string Modal_Id = "channel-context-menu";
+    public static ChannelListContextMenuComponent Instance;
 
-    [Parameter]
-    public ModalHolderComponent Holder { get; set; }
+    public static async Task SetSelectedItem(IPlanetChannel item){
 
-    protected async override Task OnInitializedAsync()
-    {
-        channelListContextMenu.Component = this;
-        ModalHolderComponent.CloseModalEvent += OnModalClose;
+        Console.WriteLine(item.ItemType.ToString());
+
+        SelectedItem = item;
+        Instance.Refresh();
     }
 
-    public void SetPosition(double x, double y)
-    {
-        this.x = x;
-        this.y = y;
+    protected override async Task OnInitializedAsync(){
+        Instance = this;
     }
 
-    public void SetVisibility(bool value)
-    {
-        this.visible = value;
+    public void Refresh(){
         StateHasChanged();
     }
 
-    public async Task OnModalClose(string modal_id)
-    {
-        if (Modal_Id == modal_id)
-        {
-            SetVisibility(false);
+    public async Task OpenCreateChannel(){
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+
+        if (SelectedItem.ItemType == ItemType.Category){
+            modalParams.Add("Parent", SelectedItem);
         }
+        else{
+            modalParams.Add("Parent", null);
+        }
+
+        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+    }
+    
+    public async Task OpenCreateCategory(){
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+
+        if (SelectedItem.ItemType == ItemType.Category){
+            modalParams.Add("Parent", SelectedItem);
+        }
+        else{
+            modalParams.Add("Parent", null);
+        }
+
+        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
     }
 
-    public async Task DeleteChannelListItem()
-    {
+    public async Task DeleteChannelListItem(){
+        if (SelectedItem.ItemType == ItemType.Category){
+            var planet = await SelectedItem.GetPlanetAsync();
 
-        bool IsCategory = channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.Category;
+            var channels = await planet.GetChannelsAsync();
+            var categories = await planet.GetCategoriesAsync();
 
-        if (IsCategory) {
+            // Ensure category has no children if we are deleting it
+            if (channels.Count(x => x.Parent_Id == SelectedItem.Id) > 0 || 
+                categories.Count(x => x.Parent_Id == SelectedItem.Id) > 0){
 
-            ulong category_id = channelListContextMenu.SelectedItem.Id;
+                InfoModalData imodalData = 
+                new($"You can't delete this!",
+                    "This is due to this category having channels and/or categories inside of it.",
+                    "Okay",
+                    async () =>
+                    {
+                        Console.WriteLine("User Clicked Ok");
+                    }
+                );
 
-            // get planet channels and categories
+                ModalParameters imodParams = new();
+                imodParams.Add("Data", imodalData);
 
-            List<ClientPlanetChatChannel> channels = await planetManager.GetCurrent().GetChannelsAsync();
-
-            List<ClientPlanetCategory> categories = await planetManager.GetCurrent().GetCategoriesAsync();
-
-            if (channels.Where(x => x.Parent_Id == category_id).Count() > 0 || categories.Where(x => x.Parent_Id == category_id).Count() > 0) {
-                await infoModal.Open($"You can't delete this!",
-                                    "This is due to this category having channels and/or categories inside of it.",
-                                    "Okay",
-
-                async () =>
-                {
-                    Console.WriteLine("User Clicked Ok");
-                });
-
-                return;
+                Modal.Show<InfoModalComponent>("Info", imodParams, new ModalOptions() { Class = "modal-shrink-fit" });
             }
         }
 
-        
-        
+        ConfirmModalData modalData =
+        new($"Delete {SelectedItem.Name}?",
+             "Are you sure?",
+             "Continue",
+             "Cancel", 
+             async () =>
+             {
+                 Console.WriteLine("Confirmed channel item deletion.");
+                 var result = await SelectedItem.DeleteAsync();
+                 Console.WriteLine("Deletion: " + result.Message);
 
-        await confirmModal.Open($"Delete {channelListContextMenu.SelectedItem.Name}?",
-                                "Are you sure?",
-                                "Continue",
-                                "Cancel",
+             },
+             async () =>
+             {
+                 Console.WriteLine("Cancelled channel item deletion.");
+             }
+        );
 
-        async () =>
-        {
-            Console.WriteLine("Confirmed channel item deletion.");
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
 
-            //Delete(ulong id, ulong user_id, string token)
-
-            ulong user_id = ClientUserManager.User.Id;
-            string token = ClientUserManager.UserSecretToken;
-            string json = "";
-
-            if (channelListContextMenu.SelectedItem.ItemType == ChannelListItemType.ChatChannel) {
-                json = await Http.GetStringAsync($"Channel/Delete?id={channelListContextMenu.SelectedItem.Id}" +
-                                                                    $"&user_id={user_id}" +
-                                                                    $"&token={token}");
-            }
-
-            else {
-                json = await Http.GetStringAsync($"Category/Delete?id={channelListContextMenu.SelectedItem.Id}" +
-                                                                    $"&user_id={user_id}" +
-                                                                    $"&token={token}");
-            }
-
-            TaskResult result = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskResult>(json);
-
-            Console.WriteLine(result.Message);
-
-        },
-
-        async () =>
-        {
-            Console.WriteLine("Cancelled channel item deletion.");
-        });
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
     }
 
     public async Task EditChannelListItem()
     {
-        await editModal.Open();
-        await channelListContextMenu.Close();
+        ModalParameters modParams = new();
+        modParams.Add("ChannelListItem", SelectedItem);
+        Modal.Show<EditChannelListItemComponent>("Edit Channel Item", modParams);
     }
 }
-

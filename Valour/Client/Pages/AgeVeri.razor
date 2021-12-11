@@ -46,7 +46,7 @@
         bool agreed;
         string agreedSpan = "";
 
-        private async Task OnClickSubmit(MouseEventArgs e)
+        private void OnClickSubmit(MouseEventArgs e)
         {
 
             dateSpan = "";
@@ -76,7 +76,7 @@
                     return;
                 default:
                 {
-                    string dateString = Newtonsoft.Json.JsonConvert.SerializeObject(date);
+                    string dateString = System.Text.Json.JsonSerializer.Serialize(date);
 
                     navManager.NavigateTo($"/Register/{dateString}");
                     break;

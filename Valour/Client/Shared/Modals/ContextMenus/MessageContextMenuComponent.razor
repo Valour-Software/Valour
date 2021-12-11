@@ -1,0 +1,42 @@
+@inject IJSRuntime JS
+@inject IBlazorContextMenuService contextService
+
+<ContextMenu Id='message-context' CssClass='context' class='member-context'>
+    <Item CssClass='context-item'>
+        Copy
+        <SubMenu CssClass='context-sub'>
+            <Item OnClick='OnClickCopyText' CssClass='context-item'>Text</Item>
+            <Item OnClick='OnClickCopyId' CssClass='context-item'>Message Id</Item>
+        </SubMenu>
+    </Item>
+
+    <Item CssClass='context-item'>
+        Member
+        <SubMenu CssClass='context-sub'>
+            <InnerMemberContextMenuComponent></InnerMemberContextMenuComponent>
+        </SubMenu>
+    </Item>
+</ContextMenu>
+
+
+@code {
+
+	[CascadingParameter]
+	public IModalService Modal { get; set; }
+
+	public static ClientPlanetMessage Message { get; set; }
+
+	public static async Task Initialize(ClientPlanetMessage message)
+	{
+		Message = message;
+        InnerMemberContextMenuComponent.Member = await message.GetAuthorAsync();
+	}
+
+	public async Task OnClickCopyText(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", Message.Content);
+	}
+
+	public async Task OnClickCopyId(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", Message.Id);
+	}
+}

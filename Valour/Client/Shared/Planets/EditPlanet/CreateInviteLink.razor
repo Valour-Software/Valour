@@ -1,0 +1,75 @@
+﻿@inject HttpClient http
+@inject NavigationManager navManager
+@using Valour.Shared
+@inject HttpClient Http
+
+<br />
+<div style="margin-bottom: 12%;margin-top:25px;">
+    <center><h3>Create Invite</h3></center>
+    <center><p>How long will this invite last, in hours. (put 0 to make invite permanent)</p></center>
+    <center><input class="form-control" type="number" @bind-value="@hoursValue" style="width:15%;" /></center>
+
+    <center>
+        @if (!Failed) {
+            <p style="margin-top:10px;">Invite Link: <a href="@nameSpan" class="EnableRightCLick">@nameSpan</a></p>
+        }
+        else {
+            <p style="margin-top:10px;color:red;">@nameSpan</p>
+        }
+        <br>
+
+        <div class="btn btn-outline-primary" @onclick="OnSaveChanges">Create Invite</div>
+    </center>
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    public int hoursValue;
+
+    public string nameSpan;
+    
+    public bool Failed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hoursValue = 0;
+
+        StateHasChanged();
+    }
+
+    public async Task OnSaveChanges()
+    {
+        var invite = new Invite()
+        {
+            Planet_Id = Planet.Id,
+            Issuer_Id = ValourClient.Self.Id,
+            Time = DateTime.UtcNow,
+            Hours = hoursValue
+        };
+
+        JsonContent content = JsonContent.Create(invite);
+
+        var response = await Http.PostAsync($"api/invite", content);
+
+        var message = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            nameSpan = message;
+            Failed = true;
+            StateHasChanged();
+            return;
+        }
+
+        string link = navManager.BaseUri.TrimEnd('/') + "/I/" + message;
+
+        nameSpan = link;
+        
+        Console.WriteLine(link);
+
+        StateHasChanged();
+    }
+
+}

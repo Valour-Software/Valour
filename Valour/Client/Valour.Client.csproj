@@ -2,38 +2,48 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-    <Version>0.0.9.1</Version>
+    <Version>0.1.1.0</Version>
+    <ImplicitUsings>true</ImplicitUsings>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
-    <None Remove="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
+    <None Remove="Shared\Modals\ContextMenus\MemberContextMenuComponent.old" />
+    <None Remove="Shared\Windows\ChannelWindows\MentionSelectComponent.razor.css" />
+    <None Remove="Shared\Windows\ChannelWindows\MentionSelectMemberComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectComponent.razor.css" />
-    <Content Include="Shared\Windows\PlanetChannelWindow\MentionSelectMemberComponent.razor.css" />
+    <Content Include="Shared\Modals\ContextMenus\MemberContextMenuComponent.old" />
+    <Content Include="Shared\Windows\ChannelWindows\MentionSelectComponent.razor.css" />
+    <Content Include="Shared\Windows\ChannelWindows\MentionSelectMemberComponent.razor.css" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="10.1.1" />
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="8.1.1" />
-    <PackageReference Include="Blazored.LocalStorage" Version="4.1.2" />
-    <PackageReference Include="Markdig" Version="0.25.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.0-preview.6.21355.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.0-preview.6.21355.2" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.0-preview.6.21355.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="System.Net.Http.Json" Version="6.0.0-preview.6.21352.12" />
+    <PackageReference Include="Blazor.ContextMenu" Version="1.10.1" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.1.5" />
+    <PackageReference Include="Blazored.Modal" Version="6.0.1" />
+    <PackageReference Include="Markdig" Version="0.26.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.0" />
+    <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Planets\" />
   </ItemGroup>
 
 </Project>

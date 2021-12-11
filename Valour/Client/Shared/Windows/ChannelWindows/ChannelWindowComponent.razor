@@ -1,0 +1,545 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject IJSRuntime JS
+@inject ClientWindowManager windowManager
+@implements IDisposable
+@using Valour.Api.Items.Messages
+@using System.Net.Http.Headers
+@using Valour.Client.Shared.Windows.ChannelWindows.FileUpload;
+
+<div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
+
+    <div class="channel-info">
+        <h3 class="title">
+            @Channel.Name
+        </h3>
+        @if (!string.IsNullOrWhiteSpace(Channel.Description))
+        {
+            <p class="description">
+                @Channel.Description
+            </p>
+        }
+
+        <div class="channel-buttons">
+            <div class="channel-home" @onclick="ReturnHome">
+                Home
+            </div>
+            @if (windowManager.GetWindowCount() > 1)
+            {
+                <div class="channel-close" @onclick="CloseWindow">
+                    X
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" @ref="MessageHolder"></MessageHolderComponent>
+
+    @{
+        var lastMessage = MessageHolder?.GetLastMessage();
+    }
+    
+    <div style="opacity: 0.7; width: 95%">
+        <MessageComponent @ref="DummyComponent" Message="DummyMessage" Submessage ="true" Last_Message="lastMessage" ></MessageComponent>
+    </div>
+
+    <div class="textbox-holder" @onclick="ScrollToBottomAnim">
+
+        <MentionSelectComponent @ref="MentionSelector" ChannelComponent="this" Channel="Channel"></MentionSelectComponent>
+
+        <div class="textbox" onclick="this.children[1].focus()" @ref='dropZoneElement'>
+            <InputFile id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles" @ref='inputFile'></InputFile>
+            <div class='upload' onclick="document.getElementById('upload-core').click()">+</div>
+            <div contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    /// <summary>
+    /// True if the client has negotiated a channel connection
+    /// </summary>
+    private bool channelConnected;
+
+    /// <summary>
+    /// The input currently within the chatbox, this is bound and any changes will
+    /// be reflected within the box.
+    /// </summary>
+    private string currentInput;
+
+    private bool mentionSelect;
+
+    public MessageComponent DummyComponent { get; set; }
+
+    public ClientPlanetMessage DummyMessage { get; set; }
+
+    [Parameter]
+    public ChatChannelWindow Window { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public ChatChannel Channel;
+
+    public Planet Planet;
+
+    public PlanetMember SelfMember;
+
+    public Func<Task> ForceRefreshMessages;
+
+    public bool ForceMessageRefresh;
+
+    public MessageHolderComponent MessageHolder { get; set; }
+
+    public MentionSelectComponent MentionSelector { get; set; }
+
+    public bool Should_Render { get; set; }
+
+    // Drop zone stuff
+    public InputFile inputFile;
+    ElementReference dropZoneElement;
+    IJSObjectReference _dropZoneInstance;
+
+    // Runs when page is initialized
+    protected override async Task OnInitializedAsync()
+    {
+        Channel = Window.Channel;
+
+        Planet = await Window.Channel.GetPlanetAsync();
+
+        Window.Component = this;
+
+        PlanetMember.OnAnyUpdated += OnPlanetMemberUpdate;
+        PlanetRole.OnAnyUpdated += OnRoleUpdate;
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+
+        await ValourClient.OpenChannel(Channel);
+
+        SelfMember = await PlanetMember.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
+
+        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+
+        await JS.InvokeVoidAsync("OnChannelLoad", null);
+
+        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+
+        await JS.InvokeVoidAsync("SetComponent", Window.Index, DotNetObjectReference.Create(this));
+
+        await JS.InvokeAsync<IJSObjectReference>("initializeFileDropZone", dropZoneElement, inputFile.Element);
+
+        await SetupNewChannelAsync();
+    }
+
+    public static HashSet<string> ImageContent = new HashSet<string>()
+    {
+        "image/gif",
+        "image/jpeg",
+        "image/png",
+        "image/tiff",
+        "image/vnd.microsoft.icon",
+        "image/x-icon",
+        "image/vnd.djvu",
+        "image/svg+xml"
+    };
+
+    private async Task LoadFiles(InputFileChangeEventArgs e)
+    {
+        //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
+
+        var file = e.File;
+
+        if (file == null)
+        {
+            Console.WriteLine("Could not load file as an image.");
+        }
+
+        if (file.Size > 10240000)
+        {
+            Console.WriteLine("Max upload size is 10mb.");
+        }
+
+        byte[] data = new byte[file.Size];
+
+        await file.OpenReadStream(10240000).ReadAsync(data);
+
+        var content = new MultipartFormDataContent();
+        var arrContent = new ByteArrayContent(data);
+        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+        content.Add(arrContent, file.Name, file.Name);
+
+        string type = "file";
+
+        if (ImageContent.Contains(file.ContentType)){
+            type = "image";
+        }
+
+        ModalParameters modalParams = new();
+        modalParams.Add("File", file);
+        modalParams.Add("Data", data);
+        modalParams.Add("OnConfirm", 
+            async () => {
+                var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/{type}", content);
+
+                if (result.Success)
+                {
+                    string url = result.Data;
+
+                    await PostMessage(url);
+                }
+                else
+                {
+                    Console.WriteLine(result.Message);
+                }
+            }
+        );
+
+        Modal.Show<FileUploadComponent>("File Upload", modalParams, new ModalOptions(){ Class = "modal-shrink-fit" });
+
+        StateHasChanged();
+    }
+
+    protected override bool ShouldRender()
+    {
+        return Should_Render;
+    }
+
+    void IDisposable.Dispose()
+    {
+        PlanetMember.OnAnyUpdated -= OnPlanetMemberUpdate;
+        PlanetRole.OnAnyUpdated -= OnRoleUpdate;
+        ChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+    }
+
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
+    {
+        if (Channel.Id == channel.Id)
+        {
+            this.Channel = channel;
+            Should_Render = true;
+            StateHasChanged();
+        }
+    }
+
+    public async Task OnPlanetMemberUpdate(PlanetMember member, int flags)
+    {
+        if (member.Planet_Id != Planet.Id)
+        {
+            return;
+        }
+
+        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.Author.User_Id == member.User_Id))
+        {
+            //Console.WriteLine(msg.Message.Message_Index);
+
+            // Update member reference
+            msg.Author = member;
+            await msg.RefreshMessage();
+        }
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role, int flags)
+    {
+        if (role.Planet_Id != Planet.Id)
+        {
+            return;
+        }
+
+        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.roleId == role.Id))
+        {
+            await msg.RefreshMessage();
+        }
+    }
+
+    public async Task CloseWindow()
+    {
+        await windowManager.CloseWindow(Window.Index);
+    }
+
+    public async Task ReturnHome()
+    {
+        HomeWindow newWindow = new HomeWindow(Window.Index);
+
+        await windowManager.SetWindow(Window.Index, newWindow);
+    }
+
+    public async Task SetupNewChannelAsync()
+    {
+        MessageHolder.Clear();
+
+        MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
+    }
+
+    public async Task SwapChannel(ChatChannel newchannel)
+    {
+        Channel = newchannel;
+
+        await windowManager.SwapWindowChannel(Window, newchannel);
+
+        await SetupNewChannelAsync();
+
+        Should_Render = true;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+
+        Should_Render = false;
+    }
+
+    public async Task OnWindowClosed()
+    {
+        Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
+        await ValourClient.CloseChannel(Channel);
+    }
+
+    public async Task OnRecieveMessage(ClientPlanetMessage message)
+    {
+        await MessageHolder.AddMessage(message);
+        DummyComponent.SetLast(MessageHolder.GetLastMessage());
+        DummyComponent.CheckMinimal();
+        DummyComponent.ReRender();
+    }
+
+    public async Task ScrollToBottom()
+    {
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+    }
+
+    public async Task ScrollToBottomAnim()
+    {
+        await JS.InvokeVoidAsync("ScrollWindowBottomAnim", Window.Index);
+    }
+
+    [JSInvokable]
+    public async Task OnChatboxSubmit()
+    {
+        Console.WriteLine(currentInput);
+
+        if (currentInput == null)
+        {
+            return;
+        }
+
+        string temp = currentInput.TrimEnd('\n');
+        temp = temp.Trim();
+
+        if (string.IsNullOrWhiteSpace(temp))
+        {
+            return;
+        }
+
+        if (temp != "")
+        {
+            currentInput = "";
+            await OnChatboxUpdate(null, "");
+
+            // Post message to server
+            //StateHasChanged();
+            await PostMessage(temp);
+
+        }
+    }
+
+    public async Task UpdateMentionMenu(string text)
+    {
+        //Console.WriteLine(text);
+
+        if (text.StartsWith('@'))
+        {
+            if (!MentionSelector.Visible)
+            {
+                MentionSelector.SetVisible(true);
+            }
+
+            await MentionSelector.SetText(text);
+        }
+        else
+        {
+            if (MentionSelector.Visible){
+                MentionSelector.SetVisible(false);
+            }
+        }
+
+        Should_Render = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task MentionSubmit()
+    {
+        await MentionSelector.Submit();
+
+        Should_Render = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void MoveMentionSelect(int n)
+    {
+        MentionSelector.MoveSelect(n);
+    }
+
+    [JSInvokable]
+    public async Task OnCaretUpdate(string currentWord)
+    {
+        await UpdateMentionMenu(currentWord);
+    }
+
+    /// <summary>
+    /// This runs every time a key is pressed when the chatbox is selected
+    /// </summary>
+    [JSInvokable]
+    public async Task OnChatboxUpdate(string input, string currentWord)
+    {
+        //Console.WriteLine(currentWord);
+
+        await UpdateMentionMenu(currentWord);
+
+        currentInput = input;
+
+        // Console.WriteLine(input);
+
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            DummyMessage = null;
+            await DummyComponent.SetMessage(null);
+        }
+        else
+        {
+            var innerMessage = new PlanetMessage()
+            {
+                Author_Id = SelfMember.User_Id,
+                Content = input,
+                Channel_Id = Channel.Id,
+                Member_Id = SelfMember.Id,
+                TimeSent = DateTime.UtcNow
+            };
+
+            DummyMessage = new ClientPlanetMessage(innerMessage);
+
+            DummyMessage.GenerateForPost();
+
+            await DummyComponent.SetMessage(DummyMessage);
+        }
+
+        Should_Render = true;
+        StateHasChanged();
+    }
+
+    public async Task OnClickWindow()
+    {
+        await windowManager.SetFocusedPlanet(await Channel.GetPlanetAsync());
+    }
+
+    public async Task PostMessage(string msg)
+    {
+        PlanetMessage innerMessage = new PlanetMessage()
+        {
+            Channel_Id = Channel.Id,
+            Content = msg,
+            TimeSent = DateTime.UtcNow,
+            Author_Id = ValourClient.Self.Id,
+            Planet_Id = Channel.Planet_Id,
+            Member_Id = SelfMember.Id,
+            Fingerprint = Guid.NewGuid().ToString()
+        };
+
+        ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
+
+        message.GenerateForPost();
+
+        /*
+        message.SetMentions(new List<Mention>()
+        {
+            new Mention()
+            {
+                Target_Id = 1050746125287424,
+                Position = 5,
+                Type = MentionType.Member
+            }
+        });
+        */
+
+        MessageHolder.AddQueuedMessage(message);
+
+        string json = JsonSerializer.Serialize(innerMessage);
+
+        StringContent content = new StringContent(json);
+
+        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{Channel.Id}/messages", content);
+
+        string res = await httpresponse.Content.ReadAsStringAsync();
+
+        Console.WriteLine("Message post: " + res);
+
+        if (!httpresponse.IsSuccessStatusCode)
+        {
+            MessageHolder.RemoveQueuedMessage(message.Fingerprint);
+
+            PlanetMessage errorMsg = new()
+            {
+                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {res}",
+                Author_Id = ulong.MaxValue,
+                Member_Id = ulong.MaxValue,
+                Channel_Id = Channel.Id,
+                Message_Index = ulong.MaxValue
+            };
+
+            MessageHolder.RemoveErrorMessage();
+            await MessageHolder.AddMessage(new ClientPlanetMessage(errorMsg));
+        }
+    }
+
+    public async Task UpdateScrollPosition()
+    {
+        await JS.InvokeVoidAsync("UpdateScrollPosition", Window.Index);
+    }
+
+    public async Task ScaleScrollPosition()
+    {
+        await JS.InvokeVoidAsync("ScaleScrollPosition", Window.Index);
+    }
+
+    [JSInvokable("OnScrollTopInvoke")]
+    public static async Task OnScrollTop(int index)
+    {
+        ChatChannelWindow Window = ClientWindowManager.Instance.GetWindow(index) as ChatChannelWindow;
+        MessageHolderComponent Holder = Window.Component.MessageHolder;
+
+        if (Window == null)
+        {
+            Console.WriteLine("Channel window is null in OnScrollTop!");
+            return;
+        }
+
+        if (Holder.Messages == null || Holder.Messages.Count == 0)
+        {
+            return;
+        }
+
+        ulong firstIndex = Holder.Messages[0].Message_Index;
+
+        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Index}");
+
+        var messages = await Window.Channel.GetMessagesAsync(firstIndex, 32);
+
+        if (messages == null || messages.Count() == 0)
+        {
+            return;
+        }
+
+        await Window.Component.UpdateScrollPosition(); // This saves the scroll position
+
+        Holder.InsertMessages(0, ClientPlanetMessage.FromList(messages));
+
+        //Window.Component.StateHasChanged();
+        await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly
+    }
+}

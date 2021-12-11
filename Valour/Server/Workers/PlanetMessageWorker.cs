@@ -1,21 +1,8 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Identity;
-using Valour.Server.Database;
-using Valour.Shared.Messages;
-using System.Collections.Concurrent;
-using Valour.Shared.Channels;
-using Newtonsoft.Json;
-using Valour.Server.Messages;
+﻿using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
-using Valour.Shared;
-using System.Collections.Generic;
-using System.Linq;
-using Valour.Server.Planets;
+using Valour.Database;
+using Valour.Database.Items.Planets.Channels;
+using Valour.Shared.Items.Messages;
 
 namespace Valour.Server.Workers
 {
@@ -31,13 +18,13 @@ namespace Valour.Server.Workers
             _scopeFactory = scopeFactory;
         }
 
-        private static BlockingCollection<PlanetMessage> MessageQueue =
-            new BlockingCollection<PlanetMessage>(new ConcurrentQueue<PlanetMessage>());
+        private static BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
 
-        private static ConcurrentBag<PlanetMessage> StagedMessages =
-            new ConcurrentBag<PlanetMessage>();
+        private static ConcurrentBag<PlanetMessage> StagedMessages = new();
 
         private static ValourDB Context;
+
+        public static Dictionary<ulong, ulong> ChannelMessageIndices = new();
 
         public static void AddToQueue(PlanetMessage message)
         {
@@ -65,7 +52,7 @@ namespace Valour.Server.Workers
                     {
                         ulong channel_id = Message.Channel_Id;
 
-                        PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
+                        ChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
                         // Get index for message
                         ulong index = channel.Message_Count;
@@ -75,10 +62,8 @@ namespace Valour.Server.Workers
                         Message.Message_Index = index;
                         Message.TimeSent = DateTime.UtcNow;
 
-                        string json = JsonConvert.SerializeObject(Message);
-
                         // This is not awaited on purpose
-                        PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", json);
+                        PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", Message);
 
                         StagedMessages.Add(Message);
                     }
@@ -94,9 +79,9 @@ namespace Valour.Server.Workers
 
                 while (!task.IsCompleted)
                 {
-                    _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now}");
-                    _logger.LogInformation($"Queue size: {MessageQueue.Count}");
-                    _logger.LogInformation($"Saving {StagedMessages.Count} messages to DB.");
+                    _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now.ToString()}");
+                    _logger.LogInformation($"Queue size: {MessageQueue.Count.ToString()}");
+                    _logger.LogInformation($"Saving {StagedMessages.Count.ToString()} messages to DB.");
 
                     if (Context != null)
                     {
@@ -112,8 +97,8 @@ namespace Valour.Server.Workers
                     await Task.Delay(30000, stoppingToken);
                 }
 
-                _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now);
-                _logger.LogInformation("Restarting.", DateTimeOffset.Now);
+                _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now.ToString());
+                _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
             }
         }
     }

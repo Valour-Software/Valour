@@ -15,7 +15,7 @@
 
                 <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last"></MessageComponent>
 
-        last = msg;
+                last = msg;
             }
         }
 
@@ -57,6 +57,22 @@
     public void AddQueuedMessage(ClientPlanetMessage message)
     {
         QueuedMessages.Add(message);
+        StateHasChanged();
+    }
+
+    public void RemoveQueuedMessage(string fingerprint)
+    {
+        var queued = QueuedMessages.FirstOrDefault(x => x.Fingerprint == fingerprint);
+        if (queued != null) { QueuedMessages.Remove(queued); }
+        
+        StateHasChanged();
+    }
+
+    public void RemoveErrorMessage()
+    {
+        var error = Messages.FirstOrDefault(x => x.Message_Index == ulong.MaxValue);
+        if (error != null) { QueuedMessages.Remove(error); }
+
         StateHasChanged();
     }
 

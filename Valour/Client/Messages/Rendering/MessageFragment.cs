@@ -4,14 +4,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Valour.Client.Messages.Rendering
+namespace Valour.Client.Messages;
+
+/*  Valour - A free and secure chat client
+ *  Copyright (C) 2021 Vooper Media LLC
+ *  This program is subject to the GNU Affero General Public license
+ *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+ */
+
+public abstract class MessageFragment
 {
-    public abstract class MessageFragment
-    {
-        public ushort Position;
+    public ushort Position;
 
-        public ushort Length;
+    public ushort Length;
 
-        public abstract void BuildRenderTree(RenderTreeBuilder builder, ref int stage);
-    }
+    public abstract void BuildRenderTree(RenderTreeBuilder builder, ref int stage);
 }
+

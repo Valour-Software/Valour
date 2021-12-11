@@ -1,6 +1,4 @@
-﻿@inject ClientPlanetManager planetManager
-@inject MemberContextMenu memberContextMenu
-@inject IJSRuntime JS
+﻿@inject IJSRuntime JS
 @implements IDisposable
 
 @if (Message == null)
@@ -37,17 +35,18 @@
             <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
             <div class="time-container">
                 <p class="time">
-                    @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                    @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                 </p>
             </div>
         </div>
         <div class="message-content">
             @if (Author != null)
             {
-                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.Channel_Id"
-           @onmouseup="OnAuthorNameClick">
-                    @name
-                </p>
+                <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline' >
+                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id">
+                        @name
+                    </p>
+                </ContextMenuTrigger>
 
                 <p class="role-name">
                     &nbsp;- @roleName
@@ -59,19 +58,21 @@
                     User not found
                 </p>
             }
-            <p class="content" @ref="InnerRef">
-                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
-                {
+            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message)'>
+                <p class="content" @ref="InnerRef">
+                    @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                    {
 
-                    Console.WriteLine(Message.Embed.Pages.Length);
+                        Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
 
-                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-                }
-                else
-                {
-                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                }
-            </p>
+                        <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                    }
+                </p>
+            </ContextMenuTrigger>
         </div>
     }
 </div>
@@ -97,7 +98,7 @@
     [Parameter]
     public bool Ghost { get; set; }
 
-    public ClientPlanetMember Author;
+    public PlanetMember Author;
 
     public bool ShouldRenderValue = false;
 
@@ -150,6 +151,8 @@
 
     string name = "";
 
+    public ulong roleId;
+
     bool mentioned = false;
 
     [Parameter]
@@ -168,14 +171,6 @@
         await BuildMessage();
 
         ReRender();
-    }
-
-    public async Task OnAuthorNameClick(MouseEventArgs e)
-    {
-        if (e.Button == 2)
-        {
-            await memberContextMenu.Open(e, Author);
-        }
     }
 
     public async Task RefreshMessage()
@@ -202,9 +197,9 @@
         {
             var self_id = Holder.Window.Component.SelfMember.Id;
 
-            if (Message.Mentions_Data != null)
+            if (Message.BaseMessage.Mentions_Data != null)
             {
-                mentioned = Message.Mentions_Data.Contains(self_id.ToString());
+                mentioned = Message.BaseMessage.Mentions_Data.Contains(self_id.ToString());
             }
         }
 
@@ -212,17 +207,21 @@
             return;
         }
 
-        Author = await Message.GetAuthorAsync();
+        Author = await Message.BaseMessage.GetAuthorAsync();
 
         name = await Author.GetNameAsync();
 
-        roleColor = await Author.GetColorHexAsync();
+        roleColor = await Author.GetRoleColorAsync();
 
         primaryRole = await Author.GetPrimaryRoleAsync();
 
-        roleName = primaryRole.Name;
+        if (primaryRole != null)
+        {
+            roleName = primaryRole.Name;
+            roleId = primaryRole.Id;
+        }
 
-        string pfp = await Author.GetPfpAsync();
+        string pfp = await Author.GetPfpUrlAsync();
 
         //Console.WriteLine(Submessage);
         //Console.WriteLine(Message.Mentions_Data);
@@ -242,11 +241,9 @@
             Holder.AddRenderedMessage(this);
         }
 
-        ClientPlanetManager.Current.OnMemberUpdate += OnMemberUpdate;
-
-        ClientPlanetManager.Current.OnRoleDeletion += OnRoleDeletion;
-
-        ClientPlanetManager.Current.OnRoleUpdate += OnRoleUpdate;
+        PlanetMember.OnAnyUpdated += OnMemberUpdate;
+        PlanetRole.OnAnyDeleted += OnRoleDeletion;
+        PlanetRole.OnAnyUpdated += OnRoleUpdate;
 
         await BuildMessage();
     }
@@ -255,7 +252,7 @@
     {
         if (Last_Message != null && Message != null)
         {
-            if (Last_Message.Author_Id == Message.Author_Id)
+            if (Last_Message.BaseMessage.Author_Id == Message.BaseMessage.Author_Id)
             {
                 Minimal = true;
                 return;
@@ -267,21 +264,25 @@
 
     public async Task UpdateForRoleChange()
     {
-        roleColor = await Author.GetColorHexAsync();
-        roleName = (await Author.GetPrimaryRoleAsync()).Name;
+        roleColor = await Author.GetRoleColorAsync();
+        var primRole = await Author.GetPrimaryRoleAsync();
+        roleName = primRole.Name;
+        roleId = primRole.Id;
     }
 
     public void ReRender()
     {
         ShouldRenderValue = true;
         StateHasChanged();
-        ContentComponent.ReRender();
+        
+        ContentComponent?.ReRender();
+
         ShouldRenderValue = false;
     }
 
-    public async Task OnRoleUpdate(PlanetRole role)
+    public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
-        if (role.Id == primaryRole.Id)
+        if (role != null && primaryRole != null && role.Id == primaryRole.Id)
         {
             primaryRole = role;
             await UpdateForRoleChange();
@@ -299,7 +300,7 @@
         }
     }
 
-    public async Task OnMemberUpdate(ClientPlanetMember member)
+    public async Task OnMemberUpdate(PlanetMember member, int flags)
     {
         if (member.Id == Author.Id)
         {
@@ -311,7 +312,9 @@
 
     void IDisposable.Dispose()
     {
-        Holder.RemoveRenderedMessage(this);
+        if (Holder !=  null){
+            Holder.RemoveRenderedMessage(this);
+        }
     }
 
     protected async Task OnPfpError()

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,29 +13,131 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared
 {
-    public class TaskResult : TaskResult<string>
+    public struct TaskResult
     {
-        public TaskResult(bool success, string response) : base(success, response, null)
-        {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
 
+        [JsonInclude]
+        [JsonPropertyName("Success")]
+        public bool Success { get; set; }
+        
+        public TaskResult(bool success, string message)
+        {
+            Success = success;
+            Message = message;
+        }
+
+        public override string ToString()
+        {
+            if (Success)
+            {
+                return $"[SUCC] {Message}";
+            }
+
+            return $"[FAIL] {Message}";
+        }
+
+    }
+
+    public struct HttpResult
+    {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Status")]
+        public int Status { get; set; }
+
+        public bool Success
+        {
+            get
+            {
+                int x = Status - 200;
+                if (x < 0) return false;
+                if (x > 99) return false;
+                return true;
+            }
+        }
+
+        public HttpResult(string message, int status)
+        {
+            Message = message;
+            Status = status;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Status}]: {Message}";
         }
     }
 
-    public class TaskResult<T>
+    public struct HttpResult<T>
     {
-        [JsonProperty]
+        [JsonInclude]
+        [JsonPropertyName("Message")]
         public string Message { get; set; }
 
-        [JsonProperty]
+        [JsonInclude]
+        [JsonPropertyName("Status")]
+        public int Status { get; set; }
+
+
+        [JsonInclude]
+        [JsonPropertyName("Result")]
+        public T Result { get; set; }
+
+        public bool Success
+        {
+            get
+            {
+                int x = Status - 200;
+                if (x < 0) return false;
+                if (x > 99) return false;
+                return true;
+            }
+        }
+
+        public HttpResult(string message, int status, T result)
+        {
+            Message = message;
+            Status = status;
+            Result = result;
+        }
+
+        public override string ToString()
+        {
+            return $"[{Status}]: {Message}";
+        }
+    }
+
+    public struct TaskResult<T>
+    {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Success")]
         public bool Success { get; set; }
 
-        [JsonProperty]
+        [JsonInclude]
+        [JsonPropertyName("Data")]
         public T Data { get; set; }
 
-        public TaskResult(bool success, string response, T data)
+        public TaskResult(bool success, string message)
         {
             Success = success;
-            Message = response;
+            Message = message;
+            Data = default(T);
+        }
+
+        public TaskResult(bool success, string message, T data)
+        {
+            Success = success;
+            Message = message;
             Data = data;
         }
 

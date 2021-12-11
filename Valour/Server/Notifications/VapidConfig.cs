@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,13 +27,10 @@ namespace Valour.Server.Notifications
             return _details; 
         }
 
-        [JsonProperty]
         public string Subject { get; set; }
 
-        [JsonProperty]
         public string PublicKey { get; set; }
 
-        [JsonProperty]
         public string PrivateKey { get; set; }
     }
 }

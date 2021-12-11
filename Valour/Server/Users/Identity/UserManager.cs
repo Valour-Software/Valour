@@ -1,17 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.Formatters;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using Valour.Server.Database;
+﻿using Microsoft.EntityFrameworkCore;
+using Valour.Database;
+using Valour.Database.Items.Users;
 using Valour.Shared;
-using Valour.Shared.Oauth;
-using Valour.Shared.Users;
 using Valour.Shared.Users.Identity;
 
 namespace Valour.Server.Users.Identity
