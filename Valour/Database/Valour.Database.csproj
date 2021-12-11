@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Valour\Shared\Valour.Shared.csproj" />
+    <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
 </Project>
