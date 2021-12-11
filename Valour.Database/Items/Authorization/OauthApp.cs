@@ -9,7 +9,7 @@ using Valour.Database.Items.Users;
 
 namespace Valour.Database.Items.Authorization;
 
-public class OauthApp : Shared.Oauth.OauthApp {
+public class OauthApp : Valour.Shared.Items.Authorization.OauthApp {
     [ForeignKey("Owner_Id")]
-    public virtual ServerUser Owner { get; set; }
+    public virtual User Owner { get; set; }
 }

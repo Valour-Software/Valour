@@ -20,7 +20,7 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public Channel Channel { get; set; }
+    public ChatChannel Channel { get; set; }
 
     [Parameter]
     public ChannelListCategoryComponent ParentCategory { get; set; }
@@ -66,7 +66,7 @@
         StateHasChanged();
     }
 
-    public async Task OnChatChannelUpdate(Channel channel, int flags)
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {
@@ -74,7 +74,7 @@
         }
     }
 
-    public async Task OnChannelStateChange(Channel channel)
+    public async Task OnChannelStateChange(ChatChannel channel)
     {
         if (channel.Id == Channel.Id)
             StateHasChanged();
@@ -84,7 +84,7 @@
     {
         // Console.WriteLine("Init " + Channel.Name);
 
-        Channel.OnAnyUpdated += OnChatChannelUpdate;
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         ValourClient.OnChannelOpen += OnChannelStateChange;
         ValourClient.OnChannelClose += OnChannelStateChange;
@@ -94,7 +94,7 @@
     {
         // Console.WriteLine("Disposed " + Channel.Name);
 
-        Channel.OnAnyUpdated -= OnChatChannelUpdate;
+        ChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
 
         ValourClient.OnChannelOpen -= OnChannelStateChange;
         ValourClient.OnChannelClose -= OnChannelStateChange;

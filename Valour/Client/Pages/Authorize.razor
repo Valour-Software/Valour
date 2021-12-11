@@ -90,7 +90,7 @@
     public bool isError = false;
     public string errorString = "An unknown error occured.";
 
-    public Api.Oauth.OauthApp App { get; set; }
+    public Api.Items.Authorization.OauthApp App { get; set; }
 
     public string infoSpan;
     public string errorSpan;
@@ -141,7 +141,7 @@
             return;
         }
 
-        App = await Api.Oauth.OauthApp.FindAsync(u_client_id);
+        App = await Api.Items.Authorization.OauthApp.FindAsync(u_client_id);
 
         if (App is null){
             isError = true;
@@ -158,7 +158,7 @@
         switch (response_type){
             case "code": {
 
-                var model = new AuthorizeModel(){
+                var model = new Valour.Shared.Items.Authorization.AuthorizeModel(){
                     client_id = u_client_id,
                     redirect_uri = redirect_uri,
                     user_id = ValourClient.Self.Id,

@@ -38,22 +38,22 @@
 
     public List<Category> TopCategories;
     public List<Category> Categories { get; set; }
-    public List<Channel> Channels { get; set; }
+    public List<ChatChannel> Channels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
         Categories = new List<Category>();
-        Channels = new List<Channel>();
+        Channels = new List<ChatChannel>();
         TopCategories = new List<Category>();
 
         // Handle list change
         Category.OnAnyUpdated += OnCategoryUpdate;
-        Channel.OnAnyUpdated += OnChatChannelUpdate;
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
         Category.OnAnyDeleted += OnCategoryDeletion;
-        Channel.OnAnyDeleted += OnChatChannelDeletion;
+        ChatChannel.OnAnyDeleted += OnChatChannelDeletion;
 
         await GetCategories();
         await GetChannels();
@@ -101,7 +101,7 @@
         Console.WriteLine($"Found {TopCategories.Count} top level categories");
     }
 
-    public async Task OnChatChannelDeletion(Channel channel)
+    public async Task OnChatChannelDeletion(ChatChannel channel)
     {
         var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
 
@@ -168,7 +168,7 @@
         GetTopLevelCategories();
     }
 
-    public async Task OnChatChannelUpdate(Channel channel, int flags)
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
     {
 
         //Console.WriteLine(channel.Name);

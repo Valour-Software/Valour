@@ -2,9 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Valour.Database;
-using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
-using Valour.Shared.Oauth;
+using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
+using Valour.Database.Items.Authorization;
 
 namespace Valour.Server.API;
 public class InviteAPI : BaseAPI
@@ -22,12 +23,12 @@ public class InviteAPI : BaseAPI
 
     private static async Task CreateInvite(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
-        ServerPlanetInvite in_invite = await JsonSerializer.DeserializeAsync<ServerPlanetInvite>(ctx.Request.Body);
+        Invite in_invite = await JsonSerializer.DeserializeAsync<Invite>(ctx.Request.Body);
 
-        ServerPlanetMember member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Planet_Id == in_invite.Planet_Id && x.User_Id == authToken.User_Id);
+        PlanetMember member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Planet_Id == in_invite.Planet_Id && x.User_Id == authToken.User_Id);
 
         if (member == null) { await Unauthorized("Member not found", ctx); return; }
 
@@ -72,7 +73,7 @@ public class InviteAPI : BaseAPI
 
     private static async Task GetPlanetName(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
@@ -85,7 +86,7 @@ public class InviteAPI : BaseAPI
 
     private static async Task GetPlanetIconUrl(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
@@ -98,7 +99,7 @@ public class InviteAPI : BaseAPI
 
     private static async Task Join(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
@@ -132,7 +133,7 @@ public class InviteAPI : BaseAPI
 
     private static async Task GetInvite(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);

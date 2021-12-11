@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Valour.Api.Planets;
-using Valour.Shared.Categories;
+﻿using System.Collections.Concurrent;
+using Valour.Api.Items.Planets.Channels;
 
 namespace Valour.Client.Categories
 {

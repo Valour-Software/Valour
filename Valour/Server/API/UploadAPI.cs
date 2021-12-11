@@ -5,6 +5,8 @@ using System.Net.Http.Headers;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.API
 {
@@ -28,7 +30,7 @@ namespace Valour.Server.API
         private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db, 
             string type, [FromHeader] string authorization, ulong item_id = 0)
         {
-            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken == null) { await TokenInvalid(context); return; }
 
             if (string.IsNullOrWhiteSpace(type))
@@ -69,7 +71,7 @@ namespace Valour.Server.API
 
             content.Add(arrContent, "file", file.Name);
 
-            ServerPlanetMember member = null;
+            PlanetMember member = null;
 
             // Authorization
 
@@ -83,7 +85,7 @@ namespace Valour.Server.API
                     return;
                 }
 
-                if (!await member.HasPermissionAsync(Shared.Oauth.PlanetPermissions.Manage, db)){
+                if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db)){
                     await Unauthorized("Member lacks PlanetPermissions.Manage", context);
                     return;
                 }

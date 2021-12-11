@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
-using Valour.Shared.Messages.Embeds;
-using Valour.Shared.Oauth;
+using Valour.Shared.Authorization;
+using Valour.Shared.Items.Messages.Embeds;
 
 namespace Valour.Server.API;
 public class EmbedAPI : BaseAPI
@@ -18,7 +18,7 @@ public class EmbedAPI : BaseAPI
     {
         EmbedInteractionEvent e = await JsonSerializer.DeserializeAsync<EmbedInteractionEvent>(ctx.Request.Body);
 
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
         var member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Id == e.Member_Id);

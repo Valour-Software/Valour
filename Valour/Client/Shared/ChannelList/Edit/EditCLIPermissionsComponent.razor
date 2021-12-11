@@ -51,7 +51,7 @@
 
 @if (Target.ItemType == ItemType.Channel)
 {
-    Channel channel = Target as Channel;
+    ChatChannel channel = Target as ChatChannel;
 
     if ((Planet.Owner_Id != SelfMember.User_Id) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageChannels))
     {
@@ -187,18 +187,18 @@ else
     // Only categories have this
     public PermissionsNode CategoryPermissionsNode { get; set; }
 
-    public Role Selected_Role { get; set; }
+    public PlanetRole Selected_Role { get; set; }
 
-    public List<Role> Roles { get; set; }
+    public List<PlanetRole> Roles { get; set; }
 
     public Planet Planet { get; set; }
 
     [Parameter]
-    public IPlanetListItem Target { get; set; }
+    public IPlanetChannel Target { get; set; }
 
-    public Member SelfMember { get; set; }
+    public PlanetMember SelfMember { get; set; }
 
-    public Role SelfPrimaryRole { get; set; }
+    public PlanetRole SelfPrimaryRole { get; set; }
 
     public ulong SelfAuthority { get; set; }
 
@@ -208,7 +208,7 @@ else
 
     public async Task SwitchInherit()
     {
-        Channel channel = Target as Channel;
+        ChatChannel channel = Target as ChatChannel;
 
         if (channel is not null)
         {
@@ -341,14 +341,14 @@ else
         await OnRoleChange(Roles.FirstOrDefault(x => x.Id == newRoleId));
     }
 
-    public async Task OnRoleChange(Role role)
+    public async Task OnRoleChange(PlanetRole role)
     {
         Selected_Role = role;
 
         Console.WriteLine($"Selected role {Selected_Role.Name}");
 
-        if (Target is Channel){
-            Channel channel = Target as Channel;
+        if (Target is ChatChannel){
+            ChatChannel channel = Target as ChatChannel;
             ChannelPermissionsNode = await channel.GetPermissionsNodeAsync(Selected_Role.Id);
         }
         else if (Target is Category){
@@ -367,9 +367,9 @@ else
         if (Buttons == null || Buttons.Length == 0)
             return;
 
-        if (Target is Channel)
+        if (Target is ChatChannel)
         {
-            Channel channel = Target as Channel;
+            ChatChannel channel = Target as ChatChannel;
 
             // Setup buttons
             for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)

@@ -1,8 +1,8 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Messages;
-using Valour.Api.Planets;
+using Valour.Api.Items.Planets;
+using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Messages;
 using Valour.Client.Messages;
-using Valour.Client.Planets;
 using Valour.Client.Shared.Windows;
 
 namespace Valour.Client.Windows
@@ -99,7 +99,7 @@ namespace Valour.Client.Windows
         /// <summary>
         /// Swaps the channel a chat channel window is showing
         /// </summary>
-        public async Task SwapWindowChannel(ChatChannelWindow window, Channel newChannel)
+        public async Task SwapWindowChannel(ChatChannelWindow window, ChatChannel newChannel)
         {
             // Already that channel
             if (window.Channel.Id == newChannel.Id)

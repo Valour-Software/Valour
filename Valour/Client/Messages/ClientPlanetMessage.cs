@@ -1,10 +1,10 @@
 ﻿using Markdig.Helpers;
 using System.Diagnostics;
 using System.Text.Json;
-using Valour.Api.Messages;
-using Valour.Api.Planets;
-using Valour.Shared.Messages.Embeds;
-using Valour.Shared.Messages.Mentions;
+using Valour.Api.Items.Messages;
+using Valour.Api.Items.Planets.Members;
+using Valour.Shared.Items.Messages.Embeds;
+using Valour.Shared.Items.Messages.Mentions;
 
 namespace Valour.Client.Messages;
 
@@ -44,7 +44,7 @@ public class ClientPlanetMessage
     // Forward a bunch of stuff for my own sake
     #region Forwarding
 
-    public async Task<Member> GetAuthorAsync() =>
+    public async Task<PlanetMember> GetAuthorAsync() =>
         await BaseMessage.GetAuthorAsync();
 
     public ulong Id => BaseMessage.Id;

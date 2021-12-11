@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
-using Valour.Database.Items.Planets;
-using Valour.Shared.Oauth;
+using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
 
 
 /*  Valour - A free and secure chat client
@@ -29,12 +29,12 @@ namespace Valour.Server.API
         private static async Task AddRole(HttpContext ctx, ValourDB db,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            ServerPlanetRole in_role = await JsonSerializer.DeserializeAsync<ServerPlanetRole>(ctx.Response.Body);
+            PlanetRole in_role = await JsonSerializer.DeserializeAsync<PlanetRole>(ctx.Response.Body);
 
-            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == auth.User_Id &&
+            PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == auth.User_Id &&
                                                                                         x.Planet_Id == in_role.Planet_Id);
 
             if (member is null) { await Unauthorized("Member not found", ctx); return; }
@@ -60,14 +60,14 @@ namespace Valour.Server.API
         private static async Task Role(HttpContext ctx, ValourDB db, ulong role_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            ServerPlanetRole role = await db.PlanetRoles.FindAsync(role_id);
+            PlanetRole role = await db.PlanetRoles.FindAsync(role_id);
 
             if (role == null) { await NotFound("Role not found.", ctx); return; }
 
-            ServerPlanetMember member = await db.PlanetMembers
+            PlanetMember member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .FirstOrDefaultAsync(x => x.Planet_Id == role.Planet_Id &&
                 x.User_Id == auth.User_Id);
@@ -92,7 +92,7 @@ namespace Valour.Server.API
                 }
                 case "PUT":
                 {
-                    ServerPlanetRole in_role = await JsonSerializer.DeserializeAsync<ServerPlanetRole>(ctx.Response.Body);
+                    PlanetRole in_role = await JsonSerializer.DeserializeAsync<PlanetRole>(ctx.Response.Body);
 
                     var result = await role.TryUpdateAsync(member, in_role, db);
                     

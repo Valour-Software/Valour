@@ -28,7 +28,7 @@
                 <div class="channel-list" ondragover="event.preventDefault();" style="padding-left: 25px">
                     @foreach (var item in ItemList)
                     {
-                        Channel channel = item as Channel;
+                        ChatChannel channel = item as ChatChannel;
                         if (channel != null)
                         {
                             if (channel.Parent_Id == Category.Id)
@@ -61,7 +61,7 @@
     public Category Category { get; set; }
 
     [Parameter]
-    public List<Channel> Channels { get; set; }
+    public List<ChatChannel> Channels { get; set; }
 
     [Parameter]
     public List<Category> Categories { get; set; }
@@ -72,23 +72,23 @@
     [Parameter]
     public ChannelListCategoryComponent ParentCategory { get; set; }
 
-    public List<Channel> ChildChannels { get; set; }
+    public List<ChatChannel> ChildChannels { get; set; }
     public List<Category> ChildCategories { get; set; }
 
     public bool IsOpen { get; set; }
 
     public Planet Planet { get; set; }
 
-    public List<IPlanetListItem> ItemList = new List<IPlanetListItem>();
+    public List<IPlanetChannel> ItemList = new List<IPlanetChannel>();
 
     protected override async Task OnInitializedAsync()
     {
         Category.OnAnyUpdated += OnCategoryUpdate;
-        Channel.OnAnyUpdated += OnChatChannelUpdate;
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
         Category.OnAnyDeleted += OnCategoryDeletion;
-        Channel.OnAnyDeleted += OnChatChannelDeletion;
+        ChatChannel.OnAnyDeleted += OnChatChannelDeletion;
 
         ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
@@ -115,10 +115,10 @@
     public void Dispose()
     {
         Category.OnAnyUpdated -= OnCategoryUpdate;
-        Channel.OnAnyUpdated -= OnChatChannelUpdate;
+        ChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
 
         Category.OnAnyDeleted -= OnCategoryDeletion;
-        Channel.OnAnyDeleted -= OnChatChannelDeletion;
+        ChatChannel.OnAnyDeleted -= OnChatChannelDeletion;
     }
 
     public void OnClick()
@@ -236,7 +236,7 @@
             }
         }
     }
-    public async Task OnChatChannelDeletion(Channel channel)
+    public async Task OnChatChannelDeletion(ChatChannel channel)
     {
         if (channel.Parent_Id == Category.Id) {
             var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
@@ -246,7 +246,7 @@
         }
     }
 
-    public async Task OnChatChannelUpdate(Channel channel, int flags)
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
     {
         // Console.WriteLine($"This: {Category.Id} | New: {channel.Id} | New Parent: {channel.Parent_Id}");
 
@@ -291,7 +291,7 @@
     int currentDragIndex;
 
     // Get local index
-    public int GetIndex(IPlanetListItem item)
+    public int GetIndex(IPlanetChannel item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
     }

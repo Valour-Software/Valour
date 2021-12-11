@@ -85,7 +85,7 @@
 
     <div class="container" id="edit-rows-container" style="@normStyle">
 
-        @foreach (Role role in Roles)
+        @foreach (PlanetRole role in Roles)
         {
             // For magic lambda
             var role_x = role;
@@ -113,11 +113,11 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    public List<Role> Roles = new List<Role>();
+    public List<PlanetRole> Roles = new List<PlanetRole>();
 
     // Stuff for role creation //
 
-    public Role role = new Role()
+    public PlanetRole role = new PlanetRole()
     {
         Name = "New Role",
         Color_Red = 255,
@@ -137,18 +137,18 @@
 
     // Stuff for role editing //
 
-    public Role Selected { get; set; }
+    public PlanetRole Selected { get; set; }
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public Role dragging_role;
+    public PlanetRole dragging_role;
 
-    public void OnRoleDrag(Role role){
+    public void OnRoleDrag(PlanetRole role){
         dragging_role = role;
     }
 
-    public async Task OnRoleDrop(Role dropped_on){
+    public async Task OnRoleDrop(PlanetRole dropped_on){
 
         var dropped_on_index = Roles.IndexOf(dropped_on);
 
@@ -169,7 +169,7 @@
         // StateHasChanged();
     }
 
-    public async Task OnRoleItemClick(Role role){
+    public async Task OnRoleItemClick(PlanetRole role){
         dragging_role = role;
     }
 
@@ -199,14 +199,14 @@
     {
         Roles = await Planet.GetRolesAsync();
 
-        Role.OnAnyUpdated += OnRolesUpdate;
-        Role.OnAnyDeleted += OnRoleDeletion;
+        PlanetRole.OnAnyUpdated += OnRolesUpdate;
+        PlanetRole.OnAnyDeleted += OnRoleDeletion;
     }
 
 
     public async Task GoBack()
     {
-        role = new Role()
+        role = new PlanetRole()
         {
             Name = "New Role",
             Bold = false,
@@ -219,7 +219,7 @@
         StateHasChanged();
     }
 
-    public async Task OnClickEdit(Role editRole)
+    public async Task OnClickEdit(PlanetRole editRole)
     {
         Selected = editRole;
 
@@ -242,7 +242,7 @@
         StateHasChanged();
     }
 
-    public async Task DeleteRole(Role role)
+    public async Task DeleteRole(PlanetRole role)
     {
         ConfirmModalData cData =
         new ConfirmModalData(
@@ -274,7 +274,7 @@
 
     public async Task OnClickCreateMode()
     {
-        role = new Role()
+        role = new PlanetRole()
         {
             Name = "New Role",
             Bold = false,
@@ -340,13 +340,13 @@
         editMode = false;
     }
 
-    public async Task OnRoleDeletion(Role role)
+    public async Task OnRoleDeletion(PlanetRole role)
     {
         Roles = await Planet.GetRolesAsync();
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(Role role, int flags)
+    public async Task OnRolesUpdate(PlanetRole role, int flags)
     {
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 

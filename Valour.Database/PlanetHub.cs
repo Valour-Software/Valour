@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR.Client;
-using Valour.Shared.Oauth;
-using Valour.Shared.Messages.Embeds;
 using Microsoft.AspNetCore.SignalR;
-using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Members;
+using Valour.Database.Items.Planets.Channels;
+using Valour.Shared.Items.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -27,11 +27,11 @@ namespace Valour.Database
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
 
                 // Authenticate user
-                AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+                Shared.Items.Authorization.AuthToken authToken = await Items.Authorization.AuthToken.TryAuthorize(token, Context);
 
                 if (authToken == null) return;
 
-                ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
+                PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
                     x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id);
 
                 // If the user is not a member, cancel
@@ -65,11 +65,11 @@ namespace Valour.Database
             using (ValourDB Context = new(ValourDB.DBOptions)) {
 
                 // Authenticate user
-                AuthToken authToken = await ServerAuthToken.TryAuthorize(token, Context);
+                Shared.Items.Authorization.AuthToken authToken = await Items.Authorization.AuthToken.TryAuthorize(token, Context);
 
                 if (authToken == null) return;
 
-                ServerPlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
+                PlanetMember member = await Context.PlanetMembers.FirstOrDefaultAsync(
                     x => x.User_Id == authToken.User_Id && x.Planet_Id == planet_id);
 
                 // If the user is not a member, cancel
@@ -86,31 +86,31 @@ namespace Valour.Database
         public async Task LeaveInteractionGroup(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
 
-        public static async void NotifyMemberChange(ServerPlanetMember member, int flags = 0) =>
+        public static async void NotifyMemberChange(PlanetMember member, int flags = 0) =>
             await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", member, flags);
 
-        public static async void NotifyPlanetChange(ServerPlanet planet, int flags = 0) =>
+        public static async void NotifyPlanetChange(Planet planet, int flags = 0) =>
             await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet, flags);
 
         public static async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
             await Current.Clients.Group($"i-{interaction.Planet_Id}").SendAsync("InteractionEvent", interaction);
 
-        public static async void NotifyRoleChange(ServerPlanetRole role, int flags = 0) =>
+        public static async void NotifyRoleChange(PlanetRole role, int flags = 0) =>
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", role, flags);
 
-        public static async Task NotifyCategoryDeletion(ServerPlanetCategory category) =>
+        public static async Task NotifyCategoryDeletion(Category category) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", category);
 
-        public static async void NotifyRoleDeletion(ServerPlanetRole role) =>
+        public static async void NotifyRoleDeletion(PlanetRole role) =>
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", role);
 
-        public static async Task NotifyChatChannelDeletion(ServerPlanetChatChannel channel) =>
+        public static async Task NotifyChatChannelDeletion(ChatChannel channel) =>
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelDeletion", channel);
 
-        public static async void NotifyChatChannelChange(ServerPlanetChatChannel channel, int flags = 0) =>
+        public static async void NotifyChatChannelChange(ChatChannel channel, int flags = 0) =>
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelUpdate", channel, flags);
 
-        public static async void NotifyCategoryChange(ServerPlanetCategory category, int flags = 0) =>
+        public static async void NotifyCategoryChange(Category category, int flags = 0) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category, flags);
     }
 }

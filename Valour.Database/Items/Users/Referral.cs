@@ -2,11 +2,11 @@
 
 namespace Valour.Database.Items.Users;
 
-public class Referral : Valour.Shared.Users.Referral
+public class Referral : Valour.Shared.Items.Users.Referral
 {
     [ForeignKey("User_Id")]
-    public virtual ServerUser User { get; set; }
+    public virtual User User { get; set; }
 
     [ForeignKey("Referrer_Id")]
-    public virtual ServerUser Referrer { get; set; }
+    public virtual User Referrer { get; set; }
 }

@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 @inject ClientWindowManager windowManager
 @implements IDisposable
-@using Valour.Api.Messages
+@using Valour.Api.Items.Messages
 @using System.Net.Http.Headers
 @using Valour.Client.Shared.Windows.ChannelWindows.FileUpload;
 
@@ -82,11 +82,11 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public Channel Channel;
+    public ChatChannel Channel;
 
     public Planet Planet;
 
-    public Member SelfMember;
+    public PlanetMember SelfMember;
 
     public Func<Task> ForceRefreshMessages;
 
@@ -112,13 +112,13 @@
 
         Window.Component = this;
 
-        Member.OnAnyUpdated += OnPlanetMemberUpdate;
-        Role.OnAnyUpdated += OnRoleUpdate;
-        Channel.OnAnyUpdated += OnChatChannelUpdate;
+        PlanetMember.OnAnyUpdated += OnPlanetMemberUpdate;
+        PlanetRole.OnAnyUpdated += OnRoleUpdate;
+        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         await ValourClient.OpenChannel(Channel);
 
-        SelfMember = await Member.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
+        SelfMember = await PlanetMember.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
@@ -209,12 +209,12 @@
 
     void IDisposable.Dispose()
     {
-        Member.OnAnyUpdated -= OnPlanetMemberUpdate;
-        Role.OnAnyUpdated -= OnRoleUpdate;
-        Channel.OnAnyUpdated -= OnChatChannelUpdate;
+        PlanetMember.OnAnyUpdated -= OnPlanetMemberUpdate;
+        PlanetRole.OnAnyUpdated -= OnRoleUpdate;
+        ChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
     }
 
-    public async Task OnChatChannelUpdate(Channel channel, int flags)
+    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {
@@ -224,7 +224,7 @@
         }
     }
 
-    public async Task OnPlanetMemberUpdate(Member member, int flags)
+    public async Task OnPlanetMemberUpdate(PlanetMember member, int flags)
     {
         if (member.Planet_Id != Planet.Id)
         {
@@ -241,7 +241,7 @@
         }
     }
 
-    public async Task OnRoleUpdate(Role role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
         if (role.Planet_Id != Planet.Id)
         {
@@ -273,7 +273,7 @@
         MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
     }
 
-    public async Task SwapChannel(Channel newchannel)
+    public async Task SwapChannel(ChatChannel newchannel)
     {
         Channel = newchannel;
 

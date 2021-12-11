@@ -35,24 +35,24 @@
     [CascadingParameter]
 	public IModalService Modal { get; set; }
 
-	public static Member Member { get; set; }
-	public static List<Role> Roles { get; set; }
-	public static List<Role> MemberRoles { get; set; }
+	public static PlanetMember Member { get; set; }
+	public static List<PlanetRole> Roles { get; set; }
+	public static List<PlanetRole> MemberRoles { get; set; }
 
 	protected override async Task OnInitializedAsync()
 	{
-		Role.OnAnyUpdated += OnRoleUpdate;
-		Member.OnAnyUpdated += OnMemberUpdate;
+		PlanetRole.OnAnyUpdated += OnRoleUpdate;
+		PlanetMember.OnAnyUpdated += OnMemberUpdate;
 	}
 
-	public static async Task Initialize(Member member)
+	public static async Task Initialize(PlanetMember member)
 	{
 		Member = member;
 		Roles = await (await member.GetPlanetAsync()).GetRolesAsync();
 		MemberRoles = await member.GetRolesAsync();
 	}
         
-	public async Task OnMemberUpdate(Member member, int flags)
+	public async Task OnMemberUpdate(PlanetMember member, int flags)
 	{
 		if (member.Id == Member.Id)
 		{
@@ -61,13 +61,13 @@
 		}
 	}
 
-	public async Task OnRoleUpdate(Role role, int flags)
+	public async Task OnRoleUpdate(PlanetRole role, int flags)
 	{
 		if (Roles.Any(x => x.Id == role.Id))
 			StateHasChanged();
 	}
 
-	public async Task OnRoleDeleted(Role role)
+	public async Task OnRoleDeleted(PlanetRole role)
 	{
 		if (Roles.Any(x => x.Id == role.Id))
 		{
@@ -95,9 +95,9 @@
 		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
 	}
 
-	public async Task OnRoleClick(Role role, bool value)
+	public async Task OnRoleClick(PlanetRole role, bool value)
 	{
-		Valour.Shared.Roles.PlanetRoleMember roleMember = new()
+		Valour.Shared.Items.Planets.Members.PlanetRoleMember roleMember = new()
 		{
 			Member_Id = Member.Id,
 			Planet_Id = Member.Planet_Id,

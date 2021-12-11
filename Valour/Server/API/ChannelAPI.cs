@@ -3,13 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
-using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Channels;
+using Valour.Database.Items.Planets.Members;
 using Valour.Server.Extensions;
 using Valour.Server.MPS;
 using Valour.Server.Workers;
 using Valour.Shared;
-using Valour.Shared.Messages;
-using Valour.Shared.Oauth;
+using Valour.Shared.Authorization;
+using Valour.Shared.Items.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -38,7 +39,7 @@ namespace Valour.Server.API
         private static async Task Channel(HttpContext ctx, ValourDB db, ulong channel_id,
                                          [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth == null) { await TokenInvalid(ctx); return; }
 
             switch (ctx.Request.Method)
@@ -46,7 +47,7 @@ namespace Valour.Server.API
                 case "GET":
                     {
 
-                        ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+                        ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                                      .FirstOrDefaultAsync(x => x.Id == channel_id);
 
@@ -65,7 +66,7 @@ namespace Valour.Server.API
                     }
                 case "DELETE":
                     {
-                        ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+                        ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                                      .FirstOrDefaultAsync(x => x.Id == channel_id);
 
@@ -83,8 +84,8 @@ namespace Valour.Server.API
                     }
                 case "POST":
                     {
-                        ServerPlanetChatChannel channel_data =
-                            JsonSerializer.Deserialize<ServerPlanetChatChannel>(ctx.Request.Body);
+                        ChatChannel channel_data =
+                            JsonSerializer.Deserialize<ChatChannel>(ctx.Request.Body);
 
                         if (channel_data == null)
                         {
@@ -102,7 +103,7 @@ namespace Valour.Server.API
 
                         // Request parameter validation //
 
-                        TaskResult name_valid = ServerPlanetChatChannel.ValidateName(channel_data.Name);
+                        TaskResult name_valid = ChatChannel.ValidateName(channel_data.Name);
 
                         if (!name_valid.Success)
                         {
@@ -120,7 +121,7 @@ namespace Valour.Server.API
                             return;
                         }
 
-                        ServerPlanetMember member = await db.PlanetMembers
+                        PlanetMember member = await db.PlanetMembers
                             .Include(x => x.Planet)
                             .FirstOrDefaultAsync(x => x.Planet_Id == channel_data.Planet_Id && x.User_Id == auth.User_Id);
 
@@ -133,7 +134,7 @@ namespace Valour.Server.API
 
                         // Ensure parent category exists
 
-                        ServerPlanetCategory parent = await db.PlanetCategories.FindAsync(channel_data.Parent_Id);
+                        Category parent = await db.PlanetCategories.FindAsync(channel_data.Parent_Id);
 
                         if (parent == null)
                         {
@@ -158,7 +159,7 @@ namespace Valour.Server.API
                         child_count += (ushort)await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == channel_data.Parent_Id);
                         child_count += (ushort)await db.PlanetCategories.CountAsync(x => x.Parent_Id == channel_data.Parent_Id);
 
-                        ServerPlanetChatChannel channel = new ServerPlanetChatChannel()
+                        ChatChannel channel = new ChatChannel()
                         {
                             Id = IdManager.Generate(),
                             Name = channel_data.Name,
@@ -188,7 +189,7 @@ namespace Valour.Server.API
         private static async Task PermissionsInherit(HttpContext ctx, ValourDB db, ulong channel_id,
                                          [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -197,7 +198,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+            ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
 
@@ -273,7 +274,7 @@ namespace Valour.Server.API
         private static async Task Name(HttpContext ctx, ValourDB db, ulong channel_id,
                                          [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -282,7 +283,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+            ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
 
@@ -355,7 +356,7 @@ namespace Valour.Server.API
         private static async Task Description(HttpContext ctx, ValourDB db, ulong channel_id,
                                          [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -364,7 +365,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+            ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
 
@@ -429,7 +430,7 @@ namespace Valour.Server.API
         private static async Task ParentId(HttpContext ctx, ValourDB db, ulong channel_id,
                                          [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -438,7 +439,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+            ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
 
@@ -532,7 +533,7 @@ namespace Valour.Server.API
         {
 
 
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -552,7 +553,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+            ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == message.Channel_Id);
 
@@ -629,7 +630,7 @@ namespace Valour.Server.API
 
             // Request authorization //
 
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -638,7 +639,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
+            ChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
                                                                          .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                          .FirstOrDefaultAsync(x => x.Id == channel_id);
 

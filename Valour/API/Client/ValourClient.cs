@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using System;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Valour.Api.Authorization.Roles;
 using Valour.Api.Extensions;
-using Valour.Api.Messages;
-using Valour.Api.Planets;
-using Valour.Api.Users;
+using Valour.Api.Items.Planets;
+using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Planets.Members;
+using Valour.Api.Items.Users;
+using Valour.Api.Items.Messages;
 using Valour.Shared;
 using Valour.Shared.Items;
 
@@ -78,7 +78,7 @@ public static class ValourClient
     /// <summary>
     /// Currently opened channels
     /// </summary>
-    public static List<Channel> OpenChannels { get; private set; }
+    public static List<ChatChannel> OpenChannels { get; private set; }
 
     #region Event Fields
 
@@ -95,12 +95,12 @@ public static class ValourClient
     /// <summary>
     /// Run when SignalR opens a channel
     /// </summary>
-    public static event Func<Channel, Task> OnChannelOpen;
+    public static event Func<ChatChannel, Task> OnChannelOpen;
 
     /// <summary>
     /// Run when SignalR closes a channel
     /// </summary>
-    public static event Func<Channel, Task> OnChannelClose;
+    public static event Func<ChatChannel, Task> OnChannelClose;
 
     /// <summary>
     /// Run when a message is recieved
@@ -120,7 +120,7 @@ public static class ValourClient
     {
         // Add victor dummy member
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        ValourCache.Put(ulong.MaxValue, new Member()
+        ValourCache.Put(ulong.MaxValue, new PlanetMember()
         {
             Nickname = "Victor",
             Id = ulong.MaxValue,
@@ -129,7 +129,7 @@ public static class ValourClient
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
         OpenPlanets = new List<Planet>();
-        OpenChannels = new List<Channel>();
+        OpenChannels = new List<ChatChannel>();
         JoinedPlanets = new List<Planet>();
 
         // Hook top level events
@@ -144,14 +144,14 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet
     /// </summary>
-    public static async Task<Member> GetSelfMember(Planet planet, bool force_refresh = false) =>
+    public static async Task<PlanetMember> GetSelfMember(Planet planet, bool force_refresh = false) =>
         await GetSelfMember(planet.Id, force_refresh);
 
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static async Task<Member> GetSelfMember(ulong planet_id, bool force_refresh = false) =>
-        await Member.FindAsync(planet_id, Self.Id, force_refresh);
+    public static async Task<PlanetMember> GetSelfMember(ulong planet_id, bool force_refresh = false) =>
+        await PlanetMember.FindAsync(planet_id, Self.Id, force_refresh);
 
     #region SignalR Groups
 
@@ -164,7 +164,7 @@ public static class ValourClient
     /// <summary>
     /// Returns if the channel is open
     /// </summary>
-    public static bool IsChannelOpen(Channel channel) =>
+    public static bool IsChannelOpen(ChatChannel channel) =>
         OpenChannels.Any(x => x.Id == channel.Id);
 
     /// <summary>
@@ -236,7 +236,7 @@ public static class ValourClient
     /// <summary>
     /// Opens a SignalR connection to a channel
     /// </summary>
-    public static async Task OpenChannel(Channel channel)
+    public static async Task OpenChannel(ChatChannel channel)
     {
         // Already opened
         if (OpenChannels.Contains(channel))
@@ -262,7 +262,7 @@ public static class ValourClient
     /// <summary>
     /// Closes a SignalR connection to a channel
     /// </summary>
-    public static async Task CloseChannel(Channel channel)
+    public static async Task CloseChannel(ChatChannel channel)
     {
         // Not opened
         if (!OpenChannels.Contains(channel))
@@ -340,17 +340,17 @@ public static class ValourClient
 
     private static void HookPlanetEvents()
     {
-        Channel.OnAnyUpdated += OnChannelUpdated;
-        Channel.OnAnyDeleted += OnChannelDeleted;
+        ChatChannel.OnAnyUpdated += OnChannelUpdated;
+        ChatChannel.OnAnyDeleted += OnChannelDeleted;
 
         Category.OnAnyUpdated += OnCategoryUpdated;
         Category.OnAnyDeleted += OnCategoryDeleted;
 
-        Role.OnAnyUpdated += OnRoleUpdated;
-        Role.OnAnyDeleted += OnRoleDeleted;
+        PlanetRole.OnAnyUpdated += OnRoleUpdated;
+        PlanetRole.OnAnyDeleted += OnRoleDeleted;
     }
 
-    private static async Task OnChannelUpdated(Channel channel, int flags)
+    private static async Task OnChannelUpdated(ChatChannel channel, int flags)
     {
         var planet = await Planet.FindAsync(channel.Planet_Id);
 
@@ -366,7 +366,7 @@ public static class ValourClient
             await planet.NotifyUpdateCategory(category);
     }
 
-    private static async Task OnRoleUpdated(Role role, int flags)
+    private static async Task OnRoleUpdated(PlanetRole role, int flags)
     {
         var planet = await Planet.FindAsync(role.Planet_Id);
 
@@ -374,7 +374,7 @@ public static class ValourClient
             await planet.NotifyUpdateRole(role);
     }
 
-    private static async Task OnChannelDeleted(Channel channel)
+    private static async Task OnChannelDeleted(ChatChannel channel)
     {
         var planet = await Planet.FindAsync(channel.Planet_Id);
 
@@ -390,7 +390,7 @@ public static class ValourClient
             await planet.NotifyDeleteCategory(category);
     }
 
-    private static async Task OnRoleDeleted(Role role)
+    private static async Task OnRoleDeleted(PlanetRole role)
     {
         var planet = await Planet.FindAsync(role.Planet_Id);
 
@@ -511,17 +511,17 @@ public static class ValourClient
         HubConnection.On<Planet, int>("PlanetUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Planet>("PlanetDeletion", DeleteItem);
 
-        HubConnection.On<Channel, int>("ChannelUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<Channel>("ChannelDeletion", DeleteItem);
+        HubConnection.On<ChatChannel, int>("ChannelUpdate", (i, d) => UpdateItem(i, d));
+        HubConnection.On<ChatChannel>("ChannelDeletion", DeleteItem);
 
         HubConnection.On<Category, int>("CategoryUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<Category>("CategoryDeletion", DeleteItem);
 
-        HubConnection.On<Role, int>("RoleUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<Role>("RoleDeletion", DeleteItem);
+        HubConnection.On<PlanetRole, int>("RoleUpdate", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetRole>("RoleDeletion", DeleteItem);
 
-        HubConnection.On<Member, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<Member>("MemberDeletion", DeleteItem);
+        HubConnection.On<PlanetMember, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetMember>("MemberDeletion", DeleteItem);
     }
 
     /// <summary>

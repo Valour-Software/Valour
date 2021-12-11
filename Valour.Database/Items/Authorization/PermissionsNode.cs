@@ -1,5 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Channels;
+using Valour.Database.Items.Planets.Members;
+
+namespace Valour.Database.Items.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -7,14 +11,13 @@ using Valour.Database.Items.Planets;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Database.Items.Authorization;
-public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
+public class PermissionsNode : Shared.Items.Authorization.PermissionsNode<PermissionsNode>
 {
     [ForeignKey("Planet_Id")]
-    public virtual ServerPlanet Planet { get; set; }
+    public virtual Planet Planet { get; set; }
 
     [ForeignKey("Role_Id")]
-    public virtual ServerPlanetRole Role { get; set; }
+    public virtual PlanetRole Role { get; set; }
 
     /// <summary>
     /// This is a somewhat dirty way to fix the problem,
@@ -22,7 +25,7 @@ public class PermissionsNode : Shared.Roles.PermissionsNode<PermissionsNode>
     /// i have created - spikey boy
     /// </summary>
 
-    public async Task<IServerChannelListItem> GetTargetAsync(ValourDB db)
+    public async Task<IPlanetChannel> GetTargetAsync(ValourDB db)
     {
         switch (Target_Type)
         {

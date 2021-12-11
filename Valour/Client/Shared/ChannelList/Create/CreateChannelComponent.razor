@@ -26,7 +26,7 @@
     @if (isprivate) {
         <label style="margin-top: 12px;">Who can see and send messages in this channel?</label>
         <div class="roles-box">
-            @foreach (Role role in Roles)
+            @foreach (PlanetRole role in Roles)
             {
                 <div class="role">
                    <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
@@ -68,16 +68,16 @@
 
     // Spans
     string imageSpan = "";
-    Dictionary<Role, bool> SelectedRoles = new Dictionary<Role, bool>();
+    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
 
-    List<Role> Roles = new List<Role>();
+    List<PlanetRole> Roles = new List<PlanetRole>();
     bool isprivate = false;
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
         SelectedRoles.Clear();
 
-        Member SelfMember = await ValourClient.GetSelfMember(Planet);
+        PlanetMember SelfMember = await ValourClient.GetSelfMember(Planet);
 
         ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
 
@@ -86,7 +86,7 @@
         if (roleResponse is not null)
             return;
 
-        foreach (Role item in roleResponse)
+        foreach (PlanetRole item in roleResponse)
         {
             if (item.GetAuthority() >= SelfAuthority)
                 continue;
@@ -96,7 +96,7 @@
         StateHasChanged();
     }
 
-    private void SwitchRole(Role role) {
+    private void SwitchRole(PlanetRole role) {
         SelectedRoles[role] = !SelectedRoles[role];
     }
 
@@ -120,7 +120,7 @@
         ulong parent_id = Parent.Id;
         ulong planet_id = Planet.Id;
 
-        Channel newChannel = new()
+        ChatChannel newChannel = new()
         {
             Name = name,
             Description = "A chat channel",
@@ -168,7 +168,7 @@
                 imageSpan = errorText;
             }
 
-            foreach (Role role in Roles)
+            foreach (PlanetRole role in Roles)
             {
 
                 if (!SelectedRoles[role]) {

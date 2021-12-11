@@ -1,8 +1,8 @@
-﻿using Valour.Shared.Messages;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using Valour.Database;
-using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Channels;
+using Valour.Shared.Items.Messages;
 
 namespace Valour.Server.Workers
 {
@@ -52,7 +52,7 @@ namespace Valour.Server.Workers
                     {
                         ulong channel_id = Message.Channel_Id;
 
-                        ServerPlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
+                        ChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
                         // Get index for message
                         ulong index = channel.Message_Count;

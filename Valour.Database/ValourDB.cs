@@ -3,8 +3,10 @@ using Valour.Database.Items;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Notifications;
 using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Channels;
+using Valour.Database.Items.Planets.Members;
 using Valour.Database.Items.Users;
-using Valour.Shared.Messages;
+using Valour.Shared.Items.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -51,7 +53,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for Valour users
     /// </summary>
-    public DbSet<ServerUser> Users { get; set; }
+    public DbSet<User> Users { get; set; }
 
     // USER LOGIN AND PERMISSION STUFF //
 
@@ -68,7 +70,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for authentication tokens
     /// </summary>
-    public DbSet<ServerAuthToken> AuthTokens { get; set; }
+    public DbSet<AuthToken> AuthTokens { get; set; }
 
     /// <summary>
     /// Table for email confirmation codes
@@ -78,32 +80,32 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for planet definitions
     /// </summary>
-    public DbSet<ServerPlanet> Planets { get; set; }
+    public DbSet<Planet> Planets { get; set; }
 
     /// <summary>
     /// Table for all planet membership
     /// </summary>
-    public DbSet<ServerPlanetMember> PlanetMembers { get; set; }
+    public DbSet<PlanetMember> PlanetMembers { get; set; }
 
     /// <summary>
     /// Table for all planet chat channels
     /// </summary>
-    public DbSet<ServerPlanetChatChannel> PlanetChatChannels { get; set; }
+    public DbSet<ChatChannel> PlanetChatChannels { get; set; }
 
     /// <summary>
     /// Table for all planet chat categories
     /// </summary>
-    public DbSet<ServerPlanetCategory> PlanetCategories { get; set; }
+    public DbSet<Category> PlanetCategories { get; set; }
 
     /// <summary>
     /// Table for all banned members
     /// </summary>
-    public DbSet<PlanetBan> PlanetBans { get; set; }
+    public DbSet<Ban> PlanetBans { get; set; }
 
     /// <summary>
     /// Table for planet invites
     /// </summary>
-    public DbSet<ServerPlanetInvite> PlanetInvites { get; set; }
+    public DbSet<Invite> PlanetInvites { get; set; }
 
     /// <summary>
     /// Table for planet invites
@@ -128,7 +130,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for members of planet roles
     /// </summary>
-    public DbSet<ServerPlanetRoleMember> PlanetRoleMembers { get; set; }
+    public DbSet<PlanetRoleMember> PlanetRoleMembers { get; set; }
 
     /// <summary>
     /// Table for Oauth apps
@@ -137,7 +139,7 @@ public class ValourDB : DbContext
 
     public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
-    public DbSet<ServerPlanetRole> PlanetRoles { get; set; }
+    public DbSet<PlanetRole> PlanetRoles { get; set; }
 
     public ValourDB(DbContextOptions options)
     {

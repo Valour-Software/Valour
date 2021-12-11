@@ -1,5 +1,5 @@
 @inject HttpClient Http
-@using Valour.Api.Messages
+@using Valour.Api.Items.Messages
 
 <div style="@Item.GetInlineStyle" class="embed-item">
     @if (Item.Name != null) {
@@ -28,7 +28,7 @@
     public async Task OnEmbedButtonClick()
     {
 
-        Member SelfMember = await Member.FindAsync(Message.BaseMessage.Planet_Id, ValourClient.Self.Id);
+        PlanetMember SelfMember = await PlanetMember.FindAsync(Message.BaseMessage.Planet_Id, ValourClient.Self.Id);
 
         EmbedInteractionEvent Interaction = new EmbedInteractionEvent()
         {

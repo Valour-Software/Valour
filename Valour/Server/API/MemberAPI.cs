@@ -1,11 +1,11 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Valour.Api.Planets;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
-using Valour.Shared.Oauth;
+using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -44,10 +44,10 @@ namespace Valour.Server.API
         private static async Task GetMember(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken is null) { await TokenInvalid(ctx); return; }
 
-            var targetMember = await ServerPlanetMember.FindAsync(member_id, db);
+            var targetMember = await PlanetMember.FindAsync(member_id, db);
 
             if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
 
@@ -64,12 +64,12 @@ namespace Valour.Server.API
         private static async Task DeleteMember(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken is null) { await TokenInvalid(ctx); return; }
 
             if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
-            var targetMember = await ServerPlanetMember.FindAsync(member_id, db);
+            var targetMember = await PlanetMember.FindAsync(member_id, db);
 
             if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
 
@@ -93,10 +93,10 @@ namespace Valour.Server.API
         private static async Task GetAuthority(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+            PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
                 .FirstOrDefaultAsync(x => x.Id == member_id);
@@ -105,7 +105,7 @@ namespace Valour.Server.API
             if (target_member is null) { await NotFound("Target member not found", ctx); return; }
 
             // Ensure auth user is member of planet
-            ServerPlanetMember auth_member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
+            PlanetMember auth_member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
                                                                                         x.User_Id == auth.User_Id);
 
             if (auth_member is null) { await Unauthorized("Auth member not found", ctx); return; }
@@ -118,10 +118,10 @@ namespace Valour.Server.API
         private static async Task PrimaryRole(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+           PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
                 .FirstOrDefaultAsync(x => x.Id == member_id);
@@ -135,7 +135,7 @@ namespace Valour.Server.API
             }
 
             // Ensure auth user is member of planet
-            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
+            PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
                                                                                         x.User_Id == auth.User_Id);
 
             if (member is null)
@@ -160,10 +160,10 @@ namespace Valour.Server.API
         private static async Task RemoveRole(HttpContext ctx, ValourDB db, ulong member_id, ulong role_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+            PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
@@ -178,7 +178,7 @@ namespace Valour.Server.API
             }
 
             // Ensure auth user is member of planet
-            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
+            PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
                                                                                         x.User_Id == auth.User_Id);
 
             if (member is null)
@@ -243,7 +243,7 @@ namespace Valour.Server.API
                 await db.SaveChangesAsync();
             }
 
-            PlanetHub.NotifyMemberChange(target_member, Member.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, Api.Items.Planets.Members.PlanetMember.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -254,10 +254,10 @@ namespace Valour.Server.API
         private static async Task RemoveRoleMembership(HttpContext ctx, ValourDB db, ulong member_id, ulong role_member_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+            PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
@@ -272,7 +272,7 @@ namespace Valour.Server.API
             }
 
             // Ensure auth user is member of planet
-            ServerPlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
+            PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == target_member.Planet_Id &&
                                                                                         x.User_Id == auth.User_Id);
 
             if (member is null)
@@ -333,7 +333,7 @@ namespace Valour.Server.API
             db.Remove(roleMember);
             await db.SaveChangesAsync();
 
-            PlanetHub.NotifyMemberChange(target_member, Member.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, Api.Items.Planets.Members.PlanetMember.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -344,7 +344,7 @@ namespace Valour.Server.API
         private static async Task GetRoleIds(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken is null) { await TokenInvalid(ctx); return; }
 
             if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
@@ -369,12 +369,12 @@ namespace Valour.Server.API
         private static async Task GetRoles(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
             if (!auth.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+            PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
@@ -399,12 +399,12 @@ namespace Valour.Server.API
         private static async Task GetRoleMembership(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken is null) { await TokenInvalid(ctx); return; }
 
             if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+            PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
@@ -412,7 +412,7 @@ namespace Valour.Server.API
 
             if (target_member is null) { await NotFound("Target member not found", ctx); return; }
 
-            var authMember = await ServerPlanetMember.FindAsync(authToken.User_Id, target_member.Planet_Id, db);
+            var authMember = await PlanetMember.FindAsync(authToken.User_Id, target_member.Planet_Id, db);
 
             if (authMember is null) { await Unauthorized("Auth member not found", ctx); return; }
 
@@ -423,25 +423,25 @@ namespace Valour.Server.API
         private static async Task AddRoleMembership(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {
-            AuthToken authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken is null) { await TokenInvalid(ctx); return; }
 
             if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
             if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
 
-            ServerPlanetMember target_member = await db.PlanetMembers
+            PlanetMember target_member = await db.PlanetMembers
                 .Include(x => x.Planet)
                 .FirstOrDefaultAsync(x => x.Id == member_id);
 
             if (target_member is null) { await NotFound("Target member not found", ctx); return; }
 
-            var authMember = await ServerPlanetMember.FindAsync(authToken.User_Id, target_member.Planet_Id, db);
+            var authMember = await PlanetMember.FindAsync(authToken.User_Id, target_member.Planet_Id, db);
 
             if (authMember is null) { await Unauthorized("Auth member not found", ctx); return; }
 
             if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db)) { await Unauthorized("Member lacks PlanetPermissions.ManageRoles", ctx); return; }
 
-            var roleMember = await JsonSerializer.DeserializeAsync<ServerPlanetRoleMember>(ctx.Request.Body);
+            var roleMember = await JsonSerializer.DeserializeAsync<PlanetRoleMember>(ctx.Request.Body);
 
             if (await db.PlanetRoleMembers.AnyAsync(x => x.Member_Id == member_id && x.Role_Id == roleMember.Role_Id))
             {
@@ -472,7 +472,7 @@ namespace Valour.Server.API
             await db.PlanetRoleMembers.AddAsync(roleMember);
             await db.SaveChangesAsync();
 
-            PlanetHub.NotifyMemberChange(target_member, Member.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMember.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 201;
             await ctx.Response.WriteAsync(roleMember.Id.ToString());
@@ -483,7 +483,7 @@ namespace Valour.Server.API
         private static async Task GetMemberRoleIds(HttpContext ctx, ValourDB db, ulong planet_id, ulong user_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -492,7 +492,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+            Planet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                 .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
@@ -502,7 +502,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetMember member = planet.Members.FirstOrDefault();
+            PlanetMember member = planet.Members.FirstOrDefault();
 
             if (member == null)
             {
@@ -518,7 +518,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetMember target = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
+            PlanetMember target = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                 .ThenInclude(x => x.Role)
                 .FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == user_id);
 
@@ -538,7 +538,7 @@ namespace Valour.Server.API
         private static async Task GetMemberWithIds(HttpContext ctx, ValourDB db, ulong planet_id, ulong user_id,
             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -547,7 +547,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
+            Planet planet = await db.Planets.Include(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                 .FirstOrDefaultAsync(x => x.Id == planet_id);
 
             if (planet == null)
@@ -557,7 +557,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetMember member = planet.Members.FirstOrDefault();
+            PlanetMember member = planet.Members.FirstOrDefault();
 
             if (member == null)
             {
@@ -573,7 +573,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == user_id);
+            PlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id && x.User_Id == user_id);
 
             if (target == null)
             {

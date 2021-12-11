@@ -1,9 +1,9 @@
 ﻿using Valour.Shared;
-using Valour.Shared.Oauth;
+using Valour.Shared.Items.Authorization;
 using Blazored.LocalStorage;
 using Valour.Api.Client;
-using Valour.Api.Users;
 using Microsoft.AspNetCore.Components;
+using Valour.Api.Items.Users;
 
 namespace Valour.Client
 {

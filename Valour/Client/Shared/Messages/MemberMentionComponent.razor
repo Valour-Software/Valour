@@ -1,5 +1,4 @@
-﻿@using Valour.Shared.Messages
-@using Valour.Api.Planets
+﻿@using Valour.Shared.Items.Messages
 @using Valour.Api.Client
 
 <div class="@Class" style="color: @Role_Color">
@@ -34,7 +33,7 @@
     [Parameter]
     public Mention Mention { get; set; }
 
-    public Member Member { get; set; }
+    public PlanetMember Member { get; set; }
 
     public string Role_Color = "#ffffff";
 
@@ -60,7 +59,7 @@
 
     public async Task Build()
     {
-        Member = await Member.FindAsync(Mention.Target_Id);
+        Member = await PlanetMember.FindAsync(Mention.Target_Id);
 
         if (Member != null)
         {

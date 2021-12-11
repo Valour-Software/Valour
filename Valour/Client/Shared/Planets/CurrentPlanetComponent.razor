@@ -30,12 +30,12 @@
     protected async override Task OnInitializedAsync()
     {
         windowManager.OnPlanetFocused += OnPlanetChange;
-        Role.OnAnyUpdated += OnRoleUpdate;
+        PlanetRole.OnAnyUpdated += OnRoleUpdate;
     }
 
     // Must refresh if roles update because it may remove permission to
     // manage the planet
-    public async Task OnRoleUpdate(Role role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
         if (Planet.Id != role.Planet_Id)
             return;

@@ -18,7 +18,7 @@ namespace Valour.Server.Users.Identity
         /// <summary>
         /// Validates and returns a User using credentials (async)
         /// </summary>
-        public async Task<TaskResult<ServerUser>> ValidateAsync(string credential_type, string identifier, string secret)
+        public async Task<TaskResult<User>> ValidateAsync(string credential_type, string identifier, string secret)
         {
             using (ValourDB context  = new ValourDB(ValourDB.DBOptions))
             {
@@ -29,7 +29,7 @@ namespace Valour.Server.Users.Identity
 
                 if (credential == null || string.IsNullOrWhiteSpace(secret))
                 {
-                    return new TaskResult<ServerUser>(false, "The credentials were incorrect.", null);
+                    return new TaskResult<User>(false, "The credentials were incorrect.", null);
                 }
 
                 // Use salt to validate secret hash
@@ -38,24 +38,24 @@ namespace Valour.Server.Users.Identity
                 // Spike needs to remember how reference types work 
                 if (!hash.SequenceEqual(credential.Secret))
                 {
-                    return new TaskResult<ServerUser>(false, "The credentials were incorrect.", null);
+                    return new TaskResult<User>(false, "The credentials were incorrect.", null);
                 }
 
-                ServerUser user = await context.Users.FindAsync(credential.User_Id);
+                User user = await context.Users.FindAsync(credential.User_Id);
 
                 if (user.Disabled)
                 {
-                    return new TaskResult<ServerUser>(false, "This account has been disabled", null);
+                    return new TaskResult<User>(false, "This account has been disabled", null);
                 }
 
-                return new TaskResult<ServerUser>(true, "Succeeded", user);
+                return new TaskResult<User>(true, "Succeeded", user);
             }
         }
 
         /// <summary>
         /// Validates and returns a User using credentials
         /// </summary>
-        public TaskResult<ServerUser> Validate(string credential_type, string identifier, string secret)
+        public TaskResult<User> Validate(string credential_type, string identifier, string secret)
         {
             return ValidateAsync(credential_type, identifier, secret).Result;
         }

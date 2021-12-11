@@ -1,16 +1,7 @@
-﻿using System;
-using System.Text.Json;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Threading.Tasks;
-using Valour.Client.Categories;
-using Valour.Client.Planets;
-using Valour.Shared;
+﻿using Valour.Shared;
 using Valour.Shared.Categories;
-using Valour.Api.Planets;
 using Valour.Api.Client;
+using Valour.Api.Items.Planets.Channels;
 
 namespace Valour.Client.Shared.ChannelList
 {
@@ -24,7 +15,7 @@ namespace Valour.Client.Shared.ChannelList
         }
 
         public int currentDragIndex;
-        public IPlanetListItem currentDragItem;
+        public IPlanetChannel currentDragItem;
 
         // Only of of these should be non-null at a time
         public ChannelListCategoryComponent currentDragParentCategory;
@@ -35,7 +26,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemClickInCategory(IPlanetListItem item, 
+        public void OnItemClickInCategory(IPlanetChannel item, 
                                           ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -47,7 +38,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
-        public void OnItemStartDragInCategory(IPlanetListItem item,
+        public void OnItemStartDragInCategory(IPlanetChannel item,
                                               ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
@@ -59,7 +50,7 @@ namespace Valour.Client.Shared.ChannelList
         /// </summary>
         /// <param name="item">The item</param>
         /// <param name="parent">The parent category</param>
-        public void SetTargetInCategory(IPlanetListItem item,
+        public void SetTargetInCategory(IPlanetChannel item,
                                         ChannelListCategoryComponent parent)
         {
             currentDragIndex = 0;

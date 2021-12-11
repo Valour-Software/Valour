@@ -19,6 +19,6 @@ public class PasswordRecovery
     public ulong User_Id { get; set; }
 
     [ForeignKey("User_Id")]
-    public virtual ServerUser User { get; set; }
+    public virtual User User { get; set; }
 }
 

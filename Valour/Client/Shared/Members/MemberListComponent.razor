@@ -3,7 +3,7 @@
 <div class="RoleList keep-scrolling">
     @if (MemberList != null && Planet != null)
     {
-        foreach (KeyValuePair<Role, List<Member>> roleMemberList in RoleMemberLists)
+        foreach (KeyValuePair<PlanetRole, List<PlanetMember>> roleMemberList in RoleMemberLists)
         {
             <RoleComponent Role="@roleMemberList.Key" Members="@roleMemberList.Value"></RoleComponent>
         }
@@ -26,33 +26,33 @@
 
 @code {
 
-    public List<Member> MemberList { get; set; }
-    public List<Member> OrderedList { get; set; }
+    public List<PlanetMember> MemberList { get; set; }
+    public List<PlanetMember> OrderedList { get; set; }
 
-    public List<Role> Roles { get; set; }
+    public List<PlanetRole> Roles { get; set; }
 
-    public Dictionary<Role, List<Member>> RoleMemberLists { get; set; }
-    public List<Member> OnlineList { get; set; }
-    public List<Member> OfflineList { get; set; }
+    public Dictionary<PlanetRole, List<PlanetMember>> RoleMemberLists { get; set; }
+    public List<PlanetMember> OnlineList { get; set; }
+    public List<PlanetMember> OfflineList { get; set; }
 
     public Planet Planet { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
-        RoleMemberLists = new Dictionary<Role, List<Member>>();
-        OnlineList = new List<Member>();
-        OfflineList = new List<Member>();
+        RoleMemberLists = new Dictionary<PlanetRole, List<PlanetMember>>();
+        OnlineList = new List<PlanetMember>();
+        OfflineList = new List<PlanetMember>();
 
         windowManager.OnPlanetFocused += OnPlanetChange;
 
         ValourClient.OnPlanetClose += OnPlanetClose;
 
-        Role.OnAnyUpdated += OnRoleUpdate;
-        Member.OnAnyUpdated += OnMemberUpdate;
-        Role.OnAnyDeleted += OnRoleDeletion;
+        PlanetRole.OnAnyUpdated += OnRoleUpdate;
+        PlanetMember.OnAnyUpdated += OnMemberUpdate;
+        PlanetRole.OnAnyDeleted += OnRoleDeletion;
     }
 
-    public async Task OnMemberUpdate(Member member, int flags)
+    public async Task OnMemberUpdate(PlanetMember member, int flags)
     {
         // not awaited on purpose
         if (member.Planet_Id == windowManager.FocusedPlanet.Id)
@@ -62,7 +62,7 @@
 
     }
 
-    public async Task OnRoleDeletion(Role role)
+    public async Task OnRoleDeletion(PlanetRole role)
     {
         // not awaited on purpose
         if (role.Planet_Id == windowManager.FocusedPlanet.Id)
@@ -71,7 +71,7 @@
         }
     }
 
-    public async Task OnRoleUpdate(Role role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
         // not awaited on purpose
         if (role.Planet_Id == windowManager.FocusedPlanet.Id)
@@ -120,7 +120,7 @@
             bool hadRole = false;
 
             // Try for a role
-            foreach (Role role in Roles)
+            foreach (PlanetRole role in Roles)
             {
                 // Ensure role should be listed
                 if (!role.HasPermission(PlanetPermissions.DisplayRole))
@@ -132,7 +132,7 @@
                     // Ensure there is a list
                     if (!RoleMemberLists.ContainsKey(role))
                     {
-                        RoleMemberLists.Add(role, new List<Member>());
+                        RoleMemberLists.Add(role, new List<PlanetMember>());
                     }
 
                     RoleMemberLists[role].Add(member);
@@ -175,7 +175,7 @@
             }
             else
             {
-                MemberList = new List<Member>();
+                MemberList = new List<PlanetMember>();
             }
 
             await BuildRoleLists();
@@ -185,7 +185,7 @@
         });
     }
 
-    public long GetComparator(Member m)
+    public long GetComparator(PlanetMember m)
     {
         var task = m.GetUserAsync();
         task.Wait();

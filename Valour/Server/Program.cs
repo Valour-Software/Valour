@@ -15,6 +15,7 @@ using Microsoft.OpenApi.Models;
 using System.Net;
 using Valour.Database;
 using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Members;
 
 namespace Valour.Server
 {
@@ -127,7 +128,7 @@ namespace Valour.Server
             using ValourDB db = new(ValourDB.DBOptions);
             db.Database.EnsureCreated();
 
-            foreach (ServerPlanetRole role in db.PlanetRoles.Include(x => x.Planet))
+            foreach (PlanetRole role in db.PlanetRoles.Include(x => x.Planet))
             {
                 if (role.Id == role.Planet.Default_Role_Id)
                 {

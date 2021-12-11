@@ -33,8 +33,4 @@
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Items\" />
-  </ItemGroup>
-
 </Project>

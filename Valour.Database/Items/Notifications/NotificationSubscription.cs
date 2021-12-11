@@ -9,8 +9,8 @@ using Valour.Database.Items.Users;
 
 namespace Valour.Database.Items.Notifications;
 
-public class NotificationSubscription : Shared.Notifications.NotificationSubscription
+public class NotificationSubscription : Shared.Items.Notifications.NotificationSubscription
 {
     [ForeignKey("User_Id")]
-    public ServerUser User { get; set; }
+    public User User { get; set; }
 }

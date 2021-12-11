@@ -4,11 +4,12 @@ using System.Text.Json;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Channels;
 using Valour.Server.Extensions;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 using Valour.Shared.Categories;
 using Valour.Shared.Items;
-using Valour.Shared.Oauth;
 
 namespace Valour.Server.API
 {
@@ -30,7 +31,7 @@ namespace Valour.Server.API
         private static async Task Category(HttpContext ctx, ValourDB db, ulong category_id,
                                           [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -39,7 +40,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -111,7 +112,7 @@ namespace Valour.Server.API
         private static async Task Name(HttpContext ctx, ValourDB db, ulong category_id,
                                       [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -120,7 +121,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -193,7 +194,7 @@ namespace Valour.Server.API
         private static async Task Description(HttpContext ctx, ValourDB db, ulong category_id,
                                       [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -202,7 +203,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -272,7 +273,7 @@ namespace Valour.Server.API
                 position = -1;
             }
 
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -281,7 +282,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -360,7 +361,7 @@ namespace Valour.Server.API
         private static async Task GetChildren(HttpContext ctx, ValourDB db, ulong category_id,
                                              [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -369,7 +370,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .Include(x => x.Planet)
                                                                      .ThenInclude(x => x.ChatChannels)
@@ -400,7 +401,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<IServerChannelListItem> children = new List<IServerChannelListItem>();
+            List<IPlanetChannel> children = new List<IPlanetChannel>();
 
             foreach (var channel in category.Planet.ChatChannels)
             {
@@ -426,7 +427,7 @@ namespace Valour.Server.API
         private static async Task SetChildOrder(HttpContext ctx, ValourDB db, ulong category_id,
                                                [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -435,7 +436,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -494,11 +495,11 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<IServerChannelListItem> changed = new List<IServerChannelListItem>();
+            List<IPlanetChannel> changed = new List<IPlanetChannel>();
 
             foreach (CategoryContentData order in orderData)
             {
-                IServerChannelListItem item = await IServerChannelListItem.FindAsync(order.ItemType, order.Id, db);
+                IPlanetChannel item = await IPlanetChannel.FindAsync(order.ItemType, order.Id, db);
 
                 if (item == null)
                 {
@@ -545,7 +546,7 @@ namespace Valour.Server.API
         private static async Task InsertItem(HttpContext ctx, ValourDB db, ulong category_id, ItemType type,
                                             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null)
             {
@@ -554,7 +555,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
+            Category category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -595,15 +596,15 @@ namespace Valour.Server.API
                 return;
             }
 
-            IServerChannelListItem in_item = null;
+            IPlanetChannel in_item = null;
 
             switch (type)
             {
                 case ItemType.Channel:
-                    in_item = await JsonSerializer.DeserializeAsync<ServerPlanetChatChannel>(ctx.Request.Body);
+                    in_item = await JsonSerializer.DeserializeAsync<ChatChannel>(ctx.Request.Body);
                     break;
                 case ItemType.Category:
-                    in_item = await JsonSerializer.DeserializeAsync<ServerPlanetCategory>(ctx.Request.Body);
+                    in_item = await JsonSerializer.DeserializeAsync<Category>(ctx.Request.Body);
                     break;
                 default:
                     {
@@ -621,7 +622,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            IServerChannelListItem item = await IServerChannelListItem.FindAsync(in_item.ItemType, in_item.Id, db);
+            IPlanetChannel item = await IPlanetChannel.FindAsync(in_item.ItemType, in_item.Id, db);
 
             if (item == null)
             {
@@ -630,7 +631,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            ServerPlanet item_planet = await db.Planets.FindAsync(item.Planet_Id);
+            Planet item_planet = await db.Planets.FindAsync(item.Planet_Id);
 
             if (item_planet == null)
             {

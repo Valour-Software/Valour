@@ -2,15 +2,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Valour.Database;
-using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Users;
 using Valour.Server.Email;
 using Valour.Server.Extensions;
 using Valour.Server.Users.Identity;
 using Valour.Shared;
-using Valour.Shared.Oauth;
-using Valour.Shared.Users;
+using Valour.Shared.Items.Users;
 using Valour.Shared.Users.Identity;
+using Valour.Database.Items.Authorization;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.API
 {
@@ -41,7 +41,7 @@ namespace Valour.Server.API
 
         private static async Task GetUser(HttpContext ctx, ValourDB db, ulong user_id, [FromHeader] string authorization)
         {
-            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
 
             if (authToken == null) { await TokenInvalid(ctx); return; }
 
@@ -75,7 +75,7 @@ namespace Valour.Server.API
 
         private static async Task LogOut(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
         {
-            var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+            var authToken = await AuthToken.TryAuthorize(authorization, db);
 
             if (authToken == null) { await Unauthorized("Include token", ctx); return; }
 
@@ -122,7 +122,7 @@ namespace Valour.Server.API
             if (token is null)
             {
                 // We now have to create a token for the user
-                token = new ServerAuthToken()
+                token = new AuthToken()
                 {
                     App_Id = "VALOUR",
                     Id = "val-" + Guid.NewGuid().ToString(),
@@ -156,7 +156,7 @@ namespace Valour.Server.API
 
             if (recovery == null) { await NotFound("Recovery request not found", ctx); return; }
 
-            TaskResult passwordValid = ServerUser.TestPasswordComplexity(request.Password);
+            TaskResult passwordValid = User.TestPasswordComplexity(request.Password);
 
             if (!passwordValid.Success) { await BadRequest(passwordValid.Message, ctx); return; }
 
@@ -197,7 +197,7 @@ namespace Valour.Server.API
             if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == email.ToLower())) { await BadRequest("Email taken", ctx); return; }
 
             // Test email
-            TaskResult<string> emailResult = ServerUser.TestEmail(email);
+            TaskResult<string> emailResult = User.TestEmail(email);
 
             if (!emailResult.Success) { await BadRequest(emailResult.Message, ctx); return; }
 
@@ -205,12 +205,12 @@ namespace Valour.Server.API
             email = emailResult.Data;
 
             // Test username
-            TaskResult usernameResult = ServerUser.TestUsername(username);
+            TaskResult usernameResult = User.TestUsername(username);
 
             if (!usernameResult.Success) { await BadRequest(usernameResult.Message, ctx); return; }
 
             // Test password complexity
-            TaskResult passwordResult = ServerUser.TestPasswordComplexity(password);
+            TaskResult passwordResult = User.TestPasswordComplexity(password);
 
             // Enforce password tests
             if (!passwordResult.Success) { await BadRequest(passwordResult.Message, ctx); return; }
@@ -221,7 +221,7 @@ namespace Valour.Server.API
 
             if (!string.IsNullOrWhiteSpace(referrer))
             {
-                ServerUser referUser = await db.Users.FirstOrDefaultAsync(x => x.Username.ToLower() == referrer.ToLower());
+                User referUser = await db.Users.FirstOrDefaultAsync(x => x.Username.ToLower() == referrer.ToLower());
 
                 if (referUser == null) { await BadRequest($"Could not find referrer {referrer}", ctx); return; }
 
@@ -237,7 +237,7 @@ namespace Valour.Server.API
             byte[] hash = PasswordManager.GetHashForPassword(password, salt);
 
             // Create user object
-            ServerUser user = new ServerUser()
+            User user = new User()
             {
                 Id = IdManager.Generate(),
                 Username = username,
@@ -402,13 +402,13 @@ namespace Valour.Server.API
         private static async Task GetPlanets(HttpContext ctx, ValourDB db, ulong user_id,
                                             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null) { await TokenInvalid(ctx); return; }
             if (!auth.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
             if (auth.User_Id != user_id) { await Unauthorized("User id does not match token holder", ctx); return; }
 
-            ServerUser user = await db.Users
+            User user = await db.Users
                 .Include(x => x.Membership)
                 .ThenInclude(x => x.Planet)
                 .FirstOrDefaultAsync(x => x.Id == user_id);
@@ -422,13 +422,13 @@ namespace Valour.Server.API
         private static async Task GetPlanetIds(HttpContext ctx, ValourDB db, ulong user_id,
                                             [FromHeader] string authorization)
         {
-            AuthToken auth = await ServerAuthToken.TryAuthorize(authorization, db);
+            var auth = await AuthToken.TryAuthorize(authorization, db);
 
             if (auth == null) { await TokenInvalid(ctx); return; }
             if (!auth.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
             if (auth.User_Id != user_id) { await Unauthorized("User id does not match token holder", ctx); return; }
 
-            ServerUser user = await db.Users
+            User user = await db.Users
                 .Include(x => x.Membership)
                 .FirstOrDefaultAsync(x => x.Id == user_id);
 

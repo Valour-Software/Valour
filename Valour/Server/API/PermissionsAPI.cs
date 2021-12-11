@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
-using Valour.Database.Items.Planets;
-using Valour.Shared.Oauth;
+using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.API;
 public class PermissionsAPI : BaseAPI
@@ -21,7 +21,7 @@ public class PermissionsAPI : BaseAPI
     private static async Task GetNodeById(HttpContext ctx, ValourDB db, ulong node_id,
         [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken is null) { await TokenInvalid(ctx); return; }
 
         if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
@@ -36,7 +36,7 @@ public class PermissionsAPI : BaseAPI
             return; 
         }
 
-        var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Target_Id, db);
+        var member = await PlanetMember.FindAsync(authToken.User_Id, node.Target_Id, db);
 
         if (member is null) { await Unauthorized("Member not found", ctx); return; }
 
@@ -47,7 +47,7 @@ public class PermissionsAPI : BaseAPI
     private static async Task GetNode(HttpContext ctx, ValourDB db, ulong target_id, ulong role_id,
         [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken is null) { await TokenInvalid(ctx); return; }
 
         if (!authToken.HasScope(UserPermissions.Membership)) { await Unauthorized("Token lacks UserPermissions.Membership", ctx); return; }
@@ -62,7 +62,7 @@ public class PermissionsAPI : BaseAPI
             return; 
         }
 
-        var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
+        var member = await PlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
 
         if (member is null) { await Unauthorized("Member not found", ctx); return; }
 
@@ -75,9 +75,9 @@ public class PermissionsAPI : BaseAPI
     {
         // Start Authorization //
 
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
 
-        var member = await ServerPlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
+        var member = await PlanetMember.FindAsync(authToken.User_Id, node.Planet_Id, db);
 
         if (member is null) { await Unauthorized("Member not found", ctx); return; }
 
@@ -87,7 +87,7 @@ public class PermissionsAPI : BaseAPI
 
         // Get role //
 
-        ServerPlanetRole role = null;
+        PlanetRole role = null;
 
         var oldNode = await db.PermissionsNodes
             .Include(x => x.Role)

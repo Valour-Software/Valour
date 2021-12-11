@@ -15,7 +15,7 @@ namespace Valour.Database.Items.Users;
 public class EmailConfirmCode
 {
     [ForeignKey("User_Id")]
-    public virtual ServerUser User { get; set; }
+    public virtual User User { get; set; }
 
     /// <summary>
     /// The code for the email verification

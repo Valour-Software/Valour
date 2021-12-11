@@ -23,15 +23,15 @@ public class OauthAPI : BaseAPI
         app.MapPost("api/oauth/authorize", Authorize);
     }
 
-    public static List<Shared.Oauth.AuthorizeModel> OauthReqCache = new();
+    public static List<Shared.Items.Authorization.AuthorizeModel> OauthReqCache = new();
 
 
     public static async Task<object> Authorize(
         ValourDB db, HttpContext context,
-        [FromBody] Shared.Oauth.AuthorizeModel model, 
+        [FromBody] Shared.Items.Authorization.AuthorizeModel model, 
         [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
 
         if (authToken is null){
             await TokenInvalid(context);
@@ -52,7 +52,7 @@ public class OauthAPI : BaseAPI
     }
 
     public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization){
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
         
         if (authToken is null){
             await Unauthorized("Include token", context);
@@ -72,7 +72,7 @@ public class OauthAPI : BaseAPI
 
     public static async Task GetApps(HttpContext context, ValourDB db, [FromHeader] string authorization) 
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
 
         if (authToken is null){
             await Unauthorized("Include token", context);
@@ -95,7 +95,7 @@ public class OauthAPI : BaseAPI
     public static async Task GetApp(HttpContext context, ValourDB db, ulong app_id, 
     [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
 
         if (authToken is null){
             await TokenInvalid(context);
@@ -120,7 +120,7 @@ public class OauthAPI : BaseAPI
 
     public static async Task CreateApp(HttpContext context, ValourDB db, [FromBody] OauthApp app, [FromHeader] string authorization)
     {
-        var authToken = await ServerAuthToken.TryAuthorize(authorization, db);
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
 
         if (authToken is null){
             await Unauthorized("Include token", context);
@@ -144,7 +144,7 @@ public class OauthAPI : BaseAPI
         app.Image_Url = "media/logo/logo-512.png";
         
         // Make name conform to server rules
-        var nameValid = ServerPlanet.ValidateName(app.Name);
+        var nameValid = Planet.ValidateName(app.Name);
 
         if (!nameValid.Success){
             await BadRequest(nameValid.Message, context);
