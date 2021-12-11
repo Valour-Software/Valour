@@ -22,6 +22,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Database", "Valour\D
 		{D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F} = {D3B85CB7-3EC8-4180-8F5C-73C09C2A1D7F}
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Valour.Web", "Valour\Web\Valour.Web.csproj", "{4815C7EF-AE83-4E2E-A4B0-C693BAC1576F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -48,6 +50,10 @@ Global
 		{BCE1144A-49B0-4151-8DDC-BA207DFE79FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCE1144A-49B0-4151-8DDC-BA207DFE79FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCE1144A-49B0-4151-8DDC-BA207DFE79FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4815C7EF-AE83-4E2E-A4B0-C693BAC1576F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4815C7EF-AE83-4E2E-A4B0-C693BAC1576F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4815C7EF-AE83-4E2E-A4B0-C693BAC1576F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4815C7EF-AE83-4E2E-A4B0-C693BAC1576F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
