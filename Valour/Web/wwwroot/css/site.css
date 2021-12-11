@@ -1,0 +1,110 @@
+﻿:root {
+  --primary-color: #040d14;
+  --secondary-color: #aaaaaa;
+  --font-color: #ffffff;
+  --bg-color: #040d14;
+  --heading-color: #040d14;
+  --link-color: #00aaff;
+  --border-color: #303030;
+  --alt-border-color: #666666;
+  --input-color: #000000;
+  --comment-hue: rgba(0, 0, 0, 0.02);
+  --main-1: #040d14;
+  --main-2: #0b151d;
+  --main-3: #121e27;
+  --main-4: #192630;
+  --main-5: #212f3a;
+  --v-purple: #bf06fd;
+  --v-blue: #0c06fd;
+  --v-cyan: #00faff;
+}
+
+html {
+  font-size: 14px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 60px;
+  background-color: var(--main-1);
+  color: var(--font-color);
+}
+
+hr {
+  border-color: black;
+}
+
+/* Will set background to main color */
+.bg-main {
+  background: var(--main-1);
+}
+
+/* Will set text to main font color */
+.text-main {
+  color: var(--font-color);
+}
+
+
+.v-navbar {
+  background-color: var(--main-1);
+  color: white;
+  border-color: var(--main-2);
+}
+
+.v-nav-link {
+  color: var(--font-color) !important;
+  cursor: pointer;
+}
+
+.v-nav-link:hover {
+  opacity: 0.8;
+  color: var(--v-cyan) !important;
+}
+
+.v-nav-link:active {
+  opacity: 1;
+  color: var(--v-cyan) !important;
+}
+
+.navbar-icon {
+  width: 30px;
+  height: 30px;
+  margin-right: 10px;
+}
+
+.navbar-login {
+  float: none;
+  margin-left: 0;
+}
+
+@media (min-width: 576px) {
+  .navbar-login {
+    float: right;
+    margin-left: auto;
+  }
+}
+
+.index-back {
+  background-image: url("../media/Spookvooper-tall.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  height: calc(100% - 74px);
+  margin: 0;
+  padding: 20px;
+  background-size: cover;
+}
+
+.v-link {
+  color: var(--v-cyan);
+  text-decoration: none;
+}
