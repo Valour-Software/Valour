@@ -31,6 +31,18 @@
         if (User != null && !string.IsNullOrWhiteSpace(User.Pfp_Url))
         {
             pfpurl = User.Pfp_Url;
+
+            // did not work without this
+            User _user = await User.FindAsync(User.Id);
+
+            _user.OnUpdated += (async () =>
+            {
+                if (_user != null && !string.IsNullOrWhiteSpace(_user.Pfp_Url))
+                {
+                    pfpurl = _user.Pfp_Url;
+                    StateHasChanged();
+                }
+            });
         }
     }
 
