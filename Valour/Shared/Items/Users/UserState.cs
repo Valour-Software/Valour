@@ -19,7 +19,7 @@ public class UserState
     public static UserState Automatic = new UserState()
     {
         Name = "Auto",
-        Description = "Valour will determine the use state automatically",
+        Description = "Valour will determine the user state automatically",
         Value = 0,
         ClassName = ""
     };
@@ -58,6 +58,7 @@ public class UserState
 
     public static UserState[] States = new UserState[]
     {
+        Automatic,
         Offline,
         Away,
         DoNotDisturb,

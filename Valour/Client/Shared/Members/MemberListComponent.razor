@@ -94,14 +94,17 @@
     {
         OrderedList = MemberList.OrderByDescending(GetComparator).ToList();
 
+        Console.WriteLine($"Sorted {OrderedList.Count} members by activity.");
+
         RoleMemberLists.Clear();
         OnlineList.Clear();
         OfflineList.Clear();
 
         foreach (var member in OrderedList)
         {
-
             var user = await member.GetUserAsync();
+            if (user is null)
+                continue;
 
             // Don't list at all if this is true
             if (user.Last_Active_Span.TotalDays > 7)
@@ -170,7 +173,7 @@
             {
                 Console.WriteLine($"Member list is updating to {planet.Name}");
                 MemberList = await planet.GetMembersAsync();
-                Roles = await planet.GetRolesAsync();    
+                Roles = await planet.GetRolesAsync();
                 MemberList = MemberList.OrderByDescending(GetComparator).ToList();
             }
             else
