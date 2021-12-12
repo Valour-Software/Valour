@@ -2,6 +2,7 @@
 using System.Net.Mail;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Valour.Shared.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
