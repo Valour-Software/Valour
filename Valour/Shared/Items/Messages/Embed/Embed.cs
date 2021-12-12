@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Items.Messages.Embeds;
+﻿using Valour.Shared.Embeds;
+
+namespace Valour.Shared.Items.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
