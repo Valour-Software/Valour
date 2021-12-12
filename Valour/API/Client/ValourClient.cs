@@ -153,6 +153,22 @@ public static class ValourClient
     public static async Task<PlanetMember> GetSelfMember(ulong planet_id, bool force_refresh = false) =>
         await PlanetMember.FindAsync(planet_id, Self.Id, force_refresh);
 
+    /// <summary>
+    /// Sends a message
+    /// </summary>
+    public static async Task<(HttpResponseMessage response, string content)> SendMessage(PlanetMessage message)
+    {
+        StringContent content = new(JsonSerializer.Serialize(message));
+
+        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{message.Channel_Id}/messages", content);
+
+        string res = await httpresponse.Content.ReadAsStringAsync();
+
+        Console.WriteLine("Message post: " + res);
+
+        return (httpresponse, res);
+    }
+
     #region SignalR Groups
 
     /// <summary>

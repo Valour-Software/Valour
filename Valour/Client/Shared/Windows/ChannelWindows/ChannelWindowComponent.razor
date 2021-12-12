@@ -440,16 +440,7 @@
 
     public async Task PostMessage(string msg)
     {
-        PlanetMessage innerMessage = new PlanetMessage()
-        {
-            Channel_Id = Channel.Id,
-            Content = msg,
-            TimeSent = DateTime.UtcNow,
-            Author_Id = ValourClient.Self.Id,
-            Planet_Id = Channel.Planet_Id,
-            Member_Id = SelfMember.Id,
-            Fingerprint = Guid.NewGuid().ToString()
-        };
+        PlanetMessage innerMessage = new PlanetMessage(msg, SelfMember.Id, Channel.Id, Channel.Planet_Id);
 
         ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
 
@@ -469,23 +460,15 @@
 
         MessageHolder.AddQueuedMessage(message);
 
-        string json = JsonSerializer.Serialize(innerMessage);
+        (var response, var content) = await ValourClient.SendMessage(innerMessage);
 
-        StringContent content = new StringContent(json);
-
-        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{Channel.Id}/messages", content);
-
-        string res = await httpresponse.Content.ReadAsStringAsync();
-
-        Console.WriteLine("Message post: " + res);
-
-        if (!httpresponse.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
             MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
             PlanetMessage errorMsg = new()
             {
-                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {res}",
+                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {content}",
                 Author_Id = ulong.MaxValue,
                 Member_Id = ulong.MaxValue,
                 Channel_Id = Channel.Id,
