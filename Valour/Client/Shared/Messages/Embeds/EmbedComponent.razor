@@ -8,9 +8,9 @@
 <div class="embed">
 	@if (embed.Currently_Displayed != null)
 	{
-		@foreach (EmbedItem item in embed.Currently_Displayed)
+		foreach (EmbedItem item in embed.Currently_Displayed)
 		{
-			@switch (item.Type)
+			switch (item.Type)
 			{
 				case EmbedItemType.Text:
 					<div style="@item.GetInlineStyle" class="embed-item">
@@ -49,7 +49,7 @@
 					break;
 			}
 		}
-		@if (embed.Pages.Length > 1)
+		if (embed.Pages.Length > 1)
 		{
 			<div style="margin-left: 80%;">
 				<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>

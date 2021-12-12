@@ -4,6 +4,7 @@ using Valour.Api.Client;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Messages.Embeds;
 
 namespace Valour.Api.Items.Messages;
 
@@ -13,8 +14,11 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : Shared.Items.Messages.PlanetMessage
+public class PlanetMessage : Message
 {
+    [JsonPropertyName("Planet_Id")]
+    public ulong Planet_Id { get; set;}
+
     // Makes PlanetMessage meant to be sent to valour from the client
     public PlanetMessage(string text, ulong self_member_id, ulong channel_id, ulong planet_id)
     {
@@ -58,14 +62,12 @@ public class PlanetMessage : Shared.Items.Messages.PlanetMessage
     /// <summary>
     /// Sends a message with a embed to the channel this message was sent in
     /// </summary>
-    public async Task ReplyAsync(string text = "", ClientEmbed embed = null)
+    public async Task ReplyAsync(string text = "", Embed embed = null)
     {
         PlanetMessage message = new(text, (await ValourClient.GetSelfMember(Planet_Id)).Id, Channel_Id, Planet_Id);
 
         if (embed is not null)
         {
-            if (embed.Items.Count != 0) embed.Pages.Insert(0, embed.Items);
-
             JsonSerializerOptions options = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
             message.Embed_Data = JsonSerializer.Serialize(embed, options);
         }

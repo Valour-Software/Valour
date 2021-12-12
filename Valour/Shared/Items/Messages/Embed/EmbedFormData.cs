@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Valour.Shared.Embeds;
+using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Messages.Embeds;
 

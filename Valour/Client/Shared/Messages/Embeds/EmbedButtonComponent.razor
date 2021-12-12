@@ -30,7 +30,7 @@
 
         PlanetMember SelfMember = await PlanetMember.FindAsync(Message.BaseMessage.Planet_Id, ValourClient.Self.Id);
 
-        EmbedInteractionEvent Interaction = new EmbedInteractionEvent()
+            Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent()
         {
             Event = "Button Click",
             Element_Id = Item.Id,
@@ -43,7 +43,7 @@
             Form_Data = embed.GetFormData()
         };
 
-        var response = await Http.PostAsJsonAsync<EmbedInteractionEvent>($"api/embed/interact", Interaction);
+        var response = await Http.PostAsJsonAsync($"api/embed/interact", Interaction);
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }
