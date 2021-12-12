@@ -50,8 +50,8 @@ public class PlanetMessage : Message
     /// <summary>
     /// Returns the channel the message was sent in
     /// </summary>
-    public async Task<ChatChannel> GetChannelAsync() =>
-        await ChatChannel.FindAsync(Channel_Id);
+    public async Task<PlanetChatChannel> GetChannelAsync() =>
+        await PlanetChatChannel.FindAsync(Channel_Id);
 
     /// <summary>
     /// Sends a message to the channel this message was sent in

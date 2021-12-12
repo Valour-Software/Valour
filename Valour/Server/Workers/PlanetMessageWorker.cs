@@ -52,7 +52,7 @@ namespace Valour.Server.Workers
                     {
                         ulong channel_id = Message.Channel_Id;
 
-                        ChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
+                        PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
                         // Get index for message
                         ulong index = channel.Message_Count;

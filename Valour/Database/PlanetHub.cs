@@ -98,19 +98,19 @@ namespace Valour.Database
         public static async void NotifyRoleChange(PlanetRole role, int flags = 0) =>
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", role, flags);
 
-        public static async Task NotifyCategoryDeletion(Category category) =>
+        public static async Task NotifyCategoryDeletion(PlanetCategory category) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", category);
 
         public static async void NotifyRoleDeletion(PlanetRole role) =>
             await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", role);
 
-        public static async Task NotifyChatChannelDeletion(ChatChannel channel) =>
+        public static async Task NotifyChatChannelDeletion(PlanetChatChannel channel) =>
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelDeletion", channel);
 
-        public static async void NotifyChatChannelChange(ChatChannel channel, int flags = 0) =>
+        public static async void NotifyChatChannelChange(PlanetChatChannel channel, int flags = 0) =>
             await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelUpdate", channel, flags);
 
-        public static async void NotifyCategoryChange(Category category, int flags = 0) =>
+        public static async void NotifyCategoryChange(PlanetCategory category, int flags = 0) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category, flags);
     }
 }

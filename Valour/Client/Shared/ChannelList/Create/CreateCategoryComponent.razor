@@ -68,7 +68,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public Category Parent { get; set; }
+    public PlanetCategory Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -118,7 +118,7 @@
         ulong user_id = ValourClient.Self.Id;
         //string token = ValourClient.Token;
 
-        Category category = new(){
+        PlanetCategory category = new(){
             Name = name,
             Description = "A category",
             Parent_Id = parent_id,

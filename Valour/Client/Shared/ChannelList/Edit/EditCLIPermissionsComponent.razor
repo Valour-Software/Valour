@@ -51,7 +51,7 @@
 
 @if (Target.ItemType == ItemType.Channel)
 {
-    ChatChannel channel = Target as ChatChannel;
+    PlanetChatChannel channel = Target as PlanetChatChannel;
 
     if ((Planet.Owner_Id != SelfMember.User_Id) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageChannels))
     {
@@ -208,7 +208,7 @@ else
 
     public async Task SwitchInherit()
     {
-        ChatChannel channel = Target as ChatChannel;
+        PlanetChatChannel channel = Target as PlanetChatChannel;
 
         if (channel is not null)
         {
@@ -283,7 +283,7 @@ else
         }
 
         // Handle additional node for categories
-        if (Target is Category)
+        if (Target is PlanetCategory)
         {
             TaskResult category_response = await ValourClient.PostAsync($"api/node", CategoryPermissionsNode);
 
@@ -347,12 +347,12 @@ else
 
         Console.WriteLine($"Selected role {Selected_Role.Name}");
 
-        if (Target is ChatChannel){
-            ChatChannel channel = Target as ChatChannel;
+        if (Target is PlanetChatChannel){
+            PlanetChatChannel channel = Target as PlanetChatChannel;
             ChannelPermissionsNode = await channel.GetPermissionsNodeAsync(Selected_Role.Id);
         }
-        else if (Target is Category){
-            Category category = Target as Category;
+        else if (Target is PlanetCategory){
+            PlanetCategory category = Target as PlanetCategory;
             ChannelPermissionsNode = await category.GetChannelPermissionsNodeAsync(Selected_Role.Id);
             CategoryPermissionsNode = await category.GetCategoryPermissionsNodeAsync(Selected_Role.Id);
         }
@@ -367,9 +367,9 @@ else
         if (Buttons == null || Buttons.Length == 0)
             return;
 
-        if (Target is ChatChannel)
+        if (Target is PlanetChatChannel)
         {
-            ChatChannel channel = Target as ChatChannel;
+            PlanetChatChannel channel = Target as PlanetChatChannel;
 
             // Setup buttons
             for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
@@ -386,9 +386,9 @@ else
                     await Buttons[i].OnChangeState(bState, false);
             }
         }
-        else if (Target is Category)
+        else if (Target is PlanetCategory)
         {
-            Category category = Target as Category;
+            PlanetCategory category = Target as PlanetCategory;
 
             // Setup category buttons
             for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)

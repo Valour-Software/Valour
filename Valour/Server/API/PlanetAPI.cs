@@ -564,7 +564,7 @@ namespace Valour.Server.API
             ulong planet_id = IdManager.Generate();
 
             // Create general category
-            Category category = new Category()
+            PlanetCategory category = new PlanetCategory()
             {
                 Id = IdManager.Generate(),
                 Name = "General",
@@ -575,7 +575,7 @@ namespace Valour.Server.API
             };
 
             // Create general channel
-            ChatChannel channel = new ChatChannel()
+            PlanetChatChannel channel = new PlanetChatChannel()
             {
                 Id = IdManager.Generate(),
                 Planet_Id = planet_id,
@@ -661,7 +661,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<ChatChannel> result = new List<ChatChannel>();
+            List<PlanetChatChannel> result = new List<PlanetChatChannel>();
 
             foreach (var channel in planet.ChatChannels)
             {
@@ -724,8 +724,8 @@ namespace Valour.Server.API
         private static async Task CreateChannel(HttpContext ctx, ValourDB db,
             [FromHeader] string authorization)
         {
-            ChatChannel channel_data =
-                await JsonSerializer.DeserializeAsync<ChatChannel>(ctx.Request.Body);
+            PlanetChatChannel channel_data =
+                await JsonSerializer.DeserializeAsync<PlanetChatChannel>(ctx.Request.Body);
 
             if (channel_data == null)
             {
@@ -743,7 +743,7 @@ namespace Valour.Server.API
 
             // Request parameter validation //
 
-            TaskResult name_valid = ChatChannel.ValidateName(channel_data.Name);
+            TaskResult name_valid = PlanetChatChannel.ValidateName(channel_data.Name);
 
             if (!name_valid.Success)
             {
@@ -777,7 +777,7 @@ namespace Valour.Server.API
 
             // Ensure parent category exists
 
-            Category parent = await db.PlanetCategories.FindAsync(channel_data.Parent_Id);
+            PlanetCategory parent = await db.PlanetCategories.FindAsync(channel_data.Parent_Id);
 
             if (parent == null)
             {
@@ -802,7 +802,7 @@ namespace Valour.Server.API
             child_count += (ushort) await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == channel_data.Parent_Id);
             child_count += (ushort) await db.PlanetCategories.CountAsync(x => x.Parent_Id == channel_data.Parent_Id);
 
-            ChatChannel channel = new ChatChannel()
+            PlanetChatChannel channel = new PlanetChatChannel()
             {
                 Id = IdManager.Generate(),
                 Name = channel_data.Name,
@@ -829,7 +829,7 @@ namespace Valour.Server.API
         private static async Task CreateCategory(HttpContext ctx, ValourDB db,
             [FromHeader] string authorization)
         {
-            Category category_data = await JsonSerializer.DeserializeAsync<Category>(ctx.Request.Body);
+            PlanetCategory category_data = await JsonSerializer.DeserializeAsync<PlanetCategory>(ctx.Request.Body);
 
             if (category_data == null)
             {
@@ -847,7 +847,7 @@ namespace Valour.Server.API
 
             // Request parameter validation //
 
-            TaskResult name_valid = Category.ValidateName(category_data.Name);
+            TaskResult name_valid = PlanetCategory.ValidateName(category_data.Name);
 
             if (!name_valid.Success)
             {
@@ -883,7 +883,7 @@ namespace Valour.Server.API
 
             ulong? parent_id = null;
 
-            Category parent = await db.PlanetCategories.FindAsync(category_data.Parent_Id);
+            PlanetCategory parent = await db.PlanetCategories.FindAsync(category_data.Parent_Id);
 
             ushort child_count = 0;
 
@@ -906,7 +906,7 @@ namespace Valour.Server.API
 
             // Creates the category
 
-            Category category = new Category()
+            PlanetCategory category = new PlanetCategory()
             {
                 Id = IdManager.Generate(),
                 Name = category_data.Name,
@@ -961,7 +961,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<Category> result = new List<Category>();
+            List<PlanetCategory> result = new List<PlanetCategory>();
 
             foreach (var category in planet.Categories)
             {
@@ -1017,7 +1017,7 @@ namespace Valour.Server.API
             {
                 case "GET":
                 {
-                    ChatChannel mainChannel = await db.PlanetChatChannels.FindAsync(planet.Main_Channel_Id);
+                    PlanetChatChannel mainChannel = await db.PlanetChatChannels.FindAsync(planet.Main_Channel_Id);
 
                     if (mainChannel == null)
                     {
@@ -1050,7 +1050,7 @@ namespace Valour.Server.API
 
                     string body = await ctx.Request.ReadBodyStringAsync();
 
-                    ChatChannel in_channel = JsonSerializer.Deserialize<ChatChannel>(body);
+                    PlanetChatChannel in_channel = JsonSerializer.Deserialize<PlanetChatChannel>(body);
 
                     if (in_channel == null)
                     {
@@ -1059,7 +1059,7 @@ namespace Valour.Server.API
                         return;
                     }
 
-                    ChatChannel channel = await db.PlanetChatChannels.FindAsync(in_channel.Id);
+                    PlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(in_channel.Id);
 
                     if (channel == null)
                     {

@@ -11,7 +11,7 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class Category : Shared.Items.Planets.Channels.Category<Category>, IPlanetChannel
+public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<PlanetCategory>, IPlanetChannel
 {
 
     [JsonIgnore]
@@ -286,7 +286,7 @@ public class Category : Shared.Items.Planets.Channels.Category<Category>, IPlane
         return new TaskResult(true, "The given name is valid.");
     }
 
-    public static async Task<Category> FindAsync(ulong id, ValourDB db)
+    public static async Task<PlanetCategory> FindAsync(ulong id, ValourDB db)
     {
         return await db.PlanetCategories.FindAsync(id);
     }

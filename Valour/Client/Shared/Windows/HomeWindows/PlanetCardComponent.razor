@@ -26,7 +26,7 @@
         await ValourClient.OpenPlanet(Planet);
         await windowManager.SetFocusedPlanet(Planet);
 
-        ChatChannel channel = await Planet.GetPrimaryChannelAsync();
+        PlanetChatChannel channel = await Planet.GetPrimaryChannelAsync();
 
         Console.WriteLine($"Switching window {Window.Index} to {channel.Name}");
 

@@ -58,7 +58,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public Category Parent { get; set; }
+    public PlanetCategory Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -120,7 +120,7 @@
         ulong parent_id = Parent.Id;
         ulong planet_id = Planet.Id;
 
-        ChatChannel newChannel = new()
+        PlanetChatChannel newChannel = new()
         {
             Name = name,
             Description = "A chat channel",

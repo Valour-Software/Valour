@@ -12,21 +12,21 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class ChatChannel : Shared.Items.Planets.Channels.ChatChannel<ChatChannel>, IPlanetChannel
+public class PlanetChatChannel : Shared.Items.Planets.Channels.PlanetChatChannel<PlanetChatChannel>, IPlanetChannel
 {
     /// <summary>
     /// Returns the channel for the given id
     /// </summary>
-    public static async Task<ChatChannel> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<PlanetChatChannel> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
-            var cached = ValourCache.Get<ChatChannel>(id);
+            var cached = ValourCache.Get<PlanetChatChannel>(id);
             if (cached is not null)
                 return cached;
         }
             
-        var channel = await ValourClient.GetJsonAsync<ChatChannel>($"api/channel/{id}");
+        var channel = await ValourClient.GetJsonAsync<PlanetChatChannel>($"api/channel/{id}");
 
         if (channel is not null)
             await ValourCache.Put(id, channel);

@@ -90,12 +90,12 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for all planet chat channels
     /// </summary>
-    public DbSet<ChatChannel> PlanetChatChannels { get; set; }
+    public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
 
     /// <summary>
     /// Table for all planet chat categories
     /// </summary>
-    public DbSet<Category> PlanetCategories { get; set; }
+    public DbSet<PlanetCategory> PlanetCategories { get; set; }
 
     /// <summary>
     /// Table for all banned members
