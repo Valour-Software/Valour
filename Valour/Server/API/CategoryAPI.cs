@@ -40,7 +40,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -121,7 +121,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -203,7 +203,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -282,7 +282,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -370,7 +370,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .Include(x => x.Planet)
                                                                      .ThenInclude(x => x.ChatChannels)
@@ -436,7 +436,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -555,7 +555,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            Category category = await db.PlanetCategories.Include(x => x.Planet)
+            PlanetCategory category = await db.PlanetCategories.Include(x => x.Planet)
                                                                      .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
                                                                      .FirstOrDefaultAsync(x => x.Id == category_id);
 
@@ -601,10 +601,10 @@ namespace Valour.Server.API
             switch (type)
             {
                 case ItemType.Channel:
-                    in_item = await JsonSerializer.DeserializeAsync<ChatChannel>(ctx.Request.Body);
+                    in_item = await JsonSerializer.DeserializeAsync<PlanetChatChannel>(ctx.Request.Body);
                     break;
                 case ItemType.Category:
-                    in_item = await JsonSerializer.DeserializeAsync<Category>(ctx.Request.Body);
+                    in_item = await JsonSerializer.DeserializeAsync<PlanetCategory>(ctx.Request.Body);
                     break;
                 default:
                     {

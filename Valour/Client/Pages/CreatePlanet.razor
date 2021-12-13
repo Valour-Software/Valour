@@ -81,7 +81,7 @@
             imageSpan = "An error occured retrieving the created planet. Please try again.";
         }
 
-        ChatChannel mainChannel = await result.GetPrimaryChannelAsync();
+        PlanetChatChannel mainChannel = await result.GetPrimaryChannelAsync();
 
         windowManager.ClearWindows();
 

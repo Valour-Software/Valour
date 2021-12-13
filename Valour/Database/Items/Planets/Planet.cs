@@ -33,10 +33,10 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     public virtual ICollection<PlanetMember> Members { get; set; }
 
     [InverseProperty("Planet")]
-    public virtual ICollection<ChatChannel> ChatChannels { get; set; }
+    public virtual ICollection<PlanetChatChannel> ChatChannels { get; set; }
 
     [InverseProperty("Planet")]
-    public virtual ICollection<Category> Categories { get; set; }
+    public virtual ICollection<PlanetCategory> Categories { get; set; }
 
     [InverseProperty("Planet")]
     public virtual ICollection<Invite> Invites { get; set; }
@@ -274,7 +274,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Returns the primary channel for the planet
     /// </summary>
-    public async Task<ChatChannel> GetPrimaryChannelAsync(ValourDB db)
+    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(ValourDB db)
     {
         return await db.PlanetChatChannels.FindAsync(Main_Channel_Id);
     }

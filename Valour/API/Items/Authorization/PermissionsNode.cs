@@ -17,7 +17,7 @@ public class PermissionsNode : Shared.Items.Authorization.PermissionsNode<Permis
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(ChatChannel channel, PlanetRole role, ItemType itemType) =>
+    public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, ItemType itemType) =>
         await FindAsync(channel.Id, role.Id, itemType);
 
 

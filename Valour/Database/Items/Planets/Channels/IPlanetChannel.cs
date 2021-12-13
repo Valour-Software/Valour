@@ -41,9 +41,9 @@ public interface IPlanetChannel
         switch (type)
         {
             case ItemType.Channel:
-                return await ChatChannel.FindAsync(id, db);
+                return await PlanetChatChannel.FindAsync(id, db);
             case ItemType.Category:
-                return await Category.FindAsync(id, db);
+                return await PlanetCategory.FindAsync(id, db);
             default:
                 throw new ArgumentOutOfRangeException(nameof(ItemType));
         }

@@ -99,7 +99,7 @@ namespace Valour.Client.Windows
         /// <summary>
         /// Swaps the channel a chat channel window is showing
         /// </summary>
-        public async Task SwapWindowChannel(ChatChannelWindow window, ChatChannel newChannel)
+        public async Task SwapWindowChannel(ChatChannelWindow window, PlanetChatChannel newChannel)
         {
             // Already that channel
             if (window.Channel.Id == newChannel.Id)

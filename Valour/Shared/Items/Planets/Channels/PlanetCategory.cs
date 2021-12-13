@@ -11,7 +11,7 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat Category within a planet
 /// </summary>
-public class Category<T> : PlanetChannel<T> where T : Item<T>
+public class PlanetCategory<T> : PlanetChannel<T> where T : Item<T>
 {
     /// <summary>
     /// The item type of this item

@@ -13,8 +13,8 @@ namespace Valour.Api.Items.Planets;
 public class Planet : Shared.Items.Planets.Planet<Planet>
 {
     // Cached values
-    private List<ChatChannel> Channels { get; set; }
-    private List<Category> Categories { get; set; }
+    private List<PlanetChatChannel> Channels { get; set; }
+    private List<PlanetCategory> Categories { get; set; }
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
 
@@ -41,20 +41,20 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Returns the primary channel of the planet
     /// </summary>
-    public async Task<ChatChannel> GetPrimaryChannelAsync(bool force_refresh = false)
+    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(bool force_refresh = false)
     {
         if (Channels == null || force_refresh)
         {
             await LoadChannelsAsync();
         }
 
-        return await ChatChannel.FindAsync(Main_Channel_Id, force_refresh);
+        return await PlanetChatChannel.FindAsync(Main_Channel_Id, force_refresh);
     }
 
     /// <summary>
     /// Returns the categories of this planet
     /// </summary>
-    public async Task<List<Category>> GetCategoriesAsync(bool force_refresh = false)
+    public async Task<List<PlanetCategory>> GetCategoriesAsync(bool force_refresh = false)
     {
         if (Categories == null || force_refresh)
         {
@@ -69,7 +69,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// </summary>
     public async Task LoadCategoriesAsync()
     {
-        var categories = await ValourClient.GetJsonAsync<List<Category>>($"api/planet/{Id}/categories");
+        var categories = await ValourClient.GetJsonAsync<List<PlanetCategory>>($"api/planet/{Id}/categories");
 
         if (categories is null)
             return;
@@ -83,14 +83,14 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
 
         // Create container if needed
         if (Categories == null)
-            Categories = new List<Category>();
+            Categories = new List<PlanetCategory>();
         else
             Categories.Clear();
 
         // Retrieve cache values (this is necessary to ensure single copies of items)
         foreach (var category in categories)
         {
-            var cCat = ValourCache.Get<Category>(category.Id);
+            var cCat = ValourCache.Get<PlanetCategory>(category.Id);
 
             if (cCat is not null)
                 Categories.Add(cCat);
@@ -103,7 +103,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Returns the channels of a planet
     /// </summary>
-    public async Task<List<ChatChannel>> GetChannelsAsync(bool force_refresh = false)
+    public async Task<List<PlanetChatChannel>> GetChannelsAsync(bool force_refresh = false)
     {
         if (Channels == null || force_refresh)
         {
@@ -118,7 +118,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = await ValourClient.GetJsonAsync<List<ChatChannel>>($"/api/planet/{Id}/channels");
+        var channels = await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"/api/planet/{Id}/channels");
 
         if (channels is null)
             return;
@@ -131,14 +131,14 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
 
         // Create container if needed
         if (Channels == null)
-            Channels = new List<ChatChannel>();
+            Channels = new List<PlanetChatChannel>();
         else
             Channels.Clear();
 
         // Retrieve cache values (this is necessary to ensure single copies of items)
         foreach (var channel in channels)
         {
-            var cChan = ValourCache.Get<ChatChannel>(channel.Id);
+            var cChan = ValourCache.Get<PlanetChatChannel>(channel.Id);
 
             if (cChan is not null)
                 Channels.Add(cChan);
@@ -268,7 +268,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Ran to notify the planet that a channel has been updated
     /// </summary>
-    public async Task NotifyUpdateChannel(ChatChannel channel)
+    public async Task NotifyUpdateChannel(PlanetChatChannel channel)
     {
         if (Channels == null)
             await LoadChannelsAsync();
@@ -283,7 +283,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Ran to notify the planet that a channel has been deleted
     /// </summary>
-    public async Task NotifyDeleteChannel(ChatChannel channel)
+    public async Task NotifyDeleteChannel(PlanetChatChannel channel)
     {
         if (Channels == null)
             await LoadChannelsAsync();
@@ -297,7 +297,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Ran to notify the planet that a category has been updated
     /// </summary>
-    public async Task NotifyUpdateCategory(Category category)
+    public async Task NotifyUpdateCategory(PlanetCategory category)
     {
         if (Categories == null)
             await LoadCategoriesAsync();
@@ -312,7 +312,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Ran to notify the planet that a category has been deleted
     /// </summary>
-    public async Task NotifyDeleteCategory(Category category)
+    public async Task NotifyDeleteCategory(PlanetCategory category)
     {
         if (Categories == null)
             await LoadCategoriesAsync();

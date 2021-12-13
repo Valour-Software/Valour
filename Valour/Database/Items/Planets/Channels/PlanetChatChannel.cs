@@ -16,7 +16,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class ChatChannel : Valour.Shared.Items.Planets.Channels.ChatChannel<ChatChannel>, IPlanetChannel
+public class PlanetChatChannel : Valour.Shared.Items.Planets.Channels.PlanetChatChannel<PlanetChatChannel>, IPlanetChannel
 {
 
     [ForeignKey("Planet_Id")]
@@ -25,7 +25,7 @@ public class ChatChannel : Valour.Shared.Items.Planets.Channels.ChatChannel<Chat
 
     [ForeignKey("Parent_Id")]
     [JsonIgnore]
-    public virtual Category Parent { get; set; }
+    public virtual PlanetCategory Parent { get; set; }
 
     /// <summary>
     /// The regex used for name validation
@@ -87,7 +87,7 @@ public class ChatChannel : Valour.Shared.Items.Planets.Channels.ChatChannel<Chat
     /// <summary>
     /// Returns the parent category of this channel
     /// </summary>
-    public async Task<Category> GetParentAsync(ValourDB db)
+    public async Task<PlanetCategory> GetParentAsync(ValourDB db)
     {
         Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
         return Parent;
@@ -258,7 +258,7 @@ public class ChatChannel : Valour.Shared.Items.Planets.Channels.ChatChannel<Chat
         PlanetHub.NotifyChatChannelChange(this);
     }
 
-    public static async Task<ChatChannel> FindAsync(ulong id, ValourDB db)
+    public static async Task<PlanetChatChannel> FindAsync(ulong id, ValourDB db)
     {
         return await db.PlanetChatChannels.FindAsync(id);
     }

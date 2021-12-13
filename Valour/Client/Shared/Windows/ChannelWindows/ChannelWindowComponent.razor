@@ -82,7 +82,7 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public ChatChannel Channel;
+    public PlanetChatChannel Channel;
 
     public Planet Planet;
 
@@ -114,7 +114,7 @@
 
         PlanetMember.OnAnyUpdated += OnPlanetMemberUpdate;
         PlanetRole.OnAnyUpdated += OnRoleUpdate;
-        ChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         await ValourClient.OpenChannel(Channel);
 
@@ -211,10 +211,10 @@
     {
         PlanetMember.OnAnyUpdated -= OnPlanetMemberUpdate;
         PlanetRole.OnAnyUpdated -= OnRoleUpdate;
-        ChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+        PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
     }
 
-    public async Task OnChatChannelUpdate(ChatChannel channel, int flags)
+    public async Task OnChatChannelUpdate(PlanetChatChannel channel, int flags)
     {
         if (Channel.Id == channel.Id)
         {
@@ -273,7 +273,7 @@
         MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
     }
 
-    public async Task SwapChannel(ChatChannel newchannel)
+    public async Task SwapChannel(PlanetChatChannel newchannel)
     {
         Channel = newchannel;
 

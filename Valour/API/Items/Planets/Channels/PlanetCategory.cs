@@ -11,23 +11,23 @@ namespace Valour.Api.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class Category : Shared.Items.Planets.Channels.Category<Category>, IPlanetChannel
+public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<PlanetCategory>, IPlanetChannel
 {
     public string GetItemTypeName() => "Category";
 
     /// <summary>
     /// Returns the category for the given id
     /// </summary>
-    public static async Task<Category> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<PlanetCategory> FindAsync(ulong id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
-            var cached = ValourCache.Get<Category>(id);
+            var cached = ValourCache.Get<PlanetCategory>(id);
             if (cached is not null)
                 return cached;
         }
 
-        var category = await ValourClient.GetJsonAsync<Category>($"api/category/{id}");
+        var category = await ValourClient.GetJsonAsync<PlanetCategory>($"api/category/{id}");
 
         if (category is not null)
             await ValourCache.Put(id, category);
@@ -62,7 +62,7 @@ public class Category : Shared.Items.Planets.Channels.Category<Category>, IPlane
     /// <summary>
     /// Sets the parent of this category
     /// </summary>
-    public async Task<TaskResult> SetParentAsync(Category category) =>
+    public async Task<TaskResult> SetParentAsync(PlanetCategory category) =>
         await SetParentIdAsync(category.Id);
 
     /// <summary>

@@ -43,19 +43,19 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
         return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.Category).ToList();
     }
 
-    public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(ChatChannel channel, ValourDB db) =>
+    public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == channel.Id &&
                                                                      x.Target_Type == Shared.Items.ItemType.Channel);
 
-    public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(Category category, ValourDB db) =>
+    public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(PlanetCategory category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
                                                                      x.Target_Type == Shared.Items.ItemType.Channel);
 
-    public async Task<Authorization.PermissionsNode> GetCategoryNodeAsync(Category category, ValourDB db) =>
+    public async Task<Authorization.PermissionsNode> GetCategoryNodeAsync(PlanetCategory category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
                                                                      x.Target_Type == Shared.Items.ItemType.Category);
 
-    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ChatChannel channel, ValourDB db) =>
+    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel, ValourDB db) =>
         await GetPermissionStateAsync(permission, channel.Id, db);
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channel_id, ValourDB db) =>

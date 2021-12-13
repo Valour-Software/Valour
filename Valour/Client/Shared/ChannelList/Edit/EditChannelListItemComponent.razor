@@ -34,8 +34,8 @@
     public IPlanetChannel ChannelListItem { get; set; }
 
     public bool isChannel;
-    public ChatChannel Channel;
-    public Category Category;
+    public PlanetChatChannel Channel;
+    public PlanetCategory Category;
 
 
     public string GetTitle()
@@ -72,13 +72,13 @@
         if (ChannelListItem.ItemType == ItemType.Channel)
         {
             isChannel = true;
-            Channel = (ChatChannel)ChannelListItem;
+            Channel = (PlanetChatChannel)ChannelListItem;
             Category = null;
         }
         else
         {
             isChannel = false;
-            Category = (Category)ChannelListItem;
+            Category = (PlanetCategory)ChannelListItem;
             Channel = null;
         }
     }
