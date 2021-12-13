@@ -1,7 +1,10 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
 using Valour.Shared;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Planets;
 
 namespace Valour.Api.Items.Planets;
 
@@ -10,8 +13,56 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : Shared.Items.Planets.Planet<Planet>
+public class Planet : NamedItem<Planet>, ISharedPlanet
 {
+    /// <summary>
+    /// The Id of the owner of this planet
+    /// </summary>
+    [JsonPropertyName("Owner_Id")]
+    public ulong Owner_Id { get; set; }
+
+    /// <summary>
+    /// The image url for the planet 
+    /// </summary>
+    [JsonPropertyName("Image_Url")]
+    public string Image_Url { get; set; }
+
+    /// <summary>
+    /// The description of the planet
+    /// </summary>
+    [JsonPropertyName("Description")]
+    public string Description { get; set; }
+
+    /// <summary>
+    /// If the server requires express allowal to join a planet
+    /// </summary>
+    [JsonPropertyName("Public")]
+    public bool Public { get; set; }
+
+    /// <summary>
+    /// The amount of members on the planet
+    /// </summary>
+    [JsonPropertyName("Member_Count")]
+    public uint Member_Count { get; set; }
+
+    /// <summary>
+    /// The default role for the planet
+    /// </summary>
+    [JsonPropertyName("Default_Role_Id")]
+    public ulong Default_Role_Id { get; set; }
+
+    /// <summary>
+    /// The id of the main channel of the planet
+    /// </summary>
+    [JsonPropertyName("Main_Channel_Id")]
+    public ulong Main_Channel_Id { get; set; }
+
+    /// <summary>
+    /// The item type of this item
+    /// </summary>
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.Planet;
+
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
     private List<PlanetCategory> Categories { get; set; }

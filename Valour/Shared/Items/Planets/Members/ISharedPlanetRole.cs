@@ -10,33 +10,8 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public class PlanetRole<T> : NamedItem<T> where T : Item<T>
+public interface ISharedPlanetRole
 {
-    public static PlanetRole<T> GetDefault(ulong planet_id)
-    {
-        return new PlanetRole<T>()
-        {
-            Name = "Default",
-            Id = ulong.MaxValue,
-            Position = uint.MaxValue,
-            Planet_Id = planet_id,
-            Color_Red = 255,
-            Color_Green = 255,
-            Color_Blue = 255
-        };
-    }
-
-    public static PlanetRole<T> VictorRole = new PlanetRole<T>()
-    {
-        Name = "Victor Class",
-        Id = ulong.MaxValue,
-        Position = uint.MaxValue,
-        Planet_Id = 0,
-        Color_Red = 255,
-        Color_Green = 0,
-        Color_Blue = 255
-    };
-
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
@@ -73,27 +48,14 @@ public class PlanetRole<T> : NamedItem<T> where T : Item<T>
     public bool Italics { get; set; }
 
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Role;
+    public ItemType ItemType => ItemType.Role;
 
-    public uint GetAuthority()
-    {
-        return uint.MaxValue - Position;
-    }
+    public uint GetAuthority();
 
-    public Color GetColor()
-    {
-        return Color.FromArgb(Color_Red, Color_Green, Color_Blue);
-    }
+    public Color GetColor();
 
-    public string GetColorHex()
-    {
-        Color c = GetColor();
-        return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-    }
+    public string GetColorHex();
 
-    public bool HasPermission(PlanetPermission perm)
-    {
-        return Permission.HasPermission(Permissions, perm);
-    }
+    public bool HasPermission(PlanetPermission perm);
 }
 

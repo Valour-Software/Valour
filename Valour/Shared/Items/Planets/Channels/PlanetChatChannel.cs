@@ -19,7 +19,7 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat channel within a planet
 /// </summary>
-public class PlanetChatChannel<T> : PlanetChannel<T> where T : Item<T> 
+public interface ISharedPlanetChatChannel
 {
     /// <summary>
     /// The amount of messages ever sent in the channel
@@ -33,11 +33,5 @@ public class PlanetChatChannel<T> : PlanetChannel<T> where T : Item<T>
     /// </summary>
     [JsonPropertyName("Inherits_Perms")]
     public bool Inherits_Perms { get; set; }
-
-    /// <summary>
-    /// The item type of this item
-    /// </summary>
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Channel;
 }
 

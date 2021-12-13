@@ -15,7 +15,7 @@ namespace Valour.Shared.Planets
     /// <summary>
     /// This represents a user within a planet and is used to represent membership
     /// </summary>
-    public class PlanetMember<T> : NamedItem<T> where T : Item<T>
+    public interface ISharedPlanetMember
     {
         public const int FLAG_UPDATE_ROLES = 0x01;
 
@@ -49,23 +49,6 @@ namespace Valour.Shared.Planets
         [NotMapped]
         [JsonInclude]
         [JsonPropertyName("ItemType")]
-        public override ItemType ItemType => ItemType.Member;
-    }
-
-    /// <summary>
-    /// This class exists so the server can pass extra data to the client when needed
-    /// </summary>
-    public class PlanetMemberInfo<T, U> 
-        where T : Item<T>
-        where U : Item<U>
-    {
-        [JsonPropertyName("Member")]
-        public PlanetMember<T> Member { get; set; }
-
-        [JsonPropertyName("RoleIds")]
-        public IEnumerable<ulong> RoleIds { get; set; }
-
-        [JsonPropertyName("User")]
-        public User<U> User { get; set; }
+        public ItemType ItemType => ItemType.Member;
     }
 }

@@ -1,6 +1,9 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Users;
+using Valour.Shared.Items;
+using Valour.Shared.Planets;
 
 namespace Valour.Api.Items.Planets.Members;
 
@@ -10,8 +13,42 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : Shared.Planets.PlanetMember<PlanetMember>
+public class PlanetMember : NamedItem<PlanetMember>, ISharedPlanetMember
 {
+    public const int FLAG_UPDATE_ROLES = 0x01;
+
+    /// <summary>
+    /// The user within the planet
+    /// </summary>
+    [JsonPropertyName("User_Id")]
+    public ulong User_Id { get; set; }
+
+    /// <summary>
+    /// The planet the user is within
+    /// </summary>
+    [JsonPropertyName("Planet_Id")]
+    public ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The name to be used within the planet
+    /// </summary>
+    [JsonPropertyName("Nickname")]
+    public string Nickname { get; set; }
+
+    /// <summary>
+    /// The pfp to be used within the planet
+    /// </summary>
+    [JsonPropertyName("Member_Pfp")]
+    public string Member_Pfp { get; set; }
+
+    [NotMapped]
+    new public string Name => Nickname;
+
+    [NotMapped]
+    [JsonInclude]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.Member;
+
     /// <summary>
     /// Cached roles
     /// </summary>
@@ -201,20 +238,5 @@ public class PlanetMember : Shared.Planets.PlanetMember<PlanetMember>
 
         return (await GetUserAsync(force_refresh))?.Username ?? "User not found";
     }
-}
-
-/// <summary>
-/// For getting data from the server.  Must match the one in Shared!
-/// </summary>
-public class PlanetMemberInfo
-{
-    [JsonPropertyName("Member")]
-    public PlanetMember Member { get; set; }
-
-    [JsonPropertyName("RoleIds")]
-    public List<ulong> RoleIds { get; set; }
-
-    [JsonPropertyName("User")]
-    public User User { get; set; }
 }
 

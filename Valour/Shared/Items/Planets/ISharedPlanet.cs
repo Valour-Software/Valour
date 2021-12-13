@@ -8,7 +8,7 @@
 
 namespace Valour.Shared.Items.Planets;
 
-public class Planet<T> : NamedItem<T> where T : Item<T>
+public interface ISharedPlanet
 {
     /// <summary>
     /// The Id of the owner of this planet
@@ -56,6 +56,6 @@ public class Planet<T> : NamedItem<T> where T : Item<T>
     /// The item type of this item
     /// </summary>
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Planet;
+    public ItemType ItemType => ItemType.Planet;
 }
 
