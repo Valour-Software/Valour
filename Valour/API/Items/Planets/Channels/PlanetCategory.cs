@@ -1,7 +1,9 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Shared;
 using Valour.Shared.Items;
+using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Api.Items.Planets.Channels;
 
@@ -11,9 +13,15 @@ namespace Valour.Api.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<PlanetCategory>, IPlanetChannel
+public class PlanetCategory : PlanetChannel<PlanetCategory>, ISharedPlanetCategory
 {
-    public string GetItemTypeName() => "Category";
+    /// <summary>
+    /// The item type of this item
+    /// </summary>
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.Category;
+
+    public override string GetItemTypeName() => "Category";
 
     /// <summary>
     /// Returns the category for the given id
@@ -38,25 +46,25 @@ public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<Plane
     /// <summary>
     /// Returns the planet for this category
     /// </summary>
-    public async Task<Planet> GetPlanetAsync() =>
+    public override async Task<Planet> GetPlanetAsync() =>
         await Planet.FindAsync(Planet_Id);
 
     /// <summary>
     /// Deletes this category
     /// </summary>
-    public async Task<TaskResult> DeleteAsync() =>
+    public override async Task<TaskResult> DeleteAsync() =>
         await ValourClient.DeleteAsync($"api/category/{Id}");
 
     /// <summary>
     /// Sets the name of this category
     /// </summary>
-    public async Task<TaskResult> SetNameAsync(string name) =>
+    public override async Task<TaskResult> SetNameAsync(string name) =>
         await ValourClient.PutAsync($"api/category/{Id}/name", name);
 
     /// <summary>
     /// Sets the description of this category
     /// </summary>
-    public async Task<TaskResult> SetDescriptionAsync(string desc) =>
+    public override async Task<TaskResult> SetDescriptionAsync(string desc) =>
         await ValourClient.PutAsync($"api/category/{Id}/description", desc);
 
     /// <summary>
@@ -68,7 +76,7 @@ public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<Plane
     /// <summary>
     /// Sets the parent id of this category
     /// </summary>
-    public async Task<TaskResult> SetParentIdAsync(ulong? parent_id) =>
+    public override async Task<TaskResult> SetParentIdAsync(ulong? parent_id) =>
         await ValourClient.PutAsync($"api/category/{Id}/parent_id", parent_id);
 
     /// <summary>
@@ -81,14 +89,14 @@ public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<Plane
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public override async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await GetCategoryPermissionsNodeAsync(role_id, force_refresh);
 
 
     /// <summary>
     /// Returns the category permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await PermissionsNode.FindAsync(Id, role_id, ItemType.Category, force_refresh);
 
     /// <summary>

@@ -2,7 +2,7 @@
 
 namespace Valour.Shared.Items.Users;
 
-public class Referral
+public interface ISharedReferral
 {
     [JsonPropertyName("Id")]
     public ulong Id { get; set; }

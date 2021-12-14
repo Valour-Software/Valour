@@ -11,7 +11,7 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat Category within a planet
 /// </summary>
-public class PlanetCategory<T> : PlanetChannel<T> where T : Item<T>
+public interface ISharedPlanetCategory
 {
     [JsonInclude]
     [JsonPropertyName("Position")]
@@ -33,6 +33,6 @@ public class PlanetCategory<T> : PlanetChannel<T> where T : Item<T>
     /// The item type of this item
     /// </summary>
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Category;
+    public ItemType ItemType => ItemType.Category;
 }
 

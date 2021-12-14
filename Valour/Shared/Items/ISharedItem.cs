@@ -16,7 +16,8 @@ public enum ItemType
     User,
     PermissionsNode,
     Role,
-    RoleMember
+    RoleMember,
+    NotificationSubscription
 }
 
 /// <summary>
