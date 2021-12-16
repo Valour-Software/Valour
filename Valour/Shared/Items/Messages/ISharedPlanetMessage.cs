@@ -8,7 +8,7 @@
 
 namespace Valour.Shared.Items.Messages;
 
-public class PlanetMessage : Message
+public interface ISharedPlanetMessage
 {
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }

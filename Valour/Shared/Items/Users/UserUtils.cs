@@ -1,7 +1,7 @@
 ﻿using System.Net.Mail;
 using System.Text.RegularExpressions;
 
-namespace Valour.Shared.Users;
+namespace Valour.Shared.Items.Users;
 
 public class UserUtils
 {

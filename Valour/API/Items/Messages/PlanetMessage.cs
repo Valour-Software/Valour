@@ -5,6 +5,7 @@ using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Messages.Embeds;
+using Valour.Shared.Items.Messages;
 
 namespace Valour.Api.Items.Messages;
 
@@ -14,7 +15,7 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : Message
+public class PlanetMessage : Message, ISharedPlanetMessage
 {
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set;}

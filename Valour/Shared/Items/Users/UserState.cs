@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Shared.Users;
+namespace Valour.Shared.Items.Users;
 
 public class UserState
 {
