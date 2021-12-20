@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Users;
-using Valour.Shared.Users;
 
 namespace Valour.Api.Items.Users;
 
@@ -78,47 +77,14 @@ public class User : NamedItem<User>, ISharedUser
     /// <summary>
     /// The span of time from which the user was last active
     /// </summary>
+    [NotMapped]
     [JsonPropertyName("Last_Active_Span")]
-    public TimeSpan Last_Active_Span
-    {
-        get
-        {
-            return DateTime.UtcNow.Subtract(Last_Active);
-        }
-    }
+    public TimeSpan Last_Active_Span => ((ISharedUser)this).Last_Active_Span;
+    
 
     [NotMapped]
-    public UserState UserState
-    {
-        get
-        {
-            // Automatically determine
-            if (UserState_Value == 0)
-            {
-                double minPassed = DateTime.UtcNow.Subtract(Last_Active).TotalMinutes;
-
-                if (minPassed < 3)
-                {
-                    return UserState.Online;
-                }
-                else if (minPassed < 6)
-                {
-                    return UserState.Away;
-                }
-                else
-                {
-                    return UserState.Offline;
-                }
-            }
-
-            // User selected
-            return UserState.States[UserState_Value];
-        }
-        set
-        {
-            UserState_Value = value.Value;
-        }
-    }
+    public UserState UserState => ((ISharedUser)this).UserState;
+    
 
     [NotMapped]
     [JsonInclude]

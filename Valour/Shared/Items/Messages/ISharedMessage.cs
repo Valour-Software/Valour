@@ -81,11 +81,31 @@ public interface ISharedMessage
     /// <summary>
     /// Returns the hash for a message.
     /// </summary>
-    public byte[] GetHash();
+    public byte[] GetHash()
+    {
+        using (SHA256 sha = SHA256.Create())
+        {
+            string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}";
+
+            byte[] buffer = Encoding.Unicode.GetBytes(conc);
+
+            return sha.ComputeHash(buffer);
+        }
+    }
 
     /// <summary>
     /// Returns true if the message is a embed
     /// </summary>
-    public bool IsEmbed();
+    public bool IsEmbed()
+    {
+        if (Embed_Data != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }
 

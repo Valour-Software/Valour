@@ -13,7 +13,7 @@ namespace Valour.Shared.Items.Authorization;
 /// Oauth apps allow an organization or person to issue tokens on behalf of a user
 /// which can be easily tracked and revoked
 /// </summary>
-public class OauthApp
+public interface ISharedOauthApp
 {
     /// <summary>
     /// The ID of the app

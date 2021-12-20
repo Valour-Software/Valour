@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Valour.Shared.Items.Authorization;
 using Valour.Shared;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -9,6 +8,7 @@ using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Items;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -22,8 +22,56 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
 /// </summary>
-public class Planet : Shared.Items.Planets.Planet<Planet>
+public class Planet : NamedItem, ISharedPlanet
 {
+    /// <summary>
+    /// The Id of the owner of this planet
+    /// </summary>
+    [JsonPropertyName("Owner_Id")]
+    public ulong Owner_Id { get; set; }
+
+    /// <summary>
+    /// The image url for the planet 
+    /// </summary>
+    [JsonPropertyName("Image_Url")]
+    public string Image_Url { get; set; }
+
+    /// <summary>
+    /// The description of the planet
+    /// </summary>
+    [JsonPropertyName("Description")]
+    public string Description { get; set; }
+
+    /// <summary>
+    /// If the server requires express allowal to join a planet
+    /// </summary>
+    [JsonPropertyName("Public")]
+    public bool Public { get; set; }
+
+    /// <summary>
+    /// The amount of members on the planet
+    /// </summary>
+    [JsonPropertyName("Member_Count")]
+    public uint Member_Count { get; set; }
+
+    /// <summary>
+    /// The default role for the planet
+    /// </summary>
+    [JsonPropertyName("Default_Role_Id")]
+    public ulong Default_Role_Id { get; set; }
+
+    /// <summary>
+    /// The id of the main channel of the planet
+    /// </summary>
+    [JsonPropertyName("Main_Channel_Id")]
+    public ulong Main_Channel_Id { get; set; }
+
+    /// <summary>
+    /// The item type of this item
+    /// </summary>
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.Planet;
+
     [InverseProperty("Planet")]
     [JsonIgnore]
     public virtual ICollection<PlanetRole> Roles { get; set; }
@@ -40,8 +88,6 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
 
     [InverseProperty("Planet")]
     public virtual ICollection<Invite> Invites { get; set; }
-
-    public ItemType ItemType => ItemType.Planet;
 
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 

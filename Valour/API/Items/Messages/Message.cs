@@ -4,8 +4,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages;
+using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages.Mentions;
 
 namespace Valour.Api.Items.Messages;
@@ -154,30 +154,10 @@ public class Message : ISharedMessage
     /// <summary>
     /// Returns the hash for a message
     /// </summary>
-    public byte[] GetHash()
-    {
-        using (SHA256 sha = SHA256.Create())
-        {
-            string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}";
+    public byte[] GetHash() => ((ISharedMessage)this).GetHash();
 
-            byte[] buffer = Encoding.Unicode.GetBytes(conc);
-
-            return sha.ComputeHash(buffer);
-        }
-    }
     /// <summary>
     /// Returns true if the message is a embed
     /// </summary>
-    public bool IsEmbed()
-    {
-        if (Embed_Data != null)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
+    public bool IsEmbed() => ((ISharedMessage)this).IsEmbed();
 }

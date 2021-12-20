@@ -47,6 +47,8 @@ public class Invite : Item<Invite>, ISharedInvite
     [JsonPropertyName("ItemType")]
     public override ItemType ItemType => ItemType.Invite;
 
+    public bool IsPermanent() => ((ISharedInvite)this).IsPermanent();
+
     /// <summary>
     /// Returns the invite for the given invite code
     /// </summary>

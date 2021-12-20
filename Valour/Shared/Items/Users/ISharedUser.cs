@@ -1,8 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Net.Mail;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using Valour.Shared.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -82,9 +79,47 @@ public interface ISharedUser
     /// The span of time from which the user was last active
     /// </summary>
     [JsonPropertyName("Last_Active_Span")]
-    public TimeSpan Last_Active_Span { get; }
+    public TimeSpan Last_Active_Span
+    {
+        get
+        {
+            return DateTime.UtcNow.Subtract(Last_Active);
+        }
+    }
 
-
+    /// <summary>
+    /// The current activity state of the user
+    /// </summary>
     [NotMapped]
-    public UserState UserState { get; set; }
+    public UserState UserState
+    {
+        get
+        {
+            // Automatically determine
+            if (UserState_Value == 0)
+            {
+                double minPassed = DateTime.UtcNow.Subtract(Last_Active).TotalMinutes;
+
+                if (minPassed < 3)
+                {
+                    return UserState.Online;
+                }
+                else if (minPassed < 6)
+                {
+                    return UserState.Away;
+                }
+                else
+                {
+                    return UserState.Offline;
+                }
+            }
+
+            // User selected
+            return UserState.States[UserState_Value];
+        }
+        set
+        {
+            UserState_Value = value.Value;
+        }
+    }
 }

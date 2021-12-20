@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Database.Items.Planets;
+using System.Text.Json.Serialization;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -9,12 +11,27 @@ using Valour.Database.Items.Planets;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRoleMember : Shared.Items.Planets.Members.PlanetRoleMember
+public class PlanetRoleMember : Item, ISharedPlanetRoleMember
 {
     [ForeignKey("Member_Id")]
     public virtual PlanetMember Member { get; set; }
 
     [ForeignKey("Role_Id")]
     public virtual PlanetRole Role { get; set; }
+
+    [JsonPropertyName("User_Id")]
+    public ulong User_Id { get; set; }
+
+    [JsonPropertyName("Role_Id")]
+    public ulong Role_Id { get; set; }
+
+    [JsonPropertyName("Planet_Id")]
+    public ulong Planet_Id { get; set; }
+
+    [JsonPropertyName("Member_Id")]
+    public ulong Member_Id { get; set; }
+
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.RoleMember;
 }
 

@@ -1,30 +1,4 @@
-﻿using Valour.Shared.Embeds;
-
-namespace Valour.Api.Items.Messages.Embeds;
-
-public class EmbedFormData : Valour.Shared.Items.Messages.Embeds.EmbedFormData
-{
-    
-}
-
-public class EmbedInteractionEvent : Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent
-{
-
-}
-
-public class EmbedItem : Shared.Items.Messages.Embeds.EmbedItem
-{
-
-}
-
-
-/// <summary>
-/// This class exists render embeds
-/// </summary>
-public class Embed : Shared.Items.Messages.Embeds.Embed
-{
-
-}
+﻿namespace Valour.Shared.Items.Messages.Embeds;
 
 public class EmbedPageBuilder
 {
@@ -89,15 +63,18 @@ public class EmbedBuilder
     {
     }
 
-    public Embed Generate(){
+    public Embed Generate()
+    {
 
         EmbedItem[][] pages = new EmbedItem[Pages.Count][];
 
-        for (int i = 0; i < Pages.Count; i++){
+        for (int i = 0; i < Pages.Count; i++)
+        {
             pages[i] = Pages[i].ToArray();
         }
 
-        return new Embed(){
+        return new Embed()
+        {
             Pages = pages
         };
     }
@@ -158,3 +135,4 @@ public class EmbedBuilder
         return this;
     }
 }
+

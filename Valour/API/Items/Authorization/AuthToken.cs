@@ -1,16 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 
-namespace Valour.Shared.Items.Authorization;
+namespace Valour.Api.Items.Authorization;
 
-/*  Valour - A free and secure chat client
-*  Copyright (C) 2021 Vooper Media LLC
-*  This program is subject to the GNU Affero General Public license
-*  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
-*/
-
-public class AuthToken
+public class AuthToken : ISharedAuthToken
 {
     /// <summary>
     /// The ID of the authentification key is also the secret key. Really no need for another random gen.
@@ -50,11 +46,15 @@ public class AuthToken
     public DateTime Expires { get; set; }
 
     /// <summary>
+    /// The type of this item
+    /// </summary>
+    [JsonPropertyName("ItemType")]
+    public ItemType ItemType => ItemType.AuthToken;
+
+    /// <summary>
     /// Helper method for scope checking
     /// </summary>
-    public bool HasScope(UserPermission permission)
-    {
-        return Permission.HasPermission(Scope, permission);
-    }
+    public bool HasScope(UserPermission permission) => 
+        ((ISharedAuthToken)this).HasScope(permission);
 }
 

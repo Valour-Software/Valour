@@ -19,7 +19,7 @@ public enum MentionType
 /// <summary>
 /// A member mention is used to refer to a member within a message
 /// </summary>
-public interface ISharedMention
+public class Mention
 {
     /// <summary>
     /// The type of mention this is

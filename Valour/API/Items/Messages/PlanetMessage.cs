@@ -6,6 +6,7 @@ using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages;
+using Valour.Shared.Items.Messages.Embeds;
 
 namespace Valour.Api.Items.Messages;
 
