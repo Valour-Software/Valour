@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Valour.Shared.Items.Authorization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets.Members;
+using Valour.Shared.Items;
+using System.Drawing;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -15,7 +17,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetRole>
+public class PlanetRole : NamedItem, ISharedPlanetRole
 {
     [ForeignKey("Planet_Id")]
     [JsonIgnore]
@@ -24,6 +26,59 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
     [InverseProperty("Role")]
     [JsonIgnore]
     public virtual ICollection<Authorization.PermissionsNode> PermissionNodes { get; set; }
+
+    /// <summary>
+    /// The position of the role: Lower has more authority
+    /// </summary>
+    [JsonPropertyName("Position")]
+    public uint Position { get; set; }
+
+    /// <summary>
+    /// The ID of the planet or system this role belongs to
+    /// </summary>
+    [JsonPropertyName("Planet_Id")]
+    public ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The planet permissions for the role
+    /// </summary>
+    [JsonPropertyName("Permissions")]
+    public ulong Permissions { get; set; }
+
+    // RGB Components for role color
+    [JsonPropertyName("Color_Red")]
+    public byte Color_Red { get; set; }
+
+    [JsonPropertyName("Color_Green")]
+    public byte Color_Green { get; set; }
+
+    [JsonPropertyName("Color_Blue")]
+    public byte Color_Blue { get; set; }
+
+    // Formatting options
+    [JsonPropertyName("Bold")]
+    public bool Bold { get; set; }
+
+    [JsonPropertyName("Italics")]
+    public bool Italics { get; set; }
+
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.PlanetRole;
+
+    public uint GetAuthority() =>
+        ((ISharedPlanetRole)this).GetAuthority();
+
+
+    public Color GetColor() =>
+        ((ISharedPlanetRole)this).GetColor();
+
+
+    public string GetColorHex() =>
+        ((ISharedPlanetRole)this).GetColorHex();
+
+
+    public bool HasPermission(PlanetPermission perm) =>
+        ((ISharedPlanetRole)this).HasPermission(perm);
 
     public ICollection<Authorization.PermissionsNode> GetNodes(ValourDB db)
     {
@@ -34,7 +89,7 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
     public ICollection<Authorization.PermissionsNode> GetChannelNodes(ValourDB db)
     {
         PermissionNodes ??= db.PermissionsNodes.Where(x => x.Role_Id == Id).ToList();
-        return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.Channel).ToList();
+        return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.ChatChannel).ToList();
     }
 
     public ICollection<Authorization.PermissionsNode> GetCategoryNodes(ValourDB db)
@@ -45,11 +100,11 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
 
     public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == channel.Id &&
-                                                                     x.Target_Type == Shared.Items.ItemType.Channel);
+                                                                     x.Target_Type == Shared.Items.ItemType.ChatChannel);
 
     public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(PlanetCategory category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
-                                                                     x.Target_Type == Shared.Items.ItemType.Channel);
+                                                                     x.Target_Type == Shared.Items.ItemType.ChatChannel);
 
     public async Task<Authorization.PermissionsNode> GetCategoryNodeAsync(PlanetCategory category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&

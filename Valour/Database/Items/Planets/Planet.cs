@@ -192,7 +192,7 @@ public class Planet : NamedItem, ISharedPlanet
         if (duration == 0) duration = null;
 
         // Add ban to database
-        Ban ban = new Ban()
+        PlanetBan ban = new PlanetBan()
         {
             Id = IdManager.Generate(),
             Reason = reason,

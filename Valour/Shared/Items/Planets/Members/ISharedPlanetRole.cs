@@ -48,14 +48,27 @@ public interface ISharedPlanetRole
     public bool Italics { get; set; }
 
     [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.Role;
+    public ItemType ItemType => ItemType.PlanetRole;
 
-    public uint GetAuthority();
+    public uint GetAuthority()
+    {
+        return uint.MaxValue - Position;
+    }
 
-    public Color GetColor();
+    public Color GetColor()
+    {
+        return Color.FromArgb(Color_Red, Color_Green, Color_Blue);
+    }
 
-    public string GetColorHex();
+    public string GetColorHex()
+    {
+        Color c = GetColor();
+        return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+    }
 
-    public bool HasPermission(PlanetPermission perm);
+    public bool HasPermission(PlanetPermission perm)
+    {
+        return Permission.HasPermission(Permissions, perm);
+    }
 }
 

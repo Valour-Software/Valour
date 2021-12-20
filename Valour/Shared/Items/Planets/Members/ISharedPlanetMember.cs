@@ -44,7 +44,7 @@ namespace Valour.Shared.Planets
         public string Member_Pfp { get; set; }
 
         [NotMapped]
-        new public string Name => Nickname;
+        public string Name => Nickname;
 
         [NotMapped]
         [JsonInclude]

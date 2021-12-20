@@ -40,7 +40,7 @@ public interface IPlanetChannel
     {
         switch (type)
         {
-            case ItemType.Channel:
+            case ItemType.ChatChannel:
                 return await PlanetChatChannel.FindAsync(id, db);
             case ItemType.Category:
                 return await PlanetCategory.FindAsync(id, db);

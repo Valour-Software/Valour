@@ -77,7 +77,7 @@ public class PlanetRole : NamedItem<PlanetRole>, ISharedPlanetRole
     public bool Italics { get; set; }
 
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Role;
+    public override ItemType ItemType => ItemType.PlanetRole;
 
     /// <summary>
     /// Returns the planet role for the given id
@@ -99,24 +99,19 @@ public class PlanetRole : NamedItem<PlanetRole>, ISharedPlanetRole
         return role;
     }
 
-    public uint GetAuthority()
-    {
-        return uint.MaxValue - Position;
-    }
+    public uint GetAuthority() => 
+        ((ISharedPlanetRole)this).GetAuthority();
 
-    public Color GetColor()
-    {
-        return Color.FromArgb(Color_Red, Color_Green, Color_Blue);
-    }
 
-    public string GetColorHex()
-    {
-        Color c = GetColor();
-        return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-    }
+    public Color GetColor() =>
+        ((ISharedPlanetRole)this).GetColor();
+    
 
-    public bool HasPermission(PlanetPermission perm)
-    {
-        return Permission.HasPermission(Permissions, perm);
-    }
+    public string GetColorHex() =>
+        ((ISharedPlanetRole)this).GetColorHex();
+
+
+    public bool HasPermission(PlanetPermission perm) =>
+        ((ISharedPlanetRole)this).HasPermission(perm);
+    
 }

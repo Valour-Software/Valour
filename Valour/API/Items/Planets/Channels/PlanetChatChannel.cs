@@ -34,7 +34,7 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanet
     /// The item type of this item
     /// </summary>
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Channel;
+    public override ItemType ItemType => ItemType.ChatChannel;
 
     /// <summary>
     /// Returns the channel for the given id
@@ -108,7 +108,7 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanet
     /// Returns the channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, Shared.Items.ItemType.Channel, force_refresh);
+        await PermissionsNode.FindAsync(Id, role_id, Shared.Items.ItemType.ChatChannel, force_refresh);
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)

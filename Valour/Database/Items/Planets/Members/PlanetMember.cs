@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Shared.Items.Authorization;
 using Valour.Database.Items.Users;
 using Valour.Shared.Authorization;
+using Valour.Shared.Planets;
+using Valour.Shared.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -17,7 +19,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : Valour.Shared.Planets.PlanetMember<PlanetMember>
+public class PlanetMember : NamedItem, ISharedPlanetMember
 {
 
     // Relational DB stuff
@@ -32,6 +34,38 @@ public class PlanetMember : Valour.Shared.Planets.PlanetMember<PlanetMember>
     [InverseProperty("Member")]
     [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
+
+    /// <summary>
+    /// The user within the planet
+    /// </summary>
+    [JsonPropertyName("User_Id")]
+    public ulong User_Id { get; set; }
+
+    /// <summary>
+    /// The planet the user is within
+    /// </summary>
+    [JsonPropertyName("Planet_Id")]
+    public ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The name to be used within the planet
+    /// </summary>
+    [JsonPropertyName("Nickname")]
+    public string Nickname { get; set; }
+
+    /// <summary>
+    /// The pfp to be used within the planet
+    /// </summary>
+    [JsonPropertyName("Member_Pfp")]
+    public string Member_Pfp { get; set; }
+
+    [NotMapped]
+    new public string Name => Nickname;
+
+    [NotMapped]
+    [JsonInclude]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.Member;
 
     public static async Task<PlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db)
     {

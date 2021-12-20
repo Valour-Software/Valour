@@ -32,6 +32,6 @@ public class PlanetRoleMember : Item, ISharedPlanetRoleMember
     public ulong Member_Id { get; set; }
 
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.RoleMember;
+    public override ItemType ItemType => ItemType.PlanetRoleMember;
 }
 

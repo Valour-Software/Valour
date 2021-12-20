@@ -8,18 +8,19 @@ namespace Valour.Shared.Items;
 /// </summary>
 public enum ItemType
 {
-    Channel,
+    ChatChannel,
     Category,
     Planet,
     Invite,
     Member,
     User,
     PermissionsNode,
-    Role,
-    RoleMember,
+    PlanetRole,
+    PlanetRoleMember,
     NotificationSubscription,
     OauthApp,
-    AuthToken
+    AuthToken,
+    PlanetBan
 }
 
 /// <summary>

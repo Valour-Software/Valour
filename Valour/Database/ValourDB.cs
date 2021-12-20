@@ -100,7 +100,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for all banned members
     /// </summary>
-    public DbSet<Ban> PlanetBans { get; set; }
+    public DbSet<PlanetBan> PlanetBans { get; set; }
 
     /// <summary>
     /// Table for planet invites

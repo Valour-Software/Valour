@@ -49,7 +49,7 @@
 <!-- If there's a role selected we show possible permissions that role can have
      for the channel or category -->
 
-@if (Target.ItemType == ItemType.Channel)
+@if (Target.ItemType == ItemType.ChatChannel)
 {
     PlanetChatChannel channel = Target as PlanetChatChannel;
 
@@ -232,7 +232,7 @@ else
                     Role_Id = Selected_Role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    Target_Type = ItemType.Channel
+                    Target_Type = ItemType.ChatChannel
                 };
             }
         }

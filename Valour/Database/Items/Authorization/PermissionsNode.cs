@@ -29,7 +29,7 @@ public class PermissionsNode : Shared.Items.Authorization.PermissionsNode<Permis
     {
         switch (Target_Type)
         {
-            case Shared.Items.ItemType.Channel: return await db.PlanetChatChannels.FindAsync(Target_Id);
+            case Shared.Items.ItemType.ChatChannel: return await db.PlanetChatChannels.FindAsync(Target_Id);
             case Shared.Items.ItemType.Category: return await db.PlanetCategories.FindAsync(Target_Id);
         }
 
