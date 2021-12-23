@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --primary-color: #040d14;
   --secondary-color: #aaaaaa;
   --font-color: #ffffff;
@@ -107,4 +107,22 @@ hr {
 .v-link {
   color: var(--v-cyan);
   text-decoration: none;
+}
+
+a:link {
+    color: #12BEFF;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #804ac5;
+    background-color: transparent;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #61D7F2;
+    background-color: transparent;
+    text-decoration: underline;
 }
