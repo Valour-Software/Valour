@@ -22,7 +22,7 @@ Valour does not have an official app for any platform currently and is officiall
 You need to use a temporary password given to you on the email you used for your Valour account.
 
 ### I don't see any email!
-If you did not receive email from Valour then you need to contact Valour staff. You can find all available contacts [here](https://static.valour.gg/contact) with preferably emailing support@valour.gg.
+If you did not receive email from Valour then you need to contact Valour staff. You can find all available contacts [here](https://static.valour.gg/contact), preferably emailing support@valour.gg.
 
 ## Valour App
 
@@ -43,16 +43,16 @@ Valour staff would only have access to private messages if legally required to o
 ### I want [insert feature]!
 A lot of features that are suggested are already planned to be implemented it is just due to Valour being in it's very early stage means they haven't been coded yet. Some examples of asked for features like this are two factor authentication and password resets. 
 
-However if you do think that a feature that you are suggesting is unique it never hurts to suggest it!
+However if you do think that a feature that you are suggesting is unique it never hurts to suggest it! You can use [github issues](https://github.com/Vooper-Media-LLC/Valour/issues) or directly contact valour staff.
 
 ### Will Valour have a Voice Chat?
 It is not planned to have a voice chat until a viable product has released and funding has been received.
 
 #### *Why couldn't you just make people host the voice chats locally?*
-Local hosting would not be secure for people as the person hosting it could steal their data. Even if it was encrypted, Valour would have to process and proxy it which would cost money.
+Local hosting would not be secure for people as the person hosting it could steal their data. Even if it was encrypted, Valour would have to process and proxy it which would again require funding.
 
 ### What are planets and systems?
-Planets are where your community will be on. There will be chat rooms and categories. Systems are an optional collection of planets. They would be primarily used for large communities or with many separate different sub-communities. For example, a nation roleplay where is multiple nations. Each nation would have its planet and they would be all in the one system for their roleplay.
+Planets are where your community will be on. There will be chat rooms and categories. Systems are an optional collection of planets. They would be primarily used for large communities or with many separate different sub-communities. For example, a nation roleplay where there is multiple nations. Each nation would have its own planet and they would be all in one system.
 
 #### *How will Systems and Planets be organized?*
 System roles would be applied to every planet within the system. This would also apply the permission the system user has onto the planet and planets would have their roles as well. This means if someone was a system admin they would also be an admin on planets within the system almost acting like planets within a single planet.
@@ -66,11 +66,11 @@ Due to Valour's AGPL3 license, you can modify and use Valour however you want, b
 Yes, there will be bots. You can use your account for self-botting as well if you wish. The only requirement needed for making bots is that you ensure they use the AGPL license. Refer to '[*Is there anything I have to worry about if I make something for Valour?*](#is-there-anything-i-have-to-worry-about-if-i-make-something-for-valour)' for more details.
 
 ### Are there any API wrappers?
-Currently the only official API wrapper is [Valour.API](https://github.com/Vooper-Media-LLC/Valour/tree/main/Valour/API) for .NET which is under development. As it will be used by the Valour client it is guranteed to be up to date.
+Currently the only official API wrapper is [Valour.API](https://github.com/Vooper-Media-LLC/Valour/tree/main/Valour/API) for .NET and as it will be used by the main Valour client it is guaranteed to be up to date.
 
 ## Miscellaneous
 
 ### What will happen to my SpookVooper account?
-You will still have to make a Valour account even if you have a SV account. In the future you might be able to use your Valour account to sign into SV.
-<br/><br/>
+SpookVooper will be reset when SpookVooper 2 is created. This also includes your accounts meaning that you will have to authenticate using Valour to use spookvooper.com.
+<br/>
 # [I need to contact Valour Staff!](https://static.valour.gg/contact)
