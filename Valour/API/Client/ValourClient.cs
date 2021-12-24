@@ -787,7 +787,7 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
     {
-        StringContent jsonContent = new StringContent(content);
+        StringContent jsonContent = new StringContent((string)content);
 
         var response = await Http.PostAsync(uri, jsonContent);
 

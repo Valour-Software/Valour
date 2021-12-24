@@ -24,6 +24,10 @@ public class User : NamedItem<User>, ISharedUser
     [JsonPropertyName("Username")]
     public string Username { get; set; }
 
+    [JsonIgnore]
+    [NotMapped]
+    new public string Name => Username;
+
     /// <summary>
     /// The url for the user's profile picture
     /// </summary>
@@ -78,11 +82,12 @@ public class User : NamedItem<User>, ISharedUser
     /// The span of time from which the user was last active
     /// </summary>
     [NotMapped]
-    [JsonPropertyName("Last_Active_Span")]
+    [JsonIgnore]
     public TimeSpan Last_Active_Span => ((ISharedUser)this).Last_Active_Span;
     
 
     [NotMapped]
+    [JsonIgnore]
     public UserState UserState => ((ISharedUser)this).UserState;
     
 

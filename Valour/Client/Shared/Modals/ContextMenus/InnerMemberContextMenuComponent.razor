@@ -97,7 +97,7 @@
 
 	public async Task OnRoleClick(PlanetRole role, bool value)
 	{
-		Valour.Shared.Items.Planets.Members.PlanetRoleMember roleMember = new()
+		PlanetRoleMember roleMember = new()
 		{
 			Member_Id = Member.Id,
 			Planet_Id = Member.Planet_Id,

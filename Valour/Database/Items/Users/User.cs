@@ -9,9 +9,11 @@ namespace Valour.Database.Items.Users;
 public class User : NamedItem, ISharedUser
 {
     [InverseProperty("User")]
+    [JsonIgnore]
     public virtual UserEmail Email { get; set; }
 
     [InverseProperty("User")]
+    [JsonIgnore]
     public virtual ICollection<PlanetMember> Membership { get; set; }
 
     /// <summary>
@@ -19,6 +21,10 @@ public class User : NamedItem, ISharedUser
     /// </summary>
     [JsonPropertyName("Username")]
     public string Username { get; set; }
+
+    [NotMapped]
+    [JsonIgnore]
+    new public string Name => Username;
 
     /// <summary>
     /// The url for the user's profile picture
@@ -79,10 +85,11 @@ public class User : NamedItem, ISharedUser
     /// The span of time from which the user was last active
     /// </summary>
     [NotMapped]
-    [JsonPropertyName("Last_Active_Span")]
+    [JsonIgnore]
     public TimeSpan Last_Active_Span => ((ISharedUser)this).Last_Active_Span;
 
     [NotMapped]
+    [JsonIgnore]
     public UserState UserState => ((ISharedUser)this).UserState;
 }
 

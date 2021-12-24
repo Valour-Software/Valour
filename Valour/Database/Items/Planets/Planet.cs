@@ -81,14 +81,18 @@ public class Planet : NamedItem, ISharedPlanet
     public virtual ICollection<PlanetMember> Members { get; set; }
 
     [InverseProperty("Planet")]
+    [JsonIgnore]
     public virtual ICollection<PlanetChatChannel> ChatChannels { get; set; }
 
     [InverseProperty("Planet")]
+    [JsonIgnore]
     public virtual ICollection<PlanetCategory> Categories { get; set; }
 
     [InverseProperty("Planet")]
+    [JsonIgnore]
     public virtual ICollection<Invite> Invites { get; set; }
 
+    [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
     /// <summary>
@@ -117,14 +121,8 @@ public class Planet : NamedItem, ISharedPlanet
     /// <summary>
     /// Retrieves a ServerPlanet for the given id
     /// </summary>
-    public static async Task<Planet> FindAsync(ulong id)
-    {
-        using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-        {
-            var planet = await db.Planets.FindAsync(id);
-            return planet;
-        }
-    }
+    public static async Task<Planet> FindAsync(ulong id, ValourDB db) =>
+        await db.Planets.FindAsync(id);
 
     public async Task<TaskResult<int>> TryKickMemberAsync(PlanetMember member,
         PlanetMember target, ValourDB db)

@@ -2,8 +2,8 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Valour.Api.Items.Messages;
-using Valour.Api.Items.Messages.Embeds;
 using Valour.Api.Items.Planets.Members;
+using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages.Mentions;
 
 namespace Valour.Client.Messages;

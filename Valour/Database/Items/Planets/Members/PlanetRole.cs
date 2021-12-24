@@ -117,16 +117,6 @@ public class PlanetRole : NamedItem, ISharedPlanetRole
         (await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Target_Id == channel_id)).GetPermissionState(permission);
 
     /// <summary>
-    /// Returns if the role has the permission
-    /// </summary>
-    /// <param name="permission"></param>
-    /// <returns></returns>
-    public bool HasPermission(PlanetPermission permission)
-    {
-        return Permission.HasPermission(Permissions, permission);
-    }
-
-    /// <summary>
     /// Tries to delete this role
     /// </summary>
     public async Task<TaskResult<int>> TryDeleteAsync(PlanetMember member, ValourDB db)

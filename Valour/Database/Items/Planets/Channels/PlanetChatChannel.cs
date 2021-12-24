@@ -7,6 +7,8 @@ using Valour.Shared;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets.Channels;
+using Valour.Shared.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -16,16 +18,27 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetChatChannel : Valour.Shared.Items.Planets.Channels.PlanetChatChannel<PlanetChatChannel>, IPlanetChannel
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
+    /// <summary>
+    /// The amount of messages ever sent in the channel
+    /// </summary>
+    [JsonPropertyName("Message_Count")]
+    public ulong Message_Count { get; set; }
 
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
+    /// <summary>
+    /// If true, this channel will inherit the permission nodes
+    /// from the category it belongs to
+    /// </summary>
+    [JsonPropertyName("Inherits_Perms")]
+    public bool Inherits_Perms { get; set; }
 
-    [ForeignKey("Parent_Id")]
-    [JsonIgnore]
-    public virtual PlanetCategory Parent { get; set; }
+    /// <summary>
+    /// The type of this item
+    /// </summary>
+    [NotMapped]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.ChatChannel;
 
     /// <summary>
     /// The regex used for name validation
@@ -76,27 +89,9 @@ public class PlanetChatChannel : Valour.Shared.Items.Planets.Channels.PlanetChat
     }
 
     /// <summary>
-    /// Returns the planet of the channel
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync(ValourDB db)
-    {
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-        return Planet;
-    }
-
-    /// <summary>
-    /// Returns the parent category of this channel
-    /// </summary>
-    public async Task<PlanetCategory> GetParentAsync(ValourDB db)
-    {
-        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
-        return Parent;
-    }
-
-    /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
-    public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
+    public override async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
     {
         Planet ??= await GetPlanetAsync(db);
 
@@ -253,7 +248,7 @@ public class PlanetChatChannel : Valour.Shared.Items.Planets.Channels.PlanetChat
     /// <summary>
     /// Notifies all clients that this channel has changed
     /// </summary>
-    public void NotifyClientsChange()
+    public override void NotifyClientsChange()
     {
         PlanetHub.NotifyChatChannelChange(this);
     }

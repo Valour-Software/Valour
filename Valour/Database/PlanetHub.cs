@@ -5,6 +5,7 @@ using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Items.Messages.Embeds;
+using Valour.Database.Items.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -27,7 +28,7 @@ namespace Valour.Database
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
 
                 // Authenticate user
-                Shared.Items.Authorization.AuthToken authToken = await Items.Authorization.AuthToken.TryAuthorize(token, Context);
+                AuthToken authToken = await AuthToken.TryAuthorize(token, Context);
 
                 if (authToken == null) return;
 
@@ -65,7 +66,7 @@ namespace Valour.Database
             using (ValourDB Context = new(ValourDB.DBOptions)) {
 
                 // Authenticate user
-                Shared.Items.Authorization.AuthToken authToken = await Items.Authorization.AuthToken.TryAuthorize(token, Context);
+                AuthToken authToken = await AuthToken.TryAuthorize(token, Context);
 
                 if (authToken == null) return;
 

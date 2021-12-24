@@ -20,7 +20,9 @@ public enum ItemType
     NotificationSubscription,
     OauthApp,
     AuthToken,
-    PlanetBan
+    PlanetBan,
+    Referral,
+    PlanetMessage
 }
 
 /// <summary>

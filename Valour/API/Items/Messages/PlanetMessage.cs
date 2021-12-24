@@ -4,7 +4,6 @@ using Valour.Api.Client;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
-using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages;
 using Valour.Shared.Items.Messages.Embeds;
 

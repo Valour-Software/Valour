@@ -60,6 +60,7 @@ public class PlanetMember : NamedItem, ISharedPlanetMember
     public string Member_Pfp { get; set; }
 
     [NotMapped]
+    [JsonIgnore]
     new public string Name => Nickname;
 
     [NotMapped]

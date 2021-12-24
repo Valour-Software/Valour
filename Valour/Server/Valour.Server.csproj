@@ -24,7 +24,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Database\Valour.Database.csproj" />
-    <ProjectReference Include="..\Client\Valour.Client.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 

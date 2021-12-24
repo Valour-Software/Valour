@@ -78,7 +78,8 @@ public interface ISharedUser
     /// <summary>
     /// The span of time from which the user was last active
     /// </summary>
-    [JsonPropertyName("Last_Active_Span")]
+    [NotMapped]
+    [JsonIgnore]
     public TimeSpan Last_Active_Span
     {
         get

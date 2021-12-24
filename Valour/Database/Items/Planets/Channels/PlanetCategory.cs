@@ -8,61 +8,21 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
+using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<PlanetCategory>, IPlanetChannel
+public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 {
-
-    [JsonIgnore]
-    [ForeignKey("Planet_Id")]
-    public virtual Planet Planet { get; set; }
-
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
-    /// <summary>
-    /// The id of this category
-    /// </summary>
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
-    /// <summary>
-    /// The name of this category
-    /// </summary>
-    [JsonPropertyName("Name")]
-    public string Name { get; set; }
-
-    /// <summary>
-    /// The position of this category
-    /// </summary>
-    [JsonPropertyName("Position")]
-    public ushort Position { get; set; }
-
-    /// <summary>
-    /// The id of the parent of this category (if it exists)
-    /// </summary>
-    [JsonPropertyName("Parent_Id")]
-    public ulong? Parent_Id { get; set; }
-
-    /// <summary>
-    /// The id of the planet containing this category
-    /// </summary>
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
-
-    /// <summary>
-    /// The description of this category
-    /// </summary>
-    [JsonPropertyName("Description")]
-    public string Description { get; set; }
 
     /// <summary>
     /// The type of this item
     /// </summary>
     [NotMapped]
     [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.Category;
+    public override ItemType ItemType => ItemType.Category;
 
     /// <summary>
     /// Tries to delete the category while respecting constraints
@@ -202,7 +162,7 @@ public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<Plane
         return Planet;
     }
 
-    public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
+    public override async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
     {
         Planet planet = await GetPlanetAsync(db);
 
@@ -263,7 +223,7 @@ public class PlanetCategory : Shared.Items.Planets.Channels.PlanetCategory<Plane
         return false;
     }
 
-    public void NotifyClientsChange()
+    public override void NotifyClientsChange()
     {
         PlanetHub.NotifyCategoryChange(this);
     }

@@ -14,11 +14,11 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public static IPlanetChannel SelectedItem { get; set; }
+    public static IOrderableChannel SelectedItem { get; set; }
 
     public static ChannelListContextMenuComponent Instance;
 
-    public static async Task SetSelectedItem(IPlanetChannel item){
+    public static async Task SetSelectedItem(IOrderableChannel item){
 
         Console.WriteLine(item.ItemType.ToString());
 

@@ -76,7 +76,7 @@ else
         Console.WriteLine(key);
         Console.WriteLine(auth);
 
-        Valour.Shared.Items.Notifications.NotificationSubscription not = new()
+        Api.Items.Notifications.NotificationSubscription not = new()
         {
             Endpoint = endpoint,
             Auth = auth,
@@ -94,7 +94,7 @@ else
     public async Task<string> AppUpdate()
     {
         // Get latest version number
-        newVersion = await ValourClient.GetJsonAsync<string>("api/version");
+        //newVersion = await ValourClient.GetJsonAsync<string>("api/version");
 
         Console.WriteLine("New version available");
         hideUpdate = false;

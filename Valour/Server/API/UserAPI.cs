@@ -11,6 +11,7 @@ using Valour.Shared.Items.Users;
 using Valour.Shared.Users.Identity;
 using Valour.Database.Items.Authorization;
 using Valour.Shared.Authorization;
+using Valour.Server.Users;
 
 namespace Valour.Server.API
 {
@@ -18,9 +19,9 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapGet ("api/user/{user_id}", GetUser);
+            app.MapGet("api/user/{user_id}", GetUser);
 
-            app.MapGet ("api/user/{user_id}/planets", GetPlanets);
+            app.MapGet("api/user/{user_id}/planets", GetPlanets);
 
             app.MapGet("api/user/{user_id}/planet_ids", GetPlanetIds);
 
@@ -156,7 +157,7 @@ namespace Valour.Server.API
 
             if (recovery == null) { await NotFound("Recovery request not found", ctx); return; }
 
-            TaskResult passwordValid = User.TestPasswordComplexity(request.Password);
+            TaskResult passwordValid = UserUtils.TestPasswordComplexity(request.Password);
 
             if (!passwordValid.Success) { await BadRequest(passwordValid.Message, ctx); return; }
 
@@ -172,7 +173,7 @@ namespace Valour.Server.API
 
             // Generate salt
             byte[] salt = PasswordManager.GenerateSalt();
-            
+
             // Generate password hash
             byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
 
@@ -197,7 +198,7 @@ namespace Valour.Server.API
             if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == email.ToLower())) { await BadRequest("Email taken", ctx); return; }
 
             // Test email
-            TaskResult<string> emailResult = User.TestEmail(email);
+            TaskResult<string> emailResult = UserUtils.TestEmail(email);
 
             if (!emailResult.Success) { await BadRequest(emailResult.Message, ctx); return; }
 
@@ -205,12 +206,12 @@ namespace Valour.Server.API
             email = emailResult.Data;
 
             // Test username
-            TaskResult usernameResult = User.TestUsername(username);
+            TaskResult usernameResult = UserUtils.TestUsername(username);
 
             if (!usernameResult.Success) { await BadRequest(usernameResult.Message, ctx); return; }
 
             // Test password complexity
-            TaskResult passwordResult = User.TestPasswordComplexity(password);
+            TaskResult passwordResult = UserUtils.TestPasswordComplexity(password);
 
             // Enforce password tests
             if (!passwordResult.Success) { await BadRequest(passwordResult.Message, ctx); return; }

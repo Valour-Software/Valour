@@ -14,9 +14,11 @@ namespace Valour.Database.Items.Planets.Members;
 public class PlanetRoleMember : Item, ISharedPlanetRoleMember
 {
     [ForeignKey("Member_Id")]
+    [JsonIgnore]
     public virtual PlanetMember Member { get; set; }
 
     [ForeignKey("Role_Id")]
+    [JsonIgnore]
     public virtual PlanetRole Role { get; set; }
 
     [JsonPropertyName("User_Id")]

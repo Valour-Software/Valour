@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Valour.Database.Items;
 using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Messages;
 using Valour.Database.Items.Notifications;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;

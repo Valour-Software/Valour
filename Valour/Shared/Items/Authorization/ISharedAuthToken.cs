@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Authorization;
 
@@ -48,6 +49,10 @@ public interface ISharedAuthToken
     /// </summary>
     [JsonPropertyName("Expires")]
     public DateTime Expires { get; set; }
+
+    [NotMapped]
+    [JsonPropertyName("ItemType")]
+    public ItemType ItemType => ItemType.AuthToken;
 
     /// <summary>
     /// Helper method for scope checking

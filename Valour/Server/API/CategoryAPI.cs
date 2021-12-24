@@ -401,7 +401,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<IPlanetChannel> children = new List<IPlanetChannel>();
+            List<PlanetChannel> children = new List<PlanetChannel>();
 
             foreach (var channel in category.Planet.ChatChannels)
             {
@@ -495,11 +495,11 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<IPlanetChannel> changed = new List<IPlanetChannel>();
+            List<PlanetChannel> changed = new List<PlanetChannel>();
 
             foreach (CategoryContentData order in orderData)
             {
-                IPlanetChannel item = await IPlanetChannel.FindAsync(order.ItemType, order.Id, db);
+                PlanetChannel item = await PlanetChannel.FindAsync(order.ItemType, order.Id, db);
 
                 if (item == null)
                 {
@@ -596,7 +596,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            IPlanetChannel in_item = null;
+            PlanetChannel in_item = null;
 
             switch (type)
             {
@@ -622,7 +622,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            IPlanetChannel item = await IPlanetChannel.FindAsync(in_item.ItemType, in_item.Id, db);
+            PlanetChannel item = await PlanetChannel.FindAsync(in_item.ItemType, in_item.Id, db);
 
             if (item == null)
             {

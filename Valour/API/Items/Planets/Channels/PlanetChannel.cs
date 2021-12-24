@@ -6,7 +6,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Api.Items.Planets.Channels;
 
-public abstract class PlanetChannel<T> : Channel<T>, ISharedPlanetChannel where T : Item<T>
+public abstract class PlanetChannel<T> : Channel<T>, ISharedPlanetChannel, IOrderableChannel where T : Item<T>
 {
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }
