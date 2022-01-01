@@ -1,9 +1,11 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Shared.Items;
 
-namespace Valour.Database.Items;
+namespace Valour.Shared.Items;
 
-public abstract class Channel : NamedItem, ISharedChannel
+/// <summary>
+/// Common functionality between channels
+/// </summary>
+public class Channel
 {
     [JsonInclude]
     [JsonPropertyName("Position")]

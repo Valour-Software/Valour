@@ -8,11 +8,8 @@
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public interface ISharedPlanetRoleMember
+public class PlanetRoleMemberBase : Item
 {
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
     [JsonPropertyName("User_Id")]
     public ulong User_Id { get; set; }
 
@@ -24,5 +21,9 @@ public interface ISharedPlanetRoleMember
 
     [JsonPropertyName("Member_Id")]
     public ulong Member_Id { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.PlanetRoleMember;
 }
 

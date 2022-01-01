@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
-namespace Valour.Shared.Items.Planets;
+namespace Valour.Shared.Items.Planets.Members;
 
-public interface ISharedPlanetBan
+public class PlanetBanBase : Item
 {
     /// <summary>
     /// The user that was panned
@@ -40,6 +40,12 @@ public interface ISharedPlanetBan
     /// </summary>
     [JsonPropertyName("Minutes")]
     public uint? Minutes { get; set; }
+
+    /// <summary>
+    /// The type of this item
+    /// </summary>
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.PlanetBan;
 
     /// <summary>
     /// True if the ban never expires

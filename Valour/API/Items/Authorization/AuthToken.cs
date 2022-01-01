@@ -55,6 +55,6 @@ public class AuthToken : ISharedAuthToken
     /// Helper method for scope checking
     /// </summary>
     public bool HasScope(UserPermission permission) => 
-        ((ISharedAuthToken)this).HasScope(permission);
+        Permission.HasPermission(Scope, permission);
 }
 

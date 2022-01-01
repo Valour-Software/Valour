@@ -53,13 +53,5 @@ public interface ISharedAuthToken
     [NotMapped]
     [JsonPropertyName("ItemType")]
     public ItemType ItemType => ItemType.AuthToken;
-
-    /// <summary>
-    /// Helper method for scope checking
-    /// </summary>
-    public bool HasScope(UserPermission permission)
-    {
-        return Permission.HasPermission(Scope, permission);
-    }
 }
 

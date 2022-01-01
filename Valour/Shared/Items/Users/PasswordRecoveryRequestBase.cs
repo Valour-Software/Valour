@@ -5,7 +5,7 @@ namespace Valour.Shared.Items.Users;
 /// <summary>
 /// Used to request a password recovery operation
 /// </summary>
-public interface ISharedPasswordRecoveryRequest
+public class PasswordRecoveryRequestBase
 {
     [JsonPropertyName("Password")]
     public string Password { get; set; }

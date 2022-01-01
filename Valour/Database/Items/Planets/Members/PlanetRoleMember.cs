@@ -11,7 +11,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRoleMember : Item, ISharedPlanetRoleMember
+public class PlanetRoleMember : PlanetRoleMemberBase
 {
     [ForeignKey("Member_Id")]
     [JsonIgnore]
@@ -20,20 +20,5 @@ public class PlanetRoleMember : Item, ISharedPlanetRoleMember
     [ForeignKey("Role_Id")]
     [JsonIgnore]
     public virtual PlanetRole Role { get; set; }
-
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
-
-    [JsonPropertyName("Role_Id")]
-    public ulong Role_Id { get; set; }
-
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
-
-    [JsonPropertyName("Member_Id")]
-    public ulong Member_Id { get; set; }
-
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.PlanetRoleMember;
 }
 

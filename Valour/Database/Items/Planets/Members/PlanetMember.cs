@@ -19,7 +19,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : NamedItem, ISharedPlanetMember
+public class PlanetMember : PlanetMemberBase
 {
 
     // Relational DB stuff
@@ -34,39 +34,6 @@ public class PlanetMember : NamedItem, ISharedPlanetMember
     [InverseProperty("Member")]
     [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
-
-    /// <summary>
-    /// The user within the planet
-    /// </summary>
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
-
-    /// <summary>
-    /// The planet the user is within
-    /// </summary>
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
-
-    /// <summary>
-    /// The name to be used within the planet
-    /// </summary>
-    [JsonPropertyName("Nickname")]
-    public string Nickname { get; set; }
-
-    /// <summary>
-    /// The pfp to be used within the planet
-    /// </summary>
-    [JsonPropertyName("Member_Pfp")]
-    public string Member_Pfp { get; set; }
-
-    [NotMapped]
-    [JsonIgnore]
-    new public string Name => Nickname;
-
-    [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Member;
 
     public static async Task<PlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db)
     {
@@ -154,14 +121,6 @@ public class PlanetMember : NamedItem, ISharedPlanetMember
     }
 
     /// <summary>
-    /// Returns the user
-    /// </summary>
-    public User GetUser()
-    {
-        return GetUserAsync().Result;
-    }
-
-    /// <summary>
     /// Returns the planet (async)
     /// </summary>
     public async Task<Planet> GetPlanetAsync()
@@ -174,15 +133,6 @@ public class PlanetMember : NamedItem, ISharedPlanetMember
         }
 
         return Planet;
-    }
-
-    /// <summary>
-    /// Returns the planet
-    /// </summary>
-    public Planet GetPlanet()
-    {
-        if (Planet != null) return Planet;
-        return GetPlanetAsync().Result;
     }
 
     public async Task<ulong> GetAuthorityAsync()

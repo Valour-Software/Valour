@@ -12,7 +12,7 @@ namespace Valour.Shared.Items.Users;
 /// <summary>
 /// This is the base User object, which contains everything needed for public use
 /// </summary>
-public interface ISharedUser
+public class UserBase : NamedItem
 {
     /// <summary>
     /// The main display name for the user
@@ -73,7 +73,7 @@ public interface ISharedUser
     [NotMapped]
     [JsonInclude]
     [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.User;
+    public override ItemType ItemType => ItemType.User;
 
     /// <summary>
     /// The span of time from which the user was last active

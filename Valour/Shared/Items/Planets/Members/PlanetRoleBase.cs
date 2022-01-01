@@ -10,7 +10,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public interface ISharedPlanetRole
+public class PlanetRoleBase : NamedItem
 {
     /// <summary>
     /// The position of the role: Lower has more authority
@@ -47,8 +47,9 @@ public interface ISharedPlanetRole
     [JsonPropertyName("Italics")]
     public bool Italics { get; set; }
 
+    [JsonInclude]
     [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.PlanetRole;
+    public override ItemType ItemType => ItemType.PlanetRole;
 
     public uint GetAuthority()
     {

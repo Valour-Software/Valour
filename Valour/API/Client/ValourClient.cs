@@ -304,7 +304,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item<T>
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
     {
         Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
 
@@ -316,11 +316,15 @@ public static class ValourClient
         if (!skipEvent)
         {
             if (local != null) {
-                await local.InvokeUpdated(flags);
-                await local.InvokeAnyUpdated(local, flags);
+                var s_local = local as ISyncedItem<T>;
+
+                await s_local.InvokeUpdated(flags);
+                await s_local.InvokeAnyUpdated(local, flags);
             }
             else {
-                await updated.InvokeAnyUpdated(updated, flags);
+                var s_updated = updated as ISyncedItem<T>;
+
+                await s_updated.InvokeAnyUpdated(updated, flags);
             }
 
             Console.WriteLine("Invoked update events for " + updated.Id);
@@ -330,17 +334,19 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : Item<T>
+    public static async Task DeleteItem<T>(T item) where T : Item
     {
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
 
+        var s_local = local as ISyncedItem<T>;
+
         // Invoke specific item deleted
-        await local.InvokeDeleted();
+        await s_local.InvokeDeleted();
 
         // Invoke static "any" delete
-        await local.InvokeAnyDeleted(local);
+        await s_local.InvokeAnyDeleted(local);
     }
 
     /// <summary>
@@ -539,6 +545,9 @@ public static class ValourClient
 
         HubConnection.On<PlanetMember, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<PlanetMember>("MemberDeletion", DeleteItem);
+
+        HubConnection.On<User, int>("UserUpdate", (i, d) => UpdateItem(i, d));
+        HubConnection.On<User>("UserDelete", DeleteItem);
     }
 
     /// <summary>

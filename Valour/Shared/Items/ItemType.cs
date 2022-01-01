@@ -25,18 +25,3 @@ public enum ItemType
     PlanetMessage
 }
 
-/// <summary>
-/// Common class for Valour API items
-/// </summary>
-public interface ISharedItem
-{
-    [JsonInclude]
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
-    [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public abstract ItemType ItemType { get; }
-}
-

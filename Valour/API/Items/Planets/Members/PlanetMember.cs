@@ -13,42 +13,8 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : NamedItem<PlanetMember>, ISharedPlanetMember
+public class PlanetMember : PlanetMemberBase
 {
-    public const int FLAG_UPDATE_ROLES = 0x01;
-
-    /// <summary>
-    /// The user within the planet
-    /// </summary>
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
-
-    /// <summary>
-    /// The planet the user is within
-    /// </summary>
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
-
-    /// <summary>
-    /// The name to be used within the planet
-    /// </summary>
-    [JsonPropertyName("Nickname")]
-    public string Nickname { get; set; }
-
-    /// <summary>
-    /// The pfp to be used within the planet
-    /// </summary>
-    [JsonPropertyName("Member_Pfp")]
-    public string Member_Pfp { get; set; }
-
-    [NotMapped]
-    new public string Name => Nickname;
-
-    [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Member;
-
     /// <summary>
     /// Cached roles
     /// </summary>

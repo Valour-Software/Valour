@@ -2,7 +2,7 @@
 
 namespace Valour.Shared.Items.Users;
 
-public interface ISharedTokenRequest
+public class TokenRequestBase
 {
     [JsonPropertyName("Email")]
     public string Email { get; set; }
