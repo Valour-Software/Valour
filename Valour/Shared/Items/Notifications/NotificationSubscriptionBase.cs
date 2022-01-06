@@ -2,14 +2,8 @@
 
 namespace Valour.Shared.Items.Notifications;
 
-public interface ISharedNotificationSubscription
+public class NotificationSubscriptionBase : Item
 {
-    /// <summary>
-    /// The Id of this subscription
-    /// </summary>
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
     /// <summary>
     /// The Id of the user this subscription is for
     /// </summary>
@@ -24,4 +18,8 @@ public interface ISharedNotificationSubscription
 
     [JsonPropertyName("Auth")]
     public string Auth { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.NotificationSubscription;
 }

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Channels;
 
-public interface ISharedPlanetChannel
+public class PlanetChannel : Channel
 {
     [JsonInclude]
     [JsonPropertyName("Planet_Id")]

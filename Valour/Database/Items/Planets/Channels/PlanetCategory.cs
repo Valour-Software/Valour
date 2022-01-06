@@ -12,8 +12,16 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
+public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
 {
+    [JsonIgnore]
+    [ForeignKey("Planet_Id")]
+    public virtual Planet Planet { get; set; }
+
+    [JsonIgnore]
+    [ForeignKey("Parent_Id")]
+    public virtual PlanetCategory Parent { get; set; }
+
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
@@ -145,24 +153,20 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
         return new TaskResult<int>(true, "Success", 200);
     }
 
-    public async Task<Planet> GetPlanetAsync(ValourDB db = null)
-    {
-        if (Planet != null) return Planet;
+    /// <summary>
+    /// Returns the planet this belongs to
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
+        Planet ??= await db.Planets.FindAsync(Planet_Id);
 
-        bool createdb = false;
-        if (db == null)
-        {
-            db = new ValourDB(ValourDB.DBOptions);
-        }
+    /// <summary>
+    /// Returns the parent this belongs to
+    /// </summary>
+    public async Task<PlanetCategory> GetParentAsync(ValourDB db) =>
+        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
 
-        Planet = await db.Planets.FindAsync(Planet_Id);
 
-        if (createdb) await db.DisposeAsync();
-
-        return Planet;
-    }
-
-    public override async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
+    public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
     {
         Planet planet = await GetPlanetAsync(db);
 
@@ -223,7 +227,7 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
         return false;
     }
 
-    public override void NotifyClientsChange()
+    public void NotifyClientsChange()
     {
         PlanetHub.NotifyCategoryChange(this);
     }

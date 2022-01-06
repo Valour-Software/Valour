@@ -6,10 +6,33 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Api.Items.Planets.Channels;
 
-public abstract class PlanetChannel<T> : Channel<T>, ISharedPlanetChannel, IOrderableChannel where T : Item<T>
+public interface IPlanetChannel
 {
+    [JsonInclude]
+    [JsonPropertyName("Id")]
+    public ulong Id { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("Position")]
+    public ushort Position { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("Parent_Id")]
+    public ulong? Parent_Id { get; set; }
+
+    [JsonInclude]
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("Name")]
+    public string Name { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("Description")]
+    public string Description { get; set; }
+
+    public ItemType ItemType { get; }
 
     public abstract Task<TaskResult> SetDescriptionAsync(string desc);
     public abstract Task<TaskResult> SetNameAsync(string name);

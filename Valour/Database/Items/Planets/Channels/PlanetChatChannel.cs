@@ -18,20 +18,15 @@ using Valour.Shared.Items;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
 {
-    /// <summary>
-    /// The amount of messages ever sent in the channel
-    /// </summary>
-    [JsonPropertyName("Message_Count")]
-    public ulong Message_Count { get; set; }
+    [JsonIgnore]
+    [ForeignKey("Planet_Id")]
+    public virtual Planet Planet { get; set; }
 
-    /// <summary>
-    /// If true, this channel will inherit the permission nodes
-    /// from the category it belongs to
-    /// </summary>
-    [JsonPropertyName("Inherits_Perms")]
-    public bool Inherits_Perms { get; set; }
+    [JsonIgnore]
+    [ForeignKey("Parent_Id")]
+    public virtual PlanetCategory Parent { get; set; }
 
     /// <summary>
     /// The type of this item
@@ -44,6 +39,19 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// The regex used for name validation
     /// </summary>
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+
+    /// <summary>
+    /// Returns the planet this belongs to
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
+        Planet ??= await db.Planets.FindAsync(Planet_Id);
+
+    /// <summary>
+    /// Returns the parent this belongs to
+    /// </summary>
+    public async Task<PlanetCategory> GetParentAsync(ValourDB db) =>
+        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
 
     /// <summary>
     /// Deletes this channel
@@ -91,9 +99,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
-    public override async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
+    public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
     {
-        Planet ??= await GetPlanetAsync(db);
+        await GetPlanetAsync(db);
 
         if (Planet.Owner_Id == member.User_Id)
             return true;

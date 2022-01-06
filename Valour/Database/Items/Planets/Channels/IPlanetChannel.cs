@@ -7,18 +7,21 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public abstract class PlanetChannel : Channel, ISharedPlanetChannel
+public interface IPlanetChannel
 {
     [JsonIgnore]
     [ForeignKey("Planet_Id")]
-    public virtual Planet Planet { get; set; }
+    public Planet Planet { get; set; }
 
     [JsonIgnore]
     [ForeignKey("Parent_Id")]
-    public virtual PlanetCategory Parent { get; set; }
+    public PlanetCategory Parent { get; set; }
 
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }
+
+    [JsonPropertyName("Parent_Id")]
+    public ulong? Parent_Id { get; set; }
 
     public static async Task<PlanetChannel> FindAsync(ItemType type, ulong id, ValourDB db)
     {

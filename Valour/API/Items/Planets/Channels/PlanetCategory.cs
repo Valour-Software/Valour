@@ -13,15 +13,70 @@ namespace Valour.Api.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetCategory : PlanetChannel<PlanetCategory>, ISharedPlanetCategory
+public class PlanetCategory : PlanetCategoryBase, IPlanetChannel, ISyncedItem<PlanetCategory>
 {
+    #region Synced Item System
+
+    /// <summary>
+    /// Ran when this item is updated
+    /// </summary>
+    public event Func<Task> OnUpdated;
+
+    /// <summary>
+    /// Ran when this item is deleted
+    /// </summary>
+    public event Func<Task> OnDeleted;
+
+    /// <summary>
+    /// Run when any of this item type is updated
+    /// </summary>
+    public static event Func<PlanetCategory, int, Task> OnAnyUpdated;
+
+    /// <summary>
+    /// Run when any of this item type is deleted
+    /// </summary>
+    public static event Func<PlanetCategory, Task> OnAnyDeleted;
+
+    public async Task InvokeAnyUpdated(PlanetCategory updated, int flags)
+    {
+        if (OnAnyUpdated != null)
+            await OnAnyUpdated?.Invoke(updated, flags);
+    }
+
+    public async Task InvokeAnyDeleted(PlanetCategory deleted)
+    {
+        if (OnAnyDeleted != null)
+            await OnAnyDeleted?.Invoke(deleted);
+    }
+
+    public async Task InvokeUpdated(int flags)
+    {
+        await OnUpdate(flags);
+
+        if (OnUpdated != null)
+            await OnUpdated?.Invoke();
+    }
+
+    public async Task InvokeDeleted()
+    {
+        if (OnDeleted != null)
+            await OnDeleted?.Invoke();
+    }
+
+    public async Task OnUpdate(int flags)
+    {
+
+    }
+
+    #endregion
+
     /// <summary>
     /// The item type of this item
     /// </summary>
     [JsonPropertyName("ItemType")]
     public override ItemType ItemType => ItemType.Category;
 
-    public override string GetItemTypeName() => "Category";
+    public string GetItemTypeName() => "Category";
 
     /// <summary>
     /// Returns the category for the given id
@@ -46,25 +101,25 @@ public class PlanetCategory : PlanetChannel<PlanetCategory>, ISharedPlanetCatego
     /// <summary>
     /// Returns the planet for this category
     /// </summary>
-    public override async Task<Planet> GetPlanetAsync() =>
+    public async Task<Planet> GetPlanetAsync() =>
         await Planet.FindAsync(Planet_Id);
 
     /// <summary>
     /// Deletes this category
     /// </summary>
-    public override async Task<TaskResult> DeleteAsync() =>
+    public async Task<TaskResult> DeleteAsync() =>
         await ValourClient.DeleteAsync($"api/category/{Id}");
 
     /// <summary>
     /// Sets the name of this category
     /// </summary>
-    public override async Task<TaskResult> SetNameAsync(string name) =>
+    public async Task<TaskResult> SetNameAsync(string name) =>
         await ValourClient.PutAsync($"api/category/{Id}/name", name);
 
     /// <summary>
     /// Sets the description of this category
     /// </summary>
-    public override async Task<TaskResult> SetDescriptionAsync(string desc) =>
+    public async Task<TaskResult> SetDescriptionAsync(string desc) =>
         await ValourClient.PutAsync($"api/category/{Id}/description", desc);
 
     /// <summary>
@@ -76,7 +131,7 @@ public class PlanetCategory : PlanetChannel<PlanetCategory>, ISharedPlanetCatego
     /// <summary>
     /// Sets the parent id of this category
     /// </summary>
-    public override async Task<TaskResult> SetParentIdAsync(ulong? parent_id) =>
+    public async Task<TaskResult> SetParentIdAsync(ulong? parent_id) =>
         await ValourClient.PutAsync($"api/category/{Id}/parent_id", parent_id);
 
     /// <summary>
@@ -89,7 +144,7 @@ public class PlanetCategory : PlanetChannel<PlanetCategory>, ISharedPlanetCatego
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public override async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await GetCategoryPermissionsNodeAsync(role_id, force_refresh);
 
 

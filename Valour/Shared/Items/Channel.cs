@@ -5,7 +5,7 @@ namespace Valour.Shared.Items;
 /// <summary>
 /// Common functionality between channels
 /// </summary>
-public class Channel
+public class Channel : NamedItem
 {
     [JsonInclude]
     [JsonPropertyName("Position")]
@@ -18,5 +18,7 @@ public class Channel
     [JsonInclude]
     [JsonPropertyName("Description")]
     public string Description { get; set; }
+
+    public override ItemType ItemType => throw new NotImplementedException();
 }
 

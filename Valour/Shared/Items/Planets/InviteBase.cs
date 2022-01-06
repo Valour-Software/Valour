@@ -12,7 +12,7 @@ namespace Valour.Shared.Items.Planets;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedInvite
+public class InviteBase : Item
 {
     /// <summary>
     /// the invite code
@@ -51,6 +51,6 @@ public interface ISharedInvite
 
     [JsonInclude]
     [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.Invite;
+    public override ItemType ItemType => ItemType.Invite;
 }
 

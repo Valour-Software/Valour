@@ -15,22 +15,63 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedItem<PlanetChatChannel>
 {
-    /// <summary>
-    /// The amount of messages ever sent in the channel
-    /// </summary>
-    [JsonPropertyName("Message_Count")]
-    public ulong Message_Count { get; set; }
+    #region Synced Item System
 
     /// <summary>
-    /// If true, this channel will inherit the permission nodes
-    /// from the category it belongs to
+    /// Ran when this item is updated
     /// </summary>
-    [JsonPropertyName("Inherits_Perms")]
-    public bool Inherits_Perms { get; set; }
+    public event Func<Task> OnUpdated;
 
     /// <summary>
+    /// Ran when this item is deleted
+    /// </summary>
+    public event Func<Task> OnDeleted;
+
+    /// <summary>
+    /// Run when any of this item type is updated
+    /// </summary>
+    public static event Func<PlanetChatChannel, int, Task> OnAnyUpdated;
+
+    /// <summary>
+    /// Run when any of this item type is deleted
+    /// </summary>
+    public static event Func<PlanetChatChannel, Task> OnAnyDeleted;
+
+    public async Task InvokeAnyUpdated(PlanetChatChannel updated, int flags)
+    {
+        if (OnAnyUpdated != null)
+            await OnAnyUpdated?.Invoke(updated, flags);
+    }
+
+    public async Task InvokeAnyDeleted(PlanetChatChannel deleted)
+    {
+        if (OnAnyDeleted != null)
+            await OnAnyDeleted?.Invoke(deleted);
+    }
+
+    public async Task InvokeUpdated(int flags)
+    {
+        await OnUpdate(flags);
+
+        if (OnUpdated != null)
+            await OnUpdated?.Invoke();
+    }
+
+    public async Task InvokeDeleted()
+    {
+        if (OnDeleted != null)
+            await OnDeleted?.Invoke();
+    }
+
+    public async Task OnUpdate(int flags)
+    {
+
+    }
+
+    #endregion
+
     /// The item type of this item
     /// </summary>
     [JsonPropertyName("ItemType")]
@@ -59,30 +100,30 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanet
     /// <summary>
     /// Returns the name of the item type
     /// </summary>
-    public override string GetItemTypeName() => "Chat Channel";
+    public string GetItemTypeName() => "Chat Channel";
 
     /// <summary>
     /// Attempts to delete the channel
     /// </summary>
-    public override async Task<TaskResult> DeleteAsync() => 
+    public async Task<TaskResult> DeleteAsync() => 
         await ValourClient.DeleteAsync($"api/channel/{Id}");
 
     /// <summary>
     /// Returns the planet this channel belongs to
     /// </summary>
-    public override async Task<Planet> GetPlanetAsync() => 
+    public async Task<Planet> GetPlanetAsync() => 
         await Planet.FindAsync(Planet_Id);
 
     /// <summary>
     /// Sets the name of this channel
     /// </summary>
-    public override async Task<TaskResult> SetNameAsync(string name) =>
+    public async Task<TaskResult> SetNameAsync(string name) =>
         await ValourClient.PutAsync($"api/channel/{Id}/name", name);
 
     /// <summary>
     /// Sets the description of this channel
     /// </summary>
-    public override async Task<TaskResult> SetDescriptionAsync(string desc) => 
+    public async Task<TaskResult> SetDescriptionAsync(string desc) => 
         await ValourClient.PutAsync($"api/channel/{Id}/description", desc);
 
     /// <summary>
@@ -94,21 +135,21 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanet
     /// <summary>
     /// Sets the parent category id of the channel
     /// </summary>
-    public override async Task<TaskResult> SetParentIdAsync(ulong? id) => 
+    public async Task<TaskResult> SetParentIdAsync(ulong? id) => 
         await ValourClient.PutAsync($"api/channel/{Id}/parent_id", id);
 
 
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public override async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
+    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await GetChannelPermissionsNodeAsync(role_id, force_refresh);
 
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, Shared.Items.ItemType.ChatChannel, force_refresh);
+        await PermissionsNode.FindAsync(Id, role_id, ItemType.ChatChannel, force_refresh);
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)

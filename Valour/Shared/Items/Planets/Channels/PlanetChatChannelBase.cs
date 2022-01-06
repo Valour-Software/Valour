@@ -19,7 +19,7 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat channel within a planet
 /// </summary>
-public interface ISharedPlanetChatChannel
+public class PlanetChatChannelBase : PlanetChannel
 {
     /// <summary>
     /// The amount of messages ever sent in the channel

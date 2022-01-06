@@ -13,55 +13,62 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : NamedItem<Planet>, ISharedPlanet
+public class Planet : PlanetBase, ISyncedItem<Planet>
 {
-    /// <summary>
-    /// The Id of the owner of this planet
-    /// </summary>
-    [JsonPropertyName("Owner_Id")]
-    public ulong Owner_Id { get; set; }
+    #region Synced Item System
 
     /// <summary>
-    /// The image url for the planet 
+    /// Ran when this item is updated
     /// </summary>
-    [JsonPropertyName("Image_Url")]
-    public string Image_Url { get; set; }
+    public event Func<Task> OnUpdated;
 
     /// <summary>
-    /// The description of the planet
+    /// Ran when this item is deleted
     /// </summary>
-    [JsonPropertyName("Description")]
-    public string Description { get; set; }
+    public event Func<Task> OnDeleted;
 
     /// <summary>
-    /// If the server requires express allowal to join a planet
+    /// Run when any of this item type is updated
     /// </summary>
-    [JsonPropertyName("Public")]
-    public bool Public { get; set; }
+    public static event Func<Planet, int, Task> OnAnyUpdated;
 
     /// <summary>
-    /// The amount of members on the planet
+    /// Run when any of this item type is deleted
     /// </summary>
-    [JsonPropertyName("Member_Count")]
-    public uint Member_Count { get; set; }
+    public static event Func<Planet, Task> OnAnyDeleted;
 
-    /// <summary>
-    /// The default role for the planet
-    /// </summary>
-    [JsonPropertyName("Default_Role_Id")]
-    public ulong Default_Role_Id { get; set; }
+    public async Task InvokeAnyUpdated(Planet updated, int flags)
+    {
+        if (OnAnyUpdated != null)
+            await OnAnyUpdated?.Invoke(updated, flags);
+    }
 
-    /// <summary>
-    /// The id of the main channel of the planet
-    /// </summary>
-    [JsonPropertyName("Main_Channel_Id")]
-    public ulong Main_Channel_Id { get; set; }
+    public async Task InvokeAnyDeleted(Planet deleted)
+    {
+        if (OnAnyDeleted != null)
+            await OnAnyDeleted?.Invoke(deleted);
+    }
 
-    /// <summary>
-    /// The item type of this item
-    /// </summary>
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Planet;
+    public async Task InvokeUpdated(int flags)
+    {
+        await OnUpdate(flags);
+
+        if (OnUpdated != null)
+            await OnUpdated?.Invoke();
+    }
+
+    public async Task InvokeDeleted()
+    {
+        if (OnDeleted != null)
+            await OnDeleted?.Invoke();
+    }
+
+    public async Task OnUpdate(int flags)
+    {
+
+    }
+
+    #endregion
 
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
