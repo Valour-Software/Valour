@@ -14,8 +14,63 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : PlanetRoleBase
+public class PlanetRole : PlanetRoleBase, ISyncedItem<PlanetRole>
 {
+    #region Synced Item System
+
+    /// <summary>
+    /// Ran when this item is updated
+    /// </summary>
+    public event Func<Task> OnUpdated;
+
+    /// <summary>
+    /// Ran when this item is deleted
+    /// </summary>
+    public event Func<Task> OnDeleted;
+
+    /// <summary>
+    /// Run when any of this item type is updated
+    /// </summary>
+    public static event Func<PlanetRole, int, Task> OnAnyUpdated;
+
+    /// <summary>
+    /// Run when any of this item type is deleted
+    /// </summary>
+    public static event Func<PlanetRole, Task> OnAnyDeleted;
+
+    public async Task InvokeAnyUpdated(PlanetRole updated, int flags)
+    {
+        if (OnAnyUpdated != null)
+            await OnAnyUpdated?.Invoke(updated, flags);
+    }
+
+    public async Task InvokeAnyDeleted(PlanetRole deleted)
+    {
+        if (OnAnyDeleted != null)
+            await OnAnyDeleted?.Invoke(deleted);
+    }
+
+    public async Task InvokeUpdated(int flags)
+    {
+        await OnUpdate(flags);
+
+        if (OnUpdated != null)
+            await OnUpdated?.Invoke();
+    }
+
+    public async Task InvokeDeleted()
+    {
+        if (OnDeleted != null)
+            await OnDeleted?.Invoke();
+    }
+
+    public async Task OnUpdate(int flags)
+    {
+
+    }
+
+    #endregion
+
     public static PlanetRole GetDefault(ulong planet_id)
     {
         return new PlanetRole()

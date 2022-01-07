@@ -108,16 +108,12 @@ namespace Valour.Server
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
+            app.MapRazorPages();
+            app.MapControllers();
+            app.MapFallbackToFile("index.html");
+            app.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
             {
-                //endpoints.MapBlazorHub();
-                endpoints.MapRazorPages();
-                endpoints.MapControllers();
-                endpoints.MapFallbackToFile("index.html");
-                endpoints.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
-                {
-                    //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
-                });
+                //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
             });
 
             //app.UseDeveloperExceptionPage();

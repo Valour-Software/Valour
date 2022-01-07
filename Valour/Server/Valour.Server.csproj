@@ -9,6 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Lang\**" />
+    <Content Remove="Lang\**" />
+    <EmbeddedResource Remove="Lang\**" />
+    <None Remove="Lang\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="IdGen" Version="3.0.0" />
     <PackageReference Include="Markdig" Version="0.26.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.0" />
@@ -25,10 +32,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Database\Valour.Database.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Lang\" />
   </ItemGroup>
 
 

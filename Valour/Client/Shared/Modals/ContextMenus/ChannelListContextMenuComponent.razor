@@ -1,12 +1,12 @@
 <ContextMenu Id='list-context' CssClass='context'>
 
     @if (SelectedItem.ItemType == ItemType.Category){
-        <Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</Item>
-        <Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</Item>
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
 
-    <Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</Item>
-    <Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</Item>
+    <BlazorContextMenu.Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
+    <BlazorContextMenu.Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
 </ContextMenu>
 
 @code {
@@ -14,11 +14,11 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public static IOrderableChannel SelectedItem { get; set; }
+    public static IPlanetChannel SelectedItem { get; set; }
 
     public static ChannelListContextMenuComponent Instance;
 
-    public static async Task SetSelectedItem(IOrderableChannel item){
+    public static async Task SetSelectedItem(IPlanetChannel item){
 
         Console.WriteLine(item.ItemType.ToString());
 
