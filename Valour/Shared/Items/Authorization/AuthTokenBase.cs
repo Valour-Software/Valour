@@ -11,7 +11,7 @@ namespace Valour.Shared.Items.Authorization;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public interface ISharedAuthToken
+public class AuthTokenBase
 {
     /// <summary>
     /// The ID of the authentification key is also the secret key. Really no need for another random gen.
@@ -51,7 +51,14 @@ public interface ISharedAuthToken
     public DateTime Expires { get; set; }
 
     [NotMapped]
+    [JsonInclude]
     [JsonPropertyName("ItemType")]
     public ItemType ItemType => ItemType.AuthToken;
+
+    /// <summary>
+    /// Helper method for scope checking
+    /// </summary>
+    public bool HasScope(UserPermission permission) =>
+        Permission.HasPermission(Scope, permission);
 }
 

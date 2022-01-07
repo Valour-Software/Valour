@@ -13,7 +13,7 @@ namespace Valour.Shared.Items.Authorization;
 /// <summary>
 /// A permission node is a set of permissions for a specific thing
 /// </summary>
-public interface ISharedPermissionsNode
+public class PermissionsNodeBase : Item
 {
 
     /// <summary>
@@ -53,8 +53,9 @@ public interface ISharedPermissionsNode
     public ItemType Target_Type { get; set; }
 
     [NotMapped]
+    [JsonInclude]
     [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.PermissionsNode;
+    public override ItemType ItemType => ItemType.PermissionsNode;
 
 
     /// <summary>

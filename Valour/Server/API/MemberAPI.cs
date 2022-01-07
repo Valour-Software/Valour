@@ -244,7 +244,7 @@ namespace Valour.Server.API
                 await db.SaveChangesAsync();
             }
 
-            PlanetHub.NotifyMemberChange(target_member, ISharedPlanetMember.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMemberBase.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -334,7 +334,7 @@ namespace Valour.Server.API
             db.Remove(roleMember);
             await db.SaveChangesAsync();
 
-            PlanetHub.NotifyMemberChange(target_member, ISharedPlanetMember.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMemberBase.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -473,7 +473,7 @@ namespace Valour.Server.API
             await db.PlanetRoleMembers.AddAsync(roleMember);
             await db.SaveChangesAsync();
 
-            PlanetHub.NotifyMemberChange(target_member, ISharedPlanetMember.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMemberBase.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 201;
             await ctx.Response.WriteAsync(roleMember.Id.ToString());

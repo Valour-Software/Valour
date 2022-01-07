@@ -256,7 +256,7 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
     /// <summary>
     /// Notifies all clients that this channel has changed
     /// </summary>
-    public override void NotifyClientsChange()
+    public void NotifyClientsChange()
     {
         PlanetHub.NotifyChatChannelChange(this);
     }

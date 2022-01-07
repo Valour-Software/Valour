@@ -37,7 +37,7 @@ public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
     /// </summary>
     public async Task<TaskResult> TryDeleteAsync(ValourDB db)
     {
-        var planet = await GetPlanetAsync();
+        var planet = await GetPlanetAsync(db);
 
         if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
         {

@@ -7,6 +7,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
 using Valour.Shared.Items;
 using System.Drawing;
+using Valour.Database.Items.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -17,7 +18,7 @@ using System.Drawing;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : NamedItem, ISharedPlanetRole
+public class PlanetRole : PlanetRoleBase
 {
     [ForeignKey("Planet_Id")]
     [JsonIgnore]
@@ -25,60 +26,7 @@ public class PlanetRole : NamedItem, ISharedPlanetRole
 
     [InverseProperty("Role")]
     [JsonIgnore]
-    public virtual ICollection<Authorization.PermissionsNode> PermissionNodes { get; set; }
-
-    /// <summary>
-    /// The position of the role: Lower has more authority
-    /// </summary>
-    [JsonPropertyName("Position")]
-    public uint Position { get; set; }
-
-    /// <summary>
-    /// The ID of the planet or system this role belongs to
-    /// </summary>
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
-
-    /// <summary>
-    /// The planet permissions for the role
-    /// </summary>
-    [JsonPropertyName("Permissions")]
-    public ulong Permissions { get; set; }
-
-    // RGB Components for role color
-    [JsonPropertyName("Color_Red")]
-    public byte Color_Red { get; set; }
-
-    [JsonPropertyName("Color_Green")]
-    public byte Color_Green { get; set; }
-
-    [JsonPropertyName("Color_Blue")]
-    public byte Color_Blue { get; set; }
-
-    // Formatting options
-    [JsonPropertyName("Bold")]
-    public bool Bold { get; set; }
-
-    [JsonPropertyName("Italics")]
-    public bool Italics { get; set; }
-
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.PlanetRole;
-
-    public uint GetAuthority() =>
-        ((ISharedPlanetRole)this).GetAuthority();
-
-
-    public Color GetColor() =>
-        ((ISharedPlanetRole)this).GetColor();
-
-
-    public string GetColorHex() =>
-        ((ISharedPlanetRole)this).GetColorHex();
-
-
-    public bool HasPermission(PlanetPermission perm) =>
-        ((ISharedPlanetRole)this).HasPermission(perm);
+    public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
 
     public ICollection<Authorization.PermissionsNode> GetNodes(ValourDB db)
     {

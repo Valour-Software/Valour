@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Authorization;
@@ -13,15 +14,8 @@ namespace Valour.Shared.Items.Authorization;
 /// Oauth apps allow an organization or person to issue tokens on behalf of a user
 /// which can be easily tracked and revoked
 /// </summary>
-public interface ISharedOauthApp
+public class OauthAppBase : NamedItem
 {
-    /// <summary>
-    /// The ID of the app
-    /// </summary>
-    [Key]
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
     /// <summary>
     /// The secret key for the app
     /// </summary>
@@ -41,15 +35,14 @@ public interface ISharedOauthApp
     public int Uses { get; set; }
 
     /// <summary>
-    /// The public name for this app
-    /// </summary>
-    [JsonPropertyName("Name")]
-    public string Name { get; set; }
-
-    /// <summary>
     /// The image used to represent the app
     /// </summary>
     [JsonPropertyName("Image_Url")]
     public string Image_Url { get; set; }
+
+    [NotMapped]
+    [JsonInclude]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.OauthApp;
 }
 

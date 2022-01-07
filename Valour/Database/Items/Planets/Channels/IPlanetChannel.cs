@@ -17,13 +17,33 @@ public interface IPlanetChannel
     [ForeignKey("Parent_Id")]
     public PlanetCategory Parent { get; set; }
 
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
+    [JsonInclude]
+    [JsonPropertyName("Id")]
+    public ulong Id { get; set; }
 
+    [JsonInclude]
+    [JsonPropertyName("Position")]
+    public ushort Position { get; set; }
+
+    [JsonInclude]
     [JsonPropertyName("Parent_Id")]
     public ulong? Parent_Id { get; set; }
 
-    public static async Task<PlanetChannel> FindAsync(ItemType type, ulong id, ValourDB db)
+    [JsonInclude]
+    [JsonPropertyName("Planet_Id")]
+    public ulong Planet_Id { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("Name")]
+    public string Name { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("Description")]
+    public string Description { get; set; }
+
+    public ItemType ItemType { get; }
+
+    public static async Task<IPlanetChannel> FindAsync(ItemType type, ulong id, ValourDB db)
     {
         switch (type)
         {

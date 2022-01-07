@@ -1,8 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Text.Json;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
+using Valour.Shared.Items.Messages.Embeds;
+using Valour.Shared.Items.Messages.Mentions;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -12,15 +15,84 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Messages;
 
-public interface ISharedMessage
+public class MessageBase : Item
 {
+    /// <summary>
+    /// The mentions contained within this message
+    /// </summary>
+    private List<Mention> _mentions;
 
     /// <summary>
-    /// The Id of the message
+    /// True if the mentions data has been parsed
     /// </summary>
-    [Key]
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
+    private bool mentionsParsed = false;
+
+    /// <summary>
+    /// The inner embed data
+    /// </summary>
+    private Embed _embed;
+
+    /// <summary>
+    /// True if the embed data has been parsed
+    /// </summary>
+    private bool embedParsed = false;
+
+    /// <summary>
+    /// The mentions for members within this message
+    /// </summary>
+    [NotMapped]
+    public List<Mention> Mentions
+    {
+        get
+        {
+            if (!mentionsParsed)
+            {
+                if (!string.IsNullOrEmpty(Mentions_Data))
+                {
+                    _mentions = JsonSerializer.Deserialize<List<Mention>>(Mentions_Data);
+                }
+            }
+
+            return _mentions;
+        }
+    }
+
+    [NotMapped]
+    public Embed Embed
+    {
+        get
+        {
+            if (!embedParsed)
+            {
+                if (!string.IsNullOrEmpty(Embed_Data))
+                {
+                    _embed = JsonSerializer.Deserialize<Embed>(Embed_Data);
+                }
+
+                embedParsed = true;
+            }
+
+            return _embed;
+        }
+    }
+
+    public void SetMentions(IEnumerable<Mention> mentions)
+    {
+        _mentions = mentions.ToList();
+        Mentions_Data = JsonSerializer.Serialize(mentions);
+    }
+
+    public void ClearMentions()
+    {
+        if (_mentions == null)
+        {
+            _mentions = new List<Mention>();
+        }
+        else
+        {
+            _mentions.Clear();
+        }
+    }
 
     /// <summary>
     /// The user's ID
@@ -77,6 +149,10 @@ public interface ISharedMessage
     [JsonInclude]
     [JsonPropertyName("Fingerprint")]
     public string Fingerprint { get; set; }
+
+    [NotMapped]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => throw new System.NotImplementedException();
 
     /// <summary>
     /// Returns the hash for a message.

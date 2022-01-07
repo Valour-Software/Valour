@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations.Schema;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -8,9 +9,14 @@
 
 namespace Valour.Shared.Items.Messages;
 
-public interface ISharedPlanetMessage
+public class PlanetMessageBase : MessageBase
 {
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }
+
+    [NotMapped]
+    [JsonInclude]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.PlanetMessage;
 }
 

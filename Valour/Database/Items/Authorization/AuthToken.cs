@@ -9,60 +9,13 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Database.Items.Authorization;
 
-public class AuthToken : ISharedAuthToken
+public class AuthToken : AuthTokenBase
 {
     public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
 
     [ForeignKey("User_Id")]
     [JsonIgnore]
     public virtual User User { get; set; }
-
-    /// <summary>
-    /// The ID of the authentification key is also the secret key. Really no need for another random gen.
-    /// </summary>
-    [Key]
-    [JsonPropertyName("Id")]
-    public string Id { get; set; }
-
-    /// <summary>
-    /// The ID of the app that has been issued this token
-    /// </summary>
-    [JsonPropertyName("App_Id")]
-    public string App_Id { get; set; }
-
-    /// <summary>
-    /// The user that this token is valid for
-    /// </summary>
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
-
-    /// <summary>
-    /// The scope of the permissions this token is valid for
-    /// </summary>
-    [JsonPropertyName("Scope")]
-    public ulong Scope { get; set; }
-
-    /// <summary>
-    /// The time that this token was issued
-    /// </summary>
-    [JsonPropertyName("Time")]
-    public DateTime Time { get; set; }
-
-    /// <summary>
-    /// The time that this token will expire
-    /// </summary>
-    [JsonPropertyName("Expires")]
-    public DateTime Expires { get; set; }
-
-    [NotMapped]
-    [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.AuthToken;
-
-    /// <summary>
-    /// Helper method for scope checking
-    /// </summary>
-    public bool HasScope(UserPermission permission) =>
-        Permission.HasPermission(Scope, permission);
 
     /// <summary>
     /// Will return the auth object for a valid token, including the user.
