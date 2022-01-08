@@ -3,8 +3,6 @@
     <p class="username">
         @if (User.Username.Length > 16) {
             @User.Username.Substring(0, 15)
-            Console.WriteLine("rfj349r 98u8rw jie iu98b0980 b0984 ");
-            Console.WriteLine(User.Username.Substring(0, 15));
         }
         else {
             @User.Username
@@ -35,7 +33,7 @@
             // did not work without this
             User _user = await User.FindAsync(User.Id);
 
-            _user.OnUpdated += (async () =>
+            _user.OnUpdated += (async data =>
             {
                 if (_user != null && !string.IsNullOrWhiteSpace(_user.Pfp_Url))
                 {

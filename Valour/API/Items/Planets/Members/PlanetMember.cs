@@ -1,9 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Valour.Api.Client;
+﻿using Valour.Api.Client;
 using Valour.Api.Items.Users;
-using Valour.Shared.Items;
-using Valour.Shared.Planets;
+using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Members;
 
@@ -20,7 +17,7 @@ public class PlanetMember : PlanetMemberBase, ISyncedItem<PlanetMember>
     /// <summary>
     /// Ran when this item is updated
     /// </summary>
-    public event Func<Task> OnUpdated;
+    public event Func<int, Task> OnUpdated;
 
     /// <summary>
     /// Ran when this item is deleted
@@ -54,7 +51,7 @@ public class PlanetMember : PlanetMemberBase, ISyncedItem<PlanetMember>
         await OnUpdate(flags);
 
         if (OnUpdated != null)
-            await OnUpdated?.Invoke();
+            await OnUpdated?.Invoke(flags);
     }
 
     public async Task InvokeDeleted()

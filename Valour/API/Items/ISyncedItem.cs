@@ -5,7 +5,7 @@ public interface ISyncedItem<T> {
     /// <summary>
     /// Ran when this item is updated
     /// </summary>
-    public event Func<Task> OnUpdated;
+    public event Func<int, Task> OnUpdated;
 
     /// <summary>
     /// Ran when this item is deleted

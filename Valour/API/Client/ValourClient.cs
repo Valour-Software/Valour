@@ -10,6 +10,7 @@ using Valour.Api.Items.Users;
 using Valour.Api.Items.Messages;
 using Valour.Shared;
 using Valour.Shared.Items;
+using Microsoft.Extensions.Logging;
 
 namespace Valour.Api.Client;
 
@@ -516,6 +517,11 @@ public static class ValourClient
         HubConnection = new HubConnectionBuilder()
             .WithUrl(hub_url)
             .WithAutomaticReconnect()
+            .ConfigureLogging(logging =>
+            {
+                //logging.AddConsole();
+                //logging.SetMinimumLevel(LogLevel.Trace);
+            })
             .Build();
 
         //hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);

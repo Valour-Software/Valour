@@ -1,6 +1,5 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Items.Users;
-using Valour.Shared.Planets;
 
 namespace Valour.Api.Items.Planets.Members;
 

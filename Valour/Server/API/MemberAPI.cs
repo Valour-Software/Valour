@@ -6,7 +6,7 @@ using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
-using Valour.Shared.Planets;
+using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

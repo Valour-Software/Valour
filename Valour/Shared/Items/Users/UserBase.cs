@@ -20,6 +20,10 @@ public class UserBase : NamedItem
     [JsonPropertyName("Username")]
     public string Username { get; set; }
 
+    [NotMapped]
+    [JsonPropertyName("Name")]
+    new public string Name => Username;
+
     /// <summary>
     /// The url for the user's profile picture
     /// </summary>
@@ -92,6 +96,7 @@ public class UserBase : NamedItem
     /// The current activity state of the user
     /// </summary>
     [NotMapped]
+    [JsonIgnore]
     public UserState UserState
     {
         get

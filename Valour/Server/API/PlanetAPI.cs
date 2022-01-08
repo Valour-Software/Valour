@@ -12,7 +12,6 @@ using Valour.Server.Extensions;
 using Valour.Server.Planets.Members;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

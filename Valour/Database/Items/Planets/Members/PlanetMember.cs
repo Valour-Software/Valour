@@ -1,11 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Authorization;
 using Valour.Database.Items.Users;
 using Valour.Shared.Authorization;
-using Valour.Shared.Planets;
-using Valour.Shared.Items;
+using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

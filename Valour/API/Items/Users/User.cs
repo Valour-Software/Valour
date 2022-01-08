@@ -13,7 +13,7 @@ public class User : UserBase, ISyncedItem<User>
     /// <summary>
     /// Ran when this item is updated
     /// </summary>
-    public event Func<Task> OnUpdated;
+    public event Func<int, Task> OnUpdated;
 
     /// <summary>
     /// Ran when this item is deleted
@@ -47,7 +47,7 @@ public class User : UserBase, ISyncedItem<User>
         await OnUpdate(flags);
 
         if (OnUpdated != null)
-            await OnUpdated?.Invoke();
+            await OnUpdated?.Invoke(flags);
     }
 
     public async Task InvokeDeleted()
@@ -63,6 +63,7 @@ public class User : UserBase, ISyncedItem<User>
 
     #endregion
 
+    [JsonIgnore]
     public static User Victor = new User()
     {
         Bot = true,
