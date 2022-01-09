@@ -193,7 +193,7 @@ namespace Valour.Server.API
                 username = username.TrimEnd();
 
             // Prevent duplicates
-            if (await db.Users.AnyAsync(x => x.Username.ToLower() == username.ToLower())) { await BadRequest("Username taken", ctx); return; }
+            if (await db.Users.AnyAsync(x => x.Name.ToLower() == username.ToLower())) { await BadRequest("Username taken", ctx); return; }
 
             if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == email.ToLower())) { await BadRequest("Email taken", ctx); return; }
 
@@ -222,7 +222,7 @@ namespace Valour.Server.API
 
             if (!string.IsNullOrWhiteSpace(referrer))
             {
-                User referUser = await db.Users.FirstOrDefaultAsync(x => x.Username.ToLower() == referrer.ToLower());
+                User referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == referrer.ToLower());
 
                 if (referUser == null) { await BadRequest($"Could not find referrer {referrer}", ctx); return; }
 
@@ -241,7 +241,7 @@ namespace Valour.Server.API
             User user = new User()
             {
                 Id = IdManager.Generate(),
-                Username = username,
+                Name = username,
                 Join_DateTime = DateTime.UtcNow,
                 Last_Active = DateTime.UtcNow
             };

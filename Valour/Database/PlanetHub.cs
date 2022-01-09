@@ -7,6 +7,7 @@ using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Items.Messages.Embeds;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Users;
+using System.Text.Json;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -23,7 +24,6 @@ namespace Valour.Database
         //public async Task JoinChannel()
 
         public static IHubContext<PlanetHub> Current;
-
         public async Task JoinPlanet(ulong planet_id, string token)
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
@@ -123,8 +123,21 @@ namespace Valour.Database
             {
                 // Not awaited on purpose
                 //var t = Task.Run(async () => {
+                Console.WriteLine(JsonSerializer.Serialize(user));
+
                     await Current.Clients.Group($"p-{m.Planet_Id}").SendAsync("UserUpdate", user, flags);
+                    //await Current.Clients.Group($"p-{m.Planet_Id}").SendAsync("ChannelUpdate", new PlanetChatChannel(), flags);
                 //});
+            }
+        }
+
+        public static async void NotifyUserDelete(User user, ValourDB db)
+        {
+            var members = db.PlanetMembers.Where(x => x.User_Id == user.Id);
+
+            foreach (var m in members)
+            {
+                await Current.Clients.Group($"p-{m.Planet_Id}").SendAsync("UserDeletion", user);
             }
         }
     }

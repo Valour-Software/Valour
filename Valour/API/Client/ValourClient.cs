@@ -454,7 +454,7 @@ public static class ValourClient
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
-        Console.WriteLine($"Initialized user {Self.Username} ({Self.Id})");
+        Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
         if (OnLogin != null)
             await OnLogin?.Invoke();
@@ -553,7 +553,7 @@ public static class ValourClient
         HubConnection.On<PlanetMember>("MemberDeletion", DeleteItem);
 
         HubConnection.On<User, int>("UserUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<User>("UserDelete", DeleteItem);
+        HubConnection.On<User>("UserDeletion", DeleteItem);
     }
 
     /// <summary>

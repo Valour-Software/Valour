@@ -360,7 +360,7 @@ public class Planet : PlanetBase
         PlanetMember member = new PlanetMember()
         {
             Id = IdManager.Generate(),
-            Nickname = user.Username,
+            Nickname = user.Name,
             Planet_Id = Id,
             User_Id = user.Id
         };
@@ -379,7 +379,7 @@ public class Planet : PlanetBase
         await db.PlanetRoleMembers.AddAsync(rolemember);
         await db.SaveChangesAsync();
 
-        Console.WriteLine($"User {user.Username} ({user.Id}) has joined {Name} ({Id})");
+        Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
     }
 
     public void NotifyClientsChange()

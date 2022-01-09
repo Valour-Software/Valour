@@ -1,7 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Shared.Items;
+using Valour.Api.Items.Authorization;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Items.Users;
@@ -69,7 +68,7 @@ public class User : UserBase, ISyncedItem<User>
         Bot = true,
         UserState_Value = 4,
         Pfp_Url = "/media/victor-cyan.png",
-        Username = "Victor",
+        Name = "Victor",
         Valour_Staff = true,
         Id = ulong.MaxValue
     };
@@ -94,7 +93,7 @@ public class User : UserBase, ISyncedItem<User>
         return user;
     }
 
-    public async Task<List<Api.Items.Authorization.OauthApp>> GetOauthAppAsync() =>
-        await ValourClient.GetJsonAsync<List<Api.Items.Authorization.OauthApp>>($"api/user/{Id}/apps");
+    public async Task<List<OauthApp>> GetOauthAppAsync() =>
+        await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
 }
 

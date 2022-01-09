@@ -249,7 +249,7 @@ public class PlanetMember : PlanetMemberBase, ISyncedItem<PlanetMember>
         if (!string.IsNullOrWhiteSpace(Nickname))
             return Nickname;
 
-        return (await GetUserAsync(force_refresh))?.Username ?? "User not found";
+        return (await GetUserAsync(force_refresh))?.Name ?? "User not found";
     }
 }
 

@@ -15,16 +15,6 @@ namespace Valour.Shared.Items.Users;
 public class UserBase : NamedItem
 {
     /// <summary>
-    /// The main display name for the user
-    /// </summary>
-    [JsonPropertyName("Username")]
-    public string Username { get; set; }
-
-    [NotMapped]
-    [JsonPropertyName("Name")]
-    new public string Name => Username;
-
-    /// <summary>
     /// The url for the user's profile picture
     /// </summary>
     [JsonPropertyName("Pfp_Url")]
@@ -60,6 +50,7 @@ public class UserBase : NamedItem
     /// The user's currently set status - this could represent how they feel, their disdain for the political climate
     /// of the modern world, their love for their mother's cooking, or their hate for lazy programmers.
     /// </summary>
+    [JsonPropertyName("Status")]
     public string Status { get; set; }
 
     /// <summary>

@@ -1,13 +1,18 @@
 ﻿<div class="user-info">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
-    <p class="username">
-        @if (User.Username.Length > 16) {
-            @User.Username.Substring(0, 15)
-        }
-        else {
-            @User.Username
-        }
-    </p>
+    @if (User.Name != null)
+    {
+        <p class="username">
+            @if (User.Name.Length > 16)
+            {
+                @User.Name.Substring(0, 15)
+            }
+            else
+            {
+                @User.Name
+            }
+        </p>
+    }
     <div class="active">
     </div>
     <img id="user-edit-button" class="settings" src="/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditUserComponent>("Edit User")'>
