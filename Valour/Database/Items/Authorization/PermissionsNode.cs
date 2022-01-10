@@ -1,7 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
+using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Authorization;
 
@@ -11,12 +16,14 @@ namespace Valour.Database.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : Shared.Items.Authorization.PermissionsNode<PermissionsNode>
+public class PermissionsNode : PermissionsNodeBase
 {
     [ForeignKey("Planet_Id")]
+    [JsonIgnore]
     public virtual Planet Planet { get; set; }
 
     [ForeignKey("Role_Id")]
+    [JsonIgnore]
     public virtual PlanetRole Role { get; set; }
 
     /// <summary>
@@ -29,10 +36,11 @@ public class PermissionsNode : Shared.Items.Authorization.PermissionsNode<Permis
     {
         switch (Target_Type)
         {
-            case Shared.Items.ItemType.Channel: return await db.PlanetChatChannels.FindAsync(Target_Id);
-            case Shared.Items.ItemType.Category: return await db.PlanetCategories.FindAsync(Target_Id);
+            case ItemType.ChatChannel: return await db.PlanetChatChannels.FindAsync(Target_Id);
+            case ItemType.Category: return await db.PlanetCategories.FindAsync(Target_Id);
         }
 
         return null;
     }
 }
+

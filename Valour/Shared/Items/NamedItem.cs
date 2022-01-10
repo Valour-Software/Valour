@@ -1,21 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
-namespace Valour.Shared.Items
+namespace Valour.Shared.Items;
+
+public abstract class NamedItem : Item
 {
-    /// <summary>
-    /// Common functionality for named items
-    /// </summary>
-    
-
-    public abstract class NamedItem<T> : Item<T> where T : Item<T>
-    {
-        [JsonInclude]
-        [JsonPropertyName("Name")]
-        public string Name { get; set; }
-    }
+    [JsonInclude]
+    [JsonPropertyName("Name")]
+    public string Name { get; set; }
 }

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -18,6 +19,7 @@ namespace Valour.Database.Items.Users;
 public class UserEmail
 {
     [ForeignKey("User_Id")]
+    [JsonIgnore]
     public virtual User User { get; set; }
 
     /// <summary>

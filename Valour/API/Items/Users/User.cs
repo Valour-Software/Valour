@@ -1,9 +1,78 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Client;
+using Valour.Api.Items.Authorization;
+using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Items.Users;
 
-public class User : Shared.Items.Users.User<User>
+public class User : UserBase, ISyncedItem<User>
 {
+    #region Synced Item System
+
+    /// <summary>
+    /// Ran when this item is updated
+    /// </summary>
+    public event Func<int, Task> OnUpdated;
+
+    /// <summary>
+    /// Ran when this item is deleted
+    /// </summary>
+    public event Func<Task> OnDeleted;
+
+    /// <summary>
+    /// Run when any of this item type is updated
+    /// </summary>
+    public static event Func<User, int, Task> OnAnyUpdated;
+
+    /// <summary>
+    /// Run when any of this item type is deleted
+    /// </summary>
+    public static event Func<User, Task> OnAnyDeleted;
+
+    public async Task InvokeAnyUpdated(User updated, int flags)
+    {
+        if (OnAnyUpdated != null)
+            await OnAnyUpdated?.Invoke(updated, flags);
+    }
+
+    public async Task InvokeAnyDeleted(User deleted)
+    {
+        if (OnAnyDeleted != null)
+            await OnAnyDeleted?.Invoke(deleted);
+    }
+
+    public async Task InvokeUpdated(int flags)
+    {
+        await OnUpdate(flags);
+
+        if (OnUpdated != null)
+            await OnUpdated?.Invoke(flags);
+    }
+
+    public async Task InvokeDeleted()
+    {
+        if (OnDeleted != null)
+            await OnDeleted?.Invoke();
+    }
+
+    public async Task OnUpdate(int flags)
+    {
+
+    }
+
+    #endregion
+
+    [JsonIgnore]
+    public static User Victor = new User()
+    {
+        Bot = true,
+        UserState_Value = 4,
+        Pfp_Url = "/media/victor-cyan.png",
+        Name = "Victor",
+        Valour_Staff = true,
+        Id = ulong.MaxValue
+    };
+
     /// <summary>
     /// Returns the user for the given id
     /// </summary>
@@ -24,7 +93,7 @@ public class User : Shared.Items.Users.User<User>
         return user;
     }
 
-    public async Task<List<Api.Items.Authorization.OauthApp>> GetOauthAppAsync() =>
-        await ValourClient.GetJsonAsync<List<Api.Items.Authorization.OauthApp>>($"api/user/{Id}/apps");
+    public async Task<List<OauthApp>> GetOauthAppAsync() =>
+        await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
 }
 

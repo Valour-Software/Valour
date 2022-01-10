@@ -9,9 +9,9 @@ using Valour.Database.Items.Planets.Channels;
 using Valour.Database.Items.Planets.Members;
 using Valour.Database.Items.Users;
 using Valour.Server.Extensions;
+using Valour.Server.Planets.Members;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -1118,11 +1118,11 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<PlanetMemberInfo<PlanetMember, User>> info = new ();
+            List<PlanetMemberInfo> info = new ();
 
             foreach (var member in planet.Members)
             {
-                var planetInfo = new PlanetMemberInfo<PlanetMember, User>()
+                var planetInfo = new PlanetMemberInfo()
                 {
                     Member = member,
                     User = member.User,

@@ -69,7 +69,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ChannelListItem.ItemType == ItemType.Channel)
+        if (ChannelListItem.ItemType == ItemType.ChatChannel)
         {
             isChannel = true;
             Channel = (PlanetChatChannel)ChannelListItem;

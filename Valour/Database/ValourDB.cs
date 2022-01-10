@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Valour.Database.Items;
 using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Messages;
 using Valour.Database.Items.Notifications;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;
@@ -100,7 +101,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for all banned members
     /// </summary>
-    public DbSet<Ban> PlanetBans { get; set; }
+    public DbSet<PlanetBan> PlanetBans { get; set; }
 
     /// <summary>
     /// Table for planet invites

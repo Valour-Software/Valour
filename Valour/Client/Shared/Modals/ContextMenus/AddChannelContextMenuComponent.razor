@@ -1,8 +1,8 @@
 ﻿<ContextMenu Id='add-context' CssClass='context'>
     @if (!Is_Planet){
-        <Item CssClass='context-item' OnClick='OnChannelClick'>Add Channel</Item>
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='OnChannelClick'>Add Channel</BlazorContextMenu.Item>
     }
-    <Item CssClass='context-item' OnClick='OnCategoryClick'>Add Category</Item>
+    <BlazorContextMenu.Item CssClass='context-item' OnClick='OnCategoryClick'>Add Category</BlazorContextMenu.Item>
 </ContextMenu>
 
 @code {

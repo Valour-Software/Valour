@@ -1,15 +1,18 @@
 ﻿<div class="user-info">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
-    <p class="username">
-        @if (User.Username.Length > 16) {
-            @User.Username.Substring(0, 15)
-            Console.WriteLine("rfj349r 98u8rw jie iu98b0980 b0984 ");
-            Console.WriteLine(User.Username.Substring(0, 15));
-        }
-        else {
-            @User.Username
-        }
-    </p>
+    @if (User.Name != null)
+    {
+        <p class="username">
+            @if (User.Name.Length > 16)
+            {
+                @User.Name.Substring(0, 15)
+            }
+            else
+            {
+                @User.Name
+            }
+        </p>
+    }
     <div class="active">
     </div>
     <img id="user-edit-button" class="settings" src="/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditUserComponent>("Edit User")'>
@@ -35,7 +38,7 @@
             // did not work without this
             User _user = await User.FindAsync(User.Id);
 
-            _user.OnUpdated += (async () =>
+            _user.OnUpdated += (async data =>
             {
                 if (_user != null && !string.IsNullOrWhiteSpace(_user.Pfp_Url))
                 {

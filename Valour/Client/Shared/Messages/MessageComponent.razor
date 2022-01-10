@@ -241,11 +241,38 @@
             Holder.AddRenderedMessage(this);
         }
 
-        PlanetMember.OnAnyUpdated += OnMemberUpdate;
         PlanetRole.OnAnyDeleted += OnRoleDeletion;
         PlanetRole.OnAnyUpdated += OnRoleUpdate;
 
         await BuildMessage();
+
+        if (Author != null)
+        {
+            Author.OnUpdated += OnAuthorUpdated;
+            var user = await Author.GetUserAsync();
+
+            if (user != null)
+                user.OnUpdated += OnUserUpdated;
+        }
+    }
+
+    public async Task OnAuthorUpdated(int flags)
+    {
+        if((flags & PlanetMemberBase.FLAG_UPDATE_ROLES) != 0)
+            await UpdateForRoleChange();
+
+        name = await Author.GetNameAsync();
+        pfpurl = await Author.GetPfpUrlAsync();
+
+        ReRender();
+    }
+
+    public async Task OnUserUpdated(int flags)
+    {
+        name = await Author.GetNameAsync();
+        pfpurl = await Author.GetPfpUrlAsync();
+
+        ReRender();
     }
 
     public void CheckMinimal()
@@ -295,16 +322,6 @@
         if (role.Id == primaryRole.Id)
         {
             primaryRole = await Author.GetPrimaryRoleAsync();
-            await UpdateForRoleChange();
-            ReRender();
-        }
-    }
-
-    public async Task OnMemberUpdate(PlanetMember member, int flags)
-    {
-        if (member.Id == Author.Id)
-        {
-            Author = member;
             await UpdateForRoleChange();
             ReRender();
         }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Valour.Shared.Items.Authorization;
 using Valour.Shared;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -9,6 +8,7 @@ using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Items;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -22,7 +22,7 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
 /// </summary>
-public class Planet : Shared.Items.Planets.Planet<Planet>
+public class Planet : PlanetBase
 {
     [InverseProperty("Planet")]
     [JsonIgnore]
@@ -33,16 +33,18 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     public virtual ICollection<PlanetMember> Members { get; set; }
 
     [InverseProperty("Planet")]
+    [JsonIgnore]
     public virtual ICollection<PlanetChatChannel> ChatChannels { get; set; }
 
     [InverseProperty("Planet")]
+    [JsonIgnore]
     public virtual ICollection<PlanetCategory> Categories { get; set; }
 
     [InverseProperty("Planet")]
+    [JsonIgnore]
     public virtual ICollection<Invite> Invites { get; set; }
 
-    public ItemType ItemType => ItemType.Planet;
-
+    [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
     /// <summary>
@@ -71,14 +73,8 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
     /// <summary>
     /// Retrieves a ServerPlanet for the given id
     /// </summary>
-    public static async Task<Planet> FindAsync(ulong id)
-    {
-        using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-        {
-            var planet = await db.Planets.FindAsync(id);
-            return planet;
-        }
-    }
+    public static async Task<Planet> FindAsync(ulong id, ValourDB db) =>
+        await db.Planets.FindAsync(id);
 
     public async Task<TaskResult<int>> TryKickMemberAsync(PlanetMember member,
         PlanetMember target, ValourDB db)
@@ -146,7 +142,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
         if (duration == 0) duration = null;
 
         // Add ban to database
-        Ban ban = new Ban()
+        PlanetBan ban = new PlanetBan()
         {
             Id = IdManager.Generate(),
             Reason = reason,
@@ -364,7 +360,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
         PlanetMember member = new PlanetMember()
         {
             Id = IdManager.Generate(),
-            Nickname = user.Username,
+            Nickname = user.Name,
             Planet_Id = Id,
             User_Id = user.Id
         };
@@ -383,7 +379,7 @@ public class Planet : Shared.Items.Planets.Planet<Planet>
         await db.PlanetRoleMembers.AddAsync(rolemember);
         await db.SaveChangesAsync();
 
-        Console.WriteLine($"User {user.Username} ({user.Id}) has joined {Name} ({Id})");
+        Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
     }
 
     public void NotifyClientsChange()

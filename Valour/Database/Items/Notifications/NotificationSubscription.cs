@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Database.Items.Users;
+using Valour.Shared.Items.Notifications;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -9,7 +11,7 @@ using Valour.Database.Items.Users;
 
 namespace Valour.Database.Items.Notifications;
 
-public class NotificationSubscription : Shared.Items.Notifications.NotificationSubscription
+public class NotificationSubscription : NotificationSubscriptionBase
 {
     [ForeignKey("User_Id")]
     public User User { get; set; }

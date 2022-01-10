@@ -1,8 +1,8 @@
 @inject IJSRuntime JS
 
-<Item OnClick='OnClickKick' CssClass='context-item'>Kick</Item>
-<Item OnClick='OnClickBan' CssClass='context-item'>Ban</Item>
-<Item CssClass='context-item'>
+<BlazorContextMenu.Item OnClick='OnClickKick' CssClass='context-item'>Kick</BlazorContextMenu.Item>
+<BlazorContextMenu.Item OnClick='OnClickBan' CssClass='context-item'>Ban</BlazorContextMenu.Item>
+<BlazorContextMenu.Item CssClass='context-item'>
 	Roles
 	<SubMenu CssClass='context-sub'>
 		@foreach (var role in Roles)
@@ -10,25 +10,25 @@
 			var cRole = role;
 			var hasRole = MemberRoles.Any(x => x.Id == role.Id);
 
-			<Item CssClass='context-item'>
+			<BlazorContextMenu.Item CssClass='context-item'>
 				<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
 					<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
 					<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
 									checked="@hasRole" disabled />
 				</div>
-			</Item>
+			</BlazorContextMenu.Item>
 		}
 	</SubMenu>
-</Item>
-<Item CssClass='context-item'>
+</BlazorContextMenu.Item>
+<BlazorContextMenu.Item CssClass='context-item'>
 	Copy
 	<SubMenu CssClass='context-sub'>
-		<Item OnClick='OnClickCopyNickname' CssClass='context-item'>Nickname</Item>
-		<Item OnClick='OnClickCopyUsername' CssClass='context-item'>Username</Item>
-		<Item OnClick='OnClickCopyMemberId' CssClass='context-item'>Member Id</Item>
-		<Item OnClick='OnClickCopyUserId' CssClass='context-item'>User Id</Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyNickname' CssClass='context-item'>Nickname</BlazorContextMenu.Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyUsername' CssClass='context-item'>Username</BlazorContextMenu.Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyMemberId' CssClass='context-item'>Member Id</BlazorContextMenu.Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyUserId' CssClass='context-item'>User Id</BlazorContextMenu.Item>
 	</SubMenu>
-</Item>
+</BlazorContextMenu.Item>
 
 @code {
 
@@ -83,7 +83,7 @@
 
 	public async Task OnClickCopyUsername(){
 		var user = await Member.GetUserAsync();
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Username);
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Name);
 	}
 
 	public async Task OnClickCopyMemberId(){
@@ -97,7 +97,7 @@
 
 	public async Task OnRoleClick(PlanetRole role, bool value)
 	{
-		Valour.Shared.Items.Planets.Members.PlanetRoleMember roleMember = new()
+		PlanetRoleMember roleMember = new()
 		{
 			Member_Id = Member.Id,
 			Planet_Id = Member.Planet_Id,

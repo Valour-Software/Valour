@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Valour.Api.Extensions;
+using Valour.Api.Items;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
@@ -9,6 +10,7 @@ using Valour.Api.Items.Users;
 using Valour.Api.Items.Messages;
 using Valour.Shared;
 using Valour.Shared.Items;
+using Microsoft.Extensions.Logging;
 
 namespace Valour.Api.Client;
 
@@ -303,7 +305,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item<T>
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
     {
         Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
 
@@ -315,11 +317,15 @@ public static class ValourClient
         if (!skipEvent)
         {
             if (local != null) {
-                await local.InvokeUpdated(flags);
-                await local.InvokeAnyUpdated(local, flags);
+                var s_local = local as ISyncedItem<T>;
+
+                await s_local.InvokeUpdated(flags);
+                await s_local.InvokeAnyUpdated(local, flags);
             }
             else {
-                await updated.InvokeAnyUpdated(updated, flags);
+                var s_updated = updated as ISyncedItem<T>;
+
+                await s_updated.InvokeAnyUpdated(updated, flags);
             }
 
             Console.WriteLine("Invoked update events for " + updated.Id);
@@ -329,17 +335,19 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : Item<T>
+    public static async Task DeleteItem<T>(T item) where T : Item
     {
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
 
+        var s_local = local as ISyncedItem<T>;
+
         // Invoke specific item deleted
-        await local.InvokeDeleted();
+        await s_local.InvokeDeleted();
 
         // Invoke static "any" delete
-        await local.InvokeAnyDeleted(local);
+        await s_local.InvokeAnyDeleted(local);
     }
 
     /// <summary>
@@ -446,7 +454,7 @@ public static class ValourClient
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
-        Console.WriteLine($"Initialized user {Self.Username} ({Self.Id})");
+        Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
         if (OnLogin != null)
             await OnLogin?.Invoke();
@@ -509,6 +517,11 @@ public static class ValourClient
         HubConnection = new HubConnectionBuilder()
             .WithUrl(hub_url)
             .WithAutomaticReconnect()
+            .ConfigureLogging(logging =>
+            {
+                //logging.AddConsole();
+                //logging.SetMinimumLevel(LogLevel.Trace);
+            })
             .Build();
 
         //hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);
@@ -538,6 +551,9 @@ public static class ValourClient
 
         HubConnection.On<PlanetMember, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
         HubConnection.On<PlanetMember>("MemberDeletion", DeleteItem);
+
+        HubConnection.On<User, int>("UserUpdate", (i, d) => UpdateItem(i, d));
+        HubConnection.On<User>("UserDeletion", DeleteItem);
     }
 
     /// <summary>
@@ -786,7 +802,7 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
     {
-        StringContent jsonContent = new StringContent(content);
+        StringContent jsonContent = new StringContent((string)content);
 
         var response = await Http.PostAsync(uri, jsonContent);
 

@@ -1,9 +1,11 @@
 ﻿
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Planets;
+using System.Text.Json.Serialization;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Planets;
 
 namespace Valour.Database.Items.Planets;
-public class Invite : Valour.Shared.Items.Planets.Invite<Invite>
+public class Invite : InviteBase
 {
     [ForeignKey("Planet_Id")]
     public virtual Planet Planet { get; set; }

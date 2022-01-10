@@ -1,7 +1,11 @@
-﻿using Valour.Api.Client;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
+using Valour.Shared.Authorization;
 using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 
 namespace Valour.Api.Items.Authorization;
 
@@ -11,9 +15,8 @@ namespace Valour.Api.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : Shared.Items.Authorization.PermissionsNode<PermissionsNode>
+public class PermissionsNode : PermissionsNodeBase
 {
-
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>

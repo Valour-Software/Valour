@@ -1,10 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Valour.Shared.Items.Authorization;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets.Members;
+using Valour.Shared.Items;
+using System.Drawing;
+using Valour.Database.Items.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -15,7 +18,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetRole>
+public class PlanetRole : PlanetRoleBase
 {
     [ForeignKey("Planet_Id")]
     [JsonIgnore]
@@ -23,7 +26,7 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
 
     [InverseProperty("Role")]
     [JsonIgnore]
-    public virtual ICollection<Authorization.PermissionsNode> PermissionNodes { get; set; }
+    public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
 
     public ICollection<Authorization.PermissionsNode> GetNodes(ValourDB db)
     {
@@ -34,7 +37,7 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
     public ICollection<Authorization.PermissionsNode> GetChannelNodes(ValourDB db)
     {
         PermissionNodes ??= db.PermissionsNodes.Where(x => x.Role_Id == Id).ToList();
-        return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.Channel).ToList();
+        return PermissionNodes.Where(x => x.Target_Type == Shared.Items.ItemType.ChatChannel).ToList();
     }
 
     public ICollection<Authorization.PermissionsNode> GetCategoryNodes(ValourDB db)
@@ -45,11 +48,11 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
 
     public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == channel.Id &&
-                                                                     x.Target_Type == Shared.Items.ItemType.Channel);
+                                                                     x.Target_Type == Shared.Items.ItemType.ChatChannel);
 
     public async Task<Authorization.PermissionsNode> GetChannelNodeAsync(PlanetCategory category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
-                                                                     x.Target_Type == Shared.Items.ItemType.Channel);
+                                                                     x.Target_Type == Shared.Items.ItemType.ChatChannel);
 
     public async Task<Authorization.PermissionsNode> GetCategoryNodeAsync(PlanetCategory category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == category.Id &&
@@ -60,16 +63,6 @@ public class PlanetRole : Valour.Shared.Items.Planets.Members.PlanetRole<PlanetR
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channel_id, ValourDB db) =>
         (await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Target_Id == channel_id)).GetPermissionState(permission);
-
-    /// <summary>
-    /// Returns if the role has the permission
-    /// </summary>
-    /// <param name="permission"></param>
-    /// <returns></returns>
-    public bool HasPermission(PlanetPermission permission)
-    {
-        return Permission.HasPermission(Permissions, permission);
-    }
 
     /// <summary>
     /// Tries to delete this role

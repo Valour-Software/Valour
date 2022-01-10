@@ -7,6 +7,8 @@ using Valour.Shared;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets.Channels;
+using Valour.Shared.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -16,21 +18,40 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetChatChannel : Valour.Shared.Items.Planets.Channels.PlanetChatChannel<PlanetChatChannel>, IPlanetChannel
+public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
 {
-
-    [ForeignKey("Planet_Id")]
     [JsonIgnore]
+    [ForeignKey("Planet_Id")]
     public virtual Planet Planet { get; set; }
 
-    [ForeignKey("Parent_Id")]
     [JsonIgnore]
+    [ForeignKey("Parent_Id")]
     public virtual PlanetCategory Parent { get; set; }
+
+    /// <summary>
+    /// The type of this item
+    /// </summary>
+    [NotMapped]
+    [JsonPropertyName("ItemType")]
+    public override ItemType ItemType => ItemType.ChatChannel;
 
     /// <summary>
     /// The regex used for name validation
     /// </summary>
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+
+    /// <summary>
+    /// Returns the planet this belongs to
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
+        Planet ??= await db.Planets.FindAsync(Planet_Id);
+
+    /// <summary>
+    /// Returns the parent this belongs to
+    /// </summary>
+    public async Task<PlanetCategory> GetParentAsync(ValourDB db) =>
+        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
 
     /// <summary>
     /// Deletes this channel
@@ -76,29 +97,11 @@ public class PlanetChatChannel : Valour.Shared.Items.Planets.Channels.PlanetChat
     }
 
     /// <summary>
-    /// Returns the planet of the channel
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync(ValourDB db)
-    {
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-        return Planet;
-    }
-
-    /// <summary>
-    /// Returns the parent category of this channel
-    /// </summary>
-    public async Task<PlanetCategory> GetParentAsync(ValourDB db)
-    {
-        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
-        return Parent;
-    }
-
-    /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
     public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
     {
-        Planet ??= await GetPlanetAsync(db);
+        await GetPlanetAsync(db);
 
         if (Planet.Owner_Id == member.User_Id)
             return true;

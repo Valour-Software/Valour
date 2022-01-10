@@ -1,14 +1,20 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Database.Items.Users;
+using Valour.Shared.Authorization;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 
 namespace Valour.Database.Items.Authorization;
 
-public class AuthToken : Valour.Shared.Items.Authorization.AuthToken
+public class AuthToken : AuthTokenBase
 {
     public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
 
     [ForeignKey("User_Id")]
+    [JsonIgnore]
     public virtual User User { get; set; }
 
     /// <summary>

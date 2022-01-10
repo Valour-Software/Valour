@@ -1,4 +1,7 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Client;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Planets;
 
 namespace Valour.Api.Items.Planets;
 
@@ -8,7 +11,7 @@ namespace Valour.Api.Items.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class Invite : Shared.Items.Planets.Invite<Invite>
+public class Invite : InviteBase
 {
     /// <summary>
     /// Returns the invite for the given invite code

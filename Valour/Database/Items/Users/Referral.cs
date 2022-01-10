@@ -1,12 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Users;
 
 namespace Valour.Database.Items.Users;
 
-public class Referral : Valour.Shared.Items.Users.Referral
+public class Referral : ReferralBase
 {
-    [ForeignKey("User_Id")]
-    public virtual User User { get; set; }
-
-    [ForeignKey("Referrer_Id")]
-    public virtual User Referrer { get; set; }
 }

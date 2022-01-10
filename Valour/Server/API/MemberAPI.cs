@@ -6,6 +6,7 @@ using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -243,7 +244,7 @@ namespace Valour.Server.API
                 await db.SaveChangesAsync();
             }
 
-            PlanetHub.NotifyMemberChange(target_member, Api.Items.Planets.Members.PlanetMember.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMemberBase.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -333,7 +334,7 @@ namespace Valour.Server.API
             db.Remove(roleMember);
             await db.SaveChangesAsync();
 
-            PlanetHub.NotifyMemberChange(target_member, Api.Items.Planets.Members.PlanetMember.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMemberBase.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
@@ -472,7 +473,7 @@ namespace Valour.Server.API
             await db.PlanetRoleMembers.AddAsync(roleMember);
             await db.SaveChangesAsync();
 
-            PlanetHub.NotifyMemberChange(target_member, PlanetMember.FLAG_UPDATE_ROLES);
+            PlanetHub.NotifyMemberChange(target_member, PlanetMemberBase.FLAG_UPDATE_ROLES);
 
             ctx.Response.StatusCode = 201;
             await ctx.Response.WriteAsync(roleMember.Id.ToString());

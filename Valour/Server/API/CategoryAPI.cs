@@ -499,7 +499,7 @@ namespace Valour.Server.API
 
             foreach (CategoryContentData order in orderData)
             {
-                IPlanetChannel item = await IPlanetChannel.FindAsync(order.ItemType, order.Id, db);
+                var item = await IPlanetChannel.FindAsync(order.ItemType, order.Id, db);
 
                 if (item == null)
                 {
@@ -600,7 +600,7 @@ namespace Valour.Server.API
 
             switch (type)
             {
-                case ItemType.Channel:
+                case ItemType.ChatChannel:
                     in_item = await JsonSerializer.DeserializeAsync<PlanetChatChannel>(ctx.Request.Body);
                     break;
                 case ItemType.Category:

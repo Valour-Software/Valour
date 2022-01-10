@@ -2,20 +2,20 @@
 @inject IBlazorContextMenuService contextService
 
 <ContextMenu Id='message-context' CssClass='context' class='member-context'>
-    <Item CssClass='context-item'>
+    <BlazorContextMenu.Item CssClass='context-item'>
         Copy
         <SubMenu CssClass='context-sub'>
-            <Item OnClick='OnClickCopyText' CssClass='context-item'>Text</Item>
-            <Item OnClick='OnClickCopyId' CssClass='context-item'>Message Id</Item>
+            <BlazorContextMenu.Item OnClick='OnClickCopyText' CssClass='context-item'>Text</BlazorContextMenu.Item>
+            <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-item'>Message Id</BlazorContextMenu.Item>
         </SubMenu>
-    </Item>
+    </BlazorContextMenu.Item>
 
-    <Item CssClass='context-item'>
+    <BlazorContextMenu.Item CssClass='context-item'>
         Member
         <SubMenu CssClass='context-sub'>
             <InnerMemberContextMenuComponent></InnerMemberContextMenuComponent>
         </SubMenu>
-    </Item>
+    </BlazorContextMenu.Item>
 </ContextMenu>
 
 

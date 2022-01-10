@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Authorization;
 using Valour.Database.Items.Users;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -17,7 +17,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : Valour.Shared.Planets.PlanetMember<PlanetMember>
+public class PlanetMember : PlanetMemberBase
 {
 
     // Relational DB stuff
@@ -119,14 +119,6 @@ public class PlanetMember : Valour.Shared.Planets.PlanetMember<PlanetMember>
     }
 
     /// <summary>
-    /// Returns the user
-    /// </summary>
-    public User GetUser()
-    {
-        return GetUserAsync().Result;
-    }
-
-    /// <summary>
     /// Returns the planet (async)
     /// </summary>
     public async Task<Planet> GetPlanetAsync()
@@ -139,15 +131,6 @@ public class PlanetMember : Valour.Shared.Planets.PlanetMember<PlanetMember>
         }
 
         return Planet;
-    }
-
-    /// <summary>
-    /// Returns the planet
-    /// </summary>
-    public Planet GetPlanet()
-    {
-        if (Planet != null) return Planet;
-        return GetPlanetAsync().Result;
     }
 
     public async Task<ulong> GetAuthorityAsync()

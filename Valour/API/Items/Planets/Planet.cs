@@ -1,7 +1,10 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
 using Valour.Shared;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Planets;
 
 namespace Valour.Api.Items.Planets;
 
@@ -10,8 +13,63 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : Shared.Items.Planets.Planet<Planet>
+public class Planet : PlanetBase, ISyncedItem<Planet>
 {
+    #region Synced Item System
+
+    /// <summary>
+    /// Ran when this item is updated
+    /// </summary>
+    public event Func<int, Task> OnUpdated;
+
+    /// <summary>
+    /// Ran when this item is deleted
+    /// </summary>
+    public event Func<Task> OnDeleted;
+
+    /// <summary>
+    /// Run when any of this item type is updated
+    /// </summary>
+    public static event Func<Planet, int, Task> OnAnyUpdated;
+
+    /// <summary>
+    /// Run when any of this item type is deleted
+    /// </summary>
+    public static event Func<Planet, Task> OnAnyDeleted;
+
+    public async Task InvokeAnyUpdated(Planet updated, int flags)
+    {
+        if (OnAnyUpdated != null)
+            await OnAnyUpdated?.Invoke(updated, flags);
+    }
+
+    public async Task InvokeAnyDeleted(Planet deleted)
+    {
+        if (OnAnyDeleted != null)
+            await OnAnyDeleted?.Invoke(deleted);
+    }
+
+    public async Task InvokeUpdated(int flags)
+    {
+        await OnUpdate(flags);
+
+        if (OnUpdated != null)
+            await OnUpdated?.Invoke(flags);
+    }
+
+    public async Task InvokeDeleted()
+    {
+        if (OnDeleted != null)
+            await OnDeleted?.Invoke();
+    }
+
+    public async Task OnUpdate(int flags)
+    {
+
+    }
+
+    #endregion
+
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
     private List<PlanetCategory> Categories { get; set; }
