@@ -102,6 +102,17 @@
 
         state = user.UserState;
 
+        user.OnUpdated += async d =>
+        {
+            await SetPfpValue();
+            StateHasChanged();
+        };
+
+        await SetPfpValue();
+    }
+
+    public async Task SetPfpValue()
+    {
         string pfp = await Member.GetPfpUrlAsync();
 
         if (!string.IsNullOrWhiteSpace(pfp))

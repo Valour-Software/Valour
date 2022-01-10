@@ -79,7 +79,6 @@ namespace Valour.Server
 
             if (app.Environment.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
                 app.UseWebAssemblyDebugging();
             }
             else
@@ -100,7 +99,6 @@ namespace Valour.Server
 
             app.UseHttpsRedirection();
             app.UseBlazorFrameworkFiles();
-
             app.UseStaticFiles();
 
             app.UseRouting();
@@ -122,18 +120,18 @@ namespace Valour.Server
 
             /* Reference code for any future migrations */
 
-            using ValourDB db = new(ValourDB.DBOptions);
-            db.Database.EnsureCreated();
+            //using ValourDB db = new(ValourDB.DBOptions);
+            //db.Database.EnsureCreated();
 
-            foreach (PlanetRole role in db.PlanetRoles.Include(x => x.Planet))
-            {
-                if (role.Id == role.Planet.Default_Role_Id)
-                {
-                    role.Position = uint.MaxValue;
-                }
-            }
+            //foreach (PlanetRole role in db.PlanetRoles.Include(x => x.Planet))
+            //{
+            //    if (role.Id == role.Planet.Default_Role_Id)
+            //    {
+            //        role.Position = uint.MaxValue;
+            //    }
+            //}
 
-            db.SaveChanges();
+            //db.SaveChanges();
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)

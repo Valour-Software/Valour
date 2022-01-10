@@ -35,11 +35,15 @@ public static class ValourCache
 
         // If there is already an object with this ID, update it
         if (HCache[type].ContainsKey(id))
+        {
             if (obj is ISyncedItem<T>)
                 await ValourClient.UpdateItem(obj, flags, skipEvent);
-        // Otherwise, place it into the cache
+            // Otherwise, place it into the cache
+        }
         else
+        {
             HCache[type][id] = obj;
+        }
     }
 
     /// <summary>

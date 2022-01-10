@@ -1,10 +1,15 @@
-﻿namespace Valour.Server.API;
+﻿using Valour.Client.Messages;
+
+namespace Valour.Server.API;
 
 public class BaseAPI
 {
+    public static string VERSION;
+
     public static void AddRoutes(WebApplication app)
     {
-        //app.MapGet("api/version", () => new ClientPlanetMessage(null).GetType().Assembly.GetName().Version.ToString());
+        VERSION = new ClientPlanetMessage(null).GetType().Assembly.GetName().Version.ToString();
+        app.MapGet("api/version", () => VERSION);
     }
 
     public static async Task TokenInvalid(HttpContext ctx)

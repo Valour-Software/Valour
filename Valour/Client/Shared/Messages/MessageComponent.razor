@@ -244,6 +244,8 @@
         PlanetRole.OnAnyDeleted += OnRoleDeletion;
         PlanetRole.OnAnyUpdated += OnRoleUpdate;
 
+        await BuildMessage();
+
         if (Author != null)
         {
             Author.OnUpdated += OnAuthorUpdated;
@@ -252,9 +254,6 @@
             if (user != null)
                 user.OnUpdated += OnUserUpdated;
         }
-
-
-        await BuildMessage();
     }
 
     public async Task OnAuthorUpdated(int flags)
