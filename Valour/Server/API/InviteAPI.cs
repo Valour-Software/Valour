@@ -55,7 +55,7 @@ public class InviteAPI : BaseAPI
             code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
             exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
         }
-        while (!exists);
+        while (exists);
 
         in_invite.Code = code;
 

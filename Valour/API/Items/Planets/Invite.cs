@@ -13,6 +13,9 @@ namespace Valour.Api.Items.Planets;
 
 public class Invite : InviteBase
 {
+    [JsonPropertyName("planet")]
+    public Planet Planet { get; set; }
+
     /// <summary>
     /// Returns the invite for the given invite code
     /// </summary>
@@ -37,7 +40,7 @@ public class Invite : InviteBase
     /// Returns the name of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetNameAsync() =>
-        await ValourClient.GetJsonAsync<string>($"api/invite/{Code}/planet/name") ?? "Name not found";
+        await ValourClient.GetJsonAsync<string>($"api/invite/{Code}/planet/name");
     
     /// <summary>
     /// Returns the icon of the invite's planet

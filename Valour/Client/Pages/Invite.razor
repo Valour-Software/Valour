@@ -4,6 +4,8 @@
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
 
+@using Valour.Api.Items.Planets
+
 <body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
     <div class="popup-box">
         <div class="col-md-12">
@@ -13,14 +15,15 @@
                     <h3 class="text-info invite-name">@PlanetName</h3>
                     <h3 class="invite-name">?</h3>
                 </div>
-
-                <img class="planet-card-icon" src="@PlanetImage" />
+                <center>
+                    <img class="planet-card-icon" style="width:128px;" src="@PlanetImage" />
+                </center>
 
                 <br />
-                <span class="text-info center-text" style="text-align:center">@infoSpan</span>
-                <span class="text-danger center-text" style="text-align:center">@errorSpan</span>
+                <span class="text-info" style="text-align:center">@infoSpan</span>
+                <span class="text-danger" style="text-align:center">@errorSpan</span>
 
-                <center class="join-btn">
+                <center>
                     @if (Clicked)
                     {
                         <button class="btn btn-outline-primary btn-pos mt-2" @onclick="OnClose">Close</button>
@@ -59,7 +62,9 @@
             navManager.NavigateTo("/");
         }
 
-        var invite = await ValourClient.GetJsonAsync<Invite>($"api/invite/{code}");
+        var invite = await ValourClient.GetJsonAsync<Valour.Api.Items.Planets.Invite>($"api/invite/{code}");
+
+        // TODO: tell user if the invite has expired
 
         if (invite is null) {
             errorSpan = "Failed to find invite.";
@@ -69,12 +74,15 @@
             return;
         }
 
-        PlanetName = invite.PlanetName;
-        PlanetImage = invite.PlanetImage;
+        PlanetName = invite.Planet.Name;
+
+        // TODO: somehow check if the planet pfp points to nothing, and then use default planet pfp
+
+        PlanetImage = invite.Planet.Image_Url;
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
 
-        InviteCode = invite.code;
+        InviteCode = invite.Code;
 
         StateHasChanged();
 
