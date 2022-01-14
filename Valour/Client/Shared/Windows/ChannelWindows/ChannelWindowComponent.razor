@@ -34,7 +34,9 @@
 
     </div>
 
-    <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" @ref="MessageHolder"></MessageHolderComponent>
+    <CascadingValue Value='Channel_Permissions'>
+        <MessageHolderComponent @key='$"mh-{Window.Index}"' Window="Window" @ref="MessageHolder"></MessageHolderComponent>
+    </CascadingValue>
 
     @{
         var lastMessage = MessageHolder?.GetLastMessage();
@@ -96,6 +98,8 @@
 
     public MentionSelectComponent MentionSelector { get; set; }
 
+    public PermissionsNode Channel_Permissions { get; set; }
+
     public bool Should_Render { get; set; }
 
     // Drop zone stuff
@@ -115,6 +119,9 @@
         PlanetMember.OnAnyUpdated += OnPlanetMemberUpdate;
         PlanetRole.OnAnyUpdated += OnRoleUpdate;
         PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+
+        ValourClient.OnMessageRecieved += OnRecieveMessage;
+        ValourClient.OnMessageDeleted += OnDeleteMessage;
 
         await ValourClient.OpenChannel(Channel);
 
@@ -212,6 +219,9 @@
         PlanetMember.OnAnyUpdated -= OnPlanetMemberUpdate;
         PlanetRole.OnAnyUpdated -= OnRoleUpdate;
         PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+
+        ValourClient.OnMessageRecieved -= OnRecieveMessage;
+        ValourClient.OnMessageDeleted -= OnDeleteMessage;
     }
 
     public async Task OnChatChannelUpdate(PlanetChatChannel channel, int flags)
@@ -271,6 +281,8 @@
         MessageHolder.Clear();
 
         MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
+
+        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id);
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)
@@ -299,12 +311,29 @@
         await ValourClient.CloseChannel(Channel);
     }
 
-    public async Task OnRecieveMessage(ClientPlanetMessage message)
+    public async Task OnRecieveMessage(PlanetMessage message)
     {
-        await MessageHolder.AddMessage(message);
+        // Ignore messages not meant for this channel
+        if (message.Channel_Id != Channel.Id)
+            return;
+
+        // Create client wrapper
+        ClientPlanetMessage c_message = new ClientPlanetMessage(message);
+
+        await MessageHolder.AddMessage(c_message);
         DummyComponent.SetLast(MessageHolder.GetLastMessage());
         DummyComponent.CheckMinimal();
         DummyComponent.ReRender();
+    }
+
+    public async Task OnDeleteMessage(PlanetMessage message)
+    {
+        if (message.Channel_Id != Channel.Id)
+            return;
+
+        MessageHolder.Messages.RemoveAll(x => x.Id == message.Id);
+        MessageHolder.QueuedMessages.RemoveAll(x => x.Id == message.Id);
+        MessageHolder.ForceRefresh();
     }
 
     public async Task ScrollToBottom()

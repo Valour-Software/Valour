@@ -25,17 +25,40 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapGet("api/channel/{channel_id}/messages", GetMessages);
-            app.MapPost("api/channel/{channel_id}/messages", PostMessage);
+            app.MapGet   ("api/channel/{channel_id}/messages", GetMessages);
+            app.MapPost  ("api/channel/{channel_id}/messages", PostMessage);
+            app.MapDelete("api/channel/{channel_id}/messages/{message_id}", DeleteMessage);
 
             app.Map("api/channel/{channel_id}", Channel);
             app.Map("api/channel/{channel_id}/name", Name);
             app.Map("api/channel/{channel_id}/parent_id", ParentId);
             app.Map("api/channel/{channel_id}/description", Description);
             app.Map("api/channel/{channel_id}/inherits_perms", PermissionsInherit);
+
+            app.MapGet("api/channel/{channel_id}/hasperm/{member_id}/{perm_code}", HasPerm);
         }
 
+        private static async Task<object> HasPerm(HttpContext ctx, ValourDB db, ulong channel_id, ulong member_id, ulong perm_code,
+                                          [FromHeader] string authorization)
+        {
+            var auth = await AuthToken.TryAuthorize(authorization, db);
+            if (auth is null) Results.Unauthorized();
 
+            var channel = await db.PlanetChatChannels.FindAsync(channel_id);
+
+            if (channel is null) return Results.NotFound();
+
+            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == auth.User_Id &&
+                                                                         x.Planet_Id == channel.Planet_Id);
+
+            if (member is null) return Results.NotFound();
+
+            // Ensure auth user can view channel
+            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
+                return Results.Forbid();
+
+            return await channel.HasPermission(member, new Permission(perm_code, "", ""), db);
+        }
 
         private static async Task Channel(HttpContext ctx, ValourDB db, ulong channel_id,
                                          [FromHeader] string authorization)
@@ -614,6 +637,59 @@ namespace Valour.Server.API
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");
+        }
+
+        public static async Task<object> DeleteMessage(HttpContext ctx, ValourDB db, ulong channel_id, ulong message_id,
+                                               [FromHeader] string authorization)
+        {
+            // Get token
+            var auth = await AuthToken.TryAuthorize(authorization, db);
+            if (auth is null) return Results.Unauthorized();
+
+            var message = await db.PlanetMessages.FindAsync(message_id);
+
+            // Ensure message exists
+            if (message is null || message.Channel_Id != channel_id)
+                return Results.NotFound();
+
+            // Ensure user has permissions
+            bool has_perm = false;
+
+            // Author always has permission
+            if (message.Author_Id == auth.User_Id)
+            {
+                has_perm = true;
+            }
+            // Non-author needs manage messages permission
+            else
+            {
+                var channel = await db.PlanetChatChannels.FindAsync(channel_id);
+                if (channel is null) return Results.NotFound();
+
+                var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == auth.User_Id && 
+                                                                             x.Planet_Id == channel.Planet_Id);
+
+                if (member is null) return Results.NotFound();
+
+                has_perm = await channel.HasPermission(member, ChatChannelPermissions.ManageMessages, db);
+            }
+
+            // Without permissions, cancel
+            if (!has_perm)
+                return Results.Forbid();
+
+            // Delete message
+
+            // Remove from staging
+            PlanetMessageWorker.RemoveFromQueue(message);
+
+            // Remove from db
+            db.PlanetMessages.Remove(message);
+            await db.SaveChangesAsync();
+
+            PlanetHub.NotifyMessageDeletion(message);
+
+            return Results.Ok();
         }
 
         private static async Task GetMessages(HttpContext ctx, ValourDB db, ulong channel_id,

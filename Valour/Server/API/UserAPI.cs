@@ -12,6 +12,7 @@ using Valour.Shared.Users.Identity;
 using Valour.Database.Items.Authorization;
 using Valour.Shared.Authorization;
 using Valour.Server.Users;
+using Valour.Database.Items.Planets.Members;
 
 namespace Valour.Server.API
 {
@@ -346,6 +347,20 @@ namespace Valour.Server.API
             string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/verify/{code}";
 
             await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
+
+            // Add user to main Valour server
+
+            PlanetMember member = new()
+            {
+                Planet_Id = 735703679107072,
+                User_Id = user.Id,
+                Id = IdManager.Generate(),
+                Nickname = user.Name
+            };
+
+            db.PlanetMembers.Add(member);
+
+            await db.SaveChangesAsync();
 
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsync("Success");

@@ -70,6 +70,8 @@ namespace Valour.Server
 
             // Migrations and tasks
 
+            /*
+
             int c = 0;
 
             using (ValourDB db = new ValourDB(ValourDB.DBOptions)){
@@ -80,7 +82,8 @@ namespace Valour.Server
                         PlanetMember member = new(){
                             Planet_Id = 735703679107072,
                             User_Id = user.Id,
-                            Id = IdManager.Generate()
+                            Id = IdManager.Generate(),
+                            Nickname = user.Name
                         };
 
                         db.PlanetMembers.Add(member);
@@ -93,6 +96,8 @@ namespace Valour.Server
 
                 Console.WriteLine($"Added {c} users to main planet.");
             }
+
+            */
 
             // Run
 
