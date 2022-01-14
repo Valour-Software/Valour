@@ -1,4 +1,4 @@
-﻿@inject HttpClient Http
+@inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService localStorage
 
@@ -48,7 +48,7 @@
             return;
         }
 
-            // Fix trailing whitespace
+        // Fix trailing whitespace
         email = email.Trim();
 
         if (password == null || string.IsNullOrWhiteSpace(password))
@@ -61,29 +61,18 @@
         passwordSpan = "";
         emailSpan = "";
 
-        string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
-        string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
+        var tokenResult = await ValourClient.GetToken(email, password);
 
-        TokenRequest content = new TokenRequest()
-        {
-            Email = email,
-            Password = password
-        };
-
-        var response = await Http.PostAsJsonAsync($"api/user/requesttoken", content);
-
-        var message = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
+        if (!tokenResult.Success)
         {
             Console.WriteLine("Failed to request user token.");
-            Console.WriteLine(message);
-            passwordSpan = $"Failed to request user. Error code {response.StatusCode.ToString()}";
+            Console.WriteLine(tokenResult.Data);
+            passwordSpan = tokenResult.Message;
             return;
         }
         else
         {
-            var result = await ValourClient.InitializeUser(message);
+            var result = await ValourClient.InitializeUser(tokenResult.Data);
 
             if (result.Success)
             {
