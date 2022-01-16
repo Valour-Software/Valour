@@ -362,6 +362,25 @@ else
         await RefreshButtons();
     }
 
+    public PermissionState GetPermissionStateForViewing(PermissionsNode node, Permission permission)
+    {
+
+        // super confusing to users why when they hit save, all the buttons go to off if the View perm is not set to True
+        // so let's get rid of that check (thats what this function does)!
+
+        if ((node.Mask & permission.Value) != permission.Value)
+        {
+            return PermissionState.Undefined;
+        }
+
+        if ((node.Code & permission.Value) != permission.Value)
+        {
+            return PermissionState.False;
+        }
+
+        return PermissionState.True;
+    }
+
     public async Task RefreshButtons()
     {
         if (Buttons == null || Buttons.Length == 0)
@@ -377,7 +396,7 @@ else
                 TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
                 if (ChannelPermissionsNode != null)
                 {
-                    var pState = ChannelPermissionsNode.GetPermissionState(ChatChannelPermissions.Permissions[i]);
+                    var pState = GetPermissionStateForViewing(ChannelPermissionsNode, ChatChannelPermissions.Permissions[i]);
                     if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
                     else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
                 }
@@ -399,7 +418,7 @@ else
                 TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
                 if (CategoryPermissionsNode != null)
                 {
-                    var pState = CategoryPermissionsNode.GetPermissionState(CategoryPermissions.Permissions[i]);
+                    var pState = GetPermissionStateForViewing(CategoryPermissionsNode, CategoryPermissions.Permissions[i]);
                     if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
                     else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
                 }
