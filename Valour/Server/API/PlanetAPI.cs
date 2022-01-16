@@ -148,6 +148,8 @@ namespace Valour.Server.API
             await db.PlanetRoles.AddAsync(in_role);
             await db.SaveChangesAsync();
 
+            PlanetHub.NotifyRoleChange(in_role);
+
             ctx.Response.StatusCode = 201;
             await ctx.Response.WriteAsJsonAsync(in_role.Id);
             return;
