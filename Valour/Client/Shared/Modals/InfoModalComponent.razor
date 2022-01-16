@@ -6,11 +6,13 @@
         <div class="popup-box">
             <div class="col-md-12">
                 <section>
-                    <h2 style="font-size:1.5rem">@Data.title_text</h2>
-                    <h4 style="font-size:1rem">@Data.desc_text</h4>
-                    <hr />
-                    <br />
-                    <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
+                    <center>
+                        <h2>@Data.title_text</h2>
+                        <h4>@Data.desc_text</h4>
+                        <br />
+                        <br />
+                        <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
+                    </center>
                 </section>
             </div>
         </div>

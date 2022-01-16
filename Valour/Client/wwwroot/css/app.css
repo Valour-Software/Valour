@@ -40,6 +40,16 @@
     border-color: var(--v-cyan);
 }
 
+.v-button.danger {
+    color: rgb(255, 0, 0);
+    border-color: rgb(255, 0, 0);
+}
+
+.v-button.danger:hover {
+    color: white;
+    border-color: white;
+}
+
 a {
     color: var(--link-color);
     user-select: text;
