@@ -7,9 +7,9 @@
             @((MarkupString)MarkdownManager.GetHtml(Item.Name))
         </div>
     }
-    <button type="button" class="btn btn-@Item.Size" style="color:#@Item.TextColor;background-color:#@Item.Color;" @onclick="(async () => await OnEmbedButtonClick())">
-        @if (Item.Link != null) {
-            <a href="@Item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
+    <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => await OnEmbedButtonClick())">
+        @if (Item.Link != "") {
+            <a href="@Item.Link" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
         }
         else {
             @((MarkupString)MarkdownManager.GetHtml(Item.Text))
