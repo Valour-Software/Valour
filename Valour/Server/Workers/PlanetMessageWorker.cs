@@ -30,6 +30,12 @@ namespace Valour.Server.Workers
 
         public static Dictionary<ulong, ulong> ChannelMessageIndices = new();
 
+        public static PlanetMessage GetStagedMessage(ulong id)
+        {
+            StagedMessages.TryGetValue(id, out PlanetMessage msg);
+            return msg;
+        }
+
         public static void AddToQueue(PlanetMessage message)
         {
             MessageQueue.Add(message);
