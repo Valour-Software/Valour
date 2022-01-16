@@ -32,7 +32,7 @@ namespace Valour.Server.API
             var auth = await AuthToken.TryAuthorize(authorization, db);
             if (auth is null) { await TokenInvalid(ctx); return; }
 
-            PlanetRole in_role = await JsonSerializer.DeserializeAsync<PlanetRole>(ctx.Response.Body);
+            PlanetRole in_role = await JsonSerializer.DeserializeAsync<PlanetRole>(ctx.Request.Body);
 
             PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == auth.User_Id &&
                                                                                         x.Planet_Id == in_role.Planet_Id);
@@ -92,7 +92,8 @@ namespace Valour.Server.API
                 }
                 case "PUT":
                 {
-                    PlanetRole in_role = await JsonSerializer.DeserializeAsync<PlanetRole>(ctx.Response.Body);
+
+                    PlanetRole in_role = await JsonSerializer.DeserializeAsync<PlanetRole>(ctx.Request.Body);
 
                     var result = await role.TryUpdateAsync(member, in_role, db);
                     
