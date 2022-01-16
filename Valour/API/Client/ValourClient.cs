@@ -666,12 +666,44 @@ public static class ValourClient
         }
         else
         {
-            if (typeof(T) == typeof(string)) return result;
-
             result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Gets a json resource from the given uri and deserializes it
+    /// </summary>
+    public static async Task<string> GetAsync(string uri)
+    {
+        var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await response.Content.ReadAsStringAsync();
+
+            // This means the null is expected
+            if (message == "null")
+            {
+                return null;
+            }
+
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed GET response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {message}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+
+            return null;
+        }
+        else
+        {
+            return await response.Content.ReadAsStringAsync();
+        }
     }
 
     /// <summary>
