@@ -122,6 +122,11 @@ namespace Valour.Client.Windows
 
             await ValourClient.OpenChannel(newChannel);
 
+            // make sure the window is added to OpenChatWindows
+            if (!(OpenChatWindows.Any(x => x.Index == window.Index))) {
+                OpenChatWindows.Add((ChatChannelWindow)window);
+            }
+
             if (OnChannelWindowUpdate is not null)
                 await OnChannelWindowUpdate.Invoke(window);
         }
