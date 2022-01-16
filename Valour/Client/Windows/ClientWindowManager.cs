@@ -36,7 +36,6 @@ namespace Valour.Client.Windows
         {
             Instance = this;
             ValourClient.HubConnection.Reconnected += OnSignalRReconnect;
-            ValourClient.OnMessageRecieved += OnMessageRecieved;
         }
 
         public async Task SetFocusedPlanet(Planet planet)
@@ -64,25 +63,6 @@ namespace Valour.Client.Windows
                 Console.WriteLine($"Set focused planet to {planet.Name} ({planet.Id})");
 
             await OnPlanetFocused?.Invoke(planet);
-        }
-
-        public async Task OnMessageRecieved(PlanetMessage in_message)
-        {
-
-            // Create client wrapper
-            ClientPlanetMessage message = new ClientPlanetMessage(in_message);
-
-            if (!OpenChatWindows.Any(x => x.Channel.Id == message.Channel_Id))
-            {
-                Console.WriteLine($"Error: Recieved message for closed channel ({message.Channel_Id})");
-                return;
-            }
-
-            foreach (var window in OpenChatWindows.Where(x => x.Channel.Id == message.Channel_Id))
-            {
-                await window.Component.OnRecieveMessage(message);
-            }
-
         }
 
         public async Task OnSignalRReconnect(string data)

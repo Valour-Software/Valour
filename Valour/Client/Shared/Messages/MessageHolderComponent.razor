@@ -64,7 +64,7 @@
     {
         var queued = QueuedMessages.FirstOrDefault(x => x.Fingerprint == fingerprint);
         if (queued != null) { QueuedMessages.Remove(queued); }
-        
+
         StateHasChanged();
     }
 
@@ -145,6 +145,7 @@
 
     public void ForceRefresh()
     {
+        state = "force-ref";
         StateHasChanged();
     }
 

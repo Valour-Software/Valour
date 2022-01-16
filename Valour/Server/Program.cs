@@ -68,6 +68,37 @@ namespace Valour.Server
             PermissionsAPI.AddRoutes(app);
             OauthAPI      .AddRoutes(app);
 
+            // Migrations and tasks
+
+            /*
+
+            int c = 0;
+
+            using (ValourDB db = new ValourDB(ValourDB.DBOptions)){
+                foreach (var user in db.Users){
+                    if (!db.PlanetMembers.Any(x => x.Planet_Id == 735703679107072 &&
+                         user.Id == x.User_Id)){
+                        
+                        PlanetMember member = new(){
+                            Planet_Id = 735703679107072,
+                            User_Id = user.Id,
+                            Id = IdManager.Generate(),
+                            Nickname = user.Name
+                        };
+
+                        db.PlanetMembers.Add(member);
+
+                        c++;
+                     }
+                }
+
+                db.SaveChanges();
+
+                Console.WriteLine($"Added {c} users to main planet.");
+            }
+
+            */
+
             // Run
 
             app.Run();
@@ -132,6 +163,7 @@ namespace Valour.Server
             //}
 
             //db.SaveChanges();
+            
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)

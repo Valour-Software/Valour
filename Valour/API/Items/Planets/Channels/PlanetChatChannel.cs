@@ -2,7 +2,9 @@
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Api.Items.Messages;
+using Valour.Api.Items.Planets.Members;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Channels;
 
@@ -150,6 +152,67 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedI
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
         await PermissionsNode.FindAsync(Id, role_id, ItemType.ChatChannel, force_refresh);
+
+    /// <summary>
+    /// Returns the current total permissions for this channel for a member.
+    /// This result is NOT SYNCED, since it flattens several nodes into one!
+    /// </summary>
+    public async Task<PermissionsNode> GetMemberPermissionsAsync(ulong member_id, bool force_refresh = false)
+    {
+        var member = await PlanetMember.FindAsync(member_id);
+        var roles = await member.GetRolesAsync();
+
+        // Start with no permissions
+        var dummy_node = new PermissionsNode()
+        {
+            // Full, since values should either be yes or no
+            Mask = Permission.FULL_CONTROL,
+            // Default to no permission
+            Code = 0x0,
+
+            Planet_Id = Planet_Id,
+            Target_Id = Id,
+            Target_Type = ItemType
+        };
+
+        var planet = await GetPlanetAsync();
+
+        // Easy cheat for owner
+        if (planet.Owner_Id == member.User_Id)
+        {
+            dummy_node.Code = Permission.FULL_CONTROL;
+            return dummy_node;
+        }
+
+        // Should be in order of most power -> least,
+        // so we reverse it here
+        for (int i = roles.Count - 1; i >= 0; i--)
+        {
+            var role = roles[i];
+            var node = await GetChannelPermissionsNodeAsync(role.Id, force_refresh);
+
+            foreach (var perm in ChatChannelPermissions.Permissions)
+            {
+                var val = node.GetPermissionState(perm);
+
+                // Change nothing if undefined. Otherwise overwrite.
+                // Since most important nodes come last, we will end with correct perms.
+                if (val == PermissionState.True)
+                {
+                    dummy_node.SetPermission(perm, PermissionState.True);
+                }
+                else if (val == PermissionState.False)
+                {
+                    dummy_node.SetPermission(perm, PermissionState.False);
+                }
+            }
+        }
+
+        return dummy_node;
+    } 
+
+    public async Task<bool> HasPermissionAsync(ulong member_id, ChatChannelPermission perm) =>
+        await ValourClient.GetJsonAsync<bool>($"api/channel/{Id}/hasperm/{member_id}/{perm.Value}");
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)

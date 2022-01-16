@@ -8,6 +8,7 @@ using Valour.Shared.Items.Messages.Embeds;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Users;
 using System.Text.Json;
+using Valour.Database.Items.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -114,6 +115,9 @@ namespace Valour.Database
 
         public static async void NotifyCategoryChange(PlanetCategory category, int flags = 0) =>
             await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category, flags);
+
+        public static async void NotifyMessageDeletion(PlanetMessage message) =>
+            await Current.Clients.Group($"c-{message.Channel_Id}").SendAsync("DeleteMessage", message);
 
         public static async void NotifyUserChange(User user, ValourDB db, int flags = 0)
         {

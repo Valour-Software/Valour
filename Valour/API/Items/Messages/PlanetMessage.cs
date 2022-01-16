@@ -6,6 +6,7 @@ using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Shared.Items.Messages;
 using Valour.Shared.Items.Messages.Embeds;
+using Valour.Shared;
 
 namespace Valour.Api.Items.Messages;
 
@@ -50,6 +51,12 @@ public class PlanetMessage : PlanetMessageBase
     /// </summary>
     public async Task<PlanetChatChannel> GetChannelAsync() =>
         await PlanetChatChannel.FindAsync(Channel_Id);
+
+    /// <summary>
+    /// Attempts to delete this message
+    /// </summary>
+    public async Task<TaskResult> DeleteAsync() =>
+        await ValourClient.DeleteAsync($"api/channel/{Channel_Id}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in

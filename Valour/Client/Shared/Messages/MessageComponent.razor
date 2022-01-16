@@ -16,16 +16,18 @@
             </p>
         </div>
         <div class="message-content">
-            <p class="content" @ref="InnerRef">
-                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
-                {
-                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-                }
-                else
-                {
-                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                }
-            </p>
+            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component)'>
+                <p class="content" @ref="InnerRef">
+                    @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                    {
+                        <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                    }
+                </p>
+            </ContextMenuTrigger>
         </div>
 
     }
@@ -58,7 +60,7 @@
                     User not found
                 </p>
             }
-            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message)'>
+            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component)'>
                 <p class="content" @ref="InnerRef">
                     @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
                     {

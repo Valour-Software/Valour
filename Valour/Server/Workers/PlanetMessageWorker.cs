@@ -21,7 +21,10 @@ namespace Valour.Server.Workers
 
         private static BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
 
-        private static ConcurrentBag<PlanetMessage> StagedMessages = new();
+        // Prevents deleted messages from being staged
+        private static HashSet<ulong> BlockSet = new();
+
+        private static ConcurrentDictionary<ulong, PlanetMessage> StagedMessages = new();
 
         private static ValourDB Context;
 
@@ -32,9 +35,18 @@ namespace Valour.Server.Workers
             MessageQueue.Add(message);
         }
 
+        public static void RemoveFromQueue(PlanetMessage message)
+        {
+            // Remove currently staged
+            StagedMessages.Remove(message.Id, out _);
+
+            // Protect from being staged
+            BlockSet.Add(message.Id);
+        }
+
         public static List<PlanetMessage> GetStagedMessages(ulong channel_id, int max)
         {
-            return StagedMessages.Where(x => x.Channel_Id == channel_id).TakeLast(max).Reverse().ToList();
+            return StagedMessages.Values.Where(x => x.Channel_Id == channel_id).TakeLast(max).Reverse().ToList();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -51,6 +63,12 @@ namespace Valour.Server.Workers
                     // This is a stream and will run forever
                     foreach (PlanetMessage Message in MessageQueue.GetConsumingEnumerable())
                     {
+                        if (BlockSet.Contains(Message.Id))
+                        {
+                            BlockSet.Remove(Message.Id);
+                            continue;
+                        }
+
                         ulong channel_id = Message.Channel_Id;
 
                         PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
@@ -66,7 +84,7 @@ namespace Valour.Server.Workers
                         // This is not awaited on purpose
                         PlanetHub.Current.Clients.Group($"c-{channel_id}").SendAsync("Relay", Message);
 
-                        StagedMessages.Add(Message);
+                        StagedMessages.TryAdd(Message.Id, Message);
                     }
 
 
@@ -86,8 +104,9 @@ namespace Valour.Server.Workers
 
                     if (Context != null)
                     {
-                        await Context.PlanetMessages.AddRangeAsync(StagedMessages);
+                        await Context.PlanetMessages.AddRangeAsync(StagedMessages.Values);
                         StagedMessages.Clear();
+                        BlockSet.Clear();
                         await Context.SaveChangesAsync();
                         _logger.LogInformation($"Saved successfully.");
                     }

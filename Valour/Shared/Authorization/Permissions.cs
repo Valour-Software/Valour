@@ -162,6 +162,7 @@ public static class ChatChannelPermissions
     public static readonly ChatChannelPermission ManagePermissions;
     public static readonly ChatChannelPermission Embed;
     public static readonly ChatChannelPermission AttachContent;
+    public static readonly ChatChannelPermission ManageMessages;
 
     static ChatChannelPermissions()
     {
@@ -173,6 +174,7 @@ public static class ChatChannelPermissions
         ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
         Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
         AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
+        ManageMessages = new ChatChannelPermission(0x80, "Manage Messages", "Allow members to delete and manage messages in this channel.");
 
         Permissions = new ChatChannelPermission[]
         {
@@ -183,7 +185,8 @@ public static class ChatChannelPermissions
                 ManageChannel,
                 ManagePermissions,
                 Embed,
-                AttachContent
+                AttachContent,
+                ManageMessages
         };
 
         Default = Permission.CreateCode(View, ViewMessages, PostMessages);
