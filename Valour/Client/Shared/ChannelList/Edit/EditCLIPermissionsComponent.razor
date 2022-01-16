@@ -226,14 +226,14 @@ else
                 // Create channel node
                 // If there's no node, create a dummy one
                 ChannelPermissionsNode = new()
-                {
-                    Target_Id = Target.Id,
-                    Planet_Id = Target.Planet_Id,
-                    Role_Id = Selected_Role.Id,
-                    Mask = 0x00,
-                    Code = 0x00,
-                    Target_Type = ItemType.ChatChannel
-                };
+                    {
+                        Target_Id = Target.Id,
+                        Planet_Id = Target.Planet_Id,
+                        Role_Id = Selected_Role.Id,
+                        Mask = 0x00,
+                        Code = 0x00,
+                        Target_Type = ItemType.ChatChannel
+                    };
             }
         }
 
@@ -435,7 +435,7 @@ else
                 TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
                 if (ChannelPermissionsNode != null)
                 {
-                    var pState = ChannelPermissionsNode.GetPermissionState(ChatChannelPermissions.Permissions[i]);
+                    var pState = GetPermissionStateForViewing(ChannelPermissionsNode, ChatChannelPermissions.Permissions[i]);
                     if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
                     else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
                 }
