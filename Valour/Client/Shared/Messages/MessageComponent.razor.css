@@ -209,6 +209,7 @@
 ::deep .content code {
     margin: 0px;
     word-break: break-word;
+    background: #242424;
 }
 
 ::deep .content pre {
