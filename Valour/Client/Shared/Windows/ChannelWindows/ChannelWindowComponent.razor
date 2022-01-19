@@ -100,6 +100,8 @@
 
     public PermissionsNode Channel_Permissions { get; set; }
 
+    public MessageComponent Edit_Message { get; set; }
+
     public bool Should_Render { get; set; }
 
     // Drop zone stuff
@@ -151,6 +153,11 @@
         "image/vnd.djvu",
         "image/svg+xml"
     };
+
+    public async Task OpenEditMode(MessageComponent message)
+    {
+        
+    }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
