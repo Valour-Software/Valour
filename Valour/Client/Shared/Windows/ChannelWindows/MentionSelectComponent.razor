@@ -26,10 +26,10 @@
 
     public List<PlanetMember> Matches;
 
-    [Parameter]
+    [CascadingParameter]
     public PlanetChatChannel Channel { get; set; }
 
-    [Parameter]
+    [CascadingParameter]
     public ChannelWindowComponent ChannelComponent { get; set; }
 
     public Planet Planet { get; set; }

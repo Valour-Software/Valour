@@ -28,7 +28,7 @@ components = [];
 
 var currentWord = "";
 
-function SetComponent(id, comp) {
+function SetInputComponent(id, comp) {
     components[id] = comp;
 }
 
@@ -108,7 +108,9 @@ function OnChatboxKeyup(e, box) {
 }
 
 function OnCaretMove(box) {
+
     var id = box.id.substring(box.id.length - 1, box.id.length);
+
     components[id].invokeMethodAsync('OnCaretUpdate', GetCurrentWord(1));
 }
 
