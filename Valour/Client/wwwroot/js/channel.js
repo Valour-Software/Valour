@@ -95,10 +95,10 @@ function OnChatboxKeydown(e, box) {
     }
 }
 
-function InjectText(text, id) {
+function InjectElement(text, covertext, classlist, stylelist, id) {
     var box = $("#text-input-" + id)[0];
 
-    insertTextAtCaret(text);
+    injectElement(text, covertext, classlist, stylelist);
     components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
 }
 
@@ -153,7 +153,9 @@ function GetCurrentWord(off) {
     return '';
 }
 
-function insertTextAtCaret(text) {
+var node_c = 0;
+
+function injectElement(text, covertext, classlist, stylelist) {
     var sel, range;
     if (window.getSelection) {
         sel = window.getSelection();
@@ -164,12 +166,30 @@ function insertTextAtCaret(text) {
 
             range.deleteContents();
 
-            var node = document.createTextNode(text + '\u00A0');
-            
-            range.insertNode(node);
+            var node = document.createTextNode(text);
+            var cont = document.createElement('p');
+            var empty = document.createTextNode('\u00A0');
+
+            cont.appendChild(node);
+
+            cont.classList = classlist + ' input-magic';
+            cont.style = stylelist;
+
+            cont.contentEditable = 'false';
+
+            //cont.style.display = 'none';
+
+            cont.appendChild(node);
+
+            $(cont).attr('data-before', covertext);
+
+            range.insertNode(empty);
+            range.insertNode(cont);
+
 
             var nrange = document.createRange();
-            nrange.selectNodeContents(node);
+            nrange.selectNodeContents(empty);
+
             nrange.collapse();
 
             sel.removeAllRanges();

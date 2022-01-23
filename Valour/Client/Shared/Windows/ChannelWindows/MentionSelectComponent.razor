@@ -55,7 +55,11 @@
 
         string tag = $"«@m-{selected.Id}» ";
 
-        await JS.InvokeVoidAsync("InjectText", tag, ChannelComponent.Window.Index, true);
+        string text = "@" + await selected.GetNameAsync();
+        string classlist = "mention";
+        string stylelist = $"color: {await selected.GetRoleColorAsync()}";
+
+        await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, stylelist, ChannelComponent.Window.Index, true);
 
         SetVisible(false);
 

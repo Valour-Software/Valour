@@ -1527,3 +1527,59 @@ blockquote {
     width: 128px;
     user-select: none;
 }
+
+.input-magic {
+    font-size: 0;
+    display: inline !important;
+}
+
+.input-magic::before {
+    content: attr(data-before);
+    display: inline;
+    font-size: 16px;
+}
+
+/* Mention css must be in global css file so input injection works */
+.mention {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.mention.target {
+    font-weight: 500;
+}
+
+.mention:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mention:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* These are the ones that work in the textbox */
+.mention::before {
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.mention.target::before {
+    font-weight: 500;
+}
+
+.mention:hover::before {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mention:active::before {
+    background-color: rgba(255, 255, 255, 0.3);
+}

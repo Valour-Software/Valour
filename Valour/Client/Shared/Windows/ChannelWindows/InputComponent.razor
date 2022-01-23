@@ -80,7 +80,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        
+
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
 
         if (firstRender)
@@ -253,6 +253,12 @@
         //Console.WriteLine(currentWord);
 
         await UpdateMentionMenu(currentWord);
+
+        if (input is not null)
+        {
+            // Fix for dumb formatting in HTML
+            input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
+        }
 
         currentInput = input;
 
