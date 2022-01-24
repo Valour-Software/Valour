@@ -205,11 +205,11 @@
     {
         //Console.WriteLine(text);
 
-        if (text.StartsWith('@'))
+        if (text.StartsWith('@') || text.StartsWith('#'))
         {
             if (!MentionSelector.Visible)
             {
-                MentionSelector.SetVisible(true);
+                MentionSelector.SetVisible(true, text[0]);
             }
 
             await MentionSelector.SetText(text);

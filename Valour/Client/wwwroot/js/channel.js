@@ -43,7 +43,7 @@ function OnChatboxKeydown(e, box) {
         // Prevent up and down arrow from moving caret while
         // the mention menu is open; instead send an event to
         // the mention menu
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MoveMentionSelect', 1);
         }
@@ -53,7 +53,7 @@ function OnChatboxKeydown(e, box) {
     }
     // Up arrow
     else if (e.keyCode == 38) {
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MoveMentionSelect', -1);
         }
@@ -71,7 +71,7 @@ function OnChatboxKeydown(e, box) {
 
         // If the mention menu is open this sends off an event to select it rather
         // than submitting the message!
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MentionSubmit');
         }
@@ -88,7 +88,7 @@ function OnChatboxKeydown(e, box) {
     else if (e.keyCode == 9) {
         // If the mention menu is open this sends off an event to select it rather
         // than adding a tab!
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MentionSubmit');
         }

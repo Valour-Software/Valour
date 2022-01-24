@@ -3,15 +3,28 @@
 @if (Visible)
 {
     <div class="mention-select">
+        @if (Mode == '@'){
 
-        @{ int i = 0; }
+            int i = 0; 
 
-        @foreach (var member in Matches)
-        {
-            var x = i;
+            foreach (var member in MemberMatches)
+            {
+                var x = i;
 
-            <MentionSelectMemberComponent @key="member.Id" Parent="this" Member="member" Selected="(x == Selected)" ></MentionSelectMemberComponent>
-            i++;
+                <MentionSelectMemberComponent @key="member.Id" Parent="this" Member="member" Selected="(x == Selected)" ></MentionSelectMemberComponent>
+                i++;
+            }
+        }
+        else if (Mode == '#'){
+            int i = 0; 
+
+            foreach (var channel in ChannelMatches)
+            {
+                var x = i;
+
+                <MentionSelectChannelComponent @key="channel.Id" Parent="this" Channel="channel" Selected="(x == Selected)" ></MentionSelectChannelComponent>
+                i++;
+            }
         }
     </div>
 }
@@ -24,7 +37,11 @@
 
     public int Selected { get; set; }
 
-    public List<PlanetMember> Matches;
+    public char Mode { get; set; }
+
+    public List<PlanetChatChannel> ChannelMatches;
+
+    public List<PlanetMember> MemberMatches;
 
     [CascadingParameter]
     public PlanetChatChannel Channel { get; set; }
@@ -34,32 +51,55 @@
 
     public Planet Planet { get; set; }
 
+    public List<PlanetChatChannel> Channels;
+
     public List<PlanetMember> Members;
 
     protected override async Task OnInitializedAsync()
     {
         Planet = await Channel.GetPlanetAsync();
-        Matches = new List<PlanetMember>();
+        MemberMatches = new();
+        ChannelMatches = new();
         Members = await Planet.GetMembersAsync();
+        Channels = await Planet.GetChannelsAsync();
     }
 
-    public void SetVisible(bool value)
+    public void SetVisible(bool value, char mode = ' ')
     {
         Visible = value;
+
+        if (value)
+            this.Mode = mode;
+
         StateHasChanged();
     }
 
     public async Task Submit()
     {
-        var selected = Matches[Selected];
+        if (Mode == '@')
+        {
+            var selected = MemberMatches[Selected];
 
-        string tag = $"«@m-{selected.Id}» ";
+            string tag = $"«@m-{selected.Id}» ";
 
-        string text = "@" + await selected.GetNameAsync();
-        string classlist = "mention";
-        string stylelist = $"color: {await selected.GetRoleColorAsync()}";
+            string text = "@" + await selected.GetNameAsync();
+            string classlist = "mention";
+            string stylelist = $"color: {await selected.GetRoleColorAsync()}";
 
-        await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, stylelist, ChannelComponent.Window.Index, true);
+            await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, stylelist, ChannelComponent.Window.Index, true);
+        }
+
+        else if (Mode == '#')
+        {
+            var selected = ChannelMatches[Selected];
+
+            string tag = $"«#c-{selected.Id}» ";
+
+            string text = "#" + selected.Name;
+            string classlist = "channel-mention";
+
+            await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, "", ChannelComponent.Window.Index, true);
+        }
 
         SetVisible(false);
 
@@ -68,14 +108,24 @@
 
     public async Task SetText(string new_text)
     {
-        Text = new_text.TrimStart('@').ToLower();
+        Text = new_text.TrimStart(Mode).ToLower();
 
-        // Get members which may match
-        Matches = Members.Where(x => x.Nickname.ToLower().Contains(Text))
-                         .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
-                         .ThenBy(x => x.Nickname.Length)
-                         .Take(10)
-                         .ToList();
+        if (Mode == '@')
+        {
+            // Get members which may match
+            MemberMatches = Members.Where(x => x.Nickname.ToLower().Contains(Text))
+                             .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
+                             .ThenBy(x => x.Nickname.Length)
+                             .Take(10)
+                             .ToList();
+        }
+        else if (Mode == '#'){
+            ChannelMatches = Channels.Where(x => x.Name.ToLower().Contains(Text))
+                             .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
+                             .ThenBy(x => x.Name.Length)
+                             .Take(10)
+                             .ToList();
+        }
 
         StateHasChanged();
     }
@@ -84,13 +134,25 @@
     {
         Selected += n;
 
-        if (Selected > Matches.Count - 1)
-        {
-            Selected = 0;
+        if (Mode == '@'){
+            if (Selected > MemberMatches.Count - 1)
+            {
+                Selected = 0;
+            }
+            else if (Selected < 0)
+            {
+                Selected = MemberMatches.Count - 1;
+            }
         }
-        else if (Selected < 0)
-        {
-            Selected = Matches.Count - 1;
+        else if (Mode == '#'){
+            if (Selected > ChannelMatches.Count - 1)
+            {
+                Selected = 0;
+            }
+            else if (Selected < 0)
+            {
+                Selected = ChannelMatches.Count - 1;
+            }
         }
 
         StateHasChanged();

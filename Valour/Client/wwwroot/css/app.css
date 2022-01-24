@@ -1572,14 +1572,49 @@ blockquote {
     cursor: pointer;
 }
 
-.mention.target::before {
-    font-weight: 500;
-}
-
 .mention:hover::before {
     background-color: rgba(255, 255, 255, 0.2);
 }
 
 .mention:active::before {
     background-color: rgba(255, 255, 255, 0.3);
+}
+
+.channel-mention {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    color: rgb(140, 220, 255);
+    background-color: rgba(170, 170, 255, 0.1);
+    cursor: pointer;
+}
+
+.channel-mention:hover {
+    background-color: rgba(170, 170, 255, 0.2);
+}
+
+.channel-mention:active {
+    background-color: rgba(170, 170, 255, 0.3);
+}
+
+/* These are the ones that work in the textbox */
+.channel-mention::before {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    color: rgb(140, 220, 255);
+    background-color: rgba(170, 170, 255, 0.1);
+    cursor: pointer;
+}
+
+.channel-mention:hover::before {
+    background-color: rgba(170, 170, 255, 0.2);
+}
+
+.channel-mention:active::before {
+    background-color: rgba(170, 170, 255, 0.3);
 }
