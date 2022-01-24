@@ -37,12 +37,12 @@ public class Invite : InviteBase
     /// Returns the name of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetNameAsync() =>
-        await ValourClient.GetJsonAsync<string>($"api/invite/{Code}/planet/name") ?? "Name not found";
+        await ValourClient.GetAsync($"api/invite/{Code}/planet/name") ?? "<Not found>";
     
     /// <summary>
     /// Returns the icon of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetIconUrl() =>
-        await ValourClient.GetJsonAsync<string>($"api/invite/{Code}/planet/icon_url") ?? "";
+        await ValourClient.GetAsync($"api/invite/{Code}/planet/icon_url") ?? "";
 }
 

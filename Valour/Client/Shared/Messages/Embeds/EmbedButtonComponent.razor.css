@@ -17,3 +17,7 @@
 .embed-item {
     margin-top: 8px;
 }
+
+.embed-button-text {
+    font-size: 14px !important;
+}
