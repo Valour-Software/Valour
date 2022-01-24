@@ -5,29 +5,28 @@
 {
     return;
 }
-
-<div id="m-@Message.Channel_Id-@Message.Message_Index" class="@Class" style="@Style">
+<ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component, this)'>
+<div id="@Id" class="@Class" style="@Style" @ref='this_ref' tabindex='0'>
 
     @if (Minimal)
     {
         <div class="time-container">
             <p class="time">
                 @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
-            </p>
+            </p> 
         </div>
         <div class="message-content">
-            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component)'>
-                <p class="content" @ref="InnerRef">
-                    @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
-                    {
-                        <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-                    }
-                    else
-                    {
-                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                    }
-                </p>
-            </ContextMenuTrigger>
+            
+            <p class="content" @ref="InnerRef">
+                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                {
+                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                }
+                else
+                {
+                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                }
+            </p>
         </div>
 
     }
@@ -60,7 +59,6 @@
                     User not found
                 </p>
             }
-            <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component)'>
                 <p class="content" @ref="InnerRef">
                     @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
                     {
@@ -74,10 +72,10 @@
                         <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
                     }
                 </p>
-            </ContextMenuTrigger>
         </div>
     }
 </div>
+</ContextMenuTrigger>   
 
 @code {
     // Demonstrates how a parent component can supply parameters
@@ -106,6 +104,8 @@
 
     public bool Minimal = false;
 
+    public ElementReference this_ref;
+
     public string Class
     {
         get
@@ -124,6 +124,11 @@
             if (mentioned)
             {
                 _class += " mentioned";
+            }
+
+            if (Edit)
+            {
+                _class += " edit";
             }
 
             return _class;
@@ -145,6 +150,8 @@
         }
     }
 
+    string Id = "";
+
     string roleColor = "#ffffff";
 
     string roleName = "Default";
@@ -152,6 +159,8 @@
     string pfpurl = "/icon-512.png";
 
     string name = "";
+
+    public bool Edit = false;
 
     public ulong roleId;
 
@@ -165,6 +174,25 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
+    }
+
+    public async Task OpenEditMode()
+    {
+        //await this_ref.FocusAsync();
+
+        Edit = true;
+        ReRender();
+
+        await Holder.Window.Component.OpenEditMode(this);
+    }
+
+    public async Task CloseEditMode()
+    {
+        if (!Edit)
+            return;
+
+        Edit = false;
+        ReRender();
     }
 
     public async Task SetMessage(ClientPlanetMessage message)
@@ -237,6 +265,11 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
+
+        if (Message is null)
+            return;
+
+        Id = $"m-{Message.Channel_Id}-{Message.Message_Index}";
 
         if (!Submessage)
         {

@@ -1048,7 +1048,7 @@ public static class ValourClient
         if (!result.Success)
         {
             Console.WriteLine("-----------------------------------------\n" +
-                              "Failed PUT response for the following:\n" +
+                              "Failed DELETE response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
                               $"Message: {await response.Content.ReadAsStringAsync()}\n" +

@@ -1,0 +1,30 @@
+.select-channel {
+    height: 40px;
+    position: relative;
+    line-height: 40px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.select-channel:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.select-channel.selected {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.select-channel:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.select-channel:last-child {
+    border-bottom: none;
+}
+
+.select-channel .title {
+    font-size: 24px;
+    display: inline-block;
+    margin-left: 5px;
+}

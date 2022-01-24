@@ -28,7 +28,7 @@ components = [];
 
 var currentWord = "";
 
-function SetComponent(id, comp) {
+function SetInputComponent(id, comp) {
     components[id] = comp;
 }
 
@@ -43,7 +43,7 @@ function OnChatboxKeydown(e, box) {
         // Prevent up and down arrow from moving caret while
         // the mention menu is open; instead send an event to
         // the mention menu
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MoveMentionSelect', 1);
         }
@@ -53,7 +53,7 @@ function OnChatboxKeydown(e, box) {
     }
     // Up arrow
     else if (e.keyCode == 38) {
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MoveMentionSelect', -1);
         }
@@ -71,7 +71,7 @@ function OnChatboxKeydown(e, box) {
 
         // If the mention menu is open this sends off an event to select it rather
         // than submitting the message!
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MentionSubmit');
         }
@@ -88,17 +88,17 @@ function OnChatboxKeydown(e, box) {
     else if (e.keyCode == 9) {
         // If the mention menu is open this sends off an event to select it rather
         // than adding a tab!
-        if (currentWord[0] == '@') {
+        if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
             components[id].invokeMethodAsync('MentionSubmit');
         }
     }
 }
 
-function InjectText(text, id) {
+function InjectElement(text, covertext, classlist, stylelist, id) {
     var box = $("#text-input-" + id)[0];
 
-    insertTextAtCaret(text);
+    injectElement(text, covertext, classlist, stylelist);
     components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
 }
 
@@ -108,7 +108,9 @@ function OnChatboxKeyup(e, box) {
 }
 
 function OnCaretMove(box) {
+
     var id = box.id.substring(box.id.length - 1, box.id.length);
+
     components[id].invokeMethodAsync('OnCaretUpdate', GetCurrentWord(1));
 }
 
@@ -151,7 +153,9 @@ function GetCurrentWord(off) {
     return '';
 }
 
-function insertTextAtCaret(text) {
+var node_c = 0;
+
+function injectElement(text, covertext, classlist, stylelist) {
     var sel, range;
     if (window.getSelection) {
         sel = window.getSelection();
@@ -162,12 +166,30 @@ function insertTextAtCaret(text) {
 
             range.deleteContents();
 
-            var node = document.createTextNode(text + '\u00A0');
-            
-            range.insertNode(node);
+            var node = document.createTextNode(text);
+            var cont = document.createElement('p');
+            var empty = document.createTextNode('\u00A0');
+
+            cont.appendChild(node);
+
+            cont.classList = classlist + ' input-magic';
+            cont.style = stylelist;
+
+            cont.contentEditable = 'false';
+
+            //cont.style.display = 'none';
+
+            cont.appendChild(node);
+
+            $(cont).attr('data-before', covertext);
+
+            range.insertNode(empty);
+            range.insertNode(cont);
+
 
             var nrange = document.createRange();
-            nrange.selectNodeContents(node);
+            nrange.selectNodeContents(empty);
+
             nrange.collapse();
 
             sel.removeAllRanges();

@@ -224,6 +224,58 @@ public class ClientPlanetMessage
                         continue;
                     }
                 }
+                // Channel mentions (<#x-)
+                if (text[pos + 1] == '#' &&
+                    text[pos + 3] == '-')
+                {
+                    // Chat Channel mention (<#c-)
+                    if (text[pos + 2] == 'c')
+                    {
+                        // Extract id
+                        char c = ' ';
+                        int offset = 4;
+                        string id_chars = "";
+                        while (offset < s_len &&
+                               (c = text[pos + offset]).IsDigit())
+                        {
+                            id_chars += c;
+                            offset++;
+                        }
+                        // Make sure ending tag is '>'
+                        if (c != '»')
+                        {
+                            pos++;
+                            continue;
+                        }
+                        if (string.IsNullOrWhiteSpace(id_chars))
+                        {
+                            pos++;
+                            continue;
+                        }
+                        bool parsed = ulong.TryParse(id_chars, out ulong id);
+                        if (!parsed)
+                        {
+                            pos++;
+                            continue;
+                        }
+                        // Create object
+                        Mention channelMention = new()
+                        {
+                            Target_Id = id,
+                            Position = (ushort)pos,
+                            Length = (ushort)(6 + id_chars.Length),
+                            Type = MentionType.Channel
+                        };
+
+                        BaseMessage.Mentions.Add(channelMention);
+                    }
+                    else
+                    {
+                        pos++;
+                        continue;
+                    }
+                }
+
                 // Put future things here
                 else
                 {
@@ -365,6 +417,15 @@ public class ClientPlanetMessage
                 if (mention.Type == MentionType.Member)
                 {
                     fragment = new MemberMentionFragment()
+                    {
+                        Mention = mention,
+                        Position = mention.Position,
+                        Length = mention.Length
+                    };
+                }
+                else if (mention.Type == MentionType.Channel)
+                {
+                    fragment = new ChannelMentionFragment()
                     {
                         Mention = mention,
                         Position = mention.Position,

@@ -631,6 +631,9 @@ namespace Valour.Server.API
             // Handle urls
             message.Content = await MPSManager.HandleUrls(message.Content);
 
+            // Assign an ID
+            message.Id = IdManager.Generate();
+
             PlanetMessageWorker.AddToQueue(message);
 
             StatWorker.IncreaseMessageCount();
@@ -648,9 +651,28 @@ namespace Valour.Server.API
 
             var message = await db.PlanetMessages.FindAsync(message_id);
 
+            var in_db = false;
+
             // Ensure message exists
-            if (message is null || message.Channel_Id != channel_id)
+            if (message is null)
+            {
+                // Look for message in staging
+                message = PlanetMessageWorker.GetStagedMessage(message_id);
+
+                if (message is null)
+                {
+                    return Results.NotFound();
+                }
+            }
+            else
+            {
+                in_db = true;
+            }
+
+            if (message.Channel_Id != channel_id)
+            {
                 return Results.NotFound();
+            }
 
             // Ensure user has permissions
             bool has_perm = false;
@@ -684,8 +706,11 @@ namespace Valour.Server.API
             PlanetMessageWorker.RemoveFromQueue(message);
 
             // Remove from db
-            db.PlanetMessages.Remove(message);
-            await db.SaveChangesAsync();
+            if (in_db)
+            {
+                db.PlanetMessages.Remove(message);
+                await db.SaveChangesAsync();
+            }
 
             PlanetHub.NotifyMessageDeletion(message);
 

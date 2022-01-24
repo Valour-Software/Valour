@@ -120,6 +120,12 @@
     text-align: center;
 }
 
+/*
+.message:focus{
+    background-color: red;
+}
+*/
+
 .message:hover .time {
     display: block;
 }
@@ -271,3 +277,8 @@
 ::deep .content > p > strong{
     font-weight: bold
  }
+
+.edit {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--v-cyan);
+}

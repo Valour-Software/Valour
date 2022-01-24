@@ -1,13 +1,13 @@
 ﻿<!-- This modal exists to allow parts of the app to ask for confirmation -->
 
 <div class="col-md-12">
-	<section>
-		<h2>@Data.title_text</h2>
-		<h4>@Data.desc_text</h4>
-		<hr />
+	<section style="text-align: center">
+		<h3>@Data.title_text</h3>
+		<h5>@Data.desc_text</h5>
 		<br />
-		<div @onclick="OnCancel" class="btn btn-primary d-inline-block">@Data.cancel_text</div>
-		<div @onclick="OnConfirm" class="btn btn-danger d-inline-block">@Data.confirm_text</div>
+		<br />
+		<div @onclick="OnCancel" class="btn v-button d-inline-block">@Data.cancel_text</div>
+		<div @onclick="OnConfirm" class="btn v-button danger d-inline-block">@Data.confirm_text</div>
 	</section>
 </div>
 
