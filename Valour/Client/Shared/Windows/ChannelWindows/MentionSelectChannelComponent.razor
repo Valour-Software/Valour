@@ -1,0 +1,31 @@
+<div class="@("select-channel " + Selected_Class)">
+     <h5 class='title noselect'>#@Channel.Name</h5>
+</div>
+
+@code {
+
+    [Parameter]
+    public MentionSelectComponent Parent { get; set; }
+
+    [Parameter]
+    public PlanetChatChannel Channel { get; set; }
+
+    [Parameter]
+    public bool Selected { get; set; }
+
+    public string Selected_Class
+    {
+        get
+        {
+            if (Selected)
+                return "selected";
+
+            return "";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+}
