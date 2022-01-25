@@ -111,9 +111,9 @@ namespace Valour.Server.Workers
                     if (Context != null)
                     {
                         await Context.PlanetMessages.AddRangeAsync(StagedMessages.Values);
-                        StagedMessages.Clear();
-                        BlockSet.Clear();
                         await Context.SaveChangesAsync();
+                        BlockSet.Clear();
+                        StagedMessages.Clear();
                         _logger.LogInformation($"Saved successfully.");
                     }
 
