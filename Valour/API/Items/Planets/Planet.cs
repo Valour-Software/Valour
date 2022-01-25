@@ -389,8 +389,10 @@ public class Planet : PlanetBase, ISyncedItem<Planet>
         if (Roles == null)
             await LoadRolesAsync();
 
-        if (!Roles.Contains(role))
-            return;
+        if (!Roles.Any(x => x.Id == role.Id))
+        {
+            Roles.Add(role);
+        }
 
         // Resort
         Roles.Sort((a, b) => a.Position.CompareTo(b.Position));

@@ -181,7 +181,7 @@ public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
-        foreach (var role in roles)
+        foreach (var role in roles.OrderBy(x => x.Position))
         {
             PermissionsNode node = null;
 
