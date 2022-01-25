@@ -4,6 +4,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Database.Items.Users;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
+using Valour.Shared;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets.Channels;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -105,6 +108,57 @@ public class PlanetMember : PlanetMemberBase
     {
         Planet ??= await db.Planets.FindAsync(Planet_Id);
         return await Planet.HasPermissionAsync(this, permission, db);
+    }
+
+    /// <summary>
+    /// Returns a success or failure for the combination of permissions
+    /// Send in pairs of permissions with their target object! For example (ChannelPermission, Channel) or (UserPermission, AuthToken)
+    /// 
+    /// Todo: Use interface to make this better? IPermissable?
+    /// </summary>
+    public async Task<TaskResult> HasAllPermissions(ValourDB db, params (Permission perm, object target)[] permission_pairs)
+    {
+        foreach (var pair in permission_pairs)
+        {
+            if (pair.perm is UserPermission)
+            {
+                var uperm = pair.perm as UserPermission;
+                var token = pair.target as AuthToken;
+
+                if (!token.HasScope(uperm))
+                    return new TaskResult(false, "Token lacks " + uperm.Name + " permission.");
+            }
+            else if (pair.perm is PlanetPermission)
+            {
+                var pperm = pair.perm as PlanetPermission;
+                var planet = pair.target as Planet;
+
+                if (!await planet.HasPermissionAsync(this, pperm, db))
+                    return new TaskResult(false, "Member lacks " + pperm.Name + " planet permission.");
+            }
+            else if (pair.perm is ChatChannelPermission)
+            {
+                var cperm = pair.perm as ChatChannelPermission;
+                var channel = pair.target as PlanetChatChannel;
+
+                if (!await channel.HasPermission(this, cperm, db))
+                    return new TaskResult(false, "Member lacks " + cperm.Name + " channel permission.");
+            }
+            else if (pair.perm is CategoryPermission)
+            {
+                var cperm = pair.perm as CategoryPermission;
+                var channel = pair.target as PlanetCategory;
+
+                if (!await channel.HasPermission(this, cperm, db))
+                    return new TaskResult(false, "Member lacks " + cperm.Name + " category permission.");
+            }
+            else
+            {
+                throw new Exception("This type of permission needs to be implemented!");
+            }
+        }
+
+        return new TaskResult(true, "Authorized.");
     }
 
     /// <summary>

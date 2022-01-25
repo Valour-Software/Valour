@@ -20,5 +20,7 @@ public abstract class Item
     [JsonInclude]
     [JsonPropertyName("ItemType")]
     public abstract ItemType ItemType { get; }
+
+    public abstract Type ClassType { get; }
 }
 

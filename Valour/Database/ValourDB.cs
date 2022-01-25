@@ -20,6 +20,8 @@ namespace Valour.Database;
 public class ValourDB : DbContext
 {
 
+    public static ValourDB Instance = new ValourDB(DBOptions);
+
     public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;charset=utf8mb4;";
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
