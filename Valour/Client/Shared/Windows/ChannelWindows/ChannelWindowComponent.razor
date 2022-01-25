@@ -106,9 +106,6 @@
 
         SelfMember = await PlanetMember.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
 
-        InputComponent.SelfMember = SelfMember;
-        InputComponent.MessageHolder = MessageHolder;
-
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
@@ -116,6 +113,12 @@
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
         await SetupNewChannelAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        InputComponent.SelfMember = SelfMember;
+        InputComponent.MessageHolder = MessageHolder;
     }
 
     public async Task OpenEditMode(MessageComponent message)
