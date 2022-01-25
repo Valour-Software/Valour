@@ -131,6 +131,8 @@ function OnChatboxUpdate(e, box) {
 function OnChatboxPaste(e, box) {
     e.preventDefault();
     var text = (e.originalEvent || e).clipboardData.getData('text/plain');
+    // we need to put the pasted text in a span to keep the newlines
+    text = `<span style="white-space: pre;">`+text+`</span>`
     document.execCommand("insertHTML", false, text);
 }
 

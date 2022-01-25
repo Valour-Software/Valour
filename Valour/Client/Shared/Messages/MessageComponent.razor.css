@@ -215,13 +215,13 @@
 ::deep .content code {
     margin: 0px;
     word-break: break-word;
+    background: #242424;
 }
 
 ::deep .content pre {
     margin: 0px;
-    border-radius: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
     word-break: break-word;
+    border-radius: 10px;
 }
 
 ::deep .content img:before {

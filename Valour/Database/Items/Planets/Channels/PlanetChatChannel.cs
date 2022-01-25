@@ -120,6 +120,7 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
                               .Where(x => x.Planet_Id == Planet.Id)
                               .Include(x => x.Role)
                               .ThenInclude(x => x.PermissionNodes.Where(x => x.Target_Id == Id))
+                              .OrderBy(x => x.Role.Position)
                               .LoadAsync();
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
@@ -127,7 +128,9 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
         foreach (var roleMembership in member.RoleMembership)
         {
             var role = roleMembership.Role;
-            PermissionsNode node = role.PermissionNodes.FirstOrDefault();
+            // For some reason, we need to make sure we get the node that has the same target_id as this channel
+            // When loading I suppose it grabs all the nodes even if the target is not the same?
+            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.Target_Id == Id && x.Target_Type == ItemType);
 
             // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
             if (node == null)

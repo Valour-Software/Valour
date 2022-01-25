@@ -11,6 +11,7 @@ using Valour.Api.Items.Messages;
 using Valour.Shared;
 using Valour.Shared.Items;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Valour.Api.Client;
 
@@ -208,18 +209,32 @@ public static class ValourClient
 
         Console.WriteLine($"Opening planet {planet.Name} ({planet.Id})");
 
+        Stopwatch sw = new Stopwatch();
+
+        sw.Start();
+
+        List<Task> tasks = new();
+
         // Load roles early for cached speed
         await planet.LoadRolesAsync();
 
         // Load member data early for the same reason (speed)
-        await planet.LoadMemberDataAsync();
+        tasks.Add(planet.LoadMemberDataAsync());
 
         // Joins SignalR group
-        await HubConnection.SendAsync("JoinPlanet", planet.Id, Token);
+        tasks.Add(HubConnection.SendAsync("JoinPlanet", planet.Id, Token));
 
         // Load channels and categories
-        await planet.LoadChannelsAsync();
-        await planet.LoadCategoriesAsync();
+        tasks.Add(planet.LoadChannelsAsync());
+        tasks.Add(planet.LoadCategoriesAsync());
+
+        // requesting/loading the data does not require data from other requests/types
+        // so just await them all, instead of one by one
+        await Task.WhenAll(tasks);
+
+        sw.Stop();
+
+        Console.WriteLine($"Time to open this Planet: {sw.ElapsedMilliseconds}ms");
 
         // Log success
         Console.WriteLine($"Joined SignalR group for planet {planet.Name} ({planet.Id})");
@@ -312,7 +327,8 @@ public static class ValourClient
     /// </summary>
     public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
     {
-        Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
+        // printing to console is SLOW, only turn on for debugging reasons
+        //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
 
         var local = ValourCache.Get<T>(updated.Id);
 
@@ -333,7 +349,8 @@ public static class ValourClient
                 await s_updated.InvokeAnyUpdated(updated, flags);
             }
 
-            Console.WriteLine("Invoked update events for " + updated.Id);
+            // printing to console is SLOW, only turn on for debugging reasons
+            //Console.WriteLine("Invoked update events for " + updated.Id);
         }
     }
 
