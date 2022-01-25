@@ -222,6 +222,7 @@
     margin: 0px;
     word-break: break-word;
     border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 ::deep .content img:before {
