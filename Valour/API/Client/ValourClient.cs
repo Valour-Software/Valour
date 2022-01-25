@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.SignalR.Client;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Valour.Api.Extensions;
@@ -445,11 +445,33 @@ public static class ValourClient
     }
 
     /// <summary>
+    /// Gets the Token for the client
+    /// </summary>
+    public static async Task<TaskResult<string>> GetToken(string email, string password)
+    {
+        TokenRequest content = new(email, password);
+
+        var response = await Http.PostAsJsonAsync($"api/user/requesttoken", content);
+
+        var message = await response.Content.ReadAsStringAsync();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine("Failed to request user token.");
+            Console.WriteLine(message);
+            return new TaskResult<string>(false, $"Failed to request user. Error code {response.StatusCode}", message);
+        }
+
+        _token = message;
+
+        return new TaskResult<string>(true, "Success", message);
+    }
+
+    /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
     public static async Task<TaskResult<User>> InitializeUser(string token)
     {
-
         var response = await PostAsyncWithResponse<User>($"api/user/withtoken", token);
 
         if (!response.Success)
@@ -475,6 +497,71 @@ public static class ValourClient
     }
 
     /// <summary>
+    /// Logs in and prepares the bot's client for use
+    /// </summary>
+    public static async Task<TaskResult<User>> InitializeBot(string email, string password, HttpClient http = null)
+    {
+        SetHttpClient(http is not null ? http : new HttpClient()
+        {
+            BaseAddress = new Uri("https://valour.gg/")
+        });
+
+        var tokenResult = await GetToken(email, password);
+
+        if (!tokenResult.Success) 
+            return new TaskResult<User>(false, tokenResult.Message);
+
+        var response = await PostAsyncWithResponse<User>($"api/user/withtoken", Token);
+
+        if (!response.Success)
+            return response;
+
+        await InitializeSignalR("https://valour.gg" + "/planethub");
+
+        // Set reference to self user
+        Self = response.Data;
+
+        // Add auth header so we never have to do that again
+        Http.DefaultRequestHeaders.Add("authorization", Token);
+
+        Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
+
+        if (OnLogin != null)
+            await OnLogin?.Invoke();
+
+        await JoinAllChannelsAsync();
+
+        return new TaskResult<User>(true, "Success", Self);
+    }
+
+    /// <summary>
+    /// Should only be run during initialization of bots!
+    /// </summary>
+    public static async Task JoinAllChannelsAsync()
+    {
+        var planets = await GetJsonAsync<List<Planet>>($"api/user/{Self.Id}/planets");
+
+        // Add to cache
+        foreach (var planet in planets)
+        {
+            await ValourCache.Put(planet.Id, planet);
+
+            OpenPlanet(planet);
+
+            var channels = await planet.GetChannelsAsync();
+
+            channels.ForEach(async x => await OpenChannel(x));
+        }
+
+        JoinedPlanets = planets;
+
+        _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
+
+        if (OnJoinedPlanetsUpdate != null)
+            await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    /// <summary>
     /// Should only be run during initialization!
     /// </summary>
     public static async Task LoadJoinedPlanetsAsync()
@@ -483,9 +570,7 @@ public static class ValourClient
 
         // Add to cache
         foreach (var planet in planets)
-        {
             await ValourCache.Put(planet.Id, planet);
-        }
 
         JoinedPlanets = planets;
 
@@ -677,12 +762,44 @@ public static class ValourClient
         }
         else
         {
-            if (typeof(T) == typeof(string)) return result;
-
             result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Gets a json resource from the given uri and deserializes it
+    /// </summary>
+    public static async Task<string> GetAsync(string uri)
+    {
+        var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var message = await response.Content.ReadAsStringAsync();
+
+            // This means the null is expected
+            if (message == "null")
+            {
+                return null;
+            }
+
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed GET response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {message}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+
+            return null;
+        }
+        else
+        {
+            return await response.Content.ReadAsStringAsync();
+        }
     }
 
     /// <summary>
