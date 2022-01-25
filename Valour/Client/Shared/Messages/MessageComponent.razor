@@ -6,7 +6,7 @@
     return;
 }
 <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component, this)'>
-<div id="@Id" class="@Class" style="@Style" @ref='this_ref' tabindex='0'>
+<div id="@Id" class="@Class" style="@Style" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
 
     @if (Minimal)
     {
@@ -174,6 +174,12 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
+    }
+
+    public async Task OnClickAsync()
+    {
+        Console.WriteLine("Setting window selection due to click");
+        await ClientWindowManager.Instance.SetSelectedWindow(Holder.Window);
     }
 
     public async Task OpenEditMode()
