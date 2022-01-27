@@ -83,9 +83,6 @@
 
         var roleResponse = await Planet.GetRolesAsync();
 
-        if (roleResponse is not null)
-            return;
-
         foreach (PlanetRole item in roleResponse)
         {
             if (item.GetAuthority() >= SelfAuthority)
