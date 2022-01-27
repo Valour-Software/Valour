@@ -323,12 +323,6 @@ video {
     margin-left: auto;
 }
 
-
-.sidebar-2 .category .is-open {
-    border-bottom-right-radius: 0px;
-    border-bottom-left-radius: 0px;
-}
-
 .sidebar-2 .user-info .settings {
     display: inline-block;
     margin: 0px;
