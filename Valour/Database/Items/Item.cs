@@ -12,6 +12,10 @@ namespace Valour.Database.Items;
 
 public abstract class Item
 {
+
+    public const string Pref = "https://";
+    public const string Post = ".nodes.valour.gg";
+
     [JsonInclude]
     [JsonPropertyName("Id")]
     public ulong Id { get; set; }

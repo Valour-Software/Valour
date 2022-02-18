@@ -6,6 +6,7 @@ using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Server.Extensions;
+using Valour.Server.Nodes;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Categories;
@@ -407,6 +408,7 @@ namespace Valour.Server.API
             {
                 if (await channel.HasPermission(member, ChatChannelPermissions.View, db))
                 {
+                    channel.Node = DeployedNode.Instance.Name;
                     children.Add(channel);
                 }
             }
@@ -415,6 +417,7 @@ namespace Valour.Server.API
             {
                 if (await cat.HasPermission(member, CategoryPermissions.View, db))
                 {
+                    cat.Node = DeployedNode.Instance.Name;
                     children.Add(cat);
                 }
             }

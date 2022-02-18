@@ -8,6 +8,7 @@ using Valour.Database.Items.Planets.Channels;
 using Valour.Database.Items.Planets.Members;
 using Valour.Server.Extensions;
 using Valour.Server.MPS;
+using Valour.Server.Nodes;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -83,6 +84,7 @@ namespace Valour.Server.API
 
                         if (!await channel.HasPermission(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
 
+                        channel.Node = DeployedNode.Instance.Name;
                         ctx.Response.StatusCode = 200;
                         await ctx.Response.WriteAsJsonAsync(channel);
                         return;
