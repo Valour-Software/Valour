@@ -13,7 +13,7 @@ namespace Valour.Api.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetCategory : PlanetCategoryBase, IPlanetChannel, ISyncedItem<PlanetCategory>
+public class PlanetCategory : PlanetCategoryBase, IPlanetChannel, ISyncedItem<PlanetCategory>, INodeSpecific
 {
     #region Synced Item System
 

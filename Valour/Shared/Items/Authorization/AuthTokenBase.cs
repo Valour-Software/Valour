@@ -58,7 +58,7 @@ public class AuthTokenBase
     /// <summary>
     /// Helper method for scope checking
     /// </summary>
-    public bool HasScope(UserPermission permission) =>
+    public bool HasScope(Permission permission) =>
         Permission.HasPermission(Scope, permission);
 }
 

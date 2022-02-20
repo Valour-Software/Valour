@@ -59,7 +59,6 @@ namespace Valour.Server.API
                 return;
             }
 
-            targetMember.Node = DeployedNode.Instance.Name;
             ctx.Response.StatusCode = 200;
             await ctx.Response.WriteAsJsonAsync(targetMember);
         }

@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Drawing;
 using System.Text.Json.Serialization;
 using Valour.Shared.Authorization;
 

@@ -18,7 +18,7 @@ using Valour.Database.Items.Authorization;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : PlanetRoleBase
+public class PlanetRole : PlanetRoleBase, INodeSpecific
 {
     [ForeignKey("Planet_Id")]
     [JsonIgnore]

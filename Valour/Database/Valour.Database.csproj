@@ -14,10 +14,18 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.1" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.0" />
+    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="6.13.10" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Extensions\" />
+    <None Remove="Z.EntityFramework.Plus.EFCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+  </ItemGroup>
 </Project>

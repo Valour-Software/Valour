@@ -22,7 +22,7 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
 /// </summary>
-public class Planet : PlanetBase
+public class Planet : PlanetBase, INodeSpecific
 {
     [InverseProperty("Planet")]
     [JsonIgnore]

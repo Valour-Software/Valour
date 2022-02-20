@@ -18,7 +18,7 @@ using Valour.Shared.Items;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
+public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpecific
 {
     [JsonIgnore]
     [ForeignKey("Planet_Id")]
@@ -56,22 +56,8 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
     /// <summary>
     /// Deletes this channel
     /// </summary>
-    public async Task<TaskResult<int>> TryDeleteAsync(PlanetMember member, ValourDB db)
+    public async Task DeleteAsync(ValourDB db)
     {
-        await GetPlanetAsync(db);
-
-        if (Id == Planet.Main_Channel_Id)
-            return new TaskResult<int>(false, $"Cannot delete main channel", 400);
-
-        if (member == null)
-            return new TaskResult<int>(false, "Member not found", 403);
-
-        if (!await HasPermission(member, ChatChannelPermissions.View, db))
-            return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.View", 403);
-
-        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-            return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.ManageChannel", 403);
-
         // Remove permission nodes
         db.PermissionsNodes.RemoveRange(
             db.PermissionsNodes.Where(x => x.Target_Id == Id)
@@ -92,8 +78,6 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
 
         // Notify channel deletion
         await PlanetHub.NotifyChatChannelDeletion(this);
-
-        return new TaskResult<int>(true, "Success", 200);
     }
 
     /// <summary>

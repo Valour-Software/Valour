@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Valour.Database.Items;
+namespace Valour.Api.Items;
 
 /// <summary>
 /// This interface specifies that an item is designed to be returned from
@@ -22,4 +22,17 @@ public interface INodeSpecific
     [JsonInclude]
     [JsonPropertyName("Node")]
     public string Node { get; set; }
+
+    [NotMapped]
+    [JsonIgnore]
+    /// <summary>
+    /// This is the location of the node that should be used
+    /// for this item's API calls.
+    /// </summary>
+#if DEBUG
+    public string NodeLocation => $"/";
+#else
+    public string NodeLocation => $"https://{Node}.nodes.valour.gg";
+#endif
+
 }

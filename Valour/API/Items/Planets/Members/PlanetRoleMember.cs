@@ -4,7 +4,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Members;
 
-public class PlanetRoleMember : PlanetRoleMemberBase
+public class PlanetRoleMember : PlanetRoleMemberBase, INodeSpecific
 {
 
 }

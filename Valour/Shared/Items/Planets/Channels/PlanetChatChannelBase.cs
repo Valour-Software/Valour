@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -26,5 +27,6 @@ public class PlanetChatChannelBase : PlanetChannel
     /// </summary>
     [JsonPropertyName("Inherits_Perms")]
     public bool Inherits_Perms { get; set; }
+
 }
 

@@ -20,7 +20,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : PlanetMemberBase
+public class PlanetMember : PlanetMemberBase, INodeSpecific
 {
 
     // Relational DB stuff

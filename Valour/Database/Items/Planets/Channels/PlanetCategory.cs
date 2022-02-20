@@ -12,7 +12,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
+public class PlanetCategory : PlanetCategoryBase, IPlanetChannel, INodeSpecific
 {
     [JsonIgnore]
     [ForeignKey("Planet_Id")]

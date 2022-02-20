@@ -34,6 +34,8 @@ namespace Valour.Server
             // Load configs
             LoadConfigsAsync();
 
+            ValourDB.Node = DeployedNode.Instance.Name;
+
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
 

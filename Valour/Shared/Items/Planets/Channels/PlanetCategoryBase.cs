@@ -4,6 +4,7 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Channels;

@@ -17,7 +17,7 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedItem<PlanetChatChannel>
+public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedItem<PlanetChatChannel>, INodeSpecific
 {
     #region Synced Item System
 

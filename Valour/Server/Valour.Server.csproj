@@ -20,6 +20,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
     <PackageReference Include="WebPush" Version="1.0.12" />
+    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="6.13.10" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,4 +30,7 @@
   </ItemGroup>
 
 
+  <ItemGroup>
+    <None Remove="Z.EntityFramework.Plus.EFCore" />
+  </ItemGroup>
 </Project>

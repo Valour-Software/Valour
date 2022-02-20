@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Valour.Shared.Items;
+namespace Valour.Database.Items;
 
 /// <summary>
 /// This interface specifies that an item is designed to be returned from
@@ -21,5 +21,5 @@ public interface INodeSpecific
     [NotMapped]
     [JsonInclude]
     [JsonPropertyName("Node")]
-    public string Node { get; set; }
+    public string Node => ValourDB.Node;
 }

@@ -13,7 +13,7 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : PlanetBase, ISyncedItem<Planet>
+public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
 {
     #region Synced Item System
 
@@ -88,7 +88,17 @@ public class Planet : PlanetBase, ISyncedItem<Planet>
                 return cached;
         }
 
-        var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{id}");
+        // We have to find the location of the planet first
+#if DEBUG
+        string loc = "";
+#else
+        string loc =
+            "https://" +
+            await ValourClient.GetAsync($"https://core.valour.gg/nodes/planet/{id}/name") +
+            ".nodes.valour.gg/";
+#endif
+
+        var planet = await ValourClient.GetJsonAsync<Planet>($"{loc}api/planet/{id}");
 
         if (planet is not null)
             await ValourCache.Put(id, planet);
