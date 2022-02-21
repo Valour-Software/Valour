@@ -15,7 +15,7 @@ namespace Valour.Shared.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public class PlanetMemberBase : NamedItem
+public class PlanetMemberBase : Item, INamedItem, IPlanetItem
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
 
@@ -44,7 +44,11 @@ public class PlanetMemberBase : NamedItem
     public string Member_Pfp { get; set; }
 
     [NotMapped]
-    new public string Name => Nickname;
+    public string Name
+    {
+        get => Nickname;
+        set => Nickname = value;
+    }
 
     [NotMapped]
     [JsonInclude]

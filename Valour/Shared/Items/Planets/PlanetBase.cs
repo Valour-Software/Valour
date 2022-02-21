@@ -9,13 +9,19 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets;
 
-public class PlanetBase : NamedItem
+public class PlanetBase : Item, INamedItem
 {
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
     [JsonPropertyName("Owner_Id")]
     public ulong Owner_Id { get; set; }
+
+    /// <summary>
+    /// The name of this planet
+    /// </summary>
+    [JsonPropertyName("Name")]
+    public string Name { get; set; }
 
     /// <summary>
     /// The image url for the planet 

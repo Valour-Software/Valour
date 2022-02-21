@@ -2,7 +2,7 @@
 
 namespace Valour.Shared.Items;
 
-public abstract class NamedItem : Item
+public interface INamedItem
 {
     [JsonInclude]
     [JsonPropertyName("Name")]

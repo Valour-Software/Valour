@@ -22,7 +22,7 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
 /// </summary>
-public class Planet : PlanetBase, INodeSpecific
+public class Planet : PlanetBase, INodeSpecific, IPlanetItemAPI<Planet>
 {
     [InverseProperty("Planet")]
     [JsonIgnore]
@@ -46,6 +46,11 @@ public class Planet : PlanetBase, INodeSpecific
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+    async Task<Planet> IPlanetItemAPI<Planet>.FindAsync(ulong id, ValourDB db)
+    {
+        return await FindAsync(id, db);
+    }
 
     /// <summary>
     /// Validates that a given name is allowable for a server
