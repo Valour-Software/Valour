@@ -30,6 +30,11 @@ public interface IPlanetItemAPI<T>
     Task UpdateAsync(T updated, ValourDB db);
 
     /// <summary>
+    /// Creates this item in the database
+    /// </summary>
+    Task CreateAsync(ValourDB db);
+
+    /// <summary>
     /// Success if a member has permission to get this
     /// item via the API
     /// </summary>
@@ -48,9 +53,14 @@ public interface IPlanetItemAPI<T>
     Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
-    /// Returns success if the updated item is a valid update for this
+    /// Success if a member has permission to create this
     /// item via the API
     /// </summary>
-    Task<TaskResult> ValidateUpdateAsync(T updated, ValourDB db);
+    Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
+
+    /// <summary>
+    /// Returns true if this is a valid item (can be POSTed)
+    /// </summary>
+    Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
 }
 

@@ -119,17 +119,29 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
                     // Read in updated value
                     T updated = await JsonSerializer.DeserializeAsync<T>(ctx.Request.Body);
 
-                    // Ensure update is valid
-                    var validate = await item.ValidateUpdateAsync(item, db);
-                    if (!validate.Success)
+                    if (updated is null)
                     {
-                        await ctx.Response.WriteAsync(validate.Message);
+                        await ctx.Response.WriteAsync("Include updated item in body");
+                        return Results.BadRequest();
+                    }
+
+                    if (item.Id != updated.Id)
+                    {
+                        await ctx.Response.WriteAsync("Cannot change Id");
+                        return Results.BadRequest();
+                    }
+
+                    // Ensure update is valid
+                    var valid = await updated.ValidateItemAsync(planet_id, db);
+                    if (!valid.Success)
+                    {
+                        await ctx.Response.WriteAsync(valid.Message);
                         return Results.BadRequest();
                     }
 
                     await item.UpdateAsync(updated, db);
 
-                    return Results.Ok();
+                    return Results.NoContent();
                 }
             case Method.DELETE:
                 {
@@ -143,9 +155,45 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
 
                     await item.DeleteAsync(db);
 
-                    return Results.Ok();
+                    return Results.NoContent();
+                }
+            case Method.POST:
+                {
+                    // Read in new value
+                    T newItem = await JsonSerializer.DeserializeAsync<T>(ctx.Request.Body);
+                    if (newItem is null) {
+                        await ctx.Response.WriteAsync("Include item in body");
+                        return Results.BadRequest();
+                    }
+
+                    // Validate new item
+                    // We do this *first* because it needs to be valid in order to
+                    // determine permissions after
+                    var newValid = await newItem.ValidateItemAsync(planet_id, db);
+                    if (!newValid.Success) 
+                    {
+                        await ctx.Response.WriteAsync(newValid.Message);
+                        return Results.BadRequest();
+                    }
+
+                    var createPerm = await item.CanCreateAsync(member, db);
+                    if (!createPerm.Success)
+                    {
+                        await ctx.Response.WriteAsync(createPerm.Message);
+                        return Results.Forbid();
+                    }
+
+                    newItem.Id = IdManager.Generate();
+
+                    // Add to database
+                    await newItem.CreateAsync(db);
+
+                    return Results.Created(newItem.Id.ToString(), newItem);
                 }
         }
+
+        await ctx.Response.WriteAsync("Unsupported request type.");
+        return Results.BadRequest();
 
     }
 }

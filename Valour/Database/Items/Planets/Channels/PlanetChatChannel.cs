@@ -242,36 +242,17 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> ValidateUpdateAsync(PlanetChatChannel updated, ValourDB db)
+    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
-        if (updated == null)
-            return new TaskResult(false, "Updated item missing or malformed");
+        if (member is null)
+            return new TaskResult(false, "User is not a member of the target planet");
 
-        if (updated.Id != Id)
-            return new TaskResult(false, "ID Mismatch");
+        Planet ??= await GetPlanetAsync(db);
 
-        if (updated.Planet_Id != Planet_Id)
-            return new TaskResult(false, "Planet ID Mismatch");
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
+            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
 
-        var nameValid = ValidateName(updated.Name);
-        if (!nameValid.Success)
-            return nameValid;
-
-        if (updated.Description.Length > 128)
-            return new TaskResult(false, "Description must be at or under 128 characters");
-
-        // Logic to check if parent is legitimate
-        if (updated.Parent_Id is not null)
-        {
-            var parent = await db.PlanetCategories.FirstOrDefaultAsync
-                (x => x.Id == updated.Parent_Id
-                && x.Planet_Id == Planet_Id); // This ensures the result has the same planet id
-
-            if (parent is null)
-                return new TaskResult(false, "Parent ID is not valid");
-        }
-
-        return new TaskResult(true, "Valid");
+        return new TaskResult(true, "Success");
     }
 
     public async Task UpdateAsync(PlanetChatChannel updated, ValourDB db)
@@ -302,6 +283,38 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
 
         // Notify channel deletion
         await PlanetHub.NotifyChatChannelDeletion(this);
+    }
+
+    public async Task CreateAsync(ValourDB db)
+    {
+        await db.AddAsync(this);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db)
+    {
+        if (Planet_Id != planet_id)
+            return new TaskResult(false, "Planet Id does not match");
+
+        var nameValid = ValidateName(Name);
+        if (!nameValid.Success)
+            return nameValid;
+
+        if (Description.Length > 128)
+            return new TaskResult(false, "Description must be at or under 128 characters");
+
+        // Logic to check if parent is legitimate
+        if (Parent_Id is not null)
+        {
+            var parent = await db.PlanetCategories.FirstOrDefaultAsync
+                (x => x.Id == Parent_Id
+                && x.Planet_Id == Planet_Id); // This ensures the result has the same planet id
+
+            if (parent is null)
+                return new TaskResult(false, "Parent ID is not valid");
+        }
+
+        return new TaskResult(true, "Valid");
     }
 
     #endregion
