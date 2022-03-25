@@ -15,18 +15,18 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// </summary>
 public interface ISharedPlanetChatChannel
 {
-    /// <summary>
-    /// The amount of messages ever sent in the channel
-    /// </summary>
-    [JsonPropertyName("MessageCount")]
-    public ulong MessageCount { get; set; }
+    ulong MessageCount { get; set; }
+    bool InheritsPerms { get; set; }
 
-    /// <summary>
-    /// If true, this channel will inherit the permission nodes
-    /// from the category it belongs to
-    /// </summary>
-    [JsonPropertyName("InheritsPerms")]
-    public bool InheritsPerms { get; set; }
+    // Inherited from ISharedPlanetChannel
+    ulong Planet_Id { get; set; }
+    ulong? Parent_Id { get; set; }
+
+    // Inherited from ISharedChannel
+    ulong Id { get; set; }
+    string Name { get; set; }
+    int Position { get; set; }
+    string Description { get; set; }
 
 }
 
