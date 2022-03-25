@@ -1,5 +1,6 @@
 ﻿using Valour.Api.Client;
 using Valour.Api.Items.Users;
+using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Members;
@@ -10,8 +11,18 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : PlanetMemberBase, ISyncedItem<PlanetMember>, INodeSpecific
+public class PlanetMember : ISharedItem, ISharedPlanetMember, ISyncedItem<PlanetMember>, INodeSpecific
 {
+    public const int FLAG_UPDATE_ROLES = 0x01;
+
+    #region SharedItem 
+
+    // Inherited from SharedItem //
+    public ulong Id { get; set; }
+    public ItemType ItemType => ItemType.PlanetMember;
+
+    #endregion
+
     #region Synced Item System
 
     /// <summary>
@@ -72,6 +83,31 @@ public class PlanetMember : PlanetMemberBase, ISyncedItem<PlanetMember>, INodeSp
     /// Cached roles
     /// </summary>
     private List<PlanetRole> Roles = null;
+
+    /// <summary>
+    /// The user within the planet
+    /// </summary>
+    public ulong User_Id { get; set; }
+
+    /// <summary>
+    /// The planet the user is within
+    /// </summary>
+    public ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The name to be used within the planet
+    /// </summary>
+    public string Nickname { get; set; }
+
+    /// <summary>
+    /// The pfp to be used within the planet
+    /// </summary>
+    public string Member_Pfp { get; set; }
+
+    /// <summary>
+    /// The node this item belongs to
+    /// </summary>
+    public string Node { get; set; }
 
     /// <summary>
     /// Returns the member for the given id

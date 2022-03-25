@@ -12,7 +12,7 @@ namespace Valour.Shared.Items.Planets;
 /// <summary>
 /// Planet items are items which are owned by a planet
 /// </summary>
-public interface IPlanetItem
+public interface ISharedPlanetItem
 {
     [Key]
     [JsonInclude]

@@ -23,6 +23,8 @@ namespace Valour.Database.Items.Planets.Members;
 public class PlanetMember : PlanetMemberBase, INodeSpecific
 {
 
+    public const int FLAG_UPDATE_ROLES = 0x01;
+
     // Relational DB stuff
     [ForeignKey("User_Id")]
     [JsonIgnore]
