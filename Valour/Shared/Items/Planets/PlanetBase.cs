@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets;
 
-public class PlanetBase : Item, INamedItem
+public class PlanetBase : ISharedItem, INamed
 {
     /// <summary>
     /// The Id of the owner of this planet
@@ -40,12 +40,6 @@ public class PlanetBase : Item, INamedItem
     /// </summary>
     [JsonPropertyName("Public")]
     public bool Public { get; set; }
-
-    /// <summary>
-    /// The amount of members on the planet
-    /// </summary>
-    [JsonPropertyName("Member_Count")]
-    public uint Member_Count { get; set; }
 
     /// <summary>
     /// The default role for the planet

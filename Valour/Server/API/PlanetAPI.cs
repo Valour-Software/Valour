@@ -548,7 +548,7 @@ namespace Valour.Server.API
 
             User user = await db.Users.FindAsync(auth.User_Id);
 
-            if (!user.Valour_Staff)
+            if (!user.ValourStaff)
             {
                 var owned_planets = await db.Planets.CountAsync(x => x.Owner_Id == user.Id);
 
@@ -582,7 +582,7 @@ namespace Valour.Server.API
                 Id = IdManager.Generate(),
                 Planet_Id = planet_id,
                 Name = "General",
-                Message_Count = 0,
+                MessageCount = 0,
                 Description = "General chat channel",
                 Parent_Id = category.Id
             };
@@ -810,7 +810,7 @@ namespace Valour.Server.API
                 Name = channel_data.Name,
                 Planet_Id = channel_data.Planet_Id,
                 Parent_Id = channel_data.Parent_Id,
-                Message_Count = 0,
+                MessageCount = 0,
                 Description = channel_data.Description,
                 Position = child_count
             };

@@ -6,7 +6,7 @@ namespace Valour.Shared.Items;
 /// <summary>
 /// Common functionality between channels
 /// </summary>
-public abstract class Channel : Item, IPlanetItem, INamedItem
+public abstract class Channel : ISharedItem, IPlanetItem, INamed
 {
     [JsonInclude]
     [JsonPropertyName("Position")]

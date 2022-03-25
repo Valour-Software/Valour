@@ -20,6 +20,5 @@ public interface INodeSpecific
     /// </summary>
     [NotMapped]
     [JsonInclude]
-    [JsonPropertyName("Node")]
     public string Node => ValourDB.Node;
 }

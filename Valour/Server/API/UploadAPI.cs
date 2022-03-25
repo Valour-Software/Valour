@@ -115,7 +115,7 @@ namespace Valour.Server.API
                     {
                         var user = await db.Users.FindAsync(authToken.User_Id);
                         var url = await response.Content.ReadAsStringAsync();
-                        user.Pfp_Url = url;
+                        user.PfpUrl = url;
                         await db.SaveChangesAsync();
                         PlanetHub.NotifyUserChange(user, db);
                         break;

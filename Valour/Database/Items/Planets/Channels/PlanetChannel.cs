@@ -7,7 +7,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public interface IPlanetChannel
+public abstract class PlanetChannel : Channel, ISharedPlanetChannel
 {
     [JsonIgnore]
     [ForeignKey("Planet_Id")]
@@ -18,14 +18,6 @@ public interface IPlanetChannel
     public PlanetCategory Parent { get; set; }
 
     [JsonInclude]
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
-    [JsonInclude]
-    [JsonPropertyName("Position")]
-    public ushort Position { get; set; }
-
-    [JsonInclude]
     [JsonPropertyName("Parent_Id")]
     public ulong? Parent_Id { get; set; }
 
@@ -33,28 +25,7 @@ public interface IPlanetChannel
     [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }
 
-    [JsonInclude]
-    [JsonPropertyName("Name")]
-    public string Name { get; set; }
-
-    [JsonInclude]
-    [JsonPropertyName("Description")]
-    public string Description { get; set; }
-
-    public ItemType ItemType { get; }
-
-    public static async Task<IPlanetChannel> FindAsync(ItemType type, ulong id, ValourDB db)
-    {
-        switch (type)
-        {
-            case ItemType.ChatChannel:
-                return await PlanetChatChannel.FindAsync(id, db);
-            case ItemType.Category:
-                return await PlanetCategory.FindAsync(id, db);
-            default:
-                throw new ArgumentOutOfRangeException(nameof(ItemType));
-        }
-    }
+    new public ItemType ItemType => ItemType.PlanetChannel;
 
     public async Task<Planet> GetPlanetAsync(ValourDB db)
     {

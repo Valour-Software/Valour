@@ -12,7 +12,7 @@ namespace Valour.Shared.Items.Planets;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public class InviteBase : Item
+public class InviteBase : ISharedItem
 {
     /// <summary>
     /// the invite code
@@ -35,18 +35,18 @@ public class InviteBase : Item
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    [JsonPropertyName("Time")]
-    public DateTime Time { get; set; }
+    [JsonPropertyName("Issued")]
+    public DateTime Issued { get; set; }
 
     /// <summary>
-    /// The length of the invite before its invaild
+    /// The time when this invite expires. Null for never.
     /// </summary>
-    [JsonPropertyName("Hours")]
-    public int? Hours { get; set; }
+    [JsonPropertyName("Expires")]
+    public DateTime? Expires { get; set; }
 
     public bool IsPermanent()
     {
-        return (Hours == null);
+        return (Expires == null);
     }
 
     [JsonInclude]

@@ -3,13 +3,13 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public class PlanetBanBase : Item
+public class PlanetBanBase : ISharedItem
 {
     /// <summary>
     /// The user that was panned
     /// </summary>
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
+    [JsonPropertyName("Target_Id")]
+    public ulong Target_Id { get; set; }
 
     /// <summary>
     /// The planet the user was within
@@ -36,10 +36,10 @@ public class PlanetBanBase : Item
     public DateTime Time { get; set; }
 
     /// <summary>
-    /// The length of the ban
+    /// The time the ban expires. Null for permanent.
     /// </summary>
-    [JsonPropertyName("Minutes")]
-    public uint? Minutes { get; set; }
+    [JsonPropertyName("Expires")]
+    public DateTime? Expires { get; set; }
 
     /// <summary>
     /// The type of this item

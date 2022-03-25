@@ -153,7 +153,7 @@ public class Planet : PlanetBase, INodeSpecific, IPlanetItemAPI<Planet>
             Reason = reason,
             Time = DateTime.UtcNow,
             Banner_Id = member.User_Id,
-            User_Id = target.User_Id,
+            Target_Id = target.User_Id,
             Planet_Id = member.Planet_Id,
             Minutes = duration
         };

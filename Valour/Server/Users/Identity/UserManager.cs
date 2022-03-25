@@ -24,7 +24,7 @@ namespace Valour.Server.Users.Identity
             {
                 // Find the credential that matches the identifier and type
                 Credential credential = await context.Credentials.FirstOrDefaultAsync(
-                    x => string.Equals(credential_type.ToUpper(), x.Credential_Type.ToUpper()) &&
+                    x => string.Equals(credential_type.ToUpper(), x.CredentialType.ToUpper()) &&
                          string.Equals(identifier.ToUpper(), x.Identifier.ToUpper()));
 
                 if (credential == null || string.IsNullOrWhiteSpace(secret))

@@ -31,7 +31,15 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
     {
         T dummy = default(T);
         app.MapGet($"/planets/{{planet_id}}/{dummy.ItemType}/{{id}}", GetRoute);
+        app.MapPut($"/planets/{{planet_id}}/{dummy.ItemType}/{{id}}", PutRoute);
+        app.MapDelete($"/planets/{{planet_id}}/{dummy.ItemType}/{{id}}", DeleteRoute);
+        app.MapPost($"/planets/{{planet_id}}/{dummy.ItemType}", PostRoute);
+
+        // Route for requesting all of a certain item
     }
+
+    // Before you ask why these are seperate and not using just Map(), it's so that
+    // Swagger works properly when generating the API route information
 
     /// <summary>
     /// This returns the requested item for the GET http method
@@ -39,6 +47,27 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
     public async Task<IResult> GetRoute
         (HttpContext ctx, ValourDB db, ulong planet_id, ulong id, [FromHeader] string authorization)
             => await BaseRoute(ctx, db, planet_id, id, authorization, Method.GET);
+
+    /// <summary>
+    /// This handles PUT requests
+    /// </summary>
+    public async Task<IResult> PutRoute
+        (HttpContext ctx, ValourDB db, ulong planet_id, ulong id, [FromHeader] string authorization)
+            => await BaseRoute(ctx, db, planet_id, id, authorization, Method.PUT);
+
+    /// <summary>
+    /// This handles DELETE requests
+    /// </summary>
+    public async Task<IResult> DeleteRoute
+        (HttpContext ctx, ValourDB db, ulong planet_id, ulong id, [FromHeader] string authorization)
+            => await BaseRoute(ctx, db, planet_id, id, authorization, Method.DELETE);
+
+    /// <summary>
+    /// This handles POST requests
+    /// </summary>
+    public async Task<IResult> PostRoute
+        (HttpContext ctx, ValourDB db, ulong planet_id, ulong id, [FromHeader] string authorization)
+            => await BaseRoute(ctx, db, planet_id, id, authorization, Method.POST);
 
     public async Task<IResult> BaseRoute
         (HttpContext ctx, ValourDB db, ulong planet_id, ulong id, [FromHeader] string authorization, Method method)
@@ -139,7 +168,7 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
                         return Results.BadRequest();
                     }
 
-                    await item.UpdateAsync(updated, db);
+                    await updated.UpdateAsync(db);
 
                     return Results.NoContent();
                 }

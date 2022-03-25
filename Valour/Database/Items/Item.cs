@@ -10,21 +10,15 @@ namespace Valour.Database.Items;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public abstract class Item
+public abstract class Item : ISharedItem
 {
 
     public const string Pref = "https://";
     public const string Post = ".nodes.valour.gg";
 
-    [JsonInclude]
-    [JsonPropertyName("Id")]
     public ulong Id { get; set; }
 
     [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
     public abstract ItemType ItemType { get; }
-
-    public abstract Type ClassType { get; }
 }
 

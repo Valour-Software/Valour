@@ -13,20 +13,20 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat channel within a planet
 /// </summary>
-public class PlanetChatChannelBase : PlanetChannel
+public interface ISharedPlanetChatChannel
 {
     /// <summary>
     /// The amount of messages ever sent in the channel
     /// </summary>
-    [JsonPropertyName("Message_Count")]
-    public ulong Message_Count { get; set; }
+    [JsonPropertyName("MessageCount")]
+    public ulong MessageCount { get; set; }
 
     /// <summary>
     /// If true, this channel will inherit the permission nodes
     /// from the category it belongs to
     /// </summary>
-    [JsonPropertyName("Inherits_Perms")]
-    public bool Inherits_Perms { get; set; }
+    [JsonPropertyName("InheritsPerms")]
+    public bool InheritsPerms { get; set; }
 
 }
 

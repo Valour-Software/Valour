@@ -2,7 +2,7 @@
 
 namespace Valour.Shared.Items.Notifications;
 
-public class NotificationSubscriptionBase : Item
+public class NotificationSubscriptionBase : ISharedItem
 {
     /// <summary>
     /// The Id of the user this subscription is for

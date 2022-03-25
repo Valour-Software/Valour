@@ -52,7 +52,7 @@ public class AuthToken : AuthTokenBase
                 if (authToken != null)
                 {
                     User user = await tdb.Users.FindAsync(authToken.User_Id);
-                    user.Last_Active = DateTime.UtcNow;
+                    user.LastActive = DateTime.UtcNow;
 
                     await tdb.SaveChangesAsync();
                 }

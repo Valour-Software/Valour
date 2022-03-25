@@ -65,7 +65,7 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
             return true;
 
         // If true, we just ask the category
-        if (Inherits_Perms)
+        if (InheritsPerms)
         {
             Parent ??= await GetParentAsync(db);
             return await Parent.HasPermission(member, permission, db);
@@ -141,7 +141,7 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
     /// </summary>
     public async Task SetInheritsPermsAsync(bool inherits_perms, ValourDB db)
     {
-        this.Inherits_Perms = inherits_perms;
+        this.InheritsPerms = inherits_perms;
         db.PlanetChatChannels.Update(this);
         await db.SaveChangesAsync();
 
@@ -182,11 +182,6 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
     }
 
     #region API Methods
-
-    public static async Task<PlanetChatChannel> FindAsync(ulong id, ValourDB db)
-    {
-        return await db.PlanetChatChannels.FindAsync(id);
-    }
 
     async Task<PlanetChatChannel> IPlanetItemAPI<PlanetChatChannel>.FindAsync(ulong id, ValourDB db)
     {
@@ -255,10 +250,12 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
         return new TaskResult(true, "Success");
     }
 
-    public async Task UpdateAsync(PlanetChatChannel updated, ValourDB db)
+    public async Task UpdateAsync(ValourDB db)
     {
-        db.PlanetChatChannels.Update(updated);
+        db.PlanetChatChannels.Update(this);
         await db.SaveChangesAsync();
+
+        PlanetHub.NotifyChatChannelChange(this);
     }
 
     public async Task DeleteAsync(ValourDB db)
@@ -289,6 +286,10 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpe
     {
         await db.AddAsync(this);
         await db.SaveChangesAsync();
+
+        base.CreateAsync();
+
+        PlanetHub.NotifyChatChannelChange(this);
     }
 
     public async Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db)

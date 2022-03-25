@@ -15,7 +15,7 @@ namespace Valour.Shared.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public class PlanetMemberBase : Item, INamedItem, IPlanetItem
+public class PlanetMemberBase : ISharedItem, INamed, IPlanetItem
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
 

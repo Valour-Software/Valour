@@ -238,7 +238,7 @@ public class PlanetMember : PlanetMemberBase, ISyncedItem<PlanetMember>, INodeSp
         if (!string.IsNullOrWhiteSpace(Member_Pfp))
             return Member_Pfp;
 
-        return (await GetUserAsync(force_refresh))?.Pfp_Url ?? "/media/icon-512.png";
+        return (await GetUserAsync(force_refresh))?.PfpUrl ?? "/media/icon-512.png";
     }
 
     /// <summary>

@@ -41,8 +41,8 @@ public class AuthTokenBase
     /// <summary>
     /// The time that this token was issued
     /// </summary>
-    [JsonPropertyName("Time")]
-    public DateTime Time { get; set; }
+    [JsonPropertyName("Created")]
+    public DateTime Created { get; set; }
 
     /// <summary>
     /// The time that this token will expire

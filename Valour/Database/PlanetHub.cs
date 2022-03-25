@@ -9,6 +9,8 @@ using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Users;
 using System.Text.Json;
 using Valour.Database.Items.Messages;
+using Valour.Shared.Items.Planets;
+using Valour.Database.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -86,35 +88,17 @@ namespace Valour.Database
             await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planet_id}");
         }
 
+        public static async void NotifyPlanetItemChange<T>(IPlanetItemAPI<T> item, int flags = 0) where T : class =>
+            await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Update", (T)item, flags);
+
+        public static async void NotifyPlanetItemDelete<T>(IPlanetItemAPI<T> item) where T : class =>
+            await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Delete", (T)item);
+
         public async Task LeaveInteractionGroup(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
 
-        public static async void NotifyMemberChange(PlanetMember member, int flags = 0) =>
-            await Current.Clients.Group($"p-{member.Planet_Id}").SendAsync("MemberUpdate", member, flags);
-
-        public static async void NotifyPlanetChange(Planet planet, int flags = 0) =>
-            await Current.Clients.Group($"p-{planet.Id}").SendAsync("PlanetUpdate", planet, flags);
-
         public static async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>
             await Current.Clients.Group($"i-{interaction.Planet_Id}").SendAsync("InteractionEvent", interaction);
-
-        public static async void NotifyRoleChange(PlanetRole role, int flags = 0) =>
-            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleUpdate", role, flags);
-
-        public static async Task NotifyCategoryDeletion(PlanetCategory category) =>
-            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryDeletion", category);
-
-        public static async void NotifyRoleDeletion(PlanetRole role) =>
-            await Current.Clients.Group($"p-{role.Planet_Id}").SendAsync("RoleDeletion", role);
-
-        public static async Task NotifyChatChannelDeletion(PlanetChatChannel channel) =>
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelDeletion", channel);
-
-        public static async void NotifyChatChannelChange(PlanetChatChannel channel, int flags = 0) =>
-            await Current.Clients.Group($"p-{channel.Planet_Id}").SendAsync("ChannelUpdate", channel, flags);
-
-        public static async void NotifyCategoryChange(PlanetCategory category, int flags = 0) =>
-            await Current.Clients.Group($"p-{category.Planet_Id}").SendAsync("CategoryUpdate", category, flags);
 
         public static async void NotifyMessageDeletion(PlanetMessage message) =>
             await Current.Clients.Group($"c-{message.Channel_Id}").SendAsync("DeleteMessage", message);
@@ -127,7 +111,7 @@ namespace Valour.Database
             {
                 // Not awaited on purpose
                 //var t = Task.Run(async () => {
-                Console.WriteLine(JsonSerializer.Serialize(user));
+                //Console.WriteLine(JsonSerializer.Serialize(user));
 
                     await Current.Clients.Group($"p-{m.Planet_Id}").SendAsync("UserUpdate", user, flags);
                     //await Current.Clients.Group($"p-{m.Planet_Id}").SendAsync("ChannelUpdate", new PlanetChatChannel(), flags);

@@ -295,7 +295,7 @@ namespace Valour.Server.API
                             Name = channel_data.Name,
                             Planet_Id = channel_data.Planet_Id,
                             Parent_Id = channel_data.Parent_Id,
-                            Message_Count = 0,
+                            MessageCount = 0,
                             Description = channel_data.Description,
                             Position = child_count
                         };
@@ -385,7 +385,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            if (message.Embed_Data != null && message.Content.Length > 65535)
+            if (message.EmbedData != null && message.Content.Length > 65535)
             {
                 ctx.Response.StatusCode = 400;
                 await ctx.Response.WriteAsync("Embed is over 65535 chars");
@@ -528,14 +528,14 @@ namespace Valour.Server.API
                 await Task.Run(() =>
                 {
                     messages =
-                    db.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
-                                     .OrderByDescending(x => x.Message_Index)
+                    db.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.MessageIndex < index)
+                                     .OrderByDescending(x => x.MessageIndex)
                                      .Take(count)
                                      .Reverse()
                                      .ToList();
                 });
 
-                messages.AddRange(staged.Where(x => x.Message_Index < index));
+                messages.AddRange(staged.Where(x => x.MessageIndex < index));
             }
 
             ctx.Response.StatusCode = 200;

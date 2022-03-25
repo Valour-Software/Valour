@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public class PlanetRoleMemberBase : Item
+public class PlanetRoleMemberBase : ISharedItem
 {
     [JsonPropertyName("User_Id")]
     public ulong User_Id { get; set; }

@@ -12,12 +12,11 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat Category within a planet
 /// </summary>
-public class PlanetCategoryBase : PlanetChannel
+public interface ISharedPlanetCategoryChannel
 {
-    /// <summary>
-    /// The item type of this item
-    /// </summary>
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Category;
+    ulong Id { get; set; }
+    string Name { get; set; }
+    int Position { get; set; }
+    string Description { get; set; }
 }
 

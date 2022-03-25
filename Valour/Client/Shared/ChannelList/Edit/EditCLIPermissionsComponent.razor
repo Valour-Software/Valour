@@ -65,7 +65,7 @@
     </div>
     <div type="button" style="float:right">
         <label class="switch">
-            <input type="checkbox" @onclick="SwitchInherit" checked="@channel.Inherits_Perms">
+            <input type="checkbox" @onclick="SwitchInherit" checked="@channel.InheritsPerms">
             <span class="slider round"></span>
         </label>
     </div>
@@ -75,7 +75,7 @@
 </div>
 
     // If the channel inherits the permissions, we do not give the option to edit them
-    @if (channel.Inherits_Perms)
+    @if (channel.InheritsPerms)
     {
         return;
     }
@@ -212,7 +212,7 @@ else
 
         if (channel is not null)
         {
-            await channel.SetPermInheritModeAsync(!channel.Inherits_Perms);
+            await channel.SetPermInheritModeAsync(!channel.InheritsPerms);
             StateHasChanged();
         }
     }

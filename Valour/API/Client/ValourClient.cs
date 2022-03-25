@@ -338,7 +338,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : ISharedItem
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -370,7 +370,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : Item
+    public static async Task DeleteItem<T>(T item) where T : ISharedItem
     {
         var local = ValourCache.Get<T>(item.Id);
 

@@ -74,7 +74,7 @@ public class PlanetMessage : PlanetMessageBase, INodeSpecific
         if (embed is not null)
         {
             JsonSerializerOptions options = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-            message.Embed_Data = JsonSerializer.Serialize(embed, options);
+            message.EmbedData = JsonSerializer.Serialize(embed, options);
         }
 
         await ValourClient.SendMessage(message);
