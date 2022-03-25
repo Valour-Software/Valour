@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Valour.Api.Items;
+namespace Valour.Api.Nodes;
 
 /// <summary>
 /// This interface specifies that an item is designed to be returned from
