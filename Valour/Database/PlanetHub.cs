@@ -88,11 +88,11 @@ namespace Valour.Database
             await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planet_id}");
         }
 
-        public static async void NotifyPlanetItemChange<T>(IPlanetItemAPI<T> item, int flags = 0) where T : class =>
-            await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Update", (T)item, flags);
+        public static async void NotifyPlanetItemChange<T>(T item, int flags = 0) where T : PlanetItem<T> =>
+            await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Update", item, flags);
 
-        public static async void NotifyPlanetItemDelete<T>(IPlanetItemAPI<T> item) where T : class =>
-            await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Delete", (T)item);
+        public static async void NotifyPlanetItemDelete<T>(T item) where T : PlanetItem<T> =>
+            await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Delete", item);
 
         public async Task LeaveInteractionGroup(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");

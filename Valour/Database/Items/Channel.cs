@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Channels;
 
-namespace Valour.Database.Items.Planets.Channels
+namespace Valour.Database.Items
 {
     public class Channel : Item, ISharedChannel
     {

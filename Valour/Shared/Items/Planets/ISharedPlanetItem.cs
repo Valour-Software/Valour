@@ -14,17 +14,5 @@ namespace Valour.Shared.Items.Planets;
 /// </summary>
 public interface ISharedPlanetItem
 {
-    [Key]
-    [JsonInclude]
-    [JsonPropertyName("Id")]
-    public ulong Id { get; set; }
-
-    [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public abstract ItemType ItemType { get; }
-
-    [JsonInclude]
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
+    ulong Planet_Id { get; set; }
 }

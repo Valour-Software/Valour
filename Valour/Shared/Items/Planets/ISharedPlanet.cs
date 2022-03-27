@@ -9,55 +9,41 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets;
 
-public class PlanetBase : ISharedItem, INamed
+public interface ISharedPlanet
 {
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
-    [JsonPropertyName("Owner_Id")]
-    public ulong Owner_Id { get; set; }
+    ulong Owner_Id { get; set; }
 
     /// <summary>
     /// The name of this planet
     /// </summary>
-    [JsonPropertyName("Name")]
-    public string Name { get; set; }
+    string Name { get; set; }
 
     /// <summary>
     /// The image url for the planet 
     /// </summary>
-    [JsonPropertyName("Image_Url")]
-    public string Image_Url { get; set; }
+    string Image_Url { get; set; }
 
     /// <summary>
     /// The description of the planet
     /// </summary>
-    [JsonPropertyName("Description")]
-    public string Description { get; set; }
+    string Description { get; set; }
 
     /// <summary>
     /// If the server requires express allowal to join a planet
     /// </summary>
-    [JsonPropertyName("Public")]
-    public bool Public { get; set; }
+    bool Public { get; set; }
 
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    [JsonPropertyName("Default_Role_Id")]
-    public ulong Default_Role_Id { get; set; }
+    ulong Default_Role_Id { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    [JsonPropertyName("Main_Channel_Id")]
-    public ulong Main_Channel_Id { get; set; }
-
-    /// <summary>
-    /// The item type of this item
-    /// </summary>
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Planet;
+    ulong Main_Channel_Id { get; set; }
 }
 
