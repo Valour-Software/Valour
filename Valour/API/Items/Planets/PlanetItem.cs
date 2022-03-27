@@ -19,7 +19,7 @@ namespace Valour.Api.Items.Planets
         /// <summary>
         /// This is used to get a reference to ItemType
         /// </summary>
-        public static T DummyItem => default(T);
+        public static T DummyItem = default(T);
 
         /// <summary>
         /// Returns a planet item for the given IDs.
