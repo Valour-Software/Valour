@@ -20,7 +20,7 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, INodeSpecific, IPlanetItemAPI<PlanetChatChannel>
+public class PlanetChatChannel : PlanetChannel, IPlanetChannel, INodeSpecific, IPlanetItemAPI<PlanetChatChannel>
 {
     [JsonIgnore]
     [ForeignKey("Planet_Id")]

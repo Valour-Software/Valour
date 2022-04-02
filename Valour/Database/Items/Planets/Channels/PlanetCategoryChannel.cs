@@ -13,19 +13,8 @@ using Valour.Shared.Items.Planets.Channels;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetCategoryChannels")]
-public class PlanetCategoryChannel : PlanetItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
+public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
 {
-    [JsonIgnore]
-    [ForeignKey("Parent_Id")]
-    public virtual PlanetCategoryChannel Parent { get; set; }
-
-    public ulong? Parent_Id { get; set; }
-
-    public string Name { get; set; }
-
-    public string Description { get; set; }
-
-    public int Position { get; set; }
 
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
