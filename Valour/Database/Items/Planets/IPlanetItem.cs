@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared;
+using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
 
 namespace Valour.Database.Items.Planets;
@@ -11,13 +12,15 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This abstract class provides the base for planet-based items
 /// </summary>
-public abstract class PlanetItem<T> : Item, ISharedPlanetItem, INodeSpecific where T : PlanetItem<T>
+public interface IPlanetItem<T> where T : class, IPlanetItem<T>
 {
 	[JsonIgnore]
 	[ForeignKey("Planet_Id")]
 	public Planet Planet { get; set; }
 
 	public ulong Planet_Id { get; set; }
+
+    public ItemType ItemType { get; }
 
     /// <summary>
     /// Returns the item with the given id
@@ -68,7 +71,7 @@ public abstract class PlanetItem<T> : Item, ISharedPlanetItem, INodeSpecific whe
     /// Success if a member has permission to get this
     /// item via the API. By default this is true if the member exists.
     /// </summary>
-    public virtual async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return await Task.FromResult(
@@ -87,7 +90,7 @@ public abstract class PlanetItem<T> : Item, ISharedPlanetItem, INodeSpecific whe
     /// <param name="member"></param>
     /// <param name="db"></param>
     /// <returns></returns>
-    public virtual async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return await Task.FromResult(
@@ -103,23 +106,23 @@ public abstract class PlanetItem<T> : Item, ISharedPlanetItem, INodeSpecific whe
     /// Success if a member has permission to delete this
     /// item via the API
     /// </summary>
-    public abstract Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
+    public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to update this
     /// item via the API
     /// </summary>
-    public abstract Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
+    public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to create this
     /// item via the API
     /// </summary>
-    public abstract Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
+    public Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Returns true if this is a valid item (can be POSTed)
     /// </summary>
-    public abstract Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
+    public Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
 }
 
