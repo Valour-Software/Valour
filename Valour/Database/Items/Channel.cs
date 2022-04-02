@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items
 {
+    [Table("Channels")]
     public class Channel : Item, ISharedChannel
     {
         public string Name { get; set; }

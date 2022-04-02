@@ -12,6 +12,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
+[Table("PlanetCategoryChannels")]
 public class PlanetCategoryChannel : PlanetItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
 {
     [JsonIgnore]

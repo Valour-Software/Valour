@@ -7,6 +7,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
+[Table("PlanetChannels")]
 public abstract class PlanetChannel : Channel, ISharedPlanetChannel
 {
     [JsonIgnore]
@@ -15,7 +16,7 @@ public abstract class PlanetChannel : Channel, ISharedPlanetChannel
 
     [JsonIgnore]
     [ForeignKey("Parent_Id")]
-    public PlanetCategory Parent { get; set; }
+    public PlanetCategoryChannel Parent { get; set; }
 
     [JsonInclude]
     [JsonPropertyName("Parent_Id")]
@@ -36,7 +37,7 @@ public abstract class PlanetChannel : Channel, ISharedPlanetChannel
     /// <summary>
     /// Returns the parent category of this channel
     /// </summary>
-    public async Task<PlanetCategory> GetParentAsync(ValourDB db)
+    public async Task<PlanetCategoryChannel> GetParentAsync(ValourDB db)
     {
         Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
         return Parent;

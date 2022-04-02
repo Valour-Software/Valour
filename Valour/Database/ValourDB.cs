@@ -96,6 +96,11 @@ public class ValourDB : DbContext
     public DbSet<PlanetMember> PlanetMembers { get; set; }
 
     /// <summary>
+    /// Table for all planet channels
+    /// </summary>
+    public DbSet<PlanetChannel> PlanetChannels { get; set; }
+
+    /// <summary>
     /// Table for all planet chat channels
     /// </summary>
     public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
