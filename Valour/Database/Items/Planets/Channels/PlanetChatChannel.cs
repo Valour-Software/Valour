@@ -228,11 +228,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, 
         PlanetHub.NotifyPlanetItemChange(this);
     }
 
-    public async Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db)
+    public async Task<TaskResult> ValidateItemAsync(PlanetChatChannel old, ValourDB db)
     {
-        if (Planet_Id != planet_id)
-            return new TaskResult(false, "Planet Id does not match");
-
         var nameValid = ValidateName(Name);
         if (!nameValid.Success)
             return nameValid;

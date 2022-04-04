@@ -267,14 +267,42 @@ public class PlanetMember : Item, IPlanetItem<PlanetMember>, ISharedPlanetMember
         return new TaskResult(true, "Success");
     }
 
-    public Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
-        throw new NotImplementedException();
+        // TODO: Be more specific
+        return await Task.FromResult(
+            new TaskResult(false, "Membership is created through the Planet API")
+        );
     }
 
-    public Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db)
+    public async Task<TaskResult> ValidateItemAsync(PlanetMember old, ValourDB db)
     {
-        throw new NotImplementedException();
+        // This means this is an update rather
+        // than a creation
+        if (old is not null)
+        {
+            // Cannot change user ID
+            if (old.User_Id != User_Id)
+            {
+                return new TaskResult(false, "User_Id cannot be changed.");
+            }
+        }
+
+        // Ensure nickname is valid
+        if (Nickname.Length > 32)
+        {
+            return new TaskResult(false, "Maximum nickname is 32 characters.");
+        }
+
+        if (Member_Pfp != old.Member_Pfp)
+        {
+            // TODO: Automatically use VMPS
+            return new TaskResult(false, "Profile picture must be changed through Upload API.");
+        }
+
+        return await Task.FromResult(
+            new TaskResult(true, "Success")
+        );
     }
 }
 

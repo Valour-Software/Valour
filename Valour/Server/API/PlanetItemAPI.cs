@@ -3,6 +3,7 @@ using System.Text.Json;
 using Valour.Database;
 using Valour.Database.Items;
 using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
@@ -14,7 +15,7 @@ namespace Valour.Server.API;
 /// The Planet Item API allows for easy construction of routes
 /// relating to Valour Planet Items, including permissions handling.
 /// </summary>
-public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, ISharedPlanetItem, IPlanetItemAPI<T>
+public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetItem<T>
 {
 
     /// <summary>
@@ -160,8 +161,14 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, ISharedPl
                         return Results.BadRequest();
                     }
 
+                    if (item.Planet_Id != planet_id)
+                    {
+                        await ctx.Response.WriteAsync("Planet_Id does not match");
+                        return Results.BadRequest();
+                    }
+
                     // Ensure update is valid
-                    var valid = await updated.ValidateItemAsync(planet_id, db);
+                    var valid = await updated.ValidateItemAsync(item, db);
                     if (!valid.Success)
                     {
                         await ctx.Response.WriteAsync(valid.Message);
@@ -198,7 +205,7 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, ISharedPl
                     // Validate new item
                     // We do this *first* because it needs to be valid in order to
                     // determine permissions after
-                    var newValid = await newItem.ValidateItemAsync(planet_id, db);
+                    var newValid = await newItem.ValidateItemAsync(null, db);
                     if (!newValid.Success) 
                     {
                         await ctx.Response.WriteAsync(newValid.Message);

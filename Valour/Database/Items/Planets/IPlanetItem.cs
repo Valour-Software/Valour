@@ -119,7 +119,8 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
 
     /// <summary>
     /// Returns true if this is a valid item (can be POSTed)
+    /// Old is the last version of the item - this can be null if it is new.
     /// </summary>
-    Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
+    Task<TaskResult> ValidateItemAsync(T old, ValourDB db);
 }
 
