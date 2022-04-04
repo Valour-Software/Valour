@@ -323,12 +323,6 @@ video {
     margin-left: auto;
 }
 
-
-.sidebar-2 .category .is-open {
-    border-bottom-right-radius: 0px;
-    border-bottom-left-radius: 0px;
-}
-
 .sidebar-2 .user-info .settings {
     display: inline-block;
     margin: 0px;
@@ -718,10 +712,11 @@ body {
     z-index: 2;
     box-shadow: 0px 0px 15px #000000;
     margin: auto;
-    margin-top: 50px;
-    margin-bottom: 50px;
-    /* position: absolute; */
-    /* top: 0px; */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
 }
 
 

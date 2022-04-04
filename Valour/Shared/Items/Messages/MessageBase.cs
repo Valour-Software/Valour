@@ -161,7 +161,7 @@ public class MessageBase : Item
     {
         using (SHA256 sha = SHA256.Create())
         {
-            string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}";
+            string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}{Message_Index}{Embed_Data}";
 
             byte[] buffer = Encoding.Unicode.GetBytes(conc);
 
