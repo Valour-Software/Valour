@@ -16,28 +16,28 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
 {
 	[JsonIgnore]
 	[ForeignKey("Planet_Id")]
-	public Planet Planet { get; set; }
+	Planet Planet { get; set; }
 
-	public ulong Planet_Id { get; set; }
+	ulong Planet_Id { get; set; }
 
-    public ItemType ItemType { get; }
+    ItemType ItemType { get; }
 
     /// <summary>
     /// Returns the item with the given id
     /// </summary>
-    public virtual async Task<T> FindAsync(ulong id, ValourDB db) =>
+    async Task<T> FindAsync(ulong id, ValourDB db) =>
         await db.FindAsync<T>(id);
 
     /// <summary>
     /// Returns all of this planet item type within the planet
     /// </summary>
-    public virtual async Task<ICollection<T>> FindAllAsync(ValourDB db) => 
+    async Task<ICollection<T>> FindAllAsync(ValourDB db) => 
         await db.Set<T>().Where(x => x.Planet_Id == Planet_Id).ToListAsync();
 
     /// <summary>
     /// Deletes this item from the database
     /// </summary>
-    public virtual async Task DeleteAsync(ValourDB db)
+    async Task DeleteAsync(ValourDB db)
     {
         db.Remove((T)this);
         await db.SaveChangesAsync();
@@ -48,7 +48,7 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
     /// <summary>
     /// Updates this item in the database
     /// </summary>
-    public virtual async Task UpdateAsync(ValourDB db)
+    async Task UpdateAsync(ValourDB db)
     {
         db.Update((T)this);
         await db.SaveChangesAsync();
@@ -59,7 +59,7 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
     /// <summary>
     /// Creates this item in the database
     /// </summary>
-    public virtual async Task CreateAsync(ValourDB db)
+    async Task CreateAsync(ValourDB db)
     {
         await db.AddAsync((T)this);
         await db.SaveChangesAsync();
@@ -71,7 +71,7 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
     /// Success if a member has permission to get this
     /// item via the API. By default this is true if the member exists.
     /// </summary>
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return await Task.FromResult(
@@ -87,10 +87,7 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
     /// Success if a member has permission to get all of this item type within the planet
     /// via the API. By default this is true if the member exists.
     /// </summary>
-    /// <param name="member"></param>
-    /// <param name="db"></param>
-    /// <returns></returns>
-    public async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
+    async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return await Task.FromResult(
@@ -106,23 +103,23 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
     /// Success if a member has permission to delete this
     /// item via the API
     /// </summary>
-    public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
+    Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to update this
     /// item via the API
     /// </summary>
-    public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
+    Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to create this
     /// item via the API
     /// </summary>
-    public Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
+    Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Returns true if this is a valid item (can be POSTed)
     /// </summary>
-    public Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
+    Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
 }
 

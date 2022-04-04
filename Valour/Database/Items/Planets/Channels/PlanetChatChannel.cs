@@ -20,40 +20,18 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel, IPlanetChannel, INodeSpecific, IPlanetItemAPI<PlanetChatChannel>
+public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, INodeSpecific
 {
-    [JsonIgnore]
-    [ForeignKey("Planet_Id")]
-    public virtual Planet Planet { get; set; }
-
-    [JsonIgnore]
-    [ForeignKey("Parent_Id")]
-    public virtual PlanetCategory Parent { get; set; }
-
     /// <summary>
     /// The type of this item
     /// </summary>
     [NotMapped]
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.ChatChannel;
+    public override ItemType ItemType => ItemType.PlanetChatChannel;
 
     /// <summary>
     /// The regex used for name validation
     /// </summary>
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
-
-    /// <summary>
-    /// Returns the planet this belongs to
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-
-    /// <summary>
-    /// Returns the parent this belongs to
-    /// </summary>
-    public async Task<PlanetCategory> GetParentAsync(ValourDB db) =>
-        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
 
     /// <summary>
     /// Returns if a given member has a channel permission
@@ -138,18 +116,6 @@ public class PlanetChatChannel : PlanetChannel, IPlanetChannel, INodeSpecific, I
     }
 
     /// <summary>
-    /// Sets the permissions inherit mode of this channel
-    /// </summary>
-    public async Task SetInheritsPermsAsync(bool inherits_perms, ValourDB db)
-    {
-        this.InheritsPerms = inherits_perms;
-        db.PlanetChatChannels.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-    }
-
-    /// <summary>
     /// Returns all members who can see this channel
     /// </summary>
     public async Task<List<PlanetMember>> GetChannelMembersAsync(ValourDB db = null)
@@ -174,20 +140,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetChannel, INodeSpecific, I
         return members;
     }
 
-    /// <summary>
-    /// Notifies all clients that this channel has changed
-    /// </summary>
-    public void NotifyClientsChange()
-    {
-        PlanetHub.NotifyChatChannelChange(this);
-    }
-
     #region API Methods
-
-    async Task<PlanetChatChannel> IPlanetItemAPI<PlanetChatChannel>.FindAsync(ulong id, ValourDB db)
-    {
-        return await FindAsync(id, db);
-    }
 
     public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
@@ -251,14 +204,6 @@ public class PlanetChatChannel : PlanetChannel, IPlanetChannel, INodeSpecific, I
         return new TaskResult(true, "Success");
     }
 
-    public async Task UpdateAsync(ValourDB db)
-    {
-        db.PlanetChatChannels.Update(this);
-        await db.SaveChangesAsync();
-
-        PlanetHub.NotifyChatChannelChange(this);
-    }
-
     public async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
@@ -280,17 +225,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetChannel, INodeSpecific, I
         await db.SaveChangesAsync();
 
         // Notify channel deletion
-        await PlanetHub.NotifyChatChannelDeletion(this);
-    }
-
-    public async Task CreateAsync(ValourDB db)
-    {
-        await db.AddAsync(this);
-        await db.SaveChangesAsync();
-
-        base.CreateAsync();
-
-        PlanetHub.NotifyChatChannelChange(this);
+        PlanetHub.NotifyPlanetItemChange(this);
     }
 
     public async Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db)

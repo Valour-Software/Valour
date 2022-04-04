@@ -9,7 +9,7 @@ using Valour.Shared.Items.Planets.Channels;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChannels")]
-public abstract class PlanetChannel : Channel, IPlanetItem<PlanetChannel>, ISharedPlanetChannel
+public abstract class PlanetChannel : Channel, ISharedPlanetChannel
 {
     [JsonIgnore]
     [ForeignKey("Planet_Id")]
@@ -45,12 +45,5 @@ public abstract class PlanetChannel : Channel, IPlanetItem<PlanetChannel>, IShar
     }
 
     public abstract void NotifyClientsChange();
-
-    // Abstract implementations
-    public abstract Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db);
-    public abstract Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
-    public abstract Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
-    public abstract Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
-    public abstract Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db);
 }
 

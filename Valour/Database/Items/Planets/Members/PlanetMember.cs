@@ -7,6 +7,7 @@ using Valour.Shared.Items.Planets.Members;
 using Valour.Shared;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Channels;
+using Valour.Shared.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -20,7 +21,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : PlanetMemberBase, INodeSpecific
+public class PlanetMember : Item, IPlanetItem<PlanetMember>, ISharedPlanetMember, INodeSpecific
 {
 
     public const int FLAG_UPDATE_ROLES = 0x01;
@@ -38,15 +39,32 @@ public class PlanetMember : PlanetMemberBase, INodeSpecific
     [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
 
+    /// <summary>
+    /// The user within the planet
+    /// </summary>
+    public ulong User_Id { get; set; }
+
+    /// <summary>
+    /// The planet the user is within
+    /// </summary>
+    public ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The name to be used within the planet
+    /// </summary>
+    public string Nickname { get; set; }
+
+    /// <summary>
+    /// The pfp to be used within the planet
+    /// </summary>
+    public string Member_Pfp { get; set; }
+
+    public override ItemType ItemType => ItemType.PlanetMember;
+
     public static async Task<PlanetMember> FindAsync(ulong user_id, ulong planet_id, ValourDB db)
     {
         return await db.PlanetMembers.FirstOrDefaultAsync(x => x.Planet_Id == planet_id &&
                                                                   x.User_Id == user_id);
-    }
-
-    public static async Task<PlanetMember> FindAsync(ulong member_id, ValourDB db)
-    {
-        return await db.PlanetMembers.FindAsync(member_id);
     }
 
     /// <summary>
@@ -149,7 +167,7 @@ public class PlanetMember : PlanetMemberBase, INodeSpecific
             else if (pair.perm is CategoryPermission)
             {
                 var cperm = pair.perm as CategoryPermission;
-                var channel = pair.target as PlanetCategory;
+                var channel = pair.target as PlanetCategoryChannel;
 
                 if (!await channel.HasPermission(this, cperm, db))
                     return new TaskResult(false, "Member lacks " + cperm.Name + " category permission.");
@@ -207,6 +225,56 @@ public class PlanetMember : PlanetMemberBase, INodeSpecific
 
             return primaryRole.GetAuthority();
         }
+    }
+
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    {
+        // Needs to be able to GET in order to do anything else
+        var canGet = await ((IPlanetItem<PlanetMember>)this).CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        Planet ??= await GetPlanetAsync();
+
+        // Can always remove self
+        if (Id != member.Id)
+        {
+            // Need kick or ban to remove anyone else (ban implicitly grants kick)
+            if (!(await Planet.HasPermissionAsync(member, PlanetPermissions.Kick, db) ||
+                  await Planet.HasPermissionAsync(member, PlanetPermissions.Ban, db)))
+            {
+                return new TaskResult(false, "Member lacks planet permission " +
+                    PlanetPermissions.Kick.Name + " or " + PlanetPermissions.Ban.Name);
+            }
+        }
+
+        return new TaskResult(true, "Success");
+    }
+
+    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    {
+        // Needs to be able to GET in order to do anything else
+        var canGet = await ((IPlanetItem<PlanetMember>)this).CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        // Only a member can edit themselves
+        if (Id != member.Id)
+        {
+            return new TaskResult(false, "Cannot edit another member.");
+        }
+
+        return new TaskResult(true, "Success");
+    }
+
+    public Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<TaskResult> ValidateItemAsync(ulong planet_id, ValourDB db)
+    {
+        throw new NotImplementedException();
     }
 }
 

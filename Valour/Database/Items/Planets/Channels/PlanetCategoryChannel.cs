@@ -51,7 +51,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryCh
     /// <summary>
     /// Tries to delete the category while respecting constraints
     /// </summary>
-    public override async Task DeleteAsync(ValourDB db)
+    public async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
         db.PermissionsNodes.RemoveRange(
