@@ -41,8 +41,8 @@ public class AuthTokenBase
     /// <summary>
     /// The time that this token was issued
     /// </summary>
-    [JsonPropertyName("Time")]
-    public DateTime Time { get; set; }
+    [JsonPropertyName("Created")]
+    public DateTime Created { get; set; }
 
     /// <summary>
     /// The time that this token will expire
@@ -58,7 +58,7 @@ public class AuthTokenBase
     /// <summary>
     /// Helper method for scope checking
     /// </summary>
-    public bool HasScope(UserPermission permission) =>
+    public bool HasScope(Permission permission) =>
         Permission.HasPermission(Scope, permission);
 }
 

@@ -5,6 +5,7 @@ using Valour.Database;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
+using Valour.Server.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
@@ -154,7 +155,11 @@ namespace Valour.Server.API
             }
 
             ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsJsonAsync(target_member.RoleMembership.First().Role);
+
+            var role = target_member.RoleMembership.First().Role;
+            role.Node = 
+
+            await ctx.Response.WriteAsJsonAsync();
             return;
         }
 

@@ -16,7 +16,7 @@ namespace Valour.Database.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : PermissionsNodeBase
+public class PermissionsNode : PermissionsNodeBase, INodeSpecific
 {
     [ForeignKey("Planet_Id")]
     [JsonIgnore]

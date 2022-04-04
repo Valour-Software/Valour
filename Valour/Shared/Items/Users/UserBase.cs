@@ -12,19 +12,25 @@ namespace Valour.Shared.Items.Users;
 /// <summary>
 /// This is the base User object, which contains everything needed for public use
 /// </summary>
-public class UserBase : NamedItem
+public class UserBase : ISharedItem, INamed
 {
     /// <summary>
     /// The url for the user's profile picture
     /// </summary>
-    [JsonPropertyName("Pfp_Url")]
-    public string Pfp_Url { get; set; }
+    [JsonPropertyName("PfpUrl")]
+    public string PfpUrl { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour
     /// </summary>
-    [JsonPropertyName("Join_DateTime")]
-    public DateTime Join_DateTime { get; set; }
+    [JsonPropertyName("Joined")]
+    public DateTime Joined { get; set; }
+
+    /// <summary>
+    /// The name of this user
+    /// </summary>
+    [JsonPropertyName("Name")]
+    public string Name { get; set; }
 
     /// <summary>
     /// True if the user is a bot
@@ -43,8 +49,8 @@ public class UserBase : NamedItem
     /// through a client modification to present non-official staff as staff is a breach of our
     /// license. Don't do that.
     /// </summary>
-    [JsonPropertyName("Valour_Staff")]
-    public bool Valour_Staff { get; set; }
+    [JsonPropertyName("ValourStaff")]
+    public bool ValourStaff { get; set; }
 
     /// <summary>
     /// The user's currently set status - this could represent how they feel, their disdain for the political climate
@@ -62,8 +68,8 @@ public class UserBase : NamedItem
     /// <summary>
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
-    [JsonPropertyName("Last_Active")]
-    public DateTime Last_Active { get; set; }
+    [JsonPropertyName("LastActive")]
+    public DateTime LastActive { get; set; }
 
     [NotMapped]
     [JsonInclude]
@@ -79,7 +85,7 @@ public class UserBase : NamedItem
     {
         get
         {
-            return DateTime.UtcNow.Subtract(Last_Active);
+            return DateTime.UtcNow.Subtract(LastActive);
         }
     }
 
@@ -95,7 +101,7 @@ public class UserBase : NamedItem
             // Automatically determine
             if (UserState_Value == 0)
             {
-                double minPassed = DateTime.UtcNow.Subtract(Last_Active).TotalMinutes;
+                double minPassed = DateTime.UtcNow.Subtract(LastActive).TotalMinutes;
 
                 if (minPassed < 3)
                 {

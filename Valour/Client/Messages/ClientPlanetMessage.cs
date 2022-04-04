@@ -61,11 +61,11 @@ public class ClientPlanetMessage
 
     public ulong Channel_Id => BaseMessage.Channel_Id;
 
-    public ulong Message_Index => BaseMessage.Message_Index;
+    public ulong Message_Index => BaseMessage.MessageIndex;
 
-    public string Embed_Data => BaseMessage.Embed_Data;
+    public string Embed_Data => BaseMessage.EmbedData;
 
-    public string Mentions_Data => BaseMessage.Mentions_Data;
+    public string Mentions_Data => BaseMessage.MentionsData;
 
     public string Fingerprint => BaseMessage.Fingerprint;
 
@@ -287,7 +287,7 @@ public class ClientPlanetMessage
             pos++;
         }
 
-        BaseMessage.Mentions_Data = JsonSerializer.Serialize(BaseMessage.Mentions);
+        BaseMessage.MentionsData = JsonSerializer.Serialize(BaseMessage.Mentions);
     }
 
     /// <summary>

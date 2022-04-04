@@ -193,6 +193,6 @@
         var task = m.GetUserAsync();
         task.Wait();
 
-        return task.Result.Last_Active.Ticks;
+        return task.Result.LastActive.Ticks;
     }
 }

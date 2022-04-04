@@ -14,7 +14,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public class PlanetBan : PlanetBanBase
+public class PlanetBan : PlanetBanBase, INodeSpecific
 {
 
 }

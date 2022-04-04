@@ -16,6 +16,7 @@ using System.Net;
 using Valour.Database;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
+using Valour.Server.Nodes;
 
 namespace Valour.Server
 {
@@ -26,11 +27,14 @@ namespace Valour.Server
         public const string EMCONF_FILE = "EmailConfig.json";
         public const string MPSCONF_FILE = "MPSConfig.json";
         public const string VAPIDCONF_FILE = "VapidConfig.json";
+        public const string NODECONF_FILE = "NodeConfig.json";
 
         public static void Main(string[] args)
         {
             // Load configs
             LoadConfigsAsync();
+
+            ValourDB.Node = DeployedNode.Instance.Name;
 
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
@@ -226,6 +230,8 @@ namespace Valour.Server
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
 
+            DeployedNode node = new DeployedNode(NodeConfig.Instance.Name);
+
             services.AddEndpointsApiExplorer();
 
             services.AddSwaggerGen(c =>
@@ -333,6 +339,25 @@ namespace Valour.Server
 
                 File.WriteAllText(CONF_LOC + VAPIDCONF_FILE, JsonSerializer.Serialize(vapidconfig));
                 Console.WriteLine("Error: No Vapid config was found. Creating file...");
+            }
+
+            NodeConfig nodeconfig;
+            if (File.Exists(CONF_LOC + NODECONF_FILE))
+            {
+                // If there is a config, read it
+                nodeconfig = await JsonSerializer.DeserializeAsync<NodeConfig>(File.OpenRead(CONF_LOC + NODECONF_FILE));
+            }
+            else
+            {
+                // Otherwise create a config with default values and write it to the location
+                nodeconfig = new NodeConfig()
+                {
+                    API_Key = "insert api key",
+                    Name = "node name"
+                };
+
+                File.WriteAllText(CONF_LOC + NODECONF_FILE, JsonSerializer.Serialize(nodeconfig));
+                Console.WriteLine("Error: No node config was found. Creating file...");
             }
         }
     }

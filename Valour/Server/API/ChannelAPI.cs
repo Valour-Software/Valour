@@ -4,10 +4,12 @@ using System.Text.Json;
 using Valour.Database;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Messages;
+using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Database.Items.Planets.Members;
 using Valour.Server.Extensions;
 using Valour.Server.MPS;
+using Valour.Server.Nodes;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -29,6 +31,9 @@ namespace Valour.Server.API
             app.MapPost  ("api/channel/{channel_id}/messages", PostMessage);
             app.MapDelete("api/channel/{channel_id}/messages/{message_id}", DeleteMessage);
 
+            app.MapGet("api/planet/{planet_id}/channel/{channel_id}", GetChannelRouteAsync);
+
+
             app.Map("api/channel/{channel_id}", Channel);
             app.Map("api/channel/{channel_id}/name", Name);
             app.Map("api/channel/{channel_id}/parent_id", ParentId);
@@ -37,6 +42,107 @@ namespace Valour.Server.API
 
             app.MapGet("api/channel/{channel_id}/hasperm/{member_id}/{perm_code}", HasPerm);
         }
+
+        public struct ChannelBaseResult
+        {
+            public PlanetChatChannel Channel;
+            public PlanetMember Member;
+            public Planet Planet;
+
+            public ChannelBaseResult(PlanetChatChannel channel, PlanetMember member, Planet planet)
+            {
+                this.Channel = channel;
+                this.Member = member;
+                this.Planet = planet;
+            }
+        }
+
+        /// <summary>
+        /// Base method to get the channel. If it fails, it will return an IResult.
+        /// Otherwise, it will return the channel.
+        /// </summary>
+        private static async Task<object> GetChannelBase
+            (HttpContext ctx, ValourDB db, ulong planet_id, ulong channel_id, [FromHeader] string authorization)
+        {
+            var token = await AuthToken.TryAuthorize(authorization, db);
+
+            if (token is null)
+                return Results.Unauthorized();
+
+            if (!token.HasScope(UserPermissions.View + UserPermissions.Membership))
+                return Results.Forbid();
+
+            var member = await PlanetMember.FindAsync(token.User_Id, planet_id, db);
+
+            if (member is null)
+                return Results.Forbid();
+
+            var channel = await PlanetChatChannel.FindAsync(channel_id, db);
+
+            if (channel is null)
+                return Results.NotFound();
+
+            if (channel.Planet_Id != planet_id)
+                return Results.NotFound();
+
+            var planet = await Planet.FindAsync(planet_id, db);
+
+            if (planet is null)
+                return Results.NotFound();
+
+            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
+                return Results.NotFound();
+
+            return new ChannelBaseResult(channel, member, planet);
+        }
+
+
+        /// <summary>
+        /// Returns the channel for the given id
+        /// </summary>
+        private static async Task<IResult> GetChannelRouteAsync
+            (HttpContext ctx, ValourDB db, ulong planet_id, ulong channel_id, [FromHeader] string authorization) =>
+                await ChannelRouteAsync(ctx, db, planet_id, channel_id, authorization, Method.GET);
+
+        /// <summary>
+        /// Handles channel routes
+        /// </summary>
+        private static async Task<IResult> ChannelRouteAsync
+            (HttpContext ctx, ValourDB db, ulong planet_id, ulong channel_id,
+             [FromHeader] string authorization, Method method)
+        {
+            var base_result = await GetChannelBase(ctx, db, planet_id, channel_id, authorization);
+
+            if (base_result is IResult)
+                return (IResult)base_result;
+
+            var c_base = (ChannelBaseResult)base_result;
+
+            var channel = c_base.Channel;
+            var member = c_base.Member;
+            var planet = c_base.Planet;
+
+            switch (method)
+            {
+                case Method.GET:
+                    {
+                        return Results.Json(c_base.Channel);
+                    }
+                case Method.DELETE:
+                    {
+                        if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
+                            return Results.Forbid();
+
+                        if (!await channel.HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+                            return Results.Forbid();
+
+                        await channel.DeleteAsync(db);
+
+                        return Results.Ok();
+                    }
+            }
+        }
+
 
         private static async Task<object> HasPerm(HttpContext ctx, ValourDB db, ulong channel_id, ulong member_id, ulong perm_code,
                                           [FromHeader] string authorization)
@@ -189,7 +295,7 @@ namespace Valour.Server.API
                             Name = channel_data.Name,
                             Planet_Id = channel_data.Planet_Id,
                             Parent_Id = channel_data.Parent_Id,
-                            Message_Count = 0,
+                            MessageCount = 0,
                             Description = channel_data.Description,
                             Position = child_count
                         };
@@ -205,348 +311,6 @@ namespace Valour.Server.API
 
                         ctx.Response.StatusCode = 201;
                         await ctx.Response.WriteAsync(channel.Id.ToString());
-                        return;
-                    }
-            }
-        }
-
-        private static async Task PermissionsInherit(HttpContext ctx, ValourDB db, ulong channel_id,
-                                         [FromHeader] string authorization)
-        {
-            var auth = await AuthToken.TryAuthorize(authorization, db);
-
-            if (auth == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
-                return;
-            }
-
-            PlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
-                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                                         .FirstOrDefaultAsync(x => x.Id == channel_id);
-
-            if (channel == null)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id.ToString()}]");
-                return;
-            }
-
-            var member = channel.Planet.Members.FirstOrDefault();
-
-            if (member == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member not found");
-                return;
-            }
-
-            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.View");
-                return;
-            }
-
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(channel.Inherits_Perms);
-                        return;
-                    }
-                case "PUT":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await channel.HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ManageChannel");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        bool inherits;
-
-                        bool parsed = bool.TryParse(body, out inherits);
-
-                        if (!parsed)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Given value is invalid");
-                            return;
-                        }
-
-                        await channel.SetInheritsPermsAsync(inherits, db);
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
-                        return;
-                    }
-            }
-        }
-
-        private static async Task Name(HttpContext ctx, ValourDB db, ulong channel_id,
-                                         [FromHeader] string authorization)
-        {
-            var auth = await AuthToken.TryAuthorize(authorization, db);
-
-            if (auth == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
-                return;
-            }
-
-            PlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
-                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                                         .FirstOrDefaultAsync(x => x.Id == channel_id);
-
-            if (channel == null)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id.ToString()}]");
-                return;
-            }
-
-            var member = channel.Planet.Members.FirstOrDefault();
-
-            if (member == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member not found");
-                return;
-            }
-
-            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.View");
-                return;
-            }
-
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(channel.Name);
-                        return;
-                    }
-                case "PUT":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await channel.HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ManageChannel");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        var result = await channel.TrySetNameAsync(body, db);
-
-                        if (!result.Success)
-                        {
-                            ctx.Response.StatusCode = 400;
-                        }
-                        else
-                        {
-                            ctx.Response.StatusCode = 200;
-                        }
-
-                        await ctx.Response.WriteAsync(result.Message);
-                        return;
-                    }
-            }
-        }
-
-        private static async Task Description(HttpContext ctx, ValourDB db, ulong channel_id,
-                                         [FromHeader] string authorization)
-        {
-            var auth = await AuthToken.TryAuthorize(authorization, db);
-
-            if (auth == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
-                return;
-            }
-
-            PlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
-                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                                         .FirstOrDefaultAsync(x => x.Id == channel_id);
-
-            if (channel == null)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id}]");
-                return;
-            }
-
-            var member = channel.Planet.Members.FirstOrDefault();
-
-            if (member == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member not found");
-                return;
-            }
-
-            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.View");
-                return;
-            }
-
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(channel.Description);
-                        return;
-                    }
-                case "PUT":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await channel.HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ManageChannel");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        await channel.SetDescriptionAsync(body, db);
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
-                        return;
-                    }
-            }
-        }
-
-        private static async Task ParentId(HttpContext ctx, ValourDB db, ulong channel_id,
-                                         [FromHeader] string authorization)
-        {
-            var auth = await AuthToken.TryAuthorize(authorization, db);
-
-            if (auth == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
-                return;
-            }
-
-            PlanetChatChannel channel = await db.PlanetChatChannels.Include(x => x.Planet)
-                                                                         .ThenInclude(x => x.Members.Where(x => x.User_Id == auth.User_Id))
-                                                                         .FirstOrDefaultAsync(x => x.Id == channel_id);
-
-            if (channel == null)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Channel not found [id: {channel_id}]");
-                return;
-            }
-
-            var member = channel.Planet.Members.FirstOrDefault();
-
-            if (member == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member not found");
-                return;
-            }
-
-            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.View");
-                return;
-            }
-
-            switch (ctx.Request.Method)
-            {
-                case "GET":
-                    {
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsJsonAsync(channel.Parent_Id);
-                        return;
-                    }
-                case "PUT":
-                    {
-                        if (!auth.HasScope(UserPermissions.PlanetManagement))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync($"Token lacks UserPermissions.PlanetManagement");
-                            return;
-                        }
-
-                        if (!await channel.HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-                        {
-                            ctx.Response.StatusCode = 401;
-                            await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ManageChannel");
-                            return;
-                        }
-
-                        string body = await ctx.Request.ReadBodyStringAsync();
-
-                        ulong parent_id;
-                        bool parsed = ulong.TryParse(body, out parent_id);
-
-                        if (!parsed)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync("Given value is invalid");
-                            return;
-                        }
-
-                        // Ensure parent category exists and belongs to the same planet
-                        var parent = await db.PlanetCategories.FindAsync(parent_id);
-
-                        if (parent == null)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Category not found [id: {parent_id}]");
-                            return;
-                        }
-
-                        if (parent.Planet_Id != channel.Planet_Id)
-                        {
-                            ctx.Response.StatusCode = 400;
-                            await ctx.Response.WriteAsync($"Category belongs to a different planet");
-                            return;
-                        }
-
-                        await channel.SetParentAsync(parent_id, db);
-
-                        ctx.Response.StatusCode = 200;
-                        await ctx.Response.WriteAsync("Success");
                         return;
                     }
             }
@@ -621,7 +385,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            if (message.Embed_Data != null && message.Content.Length > 65535)
+            if (message.EmbedData != null && message.Content.Length > 65535)
             {
                 ctx.Response.StatusCode = 400;
                 await ctx.Response.WriteAsync("Embed is over 65535 chars");
@@ -764,14 +528,14 @@ namespace Valour.Server.API
                 await Task.Run(() =>
                 {
                     messages =
-                    db.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.Message_Index < index)
-                                     .OrderByDescending(x => x.Message_Index)
+                    db.PlanetMessages.Where(x => x.Channel_Id == channel_id && x.MessageIndex < index)
+                                     .OrderByDescending(x => x.MessageIndex)
                                      .Take(count)
                                      .Reverse()
                                      .ToList();
                 });
 
-                messages.AddRange(staged.Where(x => x.Message_Index < index));
+                messages.AddRange(staged.Where(x => x.MessageIndex < index));
             }
 
             ctx.Response.StatusCode = 200;

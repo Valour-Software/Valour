@@ -128,7 +128,7 @@ namespace Valour.Server.API
                 {
                     App_Id = "VALOUR",
                     Id = "val-" + Guid.NewGuid().ToString(),
-                    Time = DateTime.UtcNow,
+                    Created = DateTime.UtcNow,
                     Expires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     User_Id = emailObj.User_Id
@@ -139,7 +139,7 @@ namespace Valour.Server.API
             }
             else
             {
-                token.Time = DateTime.UtcNow;
+                token.Created = DateTime.UtcNow;
                 token.Expires = DateTime.UtcNow.AddDays(7);
 
                 db.AuthTokens.Update(token);
@@ -163,7 +163,7 @@ namespace Valour.Server.API
             if (!passwordValid.Success) { await BadRequest(passwordValid.Message, ctx); return; }
 
             // Get user's old credentials
-            Credential credential = await db.Credentials.FirstOrDefaultAsync(x => x.User_Id == recovery.User_Id && x.Credential_Type == CredentialType.PASSWORD);
+            Credential credential = await db.Credentials.FirstOrDefaultAsync(x => x.User_Id == recovery.User_Id && x.CredentialType == CredentialType.PASSWORD);
 
             if (credential == null) { await NotFound("No password-type credentials found. Do you log in via third party service?", ctx); return; }
 
@@ -243,8 +243,8 @@ namespace Valour.Server.API
             {
                 Id = IdManager.Generate(),
                 Name = username,
-                Join_DateTime = DateTime.UtcNow,
-                Last_Active = DateTime.UtcNow
+                Joined = DateTime.UtcNow,
+                LastActive = DateTime.UtcNow
             };
 
             // An error here would be really bad so we'll be careful and catch any exceptions
@@ -283,7 +283,7 @@ namespace Valour.Server.API
 
             Credential cred = new Credential()
             {
-                Credential_Type = CredentialType.PASSWORD,
+                CredentialType = CredentialType.PASSWORD,
                 Identifier = email,
                 Salt = salt,
                 Secret = hash,

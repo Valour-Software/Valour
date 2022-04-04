@@ -7,7 +7,7 @@
         @IssuerName
     </td>
     <th style="width: 125px;">
-        @Invite.Time.ToLocalTime().ToShortDateString()
+        @Invite.Issued.ToLocalTime().ToShortDateString()
     </th>
     @if (Invite.Hours != null) {
         <th style="width: 125px;">
@@ -33,7 +33,7 @@
     {
         PlanetMember member = await PlanetMember.FindAsync(Invite.Planet_Id, Invite.Issuer_Id);
         IssuerName = await member.GetNameAsync();
-        time = Invite.Time.AddHours((double)Invite.Hours);
+        time = Invite.Issued.AddHours((double)Invite.Hours);
         StateHasChanged();
     }
 }

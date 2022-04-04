@@ -67,9 +67,9 @@ public class User : UserBase, ISyncedItem<User>
     {
         Bot = true,
         UserState_Value = 4,
-        Pfp_Url = "/media/victor-cyan.png",
+        PfpUrl = "/media/victor-cyan.png",
         Name = "Victor",
-        Valour_Staff = true,
+        ValourStaff = true,
         Id = ulong.MaxValue
     };
 

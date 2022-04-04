@@ -33,6 +33,16 @@ public class Permission
     public ulong Value { get; set; }
 
     /// <summary>
+    /// Constant used for mixed permission name
+    /// </summary>
+    const string Mixed_Name = "Mixed permissions";
+
+    /// <summary>
+    /// Constant used for mixed permission description
+    /// </summary>
+    const string Mixed_Description = "A mix of several permissions";
+
+    /// <summary>
     /// Initializes the permission
     /// </summary>
     public Permission(ulong value, string name, string description)
@@ -70,6 +80,25 @@ public class Permission
         }
 
         return code;
+    }
+
+    /// <summary>
+    /// Creates a hybrid permission from the given permissions
+    /// </summary>
+    public static Permission Create(params Permission[] permissions)
+    {
+        var code = CreateCode(permissions);
+        return new Permission(code, Mixed_Name, Mixed_Description);
+    }
+
+    public static Permission operator +(Permission a, Permission b)
+    {
+        return new Permission(a.Value | b.Value, Mixed_Name, Mixed_Description);
+    }
+
+    public static Permission operator -(Permission a, Permission b)
+    {
+        return new Permission(a.Value & (~b.Value), Mixed_Name, Mixed_Description);
     }
 }
 

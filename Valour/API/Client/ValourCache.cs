@@ -20,7 +20,7 @@ public static class ValourCache
     /// <summary>
     /// Places an item into the cache
     /// </summary>
-    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : Item
+    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : ISharedItem
     {
         // Empty object is ignored
         if (obj == null)

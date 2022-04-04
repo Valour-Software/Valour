@@ -14,7 +14,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : PlanetRoleBase, ISyncedItem<PlanetRole>
+public class PlanetRole : PlanetRoleBase, ISyncedItem<PlanetRole>, INodeSpecific
 {
     #region Synced Item System
 

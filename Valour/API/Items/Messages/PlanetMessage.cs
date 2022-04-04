@@ -16,7 +16,7 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : PlanetMessageBase
+public class PlanetMessage : PlanetMessageBase, INodeSpecific
 {
     // Makes PlanetMessage meant to be sent to valour from the client
     public PlanetMessage(string text, ulong self_member_id, ulong channel_id, ulong planet_id)
@@ -74,7 +74,7 @@ public class PlanetMessage : PlanetMessageBase
         if (embed is not null)
         {
             JsonSerializerOptions options = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault };
-            message.Embed_Data = JsonSerializer.Serialize(embed, options);
+            message.EmbedData = JsonSerializer.Serialize(embed, options);
         }
 
         await ValourClient.SendMessage(message);

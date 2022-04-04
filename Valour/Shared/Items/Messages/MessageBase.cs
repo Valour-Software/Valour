@@ -15,7 +15,7 @@ using Valour.Shared.Items.Messages.Mentions;
 
 namespace Valour.Shared.Items.Messages;
 
-public class MessageBase : Item
+public class MessageBase : ISharedItem
 {
     /// <summary>
     /// The mentions contained within this message
@@ -47,9 +47,9 @@ public class MessageBase : Item
         {
             if (!mentionsParsed)
             {
-                if (!string.IsNullOrEmpty(Mentions_Data))
+                if (!string.IsNullOrEmpty(MentionsData))
                 {
-                    _mentions = JsonSerializer.Deserialize<List<Mention>>(Mentions_Data);
+                    _mentions = JsonSerializer.Deserialize<List<Mention>>(MentionsData);
                 }
             }
 
@@ -64,9 +64,9 @@ public class MessageBase : Item
         {
             if (!embedParsed)
             {
-                if (!string.IsNullOrEmpty(Embed_Data))
+                if (!string.IsNullOrEmpty(EmbedData))
                 {
-                    _embed = JsonSerializer.Deserialize<Embed>(Embed_Data);
+                    _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
                 }
 
                 embedParsed = true;
@@ -79,7 +79,7 @@ public class MessageBase : Item
     public void SetMentions(IEnumerable<Mention> mentions)
     {
         _mentions = mentions.ToList();
-        Mentions_Data = JsonSerializer.Serialize(mentions);
+        MentionsData = JsonSerializer.Serialize(mentions);
     }
 
     public void ClearMentions()
@@ -127,20 +127,20 @@ public class MessageBase : Item
     /// <summary>
     /// Index of the message
     /// </summary>
-    [JsonPropertyName("Message_Index")]
-    public ulong Message_Index { get; set; }
+    [JsonPropertyName("MessageIndex")]
+    public ulong MessageIndex { get; set; }
 
     /// <summary>
     /// Data for representing an embed
     /// </summary>
-    [JsonPropertyName("Embed_Data")]
-    public string Embed_Data { get; set; }
+    [JsonPropertyName("EmbedData")]
+    public string EmbedData { get; set; }
 
     /// <summary>
     /// Data for representing mentions in a message
     /// </summary>
-    [JsonPropertyName("Mentions_Data")]
-    public string Mentions_Data { get; set; }
+    [JsonPropertyName("MentionsData")]
+    public string MentionsData { get; set; }
 
     /// <summary>
     /// Used to identify a message returned from the server 
@@ -174,7 +174,7 @@ public class MessageBase : Item
     /// </summary>
     public bool IsEmbed()
     {
-        if (Embed_Data != null)
+        if (EmbedData != null)
         {
             return true;
         }

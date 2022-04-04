@@ -31,7 +31,7 @@ public class Credential
     /// The type of credential. This could be password, google, or whatever
     /// way the user is signing in
     /// </summary>
-    public string Credential_Type { get; set; }
+    public string CredentialType { get; set; }
 
     /// <summary>
     /// This is what identified the user - in the case of normal logins,

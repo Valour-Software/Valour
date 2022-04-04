@@ -22,7 +22,7 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
 /// </summary>
-public class Planet : PlanetBase
+public class Planet : Item, ISharedPlanet, INodeSpecific
 {
     [InverseProperty("Planet")]
     [JsonIgnore]
@@ -38,11 +38,49 @@ public class Planet : PlanetBase
 
     [InverseProperty("Planet")]
     [JsonIgnore]
-    public virtual ICollection<PlanetCategory> Categories { get; set; }
+    public virtual ICollection<PlanetCategoryChannel> Categories { get; set; }
 
     [InverseProperty("Planet")]
     [JsonIgnore]
     public virtual ICollection<Invite> Invites { get; set; }
+
+    /// <summary>
+    /// The Id of the owner of this planet
+    /// </summary>
+    public ulong Owner_Id { get; set; }
+
+    /// <summary>
+    /// The name of this planet
+    /// </summary>
+    public string Name { get; set; }
+
+    /// <summary>
+    /// The image url for the planet 
+    /// </summary>
+    public string Image_Url { get; set; }
+
+    /// <summary>
+    /// The description of the planet
+    /// </summary>
+    public string Description { get; set; }
+
+    /// <summary>
+    /// If the server requires express allowal to join a planet
+    /// </summary>
+    public bool Public { get; set; }
+
+    /// <summary>
+    /// The default role for the planet
+    /// </summary>
+    public ulong Default_Role_Id { get; set; }
+
+    /// <summary>
+    /// The id of the main channel of the planet
+    /// </summary>
+    public ulong Main_Channel_Id { get; set; }
+
+    [NotMapped]
+    public override ItemType ItemType => ItemType.Planet;
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -148,7 +186,7 @@ public class Planet : PlanetBase
             Reason = reason,
             Time = DateTime.UtcNow,
             Banner_Id = member.User_Id,
-            User_Id = target.User_Id,
+            Target_Id = target.User_Id,
             Planet_Id = member.Planet_Id,
             Minutes = duration
         };

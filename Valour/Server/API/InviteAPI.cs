@@ -40,7 +40,7 @@ public class InviteAPI : BaseAPI
 
         // Ensure important fields are correct
         in_invite.Issuer_Id = authToken.User_Id;
-        in_invite.Time = DateTime.UtcNow;
+        in_invite.Issued = DateTime.UtcNow;
         in_invite.Id = IdManager.Generate();
 
         Random random = new();
@@ -105,7 +105,7 @@ public class InviteAPI : BaseAPI
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
         if (invite == null) { await NotFound("Invite code not found", ctx); return; }
 
-        if (await db.PlanetBans.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id))
+        if (await db.PlanetBans.AnyAsync(x => x.Target_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id))
         {
             await BadRequest("User is banned from the planet", ctx);
             return;
@@ -141,7 +141,7 @@ public class InviteAPI : BaseAPI
 
         if (!invite.IsPermanent())
         {
-            if (DateTime.UtcNow > invite.Time.AddMinutes((double)(invite.Hours * 60))){
+            if (DateTime.UtcNow > invite.Issued.AddMinutes((double)(invite.Hours * 60))){
                 db.PlanetInvites.Remove(invite);
                 await db.SaveChangesAsync();
                 ctx.Response.StatusCode = 200;
@@ -150,7 +150,7 @@ public class InviteAPI : BaseAPI
             }
         }
 
-        var ban = await db.PlanetBans.FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id);
+        var ban = await db.PlanetBans.FirstOrDefaultAsync(x => x.Target_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id);
         if (ban is not null) { await Unauthorized("User is banned", ctx); return; }
 
         if (!invite.Planet.Public) { await Unauthorized("Planet is set to private", ctx); return; }

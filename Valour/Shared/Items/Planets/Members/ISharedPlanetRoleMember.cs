@@ -1,7 +1,5 @@
-﻿
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-
-namespace Valour.Database.Items;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -9,10 +7,13 @@ namespace Valour.Database.Items;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public abstract class NamedItem : Item
+namespace Valour.Shared.Items.Planets.Members;
+
+public interface ISharedPlanetRoleMember
 {
-    [JsonInclude]
-    [JsonPropertyName("Name")]
-    public string Name { get; set; }
+    ulong User_Id { get; set; }
+    ulong Role_Id { get; set; }
+    ulong Planet_Id { get; set; }
+    ulong Member_Id { get; set; }
 }
 

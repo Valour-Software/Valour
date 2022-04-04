@@ -31,18 +31,18 @@
     {
         await base.OnInitializedAsync();
 
-        if (User != null && !string.IsNullOrWhiteSpace(User.Pfp_Url))
+        if (User != null && !string.IsNullOrWhiteSpace(User.PfpUrl))
         {
-            pfpurl = User.Pfp_Url;
+            pfpurl = User.PfpUrl;
 
             // did not work without this
             User _user = await User.FindAsync(User.Id);
 
             _user.OnUpdated += (async data =>
             {
-                if (_user != null && !string.IsNullOrWhiteSpace(_user.Pfp_Url))
+                if (_user != null && !string.IsNullOrWhiteSpace(_user.PfpUrl))
                 {
-                    pfpurl = _user.Pfp_Url;
+                    pfpurl = _user.PfpUrl;
                     StateHasChanged();
                 }
             });

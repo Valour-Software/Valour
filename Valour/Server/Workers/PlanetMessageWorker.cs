@@ -80,11 +80,11 @@ namespace Valour.Server.Workers
                         PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channel_id);
 
                         // Get index for message
-                        ulong index = channel.Message_Count;
+                        ulong index = channel.MessageCount;
 
                         // Update message count. May have to queue this in the future to prevent concurrency issues (done).
-                        channel.Message_Count += 1;
-                        Message.Message_Index = index;
+                        channel.MessageCount += 1;
+                        Message.MessageIndex = index;
                         Message.TimeSent = DateTime.UtcNow;
 
                         // This is not awaited on purpose

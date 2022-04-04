@@ -4,6 +4,15 @@ namespace Valour.Server.API;
 
 public class BaseAPI
 {
+    public enum Method
+    {
+        GET,
+        POST,
+        PUT,
+        PATCH,
+        DELETE
+    }
+
     public static string VERSION;
 
     public static void AddRoutes(WebApplication app)

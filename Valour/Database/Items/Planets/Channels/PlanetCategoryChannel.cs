@@ -12,15 +12,9 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
+[Table("PlanetCategoryChannels")]
+public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
 {
-    [JsonIgnore]
-    [ForeignKey("Planet_Id")]
-    public virtual Planet Planet { get; set; }
-
-    [JsonIgnore]
-    [ForeignKey("Parent_Id")]
-    public virtual PlanetCategory Parent { get; set; }
 
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -29,31 +23,37 @@ public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
     /// The type of this item
     /// </summary>
     [NotMapped]
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.Category;
+    public override ItemType ItemType => ItemType.PlanetCategoryChannel;
 
-    /// <summary>
-    /// Tries to delete the category while respecting constraints
-    /// </summary>
-    public async Task<TaskResult> TryDeleteAsync(ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
-        var planet = await GetPlanetAsync(db);
+        Planet ??= await GetPlanetAsync(db);
+
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
+            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageCategories.Name);
+
+        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
+            return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
+
 
         if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
-        {
             return new TaskResult(false, "Last category cannot be deleted");
-        }
 
         var childCategoryCount = await db.PlanetCategories.CountAsync(x => x.Parent_Id == Id);
         var childChannelCount = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == Id);
 
         if (childCategoryCount != 0 || childChannelCount != 0)
-        {
             return new TaskResult(false, "Category must be empty");
-        }
 
+        return new TaskResult(true, "Success");
+    }
+
+    /// <summary>
+    /// Tries to delete the category while respecting constraints
+    /// </summary>
+    public async Task DeleteAsync(ValourDB db)
+    {
         // Remove permission nodes
-
         db.PermissionsNodes.RemoveRange(
             db.PermissionsNodes.Where(x => x.Target_Id == Id)
         );
@@ -67,9 +67,7 @@ public class PlanetCategory : PlanetCategoryBase, IPlanetChannel
         await db.SaveChangesAsync();
 
         // Notify of update
-        await PlanetHub.NotifyCategoryDeletion(this);
-
-        return new TaskResult(true, "Success");
+        PlanetHub.NotifyPlanetItemDelete(this);
     }
 
     /// <summary>

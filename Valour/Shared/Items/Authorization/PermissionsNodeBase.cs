@@ -13,7 +13,7 @@ namespace Valour.Shared.Items.Authorization;
 /// <summary>
 /// A permission node is a set of permissions for a specific thing
 /// </summary>
-public class PermissionsNodeBase : Item
+public class PermissionsNodeBase : ISharedItem
 {
 
     /// <summary>

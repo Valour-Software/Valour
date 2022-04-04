@@ -14,7 +14,7 @@ namespace Valour.Database.Items.Messages;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetMessage : PlanetMessageBase
+public class PlanetMessage : PlanetMessageBase, INodeSpecific
 {
     [ForeignKey("Planet_Id")]
     public Planet Planet { get; set;}

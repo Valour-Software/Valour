@@ -83,6 +83,16 @@ public static class ValourClient
     /// </summary>
     public static List<PlanetChatChannel> OpenChannels { get; private set; }
 
+    /// <summary>
+    /// The primary node this client is connected to
+    /// </summary>
+    public static string PrimaryNode { get; set; }
+
+    /// <summary>
+    /// The address of the primary node
+    /// </summary>
+    public static string PrimaryNodeAddress { get; set; }
+
     #region Event Fields
 
     /// <summary>
@@ -126,6 +136,9 @@ public static class ValourClient
 
     static ValourClient()
     {
+        
+
+
         // Add victor dummy member
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         ValourCache.Put(ulong.MaxValue, new PlanetMember()
@@ -325,7 +338,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : ISharedItem
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -357,7 +370,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : Item
+    public static async Task DeleteItem<T>(T item) where T : ISharedItem
     {
         var local = ValourCache.Get<T>(item.Id);
 

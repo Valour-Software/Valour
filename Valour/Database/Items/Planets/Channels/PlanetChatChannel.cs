@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Items.Authorization;
 using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -18,83 +19,19 @@ using Valour.Shared.Items;
 
 namespace Valour.Database.Items.Planets.Channels;
 
-public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
+[Table("PlanetChatChannels")]
+public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, INodeSpecific
 {
-    [JsonIgnore]
-    [ForeignKey("Planet_Id")]
-    public virtual Planet Planet { get; set; }
-
-    [JsonIgnore]
-    [ForeignKey("Parent_Id")]
-    public virtual PlanetCategory Parent { get; set; }
-
     /// <summary>
     /// The type of this item
     /// </summary>
     [NotMapped]
-    [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.ChatChannel;
+    public override ItemType ItemType => ItemType.PlanetChatChannel;
 
     /// <summary>
     /// The regex used for name validation
     /// </summary>
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
-
-    /// <summary>
-    /// Returns the planet this belongs to
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-
-    /// <summary>
-    /// Returns the parent this belongs to
-    /// </summary>
-    public async Task<PlanetCategory> GetParentAsync(ValourDB db) =>
-        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
-
-    /// <summary>
-    /// Deletes this channel
-    /// </summary>
-    public async Task<TaskResult<int>> TryDeleteAsync(PlanetMember member, ValourDB db)
-    {
-        await GetPlanetAsync(db);
-
-        if (Id == Planet.Main_Channel_Id)
-            return new TaskResult<int>(false, $"Cannot delete main channel", 400);
-
-        if (member == null)
-            return new TaskResult<int>(false, "Member not found", 403);
-
-        if (!await HasPermission(member, ChatChannelPermissions.View, db))
-            return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.View", 403);
-
-        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-            return new TaskResult<int>(false, "Member lacks ChatChannelPermissions.ManageChannel", 403);
-
-        // Remove permission nodes
-        db.PermissionsNodes.RemoveRange(
-            db.PermissionsNodes.Where(x => x.Target_Id == Id)
-        );
-
-        // Remove messages
-        db.PlanetMessages.RemoveRange(
-            db.PlanetMessages.Where(x => x.Channel_Id == Id)
-        );
-
-        // Remove channel
-        db.PlanetChatChannels.Remove(
-            await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == Id)
-        );
-
-        // Save changes
-        await db.SaveChangesAsync();
-
-        // Notify channel deletion
-        await PlanetHub.NotifyChatChannelDeletion(this);
-
-        return new TaskResult<int>(true, "Success", 200);
-    }
 
     /// <summary>
     /// Returns if a given member has a channel permission
@@ -107,7 +44,7 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
             return true;
 
         // If true, we just ask the category
-        if (Inherits_Perms)
+        if (InheritsPerms)
         {
             Parent ??= await GetParentAsync(db);
             return await Parent.HasPermission(member, permission, db);
@@ -179,59 +116,6 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
     }
 
     /// <summary>
-    /// Sets the name of this channel
-    /// </summary>
-    public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
-    {
-        TaskResult validName = ValidateName(name);
-        if (!validName.Success) return validName;
-
-        this.Name = name;
-        db.PlanetChatChannels.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-
-        return new TaskResult(true, "Success");
-    }
-
-    /// <summary>
-    /// Sets the description of this channel
-    /// </summary>
-    public async Task SetDescriptionAsync(string desc, ValourDB db)
-    {
-        this.Description = desc;
-        db.PlanetChatChannels.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-    }
-
-    /// <summary>
-    /// Sets the parent of this channel
-    /// </summary>
-    public async Task SetParentAsync(ulong parent_id, ValourDB db)
-    {
-        this.Parent_Id = parent_id;
-        db.PlanetChatChannels.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-    }
-
-    /// <summary>
-    /// Sets the permissions inherit mode of this channel
-    /// </summary>
-    public async Task SetInheritsPermsAsync(bool inherits_perms, ValourDB db)
-    {
-        this.Inherits_Perms = inherits_perms;
-        db.PlanetChatChannels.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-    }
-
-    /// <summary>
     /// Returns all members who can see this channel
     /// </summary>
     public async Task<List<PlanetMember>> GetChannelMembersAsync(ValourDB db = null)
@@ -256,17 +140,117 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel
         return members;
     }
 
-    /// <summary>
-    /// Notifies all clients that this channel has changed
-    /// </summary>
-    public void NotifyClientsChange()
+    #region API Methods
+
+    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
-        PlanetHub.NotifyChatChannelChange(this);
+        if (member is null)
+            return new TaskResult(false, "User is not a member of the target planet");
+
+        if (!await HasPermission(member, ChatChannelPermissions.View, db))
+            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.View.Name);
+
+        return new TaskResult(true, "Success");
     }
 
-    public static async Task<PlanetChatChannel> FindAsync(ulong id, ValourDB db)
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
-        return await db.PlanetChatChannels.FindAsync(id);
+        // Needs to be able to GET in order to do anything else
+        var canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        Planet ??= await GetPlanetAsync(db);
+
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
+            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
+
+        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
+
+
+        return new TaskResult(true, "Success");
     }
+
+    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    {
+        // Needs to be able to GET in order to do anything else
+        var canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        Planet ??= await GetPlanetAsync(db);
+
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
+            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
+
+        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
+
+
+        return new TaskResult(true, "Success");
+    }
+
+    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    {
+        if (member is null)
+            return new TaskResult(false, "User is not a member of the target planet");
+
+        Planet ??= await GetPlanetAsync(db);
+
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
+            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
+
+        return new TaskResult(true, "Success");
+    }
+
+    public async Task DeleteAsync(ValourDB db)
+    {
+        // Remove permission nodes
+        db.PermissionsNodes.RemoveRange(
+            db.PermissionsNodes.Where(x => x.Target_Id == Id)
+        );
+
+        // Remove messages
+        db.PlanetMessages.RemoveRange(
+            db.PlanetMessages.Where(x => x.Channel_Id == Id)
+        );
+
+        // Remove channel
+        db.PlanetChatChannels.Remove(
+            await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == Id)
+        );
+
+        // Save changes
+        await db.SaveChangesAsync();
+
+        // Notify channel deletion
+        PlanetHub.NotifyPlanetItemChange(this);
+    }
+
+    public async Task<TaskResult> ValidateItemAsync(PlanetChatChannel old, ValourDB db)
+    {
+        var nameValid = ValidateName(Name);
+        if (!nameValid.Success)
+            return nameValid;
+
+        if (Description.Length > 128)
+            return new TaskResult(false, "Description must be at or under 128 characters");
+
+        // Logic to check if parent is legitimate
+        if (Parent_Id is not null)
+        {
+            var parent = await db.PlanetCategories.FirstOrDefaultAsync
+                (x => x.Id == Parent_Id
+                && x.Planet_Id == Planet_Id); // This ensures the result has the same planet id
+
+            if (parent is null)
+                return new TaskResult(false, "Parent ID is not valid");
+        }
+
+        return new TaskResult(true, "Valid");
+    }
+
+    #endregion
 }
 
