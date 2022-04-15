@@ -46,8 +46,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, 
         // If true, we just ask the category
         if (InheritsPerms)
         {
-            Parent ??= await GetParentAsync(db);
-            return await Parent.HasPermission(member, permission, db);
+            return await (await GetParentAsync(db)).HasPermission(member, permission, db);
         }
 
 
@@ -160,7 +159,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, 
         if (!canGet.Success)
             return canGet;
 
-        Planet ??= await GetPlanetAsync(db);
+        await GetPlanetAsync(db);
 
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
@@ -179,7 +178,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, 
         if (!canGet.Success)
             return canGet;
 
-        Planet ??= await GetPlanetAsync(db);
+        await GetPlanetAsync(db);
 
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);

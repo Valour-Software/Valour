@@ -12,5 +12,6 @@ namespace Valour.Shared.Items.Planets.Channels
         string Name { get; set; }
         int Position { get; set; }
         string Description { get; set; }
+        bool InheritsPerms { get; set; }
     }
 }
