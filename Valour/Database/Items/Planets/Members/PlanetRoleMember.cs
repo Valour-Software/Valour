@@ -80,6 +80,25 @@ public class PlanetRoleMember : IPlanetItem<PlanetRoleMember>, ISharedPlanetRole
             return new TaskResult(false, "You cannot modify this object.");
 
         var member = await db.PlanetMembers.FindAsync(Member_Id);
+
+        if (member is null)
+            return new TaskResult(false, "Member not found.");
+
+        if (member.Planet_Id != Planet_Id)
+            return new TaskResult(false, "Member Planet_Id mismatch.");
+
+        if (member.User_Id != User_Id)
+            return new TaskResult(false, "Member User_Id mismatch.");
+
+        var role = await db.PlanetRoles.FindAsync(Role_Id);
+
+        if (role is null)
+            return new TaskResult(false, "Role not found.");
+
+        if (role.Planet_Id != Planet_Id)
+            return new TaskResult(false, "Role Planet_Id mismatch.");
+
+        return TaskResult.SuccessResult;
     }
 }
 
