@@ -41,6 +41,11 @@ public class PlanetRoleMember : IPlanetItem<PlanetRoleMember>, ISharedPlanetRole
 
     public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
+        // Needs to be able to GET in order to do anything else
+        var canGet = await ((IPlanetItem<PlanetRoleMember>)this).CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
         if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
             return new TaskResult(false, "You lack the Planet Permission " + PlanetPermissions.ManageRoles.Name);
 
@@ -52,24 +57,29 @@ public class PlanetRoleMember : IPlanetItem<PlanetRoleMember>, ISharedPlanetRole
         var memberAuthority = await member.GetAuthorityAsync();
 
         if (role.GetAuthority() >= memberAuthority)
-            return new TaskResult(false, "You have less authority than the role you are trying to apply.");
+            return new TaskResult(false, "You have less authority than the role you are trying to modify.");
 
         return new TaskResult(true, "Success");
     }
 
-    public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
-        throw new NotImplementedException();
+        // Same permissions
+        return await CanCreateAsync(member, db);
     }
 
-    public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
     {
-        throw new NotImplementedException();
+        // Same permissions
+        return await CanCreateAsync(member, db);
     }
 
-    public Task<TaskResult> ValidateItemAsync(PlanetRoleMember old, ValourDB db)
+    public async Task<TaskResult> ValidateItemAsync(PlanetRoleMember old, ValourDB db)
     {
-        throw new NotImplementedException();
+        if (old != null)
+            return new TaskResult(false, "You cannot modify this object.");
+
+        var member = await db.PlanetMembers.FindAsync(Member_Id);
     }
 }
 
