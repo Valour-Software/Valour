@@ -19,13 +19,11 @@ public abstract class PlanetChannel : Channel, ISharedPlanetChannel
     [ForeignKey("Parent_Id")]
     public PlanetCategoryChannel Parent { get; set; }
 
-    [JsonInclude]
-    [JsonPropertyName("Parent_Id")]
     public ulong? Parent_Id { get; set; }
 
-    [JsonInclude]
-    [JsonPropertyName("Planet_Id")]
     public ulong Planet_Id { get; set; }
+
+    public bool InheritsPerms { get; set; }
 
     public override ItemType ItemType => ItemType.PlanetChannel;
 
@@ -43,7 +41,5 @@ public abstract class PlanetChannel : Channel, ISharedPlanetChannel
         Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
         return Parent;
     }
-
-    public abstract void NotifyClientsChange();
 }
 

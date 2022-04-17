@@ -21,7 +21,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : Item, IPlanetItem<PlanetMember>, ISharedPlanetMember, INodeSpecific
+public class PlanetMember : Item, IPlanetItemAPI<PlanetMember>, ISharedPlanetMember, INodeSpecific
 {
 
     public const int FLAG_UPDATE_ROLES = 0x01;
@@ -230,7 +230,7 @@ public class PlanetMember : Item, IPlanetItem<PlanetMember>, ISharedPlanetMember
     public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await ((IPlanetItem<PlanetMember>)this).CanGetAsync(member, db);
+        var canGet = await ((IPlanetItemAPI<PlanetMember>)this).CanGetAsync(member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -254,7 +254,7 @@ public class PlanetMember : Item, IPlanetItem<PlanetMember>, ISharedPlanetMember
     public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await ((IPlanetItem<PlanetMember>)this).CanGetAsync(member, db);
+        var canGet = await ((IPlanetItemAPI<PlanetMember>)this).CanGetAsync(member, db);
         if (!canGet.Success)
             return canGet;
 

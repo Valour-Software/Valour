@@ -11,7 +11,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public interface PlanetRoleBase
+public interface ISharedPlanetRole
 {
     /// <summary>
     /// The position of the role: Lower has more authority

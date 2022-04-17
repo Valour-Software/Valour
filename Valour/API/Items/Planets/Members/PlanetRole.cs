@@ -14,7 +14,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : PlanetRoleBase, ISyncedItem<PlanetRole>, INodeSpecific
+public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpecific
 {
     #region Synced Item System
 
@@ -70,6 +70,43 @@ public class PlanetRole : PlanetRoleBase, ISyncedItem<PlanetRole>, INodeSpecific
     }
 
     #endregion
+
+    /// <summary>
+    /// The position of the role: Lower has more authority
+    /// </summary>
+    uint Position { get; set; }
+
+    /// <summary>
+    /// The ID of the planet or system this role belongs to
+    /// </summary>
+    ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The planet permissions for the role
+    /// </summary>
+    ulong Permissions { get; set; }
+
+    // RGB Components for role color
+    byte Color_Red { get; set; }
+    byte Color_Green { get; set; }
+    byte Color_Blue { get; set; }
+
+    // Formatting options
+    bool Bold { get; set; }
+
+    bool Italics { get; set; }
+
+    public uint GetAuthority() =>
+        ((ISharedPlanetRole)this).GetAuthority();
+
+    public Color GetColor() =>
+        ((ISharedPlanetRole)this).GetColor();
+
+    public string GetColorHex() =>
+        ((ISharedPlanetRole)this).GetColorHex();
+
+    public bool HasPermission(PlanetPermission perm) =>
+        ((ISharedPlanetRole)this).HasPermission(perm);
 
     public static PlanetRole GetDefault(ulong planet_id)
     {

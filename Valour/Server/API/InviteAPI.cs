@@ -12,7 +12,7 @@ public class InviteAPI : BaseAPI
 {
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost("api/invite", CreateInvite);
+        app.MapPost($"api/", CreateInvite);
 
         app.MapGet("api/invite/{invite_code}", GetInvite);
         app.MapGet("api/invite/{invite_code}/join", Join);

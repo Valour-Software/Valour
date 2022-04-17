@@ -15,7 +15,7 @@ namespace Valour.Server.API;
 /// The Planet Item API allows for easy construction of routes
 /// relating to Valour Planet Items, including permissions handling.
 /// </summary>
-public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetItem<T>
+public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetItemAPI<T>
 {
 
     /// <summary>

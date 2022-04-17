@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS PlanetChannels (
     Id BIGINT NOT NULL PRIMARY KEY,
     Planet_Id BIGINT NOT NULL,
     Parent_Id BIGINT,
+    InheritsPerms BOOLEAN NOT NULL DEFAULT true,
     CONSTRAINT fk_base_channel FOREIGN KEY(Id) REFERENCES Channels(Id),
     CONSTRAINT fk_planet FOREIGN KEY(Planet_Id) REFERENCES Planets(Id),
     CONSTRAINT fk_parent FOREIGN KEY(Parent_Id) REFERENCES PlanetChannels(Id)
@@ -127,7 +128,6 @@ CREATE TABLE IF NOT EXISTS PlanetCategoryChannels (
 CREATE TABLE IF NOT EXISTS PlanetChatChannels (
     Id BIGINT NOT NULL PRIMARY KEY,
     MessageCount BIGINT NOT NULL DEFAULT 0,
-    InheritsPerms BOOLEAN NOT NULL DEFAULT true,
 
     CONSTRAINT fk_inherit FOREIGN KEY(Id) REFERENCES PlanetChannels(Id)
 );

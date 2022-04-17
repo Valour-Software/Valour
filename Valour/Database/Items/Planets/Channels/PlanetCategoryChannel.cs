@@ -13,7 +13,7 @@ using Valour.Shared.Items.Planets.Channels;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetCategoryChannels")]
-public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
+public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
 {
 
     [JsonIgnore]
@@ -24,29 +24,6 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryCh
     /// </summary>
     [NotMapped]
     public override ItemType ItemType => ItemType.PlanetCategoryChannel;
-
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-    {
-        Planet ??= await GetPlanetAsync(db);
-
-        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
-            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageCategories.Name);
-
-        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
-            return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
-
-
-        if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
-            return new TaskResult(false, "Last category cannot be deleted");
-
-        var childCategoryCount = await db.PlanetCategories.CountAsync(x => x.Parent_Id == Id);
-        var childChannelCount = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == Id);
-
-        if (childCategoryCount != 0 || childChannelCount != 0)
-            return new TaskResult(false, "Category must be empty");
-
-        return new TaskResult(true, "Success");
-    }
 
     /// <summary>
     /// Tries to delete the category while respecting constraints
@@ -152,18 +129,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryCh
     }
 
     /// <summary>
-    /// Returns the planet this belongs to
+    /// Returns if the member has the given permission in this category
     /// </summary>
-    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-
-    /// <summary>
-    /// Returns the parent this belongs to
-    /// </summary>
-    public async Task<PlanetCategory> GetParentAsync(ValourDB db) =>
-        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
-
-
     public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
     {
         Planet planet = await GetPlanetAsync(db);
@@ -171,6 +138,12 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryCh
         if (planet.Owner_Id == member.User_Id)
         {
             return true;
+        }
+
+        // If true, we ask the parent
+        if (InheritsPerms)
+        {
+            return await (await GetParentAsync(db)).HasPermission(member, permission, db);
         }
 
         var roles = await member.GetRolesAsync(db);
@@ -225,11 +198,6 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryCh
         return false;
     }
 
-    public void NotifyClientsChange()
-    {
-        PlanetHub.NotifyCategoryChange(this);
-    }
-
     /// <summary>
     /// Validates that a given name is allowable for a server
     /// </summary>
@@ -245,12 +213,56 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem<PlanetCategoryCh
             return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
         }
 
-        return new TaskResult(true, "The given name is valid.");
+        return TaskResult.SuccessResult;
     }
 
-    public static async Task<PlanetCategory> FindAsync(ulong id, ValourDB db)
+    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
-        return await db.PlanetCategories.FindAsync(id);
+        if (member is null)
+            return new TaskResult(false, "User is not a member of the target planet");
+
+        if (!await HasPermission(member, CategoryPermissions.View, db))
+            return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.View.Name);
+
+        return TaskResult.SuccessResult;
+    }
+
+    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    {
+        Planet ??= await GetPlanetAsync(db);
+
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
+            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageCategories.Name);
+
+        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
+            return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
+
+
+        if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
+            return new TaskResult(false, "Last category cannot be deleted");
+
+        var childCategoryCount = await db.PlanetCategories.CountAsync(x => x.Parent_Id == Id);
+        var childChannelCount = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == Id);
+
+        if (childCategoryCount != 0 || childChannelCount != 0)
+            return new TaskResult(false, "Category must be empty");
+
+        return new TaskResult(true, "Success");
+    }
+
+    public async Task<TaskResult> ValidateItemAsync(PlanetCategoryChannel old, ValourDB db)
+    {
+        throw new NotImplementedException();
     }
 }
 

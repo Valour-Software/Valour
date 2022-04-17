@@ -12,7 +12,7 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This abstract class provides the base for planet-based items
 /// </summary>
-public interface IPlanetItem<T> where T : class, IPlanetItem<T>
+public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
 {
 	[JsonIgnore]
 	[ForeignKey("Planet_Id")]
@@ -27,6 +27,13 @@ public interface IPlanetItem<T> where T : class, IPlanetItem<T>
     /// </summary>
     async Task<T> FindAsync(ulong id, ValourDB db) =>
         await db.FindAsync<T>(id);
+
+
+    /// <summary>
+    /// Returns the planet for this item
+    /// </summary>
+    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
+        await db.Planets.FindAsync(Planet_Id);
 
     /// <summary>
     /// Returns all of this planet item type within the planet

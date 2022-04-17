@@ -15,6 +15,8 @@ namespace Valour.Shared
 {
     public struct TaskResult
     {
+        public static TaskResult SuccessResult = new TaskResult(true, "Success");
+
         [JsonInclude]
         [JsonPropertyName("Message")]
         public string Message { get; set; }
