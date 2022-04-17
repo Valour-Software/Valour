@@ -20,7 +20,7 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel, IPlanetItem<PlanetChatChannel>, INodeSpecific
+public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel>, INodeSpecific
 {
     /// <summary>
     /// The type of this item

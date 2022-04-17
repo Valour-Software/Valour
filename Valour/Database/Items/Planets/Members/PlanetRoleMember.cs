@@ -14,7 +14,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRoleMember : IPlanetItem<PlanetRoleMember>, ISharedPlanetRoleMember, INodeSpecific
+public class PlanetRoleMember : IPlanetItemAPI<PlanetRoleMember>, ISharedPlanetRoleMember, INodeSpecific
 {
     [ForeignKey("Member_Id")]
     [JsonIgnore]
@@ -42,7 +42,7 @@ public class PlanetRoleMember : IPlanetItem<PlanetRoleMember>, ISharedPlanetRole
     public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await ((IPlanetItem<PlanetRoleMember>)this).CanGetAsync(member, db);
+        var canGet = await ((IPlanetItemAPI<PlanetRoleMember>)this).CanGetAsync(member, db);
         if (!canGet.Success)
             return canGet;
 
