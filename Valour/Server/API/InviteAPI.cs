@@ -40,7 +40,7 @@ public class InviteAPI : BaseAPI
 
         // Ensure important fields are correct
         in_invite.Issuer_Id = authToken.User_Id;
-        in_invite.Issued = DateTime.UtcNow;
+        in_invite.Creation_Time = DateTime.UtcNow;
         in_invite.Id = IdManager.Generate();
 
         Random random = new();
@@ -141,7 +141,7 @@ public class InviteAPI : BaseAPI
 
         if (!invite.IsPermanent())
         {
-            if (DateTime.UtcNow > invite.Issued.AddMinutes((double)(invite.Hours * 60))){
+            if (DateTime.UtcNow > invite.Creation_Time.AddMinutes((double)(invite.Hours * 60))){
                 db.PlanetInvites.Remove(invite);
                 await db.SaveChangesAsync();
                 ctx.Response.StatusCode = 200;

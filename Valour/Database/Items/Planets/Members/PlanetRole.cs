@@ -208,7 +208,7 @@ public class PlanetRole : Item, ISharedPlanetRole, IPlanetItemAPI<PlanetRole>, I
         await ((IPlanetItemAPI<PlanetRole>)this).GetPlanetAsync(db);
 
         // This role is new
-        if (old == null)
+        if (old is null)
         {
             Position = (uint)await db.PlanetRoles.CountAsync(x => x.Planet_Id == Planet_Id);
         }
