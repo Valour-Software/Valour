@@ -10,7 +10,6 @@ namespace Valour.Database.Items.Planets;
 
 public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
 {
-
     [ForeignKey("Planet_Id")]
     [JsonIgnore]
     public virtual Planet Planet { get; set; }
@@ -54,9 +53,9 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
     }
 
     /// <summary>
-    /// Success if a member has permission to get this
-    /// invite via the API. Requires you have permissions
-    /// and that the planet is private.
+    /// Success if a member has invite permission
+    /// and that the planet is private to get this 
+    /// invite via the API.
     /// </summary>
     public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
@@ -72,11 +71,19 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
     public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
         => Task.FromResult(TaskResult.SuccessResult);
 
+    //Setting the Issuer_Id here is stupid it would be a good idea to fix this somehow
     public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
-        => Task.FromResult(TaskResult.SuccessResult);
+    {
+        this.Issuer_Id = member.User_Id;
+        return Task.FromResult(TaskResult.SuccessResult);
+    }
+
 
     public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
-        => await CanGetAsync(member, db);
+    {
+        this.Issuer_Id = member.User_Id;
+        return await CanGetAsync(member, db);
+    }
 
     public async Task<TaskResult> ValidateItemAsync(Invite old, ValourDB db)
     {
@@ -85,8 +92,9 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
         // This role is new
         if (old is null)
         {
-            // TODO Figure out how to fill in Issure_ID!!!
-            this.Issuer_Id = authToken.User_Id;
+            // TODO Figure out how to fill in Issure_ID
+            // The stupid solution to this is above
+            //this.Issuer_Id = member.User_Id;
             this.Creation_Time = DateTime.UtcNow;
 
             Random random = new();
@@ -108,11 +116,11 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
         else
         {
             if (this.Code != old.Code)
-                return new TaskResult(false, "You cannot change the code of a invite!");
+                return new TaskResult(false, "You cannot change the code");
             if (this.Issuer_Id != old.Issuer_Id)
-                return new TaskResult(false, "You cannot change who issued a invite!");
+                return new TaskResult(false, "You cannot change who issued");
             if (this.Creation_Time != old.Creation_Time)
-                return new TaskResult(false, "You cannot change the creation time of a invite!");
+                return new TaskResult(false, "You cannot change the creation time");
         }
 
         if (this.Hours < 1)

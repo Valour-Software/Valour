@@ -15,7 +15,7 @@ namespace Valour.Shared
 {
     public struct TaskResult
     {
-        public static TaskResult SuccessResult = new TaskResult(true, "Success");
+        public static readonly TaskResult SuccessResult = new TaskResult(true, "Success");
 
         [JsonInclude]
         [JsonPropertyName("Message")]
@@ -41,6 +41,44 @@ namespace Valour.Shared
             return $"[FAIL] {Message}";
         }
 
+    }
+    public struct TaskResult<T>
+    {
+        [JsonInclude]
+        [JsonPropertyName("Message")]
+        public string Message { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Success")]
+        public bool Success { get; set; }
+
+        [JsonInclude]
+        [JsonPropertyName("Data")]
+        public T Data { get; set; }
+
+        public TaskResult(bool success, string message)
+        {
+            Success = success;
+            Message = message;
+            Data = default(T);
+        }
+
+        public TaskResult(bool success, string message, T data)
+        {
+            Success = success;
+            Message = message;
+            Data = data;
+        }
+
+        public override string ToString()
+        {
+            if (Success)
+            {
+                return $"[SUCC] {Message}";
+            }
+
+            return $"[FAIL] {Message}";
+        }
     }
 
     public struct HttpResult
@@ -112,45 +150,6 @@ namespace Valour.Shared
         public override string ToString()
         {
             return $"[{Status}]: {Message}";
-        }
-    }
-
-    public struct TaskResult<T>
-    {
-        [JsonInclude]
-        [JsonPropertyName("Message")]
-        public string Message { get; set; }
-
-        [JsonInclude]
-        [JsonPropertyName("Success")]
-        public bool Success { get; set; }
-
-        [JsonInclude]
-        [JsonPropertyName("Data")]
-        public T Data { get; set; }
-
-        public TaskResult(bool success, string message)
-        {
-            Success = success;
-            Message = message;
-            Data = default(T);
-        }
-
-        public TaskResult(bool success, string message, T data)
-        {
-            Success = success;
-            Message = message;
-            Data = data;
-        }
-
-        public override string ToString()
-        {
-            if (Success)
-            {
-                return $"[SUCC] {Message}";
-            }
-
-            return $"[FAIL] {Message}";
         }
     }
 }

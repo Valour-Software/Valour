@@ -180,13 +180,13 @@ public class Planet : Item, ISharedPlanet, INodeSpecific
         if (duration == 0) duration = null;
 
         // Add ban to database
-        PlanetBan ban = new PlanetBan()
+        PlanetBan ban = new()
         {
             Id = IdManager.Generate(),
             Reason = reason,
-            Time = DateTime.UtcNow,
+            Creation_Time = DateTime.UtcNow,
             Banner_Id = member.User_Id,
-            Target_Id = target.User_Id,
+            User_Id = target.User_Id,
             Planet_Id = member.Planet_Id,
             Minutes = duration
         };

@@ -25,14 +25,14 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// <summary>
     /// Returns the item with the given id
     /// </summary>
-    async Task<T> FindAsync(ulong id, ValourDB db) =>
+    async ValueTask<T> FindAsync(ulong id, ValourDB db) =>
         await db.FindAsync<T>(id);
 
 
     /// <summary>
     /// Returns the planet for this item
     /// </summary>
-    public async Task<Planet> GetPlanetAsync(ValourDB db) =>
+    public async ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
         await db.Planets.FindAsync(Planet_Id);
 
     /// <summary>
@@ -78,15 +78,15 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// Success if a member has permission to get this
     /// item via the API. By default this is true if the member exists.
     /// </summary>
-    async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
-            return await Task.FromResult(
+            return Task.FromResult(
                 new TaskResult(false, "Member not found.")
             );
 
-        return await Task.FromResult(
-            new TaskResult(true, "Success")
+        return Task.FromResult(
+            TaskResult.SuccessResult
         );
     }
 
@@ -94,15 +94,15 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// Success if a member has permission to get all of this item type within the planet
     /// via the API. By default this is true if the member exists.
     /// </summary>
-    async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
+    Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
-            return await Task.FromResult(
+            return Task.FromResult(
                 new TaskResult(false, "Member not found.")
             );
 
-        return await Task.FromResult(
-            new TaskResult(true, "Success")
+        return Task.FromResult(
+            TaskResult.SuccessResult
         );
     }
 
