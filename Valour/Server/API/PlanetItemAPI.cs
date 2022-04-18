@@ -138,14 +138,6 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
                 }
             case Method.PUT:
                 {
-                    // Ensure user has permission to update the item
-                    var updatePerm = await item.CanUpdateAsync(member, db);
-                    if (!updatePerm.Success)
-                    {
-                        await ctx.Response.WriteAsync(updatePerm.Message);
-                        return Results.Forbid();
-                    }
-
                     // Read in updated value
                     T updated = await JsonSerializer.DeserializeAsync<T>(ctx.Request.Body);
 
@@ -167,12 +159,13 @@ public class PlanetItemAPI<T> : BaseAPI where T : Database.Items.Item, IPlanetIt
                         return Results.BadRequest();
                     }
 
-                    // Ensure update is valid
-                    var valid = await updated.ValidateItemAsync(item, db);
-                    if (!valid.Success)
+                    // Ensure update is valid and
+                    // ensure user has permission to update the item
+                    var updatePerm = await updated.CanUpdateAsync(member, item, db);
+                    if (!updatePerm.Success)
                     {
-                        await ctx.Response.WriteAsync(valid.Message);
-                        return Results.BadRequest();
+                        await ctx.Response.WriteAsync(updatePerm.Message);
+                        return Results.Forbid();
                     }
 
                     await updated.UpdateAsync(db);
