@@ -114,20 +114,14 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
 
     /// <summary>
     /// Success if a member has permission to update this
-    /// item via the API
+    /// item via the API. Old is the old version of the item.
     /// </summary>
-    Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db);
+    Task<TaskResult> CanUpdateAsync(PlanetMember member, T old, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to create this
     /// item via the API
     /// </summary>
     Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
-
-    /// <summary>
-    /// Returns true if this is a valid item (can be POSTed)
-    /// Old is the last version of the item - this can be null if it is new.
-    /// </summary>
-    Task<TaskResult> ValidateItemAsync(T old, ValourDB db);
 }
 

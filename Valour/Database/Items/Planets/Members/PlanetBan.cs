@@ -25,11 +25,6 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
     public virtual Planet Planet { get; set; }
 
     /// <summary>
-    /// The user that was banned
-    /// </summary>
-    public ulong User_Id { get; set; }
-
-    /// <summary>
     /// The planet the user was within
     /// </summary>
     public ulong Planet_Id { get; set; }
@@ -40,7 +35,7 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
     public ulong Banner_Id { get; set; }
 
     /// <summary>
-    /// The user that was banned
+    /// The user_id of the target that was banned
     /// </summary>
     public ulong Target_Id { get; set; }
 
@@ -97,9 +92,6 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
 
     public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
-        if (member is null)
-            return new TaskResult(false, "Member not found.");
-
         // Members can get their own ban info
         if (member.Id == Target_Id)
             return TaskResult.SuccessResult;
@@ -110,59 +102,53 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
         return TaskResult.SuccessResult;
     }
 
-    public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
-
-    }
-
-    public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
-        => CanCreateAsync(member, db);
-
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
-    {
-        var canGet = await this.CanGetAsync(member, db);
-        if (!canGet.Success)
-            return canGet;
-
-        
-
-        if (Banner_Id != target.Id)
-            return new TaskResult(false, $"You cannot ban yourself");
-
-
-        if (await target.GetAuthorityAsync() >= await member.GetAuthorityAsync())
-            return new TaskResult(false, "You cannot ban users with higher or same authority than your own.");
+        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
+            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name);
 
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> ValidateItemAsync(PlanetBan old, ValourDB db)
+    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetBan old, ValourDB db)
     {
-        // This role is new
-        if (old is null)
-        {
-            // Ensure target exists
-            PlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == Target_Id);
+        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
+            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name);
 
-            if (target is null)
-                return new TaskResult(false, $"Target not found");
+        if (this.Target_Id != old.Target_Id)
+            return new TaskResult(false, "You cannot change who was banned");
 
-            if (Banner_Id != member.Id)
-                return new TaskResult(false, $"The banner is not the same as the auth member");
+        if (this.Banner_Id != old.Banner_Id)
+            return new TaskResult(false, "You cannot change who banned the user");
 
-            Time = DateTime.UtcNow;
-        }
-        else
-        {
-            if (this.User_Id != old.User_Id)
-                return new TaskResult(false, "You cannot change who was banned");
+        if (this.Time != old.Time)
+            return new TaskResult(false, "You cannot change the creation time");
 
-            if (this.Banner_Id != old.Banner_Id)
-                return new TaskResult(false, "You cannot change who banned the user");
+        return TaskResult.SuccessResult;
+    }
 
-            if (this.Time != old.Time)
-                return new TaskResult(false, "You cannot change the creation time");
-        }
+    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    {
+        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
+            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name);
+
+        // Ensure target exists
+        PlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == Target_Id);
+
+        if (target is null)
+            return new TaskResult(false, $"Target not found");
+
+        if (Banner_Id == member.Id)
+            return new TaskResult(false, $"You cannot ban yourself");
+
+        if (await target.GetAuthorityAsync() >= await member.GetAuthorityAsync())
+            return new TaskResult(false, "You cannot ban users with higher or same authority than your own.");
+
+        if (Banner_Id != member.Id)
+            return new TaskResult(false, $"The banner is not the same as the auth member");
+
+        // Set time from server
+        Time = DateTime.UtcNow;
 
         return TaskResult.SuccessResult;
     }
