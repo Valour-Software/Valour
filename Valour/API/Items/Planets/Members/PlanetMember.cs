@@ -11,73 +11,9 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : ISharedItem, ISharedPlanetMember, ISyncedItem<PlanetMember>, INodeSpecific
+public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INodeSpecific
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
-
-    #region SharedItem 
-
-    // Inherited from SharedItem //
-    public ulong Id { get; set; }
-    public ItemType ItemType => ItemType.PlanetMember;
-
-    #endregion
-
-    #region Synced Item System
-
-    /// <summary>
-    /// Ran when this item is updated
-    /// </summary>
-    public event Func<int, Task> OnUpdated;
-
-    /// <summary>
-    /// Ran when this item is deleted
-    /// </summary>
-    public event Func<Task> OnDeleted;
-
-    /// <summary>
-    /// Run when any of this item type is updated
-    /// </summary>
-    public static event Func<PlanetMember, int, Task> OnAnyUpdated;
-
-    /// <summary>
-    /// Run when any of this item type is deleted
-    /// </summary>
-    public static event Func<PlanetMember, Task> OnAnyDeleted;
-
-    public async Task InvokeAnyUpdated(PlanetMember updated, int flags)
-    {
-        if (OnAnyUpdated != null)
-            await OnAnyUpdated?.Invoke(updated, flags);
-    }
-
-    public async Task InvokeAnyDeleted(PlanetMember deleted)
-    {
-        if (OnAnyDeleted != null)
-            await OnAnyDeleted?.Invoke(deleted);
-    }
-
-    public async Task InvokeUpdated(int flags)
-    {
-        await OnUpdate(flags);
-
-        if (OnUpdated != null)
-            await OnUpdated?.Invoke(flags);
-    }
-
-    public async Task InvokeDeleted()
-    {
-        if (OnDeleted != null)
-            await OnDeleted?.Invoke();
-    }
-
-    public async Task OnUpdate(int flags)
-    {
-        if ((flags & FLAG_UPDATE_ROLES) != 0)
-            await LoadRolesAsync();
-    }
-
-    #endregion
 
     /// <summary>
     /// Cached roles
@@ -108,6 +44,8 @@ public class PlanetMember : ISharedItem, ISharedPlanetMember, ISyncedItem<Planet
     /// The node this item belongs to
     /// </summary>
     public string Node { get; set; }
+
+    public override ItemType ItemType => ItemType.PlanetMember;
 
     /// <summary>
     /// Returns the member for the given id
