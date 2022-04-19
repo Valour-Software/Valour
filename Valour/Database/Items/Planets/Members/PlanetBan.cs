@@ -89,11 +89,6 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
         PlanetHub.NotifyPlanetItemChange(this);
     }
 
-    private static async Task<TaskResult> CanBanAsync(PlanetMember member, ValourDB db) 
-        => !await member.HasPermissionAsync(PlanetPermissions.Ban, db)
-            ? new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name)
-            : TaskResult.SuccessResult;
-
     public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         // Members can get their own ban info
@@ -150,4 +145,9 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
 
         return TaskResult.SuccessResult;
     }
+    
+    private static async Task<TaskResult> CanBanAsync(PlanetMember member, ValourDB db) 
+        => !await member.HasPermissionAsync(PlanetPermissions.Ban, db)
+            ? new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name)
+            : TaskResult.SuccessResult;
 }
