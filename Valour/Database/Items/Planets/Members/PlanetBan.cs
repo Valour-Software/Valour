@@ -87,8 +87,12 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
 
         PlanetHub.NotifyPlanetItemDelete(target);
         PlanetHub.NotifyPlanetItemChange(this);
-
     }
+
+    private static async Task<TaskResult> CanBanAsync(PlanetMember member, ValourDB db) 
+        => !await member.HasPermissionAsync(PlanetPermissions.Ban, db)
+            ? new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name)
+            : TaskResult.SuccessResult;
 
     public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
@@ -96,24 +100,17 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
         if (member.Id == Target_Id)
             return TaskResult.SuccessResult;
 
-        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
-            return new TaskResult(false, "Member lacks PlanetPermissions.Ban");
-
-        return TaskResult.SuccessResult;
+        return await CanBanAsync(member, db);
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-    {
-        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
-            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name);
-
-        return TaskResult.SuccessResult;
-    }
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db) 
+        => await CanBanAsync(member, db);
 
     public async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetBan old, ValourDB db)
     {
-        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
-            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name);
+        TaskResult canBan = await CanBanAsync(member, db);
+        if (!canBan.Success)
+            return canBan;
 
         if (this.Target_Id != old.Target_Id)
             return new TaskResult(false, "You cannot change who was banned");
@@ -129,11 +126,12 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
 
     public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
-        if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
-            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.Ban.Name);
+        TaskResult canBan = await CanBanAsync(member, db);
+        if (!canBan.Success)
+            return canBan;
 
         // Ensure target exists
-        PlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == Target_Id);
+        PlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == Target_Id);
 
         if (target is null)
             return new TaskResult(false, $"Target not found");

@@ -17,7 +17,7 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
     public override ItemType ItemType => ItemType.PlanetInvite;
 
     /// <summary>
-    /// the invite code
+    /// The invite code
     /// </summary>
     public string Code { get; set; }
 
@@ -45,35 +45,30 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
 
     public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
     {
-        bool banned = await db.PlanetBans.AnyAsync(x => x.User_Id == user_Id && x.Planet_Id == this.Planet_Id);
+        bool banned = await db.PlanetBans.AnyAsync(x => x.Target_Id == user_Id && x.Planet_Id == this.Planet_Id);
         if (banned)
             return new TaskResult(false, "User is banned from the planet");
 
         return TaskResult.SuccessResult;
     }
 
-    /// <summary>
-    /// Success if a member has invite permission
-    /// and that the planet is private to get this 
-    /// invite via the API.
-    /// </summary>
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db) 
+        => !await member.HasPermissionAsync(Shared.Authorization.PlanetPermissions.Invite, db)
+            ? new TaskResult(false, "Member lacks PlanetPermissions.Invite")
+            : TaskResult.SuccessResult;
+
+    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+        => await CanGetAsync(member, db);
+
+    public Task<TaskResult> CanUpdateAsync(PlanetMember member, Invite old, ValourDB db)
     {
-        if (member is null)
-            return new TaskResult(false, "Member not found.");
+        if (this.Code != old.Code)
+            return Task.FromResult(new TaskResult(false, "You cannot change the code"));
+        if (this.Issuer_Id != old.Issuer_Id)
+            return Task.FromResult(new TaskResult(false, "You cannot change who issued"));
+        if (this.Creation_Time != old.Creation_Time)
+            return Task.FromResult(new TaskResult(false, "You cannot change the creation time"));
 
-        if (!await member.HasPermissionAsync(Shared.Authorization.PlanetPermissions.Invite, db))
-            return new TaskResult(false, "Member lacks PlanetPermissions.Invite");
-
-        return TaskResult.SuccessResult;
-    }
-
-    public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-        => Task.FromResult(TaskResult.SuccessResult);
-
-    //Setting the Issuer_Id here is stupid it would be a good idea to fix this somehow
-    public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
-    {
         this.Issuer_Id = member.User_Id;
         return Task.FromResult(TaskResult.SuccessResult);
     }
@@ -81,51 +76,32 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
 
     public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
+        TaskResult canBan = await CanGetAsync(member, db);
+        if (!canBan.Success)
+            return canBan;
+
         this.Issuer_Id = member.User_Id;
-        return await CanGetAsync(member, db);
-    }
-
-    public async Task<TaskResult> ValidateItemAsync(Invite old, ValourDB db)
-    {
-        Planet planet = await ((IPlanetItemAPI<PlanetRole>)this).GetPlanetAsync(db);
-
-        // This role is new
-        if (old is null)
-        {
-            // TODO Figure out how to fill in Issure_ID
-            // The stupid solution to this is above
-            //this.Issuer_Id = member.User_Id;
-            this.Creation_Time = DateTime.UtcNow;
-
-            Random random = new();
-
-            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            string code = "";
-
-            bool exists = false;
-
-            do
-            {
-                code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-                exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
-            }
-            while (exists);
-
-            this.Code = code;
-        }
-        else
-        {
-            if (this.Code != old.Code)
-                return new TaskResult(false, "You cannot change the code");
-            if (this.Issuer_Id != old.Issuer_Id)
-                return new TaskResult(false, "You cannot change who issued");
-            if (this.Creation_Time != old.Creation_Time)
-                return new TaskResult(false, "You cannot change the creation time");
-        }
-
-        if (this.Hours < 1)
-            this.Hours = null;
+        this.Creation_Time = DateTime.UtcNow;
+        this.Code = await GenerateCode(db);
 
         return TaskResult.SuccessResult;
+    }
+
+    private static async Task<string> GenerateCode(ValourDB db)
+    {
+        Random random = new();
+
+        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string code = "";
+
+        bool exists = false;
+
+        do
+        {
+            code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
+            exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
+        }
+        while (exists);
+        return code;
     }
 }
