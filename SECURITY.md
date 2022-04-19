@@ -10,5 +10,5 @@
 ## Reporting a Vulnerability
 If a vulnerability is found in Valour, please do the following:
 - Record the details and way to reproduce the vulnerability
-- Send details of the issue to support@valour.gg with [SECURITY] in the header
+- Send details of the issue to security@valour.gg
 - Wait for support to respond and do not share the issue with anyone
