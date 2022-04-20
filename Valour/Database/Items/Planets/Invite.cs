@@ -76,9 +76,9 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
 
     public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
-        TaskResult canBan = await CanGetAsync(member, db);
-        if (!canBan.Success)
-            return canBan;
+        TaskResult canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
 
         this.Issuer_Id = member.User_Id;
         this.Creation_Time = DateTime.UtcNow;
