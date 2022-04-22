@@ -328,7 +328,7 @@ public class Planet : Item, ISharedPlanet, INodeSpecific
         }
 
         // At this point all permissions require membership
-        if (member == null)
+        if (member is null)
         {
             return false;
         }
