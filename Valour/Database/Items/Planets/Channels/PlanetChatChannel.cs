@@ -20,7 +20,7 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel>, INodeSpecific
+public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
 {
     /// <summary>
     /// The type of this item
@@ -141,7 +141,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
 
     #region API Methods
 
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return new TaskResult(false, "User is not a member of the target planet");
@@ -152,7 +152,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
         var canGet = await CanGetAsync(member, db);
@@ -171,7 +171,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, dotheselater ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
         var canGet = await CanGetAsync(member, db);

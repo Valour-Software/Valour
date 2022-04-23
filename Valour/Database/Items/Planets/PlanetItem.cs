@@ -12,39 +12,37 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This abstract class provides the base for planet-based items
 /// </summary>
-public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
+public abstract class PlanetItem<T> : Item where T : PlanetItem<T> 
 {
 	[JsonIgnore]
 	[ForeignKey("Planet_Id")]
-	Planet Planet { get; set; }
+	public Planet Planet { get; set; }
 
-	ulong Planet_Id { get; set; }
-
-    ItemType ItemType { get; }
+	public ulong Planet_Id { get; set; }
 
     /// <summary>
     /// Returns the item with the given id
     /// </summary>
-    async ValueTask<T> FindAsync(ulong id, ValourDB db) =>
+    public virtual async ValueTask<T> FindAsync(ulong id, ValourDB db) =>
         await db.FindAsync<T>(id);
 
 
     /// <summary>
     /// Returns the planet for this item
     /// </summary>
-    public async ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+    public virtual async ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
         await db.Planets.FindAsync(Planet_Id);
 
     /// <summary>
     /// Returns all of this planet item type within the planet
     /// </summary>
-    async Task<ICollection<T>> FindAllAsync(ValourDB db) => 
+    public virtual async Task<ICollection<T>> FindAllAsync(ValourDB db) => 
         await db.Set<T>().Where(x => x.Planet_Id == Planet_Id).ToListAsync();
 
     /// <summary>
     /// Deletes this item from the database
     /// </summary>
-    async Task DeleteAsync(ValourDB db)
+    public virtual async Task DeleteAsync(ValourDB db)
     {
         db.Remove((T)this);
         await db.SaveChangesAsync();
@@ -66,7 +64,7 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// <summary>
     /// Creates this item in the database
     /// </summary>
-    async Task CreateAsync(ValourDB db)
+    public virtual async Task CreateAsync(ValourDB db)
     {
         await db.AddAsync((T)this);
         await db.SaveChangesAsync();
@@ -78,14 +76,14 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// Success if a member has permission to get this
     /// item via the API. By default this is true if the member exists.
     /// </summary>
-    Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public virtual async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
-            return Task.FromResult(
+            return await Task.FromResult(
                 new TaskResult(false, "Member not found.")
             );
 
-        return Task.FromResult(
+        return await Task.FromResult(
             TaskResult.SuccessResult
         );
     }
@@ -94,14 +92,14 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// Success if a member has permission to get all of this item type within the planet
     /// via the API. By default this is true if the member exists.
     /// </summary>
-    Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
+    public virtual async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
-            return Task.FromResult(
+            return await Task.FromResult(
                 new TaskResult(false, "Member not found.")
             );
 
-        return Task.FromResult(
+        return await Task.FromResult(
             TaskResult.SuccessResult
         );
     }
@@ -110,18 +108,18 @@ public interface IPlanetItemAPI<T> where T : Item, IPlanetItemAPI<T>
     /// Success if a member has permission to delete this
     /// item via the API
     /// </summary>
-    Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
+    public abstract Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to update this
     /// item via the API. Old is the old version of the item.
     /// </summary>
-    Task<TaskResult> CanUpdateAsync(PlanetMember member, T old, ValourDB db);
+    public abstract Task<TaskResult> CanUpdateAsync(PlanetMember member, T old, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to create this
     /// item via the API
     /// </summary>
-    Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
+    public abstract Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
 }
 
