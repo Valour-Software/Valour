@@ -171,7 +171,7 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
         return new TaskResult(true, "Success");
     }
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, dotheselater ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetChatChannel old, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
         var canGet = await CanGetAsync(member, db);
@@ -186,11 +186,14 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
         if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
             return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
 
+        var valid = await ValidateAsync(db);
+        if (!valid.Success)
+            return valid;
 
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return new TaskResult(false, "User is not a member of the target planet");
@@ -200,10 +203,14 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
 
+        var valid = await ValidateAsync(db);
+        if (!valid.Success)
+            return valid;
+
         return new TaskResult(true, "Success");
     }
 
-    public async Task DeleteAsync(ValourDB db)
+    public override async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
         db.PermissionsNodes.RemoveRange(
@@ -227,7 +234,7 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
         PlanetHub.NotifyPlanetItemChange(this);
     }
 
-    public async Task<TaskResult> ValidateItemAsync(PlanetChatChannel old, ValourDB db)
+    public async Task<TaskResult> ValidateAsync(ValourDB db)
     {
         var nameValid = ValidateName(Name);
         if (!nameValid.Success)
