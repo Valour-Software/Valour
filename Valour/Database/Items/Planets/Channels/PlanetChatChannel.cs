@@ -20,7 +20,7 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
+public class PlanetChatChannel : PlanetChannel, INodeSpecific
 {
     /// <summary>
     /// The type of this item
@@ -171,7 +171,7 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
         return new TaskResult(true, "Success");
     }
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetChatChannel old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
         var canGet = await CanGetAsync(member, db);
@@ -246,7 +246,7 @@ public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, INodeSpecific
         // Logic to check if parent is legitimate
         if (Parent_Id is not null)
         {
-            var parent = await db.PlanetCategories.FirstOrDefaultAsync
+            var parent = await db.PlanetCategoryChannels.FirstOrDefaultAsync
                 (x => x.Id == Parent_Id
                 && x.Planet_Id == Planet_Id); // This ensures the result has the same planet id
 

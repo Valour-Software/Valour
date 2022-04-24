@@ -12,20 +12,13 @@ namespace Valour.Database.Items.Planets;
 /// <summary>
 /// This abstract class provides the base for planet-based items
 /// </summary>
-public abstract class PlanetItem<T> : Item where T : PlanetItem<T> 
+public abstract class PlanetItem : Item
 {
 	[JsonIgnore]
 	[ForeignKey("Planet_Id")]
 	public Planet Planet { get; set; }
 
 	public ulong Planet_Id { get; set; }
-
-    /// <summary>
-    /// Returns the item with the given id
-    /// </summary>
-    public virtual async ValueTask<T> FindAsync(ulong id, ValourDB db) =>
-        await db.FindAsync<T>(id);
-
 
     /// <summary>
     /// Returns the planet for this item
@@ -36,7 +29,8 @@ public abstract class PlanetItem<T> : Item where T : PlanetItem<T>
     /// <summary>
     /// Returns all of this planet item type within the planet
     /// </summary>
-    public virtual async Task<ICollection<T>> FindAllAsync(ValourDB db) => 
+    public virtual async Task<ICollection<T>> FindAllInPlanetAsync<T>(ValourDB db)
+        where T : PlanetItem => 
         await db.Set<T>().Where(x => x.Planet_Id == Planet_Id).ToListAsync();
 
     /// <summary>
@@ -44,21 +38,21 @@ public abstract class PlanetItem<T> : Item where T : PlanetItem<T>
     /// </summary>
     public virtual async Task DeleteAsync(ValourDB db)
     {
-        db.Remove((T)this);
+        db.Remove(this);
         await db.SaveChangesAsync();
 
-        PlanetHub.NotifyPlanetItemDelete((T)this);
+        PlanetHub.NotifyPlanetItemDelete(this);
     }
      
     /// <summary>
     /// Updates this item in the database
     /// </summary>
-    async Task UpdateAsync(ValourDB db)
+    public virtual async Task UpdateAsync(ValourDB db)
     {
-        db.Update((T)this);
+        db.Update(this);
         await db.SaveChangesAsync();
 
-        PlanetHub.NotifyPlanetItemChange((T)this);
+        PlanetHub.NotifyPlanetItemChange(this);
     }
 
     /// <summary>
@@ -66,10 +60,10 @@ public abstract class PlanetItem<T> : Item where T : PlanetItem<T>
     /// </summary>
     public virtual async Task CreateAsync(ValourDB db)
     {
-        await db.AddAsync((T)this);
+        await db.AddAsync(this);
         await db.SaveChangesAsync();
 
-        PlanetHub.NotifyPlanetItemChange((T)this);
+        PlanetHub.NotifyPlanetItemChange(this);
     }
 
     /// <summary>
@@ -114,7 +108,7 @@ public abstract class PlanetItem<T> : Item where T : PlanetItem<T>
     /// Success if a member has permission to update this
     /// item via the API. Old is the old version of the item.
     /// </summary>
-    public abstract Task<TaskResult> CanUpdateAsync(PlanetMember member, T old, ValourDB db);
+    public abstract Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to create this

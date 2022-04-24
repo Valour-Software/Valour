@@ -15,15 +15,8 @@ namespace Valour.Server.API;
 /// The Planet Item API allows for easy construction of routes
 /// relating to Valour Planet Items, including permissions handling.
 /// </summary>
-public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem<T>
+public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
 {
-
-    /// <summary>
-    /// This dummy item is used to expose static methods which
-    /// cannot be accessed via a type alone
-    /// </summary>
-    public T DummyItem = default(T);
-
     /// <summary>
     /// This method registers the API routes and should only be called
     /// once during the application runtime.
@@ -113,7 +106,7 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem<T>
         if (method != Method.POST)
         {
             // Get the target item
-            item = await DummyItem.FindAsync(id, db);
+            item = await Item.FindAsync<T>(id, db);
 
             // Case for the object simply not being found
             if (item is null)
@@ -161,11 +154,11 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem<T>
 
                     // Ensure update is valid and
                     // ensure user has permission to update the item
-                    var updatePerm = await updated.CanUpdateAsync(member, item, db);
-                    if (!updatePerm.Success)
+                    var canUpdate = await updated.CanUpdateAsync(member, item, db);
+                    if (!canUpdate.Success)
                     {
-                        await ctx.Response.WriteAsync(updatePerm.Message);
-                        return Results.Forbid();
+                        await ctx.Response.WriteAsync(canUpdate.Message);
+                        return Results.Problem();
                     }
 
                     await updated.UpdateAsync(db);
@@ -195,21 +188,11 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem<T>
                         return Results.BadRequest();
                     }
 
-                    // Validate new item
-                    // We do this *first* because it needs to be valid in order to
-                    // determine permissions after
-                    var newValid = await newItem.ValidateItemAsync(null, db);
-                    if (!newValid.Success) 
+                    var ableCreate = await item.CanCreateAsync(member, db);
+                    if (!ableCreate.Success)
                     {
-                        await ctx.Response.WriteAsync(newValid.Message);
-                        return Results.BadRequest();
-                    }
-
-                    var createPerm = await item.CanCreateAsync(member, db);
-                    if (!createPerm.Success)
-                    {
-                        await ctx.Response.WriteAsync(createPerm.Message);
-                        return Results.Forbid();
+                        await ctx.Response.WriteAsync(ableCreate.Message);
+                        return Results.Problem();
                     }
 
                     newItem.Id = IdManager.Generate();

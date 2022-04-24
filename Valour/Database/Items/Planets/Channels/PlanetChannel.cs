@@ -9,7 +9,7 @@ using Valour.Shared.Items.Planets.Channels;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChannels")]
-public abstract class PlanetChannel<T> : PlanetItem<T>, ISharedPlanetChannel where T : PlanetItem<T>
+public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
 {
 
     [JsonIgnore]
@@ -29,7 +29,7 @@ public abstract class PlanetChannel<T> : PlanetItem<T>, ISharedPlanetChannel whe
     /// </summary>
     public async Task<PlanetCategoryChannel> GetParentAsync(ValourDB db)
     {
-        Parent ??= await db.PlanetCategories.FindAsync(Parent_Id);
+        Parent ??= await db.PlanetCategoryChannels.FindAsync(Parent_Id);
         return Parent;
     }
 }

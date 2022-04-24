@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Items;
 
@@ -20,5 +21,19 @@ public abstract class Item : ISharedItem
 
     [NotMapped]
     public abstract ItemType ItemType { get; }
+
+    /// <summary>
+    /// Returns the item with the given id
+    /// </summary>
+    public static async ValueTask<T> FindAsync<T>(ulong id, ValourDB db) 
+        where T : Item =>
+        await db.FindAsync<T>(id);
+
+    /// <summary>
+    /// Returns all of the given type within the database
+    /// </summary>
+    public static async Task<List<T>> FindAllAsync<T>(ValourDB db)
+        where T : Item =>
+        await db.Set<T>().ToListAsync();
 }
 
