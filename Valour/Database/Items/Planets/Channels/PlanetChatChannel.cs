@@ -173,32 +173,20 @@ public class PlanetChatChannel : PlanetChannel, INodeSpecific
 
     public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
-        // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(member, db);
-        if (!canGet.Success)
-            return canGet;
-
-        await GetPlanetAsync(db);
-
-        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
-            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
+        // Similar to Create but also needs specific channel perms
+        var canCreate = await CanCreateAsync(member, db);
+        if (!canCreate.Success)
+            return canCreate;
 
         if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
             return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
-
-        var valid = await ValidateAsync(db);
-        if (!valid.Success)
-            return valid;
 
         return new TaskResult(true, "Success");
     }
 
     public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
-        if (member is null)
-            return new TaskResult(false, "User is not a member of the target planet");
-
-        Planet ??= await GetPlanetAsync(db);
+        await GetPlanetAsync(db);
 
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
