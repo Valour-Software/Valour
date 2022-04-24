@@ -14,7 +14,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRoleMember : IPlanetItemAPI<PlanetRoleMember>, ISharedPlanetRoleMember, INodeSpecific
+public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember, INodeSpecific
 {
     [ForeignKey("Member_Id")]
     [JsonIgnore]
@@ -24,25 +24,20 @@ public class PlanetRoleMember : IPlanetItemAPI<PlanetRoleMember>, ISharedPlanetR
     [JsonIgnore]
     public virtual PlanetRole Role { get; set; }
 
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
-
     [ForeignKey("User_Id")]
     [JsonIgnore]
     public virtual User User { get; set; }
 
     public ulong User_Id { get; set; }
     public ulong Role_Id { get; set; }
-    public ulong Planet_Id { get; set; }
     public ulong Member_Id { get; set; }
 
-    public ItemType ItemType => ItemType.PlanetRoleMember;
+    public override ItemType ItemType => ItemType.PlanetRoleMember;
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await ((IPlanetItemAPI<PlanetRoleMember>)this).CanGetAsync(member, db);
+        var canGet = await CanGetAsync(member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -59,46 +54,32 @@ public class PlanetRoleMember : IPlanetItemAPI<PlanetRoleMember>, ISharedPlanetR
         if (role.GetAuthority() >= memberAuthority)
             return new TaskResult(false, "You have less authority than the role you are trying to modify.");
 
-        return new TaskResult(true, "Success");
-    }
+        var targetMember = await db.PlanetMembers.FindAsync(Member_Id);
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-    {
-        // Same permissions
-        return await CanCreateAsync(member, db);
-    }
-
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
-    {
-        // Same permissions
-        return await CanCreateAsync(member, db);
-    }
-
-    public async Task<TaskResult> ValidateItemAsync(PlanetRoleMember old, ValourDB db)
-    {
-        if (old != null)
-            return new TaskResult(false, "You cannot modify this object.");
-
-        var member = await db.PlanetMembers.FindAsync(Member_Id);
-
-        if (member is null)
+        if (targetMember is null)
             return new TaskResult(false, "Member not found.");
 
-        if (member.Planet_Id != Planet_Id)
+        if (targetMember.Planet_Id != Planet_Id)
             return new TaskResult(false, "Member Planet_Id mismatch.");
 
-        if (member.User_Id != User_Id)
+        if (targetMember.User_Id != User_Id)
             return new TaskResult(false, "Member User_Id mismatch.");
-
-        var role = await db.PlanetRoles.FindAsync(Role_Id);
-
-        if (role is null)
-            return new TaskResult(false, "Role not found.");
 
         if (role.Planet_Id != Planet_Id)
             return new TaskResult(false, "Role Planet_Id mismatch.");
 
         return TaskResult.SuccessResult;
+    }
+
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    {
+        // Same permissions
+        return await CanCreateAsync(member, db);
+    }
+
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    {
+        return await Task.FromResult(new TaskResult(false, "You cannot modify this object."));
     }
 }
 

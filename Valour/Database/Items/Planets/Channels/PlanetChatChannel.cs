@@ -20,8 +20,10 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel, INodeSpecific
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeSpecific
 {
+    public ulong MessageCount { get; set; }
+
     /// <summary>
     /// The type of this item
     /// </summary>

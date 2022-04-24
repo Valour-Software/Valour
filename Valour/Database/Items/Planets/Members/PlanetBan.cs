@@ -18,17 +18,8 @@ namespace Valour.Database.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INodeSpecific
+public class PlanetBan : PlanetItem, ISharedPlanetBan, INodeSpecific
 {
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
-
-    /// <summary>
-    /// The planet the user was within
-    /// </summary>
-    public ulong Planet_Id { get; set; }
-
     /// <summary>
     /// The member that banned the user
     /// </summary>
@@ -67,7 +58,7 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
     /// <summary>
     /// Creates this item in the database and bans the user
     /// </summary>
-    public async Task CreateAsync(ValourDB db)
+    public override async Task CreateAsync(ValourDB db)
     {
         PlanetMember target = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == Target_Id);
 
@@ -89,7 +80,7 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
         PlanetHub.NotifyPlanetItemChange(this);
     }
 
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         // Members can get their own ban info
         if (member.Id == Target_Id)
@@ -98,28 +89,30 @@ public class PlanetBan : Item, ISharedPlanetBan, IPlanetItemAPI<PlanetBan>, INod
         return await CanBanAsync(member, db);
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db) 
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db) 
         => await CanBanAsync(member, db);
 
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetBan old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
         TaskResult canBan = await CanBanAsync(member, db);
         if (!canBan.Success)
             return canBan;
 
-        if (this.Target_Id != old.Target_Id)
+        var oldBan = old as PlanetBan;
+
+        if (this.Target_Id != oldBan.Target_Id)
             return new TaskResult(false, "You cannot change who was banned");
 
-        if (this.Banner_Id != old.Banner_Id)
+        if (this.Banner_Id != oldBan.Banner_Id)
             return new TaskResult(false, "You cannot change who banned the user");
 
-        if (this.Time != old.Time)
+        if (this.Time != oldBan.Time)
             return new TaskResult(false, "You cannot change the creation time");
 
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
         TaskResult canBan = await CanBanAsync(member, db);
         if (!canBan.Success)
