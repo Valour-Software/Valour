@@ -108,7 +108,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for all planet chat categories
     /// </summary>
-    public DbSet<PlanetCategory> PlanetCategories { get; set; }
+    public DbSet<PlanetCategoryChannel> PlanetCategoryChannels { get; set; }
 
     /// <summary>
     /// Table for all banned members

@@ -88,10 +88,10 @@ namespace Valour.Database
             await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planet_id}");
         }
 
-        public static async void NotifyPlanetItemChange<T>(T item, int flags = 0) where T : class, IPlanetItemAPI<T> =>
+        public static async void NotifyPlanetItemChange(PlanetItem item, int flags = 0) =>
             await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Update", item, flags);
 
-        public static async void NotifyPlanetItemDelete<T>(T item) where T : class, IPlanetItemAPI<T> =>
+        public static async void NotifyPlanetItemDelete(PlanetItem item) =>
             await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Delete", item);
 
         public async Task LeaveInteractionGroup(ulong planet_id) =>

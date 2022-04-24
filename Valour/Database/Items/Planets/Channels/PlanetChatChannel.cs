@@ -20,8 +20,10 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel>, INodeSpecific
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeSpecific
 {
+    public ulong MessageCount { get; set; }
+
     /// <summary>
     /// The type of this item
     /// </summary>
@@ -141,7 +143,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
 
     #region API Methods
 
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
         if (member is null)
             return new TaskResult(false, "User is not a member of the target planet");
@@ -152,7 +154,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
         var canGet = await CanGetAsync(member, db);
@@ -171,39 +173,34 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
-        // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(member, db);
-        if (!canGet.Success)
-            return canGet;
+        // Similar to Create but also needs specific channel perms
+        var canCreate = await CanCreateAsync(member, db);
+        if (!canCreate.Success)
+            return canCreate;
 
+        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
+
+        return new TaskResult(true, "Success");
+    }
+
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    {
         await GetPlanetAsync(db);
 
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
 
-        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
-            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
-
-
-        return new TaskResult(true, "Success");
-    }
-
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
-    {
-        if (member is null)
-            return new TaskResult(false, "User is not a member of the target planet");
-
-        Planet ??= await GetPlanetAsync(db);
-
-        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
-            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
+        var valid = await ValidateAsync(db);
+        if (!valid.Success)
+            return valid;
 
         return new TaskResult(true, "Success");
     }
 
-    public async Task DeleteAsync(ValourDB db)
+    public override async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
         db.PermissionsNodes.RemoveRange(
@@ -227,7 +224,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
         PlanetHub.NotifyPlanetItemChange(this);
     }
 
-    public async Task<TaskResult> ValidateItemAsync(PlanetChatChannel old, ValourDB db)
+    public async Task<TaskResult> ValidateAsync(ValourDB db)
     {
         var nameValid = ValidateName(Name);
         if (!nameValid.Success)
@@ -239,7 +236,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItemAPI<PlanetChatChannel
         // Logic to check if parent is legitimate
         if (Parent_Id is not null)
         {
-            var parent = await db.PlanetCategories.FirstOrDefaultAsync
+            var parent = await db.PlanetCategoryChannels.FirstOrDefaultAsync
                 (x => x.Id == Parent_Id
                 && x.Planet_Id == Planet_Id); // This ensures the result has the same planet id
 

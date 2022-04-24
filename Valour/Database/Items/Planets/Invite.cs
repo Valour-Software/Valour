@@ -5,26 +5,18 @@ using Valour.Shared;
 using Valour.Shared.Items;
 using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Items.Planets;
+using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets;
 
-public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
+public class Invite : PlanetItem, INodeSpecific
 {
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
-
     public override ItemType ItemType => ItemType.PlanetInvite;
 
     /// <summary>
     /// The invite code
     /// </summary>
     public string Code { get; set; }
-
-    /// <summary>
-    /// The planet the invite is for
-    /// </summary>
-    public ulong Planet_Id { get; set; }
 
     /// <summary>
     /// The user that created the invite
@@ -52,29 +44,35 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db) 
-        => !await member.HasPermissionAsync(Shared.Authorization.PlanetPermissions.Invite, db)
-            ? new TaskResult(false, "Member lacks PlanetPermissions.Invite")
+    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db) 
+        => !await member.HasPermissionAsync(PlanetPermissions.Invite, db)
+            ? new TaskResult(false, "Member lacks Planet Permission" + PlanetPermissions.Invite.Name)
             : TaskResult.SuccessResult;
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
         => await CanGetAsync(member, db);
 
-    public Task<TaskResult> CanUpdateAsync(PlanetMember member, Invite old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
-        if (this.Code != old.Code)
-            return Task.FromResult(new TaskResult(false, "You cannot change the code"));
-        if (this.Issuer_Id != old.Issuer_Id)
-            return Task.FromResult(new TaskResult(false, "You cannot change who issued"));
-        if (this.Creation_Time != old.Creation_Time)
-            return Task.FromResult(new TaskResult(false, "You cannot change the creation time"));
+        TaskResult canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        var oldInvite = old as Invite;
+
+        if (this.Code != oldInvite.Code)
+            return await Task.FromResult(new TaskResult(false, "You cannot change the code"));
+        if (this.Issuer_Id != oldInvite.Issuer_Id)
+            return await Task.FromResult(new TaskResult(false, "You cannot change who issued"));
+        if (this.Creation_Time != oldInvite.Creation_Time)
+            return await Task.FromResult(new TaskResult(false, "You cannot change the creation time"));
 
         this.Issuer_Id = member.User_Id;
-        return Task.FromResult(TaskResult.SuccessResult);
+        return await Task.FromResult(TaskResult.SuccessResult);
     }
 
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
         TaskResult canGet = await CanGetAsync(member, db);
         if (!canGet.Success)
