@@ -1,6 +1,7 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
+using Valour.Api.Items.Users;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
@@ -34,11 +35,17 @@ public class PlanetMessage : PlanetMessageBase, INodeSpecific
     {
     }
 
-    /// <summary>
-    /// Returns the author of the message
-    /// </summary>
-    public async Task<PlanetMember> GetAuthorAsync() =>
+    /// <summary> 
+    /// Returns the author member of the message 
+    /// </summary> 
+    public async Task<PlanetMember> GetAuthorMemberAsync() =>
         await PlanetMember.FindAsync(Member_Id);
+
+    /// <summary> 
+    /// Returns the author user of the message 
+    /// </summary> 
+    public async Task<User> GetAuthorUserAsync() =>
+        await (await this.GetAuthorMemberAsync()).GetUserAsync();
 
     /// <summary>
     /// Returns the planet the message was sent in
