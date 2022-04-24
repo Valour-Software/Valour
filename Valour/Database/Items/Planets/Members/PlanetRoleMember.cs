@@ -75,7 +75,7 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember, INodeSpecif
     {
         // Same permissions
         return await CanCreateAsync(member, db);
-    }
+    } 
 
     public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
