@@ -9,7 +9,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets;
 
-public class Invite : PlanetItem<Invite>, INodeSpecific
+public class Invite : PlanetItem, INodeSpecific
 {
     public override ItemType ItemType => ItemType.PlanetInvite;
 
@@ -52,17 +52,19 @@ public class Invite : PlanetItem<Invite>, INodeSpecific
     public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
         => await CanGetAsync(member, db);
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, Invite old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
         TaskResult canGet = await CanGetAsync(member, db);
         if (!canGet.Success)
             return canGet;
 
-        if (this.Code != old.Code)
+        var oldInvite = old as Invite;
+
+        if (this.Code != oldInvite.Code)
             return await Task.FromResult(new TaskResult(false, "You cannot change the code"));
-        if (this.Issuer_Id != old.Issuer_Id)
+        if (this.Issuer_Id != oldInvite.Issuer_Id)
             return await Task.FromResult(new TaskResult(false, "You cannot change who issued"));
-        if (this.Creation_Time != old.Creation_Time)
+        if (this.Creation_Time != oldInvite.Creation_Time)
             return await Task.FromResult(new TaskResult(false, "You cannot change the creation time"));
 
         this.Issuer_Id = member.User_Id;
