@@ -79,7 +79,7 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember, INodeSpecif
 
     public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
-        return await Task.FromResult(new TaskResult(false, "You cannot modify this object."));
+        return await Task.FromResult(new TaskResult(false, "You cannot modify this object.")); 
     }
 }
 
