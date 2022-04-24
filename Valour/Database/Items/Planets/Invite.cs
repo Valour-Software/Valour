@@ -5,26 +5,18 @@ using Valour.Shared;
 using Valour.Shared.Items;
 using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Items.Planets;
+using Valour.Shared.Authorization;
 
 namespace Valour.Database.Items.Planets;
 
-public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
+public class Invite : PlanetItem, INodeSpecific
 {
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
-
     public override ItemType ItemType => ItemType.PlanetInvite;
 
     /// <summary>
-    /// the invite code
+    /// The invite code
     /// </summary>
     public string Code { get; set; }
-
-    /// <summary>
-    /// The planet the invite is for
-    /// </summary>
-    public ulong Planet_Id { get; set; }
 
     /// <summary>
     /// The user that created the invite
@@ -45,87 +37,69 @@ public class Invite : Item, IPlanetItemAPI<Invite>, INodeSpecific
 
     public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
     {
-        bool banned = await db.PlanetBans.AnyAsync(x => x.User_Id == user_Id && x.Planet_Id == this.Planet_Id);
+        bool banned = await db.PlanetBans.AnyAsync(x => x.Target_Id == user_Id && x.Planet_Id == this.Planet_Id);
         if (banned)
             return new TaskResult(false, "User is banned from the planet");
 
         return TaskResult.SuccessResult;
     }
 
-    /// <summary>
-    /// Success if a member has invite permission
-    /// and that the planet is private to get this 
-    /// invite via the API.
-    /// </summary>
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
-    {
-        if (member is null)
-            return new TaskResult(false, "Member not found.");
+    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db) 
+        => !await member.HasPermissionAsync(PlanetPermissions.Invite, db)
+            ? new TaskResult(false, "Member lacks Planet Permission" + PlanetPermissions.Invite.Name)
+            : TaskResult.SuccessResult;
 
-        if (!await member.HasPermissionAsync(Shared.Authorization.PlanetPermissions.Invite, db))
-            return new TaskResult(false, "Member lacks PlanetPermissions.Invite");
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+        => await CanGetAsync(member, db);
+
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    {
+        TaskResult canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        var oldInvite = old as Invite;
+
+        if (this.Code != oldInvite.Code)
+            return await Task.FromResult(new TaskResult(false, "You cannot change the code"));
+        if (this.Issuer_Id != oldInvite.Issuer_Id)
+            return await Task.FromResult(new TaskResult(false, "You cannot change who issued"));
+        if (this.Creation_Time != oldInvite.Creation_Time)
+            return await Task.FromResult(new TaskResult(false, "You cannot change the creation time"));
+
+        this.Issuer_Id = member.User_Id;
+        return await Task.FromResult(TaskResult.SuccessResult);
+    }
+
+
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    {
+        TaskResult canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        this.Issuer_Id = member.User_Id;
+        this.Creation_Time = DateTime.UtcNow;
+        this.Code = await GenerateCode(db);
 
         return TaskResult.SuccessResult;
     }
 
-    public Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-        => Task.FromResult(TaskResult.SuccessResult);
-
-    //Setting the Issuer_Id here is stupid it would be a good idea to fix this somehow
-    public Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    private static async Task<string> GenerateCode(ValourDB db)
     {
-        this.Issuer_Id = member.User_Id;
-        return Task.FromResult(TaskResult.SuccessResult);
-    }
+        Random random = new();
 
+        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        string code = "";
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
-    {
-        this.Issuer_Id = member.User_Id;
-        return await CanGetAsync(member, db);
-    }
+        bool exists = false;
 
-    public async Task<TaskResult> ValidateItemAsync(Invite old, ValourDB db)
-    {
-        Planet planet = await ((IPlanetItemAPI<PlanetRole>)this).GetPlanetAsync(db);
-
-        // This role is new
-        if (old is null)
+        do
         {
-            // TODO Figure out how to fill in Issure_ID
-            // The stupid solution to this is above
-            //this.Issuer_Id = member.User_Id;
-            this.Creation_Time = DateTime.UtcNow;
-
-            Random random = new();
-
-            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            string code = "";
-
-            bool exists = false;
-
-            do
-            {
-                code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-                exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
-            }
-            while (exists);
-
-            this.Code = code;
+            code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
+            exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
         }
-        else
-        {
-            if (this.Code != old.Code)
-                return new TaskResult(false, "You cannot change the code");
-            if (this.Issuer_Id != old.Issuer_Id)
-                return new TaskResult(false, "You cannot change who issued");
-            if (this.Creation_Time != old.Creation_Time)
-                return new TaskResult(false, "You cannot change the creation time");
-        }
-
-        if (this.Hours < 1)
-            this.Hours = null;
-
-        return TaskResult.SuccessResult;
+        while (exists);
+        return code;
     }
 }

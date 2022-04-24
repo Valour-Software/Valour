@@ -37,7 +37,7 @@ public class PermissionsNode : PermissionsNodeBase, INodeSpecific
         switch (Target_Type)
         {
             case ItemType.ChatChannel: return await db.PlanetChatChannels.FindAsync(Target_Id);
-            case ItemType.Category: return await db.PlanetCategories.FindAsync(Target_Id);
+            case ItemType.Category: return await db.PlanetCategoryChannels.FindAsync(Target_Id);
         }
 
         return null;

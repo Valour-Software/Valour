@@ -13,7 +13,7 @@ using Valour.Shared.Items.Planets.Channels;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetCategoryChannels")]
-public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, INodeSpecific
+public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel, INodeSpecific
 {
 
     [JsonIgnore]
@@ -28,7 +28,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategor
     /// <summary>
     /// Tries to delete the category while respecting constraints
     /// </summary>
-    public async Task DeleteAsync(ValourDB db)
+    public override async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
         db.PermissionsNodes.RemoveRange(
@@ -36,8 +36,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategor
         );
 
         // Remove category
-        db.PlanetCategories.Remove(
-            await db.PlanetCategories.FindAsync(Id)
+        db.PlanetCategoryChannels.Remove(
+            await db.PlanetCategoryChannels.FindAsync(Id)
         );
 
         // Save changes
@@ -48,85 +48,64 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategor
     }
 
     /// <summary>
-    /// Sets the name of this category
+    /// Validates the parent and position of this category
     /// </summary>
-    public async Task<TaskResult> TrySetNameAsync(string name, ValourDB db)
+    public async Task<TaskResult> ValidateParentAndPosition(ValourDB db)
     {
-        TaskResult validName = ValidateName(name);
-        if (!validName.Success) return validName;
-
-        this.Name = name;
-        db.PlanetCategories.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-
-        return new TaskResult(true, "Success");
-    }
-
-    /// <summary>
-    /// Sets the description of this category
-    /// </summary>
-    public async Task SetDescriptionAsync(string desc, ValourDB db)
-    {
-        this.Description = desc;
-        db.PlanetCategories.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-    }
-
-    /// <summary>
-    /// Sets the parent of this category
-    /// </summary>
-    public async Task<TaskResult<int>> TrySetParentAsync(PlanetMember member, ulong? parent_id, int position, ValourDB db)
-    {
-        if (member == null)
-            return new TaskResult<int>(false, "Member not found", 403);
-        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
-            return new TaskResult<int>(false, "Member lacks CategoryPermissions.ManageCategory", 403);
-
-        if (parent_id != null)
+        if (Parent_Id != null)
         {
-            var parent = await db.PlanetCategories.FindAsync(parent_id);
-            if (parent == null) return new TaskResult<int>(false, "Could not find parent", 404);
-            if (parent.Planet_Id != Planet_Id) return new TaskResult<int>(false, "Category belongs to a different planet", 400);
-            if (parent.Id == Id) return new TaskResult<int>(false, "Cannot be own parent", 400);
+            var parent = await db.PlanetCategoryChannels.FindAsync(Parent_Id);
+            if (parent == null) return new TaskResult(false, "Could not find parent");
+            if (parent.Planet_Id != Planet_Id) return new TaskResult(false, "Parent category belongs to a different planet");
+            if (parent.Id == Id) return new TaskResult(false, "Cannot be own parent");
 
-            if (position == -1)
+            // Automatically determine position in this case
+            if (Position < 0)
             {
-                var o_cats = await db.PlanetCategories.CountAsync(x => x.Parent_Id == parent_id);
-                var o_chans = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == parent_id);
-                this.Position = (ushort)(o_cats + o_chans);
+                this.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.Parent_Id == Parent_Id));
             }
             else
             {
-                this.Position = (ushort)position;
+                // Ensure position is not already taken
+                if (!await HasUniquePosition(db))
+                    return new TaskResult(false, "The position is already taken.");
             }
 
-            // TODO: additional loop checking
+            // Ensure this category does not contain itself
+            var loop_parent = parent;
+
+            while (loop_parent.Parent_Id != null)
+            {
+                if (loop_parent.Parent_Id == Id)
+                {
+                    return new TaskResult(false, "Cannot create parent loop.");
+                }
+
+                loop_parent = await db.PlanetCategoryChannels.FindAsync(loop_parent.Parent_Id);
+            }
         }
         else
         {
-            if (position == -1)
+            if (Position < 0)
             {
-                var o_cats = await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id && x.Parent_Id == null);
-                this.Position = (ushort)o_cats;
+                this.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.Planet_Id == Planet_Id && x.Parent_Id == null));
             }
             else
             {
-                this.Position = (ushort)position;
+                // Ensure position is not already taken
+                if (!await HasUniquePosition(db))
+                    return new TaskResult(false, "The position is already taken.");
             }
         }
 
-        this.Parent_Id = parent_id;
-        db.PlanetCategories.Update(this);
-        await db.SaveChangesAsync();
-
-        NotifyClientsChange();
-
-        return new TaskResult<int>(true, "Success", 200);
+        return TaskResult.SuccessResult;
     }
+
+    public async Task<bool> HasUniquePosition(ValourDB db) =>
+        // Ensure position is not already taken
+        !(await db.PlanetChannels.AnyAsync(x => x.Parent_Id == Parent_Id && // Same parent
+                                                x.Position == Position && // Same position
+                                                x.Id != Id)); // Not self
 
     /// <summary>
     /// Returns if the member has the given permission in this category
@@ -216,30 +195,52 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategor
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
     {
-        if (member is null)
-            return new TaskResult(false, "User is not a member of the target planet");
-
         if (!await HasPermission(member, CategoryPermissions.View, db))
             return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.View.Name);
 
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
     {
-        throw new NotImplementedException();
+        var canCreate = await CanCreateAsync(member, db);
+        if (!canCreate.Success)
+            return canCreate;
+
+        // Update needs specific perm for this category, everything else is same as create
+        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
+            return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
+
+        return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
     {
-        throw new NotImplementedException();
+        var canGet = await CanGetAsync(member, db);
+        if (!canGet.Success)
+            return canGet;
+
+        await GetPlanetAsync(db);
+
+        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
+            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.ManageCategories.Name);
+
+        var nameValid = ValidateName(Name);
+        if (!nameValid.Success)
+            return nameValid;
+
+        var parentPosValid = await ValidateParentAndPosition(db);
+        if (!parentPosValid.Success)
+            return parentPosValid;
+
+        return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
     {
-        Planet ??= await GetPlanetAsync(db);
+        await GetPlanetAsync(db);
 
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageCategories.Name);
@@ -248,21 +249,16 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItemAPI<PlanetCategor
             return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
 
 
-        if (await db.PlanetCategories.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
+        if (await db.PlanetCategoryChannels.CountAsync(x => x.Planet_Id == Planet_Id) < 2)
             return new TaskResult(false, "Last category cannot be deleted");
 
-        var childCategoryCount = await db.PlanetCategories.CountAsync(x => x.Parent_Id == Id);
+        var childCategoryCount = await db.PlanetCategoryChannels.CountAsync(x => x.Parent_Id == Id);
         var childChannelCount = await db.PlanetChatChannels.CountAsync(x => x.Parent_Id == Id);
 
         if (childCategoryCount != 0 || childChannelCount != 0)
             return new TaskResult(false, "Category must be empty");
 
         return new TaskResult(true, "Success");
-    }
-
-    public async Task<TaskResult> ValidateItemAsync(PlanetCategoryChannel old, ValourDB db)
-    {
-        throw new NotImplementedException();
     }
 }
 
