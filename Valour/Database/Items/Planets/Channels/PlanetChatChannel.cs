@@ -143,7 +143,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
 
     #region API Methods
 
-    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         if (member is null)
             return new TaskResult(false, "User is not a member of the target planet");
@@ -154,10 +154,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         return new TaskResult(true, "Success");
     }
 
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(member, db);
+        var canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -173,10 +173,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         return new TaskResult(true, "Success");
     }
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
         // Similar to Create but also needs specific channel perms
-        var canCreate = await CanCreateAsync(member, db);
+        var canCreate = await CanCreateAsync(token, member, db);
         if (!canCreate.Success)
             return canCreate;
 
@@ -186,7 +186,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         return new TaskResult(true, "Success");
     }
 
-    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         await GetPlanetAsync(db);
 
