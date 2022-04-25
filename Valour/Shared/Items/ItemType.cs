@@ -8,6 +8,8 @@ namespace Valour.Shared.Items;
 /// </summary>
 public enum ItemType
 {
+    Unknown,
+
     User,
 
     Planet,
