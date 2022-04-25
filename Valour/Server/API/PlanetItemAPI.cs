@@ -30,6 +30,9 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
         app.MapPost($"/planets/{{planet_id}}/{dummy.ItemType}", PostRoute);
 
         // Route for requesting all of a certain item
+
+        // Custom routes
+        dummy.RegisterCustomRoutes(app);
     }
 
     // Before you ask why these are seperate and not using just Map(), it's so that

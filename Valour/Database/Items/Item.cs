@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Builder;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Items;
@@ -35,5 +36,13 @@ public abstract class Item : ISharedItem
     public static async Task<List<T>> FindAllAsync<T>(ValourDB db)
         where T : Item =>
         await db.Set<T>().ToListAsync();
+
+    /// <summary>
+    /// Allows an item to define additional custom routes
+    /// </summary>
+    public virtual void RegisterCustomRoutes(WebApplication app)
+    {
+        
+    }
 }
 
