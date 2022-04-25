@@ -118,40 +118,10 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
         PlanetHub.NotifyPlanetItemDelete(this);
     }
 
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
+        => await CanCreateAsync(token, member, db);
 
-
-
-    /// <summary>
-    /// Tries to delete this role
-    /// </summary>
-    public async Task<TaskResult<int>> TryDeleteAsync(PlanetMember member, ValourDB db)
-    {
-        if (member == null)
-            return new TaskResult<int>(false, "Member not found", 404);
-
-        if (member.Planet_Id != Planet_Id)
-            return new TaskResult<int>(false, "Member is of another planet", 403);
-
-        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-            return new TaskResult<int>(false, "Member lacks PlanetPermissions.ManageRoles", 403);
-
-        if (await member.GetAuthorityAsync() <= GetAuthority())
-            return new TaskResult<int>(false, "Member authority is lower than role authority", 403);
-
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-
-        if (Id == Planet.Default_Role_Id)
-            return new TaskResult<int>(false, "Cannot remove default role", 400);
-
-       
-
-        return new TaskResult<int>(true, "Removed role", 200);
-    }
-
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-        => await CanCreateAsync(member, db);
-
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     { 
         var canCreate = await CanCreateAsync(member, db);
         if (!canCreate.Success)
@@ -167,10 +137,10 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(member, db);
+        var canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 

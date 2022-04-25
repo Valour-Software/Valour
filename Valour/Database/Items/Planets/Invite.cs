@@ -6,6 +6,7 @@ using Valour.Shared.Items;
 using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Items.Planets;
 using Valour.Shared.Authorization;
+using Valour.Database.Items.Authorization;
 
 namespace Valour.Database.Items.Planets;
 
@@ -44,17 +45,17 @@ public class Invite : PlanetItem, INodeSpecific
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db) 
+    public override async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db) 
         => !await member.HasPermissionAsync(PlanetPermissions.Invite, db)
             ? new TaskResult(false, "Member lacks Planet Permission" + PlanetPermissions.Invite.Name)
             : TaskResult.SuccessResult;
 
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-        => await CanGetAsync(member, db);
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
+        => await CanGetAsync(token, member, db);
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
-        TaskResult canGet = await CanGetAsync(member, db);
+        TaskResult canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -72,9 +73,9 @@ public class Invite : PlanetItem, INodeSpecific
     }
 
 
-    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
-        TaskResult canGet = await CanGetAsync(member, db);
+        TaskResult canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 

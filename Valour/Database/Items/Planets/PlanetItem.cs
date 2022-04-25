@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared;
 using Valour.Shared.Items;
@@ -70,7 +71,7 @@ public abstract class PlanetItem : Item
     /// Success if a member has permission to get this
     /// item via the API. By default this is true if the member exists.
     /// </summary>
-    public virtual async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public virtual async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         if (member is null)
             return await Task.FromResult(
@@ -86,7 +87,7 @@ public abstract class PlanetItem : Item
     /// Success if a member has permission to get all of this item type within the planet
     /// via the API. By default this is true if the member exists.
     /// </summary>
-    public virtual async Task<TaskResult> CanGetAllAsync(PlanetMember member, ValourDB db)
+    public virtual async Task<TaskResult> CanGetAllAsync(AuthToken token,  PlanetMember member, ValourDB db)
     {
         if (member is null)
             return await Task.FromResult(
@@ -102,18 +103,18 @@ public abstract class PlanetItem : Item
     /// Success if a member has permission to delete this
     /// item via the API
     /// </summary>
-    public abstract Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db);
+    public abstract Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to update this
     /// item via the API. Old is the old version of the item.
     /// </summary>
-    public abstract Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db);
+    public abstract Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db);
 
     /// <summary>
     /// Success if a member has permission to create this
     /// item via the API
     /// </summary>
-    public abstract Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db);
+    public abstract Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db);
 }
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Valour.Database.Items.Authorization;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
@@ -80,7 +81,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan, INodeSpecific
         PlanetHub.NotifyPlanetItemChange(this);
     }
 
-    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         // Members can get their own ban info
         if (member.Id == Target_Id)
@@ -89,10 +90,10 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan, INodeSpecific
         return await CanBanAsync(member, db);
     }
 
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db) 
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db) 
         => await CanBanAsync(member, db);
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
         TaskResult canBan = await CanBanAsync(member, db);
         if (!canBan.Success)
@@ -112,7 +113,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan, INodeSpecific
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         TaskResult canBan = await CanBanAsync(member, db);
         if (!canBan.Success)

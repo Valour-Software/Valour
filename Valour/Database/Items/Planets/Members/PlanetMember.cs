@@ -21,7 +21,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : Item, IPlanetItemAPI<PlanetMember>, ISharedPlanetMember, INodeSpecific
+public class PlanetMember : PlanetItem, ISharedPlanetMember, INodeSpecific
 {
 
     public const int FLAG_UPDATE_ROLES = 0x01;
@@ -31,10 +31,6 @@ public class PlanetMember : Item, IPlanetItemAPI<PlanetMember>, ISharedPlanetMem
     [JsonIgnore]
     public virtual User User { get; set; }
 
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
-
     [InverseProperty("Member")]
     [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
@@ -43,11 +39,6 @@ public class PlanetMember : Item, IPlanetItemAPI<PlanetMember>, ISharedPlanetMem
     /// The user within the planet
     /// </summary>
     public ulong User_Id { get; set; }
-
-    /// <summary>
-    /// The planet the user is within
-    /// </summary>
-    public ulong Planet_Id { get; set; }
 
     /// <summary>
     /// The name to be used within the planet

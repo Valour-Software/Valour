@@ -195,7 +195,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanGetAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         if (!await HasPermission(member, CategoryPermissions.View, db))
             return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.View.Name);
@@ -203,9 +203,9 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
-        var canCreate = await CanCreateAsync(member, db);
+        var canCreate = await CanCreateAsync(token, member, db);
         if (!canCreate.Success)
             return canCreate;
 
@@ -216,9 +216,9 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
-        var canGet = await CanGetAsync(member, db);
+        var canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -238,7 +238,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         await GetPlanetAsync(db);
 

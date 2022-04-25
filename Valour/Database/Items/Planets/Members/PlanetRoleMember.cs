@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -34,10 +35,10 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember, INodeSpecif
 
     public override ItemType ItemType => ItemType.PlanetRoleMember;
 
-    public override async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(member, db);
+        var canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -71,13 +72,13 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember, INodeSpecif
         return TaskResult.SuccessResult;
     }
 
-    public override async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         // Same permissions
-        return await CanCreateAsync(member, db);
+        return await CanCreateAsync(token, member, db);
     } 
 
-    public override async Task<TaskResult> CanUpdateAsync(PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
         return await Task.FromResult(new TaskResult(false, "You cannot modify this object.")); 
     }
