@@ -24,6 +24,14 @@ public abstract class Item : ISharedItem
     public abstract ItemType ItemType { get; }
 
     /// <summary>
+    /// This is the node that returned the API item.
+    /// This node should be used for any API 
+    /// </summary>
+    [NotMapped]
+    [JsonInclude]
+    public string Node => ValourDB.Node;
+
+    /// <summary>
     /// Returns the item with the given id
     /// </summary>
     public static async ValueTask<T> FindAsync<T>(ulong id, ValourDB db) 
@@ -43,6 +51,15 @@ public abstract class Item : ISharedItem
     public virtual void RegisterCustomRoutes(WebApplication app)
     {
         
+    }
+
+    /// <summary>
+    /// Returns the uri to a specific resource
+    /// </summary>
+    public virtual string GetUri()
+    {
+        return $"{Pref}{Node}{Post}/{ItemType}/{Id}";
+        //     https://coca.nodes.valour.gg/planetmember/001
     }
 }
 

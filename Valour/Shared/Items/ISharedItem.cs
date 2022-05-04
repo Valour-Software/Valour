@@ -9,6 +9,7 @@ public interface ISharedItem
 {
     ulong Id { get; set; }
     ItemType ItemType { get; }
+    string Node { get; set; }
 }
 
 

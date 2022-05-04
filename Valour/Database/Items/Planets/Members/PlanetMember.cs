@@ -21,7 +21,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : PlanetItem, ISharedPlanetMember, INodeSpecific
+public class PlanetMember : PlanetItem, ISharedPlanetMember
 {
 
     public const int FLAG_UPDATE_ROLES = 0x01;

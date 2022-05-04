@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS Users (
     Bot BOOLEAN NOT NULL DEFAULT false,
     Disabled BOOLEAN NOT NULL DEFAULT false,
     ValourStaff BOOLEAN NOT NULL DEFAULT false,
-    UserState_Value INT NOT NULL DEFAULT 0,
+    UserStateCode INT NOT NULL DEFAULT 0,
     LastActive TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
