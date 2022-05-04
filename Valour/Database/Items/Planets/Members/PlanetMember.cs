@@ -21,7 +21,7 @@ namespace Valour.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-public class PlanetMember : PlanetItem, ISharedPlanetMember
+public class PlanetMember : PlanetItem, ISharedPlanetMember, INodeSpecific
 {
 
     public const int FLAG_UPDATE_ROLES = 0x01;
@@ -218,10 +218,10 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         }
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await ((IPlanetItemAPI<PlanetMember>)this).CanGetAsync(member, db);
+        var canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -242,10 +242,10 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
         // Needs to be able to GET in order to do anything else
-        var canGet = await ((IPlanetItemAPI<PlanetMember>)this).CanGetAsync(member, db);
+        var canGet = await CanGetAsync(token, member, db);
         if (!canGet.Success)
             return canGet;
 
@@ -255,45 +255,50 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             return new TaskResult(false, "Cannot edit another member.");
         }
 
+        var oldMember = old as PlanetMember;
+
+        // Cannot change user ID
+        if (oldMember.User_Id != User_Id)
+        {
+            return new TaskResult(false, "User_Id cannot be changed.");
+        }
+
+        if (Member_Pfp != oldMember.Member_Pfp)
+        {
+            // TODO: Automatically use VMPS
+            return new TaskResult(false, "Profile picture must be changed through Upload API.");
+        }
+
+        var valid = ValidateAsync();
+        if (!valid.Success)
+            return valid;
+
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    public async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
+        var valid = ValidateAsync();
+        if (!valid.Success)
+            return valid;
+
+        // Ensure planet is open or user is invited
+
         // TODO: Be more specific
         return await Task.FromResult(
             new TaskResult(false, "Membership is created through the Planet API")
         );
     }
 
-    public async Task<TaskResult> ValidateItemAsync(PlanetMember old, ValourDB db)
+    public TaskResult ValidateAsync()
     {
-        // This means this is an update rather
-        // than a creation
-        if (old is not null)
-        {
-            // Cannot change user ID
-            if (old.User_Id != User_Id)
-            {
-                return new TaskResult(false, "User_Id cannot be changed.");
-            }
-        }
-
         // Ensure nickname is valid
         if (Nickname.Length > 32)
         {
             return new TaskResult(false, "Maximum nickname is 32 characters.");
         }
 
-        if (Member_Pfp != old.Member_Pfp)
-        {
-            // TODO: Automatically use VMPS
-            return new TaskResult(false, "Profile picture must be changed through Upload API.");
-        }
-
-        return await Task.FromResult(
-            new TaskResult(true, "Success")
-        );
+        return new TaskResult(true, "Success");
     }
 }
 

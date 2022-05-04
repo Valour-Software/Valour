@@ -12,8 +12,6 @@ public class InviteAPI : BaseAPI
 {
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost($"api/", CreateInvite);
-
         app.MapGet("api/invite/{invite_code}", GetInvite);
         app.MapGet("api/invite/{invite_code}/join", Join);
 
@@ -21,57 +19,65 @@ public class InviteAPI : BaseAPI
         app.MapGet("api/invite/{invite_code}/planet/icon_url", GetPlanetIconUrl);
     }
 
-    private static async Task CreateInvite(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
+    private static async Task GetPlanetName(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken == null) { await TokenInvalid(ctx); return; }
 
-        Invite in_invite = await JsonSerializer.DeserializeAsync<Invite>(ctx.Request.Body);
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
 
-        PlanetMember member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Planet_Id == in_invite.Planet_Id && x.User_Id == authToken.User_Id);
+        if (invite is null) { await NotFound("Invite not found", ctx); return; }
 
-        if (member == null) { await Unauthorized("Member not found", ctx); return; }
+        ctx.Response.StatusCode = 200;
+        await ctx.Response.WriteAsync(invite.Planet.Name);
+    }
 
-        if (!await member.HasPermissionAsync(PlanetPermissions.Invite, db))
+    private static async Task GetPlanetIconUrl(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
+    {
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken == null) { await TokenInvalid(ctx); return; }
+
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+
+        if (invite is null) { await NotFound("Invite not found", ctx); return; }
+
+        ctx.Response.StatusCode = 200;
+        await ctx.Response.WriteAsync(invite.Planet.Image_Url);
+    }
+
+    private static async Task Join(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
+    {
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken == null) { await TokenInvalid(ctx); return; }
+
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+        if (invite == null) { await NotFound("Invite code not found", ctx); return; }
+
+        if (await db.PlanetBans.AnyAsync(x => x.Target_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id))
         {
-            await Unauthorized("Member lacks PlanetPermissions.Invite", ctx);
+            await BadRequest("User is banned from the planet", ctx);
             return;
         }
 
-        // Ensure important fields are correct
-        in_invite.Issuer_Id = authToken.User_Id;
-        in_invite.Creation_Time = DateTime.UtcNow;
-        in_invite.Id = IdManager.Generate();
-
-        Random random = new();
-
-        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        string code = "";
-
-        bool exists = false;
-
-        do
+        if (await db.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id))
         {
-            code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-            exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
-        }
-        while (exists);
-
-        in_invite.Code = code;
-
-        if (in_invite.Hours < 1)
-        {
-            in_invite.Hours = null;
+            await BadRequest("User is already a member", ctx);
+            return;
         }
 
-        await db.PlanetInvites.AddAsync(in_invite);
-        await db.SaveChangesAsync();
+        if (!invite.Planet.Public)
+        {
+            await Unauthorized("Planet is set to private", ctx);
+            return;
+        }
 
-        ctx.Response.StatusCode = 201;
-        await ctx.Response.WriteAsync(in_invite.Code);
+        var user = await db.Users.FindAsync(authToken.User_Id);
+
+        await invite.Planet.AddMemberAsync(user, db);
+
+        ctx.Response.StatusCode = 200;
+        await ctx.Response.WriteAsync("Success");
     }
-
-    
 
     private static async Task GetInvite(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)
     {
