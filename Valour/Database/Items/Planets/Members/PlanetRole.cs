@@ -18,7 +18,7 @@ using Valour.Database.Items.Authorization;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
+public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     [InverseProperty("Role")]
     [JsonIgnore]
@@ -120,7 +120,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
 
     public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     { 
-        var canCreate = await CanCreateAsync(member, db);
+        var canCreate = await CanCreateAsync(token, member, db);
         if (!canCreate.Success)
             return canCreate;
 
