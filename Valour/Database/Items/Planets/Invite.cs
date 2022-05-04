@@ -9,6 +9,7 @@ using Valour.Shared.Authorization;
 using Valour.Database.Items.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Builder;
 
 namespace Valour.Database.Items.Planets;
 
@@ -104,6 +105,13 @@ public class Invite : PlanetItem
         }
         while (exists);
         return code;
+    }
+
+    public override void RegisterCustomRoutes(WebApplication app)
+    {
+        app.MapGet($"/planets/{{planet_id}}/{ItemType}/{{id}}/PlanetName", GetPlanetName);
+        app.MapGet($"/planets/{{planet_id}}/{ItemType}/{{id}}/PlanetIcon", GetPlanetIconUrl);
+        app.MapPost($"/planets/{{planet_id}}/{ItemType}/{{id}}/Join", Join);
     }
 
     // Custom routes

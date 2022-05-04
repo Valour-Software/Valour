@@ -48,19 +48,16 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
     public override ItemType ItemType => ItemType.PlanetRole;
 
     public uint GetAuthority() =>
-        uint.MaxValue - Position;
+        ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
-        Color.FromArgb(Color_Red, Color_Green, Color_Blue);
+        ISharedPlanetRole.GetColor(this);
 
-    public string GetColorHex()
-    {
-        Color c = GetColor();
-        return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-    }
+    public string GetColorHex() =>
+        ISharedPlanetRole.GetColorHex(this);
 
     public bool HasPermission(PlanetPermission perm) =>
-        Permission.HasPermission(Permissions, perm);
+        ISharedPlanetRole.HasPermission(this, perm);
 
     public ICollection<PermissionsNode> GetNodes(ValourDB db)
     {
