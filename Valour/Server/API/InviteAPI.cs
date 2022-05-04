@@ -12,63 +12,11 @@ public class InviteAPI : BaseAPI
 {
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost($"api/", CreateInvite);
-
         app.MapGet("api/invite/{invite_code}", GetInvite);
         app.MapGet("api/invite/{invite_code}/join", Join);
 
         app.MapGet("api/invite/{invite_code}/planet/name", GetPlanetName);
         app.MapGet("api/invite/{invite_code}/planet/icon_url", GetPlanetIconUrl);
-    }
-
-    private static async Task CreateInvite(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
-    {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
-        if (authToken == null) { await TokenInvalid(ctx); return; }
-
-        Invite in_invite = await JsonSerializer.DeserializeAsync<Invite>(ctx.Request.Body);
-
-        PlanetMember member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Planet_Id == in_invite.Planet_Id && x.User_Id == authToken.User_Id);
-
-        if (member == null) { await Unauthorized("Member not found", ctx); return; }
-
-        if (!await member.HasPermissionAsync(PlanetPermissions.Invite, db))
-        {
-            await Unauthorized("Member lacks PlanetPermissions.Invite", ctx);
-            return;
-        }
-
-        // Ensure important fields are correct
-        in_invite.Issuer_Id = authToken.User_Id;
-        in_invite.Creation_Time = DateTime.UtcNow;
-        in_invite.Id = IdManager.Generate();
-
-        Random random = new();
-
-        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        string code = "";
-
-        bool exists = false;
-
-        do
-        {
-            code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-            exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
-        }
-        while (exists);
-
-        in_invite.Code = code;
-
-        if (in_invite.Hours < 1)
-        {
-            in_invite.Hours = null;
-        }
-
-        await db.PlanetInvites.AddAsync(in_invite);
-        await db.SaveChangesAsync();
-
-        ctx.Response.StatusCode = 201;
-        await ctx.Response.WriteAsync(in_invite.Code);
     }
 
     private static async Task GetPlanetName(HttpContext ctx, ValourDB db, string invite_code, [FromHeader] string authorization)

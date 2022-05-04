@@ -387,7 +387,7 @@ public class Planet : Item, ISharedPlanet, INodeSpecific
     /// <summary>
     /// Adds a member to the server
     /// </summary>
-    public async Task AddMemberAsync(User user, ValourDB db)
+    public async Task<PlanetMember> AddMemberAsync(User user, ValourDB db)
     {
         // Already a member
         if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))

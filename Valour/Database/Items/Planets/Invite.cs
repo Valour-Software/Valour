@@ -7,10 +7,13 @@ using Microsoft.EntityFrameworkCore;
 using Valour.Shared.Items.Planets;
 using Valour.Shared.Authorization;
 using Valour.Database.Items.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Builder;
 
 namespace Valour.Database.Items.Planets;
 
-public class Invite : PlanetItem, INodeSpecific
+public class Invite : PlanetItem
 {
     public override ItemType ItemType => ItemType.PlanetInvite;
 
@@ -102,5 +105,70 @@ public class Invite : PlanetItem, INodeSpecific
         }
         while (exists);
         return code;
+    }
+
+    public override void RegisterCustomRoutes(WebApplication app)
+    {
+        app.MapGet($"/planets/{{planet_id}}/{ItemType}/{{id}}/PlanetName", GetPlanetName);
+        app.MapGet($"/planets/{{planet_id}}/{ItemType}/{{id}}/PlanetIcon", GetPlanetIconUrl);
+        app.MapPost($"/planets/{{planet_id}}/{ItemType}/{{id}}/Join", Join);
+    }
+
+    // Custom routes
+    private static async Task<IResult> GetPlanetName(ValourDB db, string invite_code, [FromHeader] string authorization)
+    {
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken == null)
+            return Results.Unauthorized();
+
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+
+        if (invite is null)
+            return Results.NotFound();
+
+        return Results.Ok(invite.Planet.Name);
+    }
+
+    private static async Task<IResult> GetPlanetIconUrl(ValourDB db, string invite_code, [FromHeader] string authorization)
+    {
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken == null)
+            return Results.Unauthorized();
+
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+
+        if (invite is null)
+            return Results.NotFound();
+
+        return Results.Ok(invite.Planet.Image_Url);
+    }
+
+    private static async Task<IResult> Join(ValourDB db, string invite_code, [FromHeader] string authorization)
+    {
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken == null)
+            return Results.Unauthorized();
+
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+        if (invite == null)
+            return Results.NotFound();
+
+        if (await db.PlanetBans.AnyAsync(x => x.Target_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id))
+            return Results.BadRequest("User is banned from the planet");
+
+        if (await db.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == invite.Planet_Id))
+            return Results.BadRequest("User is already a member");
+
+        if (!invite.Planet.Public)
+            return Results.BadRequest("Planet is set to private"); // TODO: Support invites w/ specific users
+
+        var user = await db.Users.FindAsync(authToken.User_Id);
+
+        TaskResult<PlanetMember> result =  await invite.Planet.AddMemberAsync(user, db);
+
+        if (result.Success)
+            return Results.Created(result.Data.GetUri(), result.Data);
+        else
+            return Results.Problem(result.Message);
     }
 }

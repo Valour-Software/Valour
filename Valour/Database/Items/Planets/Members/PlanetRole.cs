@@ -18,7 +18,7 @@ using Valour.Database.Items.Authorization;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
+public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     [InverseProperty("Role")]
     [JsonIgnore]
@@ -48,19 +48,16 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
     public override ItemType ItemType => ItemType.PlanetRole;
 
     public uint GetAuthority() =>
-        uint.MaxValue - Position;
+        ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
-        Color.FromArgb(Color_Red, Color_Green, Color_Blue);
+        ISharedPlanetRole.GetColor(this);
 
-    public string GetColorHex()
-    {
-        Color c = GetColor();
-        return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-    }
+    public string GetColorHex() =>
+        ISharedPlanetRole.GetColorHex(this);
 
     public bool HasPermission(PlanetPermission perm) =>
-        Permission.HasPermission(Permissions, perm);
+        ISharedPlanetRole.HasPermission(this, perm);
 
     public ICollection<PermissionsNode> GetNodes(ValourDB db)
     {
@@ -123,7 +120,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole, INodeSpecific
 
     public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     { 
-        var canCreate = await CanCreateAsync(member, db);
+        var canCreate = await CanCreateAsync(token, member, db);
         if (!canCreate.Success)
             return canCreate;
 
