@@ -115,8 +115,8 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
             if (item is null)
                 return Results.NotFound();
 
-            // Check if member has GET permission (needed for all routes)
-            var getPerm = await item.CanGetAsync(member, db);
+            // Check if member has GET permission (needed for all non-POST routes)
+            var getPerm = await item.CanGetAsync(auth, member, db);
 
             // Ensure user has GET permission
             if (!getPerm.Success)
@@ -157,7 +157,7 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
 
                     // Ensure update is valid and
                     // ensure user has permission to update the item
-                    var canUpdate = await updated.CanUpdateAsync(member, item, db);
+                    var canUpdate = await updated.CanUpdateAsync(auth, member, item, db);
                     if (!canUpdate.Success)
                     {
                         await ctx.Response.WriteAsync(canUpdate.Message);
@@ -171,7 +171,7 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
             case Method.DELETE:
                 {
                     // Ensure user has permission to delete the item
-                    var deletePerm = await item.CanDeleteAsync(member, db);
+                    var deletePerm = await item.CanDeleteAsync(auth, member, db);
                     if (!deletePerm.Success)
                     {
                         await ctx.Response.WriteAsync(deletePerm.Message);
@@ -191,7 +191,7 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
                         return Results.BadRequest();
                     }
 
-                    var ableCreate = await item.CanCreateAsync(member, db);
+                    var ableCreate = await item.CanCreateAsync(auth, member, db);
                     if (!ableCreate.Success)
                     {
                         await ctx.Response.WriteAsync(ableCreate.Message);

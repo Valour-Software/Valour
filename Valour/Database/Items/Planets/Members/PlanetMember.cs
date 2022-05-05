@@ -276,18 +276,38 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         return new TaskResult(true, "Success");
     }
 
-    public async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
         var valid = ValidateAsync();
         if (!valid.Success)
             return valid;
 
-        // Ensure planet is open or user is invited
+        // You can only create a member for yourself
+        if (member.User_Id != token.User_Id)
+            return new TaskResult(false, "Member can only be created by same user.");
 
-        // TODO: Be more specific
-        return await Task.FromResult(
-            new TaskResult(false, "Membership is created through the Planet API")
-        );
+        await GetPlanetAsync();
+
+        // Ensure planet is open or user is invited
+        if (Planet == null)
+            return new TaskResult(false, "Planet not found.");
+
+        if (!Planet.Public)
+        {
+            // Check for invite for specific user
+            // TODO: This does not exist yet
+            return new TaskResult(false, "You are not directly invited - you will need an invite code.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    public override async Task CreateAsync(ValourDB db)
+    {
+        await GetPlanetAsync();
+        await GetUserAsync();
+
+        var result = Planet.AddMemberAsync(User, db);
     }
 
     public TaskResult ValidateAsync()
