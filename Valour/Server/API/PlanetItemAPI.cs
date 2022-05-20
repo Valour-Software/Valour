@@ -24,10 +24,10 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
     public void RegisterRoutes(WebApplication app)
     {
         T dummy = default(T);
-        app.MapGet($"/planets/{{planet_id}}/{dummy.ItemType}/{{id}}", GetRoute);
-        app.MapPut($"/planets/{{planet_id}}/{dummy.ItemType}/{{id}}", PutRoute);
-        app.MapDelete($"/planets/{{planet_id}}/{dummy.ItemType}/{{id}}", DeleteRoute);
-        app.MapPost($"/planets/{{planet_id}}/{dummy.ItemType}", PostRoute);
+        app.MapGet(dummy.GetRoute, GetRoute);
+        app.MapPut(dummy.PutRoute, PutRoute);
+        app.MapDelete(dummy.DeleteRoute, DeleteRoute);
+        app.MapPost(dummy.PostRoute, PostRoute);
 
         // Route for requesting all of a certain item
 

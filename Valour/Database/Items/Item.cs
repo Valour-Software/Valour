@@ -53,13 +53,23 @@ public abstract class Item : ISharedItem
         
     }
 
+    public virtual string GetRoute =>
+        $"{ItemType}/{{id}}";
+
+    public virtual string PutRoute =>
+        $"{ItemType}/{{id}}";
+
+    public virtual string DeleteRoute =>
+        $"{ItemType}/{{id}}";
+
+    public virtual string PostRoute =>
+        $"{ItemType}";
+
     /// <summary>
     /// Returns the uri to a specific resource
     /// </summary>
-    public virtual string GetUri()
-    {
-        return $"{Pref}{Node}{Post}/{ItemType}/{Id}";
-        //     https://coca.nodes.valour.gg/planetmember/001
-    }
+    public virtual string GetUri() =>
+        $"{Pref}{Node}{Post}/{ItemType}/{Id}";
+      //  https://coca.nodes.valour.gg/planetmember/001
 }
 

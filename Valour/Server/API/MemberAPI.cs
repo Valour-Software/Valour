@@ -43,55 +43,6 @@ namespace Valour.Server.API
             app.MapGet("api/member/{planet_id}/{user_id}/role_ids", GetMemberRoleIds);
         }
 
-        private static async Task GetMember(HttpContext ctx, ValourDB db, ulong member_id,
-            [FromHeader] string authorization)
-        {
-            var authToken = await AuthToken.TryAuthorize(authorization, db);
-            if (authToken is null) { await TokenInvalid(ctx); return; }
-
-            var targetMember = await PlanetMember.FindAsync(member_id, db);
-
-            if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
-
-            if (!await db.PlanetMembers.AnyAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == targetMember.Planet_Id))
-            {
-                await Unauthorized("Auth member not found", ctx); 
-                return;
-            }
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsJsonAsync(targetMember);
-        }
-
-        private static async Task DeleteMember(HttpContext ctx, ValourDB db, ulong member_id,
-            [FromHeader] string authorization)
-        {
-            var authToken = await AuthToken.TryAuthorize(authorization, db);
-            if (authToken is null) { await TokenInvalid(ctx); return; }
-
-            if (!authToken.HasScope(UserPermissions.PlanetManagement)) { await Unauthorized("Token lacks UserPermissions.PlanetManagement", ctx); return; }
-
-            var targetMember = await PlanetMember.FindAsync(member_id, db);
-
-            if (targetMember is null) { await NotFound("Target member not found", ctx); return; }
-
-            var authMember = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id && x.Planet_Id == targetMember.Planet_Id);
-
-            if (authMember is null)
-            {
-                await Unauthorized("Auth member not found", ctx);
-                return;
-            }
-
-            if (!await authMember.HasPermissionAsync(PlanetPermissions.Kick, db)) { await Unauthorized("Member lacks PlanetPermissions.Kick", ctx); return; }
-
-            db.PlanetMembers.Remove(targetMember);
-            await db.SaveChangesAsync();
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsync("Success");
-        }
-
         private static async Task GetAuthority(HttpContext ctx, ValourDB db, ulong member_id,
             [FromHeader] string authorization)
         {

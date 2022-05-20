@@ -155,5 +155,15 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
         return TaskResult.SuccessResult;
     }
+
+    public override void RegisterCustomRoutes(WebApplication app)
+    {
+        app.MapGet($"planet/{{planet_id}}/planetmember/{{member_id}}/{ItemType}s", GetAllForMember);
+    }
+
+    public async Task<IResult> GetAllForMember(ValourDB db, ulong member_id, ulong planet_id, [FromHeader] string authorization)
+    {
+
+    }
 }
 
