@@ -15,8 +15,8 @@ namespace Valour.Database.Items;
 public abstract class Item : ISharedItem
 {
 
-    public const string Pref = "https://";
-    public const string Post = ".nodes.valour.gg";
+    public const string UriPrefix = "https://";
+    public const string UriPostfix = ".nodes.valour.gg";
 
     public ulong Id { get; set; }
 
@@ -69,7 +69,7 @@ public abstract class Item : ISharedItem
     /// Returns the uri to a specific resource
     /// </summary>
     public virtual string GetUri() =>
-        $"{Pref}{Node}{Post}/{ItemType}/{Id}";
+        $"{UriPrefix}{Node}{UriPostfix}/{ItemType}/{Id}";
       //  https://coca.nodes.valour.gg/planetmember/001
 }
 

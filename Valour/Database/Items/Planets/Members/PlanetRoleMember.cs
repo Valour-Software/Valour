@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Database.Items.Authorization;
@@ -18,7 +19,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember, INodeSpecific
+public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
 {
     [ForeignKey("Member_Id")]
     [JsonIgnore]
