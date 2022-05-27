@@ -162,6 +162,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public override void RegisterCustomRoutes(WebApplication app)
     {
         app.MapGet($"planet/{{planet_id}}/planetmember/{{member_id}}/roles", GetAllRolesForMember);
+        app.MapPost($"planet/{{planet_id}}/planetmember/{{member_id}}/roles/{{role_id}}", AddRoleToMember);
         app.MapPut($"planet/{{planet_id}}/planetmember/{{member_id}}/roles/{{role_id}}", AddRoleToMember);
         app.MapDelete($"planet/{{planet_id}}/planetmember/{{member_id}}/roles/{{role_id}}", RemoveRoleFromMember);
     }
