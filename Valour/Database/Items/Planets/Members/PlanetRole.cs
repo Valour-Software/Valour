@@ -163,6 +163,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     {
         app.MapGet($"planet/{{planet_id}}/planetmember/{{member_id}}/roles", GetAllRolesForMember);
         app.MapPut($"planet/{{planet_id}}/planetmember/{{member_id}}/roles/{{role_id}}", AddRoleToMember);
+        app.MapDelete($"planet/{{planet_id}}/planetmember/{{member_id}}/roles/{{role_id}}", RemoveRoleFromMember);
     }
 
     public async Task<IResult> GetAllRolesForMember(ValourDB db, ulong member_id, ulong planet_id, [FromHeader] string authorization)
@@ -207,7 +208,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             return Results.Forbid();
 
         if (await db.PlanetRoleMembers.AllAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id))
-            return Results.BadRequest("The user already has this role");
+            return Results.BadRequest("The member already has this role");
 
         var role = await db.PlanetRoles.FindAsync(role_id);
         if (role is null)
@@ -229,6 +230,45 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         await db.SaveChangesAsync();
 
         return Results.Created($"{UriPrefix}{Node}{UriPostfix}/planet/{planet_id}/planetrolemember/{newRoleMember.Id}", newRoleMember);
+    }
+
+    public async Task<IResult> RemoveRoleFromMember(ValourDB db, ulong member_id, ulong planet_id, ulong role_id, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return Results.Unauthorized();
+
+        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (authMember is null)
+            return Results.Forbid();
+
+        var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == member_id);
+        if (member is null)
+            return Results.NotFound();
+
+        if (member.Planet_Id != planet_id)
+            return Results.NotFound();
+
+        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            return Results.Forbid();
+
+        var oldRoleMember = await db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id);
+
+        if (oldRoleMember is null)
+            return Results.BadRequest("The member does not have this role");
+
+        var role = await db.PlanetRoles.FindAsync(role_id);
+        if (role is null)
+            return Results.NotFound();
+
+        var authAuthority = await authMember.GetAuthorityAsync();
+        if (role.GetAuthority() > authAuthority)
+            return Results.Forbid();
+
+        db.PlanetRoleMembers.Remove(oldRoleMember);
+        await db.SaveChangesAsync();
+
+        return Results.NoContent();
     }
 }
 
