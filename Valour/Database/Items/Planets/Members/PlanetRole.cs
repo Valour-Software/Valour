@@ -177,7 +177,8 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         if (authMember is null)
             return Results.Forbid();
 
-        var member = await db.PlanetMembers.Include(x => x.RoleMembership)
+        var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
+                                           .ThenInclude(x => x.Role)
                                            .FirstOrDefaultAsync(x => x.Id == member_id);
         if (member is null)
             return Results.NotFound();
