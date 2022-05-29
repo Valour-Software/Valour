@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <Company>Vooper Media LLC</Company>
     <Product>Valour Shared Library</Product>
@@ -15,8 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="6.0.1" />
-    <PackageReference Include="System.Net.Http.Json" Version="6.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="7.0.0-preview.4.22251.1" />
+    <PackageReference Include="System.Net.Http.Json" Version="7.0.0-preview.4.22229.4" />
   </ItemGroup>
 
   <ItemGroup>
