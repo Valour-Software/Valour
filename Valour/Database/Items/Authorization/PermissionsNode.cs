@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Database.Items.Planets.Members;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
@@ -16,11 +17,8 @@ namespace Valour.Database.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : ISharedPermissionsNode
+public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 {
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
 
     [ForeignKey("Role_Id")]
     [JsonIgnore]
@@ -37,11 +35,6 @@ public class PermissionsNode : ISharedPermissionsNode
     public ulong Mask { get; set; }
 
     /// <summary>
-    /// The planet this node applies to
-    /// </summary>
-    public ulong Planet_Id { get; set; }
-
-    /// <summary>
     /// The role this permissions node belongs to
     /// </summary>
     public ulong Role_Id { get; set; }
@@ -55,6 +48,8 @@ public class PermissionsNode : ISharedPermissionsNode
     /// The type of object this node applies to
     /// </summary>
     public ItemType Target_Type { get; set; }
+
+    public override ItemType ItemType => throw new NotImplementedException();
 
     /// <summary>
     /// Returns the node code for this permission node
@@ -80,5 +75,22 @@ public class PermissionsNode : ISharedPermissionsNode
 
     public async Task<PlanetChannel> GetTargetAsync(ValourDB db)
         => await db.PlanetChannels.FindAsync(Target_Id);
+
+
+
+    public override Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
+    {
+        
+    }
+
+    public override Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
+    {
+        
+    }
+
+    public override Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
+    {
+        
+    }
 }
 
