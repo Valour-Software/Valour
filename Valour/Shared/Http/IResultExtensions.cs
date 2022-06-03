@@ -10,7 +10,7 @@ namespace Valour.Shared.Http
 {
     public static class ValourResult
     {
-        public struct NoTokenResult : IResult
+        private struct NoTokenResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
             {
@@ -19,7 +19,7 @@ namespace Valour.Shared.Http
             }
         }
 
-        public struct NotPlanetMemberResult : IResult
+        private struct NotPlanetMemberResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
             {
@@ -28,7 +28,7 @@ namespace Valour.Shared.Http
             }
         }
 
-        public struct LacksPermissionResult : IResult
+        private struct LacksPermissionResult : IResult
         {
             private Permission _perm;
 

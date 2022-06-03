@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Database.Items.Planets;
@@ -8,6 +9,7 @@ using Valour.Database.Items.Planets.Channels;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Http;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
@@ -81,35 +83,80 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
     public override void RegisterCustomRoutes(WebApplication app)
     {
-        base.RegisterCustomRoutes(app);
+        app.MapGet($"permissionsnode/{{target_id}}/{{role_id}}", GetNode);
     }
+
 
     public async Task<IResult> GetNode(ValourDB db, ulong target_id, ulong role_id,
         [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
         if (authToken is null)
-            return Results.Unauthorized();
+            return ValourResult.NoToken();
 
-        if (!authToken.HasScope(UserPermissions.Membership))
-            return Results.Forbid();
+        var node = await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Target_Id == target_id && x.Role_Id == role_id);
 
-        
+        if (node is null)
+            return Results.NotFound();
+
+
+        // Since the  node has no useful information about the planet, it's unnecessary to check for membership
+        // or permissions on the member requesting this.
+        return Results.Json(node);
     }
 
-    public override Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
-        
+        return await Task.FromResult(
+            new TaskResult(false, "You cannot directly delete permission nodes.")
+       );
     }
 
-    public override Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
+    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
     {
-        
+        if (!token.HasScope(UserPermissions.PlanetManagement))
+            return new TaskResult(false, "Token lacks Planet Management Permission");
+
+        var oldNode = (PermissionsNode)old;
+
+        if (oldNode.Role_Id != Role_Id)
+            return new TaskResult(false, "Cannot change Role_Id");
+
+        if (oldNode.Target_Id != Target_Id)
+            return new TaskResult(false, "Cannot change Target_Id");
+
+        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            return new TaskResult(false, "Member lacks PlanetPermissions.ManageRoles");
+
+        var role = await db.PlanetRoles.FindAsync(Role_Id);
+        if (role is null)
+            return new TaskResult(false, "The Role was not found for this node. This should not happen.");
+
+        if (role.GetAuthority() > await member.GetAuthorityAsync())
+            return new TaskResult(false, "The node's role has a higher authority than you.");
+
+        return TaskResult.SuccessResult;
     }
 
-    public override Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
+    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
-        
+        if (!token.HasScope(UserPermissions.PlanetManagement))
+            return new TaskResult(false, "Token lacks Planet Management Permission");
+
+        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            return new TaskResult(false, "Member lacks PlanetPermissions.ManageRoles");
+
+        var role = await db.PlanetRoles.FindAsync(Role_Id);
+        if (role is null)
+            return new TaskResult(false, "The Role for Role_Id was not found.");
+
+        if (role.GetAuthority() > await member.GetAuthorityAsync())
+            return new TaskResult(false, "The node's role has a higher authority than you.");
+
+        if (await db.PermissionsNodes.AnyAsync(x => x.Role_Id == Role_Id && x.Target_Id == Target_Id))
+            return new TaskResult(false, "A node already exists for this role and target.");
+
+        return TaskResult.SuccessResult;
     }
 }
 

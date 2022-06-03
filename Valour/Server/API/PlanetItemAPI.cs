@@ -6,6 +6,7 @@ using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
+using Valour.Shared.Http;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
 
@@ -73,34 +74,22 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
 
         // Do not allow any operations which do not have a valid auth token
         if (auth is null)
-        {
-            await ctx.Response.WriteAsync("Missing authorization header or header is invalid.");
-            return Results.Unauthorized();
-        }
+            return ValourResult.NoToken();
 
         // Make sure token has permission to see planet membership
         if (!auth.HasScope(UserPermissions.Membership))
-        {
-            await ctx.Response.WriteAsync("Missing token scope " + UserPermissions.Membership.Name);
-            return Results.Forbid();
-        }
+            return ValourResult.LacksPermission(UserPermissions.Membership);
 
         // If it's not a simple GET, require planet management in token scope
         if (method != Method.GET && !auth.HasScope(UserPermissions.PlanetManagement))
-        {
-            await ctx.Response.WriteAsync("Missing token scope " + UserPermissions.PlanetManagement.Name);
-            return Results.Forbid();
-        }
+            return ValourResult.LacksPermission(UserPermissions.PlanetManagement);
 
         // Get the planet member trying to access the API
         var member = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
 
         // If member does not exist, the user cannot have access
         if (member is null)
-        {
-            await ctx.Response.WriteAsync("Not member of target planet or target planet does not exist.");
-            return Results.Forbid();
-        }
+            return ValourResult.NotPlanetMember();
 
         // Item reference
         T item = null;
@@ -188,6 +177,12 @@ public class PlanetItemAPI<T> : BaseAPI where T : PlanetItem
                     T newItem = await JsonSerializer.DeserializeAsync<T>(ctx.Request.Body);
                     if (newItem is null) {
                         await ctx.Response.WriteAsync("Include item in body");
+                        return Results.BadRequest();
+                    }
+
+                    if (newItem.Planet_Id != planet_id)
+                    {
+                        await ctx.Response.WriteAsync("New item Planet_Id does not match.");
                         return Results.BadRequest();
                     }
 
