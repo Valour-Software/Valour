@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Database.Items.Planets;
 using Valour.Database.Items.Planets.Channels;
@@ -76,7 +79,23 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     public async Task<PlanetChannel> GetTargetAsync(ValourDB db)
         => await db.PlanetChannels.FindAsync(Target_Id);
 
+    public override void RegisterCustomRoutes(WebApplication app)
+    {
+        base.RegisterCustomRoutes(app);
+    }
 
+    public async Task<IResult> GetNode(ValourDB db, ulong target_id, ulong role_id,
+        [FromHeader] string authorization)
+    {
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken is null)
+            return Results.Unauthorized();
+
+        if (!authToken.HasScope(UserPermissions.Membership))
+            return Results.Forbid();
+
+        
+    }
 
     public override Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
     {

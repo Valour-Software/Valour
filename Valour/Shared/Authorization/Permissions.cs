@@ -42,6 +42,8 @@ public class Permission
     /// </summary>
     const string Mixed_Description = "A mix of several permissions";
 
+    public virtual string PermissionType => "Base";
+
     /// <summary>
     /// Initializes the permission
     /// </summary>
@@ -104,6 +106,7 @@ public class Permission
 
 public class ChatChannelPermission : Permission
 {
+    public override string PermissionType => "Chat Channel";
     public ChatChannelPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
@@ -111,6 +114,7 @@ public class ChatChannelPermission : Permission
 
 public class CategoryPermission : Permission
 {
+    public override string PermissionType => "Category";
     public CategoryPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
@@ -118,6 +122,7 @@ public class CategoryPermission : Permission
 
 public class UserPermission : Permission
 {
+    public override string PermissionType => "User";
     public UserPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
@@ -125,6 +130,7 @@ public class UserPermission : Permission
 
 public class PlanetPermission : Permission
 {
+    public override string PermissionType => "Planet";
     public PlanetPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
