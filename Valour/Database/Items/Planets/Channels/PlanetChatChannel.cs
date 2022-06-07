@@ -38,7 +38,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
     /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
-    public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
+    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db)
     {
         await GetPlanetAsync(db);
 
@@ -48,7 +48,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         // If true, we just ask the category
         if (InheritsPerms)
         {
-            return await (await GetParentAsync(db)).HasPermission(member, permission, db);
+            return await (await GetParentAsync(db)).HasPermissionAsync(member, permission, db);
         }
 
 
@@ -130,7 +130,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
 
         foreach (var member in planetMembers)
         {
-            if (await HasPermission(member, ChatChannelPermissions.View, db))
+            if (await HasPermissionAsync(member, ChatChannelPermissions.View, db))
             {
                 members.Add(member);
             }
@@ -148,7 +148,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         if (member is null)
             return new TaskResult(false, "User is not a member of the target planet");
 
-        if (!await HasPermission(member, ChatChannelPermissions.View, db))
+        if (!await HasPermissionAsync(member, ChatChannelPermissions.View, db))
             return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.View.Name);
 
         return new TaskResult(true, "Success");
@@ -166,7 +166,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
 
-        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+        if (!await HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
             return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
 
 
@@ -180,7 +180,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
         if (!canCreate.Success)
             return canCreate;
 
-        if (!await HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+        if (!await HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
             return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
 
         return new TaskResult(true, "Success");

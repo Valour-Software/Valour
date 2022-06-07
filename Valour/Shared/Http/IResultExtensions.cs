@@ -44,7 +44,16 @@ namespace Valour.Shared.Http
             }
         }
 
+        private struct NotFoundResult<T> : IResult
+        {
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 404;
+                await httpContext.Response.WriteAsync($"Object of type {typeof(T).Name} was not found.");
+            }
+        }
 
+        public static IResult NotFound<T>() => new NotFoundResult<T>();
         public static IResult NoToken() => new NoTokenResult();
         public static IResult NotPlanetMember() => new NotPlanetMemberResult();
         public static IResult LacksPermission(Permission permission) => new LacksPermissionResult(permission);

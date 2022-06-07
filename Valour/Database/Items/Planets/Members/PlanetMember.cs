@@ -8,6 +8,10 @@ using Valour.Shared;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Items;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Valour.Shared.Http;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -152,7 +156,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
                 var cperm = pair.perm as ChatChannelPermission;
                 var channel = pair.target as PlanetChatChannel;
 
-                if (!await channel.HasPermission(this, cperm, db))
+                if (!await channel.HasPermissionAsync(this, cperm, db))
                     return new TaskResult(false, "Member lacks " + cperm.Name + " channel permission.");
             }
             else if (pair.perm is CategoryPermission)
@@ -160,7 +164,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
                 var cperm = pair.perm as CategoryPermission;
                 var channel = pair.target as PlanetCategoryChannel;
 
-                if (!await channel.HasPermission(this, cperm, db))
+                if (!await channel.HasPermissionAsync(this, cperm, db))
                     return new TaskResult(false, "Member lacks " + cperm.Name + " category permission.");
             }
             else
@@ -319,6 +323,120 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         }
 
         return new TaskResult(true, "Success");
+    }
+
+    public override void RegisterCustomRoutes(WebApplication app)
+    {
+        app.MapGet(GetRoute + "/roles", GetAllRolesForMember);
+        app.MapPost(GetRoute + "/roles/{role_id}", AddRoleToMember);
+        app.MapPut(GetRoute + "/roles/{role_id}", AddRoleToMember);
+        app.MapDelete(GetRoute + "/roles/{role_id}", RemoveRoleFromMember);
+    }
+
+    public async Task<IResult> GetAllRolesForMember(ValourDB db, ulong id, ulong planet_id, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return Results.Unauthorized();
+
+        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (authMember is null)
+            return Results.Forbid();
+
+        var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
+                                           .ThenInclude(x => x.Role)
+                                           .FirstOrDefaultAsync(x => x.Id == id);
+        if (member is null)
+            return Results.NotFound();
+
+        if (member.Planet_Id != planet_id)
+            return Results.NotFound();
+
+        return Results.Json(member.RoleMembership.Select(r => r.Role_Id));
+    }
+
+    public async Task<IResult> AddRoleToMember(ValourDB db, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return ValourResult.NotPlanetMember();
+
+        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (authMember is null)
+            return Results.Forbid();
+
+        var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == id);
+        if (member is null)
+            return Results.NotFound();
+
+        if (member.Planet_Id != planet_id)
+            return Results.NotFound();
+
+        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
+
+        if (await db.PlanetRoleMembers.AllAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id))
+            return Results.BadRequest("The member already has this role");
+
+        var role = await db.PlanetRoles.FindAsync(role_id);
+        if (role is null)
+            return Results.NotFound();
+
+        var authAuthority = await authMember.GetAuthorityAsync();
+        if (role.GetAuthority() > authAuthority)
+            return Results.Forbid();
+
+        PlanetRoleMember newRoleMember = new()
+        {
+            Id = IdManager.Generate(),
+            Member_Id = member.Id,
+            Role_Id = role_id,
+            User_Id = member.User_Id
+        };
+
+        await db.PlanetRoleMembers.AddAsync(newRoleMember);
+        await db.SaveChangesAsync();
+
+        return Results.Created($"{UriPrefix}{Node}{UriPostfix}/planet/{planet_id}/planetrolemember/{newRoleMember.Id}", newRoleMember);
+    }
+
+    public async Task<IResult> RemoveRoleFromMember(ValourDB db, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return Results.Unauthorized();
+
+        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (authMember is null)
+            return Results.Forbid();
+
+        var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == id);
+        if (member is null)
+            return Results.NotFound();
+
+        if (member.Planet_Id != planet_id)
+            return Results.NotFound();
+
+        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+            return Results.Forbid();
+
+        var oldRoleMember = await db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id);
+
+        if (oldRoleMember is null)
+            return Results.BadRequest("The member does not have this role");
+
+        var role = await db.PlanetRoles.FindAsync(role_id);
+        if (role is null)
+            return Results.NotFound();
+
+        var authAuthority = await authMember.GetAuthorityAsync();
+        if (role.GetAuthority() > authAuthority)
+            return Results.Forbid();
+
+        db.PlanetRoleMembers.Remove(oldRoleMember);
+        await db.SaveChangesAsync();
+
+        return Results.NoContent();
     }
 }
 

@@ -109,9 +109,9 @@ public class Invite : PlanetItem
 
     public override void RegisterCustomRoutes(WebApplication app)
     {
-        app.MapGet($"/planets/{{planet_id}}/{ItemType}/{{id}}/PlanetName", GetPlanetName);
-        app.MapGet($"/planets/{{planet_id}}/{ItemType}/{{id}}/PlanetIcon", GetPlanetIconUrl);
-        app.MapPost($"/planets/{{planet_id}}/{ItemType}/{{id}}/Join", Join);
+        app.MapGet(GetRoute + "/PlanetName", GetPlanetName);
+        app.MapGet(GetRoute + "/PlanetIcon", GetPlanetIconUrl);
+        app.MapPost(PostRoute + "/Join", Join);
     }
 
     // Custom routes

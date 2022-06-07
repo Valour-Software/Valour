@@ -133,7 +133,7 @@ namespace Valour.Server.API
                         if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
                             return Results.Forbid();
 
-                        if (!await channel.HasPermission(member, ChatChannelPermissions.ManageChannel, db))
+                        if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
                             return Results.Forbid();
 
                         await channel.DeleteAsync(db);
@@ -160,10 +160,10 @@ namespace Valour.Server.API
             if (member is null) return Results.NotFound();
 
             // Ensure auth user can view channel
-            if (!await channel.HasPermission(member, ChatChannelPermissions.View, db))
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
                 return Results.Forbid();
 
-            return await channel.HasPermission(member, new Permission(perm_code, "", ""), db);
+            return await channel.HasPermissionAsync(member, new Permission(perm_code, "", ""), db);
         }
 
         private static async Task Channel(HttpContext ctx, ValourDB db, ulong channel_id,
@@ -187,7 +187,7 @@ namespace Valour.Server.API
 
                         if (member == null) { await Unauthorized("Member not found", ctx); return; }
 
-                        if (!await channel.HasPermission(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
+                        if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
 
                         ctx.Response.StatusCode = 200;
                         await ctx.Response.WriteAsJsonAsync(channel);
@@ -361,14 +361,14 @@ namespace Valour.Server.API
                 return;
             }
 
-            if (!await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, db))
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ViewMessages, db))
             {
                 ctx.Response.StatusCode = 401;
                 await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ViewMessages node");
                 return;
             }
 
-            if (!await channel.HasPermission(member, ChatChannelPermissions.PostMessages, db))
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.PostMessages, db))
             {
                 ctx.Response.StatusCode = 401;
                 await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.PostMessages node");
@@ -457,7 +457,7 @@ namespace Valour.Server.API
 
                 if (member is null) return Results.NotFound();
 
-                has_perm = await channel.HasPermission(member, ChatChannelPermissions.ManageMessages, db);
+                has_perm = await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageMessages, db);
             }
 
             // Without permissions, cancel
@@ -511,7 +511,7 @@ namespace Valour.Server.API
 
             var member = channel.Planet.Members.FirstOrDefault();
 
-            if (member == null || !await channel.HasPermission(member, ChatChannelPermissions.ViewMessages, db))
+            if (member == null || !await channel.HasPermissionAsync(member, ChatChannelPermissions.ViewMessages, db))
             {
                 ctx.Response.StatusCode = 401;
                 await ctx.Response.WriteAsync("Member lacks ChatChannelPermissions.ViewMessages node");

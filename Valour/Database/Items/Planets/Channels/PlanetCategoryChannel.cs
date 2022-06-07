@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -6,6 +9,7 @@ using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Http;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
@@ -13,7 +17,7 @@ using Valour.Shared.Items.Planets.Channels;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetCategoryChannels")]
-public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel, INodeSpecific
+public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 {
 
     [JsonIgnore]
@@ -110,7 +114,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     /// <summary>
     /// Returns if the member has the given permission in this category
     /// </summary>
-    public async Task<bool> HasPermission(PlanetMember member, Permission permission, ValourDB db)
+    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db)
     {
         Planet planet = await GetPlanetAsync(db);
 
@@ -122,7 +126,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         // If true, we ask the parent
         if (InheritsPerms)
         {
-            return await (await GetParentAsync(db)).HasPermission(member, permission, db);
+            return await (await GetParentAsync(db)).HasPermissionAsync(member, permission, db);
         }
 
         var roles = await member.GetRolesAsync(db);
@@ -195,9 +199,114 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return TaskResult.SuccessResult;
     }
 
+    public override void RegisterCustomRoutes(WebApplication app)
+    {
+        app.MapGet(GetRoute + "/children", GetChildrenAsync);
+        app.MapPost(PostRoute + "/children/{child_id}", AddChildAsync);
+        app.MapPost(PostRoute + "/children/order", SetChildOrderAsync);
+    }
+
+    public async Task<IResult> SetChildOrderAsync(ValourDB db, ulong id, ulong planet_id, ulong child_id, [FromBody] long[] order, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return ValourResult.NoToken();
+
+        var member = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var category = await db.PlanetCategoryChannels.FindAsync(id);
+        if (category is null)
+            return Results.NotFound();
+
+        if (category.Planet_Id != planet_id)
+            return Results.BadRequest("Parent_Id mismatch on category.");
+
+        if (!await category.HasPermissionAsync(member, CategoryPermissions.View, db))
+            return ValourResult.LacksPermission(CategoryPermissions.View);
+
+        if (!await category.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+
+        // Get all current children
+    }
+
+    public async Task<IResult> AddChildAsync(ValourDB db, ulong id, ulong planet_id, ulong child_id, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return ValourResult.NoToken();
+
+        var member = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var category = await db.PlanetCategoryChannels.FindAsync(id);
+        if (category is null)
+            return Results.NotFound();
+
+        if (category.Planet_Id != planet_id)
+            return Results.BadRequest("Parent_Id mismatch on category.");
+
+        if (!await category.HasPermissionAsync(member, CategoryPermissions.View, db))
+            return ValourResult.LacksPermission(CategoryPermissions.View);
+
+        if (!await category.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+
+        var child = await db.PlanetChannels.FindAsync(child_id);
+        if (child is null)
+            return Results.NotFound();
+
+        if (!await child.HasPermissionAsync(member, ChatChannelPermissions.View, db))
+            return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+        if (!await child.HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
+            return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
+
+        if (child.Planet_Id != planet_id)
+            return Results.BadRequest("Parent_Id mismatch on child.");
+
+        child.Parent_Id = id;
+        db.PlanetChannels.Update(child);
+        await db.SaveChangesAsync();
+
+        PlanetHub.NotifyPlanetItemChange(child);
+
+        return Results.Ok(child);
+    }
+
+    public async Task<IResult> GetChildrenAsync(ValourDB db, ulong id, ulong planet_id, [FromHeader] string authorization)
+    {
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+        if (auth is null)
+            return ValourResult.NoToken();
+
+        var member = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var category = await db.PlanetCategoryChannels.FindAsync(id);
+        if (category is null)
+            return Results.NotFound();
+
+        if (category.Planet_Id != planet_id)
+            return Results.BadRequest("Parent_Id mismatch.");
+
+        if (!await category.HasPermissionAsync(member, CategoryPermissions.View, db))
+            return ValourResult.LacksPermission(CategoryPermissions.View);
+
+        // Build child list. We don't have to check permissions for each, because even if the ID is there,
+        // it's impossible to get any details on the channels that are hidden.
+        var children_ids = await db.PlanetChannels.Where(x => x.Parent_Id == id).Select(x => x.Id).ToListAsync();
+
+        return Results.Json(children_ids);
+    }
+
     public override async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db)
     {
-        if (!await HasPermission(member, CategoryPermissions.View, db))
+        if (!await HasPermissionAsync(member, CategoryPermissions.View, db))
             return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.View.Name);
 
         return TaskResult.SuccessResult;
@@ -210,7 +319,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
             return canCreate;
 
         // Update needs specific perm for this category, everything else is same as create
-        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
+        if (!await HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
             return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
 
         return TaskResult.SuccessResult;
@@ -245,7 +354,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
             return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageCategories.Name);
 
-        if (!await HasPermission(member, CategoryPermissions.ManageCategory, db))
+        if (!await HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
             return new TaskResult(false, "Member lacks category permission " + CategoryPermissions.ManageCategory.Name);
 
 
