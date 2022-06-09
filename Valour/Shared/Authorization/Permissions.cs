@@ -136,6 +136,15 @@ public class PlanetPermission : Permission
     }
 }
 
+public enum UserPermissionEnum
+{
+    FullControl,
+    Minimum,
+    View,
+    Membership,
+    Invites
+}
+
 /// <summary>
 /// This class contains all user permissions and helper methods for working
 /// with them.
@@ -170,6 +179,19 @@ public static class UserPermissions
     public static readonly UserPermission Membership = new UserPermission(0x04, "Membership", "Allows this app to view the planets you are a member of.");
     public static readonly UserPermission Invites = new UserPermission(0x08, "Invites", "Allows this app to view the planets you are invited to.");
     public static readonly UserPermission PlanetManagement = new UserPermission(0x10, "Planet Management", "Allows this app to manage your planets.");
+}
+
+public enum ChatChannelPermissionsEnum
+{
+    FullControl,
+    View,
+    ViewMessages,
+    PostMessages,
+    ManageChannel,
+    ManagePermissions,
+    Embed,
+    AttachContent,
+    ManageMessages
 }
 
 /// <summary>
@@ -228,6 +250,14 @@ public static class ChatChannelPermissions
     }
 }
 
+public enum CategoryPermissionsEnum
+{
+    FullControl,
+    View,
+    ManageCategory,
+    ManagePermissions,
+}
+
 /// <summary>
 /// This class contains all category permissions and helper methods for working
 /// with them
@@ -267,6 +297,20 @@ public static class CategoryPermissions
 
         Default = Permission.CreateCode(View);
     }
+}
+
+public enum PlanetPermissionsEnum
+{
+    FullControl,
+    View,
+    Invite,
+    DisplayRole,
+    Manage,
+    Kick,
+    Ban,
+    ManageCategories,
+    ManageChannels,
+    ManageRoles
 }
 
 /// <summary>

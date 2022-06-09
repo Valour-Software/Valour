@@ -53,16 +53,10 @@ public abstract class Item : ISharedItem
         
     }
 
-    public virtual string GetRoute =>
+    public virtual string IdRoute =>
         $"{ItemType}/{{id}}";
 
-    public virtual string PutRoute =>
-        $"{ItemType}/{{id}}";
-
-    public virtual string DeleteRoute =>
-        $"{ItemType}/{{id}}";
-
-    public virtual string PostRoute =>
+    public virtual string BaseRoute =>
         $"{ItemType}";
 
     /// <summary>

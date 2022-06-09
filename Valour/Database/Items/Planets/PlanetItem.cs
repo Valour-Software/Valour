@@ -117,16 +117,10 @@ public abstract class PlanetItem : Item
     /// </summary>
     public abstract Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db);
 
-    public override string GetRoute =>
+    public override string IdRoute =>
         $"planet/{{planet_id}}/{ItemType}/{{id}}";
 
-    public override string PutRoute =>
-        $"planet/{{planet_id}}/{ItemType}/{{id}}";
-
-    public override string DeleteRoute =>
-        $"planet/{{planet_id}}/{ItemType}/{{id}}";
-
-    public override string PostRoute =>
+    public override string BaseRoute =>
         $"planet/{{planet_id}}/{ItemType}";
 }
 

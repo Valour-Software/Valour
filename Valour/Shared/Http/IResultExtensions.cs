@@ -19,6 +19,15 @@ namespace Valour.Shared.Http
             }
         }
 
+        private struct InvalidTokenResult : IResult
+        {
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 401;
+                await httpContext.Response.WriteAsync("Token is invalid.");
+            }
+        }
+
         private struct NotPlanetMemberResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
@@ -55,6 +64,7 @@ namespace Valour.Shared.Http
 
         public static IResult NotFound<T>() => new NotFoundResult<T>();
         public static IResult NoToken() => new NoTokenResult();
+        public static IResult InvalidToken() => new InvalidTokenResult();
         public static IResult NotPlanetMember() => new NotPlanetMemberResult();
         public static IResult LacksPermission(Permission permission) => new LacksPermissionResult(permission);
     }

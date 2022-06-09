@@ -327,10 +327,10 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     public override void RegisterCustomRoutes(WebApplication app)
     {
-        app.MapGet(GetRoute + "/roles", GetAllRolesForMember);
-        app.MapPost(GetRoute + "/roles/{role_id}", AddRoleToMember);
-        app.MapPut(GetRoute + "/roles/{role_id}", AddRoleToMember);
-        app.MapDelete(GetRoute + "/roles/{role_id}", RemoveRoleFromMember);
+        app.MapGet(IdRoute + "/roles", GetAllRolesForMember);
+        app.MapPost(IdRoute + "/roles/{role_id}", AddRoleToMember);
+        app.MapPut(IdRoute + "/roles/{role_id}", AddRoleToMember);
+        app.MapDelete(IdRoute + "/roles/{role_id}", RemoveRoleFromMember);
     }
 
     public async Task<IResult> GetAllRolesForMember(ValourDB db, ulong id, ulong planet_id, [FromHeader] string authorization)
