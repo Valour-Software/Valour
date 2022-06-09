@@ -667,7 +667,7 @@ namespace Valour.Server.API
 
             foreach (var channel in planet.ChatChannels)
             {
-                if (await channel.HasPermission(member, ChatChannelPermissions.View, db))
+                if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
                 {
                     result.Add(channel);
                 }
@@ -713,7 +713,7 @@ namespace Valour.Server.API
 
             foreach (var channel in planet.ChatChannels)
             {
-                if (await channel.HasPermission(member, ChatChannelPermissions.View, db))
+                if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
                 {
                     result.Add(channel.Id);
                 }
@@ -967,7 +967,7 @@ namespace Valour.Server.API
 
             foreach (var category in planet.Categories)
             {
-                if (await category.HasPermission(member, CategoryPermissions.View, db))
+                if (await category.HasPermissionAsync(member, CategoryPermissions.View, db))
                 {
                     result.Add(category);
                 }

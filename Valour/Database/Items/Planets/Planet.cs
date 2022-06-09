@@ -387,12 +387,12 @@ public class Planet : Item, ISharedPlanet, INodeSpecific
     /// <summary>
     /// Adds a member to the server
     /// </summary>
-    public async Task<PlanetMember> AddMemberAsync(User user, ValourDB db)
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db)
     {
         // Already a member
         if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == Id))
         {
-            return;
+            return new TaskResult<PlanetMember>(false, "Already a member.", null);
         }
 
         PlanetMember member = new PlanetMember()
@@ -418,10 +418,7 @@ public class Planet : Item, ISharedPlanet, INodeSpecific
         await db.SaveChangesAsync();
 
         Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
-    }
 
-    public void NotifyClientsChange()
-    {
-        PlanetHub.NotifyPlanetChange(this);
+        return new TaskResult<PlanetMember>(true, "Success", member);
     }
 }

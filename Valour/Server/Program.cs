@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
 using Valour.Database;
+using Valour.Database.Items.Planets.Members;
 using Valour.Server.API;
 using Valour.Server.Email;
 using Valour.Server.MPS;

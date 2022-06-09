@@ -15,7 +15,7 @@ namespace Valour.Api.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : PermissionsNodeBase
+public class PermissionsNode : ISharedPermissionsNode
 {
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role

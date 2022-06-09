@@ -32,5 +32,7 @@ public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
         Parent ??= await db.PlanetCategoryChannels.FindAsync(Parent_Id);
         return Parent;
     }
+
+    public abstract Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db);
 }
 
