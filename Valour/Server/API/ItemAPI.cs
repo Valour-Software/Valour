@@ -108,6 +108,40 @@ public class ItemAPI<T> where T : Item
                         });
                     }
 
+                    var planetAttr = (PlanetPermsRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetPermsRequiredAttribute);
+                    if (planetAttr is not null)
+                    {
+                        builder.AddFilter(async (ctx, next) =>
+                        {
+                            var member = ctx.HttpContext.GetMember();
+                            if (member is null)
+                                throw new Exception("PlanetPermsRequiredAttribute attribute requires a PlanetMembershipRequired attribute.");
+
+                            var routeId = planetAttr.planetRouteName;
+
+                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
+                                throw new Exception($"Could not bind route value for '{routeId}'");
+
+                            var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
+
+                            var db = ctx.HttpContext.GetDB();
+                            if (db is null)
+                                throw new Exception("PlanetPermsRequired attribute requires InjectDB attribute");
+
+                            var planet = await db.Planets.FirstOrDefaultAsync(x => x.Id == routeVal);
+
+                            foreach (var permEnum in planetAttr.permissions) {
+                                var perm = PlanetPermissions.Permissions[(int)permEnum];
+                                if (!await planet.HasPermissionAsync(member, perm, db))
+                                    return ValourResult.LacksPermission(perm);
+                            }
+
+                            ctx.HttpContext.Items.Add(planet.Id, planet);
+
+                            return await next(ctx);
+                        });
+                    }
+
                     var memberAttr = attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
                     if (memberAttr is not null)
                     {

@@ -1,6 +1,6 @@
 ﻿using Valour.Database.Items.Planets;
 
-namespace Valour.Server.Nodes;
+namespace Valour.Database.Nodes;
 
 public class DeployedNode
 {
