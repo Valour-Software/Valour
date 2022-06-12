@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Server.Nodes;
+namespace Valour.Database.Nodes;
 
 /// <summary>
 /// Configuration for node system

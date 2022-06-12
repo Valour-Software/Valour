@@ -8,15 +8,15 @@ using Valour.Shared.Authorization;
 namespace Valour.Database.Attributes
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    public class ChatChannelPermsRequiredAttribute : Attribute
+    public class PlanetPermsRequiredAttribute : Attribute
     {
-        public ChatChannelPermissionsEnum[] permissions;
-        public string channelRouteName;
+        public string planetRouteName;
+        public PlanetPermissionsEnum[] permissions;
 
-        public ChatChannelPermsRequiredAttribute(string channelRouteName, params ChatChannelPermissionsEnum[] permissions)
+        public PlanetPermsRequiredAttribute(string planetRouteName, params PlanetPermissionsEnum[] permissions)
         {
+            this.planetRouteName = planetRouteName;
             this.permissions = permissions;
-            this.channelRouteName = channelRouteName;
         }
     }
 }

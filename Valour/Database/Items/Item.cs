@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Items;
+using Valour.Database.Nodes;
 
 namespace Valour.Database.Items;
 
@@ -29,7 +30,7 @@ public abstract class Item : ISharedItem
     /// </summary>
     [NotMapped]
     [JsonInclude]
-    public string Node => ValourDB.Node;
+    public string Node => DeployedNode.Instance.Name;
 
     /// <summary>
     /// Returns the item with the given id
@@ -63,7 +64,7 @@ public abstract class Item : ISharedItem
     /// Returns the uri to a specific resource
     /// </summary>
     public virtual string GetUri() =>
-        $"{UriPrefix}{Node}{UriPostfix}/{ItemType}/{Id}";
+        $"{DeployedNode.Instance.Address}/{IdRoute}";
       //  https://coca.nodes.valour.gg/planetmember/001
 }
 
