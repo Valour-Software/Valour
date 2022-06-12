@@ -7,6 +7,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Database.Attributes
 {
+    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class PlanetPermsRequiredAttribute : Attribute
     {
         public string planetRouteName;

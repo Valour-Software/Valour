@@ -110,96 +110,6 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public async Task<List<PlanetChannel>> GetChildrenAsync(ValourDB db)
         => await db.PlanetChannels.Where(x => x.Parent_Id == Id).ToListAsync();
 
-    [ValourRoute(HttpVerbs.Post, "/children/order")]
-    [TokenRequired]
-    public static async Task<IResult> SetChildOrderRouteAsync(ValourDB db, ulong id, ulong planet_id, ulong child_id, [FromBody] long[] order, [FromHeader] string authorization)
-    {
-        var auth = await AuthToken.TryAuthorize(authorization, db);
-        if (auth is null)
-            return ValourResult.NoToken();
-
-        var member = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-
-        var category = await db.PlanetCategoryChannels.FindAsync(id);
-        if (category is null)
-            return Results.NotFound();
-
-        if (category.Planet_Id != planet_id)
-            return Results.BadRequest("Parent_Id mismatch on category.");
-
-        if (!await category.HasPermissionAsync(member, CategoryPermissions.View, db))
-            return ValourResult.LacksPermission(CategoryPermissions.View);
-
-        if (!await category.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
-            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-
-        // Get all current children
-        var children = await 
-
-    }
-
-    [ValourRoute(HttpVerbs.Post, "/children/{child_id}")]
-    public static async Task<IResult> AddChildRouteAsync(ValourDB db, ulong id, ulong planet_id, ulong child_id, [FromHeader] string authorization)
-    {
-        var auth = await AuthToken.TryAuthorize(authorization, db);
-        if (auth is null)
-            return ValourResult.NoToken();
-
-        var member = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-
-        var category = await db.PlanetCategoryChannels.FindAsync(id);
-        if (category is null)
-            return Results.NotFound();
-
-        if (category.Planet_Id != planet_id)
-            return Results.BadRequest("Parent_Id mismatch on category.");
-
-        if (!await category.HasPermissionAsync(member, CategoryPermissions.View, db))
-            return ValourResult.LacksPermission(CategoryPermissions.View);
-
-        if (!await category.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
-            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-
-        var child = await db.PlanetChannels.FindAsync(child_id);
-        if (child is null)
-            return Results.NotFound();
-
-        if (!await child.HasPermissionAsync(member, ChatChannelPermissions.View, db))
-            return ValourResult.LacksPermission(ChatChannelPermissions.View);
-
-        if (!await child.HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
-            return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
-
-        if (child.Planet_Id != planet_id)
-            return Results.BadRequest("Parent_Id mismatch on child.");
-
-        child.Parent_Id = id;
-        db.PlanetChannels.Update(child);
-        await db.SaveChangesAsync();
-
-        PlanetHub.NotifyPlanetItemChange(child);
-
-        return Results.Ok(child);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [CategoryChannelPermsRequired("id", CategoryPermissionsEnum.View)]
-    public async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ValourDB db, ulong id, ulong planet_id)
-    {
-        var category = ctx.GetItem<PlanetCategoryChannel>(id);
-
-        // Build child list. We don't have to check permissions for each, because even if the ID is there,
-        // it's impossible to get any details on the channels that are hidden.
-        var children_ids = await db.PlanetChannels.Where(x => x.Parent_Id == id).Select(x => x.Id).ToListAsync();
-
-        return Results.Json(children_ids);
-    }
-
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
@@ -338,30 +248,108 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.NoContent();
     }
 
-    #endregion
-
-
-    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
+    [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [CategoryChannelPermsRequired("id", CategoryPermissionsEnum.View)]
+    public async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ulong id)
     {
-        var canGet = await CanGetAsync(token, member, db);
-        if (!canGet.Success)
-            return canGet;
+        var category = ctx.GetItem<PlanetCategoryChannel>(id);
+        var db = ctx.GetDB();
 
-        await GetPlanetAsync(db);
+        // Build child list. We don't have to check permissions for each, because even if the ID is there,
+        // it's impossible to get any details on the channels that are hidden.
+        var children_ids = await db.PlanetChannels.Where(x => x.Parent_Id == id).Select(x => x.Id).ToListAsync();
 
-        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageCategories, db))
-            return new TaskResult(false, "Member lacks Planet Permission " + PlanetPermissions.ManageCategories.Name);
-
-        var nameValid = ValidateName(Name);
-        if (!nameValid.Success)
-            return nameValid;
-
-        var parentPosValid = await ValidateParentAndPosition(db);
-        if (!parentPosValid.Success)
-            return parentPosValid;
-
-        return TaskResult.SuccessResult;
+        return Results.Json(children_ids);
     }
+
+    [ValourRoute(HttpVerbs.Post, "/children/order"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories),
+    CategoryChannelPermsRequired("id", CategoryPermissionsEnum.ManageCategory)]
+    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] ulong[] order)
+    {
+        var db = ctx.GetDB();
+        var category = ctx.GetItem<PlanetCategoryChannel>(id);
+
+        if (category.Planet_Id != planet_id)
+            return Results.BadRequest("Parent_Id mismatch.");
+
+        // Use transaction so we can stop at any failure
+        var tran = await db.Database.BeginTransactionAsync();
+
+        List<PlanetCategoryChannel> children = new();
+
+        try
+        {
+            var pos = 0;
+            foreach (var child_id in order)
+            {
+                var child = await FindAsync<PlanetCategoryChannel>(child_id, db);
+                if (child is null)
+                {
+                    return Results.NotFound($"Child {child_id} was not found.");
+                }
+
+                if (child.Parent_Id != category.Id)
+                    return Results.BadRequest($"Category {child_id} is not a child of {category.Id}.");
+
+                child.Position = pos;
+
+                db.Update(child);
+
+                children.Add(child);
+
+                pos++;
+            }
+
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            return Results.Problem(e.Message);
+        }
+
+        foreach (var child in children)
+        {
+            PlanetHub.NotifyPlanetItemChange(child);
+        }
+
+        return Results.NoContent();
+
+    }
+
+    /* This route isn't actually needed because you can PUT a new parent_id onto a category.
+     * But it's still a good reference.
+    
+    [ValourRoute(HttpVerbs.Post, "/children/{child_id}"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories),
+     CategoryChannelPermsRequired("id", CategoryPermissionsEnum.ManageCategory), // Need permission for parent
+     CategoryChannelPermsRequired("child_id", CategoryPermissionsEnum.ManageCategory)] // Need permission for child
+        public static async Task<IResult> AddChildRouteAsync(HttpContext ctx, ulong id, ulong planet_id, ulong child_id)
+        {
+            var db = ctx.GetDB();
+
+            var parent = ctx.GetItem<PlanetCategoryChannel>(id);
+            var child = ctx.GetItem<PlanetCategoryChannel>(child_id);
+
+            if (parent.Planet_Id != planet_id || child.Planet_Id != planet_id)
+                return Results.BadRequest("Planet_Id mismatch.");
+
+            child.Parent_Id = parent.Id;
+
+            db.PlanetChannels.Update(child);
+            await db.SaveChangesAsync();
+
+            PlanetHub.NotifyPlanetItemChange(child);
+
+            return Results.Ok(child);
+        }
+        */
+
+    #endregion
 
     #region Validation
 
