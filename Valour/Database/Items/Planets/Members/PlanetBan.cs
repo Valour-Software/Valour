@@ -141,6 +141,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
             return Results.Problem(e.Message);
         }
 
+        await tran.CommitAsync();
+
         // Notify of changes
         PlanetHub.NotifyPlanetItemChange(ban);
         PlanetHub.NotifyPlanetItemDelete(target);

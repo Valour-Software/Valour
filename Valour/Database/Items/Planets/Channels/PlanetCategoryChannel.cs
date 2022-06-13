@@ -333,6 +333,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
             return Results.Problem(e.Message);
         }
 
+        await tran.CommitAsync();
+
         foreach (var child in children)
         {
             PlanetHub.NotifyPlanetItemChange(child);
