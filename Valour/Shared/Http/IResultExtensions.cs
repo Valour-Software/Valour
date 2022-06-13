@@ -19,6 +19,22 @@ namespace Valour.Shared.Http
             }
         }
 
+        private struct ForbidResult : IResult
+        {
+            private string _reason;
+
+            public ForbidResult(string reason)
+            {
+                _reason = reason;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 403;
+                await httpContext.Response.WriteAsync(_reason);
+            }
+        }
+
         private struct InvalidTokenResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
@@ -63,6 +79,7 @@ namespace Valour.Shared.Http
         }
 
         public static IResult NotFound<T>() => new NotFoundResult<T>();
+        public static IResult Forbid(string reason) => new ForbidResult(reason);
         public static IResult NoToken() => new NoTokenResult();
         public static IResult InvalidToken() => new InvalidTokenResult();
         public static IResult NotPlanetMember() => new NotPlanetMemberResult();

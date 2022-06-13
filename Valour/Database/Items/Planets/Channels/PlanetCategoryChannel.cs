@@ -120,15 +120,14 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
+    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired("id", CategoryPermissionsEnum.View, 
                                         CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetCategoryChannel category)
     {
         // Get resources
         var db = ctx.GetDB();
-        var category = ctx.GetItem<PlanetCategoryChannel>(id);
-
-        var old = await db.PlanetCategoryChannels.FindAsync(id);
+        var old = ctx.GetItem<PlanetCategoryChannel>(id);
 
         // Validation
         if (old.Id != category.Id)
@@ -234,9 +233,6 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
             // Save changes
             await db.SaveChangesAsync();
 
-            // Notify of update
-            PlanetHub.NotifyPlanetItemDelete(category);
-
             await transaction.CommitAsync();
         }
         catch (System.Exception e)
@@ -244,6 +240,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
             await transaction.RollbackAsync();
             return Results.Problem(e.Message);
         }
+
+        PlanetHub.NotifyPlanetItemDelete(category);
 
         return Results.NoContent();
     }
@@ -354,7 +352,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     #region Validation
 
     /// <summary>
-    /// Validates that a given name is allowable for a server
+    /// Validates that a given name is allowable
     /// </summary>
     public static TaskResult ValidateName(string name)
     {
@@ -372,7 +370,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     }
 
     /// <summary>
-    /// Validates that a given description is allowable for a server
+    /// Validates that a given description is allowable
     /// </summary>
     public static TaskResult ValidateDescription(string desc)
     {
@@ -437,12 +435,6 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
         return TaskResult.SuccessResult;
     }
-
-    public static async Task<bool> HasUniquePosition(ValourDB db, PlanetCategoryChannel category) =>
-        // Ensure position is not already taken
-        !(await db.PlanetChannels.AnyAsync(x => x.Parent_Id == category.Parent_Id && // Same parent
-                                                x.Position == category.Position && // Same position
-                                                x.Id != category.Id)); // Not self
 
     #endregion
 }
