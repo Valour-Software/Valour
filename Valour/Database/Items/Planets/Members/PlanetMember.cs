@@ -117,6 +117,22 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     }
 
     /// <summary>
+    /// Deletes this PlanetMember and associated data
+    /// </summary>
+    public async Task DeleteAsync(ValourDB db)
+    {
+        // Remove member
+        db.PlanetMembers.Remove(this);
+
+        // Remove member roles
+        await db.PlanetRoleMembers.BulkDeleteAsync(
+            db.PlanetRoleMembers.Where(x => x.Planet_Id == Planet_Id && x.User_Id == User_Id)
+        );
+
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
     /// Returns if the member has the given permission
     /// </summary>
     public async Task<bool> HasPermissionAsync(PlanetPermission permission, ValourDB db)
@@ -179,35 +195,13 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the user (async)
     /// </summary>
-    public async Task<User> GetUserAsync()
+    public async Task<User> GetUserAsync(ValourDB db) => 
+        User ??= await db.Users.FindAsync(User_Id);
+
+    public async Task<ulong> GetAuthorityAsync(ValourDB db)
     {
-        using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-        {
-            return await db.Users.FindAsync(User_Id);
-        }
-    }
-
-    /// <summary>
-    /// Returns the planet (async)
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync()
-    {
-        if (Planet != null) return Planet;
-
-        using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-        {
-            Planet = await db.Planets.FindAsync(Planet_Id);
-        }
-
-        return Planet;
-    }
-
-    public async Task<ulong> GetAuthorityAsync()
-    {
-        if (Planet == null)
-        {
-            Planet = await GetPlanetAsync();
-        }
+        if (Planet is null)
+            await GetPlanetAsync(db);
 
         if (Planet.Owner_Id == User_Id)
         {
@@ -217,7 +211,6 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         else
         {
             var primaryRole = await GetPrimaryRoleAsync();
-
             return primaryRole.GetAuthority();
         }
     }
