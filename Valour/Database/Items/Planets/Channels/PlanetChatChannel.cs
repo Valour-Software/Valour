@@ -15,6 +15,7 @@ using System.Web.Mvc;
 using Valour.Database.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Http;
+using Microsoft.Extensions.Logging;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -138,7 +139,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetChatChannel channel)
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetChatChannel channel,
+        ILogger<PlanetChatChannel> logger)
     {
         // Get resources
         var db = ctx.GetDB();
@@ -167,8 +169,16 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
-        await db.PlanetChatChannels.AddAsync(channel);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.PlanetChatChannels.AddAsync(channel);
+            await db.SaveChangesAsync();
+        }
+        catch(System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
 
         PlanetHub.NotifyPlanetItemChange(channel);
 
@@ -180,7 +190,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels),
      ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View,
                                     ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel)
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel,
+        ILogger<PlanetChatChannel> logger)
     {
         // Get resources
         var db = ctx.GetDB();
@@ -205,8 +216,17 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             return Results.BadRequest(positionValid.Message);
 
         // Update
-        db.PlanetChatChannels.Update(channel);
-        await db.SaveChangesAsync();
+        try
+        {
+            db.PlanetChatChannels.Update(channel);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
         PlanetHub.NotifyPlanetItemChange(channel);
 
         // Response
@@ -218,7 +238,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels),
      ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View,
                                     ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id)
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id,
+        ILogger<PlanetChatChannel> logger)
     {
         var db = ctx.GetDB();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
@@ -248,6 +269,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         }
         catch (System.Exception e)
         {
+            logger.LogError(e.Message);
             await transaction.RollbackAsync();
             return Results.Problem(e.Message);
         }
