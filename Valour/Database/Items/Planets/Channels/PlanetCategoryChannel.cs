@@ -18,6 +18,7 @@ using Valour.Shared.Items.Planets.Channels;
 using Valour.Database.Extensions;
 using Z.BulkOperations;
 using Valour.Database.Nodes;
+using Microsoft.Extensions.Logging;
 
 namespace Valour.Database.Items.Planets.Channels;
 
@@ -123,7 +124,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired("id", CategoryPermissionsEnum.View, 
                                         CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetCategoryChannel category)
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetCategoryChannel category, 
+        ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
         var db = ctx.GetDB();
@@ -148,8 +150,17 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
             return Results.BadRequest(positionValid.Message);
 
         // Update
-        db.PlanetCategoryChannels.Update(category);
-        await db.SaveChangesAsync();
+        try
+        {
+            db.PlanetCategoryChannels.Update(category);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
         PlanetHub.NotifyPlanetItemChange(category);
 
         // Response
@@ -159,7 +170,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetCategoryChannel category)
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetCategoryChannel category,
+        ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
         var db = ctx.GetDB();
@@ -188,8 +200,16 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
-        await db.PlanetCategoryChannels.AddAsync(category);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.PlanetCategoryChannels.AddAsync(category);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
 
         PlanetHub.NotifyPlanetItemChange(category);
 
@@ -202,7 +222,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired("id", CategoryPermissionsEnum.View,
                                       CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id)
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id,
+        ILogger<PlanetCategoryChannel> logger)
     {
         var db = ctx.GetDB();
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
@@ -237,6 +258,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         }
         catch (System.Exception e)
         {
+            logger.LogError(e.Message);
             await transaction.RollbackAsync();
             return Results.Problem(e.Message);
         }
@@ -265,7 +287,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [PlanetMembershipRequired("planet_id")]
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageCategories),
     CategoryChannelPermsRequired("id", CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] ulong[] order)
+    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] ulong[] order,
+        ILogger<PlanetCategoryChannel> logger)
     {
         var db = ctx.GetDB();
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
@@ -305,6 +328,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         }
         catch (System.Exception e)
         {
+            logger.LogError(e.Message);
             await tran.RollbackAsync();
             return Results.Problem(e.Message);
         }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
@@ -89,7 +90,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PostRoute(HttpContext ctx, ulong planet_id, [FromBody] PlanetBan ban)
+    public static async Task<IResult> PostRoute(HttpContext ctx, ulong planet_id, [FromBody] PlanetBan ban,
+        ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDB();
         var member = ctx.GetMember();
@@ -134,6 +136,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         }
         catch(System.Exception e)
         {
+            logger.LogError(e.Message);
             await tran.RollbackAsync();
             return Results.Problem(e.Message);
         }
@@ -148,7 +151,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PutRoute(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetBan ban)
+    public static async Task<IResult> PutRoute(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetBan ban,
+        ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDB();
         var member = ctx.GetMember();
@@ -180,6 +184,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         }
         catch (System.Exception e)
         {
+            logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
 
@@ -192,7 +197,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> DeleteRoute(HttpContext ctx, ulong id, ulong planet_id)
+    public static async Task<IResult> DeleteRoute(HttpContext ctx, ulong id, ulong planet_id,
+        ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDB();
         var member = ctx.GetMember();
@@ -210,8 +216,16 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
                 return ValourResult.Forbid("The banner of this user has higher authority than you.");
         }
 
-        db.PlanetBans.Remove(ban);
-        await db.SaveChangesAsync();
+        try
+        {
+            db.PlanetBans.Remove(ban);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
         
 
         // Notify of changes
