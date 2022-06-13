@@ -10,6 +10,11 @@ using Valour.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 using Valour.Shared.Items;
+using Valour.Database.Attributes;
+using System.Web.Mvc;
+using Valour.Database.Extensions;
+using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Http;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -20,7 +25,7 @@ using Valour.Shared.Items;
 namespace Valour.Database.Items.Planets.Channels;
 
 [Table("PlanetChatChannels")]
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeSpecific
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
     public ulong MessageCount { get; set; }
 
@@ -103,7 +108,161 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
     }
 
     /// <summary>
-    /// Validates that a given name is allowable for a channel
+    /// Returns all members who can see this channel
+    /// </summary>
+    public async Task<List<PlanetMember>> GetChannelMembersAsync(ValourDB db)
+    {
+        List<PlanetMember> members = new List<PlanetMember>();
+
+        var planetMembers = db.PlanetMembers.Include(x => x.RoleMembership).Where(x => x.Planet_Id == Planet_Id);
+
+        foreach (var member in planetMembers)
+        {
+            if (await HasPermissionAsync(member, ChatChannelPermissions.View, db))
+            {
+                members.Add(member);
+            }
+        }
+
+        return members;
+    }
+
+    #region Routes
+
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View)]
+    public static IResult GetRoute(HttpContext ctx, ulong id) =>
+        Results.Json(ctx.GetItem<PlanetChatChannel>(id));
+
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetChatChannel channel)
+    {
+        // Get resources
+        var db = ctx.GetDB();
+        var member = ctx.GetMember();
+
+        if (channel.Planet_Id != planet_id)
+            return Results.BadRequest("Planet_Id mismatch.");
+
+        var nameValid = ValidateName(channel.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(channel.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        var positionValid = await ValidateParentAndPosition(db, channel);
+        if (!positionValid.Success)
+            return Results.BadRequest(positionValid.Message);
+
+        // Ensure user has permission for parent category management
+        if (channel.Parent_Id is not null)
+        {
+            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.Parent_Id);
+            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+
+        await db.PlanetChatChannels.AddAsync(channel);
+        await db.SaveChangesAsync();
+
+        PlanetHub.NotifyPlanetItemChange(channel);
+
+        return Results.Created(channel.GetUri(), channel);
+    }
+
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels),
+     ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View,
+                                    ChatChannelPermissionsEnum.ManageChannel)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel)
+    {
+        // Get resources
+        var db = ctx.GetDB();
+        var old = ctx.GetItem<PlanetChatChannel>(id);
+
+        // Validation
+        if (old.Id != channel.Id)
+            return Results.BadRequest("Cannot change Id.");
+        if (old.Planet_Id != channel.Planet_Id)
+            return Results.BadRequest("Cannot change Planet_Id.");
+
+        var nameValid = ValidateName(channel.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(channel.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        var positionValid = await ValidateParentAndPosition(db, channel);
+        if (!positionValid.Success)
+            return Results.BadRequest(positionValid.Message);
+
+        // Update
+        db.PlanetChatChannels.Update(channel);
+        await db.SaveChangesAsync();
+        PlanetHub.NotifyPlanetItemChange(channel);
+
+        // Response
+        return Results.Ok(channel);
+    }
+
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels),
+     ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View,
+                                    ChatChannelPermissionsEnum.ManageChannel)]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id)
+    {
+        var db = ctx.GetDB();
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
+
+        // Always use transaction for multi-step DB operations
+        using var transaction = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            // Remove permission nodes
+            await db.PermissionsNodes.BulkDeleteAsync(
+                db.PermissionsNodes.Where(x => x.Target_Id == id)
+            );
+
+            // Remove messages
+            await db.PlanetMessages.BulkDeleteAsync(
+                db.PlanetMessages.Where(x => x.Channel_Id == id)
+            );
+
+            // Remove channel
+            db.PlanetChatChannels.Remove(channel);
+
+            // Save changes
+            await db.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+        }
+        catch (System.Exception e)
+        {
+            await transaction.RollbackAsync();
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemDelete(channel);
+
+        return Results.NoContent();
+    }
+
+    #endregion
+
+    #region Validation
+
+    /// <summary>
+    /// Validates that a given name is allowable
     /// </summary>
     public static TaskResult ValidateName(string name)
     {
@@ -117,132 +276,33 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, INodeS
     }
 
     /// <summary>
-    /// Returns all members who can see this channel
+    /// Validates that a given description is allowable
     /// </summary>
-    public async Task<List<PlanetMember>> GetChannelMembersAsync(ValourDB db = null)
+    public static TaskResult ValidateDescription(string desc)
     {
-        List<PlanetMember> members = new List<PlanetMember>();
-
-        bool createdb = false;
-        if (db == null) { db = new ValourDB(ValourDB.DBOptions); createdb = true; }
-
-        var planetMembers = db.PlanetMembers.Include(x => x.RoleMembership).Where(x => x.Planet_Id == Planet_Id);
-
-        foreach (var member in planetMembers)
+        if (desc.Length > 500)
         {
-            if (await HasPermissionAsync(member, ChatChannelPermissions.View, db))
-            {
-                members.Add(member);
-            }
+            return new TaskResult(false, "Planet descriptions must be 500 characters or less.");
         }
 
-        if (createdb) { await db.DisposeAsync(); }
-
-        return members;
+        return TaskResult.SuccessResult;
     }
 
-    #region API Methods
-
-    public override async Task<TaskResult> CanGetAsync(AuthToken token, PlanetMember member, ValourDB db)
+    public static async Task<TaskResult> ValidateParentAndPosition(ValourDB db, PlanetChatChannel channel)
     {
-        if (member is null)
-            return new TaskResult(false, "User is not a member of the target planet");
-
-        if (!await HasPermissionAsync(member, ChatChannelPermissions.View, db))
-            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.View.Name);
-
-        return new TaskResult(true, "Success");
-    }
-
-    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
-    {
-        // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(token, member, db);
-        if (!canGet.Success)
-            return canGet;
-
-        await GetPlanetAsync(db);
-
-        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
-            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
-
-        if (!await HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
-            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
-
-
-        return new TaskResult(true, "Success");
-    }
-
-    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
-    {
-        // Similar to Create but also needs specific channel perms
-        var canCreate = await CanCreateAsync(token, member, db);
-        if (!canCreate.Success)
-            return canCreate;
-
-        if (!await HasPermissionAsync(member, ChatChannelPermissions.ManageChannel, db))
-            return new TaskResult(false, "Member lacks channel permission " + ChatChannelPermissions.ManageChannel.Name);
-
-        return new TaskResult(true, "Success");
-    }
-
-    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
-    {
-        await GetPlanetAsync(db);
-
-        if (!await Planet.HasPermissionAsync(member, PlanetPermissions.ManageChannels, db))
-            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageChannels.Name);
-
-        var valid = await ValidateAsync(db);
-        if (!valid.Success)
-            return valid;
-
-        return new TaskResult(true, "Success");
-    }
-
-    public override async Task DeleteAsync(ValourDB db)
-    {
-        // Remove permission nodes
-        db.PermissionsNodes.RemoveRange(
-            db.PermissionsNodes.Where(x => x.Target_Id == Id)
-        );
-
-        // Remove messages
-        db.PlanetMessages.RemoveRange(
-            db.PlanetMessages.Where(x => x.Channel_Id == Id)
-        );
-
-        // Remove channel
-        db.PlanetChatChannels.Remove(
-            await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Id == Id)
-        );
-
-        // Save changes
-        await db.SaveChangesAsync();
-
-        // Notify channel deletion
-        PlanetHub.NotifyPlanetItemChange(this);
-    }
-
-    public async Task<TaskResult> ValidateAsync(ValourDB db)
-    {
-        var nameValid = ValidateName(Name);
-        if (!nameValid.Success)
-            return nameValid;
-
-        if (Description.Length > 128)
-            return new TaskResult(false, "Description must be at or under 128 characters");
-
         // Logic to check if parent is legitimate
-        if (Parent_Id is not null)
+        if (channel.Parent_Id is not null)
         {
             var parent = await db.PlanetCategoryChannels.FirstOrDefaultAsync
-                (x => x.Id == Parent_Id
-                && x.Planet_Id == Planet_Id); // This ensures the result has the same planet id
+                (x => x.Id == channel.Parent_Id
+                && x.Planet_Id == channel.Planet_Id); // This ensures the result has the same planet id
 
             if (parent is null)
                 return new TaskResult(false, "Parent ID is not valid");
         }
+
+        if (!await HasUniquePosition(db, channel))
+            return new TaskResult(false, "The position is already taken.");
 
         return new TaskResult(true, "Valid");
     }
