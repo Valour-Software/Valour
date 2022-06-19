@@ -10,13 +10,11 @@ namespace Valour.Database.Attributes
     public class ValourRouteAttribute : System.Attribute
     {
         public string route;
-        public string prefix;
         public HttpVerbs method;
 
-        public ValourRouteAttribute(HttpVerbs method, string route = null, string prefix = null)
+        public ValourRouteAttribute(HttpVerbs method, string route = null)
         {
             this.route = route;
-            this.prefix = prefix;
             this.method = method;
         }
     }

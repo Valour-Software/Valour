@@ -128,11 +128,11 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
             // Add ban
             await db.PlanetBans.AddAsync(ban);
 
-            // Delete target member
-            await target.DeleteAsync(db);
-
             // Save changes
             await db.SaveChangesAsync();
+
+            // Delete target member
+            await target.DeleteAsync(db);
         }
         catch(System.Exception e)
         {

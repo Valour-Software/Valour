@@ -30,14 +30,14 @@ public class Invite : PlanetItem
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    public DateTime Creation_Time { get; set; }
+    public DateTime Created { get; set; }
 
     /// <summary>
-    /// The length of the invite before its invaild
+    /// When the invite expires
     /// </summary>
-    public int? Hours { get; set; }
+    public DateTime? Expires { get; set; }
 
-    public bool IsPermanent() => Hours is null;
+    public bool IsPermanent() => Expires is null;
 
     public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
     {
@@ -68,7 +68,7 @@ public class Invite : PlanetItem
             return await Task.FromResult(new TaskResult(false, "You cannot change the code"));
         if (this.Issuer_Id != oldInvite.Issuer_Id)
             return await Task.FromResult(new TaskResult(false, "You cannot change who issued"));
-        if (this.Creation_Time != oldInvite.Creation_Time)
+        if (this.Created != oldInvite.Created)
             return await Task.FromResult(new TaskResult(false, "You cannot change the creation time"));
 
         this.Issuer_Id = member.User_Id;
@@ -83,7 +83,7 @@ public class Invite : PlanetItem
             return canGet;
 
         this.Issuer_Id = member.User_Id;
-        this.Creation_Time = DateTime.UtcNow;
+        this.Created = DateTime.UtcNow;
         this.Code = await GenerateCode(db);
 
         return TaskResult.SuccessResult;
