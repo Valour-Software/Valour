@@ -186,13 +186,6 @@ public class Invite : PlanetItem
         return code;
     }
 
-    public override void RegisterCustomRoutes(WebApplication app)
-    {
-        app.MapGet(IdRoute + "/plantname", GetPlanetName);
-        app.MapGet(IdRoute + "/planeticon", GetPlanetIconUrl);
-        app.MapPost(BaseRoute + "/join", Join);
-    }
-
     // Custom routes
 
     [ValourRoute(HttpVerbs.Get, "/{invite_code}/planetname"), InjectDB]
