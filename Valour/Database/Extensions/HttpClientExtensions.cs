@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
+using Valour.Database.Items.Users;
 
 namespace Valour.Database.Extensions
 {
@@ -17,6 +18,14 @@ namespace Valour.Database.Extensions
             //    return null;
 
             return (AuthToken)ctx.Items["token"];
+        }
+
+        public static User GetUser(this HttpContext ctx)
+        {
+            //if (!ctx.Items.ContainsKey("member"))
+            //    return null;
+
+            return GetToken(ctx).User; 
         }
 
         public static PlanetMember GetMember(this HttpContext ctx)
