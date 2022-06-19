@@ -113,9 +113,7 @@ public class Invite : PlanetItem
     {
         var db = ctx.GetDB();
 
-        var old = await FindAsync<Invite>(id, db);
-
-        var oldInvite = old as Invite;
+        var oldInvite = await FindAsync<Invite>(id, db);
 
         if (invite.Code != oldInvite.Code)
             return Results.BadRequest("You cannot change the code.");
