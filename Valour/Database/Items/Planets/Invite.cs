@@ -149,7 +149,6 @@ public class Invite : PlanetItem
         ILogger<Invite> logger)
     {
         var db = ctx.GetDB();
-        var authMember = ctx.GetMember();
 
         var invite = await FindAsync<Invite>(id, db);
 
