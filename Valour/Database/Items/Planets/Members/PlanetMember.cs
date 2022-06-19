@@ -200,6 +200,12 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         await db.SaveChangesAsync();
     }
 
+    // Helpful route to return the member for the authorizing user
+    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    public static void GetSelfRoute(HttpContext ctx) =>
+        Results.Json(ctx.GetMember());
+
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
@@ -228,7 +234,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, string invite_code, [FromBody] PlanetMember member,
-        ILogger<PlanetChatChannel> logger)
+        ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDB();
         var token = ctx.GetToken();
@@ -278,8 +284,8 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, ulong planet_id, string invite_code, [FromBody] PlanetMember member,
-        ILogger<PlanetChatChannel> logger)
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetMember member,
+        ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDB();
         var token = ctx.GetToken();
@@ -322,7 +328,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
-        ILogger<PlanetChatChannel> logger)
+        ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDB();
         var authMember = ctx.GetMember();
@@ -392,31 +398,32 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Post, "/{id}/roles/{role_id}"), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
-    public async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planet_id, ulong role_id)
+    public async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planet_id, ulong role_id,
+        ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDB();
         var authMember = ctx.GetMember();
 
-        var member = await FindAllAsync<PlanetMember>(id, db);
+        var member = await FindAsync<PlanetMember>(id, db);
         if (member is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (member.Planet_Id != planet_id)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        if (await db.PlanetRoleMembers.AllAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id))
+        if (await db.PlanetRoleMembers.AnyAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id))
             return Results.BadRequest("The member already has this role");
 
         var role = await db.PlanetRoles.FindAsync(role_id);
         if (role is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync();
+        var authAuthority = await authMember.GetAuthorityAsync(db);
         if (role.GetAuthority() > authAuthority)
-            return Results.Forbid();
+            return ValourResult.Forbid("You have lower authority than the role you are trying to add");
 
         PlanetRoleMember newRoleMember = new()
         {
@@ -426,31 +433,41 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             User_Id = member.User_Id
         };
 
-        await db.PlanetRoleMembers.AddAsync(newRoleMember);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.PlanetRoleMembers.AddAsync(newRoleMember);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemChange(newRoleMember);
 
         return Results.Created($"{UriPrefix}{Node}{UriPostfix}/planet/{planet_id}/planetrolemember/{newRoleMember.Id}", newRoleMember);
     }
 
-    public async Task<IResult> RemoveRoleFromMember(ValourDB db, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization)
+
+    [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{role_id}"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("planet_id")]
+    public async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization,
+        ILogger<PlanetMember> logger)
     {
-        var auth = await AuthToken.TryAuthorize(authorization, db);
-        if (auth is null)
-            return Results.Unauthorized();
 
-        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
-        if (authMember is null)
-            return Results.Forbid();
+        var db = ctx.GetDB();
+        var authMember = ctx.GetMember();
 
-        var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == id);
+        var member = await FindAsync<PlanetMember>(id, db);
         if (member is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (member.Planet_Id != planet_id)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-            return Results.Forbid();
+            return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
         var oldRoleMember = await db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id);
 
@@ -459,14 +476,24 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
         var role = await db.PlanetRoles.FindAsync(role_id);
         if (role is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync();
+        var authAuthority = await authMember.GetAuthorityAsync(db);
         if (role.GetAuthority() > authAuthority)
-            return Results.Forbid();
+            return ValourResult.Forbid("You have less authority than the role you are trying to remove"); ;
 
-        db.PlanetRoleMembers.Remove(oldRoleMember);
-        await db.SaveChangesAsync();
+        try
+        {
+            db.PlanetRoleMembers.Remove(oldRoleMember);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemDelete(oldRoleMember);
 
         return Results.NoContent();
     }
