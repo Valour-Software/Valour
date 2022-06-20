@@ -13,4 +13,6 @@ public class PlanetPermsRequiredAttribute : Attribute
         this.planetRouteName = planetRouteName;
         this.permissions = permissions;
     }
+
+    public PlanetPermsRequiredAttribute(params PlanetPermissionsEnum[] permissions) : this("planet_id", permissions) { }
 }

@@ -76,8 +76,8 @@ public class Invite : PlanetItem
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.Invite)]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Invite invite,
         ILogger<Invite> logger)
     {
@@ -106,8 +106,8 @@ public class Invite : PlanetItem
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.Manage)]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Invite invite,
         ILogger<Invite> logger)
     {
@@ -142,8 +142,8 @@ public class Invite : PlanetItem
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.Manage)]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
         ILogger<Invite> logger)
     {

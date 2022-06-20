@@ -13,4 +13,6 @@ public class ChatChannelPermsRequiredAttribute : Attribute
         this.permissions = permissions;
         this.channelRouteName = channelRouteName;
     }
+
+    public ChatChannelPermsRequiredAttribute(params ChatChannelPermissionsEnum[] permissions) : this("id", permissions) { }
 }

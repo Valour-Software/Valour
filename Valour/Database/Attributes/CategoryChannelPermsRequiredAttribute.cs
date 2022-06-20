@@ -13,4 +13,6 @@ public class CategoryChannelPermsRequiredAttribute : Attribute
         this.permissions = permissions;
         this.categoryRouteName = categoryRouteName;
     }
+
+    public CategoryChannelPermsRequiredAttribute(params CategoryPermissionsEnum[] permissions) : this("id", permissions) { }
 }

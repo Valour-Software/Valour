@@ -9,4 +9,6 @@ public class PlanetMembershipRequiredAttribute : Attribute
     {
         this.planetRouteName = planetRouteName;
     }
+
+    public PlanetMembershipRequiredAttribute() : this("planet_id") { }
 }
