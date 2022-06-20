@@ -1,21 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Web.Mvc;
+﻿using System.Web.Mvc;
 
-namespace Valour.Database.Attributes
+namespace Valour.Database.Attributes;
+
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public class ValourRouteAttribute : Attribute
 {
-    public class ValourRouteAttribute : System.Attribute
-    {
-        public string route;
-        public HttpVerbs method;
+    public readonly string route;
+    public readonly HttpVerbs method;
 
-        public ValourRouteAttribute(HttpVerbs method, string route = null)
-        {
-            this.route = route;
-            this.method = method;
-        }
+    public ValourRouteAttribute(HttpVerbs method, string route = null)
+    {
+        this.route = route;
+        this.method = method;
     }
 }
