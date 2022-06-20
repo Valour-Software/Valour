@@ -120,9 +120,9 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         await db.SaveChangesAsync();
     }
 
-    [ValourRoute(HttpVerbs.Get), InjectDB]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id,
-        ILogger<PlanetRole> logger)
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDB();
 
@@ -218,7 +218,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemDelete(this);
+        PlanetHub.NotifyPlanetItemDelete(role);
 
         return Results.NoContent();
 
