@@ -118,9 +118,6 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         db.PlanetRoles.Remove(this);
 
         await db.SaveChangesAsync();
-
-        // Notify clients
-        PlanetHub.NotifyPlanetItemDelete(this);
     }
 
     [ValourRoute(HttpVerbs.Get), InjectDB]
@@ -220,6 +217,8 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
+
+        PlanetHub.NotifyPlanetItemDelete(this);
 
         return Results.NoContent();
 

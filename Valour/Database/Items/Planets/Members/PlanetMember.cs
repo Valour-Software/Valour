@@ -438,7 +438,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
         PlanetHub.NotifyPlanetItemChange(newRoleMember);
 
-        return Results.Created($"{UriPrefix}{Node}{UriPostfix}/planet/{planet_id}/planetrolemember/{newRoleMember.Id}", newRoleMember);
+        return Results.Created(newRoleMember.GetUri(), newRoleMember);
     }
 
 
