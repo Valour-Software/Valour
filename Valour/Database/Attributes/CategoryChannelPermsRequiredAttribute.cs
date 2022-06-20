@@ -1,22 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Valour.Shared.Authorization;
+﻿using Valour.Shared.Authorization;
 
-namespace Valour.Database.Attributes
+namespace Valour.Database.Attributes;
+
+[AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+public class CategoryChannelPermsRequiredAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
-    public class CategoryChannelPermsRequiredAttribute : Attribute
-    {
-        public CategoryPermissionsEnum[] permissions;
-        public string categoryRouteName;
+    public CategoryPermissionsEnum[] permissions;
+    public string categoryRouteName;
 
-        public CategoryChannelPermsRequiredAttribute(string categoryRouteName, params CategoryPermissionsEnum[] permissions)
-        {
-            this.permissions = permissions;
-            this.categoryRouteName = categoryRouteName;
-        }
+    public CategoryChannelPermsRequiredAttribute(string categoryRouteName, params CategoryPermissionsEnum[] permissions)
+    {
+        this.permissions = permissions;
+        this.categoryRouteName = categoryRouteName;
     }
 }
