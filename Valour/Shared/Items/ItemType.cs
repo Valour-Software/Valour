@@ -12,6 +12,8 @@ public enum ItemType
 
     User,
 
+    Message,
+
     Planet,
     Channel,
     PlanetChannel,

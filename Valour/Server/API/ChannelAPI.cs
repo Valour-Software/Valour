@@ -518,7 +518,7 @@ namespace Valour.Server.API
                 return;
             }
 
-            List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel_id, count);
+            
             List<PlanetMessage> messages = null;
 
             count = count - staged.Count;

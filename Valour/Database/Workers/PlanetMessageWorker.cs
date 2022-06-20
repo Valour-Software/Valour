@@ -1,18 +1,21 @@
 ﻿using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Valour.Database;
 using Valour.Database.Items.Messages;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Items.Messages;
 
-namespace Valour.Server.Workers
+namespace Valour.Database.Workers
 {
     public class PlanetMessageWorker : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        public readonly ILogger<MessageCacheWorker> _logger;
+        public readonly ILogger<PlanetMessageWorker> _logger;
 
-        public PlanetMessageWorker(ILogger<MessageCacheWorker> logger,
+        public PlanetMessageWorker(ILogger<PlanetMessageWorker> logger,
                             IServiceScopeFactory scopeFactory)
         {
             _logger = logger;

@@ -16,6 +16,8 @@ using Valour.Database.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Http;
 using Microsoft.Extensions.Logging;
+using Valour.Database.Items.Messages;
+using Valour.Database.Workers;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -275,6 +277,41 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         PlanetHub.NotifyPlanetItemDelete(channel);
 
         return Results.NoContent();
+    }
+
+    // Message routes
+
+    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
+    public static async Task<IResult> GetMessagesAsync(HttpContext ctx, ulong id, ulong index = ulong.MaxValue, int count = 10)
+    {
+        if (count > 64)
+            return Results.BadRequest("Maximum count is 64.");
+
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
+        var db = ctx.GetDB();
+
+        List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id, count);
+
+        count = count - staged.Count;
+
+        if (count > 0)
+        {
+            var messages = await db.PlanetMessages.Where(x => x.Channel_Id == id && x.MessageIndex < index)
+                                                  .OrderByDescending(x => x.MessageIndex)
+                                                  .Take(count)
+                                                  .Reverse()
+                                                  .ToListAsync();
+
+            messages.AddRange(staged);
+
+            return Results.Json(messages);
+        }
+        else
+        {
+            return Results.Json(staged);
+        }
     }
 
     #endregion
