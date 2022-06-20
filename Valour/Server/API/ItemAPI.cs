@@ -52,22 +52,26 @@ public class ItemAPI<T> where T : Item
 
                     RouteHandlerBuilder builder = null;
 
+                    var idRoute = dummy.IdRoute;
+                    if (val.route != null)
+                        idRoute = dummy.BaseRoute + val.route;
+
                     switch (val.method)
                     {
                         case System.Web.Mvc.HttpVerbs.Get:
-                            builder = app.MapGet((val.prefix ?? dummy.IdRoute) + val.route, del);
+                            builder = app.MapGet(idRoute, del);
                             break;
                         case System.Web.Mvc.HttpVerbs.Post:
-                            builder = app.MapPost((val.prefix ?? dummy.BaseRoute) + val.route, del);
+                            builder = app.MapPost(dummy.BaseRoute + val.route, del);
                             break;
                         case System.Web.Mvc.HttpVerbs.Put:
-                            builder = app.MapPut((val.prefix ?? dummy.IdRoute) + val.route, del);
+                            builder = app.MapPut(idRoute, del);
                             break;
                         case System.Web.Mvc.HttpVerbs.Patch:
-                            builder = app.MapPatch((val.prefix ?? dummy.IdRoute) + val.route, del);
+                            builder = app.MapPatch(idRoute, del);
                             break;
                         case System.Web.Mvc.HttpVerbs.Delete:
-                            builder = app.MapDelete((val.prefix ?? dummy.IdRoute) + val.route, del);
+                            builder = app.MapDelete(idRoute, del);
                             break;
                     }
 

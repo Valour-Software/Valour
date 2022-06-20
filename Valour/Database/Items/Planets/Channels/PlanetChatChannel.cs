@@ -131,14 +131,12 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View)]
+    [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
     public static IResult GetRoute(HttpContext ctx, ulong id) =>
         Results.Json(ctx.GetItem<PlanetChatChannel>(id));
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels)]
+    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
@@ -186,10 +184,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View,
-                                    ChatChannelPermissionsEnum.ManageChannel)]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
+     ChatChannelPermsRequired(ChatChannelPermissionsEnum.View,
+                              ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
@@ -234,10 +232,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
-    [PlanetMembershipRequired("planet_id")]
-    [PlanetPermsRequired("planet_id", PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired("id", ChatChannelPermissionsEnum.View,
-                                    ChatChannelPermissionsEnum.ManageChannel)]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
+     ChatChannelPermsRequired(ChatChannelPermissionsEnum.View,
+                              ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id,
         ILogger<PlanetChatChannel> logger)
     {

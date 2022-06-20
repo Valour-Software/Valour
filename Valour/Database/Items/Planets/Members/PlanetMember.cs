@@ -12,6 +12,10 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Valour.Shared.Http;
+using Valour.Database.Attributes;
+using System.Web.Mvc;
+using Valour.Database.Extensions;
+using Microsoft.Extensions.Logging;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -65,7 +69,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns all of the roles for a planet user
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(ValourDB db = null)
+    public async Task<List<PlanetRole>> GetRolesAsync(ValourDB db)
     {
         List<PlanetRole> roles;
 
@@ -82,26 +86,12 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Loads role membership data from database
     /// </summary>
-    public async Task LoadRoleMembershipAsync(ValourDB db = null)
-    {
-        bool createdb = false;
-        if (db == null)
-        {
-            db = new ValourDB(ValourDB.DBOptions);
-            createdb = true;
-        }
-
+    public async Task LoadRoleMembershipAsync(ValourDB db) =>
         await db.Attach(this).Collection(x => x.RoleMembership)
                                  .Query()
                                  .Include(x => x.Role)
                                  .OrderBy(x => x.Role.Position)
                                  .LoadAsync();
-
-        if (createdb)
-        {
-            await db.DisposeAsync();
-        }
-    }
 
     /// <summary>
     /// Returns the member's primary role
@@ -117,27 +107,11 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     }
 
     /// <summary>
-    /// Deletes this PlanetMember and associated data
-    /// </summary>
-    public async Task DeleteAsync(ValourDB db)
-    {
-        // Remove member
-        db.PlanetMembers.Remove(this);
-
-        // Remove member roles
-        await db.PlanetRoleMembers.BulkDeleteAsync(
-            db.PlanetRoleMembers.Where(x => x.Planet_Id == Planet_Id && x.User_Id == User_Id)
-        );
-
-        await db.SaveChangesAsync();
-    }
-
-    /// <summary>
     /// Returns if the member has the given permission
     /// </summary>
     public async Task<bool> HasPermissionAsync(PlanetPermission permission, ValourDB db)
     {
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
+        await GetPlanetAsync(db);
         return await Planet.HasPermissionAsync(this, permission, db);
     }
 
@@ -215,169 +189,233 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         }
     }
 
-    public override async Task<TaskResult> CanDeleteAsync(AuthToken token, PlanetMember member, ValourDB db)
+    public async Task DeleteAsync(ValourDB db)
     {
-        // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(token, member, db);
-        if (!canGet.Success)
-            return canGet;
+        await db.BulkDeleteAsync(
+            db.PlanetRoleMembers.Where(x => x.Member_Id == Id)
+        );
 
-        Planet ??= await GetPlanetAsync();
+        db.PlanetMembers.Remove(this);
 
-        // Can always remove self
-        if (Id != member.Id)
-        {
-            // Need kick or ban to remove anyone else (ban implicitly grants kick)
-            if (!(await Planet.HasPermissionAsync(member, PlanetPermissions.Kick, db) ||
-                  await Planet.HasPermissionAsync(member, PlanetPermissions.Ban, db)))
-            {
-                return new TaskResult(false, "Member lacks planet permission " +
-                    PlanetPermissions.Kick.Name + " or " + PlanetPermissions.Ban.Name);
-            }
-        }
-
-        return new TaskResult(true, "Success");
+        await db.SaveChangesAsync();
     }
 
-    public override async Task<TaskResult> CanUpdateAsync(AuthToken token, PlanetMember member, PlanetItem old, ValourDB db)
+    // Helpful route to return the member for the authorizing user
+    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static void GetSelfRoute(HttpContext ctx) =>
+        Results.Json(ctx.GetMember());
+
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
     {
-        // Needs to be able to GET in order to do anything else
-        var canGet = await CanGetAsync(token, member, db);
-        if (!canGet.Success)
-            return canGet;
+        var db = ctx.GetDB();
+        var member = await FindAsync<PlanetMember>(id, db);
 
-        // Only a member can edit themselves
-        if (Id != member.Id)
-        {
-            return new TaskResult(false, "Cannot edit another member.");
-        }
+        if (member is null)
+            return ValourResult.NotFound<PlanetMember>();
 
-        var oldMember = old as PlanetMember;
-
-        // Cannot change user ID
-        if (oldMember.User_Id != User_Id)
-        {
-            return new TaskResult(false, "User_Id cannot be changed.");
-        }
-
-        if (Member_Pfp != oldMember.Member_Pfp)
-        {
-            // TODO: Automatically use VMPS
-            return new TaskResult(false, "Profile picture must be changed through Upload API.");
-        }
-
-        var valid = ValidateAsync();
-        if (!valid.Success)
-            return valid;
-
-        return new TaskResult(true, "Success");
+        return Results.Json(member);
     }
 
-    public override async Task<TaskResult> CanCreateAsync(AuthToken token, PlanetMember member, ValourDB db)
+    [ValourRoute(HttpVerbs.Get, "/byuser/{user_id}"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> GetRoute(HttpContext ctx, ulong planet_id, ulong user_id)
     {
-        var valid = ValidateAsync();
-        if (!valid.Success)
-            return valid;
+        var db = ctx.GetDB();
+        var member = await FindAsync(user_id, planet_id, db);
 
-        // You can only create a member for yourself
+        if (member is null)
+            return ValourResult.NotFound<PlanetMember>();
+
+        return Results.Json(member);
+    }
+
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, string invite_code, [FromBody] PlanetMember member,
+        ILogger<PlanetMember> logger)
+    {
+        var db = ctx.GetDB();
+        var token = ctx.GetToken();
+
+        if (member.Planet_Id != planet_id)
+            return Results.BadRequest("Planet_Id does not match.");
         if (member.User_Id != token.User_Id)
-            return new TaskResult(false, "Member can only be created by same user.");
+            return Results.BadRequest("User_Id does not match.");
 
-        await GetPlanetAsync();
+        var nameValid = ValidateName(member);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
 
-        // Ensure planet is open or user is invited
-        if (Planet == null)
-            return new TaskResult(false, "Planet not found.");
+        // Clear out pfp, it *must* be done through VMPS
+        member.Member_Pfp = null;
 
-        if (!Planet.Public)
+        // Ensure member does not already exist
+        if (await db.PlanetMembers.AnyAsync(x => x.Planet_Id == planet_id && x.User_Id == token.User_Id))
+            return Results.BadRequest("Planet member already exists.");
+
+        var planet = await FindAsync<Planet>(planet_id, db);
+
+        if (!planet.Public)
         {
-            // Check for invite for specific user
-            // TODO: This does not exist yet
-            return new TaskResult(false, "You are not directly invited - you will need an invite code.");
+            if (invite_code is null)
+                return ValourResult.Forbid("The planet is not public. Please include invite_code.");
+
+            if (!await db.PlanetInvites.AnyAsync(x => x.Code == invite_code && x.Planet_Id == planet_id && DateTime.UtcNow > x.Created))
+                return ValourResult.Forbid("The invite code is invalid or expired.");
+        }
+
+        try
+        {
+            await db.AddAsync(member);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemChange(member);
+
+        return Results.Created(member.GetUri(), member);
+    }
+
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetMember member,
+        ILogger<PlanetMember> logger)
+    {
+        var db = ctx.GetDB();
+        var token = ctx.GetToken();
+
+        var old = await FindAsync<PlanetMember>(id, db);
+
+        if (old is null)
+            return ValourResult.NotFound<PlanetMember>();
+
+        if (old.Id != member.Id)
+            return Results.BadRequest("Cannot change Id.");
+
+        if (token.User_Id != member.User_Id)
+            return Results.BadRequest("You can only modify your own membership.");
+
+        if (member.Planet_Id != planet_id)
+            return Results.BadRequest("Cannot change Planet_Id.");
+
+        if (old.Member_Pfp != member.Member_Pfp)
+            return Results.BadRequest("Cannot directly change pfp. Use VMPS.");
+
+        var nameValid = ValidateName(member);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        try
+        {
+            db.PlanetMembers.Update(member);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        return Results.Ok(member);
+    }
+
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+        ILogger<PlanetMember> logger)
+    {
+        var db = ctx.GetDB();
+        var authMember = ctx.GetMember();
+        var targetMember = await FindAsync<PlanetMember>(id, db);
+
+        if (authMember.Id != id)
+        {
+            if (!await authMember.HasPermissionAsync(PlanetPermissions.Kick, db))
+                return ValourResult.LacksPermission(PlanetPermissions.Kick);
+
+            if (await authMember.GetAuthorityAsync(db) < await targetMember.GetAuthorityAsync(db))
+                return ValourResult.Forbid("You have less authority than the target member.");
+        }
+            
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            await targetMember.DeleteAsync(db);
+        }
+        catch(System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        await tran.CommitAsync();
+        PlanetHub.NotifyPlanetItemDelete(targetMember);
+
+        return Results.NoContent();
+    }
+
+    public static TaskResult ValidateName(PlanetMember member)
+    {
+        // Ensure nickname is valid
+        if (member.Nickname.Length > 32)
+        {
+            return new TaskResult(false, "Maximum nickname is 32 characters.");
         }
 
         return TaskResult.SuccessResult;
     }
 
-    public override async Task CreateAsync(ValourDB db)
+    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public async Task<IResult> GetAllRolesForMember(HttpContext ctx, ulong id, ulong planet_id)
     {
-        await GetPlanetAsync();
-        await GetUserAsync();
-
-        var result = Planet.AddMemberAsync(User, db);
-    }
-
-    public TaskResult ValidateAsync()
-    {
-        // Ensure nickname is valid
-        if (Nickname.Length > 32)
-        {
-            return new TaskResult(false, "Maximum nickname is 32 characters.");
-        }
-
-        return new TaskResult(true, "Success");
-    }
-
-    public override void RegisterCustomRoutes(WebApplication app)
-    {
-        app.MapGet(IdRoute + "/roles", GetAllRolesForMember);
-        app.MapPost(IdRoute + "/roles/{role_id}", AddRoleToMember);
-        app.MapPut(IdRoute + "/roles/{role_id}", AddRoleToMember);
-        app.MapDelete(IdRoute + "/roles/{role_id}", RemoveRoleFromMember);
-    }
-
-    public async Task<IResult> GetAllRolesForMember(ValourDB db, ulong id, ulong planet_id, [FromHeader] string authorization)
-    {
-        var auth = await AuthToken.TryAuthorize(authorization, db);
-        if (auth is null)
-            return Results.Unauthorized();
-
-        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
-        if (authMember is null)
-            return Results.Forbid();
+        var db = ctx.GetDB();
 
         var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                                            .ThenInclude(x => x.Role)
-                                           .FirstOrDefaultAsync(x => x.Id == id);
+                                           .FirstOrDefaultAsync(x => x.Id == id && x.Planet_Id == planet_id);
         if (member is null)
-            return Results.NotFound();
-
-        if (member.Planet_Id != planet_id)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         return Results.Json(member.RoleMembership.Select(r => r.Role_Id));
     }
 
-    public async Task<IResult> AddRoleToMember(ValourDB db, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization)
+    [ValourRoute(HttpVerbs.Post, "/{id}/roles/{role_id}"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planet_id, ulong role_id,
+        ILogger<PlanetMember> logger)
     {
-        var auth = await AuthToken.TryAuthorize(authorization, db);
-        if (auth is null)
-            return ValourResult.NotPlanetMember();
+        var db = ctx.GetDB();
+        var authMember = ctx.GetMember();
 
-        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
-        if (authMember is null)
-            return Results.Forbid();
-
-        var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == id);
+        var member = await FindAsync<PlanetMember>(id, db);
         if (member is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (member.Planet_Id != planet_id)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        if (await db.PlanetRoleMembers.AllAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id))
+        if (await db.PlanetRoleMembers.AnyAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id))
             return Results.BadRequest("The member already has this role");
 
         var role = await db.PlanetRoles.FindAsync(role_id);
         if (role is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync();
+        var authAuthority = await authMember.GetAuthorityAsync(db);
         if (role.GetAuthority() > authAuthority)
-            return Results.Forbid();
+            return ValourResult.Forbid("You have lower authority than the role you are trying to add");
 
         PlanetRoleMember newRoleMember = new()
         {
@@ -387,31 +425,41 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             User_Id = member.User_Id
         };
 
-        await db.PlanetRoleMembers.AddAsync(newRoleMember);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.PlanetRoleMembers.AddAsync(newRoleMember);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
 
-        return Results.Created($"{UriPrefix}{Node}{UriPostfix}/planet/{planet_id}/planetrolemember/{newRoleMember.Id}", newRoleMember);
+        PlanetHub.NotifyPlanetItemChange(newRoleMember);
+
+        return Results.Created(newRoleMember.GetUri(), newRoleMember);
     }
 
-    public async Task<IResult> RemoveRoleFromMember(ValourDB db, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization)
+
+    [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{role_id}"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, ulong planet_id, ulong role_id, [FromHeader] string authorization,
+        ILogger<PlanetMember> logger)
     {
-        var auth = await AuthToken.TryAuthorize(authorization, db);
-        if (auth is null)
-            return Results.Unauthorized();
 
-        var authMember = await PlanetMember.FindAsync(auth.User_Id, planet_id, db);
-        if (authMember is null)
-            return Results.Forbid();
+        var db = ctx.GetDB();
+        var authMember = ctx.GetMember();
 
-        var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.Id == id);
+        var member = await FindAsync<PlanetMember>(id, db);
         if (member is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (member.Planet_Id != planet_id)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetMember>();
 
         if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-            return Results.Forbid();
+            return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
         var oldRoleMember = await db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.Member_Id == member.Id && x.Role_Id == role_id);
 
@@ -420,14 +468,24 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
         var role = await db.PlanetRoles.FindAsync(role_id);
         if (role is null)
-            return Results.NotFound();
+            return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync();
+        var authAuthority = await authMember.GetAuthorityAsync(db);
         if (role.GetAuthority() > authAuthority)
-            return Results.Forbid();
+            return ValourResult.Forbid("You have less authority than the role you are trying to remove"); ;
 
-        db.PlanetRoleMembers.Remove(oldRoleMember);
-        await db.SaveChangesAsync();
+        try
+        {
+            db.PlanetRoleMembers.Remove(oldRoleMember);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemDelete(oldRoleMember);
 
         return Results.NoContent();
     }

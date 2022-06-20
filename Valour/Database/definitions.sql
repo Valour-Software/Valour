@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS PlanetInvites (
     Code VARCHAR(8) NOT NULL,
     Planet_Id BIGINT NOT NULL,
     Issuer_Id BIGINT NOT NULL,
-    Time TIMESTAMP NOT NULL,
+    Created TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     Expires TIMESTAMP,
 
     CONSTRAINT fk_planet FOREIGN KEY(Planet_Id) REFERENCES Planets(Id),
