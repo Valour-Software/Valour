@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Valour.Shared.Authorization;
+﻿using Valour.Shared.Authorization;
 
-namespace Valour.Database.Attributes
+namespace Valour.Database.Attributes;
+
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public class UserPermissionsRequiredAttribute : Attribute
 {
-    public  class UserPermissionsRequiredAttribute : Attribute
-    {
-        public UserPermission[] permissions;
+    public readonly UserPermission[] permissions;
 
-        public UserPermissionsRequiredAttribute(params UserPermission[] permissions)
-        {
-            this.permissions = permissions;
-        }
+    public UserPermissionsRequiredAttribute(params UserPermission[] permissions)
+    {
+        this.permissions = permissions;
     }
 }

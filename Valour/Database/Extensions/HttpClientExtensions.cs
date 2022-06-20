@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
+using Valour.Database.Items.Users;
 
 namespace Valour.Database.Extensions
 {
