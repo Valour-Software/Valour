@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Valour.Server.MPS.Proxy
+namespace Valour.Shared.MPS.Proxy
 {
     public class ProxyItem
     {

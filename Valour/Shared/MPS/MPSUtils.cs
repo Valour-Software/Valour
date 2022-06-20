@@ -6,11 +6,11 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web;
-using Valour.Server.MPS.Proxy;
+using Valour.Shared.MPS.Proxy;
 
-namespace Valour.Server.MPS
+namespace Valour.Shared.MPS
 {
-    public static class MPSManager
+    public static class MPSUtils
     {
         public static HttpClient Http = new HttpClient();
 

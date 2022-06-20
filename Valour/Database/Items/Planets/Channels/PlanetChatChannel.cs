@@ -18,6 +18,7 @@ using Valour.Shared.Http;
 using Microsoft.Extensions.Logging;
 using Valour.Database.Items.Messages;
 using Valour.Database.Workers;
+using Valour.Shared.MPS;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -312,6 +313,47 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         {
             return Results.Json(staged);
         }
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
+                              ChatChannelPermissionsEnum.PostMessages)]
+    public static async Task<IResult> GetMessagesAsync(HttpContext ctx, [FromBody] PlanetMessage message)
+    {
+        var member = ctx.GetMember();
+
+        if (message is null)
+            return Results.BadRequest("Include message in body.");
+
+        if (string.IsNullOrEmpty(message.Content) && string.IsNullOrEmpty(message.EmbedData))
+            return Results.BadRequest("Message content cannot be null");
+
+        if (message.Fingerprint is null)
+            return Results.BadRequest("Please include a Fingerprint.");
+
+        if (message.Author_Id != member.User_Id)
+            return Results.BadRequest("User_Id must match sender.");
+
+        if (message.Member_Id != member.Id)
+            return Results.BadRequest("Member_Id must match sender.");
+
+        if (message.Content != null && message.Content.Length > 2048)
+            return Results.BadRequest("Content must be under 2048 chars");
+
+
+        if (message.EmbedData != null && message.EmbedData.Length > 65535)
+            return Results.BadRequest("EmbedData must be under 65535 chars");
+
+        // Handle URL content
+        message.Content = await MPSUtils.HandleUrls(message.Content);
+        message.Id = IdManager.Generate();
+
+        PlanetMessageWorker.AddToQueue(message);
+
+        StatWorker.IncreaseMessageCount();
+
+        return Results.Ok();
     }
 
     #endregion
