@@ -373,14 +373,6 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         return TaskResult.SuccessResult;
     }
 
-    public override void RegisterCustomRoutes(WebApplication app)
-    {
-        app.MapGet(IdRoute + "/roles", GetAllRolesForMember);
-        app.MapPost(IdRoute + "/roles/{role_id}", AddRoleToMember);
-        app.MapPut(IdRoute + "/roles/{role_id}", AddRoleToMember);
-        app.MapDelete(IdRoute + "/roles/{role_id}", RemoveRoleFromMember);
-    }
-
     [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDB]
     [PlanetMembershipRequired("planet_id")]
     public async Task<IResult> GetAllRolesForMember(HttpContext ctx, ulong id, ulong planet_id)
