@@ -20,14 +20,6 @@ namespace Valour.Database.Extensions
             return (AuthToken)ctx.Items["token"];
         }
 
-        public static User GetUser(this HttpContext ctx)
-        {
-            //if (!ctx.Items.ContainsKey("member"))
-            //    return null;
-
-            return GetToken(ctx).User; 
-        }
-
         public static PlanetMember GetMember(this HttpContext ctx)
         {
             //if (!ctx.Items.ContainsKey("member"))

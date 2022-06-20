@@ -15,6 +15,7 @@ using Valour.Database.Attributes;
 using System.Web.Mvc;
 using Valour.Database.Extensions;
 using Microsoft.Extensions.Logging;
+using Valour.Database.Items.Users;
 
 namespace Valour.Database.Items.Planets;
 
@@ -137,7 +138,7 @@ public class Invite : PlanetItem
 
         PlanetHub.NotifyPlanetItemChange(invite);
 
-        return Results.Ok();
+        return Results.Json(invite);
 
     }
 
@@ -148,11 +149,8 @@ public class Invite : PlanetItem
         ILogger<Invite> logger)
     {
         var db = ctx.GetDB();
-        var authMember = ctx.GetMember();
 
         var invite = await FindAsync<Invite>(id, db);
-
-        var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -164,7 +162,6 @@ public class Invite : PlanetItem
             return Results.Problem(e.Message);
         }
 
-        await tran.CommitAsync();
         PlanetHub.NotifyPlanetItemDelete(invite);
 
         return Results.NoContent();
@@ -187,13 +184,6 @@ public class Invite : PlanetItem
         }
         while (exists);
         return code;
-    }
-
-    public override void RegisterCustomRoutes(WebApplication app)
-    {
-        app.MapGet(IdRoute + "/plantname", GetPlanetName);
-        app.MapGet(IdRoute + "/planeticon", GetPlanetIconUrl);
-        app.MapPost(BaseRoute + "/join", Join);
     }
 
     // Custom routes
@@ -229,22 +219,22 @@ public class Invite : PlanetItem
     {
         var db = ctx.GetDB();
 
-        var user = ctx.GetUser();
-
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
         if (invite == null)
             return ValourResult.NotFound<Invite>();
 
-        if (await db.PlanetBans.AnyAsync(x => x.Target_Id == user.Id && x.Planet_Id == invite.Planet_Id))
+        ulong user_id = ctx.GetToken().User_Id;
+
+        if (await db.PlanetBans.AnyAsync(x => x.Target_Id == user_id && x.Planet_Id == invite.Planet_Id))
             return Results.BadRequest("User is banned from the planet");
 
-        if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user.Id && x.Planet_Id == invite.Planet_Id))
+        if (await db.PlanetMembers.AnyAsync(x => x.User_Id == user_id && x.Planet_Id == invite.Planet_Id))
             return Results.BadRequest("User is already a member");
 
         if (!invite.Planet.Public)
             return Results.BadRequest("Planet is set to private"); // TODO: Support invites w/ specific users
 
-        TaskResult<PlanetMember> result =  await invite.Planet.AddMemberAsync(user, db);
+        TaskResult<PlanetMember> result =  await invite.Planet.AddMemberAsync(await User.FindAsync<User>(user_id, db), db);
 
         if (result.Success)
             return Results.Created(result.Data.GetUri(), result.Data);
