@@ -3,7 +3,7 @@
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public class PlanetMembershipRequiredAttribute : Attribute
 {
-    public string planetRouteName;
+    public readonly string planetRouteName;
 
     public PlanetMembershipRequiredAttribute(string planetRouteName)
     {

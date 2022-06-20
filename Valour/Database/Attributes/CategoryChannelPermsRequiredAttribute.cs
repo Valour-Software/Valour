@@ -5,8 +5,8 @@ namespace Valour.Database.Attributes;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 public class CategoryChannelPermsRequiredAttribute : Attribute
 {
-    public CategoryPermissionsEnum[] permissions;
-    public string categoryRouteName;
+    public readonly CategoryPermissionsEnum[] permissions;
+    public readonly string categoryRouteName;
 
     public CategoryChannelPermsRequiredAttribute(string categoryRouteName, params CategoryPermissionsEnum[] permissions)
     {

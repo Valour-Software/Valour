@@ -5,8 +5,8 @@ namespace Valour.Database.Attributes;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 public class ChatChannelPermsRequiredAttribute : Attribute
 {
-    public ChatChannelPermissionsEnum[] permissions;
-    public string channelRouteName;
+    public readonly ChatChannelPermissionsEnum[] permissions;
+    public readonly string channelRouteName;
 
     public ChatChannelPermsRequiredAttribute(string channelRouteName, params ChatChannelPermissionsEnum[] permissions)
     {

@@ -5,8 +5,8 @@ namespace Valour.Database.Attributes;
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
 public class PlanetPermsRequiredAttribute : Attribute
 {
-    public string planetRouteName;
-    public PlanetPermissionsEnum[] permissions;
+    public readonly string planetRouteName;
+    public readonly PlanetPermissionsEnum[] permissions;
 
     public PlanetPermsRequiredAttribute(string planetRouteName, params PlanetPermissionsEnum[] permissions)
     {
