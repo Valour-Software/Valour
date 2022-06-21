@@ -8,6 +8,8 @@ using Valour.Api.Items.Planets.Channels;
 using Valour.Shared.Items.Messages;
 using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Messages.Mentions;
 
 namespace Valour.Api.Items.Messages;
 
@@ -17,8 +19,150 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : PlanetMessageBase, INodeSpecific
+public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
+    public ulong Planet_Id { get; set; }
+
+    /// <summary>
+    /// The user's ID
+    /// </summary>
+    public ulong Author_Id { get; set; }
+
+    /// <summary>
+    /// The member's ID
+    /// </summary>
+    public ulong Member_Id { get; set; }
+
+    /// <summary>
+    /// String representation of message
+    /// </summary>
+    public string Content { get; set; }
+
+    /// <summary>
+    /// The time the message was sent (in UTC)
+    /// </summary>
+    public DateTime TimeSent { get; set; }
+
+    /// <summary>
+    /// Id of the channel this message belonged to
+    /// </summary>
+    public ulong Channel_Id { get; set; }
+
+    /// <summary>
+    /// Index of the message
+    /// </summary>
+    public ulong MessageIndex { get; set; }
+
+    /// <summary>
+    /// Data for representing an embed
+    /// </summary>
+    public string EmbedData { get; set; }
+
+    /// <summary>
+    /// Data for representing mentions in a message
+    /// </summary>
+    public string MentionsData { get; set; }
+
+    /// <summary>
+    /// Used to identify a message returned from the server 
+    /// </summary>
+    public string Fingerprint { get; set; }
+
+    /// <summary>
+    /// The mentions contained within this message
+    /// </summary>
+    private List<Mention> _mentions;
+
+    /// <summary>
+    /// True if the mentions data has been parsed
+    /// </summary>
+    private bool mentionsParsed = false;
+
+    /// <summary>
+    /// The inner embed data
+    /// </summary>
+    private Embed _embed;
+
+    /// <summary>
+    /// True if the embed data has been parsed
+    /// </summary>
+    private bool embedParsed = false;
+
+    /// <summary>
+    /// The mentions for members within this message
+    /// </summary>
+    public List<Mention> Mentions
+    {
+        get
+        {
+            if (!mentionsParsed)
+            {
+                if (!string.IsNullOrEmpty(MentionsData))
+                {
+                    _mentions = JsonSerializer.Deserialize<List<Mention>>(MentionsData);
+                }
+            }
+
+            return _mentions;
+        }
+    }
+
+    public Embed Embed
+    {
+        get
+        {
+            if (!embedParsed)
+            {
+                if (!string.IsNullOrEmpty(EmbedData))
+                {
+                    _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
+                }
+
+                embedParsed = true;
+            }
+
+            return _embed;
+        }
+    }
+
+    public void SetMentions(IEnumerable<Mention> mentions)
+    {
+        _mentions = mentions.ToList();
+        MentionsData = JsonSerializer.Serialize(mentions);
+    }
+
+    public void ClearMentions()
+    {
+        if (_mentions == null)
+        {
+            _mentions = new List<Mention>();
+        }
+        else
+        {
+            _mentions.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the message is a embed
+    /// </summary>
+    public bool IsEmbed()
+    {
+        if (EmbedData != null)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// The item type of this item
+    /// </summary>
+    public override ItemType ItemType => ItemType.PlanetMessage;
+
     // Makes PlanetMessage meant to be sent to valour from the client
     public PlanetMessage(string text, ulong self_member_id, ulong channel_id, ulong planet_id)
     {

@@ -16,6 +16,9 @@ using Valour.Database.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Http;
 using Microsoft.Extensions.Logging;
+using Valour.Database.Items.Messages;
+using Valour.Database.Workers;
+using Valour.Shared.MPS;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -273,6 +276,140 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         }
 
         PlanetHub.NotifyPlanetItemDelete(channel);
+
+        return Results.NoContent();
+    }
+
+    // Message routes
+
+    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
+    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, ulong id, ulong index = ulong.MaxValue, int count = 10)
+    {
+        if (count > 64)
+            return Results.BadRequest("Maximum count is 64.");
+
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
+        var db = ctx.GetDB();
+
+        List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id, count);
+
+        count = count - staged.Count;
+
+        if (count > 0)
+        {
+            var messages = await db.PlanetMessages.Where(x => x.Channel_Id == id && x.MessageIndex < index)
+                                                  .OrderByDescending(x => x.MessageIndex)
+                                                  .Take(count)
+                                                  .Reverse()
+                                                  .ToListAsync();
+
+            messages.AddRange(staged);
+
+            return Results.Json(messages);
+        }
+        else
+        {
+            return Results.Json(staged);
+        }
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
+                              ChatChannelPermissionsEnum.PostMessages)]
+    public static async Task<IResult> PostMessagesRouteAsync(HttpContext ctx, [FromBody] PlanetMessage message)
+    {
+        var member = ctx.GetMember();
+
+        if (message is null)
+            return Results.BadRequest("Include message in body.");
+
+        if (string.IsNullOrEmpty(message.Content) && string.IsNullOrEmpty(message.EmbedData))
+            return Results.BadRequest("Message content cannot be null");
+
+        if (message.Fingerprint is null)
+            return Results.BadRequest("Please include a Fingerprint.");
+
+        if (message.Author_Id != member.User_Id)
+            return Results.BadRequest("User_Id must match sender.");
+
+        if (message.Member_Id != member.Id)
+            return Results.BadRequest("Member_Id must match sender.");
+
+        if (message.Content != null && message.Content.Length > 2048)
+            return Results.BadRequest("Content must be under 2048 chars");
+
+
+        if (message.EmbedData != null && message.EmbedData.Length > 65535)
+            return Results.BadRequest("EmbedData must be under 65535 chars");
+
+        // Handle URL content
+        message.Content = await MPSUtils.HandleUrls(message.Content);
+        message.Id = IdManager.Generate();
+
+        PlanetMessageWorker.AddToQueue(message);
+
+        StatWorker.IncreaseMessageCount();
+
+        return Results.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/{id}/messages/{message_id}"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
+    public static async Task<IResult> DeleteMessagesRouteAsync(HttpContext ctx, ulong id, ulong message_id,
+        ILogger<PlanetChatChannel> logger)
+    {
+        var db = ctx.GetDB();
+        var member = ctx.GetMember();
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
+
+        var message = await FindAsync<PlanetMessage>(message_id, db);
+
+        var inDb = false;
+
+        if (message is null)
+        {
+            // Try to find in staged
+            message = PlanetMessageWorker.GetStagedMessage(message_id);
+            if (message is null)
+                return ValourResult.NotFound<PlanetMessage>();
+        }
+        else
+        {
+            inDb = true;
+        }
+
+        if (message.Channel_Id != id)
+            return ValourResult.NotFound<PlanetMessage>();
+
+        if (member.Id != message.Member_Id)
+        {
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageMessages, db))
+                return ValourResult.LacksPermission(ChatChannelPermissions.ManageMessages);
+        }
+
+        // Remove from staging
+        PlanetMessageWorker.RemoveFromQueue(message);
+
+        // If in db, remove from db
+        if (inDb)
+        {
+            try
+            {
+                db.PlanetMessages.Remove(message);
+                await db.SaveChangesAsync();
+            }
+            catch (System.Exception e)
+            {
+                logger.LogError(e.Message);
+                return Results.Problem(e.Message);
+            }
+        }
+
+        PlanetHub.NotifyMessageDeletion(message);
 
         return Results.NoContent();
     }
