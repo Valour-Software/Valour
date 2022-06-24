@@ -65,7 +65,7 @@ public class Invite : PlanetItem
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id,
         ILogger<Invite> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var invite = await FindAsync<Invite>(id, db);
 
@@ -82,7 +82,7 @@ public class Invite : PlanetItem
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Invite invite,
         ILogger<Invite> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         invite.Issuer_Id = authMember.User_Id;
@@ -112,7 +112,7 @@ public class Invite : PlanetItem
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Invite invite,
         ILogger<Invite> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var oldInvite = await FindAsync<Invite>(id, db);
 
@@ -148,7 +148,7 @@ public class Invite : PlanetItem
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
         ILogger<Invite> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var invite = await FindAsync<Invite>(id, db);
 
@@ -191,7 +191,7 @@ public class Invite : PlanetItem
     [ValourRoute(HttpVerbs.Get, "/{invite_code}/planetname"), InjectDB]
     public async Task<IResult> GetPlanetName(HttpContext ctx, string invite_code)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
 
@@ -204,20 +204,20 @@ public class Invite : PlanetItem
     [ValourRoute(HttpVerbs.Get, "/{invite_code}/planeticon"), InjectDB]
     public async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string invite_code)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
 
         if (invite is null)
             return ValourResult.NotFound<Invite>();
 
-        return Results.Ok(invite.Planet.Image_Url);
+        return Results.Ok(invite.Planet.IconUrl);
     }
 
     [ValourRoute(HttpVerbs.Post, "/{invite_code}/join"), TokenRequired, InjectDB]
     public async Task<IResult> Join(HttpContext ctx, string invite_code)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
         if (invite == null)

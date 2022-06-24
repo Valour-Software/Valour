@@ -97,7 +97,7 @@ public class ItemAPI<T> where T : Item
 
                             var authKey = ctx.HttpContext.Request.Headers["authorization"];
 
-                            var db = ctx.HttpContext.GetDB();
+                            var db = ctx.HttpContext.GetDb();
                             if (db is null)
                                 throw new Exception("TokenRequired attribute requires InjectDB attribute");
 
@@ -128,7 +128,7 @@ public class ItemAPI<T> where T : Item
 
                             var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
 
-                            var db = ctx.HttpContext.GetDB();
+                            var db = ctx.HttpContext.GetDb();
                             if (db is null)
                                 throw new Exception("PlanetPermsRequired attribute requires InjectDB attribute");
 
@@ -162,7 +162,7 @@ public class ItemAPI<T> where T : Item
 
                             var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
 
-                            var db = ctx.HttpContext.GetDB();
+                            var db = ctx.HttpContext.GetDb();
                             if (db is null)
                                 throw new Exception("PlanetMembershipRequired attribute requires InjectDB attribute");
 
@@ -210,7 +210,7 @@ public class ItemAPI<T> where T : Item
                             if (member is null)
                                 throw new Exception("CategoryChannelPermsRequired attribute requires a PlanetMembershipRequired attribute.");
 
-                            var db = ctx.HttpContext.GetDB();
+                            var db = ctx.HttpContext.GetDb();
                             if (db is null)
                                 throw new Exception("CategoryChannelPermsRequired attribute requires InjectDB attribute");
 
@@ -250,7 +250,7 @@ public class ItemAPI<T> where T : Item
                             if (member is null)
                                 throw new Exception("ChatChannelPermsRequired attribute requires a PlanetMembershipRequired attribute.");
 
-                            var db = ctx.HttpContext.GetDB();
+                            var db = ctx.HttpContext.GetDb();
                             if (db is null)
                                 throw new Exception("ChatChannelPermsRequired attribute requires InjectDB attribute");
 

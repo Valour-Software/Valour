@@ -46,14 +46,6 @@ public abstract class Item : ISharedItem
         where T : Item =>
         await db.Set<T>().ToListAsync();
 
-    /// <summary>
-    /// Allows an item to define additional custom routes
-    /// </summary>
-    public virtual void RegisterCustomRoutes(WebApplication app)
-    {
-        
-    }
-
     public virtual string IdRoute =>
         $"{ItemType}/{{id}}";
 

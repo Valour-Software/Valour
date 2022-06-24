@@ -23,19 +23,7 @@ namespace Valour.Server.API
 {
     public class PlanetAPI : BaseAPI
     {
-        // Constant planet variables //
 
-        /// <summary>
-        /// The maximum planets a user is allowed to have. This will increase after 
-        /// the alpha period is complete.
-        /// </summary>
-        public static int MAX_OWNED_PLANETS = 5;
-
-        /// <summary>
-        /// The maximum planets a user is allowed to join. This will increase after the 
-        /// alpha period is complete.
-        /// </summary>
-        public static int MAX_JOINED_PLANETS = 20;
 
         /// <summary>
         /// Adds the routes for this API section
@@ -153,66 +141,6 @@ namespace Valour.Server.API
             ctx.Response.StatusCode = 201;
             await ctx.Response.WriteAsJsonAsync(in_role.Id);
             return;
-        }
-
-        private static async Task BanMember(HttpContext ctx, ValourDB db, ulong planet_id, ulong target_id,
-            [FromHeader] string authorization, string reason = "None provided", uint duration = 0)
-        {
-            var auth = await AuthToken.TryAuthorize(authorization, db);
-            if (auth is null)
-            {
-                Results.Unauthorized();
-                return;
-            }
-
-            Planet planet = await db.Planets
-                .Include(x => x.Members.Where(x => x.User_Id == auth.User_Id || x.Id == target_id))
-                .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            if (planet is null)
-            {
-                ctx.Response.StatusCode = 404;
-                await ctx.Response.WriteAsync($"Planet not found");
-                return;
-            }
-
-            PlanetMember member = planet.Members.FirstOrDefault(x => x.User_Id == auth.User_Id);
-            PlanetMember target = planet.Members.FirstOrDefault(x => x.Id == target_id);
-
-            var result = await planet.TryBanMemberAsync(member, target, reason, duration, db);
-
-            ctx.Response.StatusCode = result.Data;
-            await ctx.Response.WriteAsync(result.Message);
-        }
-
-        private static async Task KickMember(HttpContext ctx, ValourDB db, ulong planet_id, ulong target_id,
-            [FromHeader] string authorization)
-        {
-            var auth = await AuthToken.TryAuthorize(authorization, db);
-            if (auth is null)
-            {
-                Results.Unauthorized();
-                return;
-            }
-
-            Planet planet = await db.Planets
-                .Include(x => x.Members.Where(x => x.User_Id == auth.User_Id || x.Id == target_id))
-                .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            if (planet is null)
-            {
-                ctx.Response.StatusCode = 404;
-                await ctx.Response.WriteAsync($"Planet not found");
-                return;
-            }
-
-            PlanetMember member = planet.Members.FirstOrDefault(x => x.User_Id == auth.User_Id);
-            PlanetMember target = planet.Members.FirstOrDefault(x => x.Id == target_id);
-
-            var result = await planet.TryKickMemberAsync(member, target, db);
-
-            ctx.Response.StatusCode = result.Data;
-            await ctx.Response.WriteAsync(result.Message);
         }
 
         private static async Task Planet(HttpContext ctx, ValourDB db, ulong planet_id,
@@ -561,7 +489,7 @@ namespace Valour.Server.API
             }
 
             // Start with default image
-            in_planet.Image_Url = "/media/logo/logo-512.png";
+            in_planet.IconUrl = "/media/logo/logo-512.png";
 
             ulong planet_id = IdManager.Generate();
 
@@ -605,11 +533,11 @@ namespace Valour.Server.API
                 Name = in_planet.Name,
                 Member_Count = 1,
                 Description = "A Valour server.",
-                Image_Url = in_planet.Image_Url,
+                IconUrl = in_planet.IconUrl,
                 Public = true,
                 Owner_Id = user.Id,
                 Default_Role_Id = defaultRole.Id,
-                Main_Channel_Id = channel.Id
+                Primary_Channel_Id = channel.Id
             };
 
             // Add planet to database
@@ -1019,12 +947,12 @@ namespace Valour.Server.API
             {
                 case "GET":
                 {
-                    PlanetChatChannel mainChannel = await db.PlanetChatChannels.FindAsync(planet.Main_Channel_Id);
+                    PlanetChatChannel mainChannel = await db.PlanetChatChannels.FindAsync(planet.Primary_Channel_Id);
 
                     if (mainChannel == null)
                     {
                         ctx.Response.StatusCode = 400;
-                        await ctx.Response.WriteAsync($"Main channel not found [id: {planet.Main_Channel_Id}]\n" +
+                        await ctx.Response.WriteAsync($"Main channel not found [id: {planet.Primary_Channel_Id}]\n" +
                                                       $"Bug a developer, this should not happen.");
 
                         return;
@@ -1077,7 +1005,7 @@ namespace Valour.Server.API
                         return;
                     }
 
-                    planet.Main_Channel_Id = channel.Id;
+                    planet.Primary_Channel_Id = channel.Id;
                     await db.SaveChangesAsync();
 
                     ctx.Response.StatusCode = 200;

@@ -70,7 +70,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
     public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var ban = await FindAsync<PlanetBan>(id, db);
         var member = ctx.GetMember();
 
@@ -92,7 +92,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     public static async Task<IResult> PostRoute(HttpContext ctx, ulong planet_id, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (ban is null)
@@ -154,7 +154,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     public static async Task<IResult> PutRoute(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (ban is null)
@@ -199,7 +199,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     public static async Task<IResult> DeleteRoute(HttpContext ctx, ulong id, ulong planet_id,
         ILogger<PlanetBan> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var ban = await FindAsync<PlanetBan>(id, db);

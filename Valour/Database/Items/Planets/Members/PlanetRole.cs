@@ -124,7 +124,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     [PlanetMembershipRequired]
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var role = await FindAsync<PlanetRole>(id, db);
 
@@ -140,7 +140,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))
@@ -171,7 +171,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var oldRole = await FindAsync<PlanetRole>(id, db);
 
@@ -204,7 +204,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
         ILogger<PlanetRole> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var role = await FindAsync<PlanetRole>(id, db);
 
