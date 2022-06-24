@@ -96,7 +96,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the member's primary role
     /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(ValourDB db = null)
+    public async Task<PlanetRole> GetPrimaryRoleAsync(ValourDB db)
     {
         if (RoleMembership == null)
         {
@@ -210,7 +210,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     [PlanetMembershipRequired]
     public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = await FindAsync<PlanetMember>(id, db);
 
         if (member is null)
@@ -223,7 +223,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     [PlanetMembershipRequired]
     public static async Task<IResult> GetRoute(HttpContext ctx, ulong planet_id, ulong user_id)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = await FindAsync(user_id, planet_id, db);
 
         if (member is null)
@@ -236,7 +236,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, string invite_code, [FromBody] PlanetMember member,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var token = ctx.GetToken();
 
         if (member.Planet_Id != planet_id)
@@ -287,7 +287,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetMember member,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var token = ctx.GetToken();
 
         var old = await FindAsync<PlanetMember>(id, db);
@@ -330,7 +330,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
         var targetMember = await FindAsync<PlanetMember>(id, db);
 
@@ -377,7 +377,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     [PlanetMembershipRequired]
     public async Task<IResult> GetAllRolesForMember(HttpContext ctx, ulong id, ulong planet_id)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                                            .ThenInclude(x => x.Role)
@@ -393,7 +393,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planet_id, ulong role_id,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         var member = await FindAsync<PlanetMember>(id, db);
@@ -448,7 +448,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         ILogger<PlanetMember> logger)
     {
 
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         var member = await FindAsync<PlanetMember>(id, db);

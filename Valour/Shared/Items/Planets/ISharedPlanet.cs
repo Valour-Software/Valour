@@ -24,7 +24,7 @@ public interface ISharedPlanet
     /// <summary>
     /// The image url for the planet 
     /// </summary>
-    string Image_Url { get; set; }
+    string IconUrl { get; set; }
 
     /// <summary>
     /// The description of the planet
@@ -44,6 +44,6 @@ public interface ISharedPlanet
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    ulong Main_Channel_Id { get; set; }
+    ulong Primary_Channel_Id { get; set; }
 }
 

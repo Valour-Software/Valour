@@ -126,7 +126,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var old = ctx.GetItem<PlanetCategoryChannel>(id);
 
         // Validation
@@ -171,7 +171,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (category.Planet_Id != planet_id)
@@ -222,7 +222,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id,
         ILogger<PlanetCategoryChannel> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
 
         if (await db.PlanetCategoryChannels.CountAsync(x => x.Planet_Id == planet_id) < 2)
@@ -270,7 +270,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ulong id)
     {
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         // Build child list. We don't have to check permissions for each, because even if the ID is there,
         // it's impossible to get any details on the channels that are hidden.
@@ -286,7 +286,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, ulong id, ulong planet_id, [FromBody] ulong[] order,
         ILogger<PlanetCategoryChannel> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
 
         if (category.Planet_Id != planet_id)

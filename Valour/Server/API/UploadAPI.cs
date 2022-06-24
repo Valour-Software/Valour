@@ -123,7 +123,7 @@ namespace Valour.Server.API
                     case "planet": 
                     {
                         var url = await response.Content.ReadAsStringAsync();
-                        member.Planet.Image_Url = url;
+                        member.Planet.IconUrl = url;
                         await db.SaveChangesAsync();
                         PlanetHub.NotifyPlanetChange(member.Planet);
                         break;

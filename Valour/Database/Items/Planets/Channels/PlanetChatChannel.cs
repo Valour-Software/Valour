@@ -144,7 +144,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (channel.Planet_Id != planet_id)
@@ -195,7 +195,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var old = ctx.GetItem<PlanetChatChannel>(id);
 
         // Validation
@@ -242,7 +242,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id,
         ILogger<PlanetChatChannel> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
 
         // Always use transaction for multi-step DB operations
@@ -291,7 +291,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             return Results.BadRequest("Maximum count is 64.");
 
         var channel = ctx.GetItem<PlanetChatChannel>(id);
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
 
         List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id, count);
 
@@ -362,24 +362,22 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public static async Task<IResult> DeleteMessagesRouteAsync(HttpContext ctx, ulong id, ulong message_id,
         ILogger<PlanetChatChannel> logger)
     {
-        var db = ctx.GetDB();
+        var db = ctx.GetDb();
         var member = ctx.GetMember();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
 
         var message = await FindAsync<PlanetMessage>(message_id, db);
 
-        var inDb = false;
+        var inDb = true;
 
         if (message is null)
         {
+            inDb = false;
+
             // Try to find in staged
             message = PlanetMessageWorker.GetStagedMessage(message_id);
             if (message is null)
                 return ValourResult.NotFound<PlanetMessage>();
-        }
-        else
-        {
-            inDb = true;
         }
 
         if (message.Channel_Id != id)

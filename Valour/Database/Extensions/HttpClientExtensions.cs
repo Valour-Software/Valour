@@ -36,7 +36,7 @@ namespace Valour.Database.Extensions
             return (T)ctx.Items[id];
         }
 
-        public static ValourDB GetDB(this HttpContext ctx)
+        public static ValourDB GetDb(this HttpContext ctx)
         {
             return (ValourDB)ctx.Items["db"];
         }
