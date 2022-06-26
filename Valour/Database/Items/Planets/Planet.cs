@@ -516,7 +516,7 @@ public class Planet : Item, ISharedPlanet
     public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
-        var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).ToListAsync();
         return Results.Json(channels);
     }
 
@@ -525,13 +525,40 @@ public class Planet : Item, ISharedPlanet
     public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
-        var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).ToListAsync();
         return Results.Json(chatChannels);
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDB]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var categories = await db.PlanetCategoryChannels.Where(x => x.Planet_Id == id).ToListAsync();
+        return Results.Json(categories);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(channels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(chatChannels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
         var categories = await db.PlanetCategoryChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
