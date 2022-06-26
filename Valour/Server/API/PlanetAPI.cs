@@ -32,14 +32,6 @@ namespace Valour.Server.API
         {
             // Planet routes //
 
-            app.MapPost("api/planet", Create);
-
-            app.Map("api/planet/{planet_id}/name", Name);
-            app.Map("api/planet/{planet_id}/description", Description);
-            app.Map("api/planet/{planet_id}/public", Public);
-            app.Map("api/planet/{planet_id}", Planet);
-            app.Map("api/planet/{planet_id}/primary_channel", PrimaryChannel);
-
             app.MapPost("api/planet/{planet_id}/channels", CreateChannel);
             app.MapGet("api/planet/{planet_id}/channels", GetChannels);
             app.MapGet("api/planet/{planet_id}/channel_ids", GetChannelIds);
@@ -451,112 +443,6 @@ namespace Valour.Server.API
                     return;
                 }
             }
-        }
-
-        private static async Task Create(HttpContext ctx, ValourDB db,
-            [FromHeader] string authorization, [FromBody] Planet in_planet)
-        {
-            AuthToken auth = await AuthToken.TryAuthorize(authorization, db);
-
-            if (auth == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
-                return;
-            }
-
-            TaskResult nameValid = Database.Items.Planets.Planet.ValidateName(in_planet.Name);
-
-            if (!nameValid.Success)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync(nameValid.Message);
-                return;
-            }
-
-            User user = await db.Users.FindAsync(auth.User_Id);
-
-            if (!user.ValourStaff)
-            {
-                var owned_planets = await db.Planets.CountAsync(x => x.Owner_Id == user.Id);
-
-                if (owned_planets > MAX_OWNED_PLANETS)
-                {
-                    ctx.Response.StatusCode = 400;
-                    await ctx.Response.WriteAsync("Max owned planets reached");
-                    return;
-                }
-            }
-
-            // Start with default image
-            in_planet.IconUrl = "/media/logo/logo-512.png";
-
-            ulong planet_id = IdManager.Generate();
-
-            // Create general category
-            PlanetCategory category = new PlanetCategory()
-            {
-                Id = IdManager.Generate(),
-                Name = "General",
-                Parent_Id = null,
-                Planet_Id = planet_id,
-                Description = "General category",
-                Position = 0
-            };
-
-            // Create general channel
-            PlanetChatChannel channel = new PlanetChatChannel()
-            {
-                Id = IdManager.Generate(),
-                Planet_Id = planet_id,
-                Name = "General",
-                MessageCount = 0,
-                Description = "General chat channel",
-                Parent_Id = category.Id
-            };
-
-            // Create default role
-            PlanetRole defaultRole = new PlanetRole()
-            {
-                Id = IdManager.Generate(),
-                Planet_Id = planet_id,
-                Position = uint.MaxValue,
-                Color_Blue = 255,
-                Color_Green = 255,
-                Color_Red = 255,
-                Name = "@everyone"
-            };
-
-            Planet planet = new Planet()
-            {
-                Id = planet_id,
-                Name = in_planet.Name,
-                Member_Count = 1,
-                Description = "A Valour server.",
-                IconUrl = in_planet.IconUrl,
-                Public = true,
-                Owner_Id = user.Id,
-                Default_Role_Id = defaultRole.Id,
-                Primary_Channel_Id = channel.Id
-            };
-
-            // Add planet to database
-            await db.Planets.AddAsync(planet);
-            await db.SaveChangesAsync(); // We must do this first to prevent foreign key errors
-
-            // Add category to database
-            await db.PlanetCategories.AddAsync(category);
-            // Add channel to database
-            await db.PlanetChatChannels.AddAsync(channel);
-            // Add default role to database
-            await db.PlanetRoles.AddAsync(defaultRole);
-            // Save changes
-            await db.SaveChangesAsync();
-            // Add owner to planet
-            await planet.AddMemberAsync(user, db);
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsJsonAsync(planet.Id);
         }
 
         private static async Task GetChannels(HttpContext ctx, ValourDB db,

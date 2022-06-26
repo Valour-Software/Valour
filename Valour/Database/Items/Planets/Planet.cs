@@ -268,6 +268,16 @@ public class Planet : Item, ISharedPlanet
 
     #region Routes
 
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var planet = await FindAsync<Planet>(id, db);
+
+        return Results.Json(planet);
+    }
+
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Planet planet,
         ILogger<Planet> logger)
@@ -361,6 +371,76 @@ public class Planet : Item, ISharedPlanet
         await tran.CommitAsync();
 
         return Results.Created(planet.GetUri(), planet);
+    }
+
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Planet planet,
+        ILogger<Planet> logger)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var old = await FindAsync<Planet>(id, db);
+
+        if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        if (planet is null)
+            return Results.BadRequest("Include planet in body.");
+
+        if (planet.Id != id)
+            return Results.BadRequest("Id cannot be changed.");
+
+        var nameValid = ValidateName(planet.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(planet.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        // Owner change check
+        if (old.Owner_Id != planet.Owner_Id)
+        {
+            // Only owner can do this
+            if (member.User_Id != old.Owner_Id)
+                return Results.BadRequest("Only a planet owner can transfer ownership.");
+
+            // Ensure new owner is a member of the planet
+            if (!await old.IsMemberAsync(planet.Owner_Id, db))
+                return Results.BadRequest("You cannot transfer ownership to a non-member.");
+        }
+
+        if (old.Default_Role_Id != planet.Default_Role_Id)
+            return Results.BadRequest("You cannot change the default role. Change the permissions on it instead.");
+
+        if (old.Primary_Channel_Id != planet.Primary_Channel_Id)
+        {
+            // Ensure new channel exists and belongs to the planet
+            var newChannel = await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Planet_Id == id && x.Id == planet.Primary_Channel_Id);
+
+            if (newChannel is null)
+                return ValourResult.NotFound<PlanetChatChannel>();
+        }
+
+        if (old.IconUrl != planet.IconUrl)
+            return Results.BadRequest("Use the upload API to change the planet icon.");
+
+        try
+        {
+            db.Planets.Update(planet);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetChange(planet);
+
+        return Results.Json(planet);
     }
 
     #endregion
