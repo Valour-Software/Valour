@@ -511,5 +511,32 @@ public class Planet : Item, ISharedPlanet
         return Results.NoContent();
     }
 
+    [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(channels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(chatChannels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var categories = await db.PlanetCategoryChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(categories);
+    }
+
     #endregion
 }
