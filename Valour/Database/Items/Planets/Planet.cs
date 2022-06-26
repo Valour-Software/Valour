@@ -516,8 +516,30 @@ public class Planet : Item, ISharedPlanet
     public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
         var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).ToListAsync();
-        return Results.Json(channels);
+        var allowedChannels = new List<PlanetChannel>();
+
+        foreach (var channel in channels)
+        {
+            if (channel is PlanetChatChannel)
+            {
+                if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
+                {
+                    allowedChannels.Add(channel);
+                }
+            }
+            else if (channel is PlanetCategoryChannel)
+            {
+                if (await channel.HasPermissionAsync(member, CategoryPermissions.View, db))
+                {
+                    allowedChannels.Add(channel);
+                }
+            }
+        }
+
+        return Results.Json(allowedChannels);
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDB]
@@ -525,8 +547,20 @@ public class Planet : Item, ISharedPlanet
     public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
+        var member = ctx.GetMember();
         var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).ToListAsync();
-        return Results.Json(chatChannels);
+
+        var allowedChannels = new List<PlanetChatChannel>();
+
+        foreach (var channel in chatChannels)
+        {
+            if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
+            {
+                allowedChannels.Add(channel);
+            }
+        }
+
+        return Results.Json(allowedChannels);
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDB]
@@ -534,8 +568,19 @@ public class Planet : Item, ISharedPlanet
     public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
+        var member = ctx.GetMember();
         var categories = await db.PlanetCategoryChannels.Where(x => x.Planet_Id == id).ToListAsync();
-        return Results.Json(categories);
+        var allowedCategories = new List<PlanetCategoryChannel>();
+
+        foreach (var category in categories)
+        {
+            if (await category.HasPermissionAsync(member, CategoryPermissions.View, db))
+            {
+                allowedCategories.Add(category);
+            }
+        }
+
+        return Results.Json(allowedCategories);
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDB]
