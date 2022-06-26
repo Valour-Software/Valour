@@ -410,6 +410,10 @@ public class Planet : Item, ISharedPlanet
             // Ensure new owner is a member of the planet
             if (!await old.IsMemberAsync(planet.Owner_Id, db))
                 return Results.BadRequest("You cannot transfer ownership to a non-member.");
+
+            var ownedPlanets = await db.Planets.CountAsync(x => x.Owner_Id == planet.Owner_Id);
+            if (ownedPlanets >= MAX_OWNED_PLANETS)
+                return Results.BadRequest("That user has the maximum owned planets!");
         }
 
         if (old.Default_Role_Id != planet.Default_Role_Id)
