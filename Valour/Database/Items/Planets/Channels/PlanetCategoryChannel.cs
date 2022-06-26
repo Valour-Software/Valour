@@ -105,6 +105,19 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return false;
     }
 
+    public async Task DeleteAsync(ValourDB db)
+    {
+        // Remove permission nodes
+        await db.BulkDeleteAsync(
+            db.PermissionsNodes.Where(x => x.Target_Id == Id)
+        );
+
+        // Remove category
+        db.PlanetCategoryChannels.Remove(
+            this
+        );
+    }
+
     /// <summary>
     /// Returns the children for this category
     /// </summary>
@@ -238,19 +251,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
         try
         {
-            // Remove permission nodes
-            await db.BulkDeleteAsync(
-                db.PermissionsNodes.Where(x => x.Target_Id == id)
-            );
-
-            // Remove category
-            db.PlanetCategoryChannels.Remove(
-                category
-            );
-
-            // Save changes
+            await category.DeleteAsync(db);
             await db.SaveChangesAsync();
-
             await transaction.CommitAsync();
         }
         catch (System.Exception e)

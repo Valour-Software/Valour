@@ -111,6 +111,22 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return false;
     }
 
+    public async Task DeleteAsync(ValourDB db)
+    {
+        // Remove permission nodes
+        await db.PermissionsNodes.BulkDeleteAsync(
+            db.PermissionsNodes.Where(x => x.Target_Id == Id)
+        );
+
+        // Remove messages
+        await db.PlanetMessages.BulkDeleteAsync(
+            db.PlanetMessages.Where(x => x.Channel_Id == Id)
+        );
+
+        // Remove channel
+        db.PlanetChatChannels.Remove(this);
+    }
+
     /// <summary>
     /// Returns all members who can see this channel
     /// </summary>
@@ -250,22 +266,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
         try
         {
-            // Remove permission nodes
-            await db.PermissionsNodes.BulkDeleteAsync(
-                db.PermissionsNodes.Where(x => x.Target_Id == id)
-            );
-
-            // Remove messages
-            await db.PlanetMessages.BulkDeleteAsync(
-                db.PlanetMessages.Where(x => x.Channel_Id == id)
-            );
-
-            // Remove channel
-            db.PlanetChatChannels.Remove(channel);
-
-            // Save changes
+            await channel.DeleteAsync(db);
             await db.SaveChangesAsync();
-
             await transaction.CommitAsync();
         }
         catch (System.Exception e)

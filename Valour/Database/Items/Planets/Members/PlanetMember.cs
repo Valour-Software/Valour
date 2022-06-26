@@ -184,7 +184,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         }
         else
         {
-            var primaryRole = await GetPrimaryRoleAsync();
+            var primaryRole = await GetPrimaryRoleAsync(db);
             return primaryRole.GetAuthority();
         }
     }
@@ -196,8 +196,6 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         );
 
         db.PlanetMembers.Remove(this);
-
-        await db.SaveChangesAsync();
     }
 
     // Helpful route to return the member for the authorizing user
@@ -349,6 +347,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         try
         {
             await targetMember.DeleteAsync(db);
+            await db.SaveChangesAsync();
         }
         catch(System.Exception e)
         {

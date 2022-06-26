@@ -405,7 +405,7 @@ public class Planet : Item, ISharedPlanet
         {
             // Only owner can do this
             if (member.User_Id != old.Owner_Id)
-                return Results.BadRequest("Only a planet owner can transfer ownership.");
+                return ValourResult.Forbid("Only a planet owner can transfer ownership.");
 
             // Ensure new owner is a member of the planet
             if (!await old.IsMemberAsync(planet.Owner_Id, db))
@@ -441,6 +441,74 @@ public class Planet : Item, ISharedPlanet
         PlanetHub.NotifyPlanetChange(planet);
 
         return Results.Json(planet);
+    }
+
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, 
+        ILogger<Planet> logger)
+    {
+        var db = ctx.GetDb();
+        var authMember = ctx.GetMember();
+        var planet = await FindAsync<Planet>(id, db);
+
+        if (authMember.User_Id != planet.Owner_Id)
+            return ValourResult.Forbid("You are not the owner of this planet.");
+
+        // This is quite complicated.
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            var channels = db.PlanetChatChannels.Where(x => x.Planet_Id == id);
+            var categories = db.PlanetCategoryChannels.Where(x => x.Planet_Id == id);
+            var roles = db.PlanetRoles.Where(x => x.Planet_Id == id);
+            var members = db.PlanetMembers.Where(x => x.Planet_Id == id);
+            var invites = db.PlanetInvites.Where(x => x.Planet_Id == id);
+
+            // Channels (also deletes messages and nodes)
+            foreach (var channel in channels)
+            {
+                await channel.DeleteAsync(db);
+            }
+
+            // Categories (also deletes nodes)
+            foreach (var category in categories)
+            {
+                await category.DeleteAsync(db);
+            }
+
+            // Roles (Also deletes role membership)
+            foreach (var role in roles)
+            {
+                await role.DeleteAsync(db);
+            }
+
+            // Members
+            foreach (var member in members)
+            {
+                await member.DeleteAsync(db);
+            }
+
+            // Invites
+            foreach (var invite in invites)
+            {
+                await invite.DeleteAsync(db);
+            }
+
+            db.Remove(planet);
+
+            await db.SaveChangesAsync();
+        }
+        catch(System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        return Results.NoContent();
     }
 
     #endregion
