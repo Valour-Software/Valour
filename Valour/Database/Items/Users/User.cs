@@ -1,6 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using System.Web.Mvc;
+using Valour.Database.Attributes;
+using Valour.Database.Extensions;
 using Valour.Database.Items.Planets.Members;
+using Valour.Shared.Authorization;
+using Valour.Shared.Http;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Users;
 
@@ -79,6 +87,52 @@ public class User : Item, ISharedUser
     {
         get => ISharedUser.GetUserState(this);
         set => ISharedUser.SetUserState(this, value);
+    }
+
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var user = await FindAsync<User>(id, db);
+
+        if (user is null)
+            return ValourResult.NotFound<User>();
+
+        return Results.Json(user);
+    }
+
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> VerifyEmail(HttpContext ctx, string code,
+        ILogger<User> logger)
+    {
+        var db = ctx.GetDb();
+        var token = ctx.GetToken();
+
+        var confirmCode = await db.EmailConfirmCodes
+            .Include(x => x.User)
+            .ThenInclude(x => x.Email)
+            .FirstOrDefaultAsync(x => x.Code == code);
+
+        if (confirmCode is null || token.User.Id != confirmCode.User_Id)
+            return ValourResult.NotFound<EmailConfirmCode>();
+
+        using var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            confirmCode.User.Email.Verified = true;
+            db.EmailConfirmCodes.Remove(confirmCode);
+            await db.SaveChangesAsync();
+        }
+        catch(System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        return Results.NoContent();
     }
 }
 

@@ -21,7 +21,7 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapGet("api/user/{user_id}", GetUser);
+            //app.MapGet("api/user/{user_id}", GetUser);
 
             app.MapGet("api/user/{user_id}/planets", GetPlanets);
 
@@ -39,21 +39,7 @@ namespace Valour.Server.API
 
             app.MapPost("api/user/withtoken", WithToken);
 
-            app.MapPost("api/user/verify/{code}", VerifyEmail);
-        }
-
-        private static async Task<IResult> GetUser(HttpContext ctx, ValourDB db, ulong user_id, [FromHeader] string authorization)
-        {
-            var authToken = await AuthToken.TryAuthorize(authorization, db);
-            if (authToken == null)
-                return ValourResult.NoToken();
-
-            var user = await db.Users.FindAsync(user_id);
-
-            if (user == null)
-                return ValourResult.NotFound<User>();
-
-            return Results.Json(user);
+            // app.MapPost("api/user/verify/{code}", VerifyEmail);
         }
 
         private static async Task VerifyEmail(HttpContext ctx, ValourDB db, string code)

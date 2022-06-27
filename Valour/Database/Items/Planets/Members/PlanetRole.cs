@@ -116,7 +116,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         db.PlanetRoles.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired]
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
@@ -131,7 +131,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         return Results.Json(role);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
@@ -164,7 +164,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
@@ -198,7 +198,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]

@@ -149,13 +149,13 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
     public static IResult GetRoute(HttpContext ctx, ulong id) =>
         Results.Json(ctx.GetItem<PlanetChatChannel>(id));
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetChatChannel channel,
@@ -204,7 +204,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.Created(channel.GetUri(), channel);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
@@ -252,7 +252,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.Ok(channel);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
@@ -286,7 +286,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     // Message routes
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
@@ -320,7 +320,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         }
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
@@ -362,7 +362,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages/{message_id}"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]

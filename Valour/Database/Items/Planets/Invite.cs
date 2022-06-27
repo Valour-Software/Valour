@@ -59,7 +59,7 @@ public class Invite : PlanetItem
         db.PlanetInvites.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
@@ -72,7 +72,7 @@ public class Invite : PlanetItem
         return Results.Json(invite);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
@@ -103,7 +103,7 @@ public class Invite : PlanetItem
 
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
@@ -140,7 +140,7 @@ public class Invite : PlanetItem
 
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
@@ -188,7 +188,7 @@ public class Invite : PlanetItem
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "/{invite_code}/planetname"), InjectDB]
+    [ValourRoute(HttpVerbs.Get, "/{invite_code}/planetname"), InjectDb]
     public async Task<IResult> GetPlanetName(HttpContext ctx, string invite_code)
     {
         var db = ctx.GetDb();
@@ -201,7 +201,7 @@ public class Invite : PlanetItem
         return Results.Ok(invite.Planet.Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{invite_code}/planeticon"), InjectDB]
+    [ValourRoute(HttpVerbs.Get, "/{invite_code}/planeticon"), InjectDb]
     public async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string invite_code)
     {
         var db = ctx.GetDb();
@@ -214,7 +214,7 @@ public class Invite : PlanetItem
         return Results.Ok(invite.Planet.IconUrl);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{invite_code}/join"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post, "/{invite_code}/join"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Invites)]
     public async Task<IResult> Join(HttpContext ctx, string invite_code)
     {

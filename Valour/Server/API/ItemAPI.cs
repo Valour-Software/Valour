@@ -75,7 +75,7 @@ public class ItemAPI<T> where T : Item
                             break;
                     }
 
-                    if (attributes.Any(x => x is InjectDBAttribute))
+                    if (attributes.Any(x => x is InjectDbAttribute))
                     {
                         builder.AddFilter(async (ctx, next) =>
                         {

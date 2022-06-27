@@ -126,13 +126,13 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
     public static IResult GetRoute(HttpContext ctx, ulong id) =>
         Results.Json(ctx.GetItem<PlanetCategoryChannel>(id));
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
@@ -179,7 +179,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.Ok(category);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetCategoryChannel category,
@@ -229,7 +229,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     }
 
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
@@ -268,7 +268,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
     public async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ulong id)
@@ -283,7 +283,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.Json(children_ids);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/children/order"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post, "/children/order"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
@@ -304,7 +304,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
             return Results.BadRequest("Your order does not contain all the children.");
 
         // Use transaction so we can stop at any failure
-        var tran = await db.Database.BeginTransactionAsync();
+        using var tran = await db.Database.BeginTransactionAsync();
 
         List<PlanetChannel> children = new();
 

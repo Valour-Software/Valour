@@ -268,7 +268,7 @@ public class Planet : Item, ISharedPlanet
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
@@ -279,7 +279,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(planet);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Planet planet,
         ILogger<Planet> logger)
@@ -347,7 +347,7 @@ public class Planet : Item, ISharedPlanet
             Name = "@everyone"
         };
 
-        var tran = await db.Database.BeginTransactionAsync();
+        using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -375,7 +375,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Created(planet.GetUri(), planet);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Planet planet,
@@ -450,7 +450,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(planet);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, 
@@ -465,7 +465,7 @@ public class Planet : Item, ISharedPlanet
 
         // This is quite complicated.
 
-        var tran = await db.Database.BeginTransactionAsync();
+        using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -519,7 +519,7 @@ public class Planet : Item, ISharedPlanet
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
@@ -551,7 +551,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
@@ -573,7 +573,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
@@ -594,7 +594,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedCategories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, ulong id)
@@ -604,7 +604,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(channels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, ulong id)
@@ -614,7 +614,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(chatChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, ulong id)
@@ -624,7 +624,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(categories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, ulong id, int page = 0)
@@ -649,7 +649,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json((members: roleInfo, totalCount: totalCount));
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/roles"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/roles"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, ulong id)
@@ -660,7 +660,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(roles);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/roleids"), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get, "{id}/roleids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, ulong id)
@@ -692,7 +692,7 @@ public class Planet : Item, ISharedPlanet
         if (totalRoles != order.Length)
             return Results.BadRequest("Your order does not contain all the planet roles.");
 
-        var tran = await db.Database.BeginTransactionAsync();
+        using var tran = await db.Database.BeginTransactionAsync();
 
         List<PlanetRole> roles = new();
 

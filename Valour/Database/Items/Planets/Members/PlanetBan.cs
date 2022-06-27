@@ -65,7 +65,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
     public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
@@ -87,7 +87,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         return Results.Json(ban);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
     public static async Task<IResult> PostRoute(HttpContext ctx, ulong planet_id, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
@@ -120,7 +120,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         if (await target.GetAuthorityAsync(db) >= await member.GetAuthorityAsync(db))
             return ValourResult.Forbid("The target has a higher authority than you.");
 
-        var tran = await db.Database.BeginTransactionAsync();
+        using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -149,7 +149,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         return Results.Created(ban.GetUri(), ban);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
     public static async Task<IResult> PutRoute(HttpContext ctx, ulong id, ulong planet_id, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
@@ -194,7 +194,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         return Results.Ok(ban);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
     public static async Task<IResult> DeleteRoute(HttpContext ctx, ulong id, ulong planet_id,
         ILogger<PlanetBan> logger)
