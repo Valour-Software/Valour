@@ -614,5 +614,29 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(categories);
     }
 
+    [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDB]
+    [PlanetMembershipRequired("id")]
+    private static async Task<IResult> GetMemberInfo(HttpContext ctx, ulong id, int page = 0)
+    {
+        var db = ctx.GetDb();
+
+        var members = db.PlanetMembers
+            .Where(x => x.Planet_Id == id);
+
+        var totalCount = await members.CountAsync();
+
+        var roleInfo = await members.Select(x => new
+            {
+                member = x,
+                user = x.User,
+                roleIds = x.RoleMembership.Select(x => x.Role_Id)
+            })
+            .Skip(page * 100)
+            .Take(100)
+            .ToListAsync();
+
+        return Results.Json((members: roleInfo, totalCount: totalCount));
+    }
+
     #endregion
 }

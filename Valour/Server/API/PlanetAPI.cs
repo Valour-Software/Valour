@@ -32,13 +32,6 @@ namespace Valour.Server.API
         {
             // Planet routes //
 
-            app.MapPost("api/planet/{planet_id}/channels", CreateChannel);
-            app.MapGet("api/planet/{planet_id}/channels", GetChannels);
-            app.MapGet("api/planet/{planet_id}/channel_ids", GetChannelIds);
-
-            app.MapPost("api/planet/{planet_id}/categories", CreateCategory);
-            app.MapGet("api/planet/{planet_id}/categories", GetCategories);
-
             app.MapGet("api/planet/{planet_id}/member_info", GetMemberInfo);
 
             app.MapGet("api/planet/{planet_id}/roles", GetRoles);
@@ -902,55 +895,7 @@ namespace Valour.Server.API
             }
         }
 
-        private static async Task GetMemberInfo(HttpContext ctx, ValourDB db,
-            [FromHeader] string authorization, [Required] ulong planet_id)
-        {
-            AuthToken auth = await AuthToken.TryAuthorize(authorization, db);
-
-            if (auth == null)
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Token is invalid [token: {authorization}]");
-                return;
-            }
-
-            Planet planet = await db.Planets
-                .Include(x => x.Members).ThenInclude(x => x.User)
-                .Include(x => x.Members).ThenInclude(x => x.RoleMembership.OrderBy(x => x.Role.Position))
-                .ThenInclude(x => x.Role)
-                .FirstOrDefaultAsync(x => x.Id == planet_id);
-
-            if (planet == null)
-            {
-                ctx.Response.StatusCode = 400;
-                await ctx.Response.WriteAsync($"Planet not found [id: {planet_id.ToString()}]");
-                return;
-            }
-
-            if (!planet.Members.Any(x => x.User_Id == auth.User_Id))
-            {
-                ctx.Response.StatusCode = 401;
-                await ctx.Response.WriteAsync($"Member not found");
-                return;
-            }
-
-            List<PlanetMemberInfo> info = new ();
-
-            foreach (var member in planet.Members)
-            {
-                var planetInfo = new PlanetMemberInfo()
-                {
-                    Member = member,
-                    User = member.User,
-                    RoleIds = member.RoleMembership.Select(x => x.Role_Id)
-                };
-
-                info.Add(planetInfo);
-            }
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsJsonAsync(info);
-        }
+        
 
         private static async Task GetRoles(HttpContext ctx, ValourDB db, ulong planet_id,
             [FromHeader] string authorization)
