@@ -143,7 +143,8 @@ public enum UserPermissionsEnum
     View,
     Membership,
     Invites,
-    PlanetManagement
+    PlanetManagement,
+    Messages
 }
 
 /// <summary>
