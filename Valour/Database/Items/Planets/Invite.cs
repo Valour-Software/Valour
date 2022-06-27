@@ -59,9 +59,8 @@ public class Invite : PlanetItem
         db.PlanetInvites.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get), InjectDB]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id,
-        ILogger<Invite> logger)
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
         var db = ctx.GetDb();
 
@@ -71,10 +70,10 @@ public class Invite : PlanetItem
             return ValourResult.NotFound<Invite>();
 
         return Results.Json(invite);
-
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Invite invite,
@@ -105,6 +104,7 @@ public class Invite : PlanetItem
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Invite invite,
@@ -141,6 +141,7 @@ public class Invite : PlanetItem
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
@@ -214,6 +215,7 @@ public class Invite : PlanetItem
     }
 
     [ValourRoute(HttpVerbs.Post, "/{invite_code}/join"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Invites)]
     public async Task<IResult> Join(HttpContext ctx, string invite_code)
     {
         var db = ctx.GetDb();

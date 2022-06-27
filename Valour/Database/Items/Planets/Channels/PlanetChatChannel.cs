@@ -150,11 +150,13 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
     public static IResult GetRoute(HttpContext ctx, ulong id) =>
         Results.Json(ctx.GetItem<PlanetChatChannel>(id));
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planet_id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
@@ -203,10 +205,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired(ChatChannelPermissionsEnum.View,
-                              ChatChannelPermissionsEnum.ManageChannel)]
+     ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
@@ -251,10 +253,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired(ChatChannelPermissionsEnum.View,
-                              ChatChannelPermissionsEnum.ManageChannel)]
+     ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planet_id,
         ILogger<PlanetChatChannel> logger)
     {
@@ -285,6 +287,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     // Message routes
 
     [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
     public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, ulong id, ulong index = ulong.MaxValue, int count = 10)
@@ -318,10 +321,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
                               ChatChannelPermissionsEnum.PostMessages)]
-    public static async Task<IResult> PostMessagesRouteAsync(HttpContext ctx, [FromBody] PlanetMessage message)
+    public static async Task<IResult> PostMessageRouteAsync(HttpContext ctx, [FromBody] PlanetMessage message)
     {
         var member = ctx.GetMember();
 
@@ -359,9 +363,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/messages/{message_id}"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> DeleteMessagesRouteAsync(HttpContext ctx, ulong id, ulong message_id,
+    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, ulong id, ulong message_id,
         ILogger<PlanetChatChannel> logger)
     {
         var db = ctx.GetDb();

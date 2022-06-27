@@ -738,5 +738,30 @@ public class Planet : Item, ISharedPlanet
         return Results.NoContent();
     }
 
+    [ValourRoute(HttpVerbs.Get, "{id}/invites")]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
+    public static async Task<IResult> GetInvitesRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var invites = await db.PlanetInvites.Where(x => x.Planet_Id == id).ToListAsync();
+
+        return Results.Json(invites);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/inviteids")]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
+    public static async Task<IResult> GetInviteIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var invites = await db.PlanetInvites.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+
+        return Results.Json(invites);
+    }
+
+
     #endregion
 }
