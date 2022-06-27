@@ -1,21 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Drawing;
 using System.Text.Json.Serialization;
-using Valour.Shared;
+using System.Web.Mvc;
+using Valour.Database.Attributes;
+using Valour.Database.Extensions;
+using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items.Planets.Members;
-using Valour.Shared.Items;
-using System.Drawing;
-using Valour.Database.Items.Authorization;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 using Valour.Shared.Http;
-using Valour.Database.Attributes;
-using System.Web.Mvc;
-using Valour.Database.Extensions;
-using Microsoft.Extensions.Logging;
+using Valour.Shared.Items;
+using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -119,6 +117,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     }
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired]
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
@@ -133,6 +132,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetRole role,
@@ -141,10 +141,11 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
-        if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))
-            return ValourResult.Forbid("You cannot manage roles with higher authority than your own.");
-
         role.Position = (uint)await db.PlanetRoles.CountAsync(x => x.Planet_Id == role.Planet_Id);
+        role.Id = IdManager.Generate();
+
+        if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))
+            return ValourResult.Forbid("You cannot create roles with higher authority than your own.");
 
         try
         {
@@ -159,12 +160,13 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         
         PlanetHub.NotifyPlanetItemChange(role);
 
-        return Results.Json(role);
+        return Results.Created(role.GetUri(), role);
 
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
-    [PlanetMembershipRequired()]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
@@ -197,6 +199,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,

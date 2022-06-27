@@ -8,11 +8,11 @@
 
 namespace Valour.Database;
 
-public class IdManager
+public static class IdManager
 {
     public static IdGenerator Generator { get; set; }
 
-    public IdManager()
+    static IdManager()
     {
         // Fun fact: This is the exact moment that SpookVooper was terminated
         // which led to the development of Valour becoming more than just a side
