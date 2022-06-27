@@ -116,8 +116,6 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
         // Remove self
         db.PlanetRoles.Remove(this);
-
-        await db.SaveChangesAsync();
     }
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
@@ -211,6 +209,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         try
         {
             await role.DeleteAsync(db);
+            await db.SaveChangesAsync();
         }
         catch(System.Exception e)
         {

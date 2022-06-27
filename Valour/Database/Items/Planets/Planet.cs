@@ -268,7 +268,19 @@ public class Planet : Item, ISharedPlanet
 
     #region Routes
 
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var planet = await FindAsync<Planet>(id, db);
+
+        return Results.Json(planet);
+    }
+
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Planet planet,
         ILogger<Planet> logger)
     {
@@ -361,6 +373,369 @@ public class Planet : Item, ISharedPlanet
         await tran.CommitAsync();
 
         return Results.Created(planet.GetUri(), planet);
+    }
+
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Planet planet,
+        ILogger<Planet> logger)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var old = await FindAsync<Planet>(id, db);
+
+        if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        if (planet is null)
+            return Results.BadRequest("Include planet in body.");
+
+        if (planet.Id != id)
+            return Results.BadRequest("Id cannot be changed.");
+
+        var nameValid = ValidateName(planet.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(planet.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        // Owner change check
+        if (old.Owner_Id != planet.Owner_Id)
+        {
+            // Only owner can do this
+            if (member.User_Id != old.Owner_Id)
+                return ValourResult.Forbid("Only a planet owner can transfer ownership.");
+
+            // Ensure new owner is a member of the planet
+            if (!await old.IsMemberAsync(planet.Owner_Id, db))
+                return Results.BadRequest("You cannot transfer ownership to a non-member.");
+
+            var ownedPlanets = await db.Planets.CountAsync(x => x.Owner_Id == planet.Owner_Id);
+            if (ownedPlanets >= MAX_OWNED_PLANETS)
+                return Results.BadRequest("That user has the maximum owned planets!");
+        }
+
+        if (old.Default_Role_Id != planet.Default_Role_Id)
+            return Results.BadRequest("You cannot change the default role. Change the permissions on it instead.");
+
+        if (old.Primary_Channel_Id != planet.Primary_Channel_Id)
+        {
+            // Ensure new channel exists and belongs to the planet
+            var newChannel = await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.Planet_Id == id && x.Id == planet.Primary_Channel_Id);
+
+            if (newChannel is null)
+                return ValourResult.NotFound<PlanetChatChannel>();
+        }
+
+        if (old.IconUrl != planet.IconUrl)
+            return Results.BadRequest("Use the upload API to change the planet icon.");
+
+        try
+        {
+            db.Planets.Update(planet);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetChange(planet);
+
+        return Results.Json(planet);
+    }
+
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, 
+        ILogger<Planet> logger)
+    {
+        var db = ctx.GetDb();
+        var authMember = ctx.GetMember();
+        var planet = await FindAsync<Planet>(id, db);
+
+        if (authMember.User_Id != planet.Owner_Id)
+            return ValourResult.Forbid("You are not the owner of this planet.");
+
+        // This is quite complicated.
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            var channels = db.PlanetChatChannels.Where(x => x.Planet_Id == id);
+            var categories = db.PlanetCategoryChannels.Where(x => x.Planet_Id == id);
+            var roles = db.PlanetRoles.Where(x => x.Planet_Id == id);
+            var members = db.PlanetMembers.Where(x => x.Planet_Id == id);
+            var invites = db.PlanetInvites.Where(x => x.Planet_Id == id);
+
+            // Channels (also deletes messages and nodes)
+            foreach (var channel in channels)
+            {
+                await channel.DeleteAsync(db);
+            }
+
+            // Categories (also deletes nodes)
+            foreach (var category in categories)
+            {
+                await category.DeleteAsync(db);
+            }
+
+            // Roles (Also deletes role membership)
+            foreach (var role in roles)
+            {
+                await role.DeleteAsync(db);
+            }
+
+            // Members
+            foreach (var member in members)
+            {
+                await member.DeleteAsync(db);
+            }
+
+            // Invites
+            foreach (var invite in invites)
+            {
+                await invite.DeleteAsync(db);
+            }
+
+            db.Remove(planet);
+
+            await db.SaveChangesAsync();
+        }
+        catch(System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).ToListAsync();
+        var allowedChannels = new List<PlanetChannel>();
+
+        foreach (var channel in channels)
+        {
+            if (channel is PlanetChatChannel)
+            {
+                if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
+                {
+                    allowedChannels.Add(channel);
+                }
+            }
+            else if (channel is PlanetCategoryChannel)
+            {
+                if (await channel.HasPermissionAsync(member, CategoryPermissions.View, db))
+                {
+                    allowedChannels.Add(channel);
+                }
+            }
+        }
+
+        return Results.Json(allowedChannels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+        var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).ToListAsync();
+
+        var allowedChannels = new List<PlanetChatChannel>();
+
+        foreach (var channel in chatChannels)
+        {
+            if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
+            {
+                allowedChannels.Add(channel);
+            }
+        }
+
+        return Results.Json(allowedChannels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+        var categories = await db.PlanetCategoryChannels.Where(x => x.Planet_Id == id).ToListAsync();
+        var allowedCategories = new List<PlanetCategoryChannel>();
+
+        foreach (var category in categories)
+        {
+            if (await category.HasPermissionAsync(member, CategoryPermissions.View, db))
+            {
+                allowedCategories.Add(category);
+            }
+        }
+
+        return Results.Json(allowedCategories);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var channels = await db.PlanetChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(channels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var chatChannels = await db.PlanetChatChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(chatChannels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var categories = await db.PlanetCategoryChannels.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(categories);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, ulong id, int page = 0)
+    {
+        var db = ctx.GetDb();
+
+        var members = db.PlanetMembers
+            .Where(x => x.Planet_Id == id);
+
+        var totalCount = await members.CountAsync();
+
+        var roleInfo = await members.Select(x => new
+            {
+                member = x,
+                user = x.User,
+                roleIds = x.RoleMembership.Select(x => x.Role_Id)
+            })
+            .Skip(page * 100)
+            .Take(100)
+            .ToListAsync();
+
+        return Results.Json((members: roleInfo, totalCount: totalCount));
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/roles"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var roles = await db.PlanetRoles.Where(x => x.Planet_Id == id).ToListAsync();
+
+        return Results.Json(roles);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/roleids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var roles = await db.PlanetRoles.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+
+        return Results.Json(roles);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "{id}/roleorder")]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired("id")]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> SetRoleOrderRouteAsync(HttpContext ctx, ulong id, [FromBody] ulong[] order,
+        ILogger<Planet> logger)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var authority = await member.GetAuthorityAsync(db);
+
+        // Remove duplicates
+        order = order.Distinct().ToArray();
+
+        // Ensure every role is accounted for
+        var totalRoles = await db.PlanetRoles.CountAsync(x => x.Planet_Id == id);
+
+        if (totalRoles != order.Length)
+            return Results.BadRequest("Your order does not contain all the planet roles.");
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        List<PlanetRole> roles = new();
+
+        try
+        {
+            uint pos = 0;
+
+            foreach (var roleId in order)
+            {
+                var role = await FindAsync<PlanetRole>(roleId, db);
+
+                if (role is null)
+                    return ValourResult.NotFound<PlanetRole>();
+
+                if (role.Planet_Id != id)
+                    return Results.BadRequest($"Role {role.Id} does not belong to planet {id}");
+
+                role.Position = pos;
+
+                db.PlanetRoles.Update(role);
+
+                roles.Add(role);
+
+                pos++;
+            }
+
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        await tran.CommitAsync();
+
+        foreach (var role in roles)
+        {
+            PlanetHub.NotifyPlanetItemChange(role);
+        }
+
+        return Results.NoContent();
     }
 
     #endregion

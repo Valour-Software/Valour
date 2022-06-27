@@ -57,8 +57,6 @@ public class Invite : PlanetItem
     public async Task DeleteAsync(ValourDB db)
     {
         db.PlanetInvites.Remove(this);
-
-        await db.SaveChangesAsync();
     }
 
     [ValourRoute(HttpVerbs.Get), InjectDB]
@@ -155,6 +153,7 @@ public class Invite : PlanetItem
         try
         {
             await invite.DeleteAsync(db);
+            await db.SaveChangesAsync();
         }
         catch(System.Exception e)
         {

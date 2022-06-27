@@ -136,13 +136,14 @@ public class PlanetPermission : Permission
     }
 }
 
-public enum UserPermissionEnum
+public enum UserPermissionsEnum
 {
     FullControl,
     Minimum,
     View,
     Membership,
-    Invites
+    Invites,
+    PlanetManagement
 }
 
 /// <summary>
@@ -164,7 +165,8 @@ public static class UserPermissions
                 Minimum,
                 View,
                 Membership,
-                Invites
+                Invites,
+                PlanetManagement
         };
     }
 
