@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using System.Web.Mvc;
 using Valour.Database.Attributes;
+using Valour.Database.Email;
 using Valour.Database.Extensions;
 using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
@@ -112,8 +113,7 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/self/verifyemail/{code}"), TokenRequired, InjectDb]
-    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    [ValourRoute(HttpVerbs.Post, "/verify/{code}"), InjectDb]
     public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
         ILogger<User> logger)
     {
@@ -298,6 +298,141 @@ public class User : Item, ISharedUser
         await tran.CommitAsync();
 
         return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/register")]
+    public static async Task<IResult> RegisterUserRouteAsync(HttpContext ctx, [FromBody] RegisterUserRequest request,
+        ILogger<User> logger)
+    {
+        var db = ctx.GetDb();
+
+        if (request is null)
+            return Results.BadRequest("Include request in body.");
+
+        // Prevent trailing whitespace
+        request.Username = request.Username.Trim();
+
+        if (await db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
+            return Results.BadRequest("Username is taken.");
+
+        if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email.ToLower()))
+            return Results.BadRequest("This email has already been used.");
+
+        var emailValid = UserUtils.TestEmail(request.Email);
+        if (!emailValid.Success)
+            return Results.BadRequest(emailValid.Message);
+
+        var usernameValid = UserUtils.TestUsername(request.Username);
+        if (!usernameValid.Success)
+            return Results.BadRequest(usernameValid.Message);
+
+        var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
+        if (!passwordValid.Success)
+            return Results.BadRequest(passwordValid.Message);
+
+        Referral refer = null;
+        if (!string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        {
+            var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
+            if (referUser is null)
+                return Results.BadRequest("Referrer not found.");
+
+            refer = new Referral()
+            {
+                Referrer_Id = referUser.Id
+            };
+        }
+
+        byte[] salt = PasswordManager.GenerateSalt();
+        byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
+
+
+        using var tran = await db.Database.BeginTransactionAsync();
+
+        User user = null;
+
+        try
+        {
+            user = new()
+            {
+                Id = IdManager.Generate(),
+                Name = request.Username,
+                Joined = DateTime.UtcNow,
+                LastActive = DateTime.UtcNow,
+            };
+
+            await db.Users.AddAsync(user);
+            await db.SaveChangesAsync();
+
+            if (refer != null)
+            {
+                refer.User_Id = user.Id;
+                await db.Referrals.AddAsync(refer);
+            }
+
+            UserEmail userEmail = new()
+            {
+                Email = request.Email,
+                Verified = false,
+                User_Id = user.Id
+            };
+
+            await db.UserEmails.AddAsync(userEmail);
+
+            Credential cred = new()
+            {
+                CredentialType = CredentialType.PASSWORD,
+                Identifier = request.Email,
+                Salt = salt,
+                Secret = hash,
+                User_Id = user.Id
+            };
+
+            await db.Credentials.AddAsync(cred);
+
+            var emailCode = Guid.NewGuid().ToString();
+            EmailConfirmCode confirmCode = new()
+            {
+                Code = emailCode,
+                User_Id = user.Id
+            };
+
+            await db.EmailConfirmCodes.AddAsync(confirmCode);
+            await db.SaveChangesAsync();
+
+            // Send registration email
+            string emsg = $@"<body>
+                              <h2 style='font-family:Helvetica;'>
+                                Welcome to Valour!
+                              </h2>
+                              <p style='font-family:Helvetica;>
+                                To verify your new account, please use the following link: 
+                              </p>
+                              <p style='font-family:Helvetica;'>
+                                <a href='https://valour.gg/api/user/verify/{emailCode}'>Verify</a>
+                              </p>
+                            </body>";
+
+            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/api/user/verify/{emailCode}";
+
+            var result = await EmailManager.SendEmailAsync(request.Email, "Valour Registration", rawmsg, emsg);
+            if (!result.IsSuccessStatusCode)
+            {
+                logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
+                await tran.RollbackAsync();
+                return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
+            }
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem("Sorry! An unexpected error occured. Try again?");
+        }
+
+        await tran.CommitAsync();
+
+        return Results.Ok("Your confirmation email has been sent!");
     }
 
     #endregion

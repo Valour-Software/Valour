@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace Valour.Server.Email
+namespace Valour.Database.Email
 {
     /*  Valour - A free and secure chat client
      *  Copyright (C) 2021 Vooper Media LLC
@@ -26,7 +26,7 @@ namespace Valour.Server.Email
         /// <summary>
         /// Sends an email using SendGrid API
         /// </summary>
-        public static async Task SendEmailAsync(string address, string subject, string message, string html = null)
+        public static async Task<Response> SendEmailAsync(string address, string subject, string message, string html = null)
         {
             // Case if someone doesn't have an HTML version of email
             if (html == null)
@@ -47,7 +47,7 @@ namespace Valour.Server.Email
             email.SetClickTracking(false, false);
 
             // Send the email
-            await client.SendEmailAsync(email);
+            return await client.SendEmailAsync(email);
         }
     }
 }

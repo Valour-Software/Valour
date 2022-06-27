@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Valour.Server.Email
+namespace Valour.Database.Email
 {
     /*  Valour - A free and secure chat client
      *  Copyright (C) 2021 Vooper Media LLC
