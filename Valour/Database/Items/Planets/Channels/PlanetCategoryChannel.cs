@@ -294,20 +294,27 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         if (category.Planet_Id != planet_id)
             return Results.BadRequest("Parent_Id mismatch.");
 
+        order = order.Distinct().ToArray();
+
+        var totalChildren = await db.PlanetChannels.CountAsync(x => x.Parent_Id == id);
+
+        if (totalChildren != order.Length)
+            return Results.BadRequest("Your order does not contain all the children.");
+
         // Use transaction so we can stop at any failure
         var tran = await db.Database.BeginTransactionAsync();
 
-        List<PlanetCategoryChannel> children = new();
+        List<PlanetChannel> children = new();
 
         try
         {
             var pos = 0;
             foreach (var child_id in order)
             {
-                var child = await FindAsync<PlanetCategoryChannel>(child_id, db);
+                var child = await FindAsync<PlanetChannel>(child_id, db);
                 if (child is null)
                 {
-                    return Results.NotFound($"Child {child_id} was not found.");
+                    return ValourResult.NotFound<PlanetChannel>();
                 }
 
                 if (child.Parent_Id != category.Id)
@@ -315,7 +322,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
                 child.Position = pos;
 
-                db.Update(child);
+                db.PlanetChannels.Update(child);
 
                 children.Add(child);
 
@@ -326,8 +333,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         }
         catch (System.Exception e)
         {
-            logger.LogError(e.Message);
             await tran.RollbackAsync();
+            logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
 

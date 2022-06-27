@@ -269,6 +269,7 @@ public class Planet : Item, ISharedPlanet
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
@@ -279,6 +280,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Planet planet,
         ILogger<Planet> logger)
     {
@@ -374,6 +376,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Planet planet,
         ILogger<Planet> logger)
@@ -448,6 +451,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, 
         ILogger<Planet> logger)
@@ -516,6 +520,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
     {
@@ -547,6 +552,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
     {
@@ -568,6 +574,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
     {
@@ -588,6 +595,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, ulong id)
     {
@@ -597,6 +605,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, ulong id)
     {
@@ -606,6 +615,7 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, ulong id)
     {
@@ -615,8 +625,9 @@ public class Planet : Item, ISharedPlanet
     }
 
     [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    private static async Task<IResult> GetMemberInfo(HttpContext ctx, ulong id, int page = 0)
+    public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, ulong id, int page = 0)
     {
         var db = ctx.GetDb();
 
@@ -636,6 +647,95 @@ public class Planet : Item, ISharedPlanet
             .ToListAsync();
 
         return Results.Json((members: roleInfo, totalCount: totalCount));
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/roles"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var roles = await db.PlanetRoles.Where(x => x.Planet_Id == id).ToListAsync();
+
+        return Results.Json(roles);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "{id}/roleids"), TokenRequired, InjectDB]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, ulong id)
+    {
+        var db = ctx.GetDb();
+        var roles = await db.PlanetRoles.Where(x => x.Planet_Id == id).Select(x => x.Id).ToListAsync();
+
+        return Results.Json(roles);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "{id}/roleorder")]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired("id")]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> SetRoleOrderRouteAsync(HttpContext ctx, ulong id, [FromBody] ulong[] order,
+        ILogger<Planet> logger)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var authority = await member.GetAuthorityAsync(db);
+
+        // Remove duplicates
+        order = order.Distinct().ToArray();
+
+        // Ensure every role is accounted for
+        var totalRoles = await db.PlanetRoles.CountAsync(x => x.Planet_Id == id);
+
+        if (totalRoles != order.Length)
+            return Results.BadRequest("Your order does not contain all the planet roles.");
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        List<PlanetRole> roles = new();
+
+        try
+        {
+            uint pos = 0;
+
+            foreach (var roleId in order)
+            {
+                var role = await FindAsync<PlanetRole>(roleId, db);
+
+                if (role is null)
+                    return ValourResult.NotFound<PlanetRole>();
+
+                if (role.Planet_Id != id)
+                    return Results.BadRequest($"Role {role.Id} does not belong to planet {id}");
+
+                role.Position = pos;
+
+                db.PlanetRoles.Update(role);
+
+                roles.Add(role);
+
+                pos++;
+            }
+
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        await tran.CommitAsync();
+
+        foreach (var role in roles)
+        {
+            PlanetHub.NotifyPlanetItemChange(role);
+        }
+
+        return Results.NoContent();
     }
 
     #endregion

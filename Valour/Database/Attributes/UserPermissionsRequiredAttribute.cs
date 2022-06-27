@@ -5,9 +5,9 @@ namespace Valour.Database.Attributes;
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public class UserPermissionsRequiredAttribute : Attribute
 {
-    public readonly UserPermission[] permissions;
+    public readonly UserPermissionsEnum[] permissions;
 
-    public UserPermissionsRequiredAttribute(params UserPermission[] permissions)
+    public UserPermissionsRequiredAttribute(params UserPermissionsEnum[] permissions)
     {
         this.permissions = permissions;
     }

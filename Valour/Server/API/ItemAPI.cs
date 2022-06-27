@@ -112,6 +112,29 @@ public class ItemAPI<T> where T : Item
                         });
                     }
 
+                    // Add user validation
+
+                    foreach (var attr in attributes.Where(x => x is UserPermissionsRequiredAttribute))
+                    {
+                        var userPermAttr = (UserPermissionsRequiredAttribute)attr;
+
+                        builder.AddFilter(async (ctx, next) =>
+                        {
+                            var token = ctx.HttpContext.GetToken();
+                            if (token is null)
+                                throw new Exception("UserPermissionRequired attribute requires a TokenRequired attribute.");
+
+                            foreach (var permEnum in userPermAttr.permissions)
+                            {
+                                var permission = UserPermissions.Permissions[(int)permEnum];
+                                if (!token.HasScope(permission))
+                                    return ValourResult.LacksPermission(permission);
+                            }
+
+                            return await next(ctx);
+                        });
+                    }
+
                     var planetAttr = (PlanetPermsRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetPermsRequiredAttribute);
                     if (planetAttr is not null)
                     {
@@ -171,28 +194,6 @@ public class ItemAPI<T> where T : Item
                                 return ValourResult.NotPlanetMember();
 
                             ctx.HttpContext.Items.Add("member", member);
-
-                            return await next(ctx);
-                        });
-                    }
-
-                    // Add user validation
-
-                    foreach (var attr in attributes.Where(x => x is UserPermissionsRequiredAttribute))
-                    {
-                        var userPermAttr = (UserPermissionsRequiredAttribute)attr;
-
-                        builder.AddFilter(async (ctx, next) =>
-                        {
-                            var token = ctx.HttpContext.GetToken();
-                            if (token is null)
-                                throw new Exception("UserPermissionRequired attribute requires a TokenRequired attribute.");
-
-                            foreach (var permission in userPermAttr.permissions)
-                            {
-                                if (!token.HasScope(permission))
-                                    return ValourResult.LacksPermission(permission);
-                            }
 
                             return await next(ctx);
                         });
