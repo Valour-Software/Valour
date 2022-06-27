@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -6,13 +7,21 @@ using System.Text.Json.Serialization;
 using System.Web.Mvc;
 using Valour.Database.Attributes;
 using Valour.Database.Extensions;
+using Valour.Database.Items.Authorization;
 using Valour.Database.Items.Planets.Members;
+using Valour.Database.Users.Identity;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Database.Items.Users;
+
+/*  Valour - A free and secure chat client
+ *  Copyright (C) 2021 Vooper Media LLC
+ *  This program is subject to the GNU Affero General Public license
+ *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+ */
 
 public class User : Item, ISharedUser
 {
@@ -89,6 +98,8 @@ public class User : Item, ISharedUser
         set => ISharedUser.SetUserState(this, value);
     }
 
+    #region Routes
+
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, ulong id)
     {
@@ -101,9 +112,9 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/self/verifyemail/{code}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
-    public static async Task<IResult> VerifyEmail(HttpContext ctx, string code,
+    public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
         ILogger<User> logger)
     {
         var db = ctx.GetDb();
@@ -132,7 +143,163 @@ public class User : Item, ISharedUser
             return Results.Problem(e.Message);
         }
 
+        await tran.CommitAsync();
+
         return Results.NoContent();
     }
+
+    [ValourRoute(HttpVerbs.Post, "/self/logout"), TokenRequired, InjectDb]
+    public static async Task<IResult> LogOutRouteAsync(HttpContext ctx,
+        ILogger<User> logger)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        try
+        {
+            db.AuthTokens.Remove(token);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        return Results.Ok("Come back soon!");
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired, InjectDb]
+    public static async Task<IResult> SelfRouteAsync(HttpContext ctx)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        var user = await FindAsync<User>(token.User_Id, db);
+
+        if (user is null) // This case would be bad for whoever is using this lol
+            return ValourResult.NotFound<User>(); // I mean really this should not happen but you know how life is
+                                                  // Sometimes things do be wrong
+
+        return Results.Json(user);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/token"), InjectDb]
+    public static async Task<IResult> GetTokenRouteAsync(HttpContext ctx, [FromBody] TokenRequest tokenRequest,
+        ILogger<User> logger)
+    {
+        var db = ctx.GetDb();
+
+        if (tokenRequest is null)
+            return Results.BadRequest("Include request in body.");
+
+        UserEmail userEmail = await db.UserEmails
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Email == tokenRequest.Email.ToLower());
+
+        if (userEmail is null)
+            return ValourResult.InvalidToken();
+
+        if (userEmail.User.Disabled)
+            return ValourResult.Forbid("Your account is disabled.");
+
+        if (!userEmail.Verified)
+            return ValourResult.Forbid("This account needs email verification. Please check your email.");
+
+        var validResult = await UserManager.ValidateAsync(CredentialType.PASSWORD, tokenRequest.Email, tokenRequest.Password, db);
+        if (!validResult.Success)
+            return Results.Unauthorized();
+
+        // Check for an old token
+        var token = await db.AuthTokens
+            .FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && 
+                                      x.User_Id == userEmail.User_Id && 
+                                      x.Scope == UserPermissions.FullControl.Value);
+
+        try
+        {
+            if (token is null)
+            {
+                // We now have to create a token for the user
+                token = new AuthToken()
+                {
+                    App_Id = "VALOUR",
+                    Id = "val-" + Guid.NewGuid().ToString(),
+                    Created = DateTime.UtcNow,
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    Scope = UserPermissions.FullControl.Value,
+                    User_Id = userEmail.User_Id
+                };
+
+                await db.AuthTokens.AddAsync(token);
+                await db.SaveChangesAsync();
+            }
+            else
+            {
+                token.Created = DateTime.UtcNow;
+                token.Expires = DateTime.UtcNow.AddDays(7);
+
+                db.AuthTokens.Update(token);
+                await db.SaveChangesAsync();
+            }
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        return Results.Json(token);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/self/recovery")]
+    public static async Task<IResult> RecoverPasswordRouteAsync(HttpContext ctx, [FromBody] PasswordRecoveryRequest request,
+        ILogger<User>  logger)
+    {
+        var db = ctx.GetDb();
+
+        if (request is null)
+            return Results.BadRequest("Include request in body.");
+
+        var recovery = await db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == request.Code);
+        if (recovery is null)
+            return ValourResult.NotFound<PasswordRecovery>();
+
+        var passValid = UserUtils.TestPasswordComplexity(request.Password);
+        if (!passValid.Success)
+            return Results.BadRequest(passValid.Message);
+
+        // Old credentials
+        Credential cred = await db.Credentials.FirstOrDefaultAsync(x => x.User_Id == recovery.User_Id);
+        if (cred is null)
+            return Results.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");
+
+        using var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            db.PasswordRecoveries.Remove(recovery);
+
+            byte[] salt = PasswordManager.GenerateSalt();
+            byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
+
+            cred.Salt = salt;
+            cred.Secret = hash;
+
+            db.Credentials.Update(cred);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem("We're sorry. Something unexpected occured. Try again?");
+        }
+
+        await tran.CommitAsync();
+
+        return Results.NoContent();
+    }
+
+    #endregion
 }
 

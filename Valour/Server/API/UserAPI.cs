@@ -21,8 +21,6 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            //app.MapGet("api/user/{user_id}", GetUser);
-
             app.MapGet("api/user/{user_id}/planets", GetPlanets);
 
             app.MapGet("api/user/{user_id}/planet_ids", GetPlanetIds);
@@ -31,149 +29,9 @@ namespace Valour.Server.API
 
             app.MapPost("api/user/passwordreset", PasswordReset);
 
-            app.MapPost("api/user/recover", RecoverPassword);
 
-            app.MapPost("api/user/requesttoken", RequestToken);
-
-            app.MapPost("api/user/logout", LogOut);
-
-            app.MapPost("api/user/withtoken", WithToken);
-
-            // app.MapPost("api/user/verify/{code}", VerifyEmail);
         }
 
-        private static async Task VerifyEmail(HttpContext ctx, ValourDB db, string code)
-        {
-            var confirmCode = await db.EmailConfirmCodes
-                .Include(x => x.User)
-                .ThenInclude(x => x.Email)
-                .FirstOrDefaultAsync(x => x.Code == code);
-
-            if (confirmCode == null) { await NotFound("Code not found", ctx); return; }
-
-            var email = confirmCode.User.Email;
-
-            email.Verified = true;
-
-            db.EmailConfirmCodes.Remove(confirmCode);
-            await db.SaveChangesAsync();
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsync("Success");
-        }
-
-        private static async Task LogOut(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
-        {
-            var authToken = await AuthToken.TryAuthorize(authorization, db);
-
-            if (authToken == null) { await Unauthorized("Include token", ctx); return; }
-
-            db.AuthTokens.Remove(authToken);
-            await db.SaveChangesAsync();
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsync("Success");
-        }
-
-        private static async Task WithToken(HttpContext ctx, ValourDB db)
-        {
-            string token = await ctx.Request.ReadBodyStringAsync();
-
-            var authToken = await db.AuthTokens.Include(x => x.User).FirstOrDefaultAsync(x => x.Id == token);
-
-            if (authToken == null) { await NotFound("User not found", ctx); return; }
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsJsonAsync(authToken.User);
-        }
-
-        private static async Task RequestToken(HttpContext ctx, ValourDB db, UserManager userManager)
-        {
-            TokenRequest request = await JsonSerializer.DeserializeAsync<TokenRequest>(ctx.Request.Body);
-
-            UserEmail emailObj = await db.UserEmails.Include(x => x.User).FirstOrDefaultAsync(x => x.Email == request.Email.ToLower());
-
-            if (emailObj == null) { await Unauthorized("Failed to authorize", ctx); return; }
-
-            if (emailObj.User.Disabled) { await BadRequest("User is disabled.", ctx); return; }
-
-            if (!emailObj.Verified) { await Unauthorized("The email associated with this account needs to be verified! Please check your email.", ctx); return; }
-
-            var result = await userManager.ValidateAsync(CredentialType.PASSWORD, request.Email, request.Password);
-
-            if (!result.Success) { await Unauthorized("Failed to authorize", ctx); return; }
-
-            if (emailObj.User.Id != result.Data.Id) { await Unauthorized("Failed to authorize", ctx); return; } // This would be weird tbhtbh
-
-            // Attempt to re-use token
-            var token = await db.AuthTokens.FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && x.User_Id == emailObj.User_Id && x.Scope == UserPermissions.FullControl.Value);
-
-            if (token is null)
-            {
-                // We now have to create a token for the user
-                token = new AuthToken()
-                {
-                    App_Id = "VALOUR",
-                    Id = "val-" + Guid.NewGuid().ToString(),
-                    Created = DateTime.UtcNow,
-                    Expires = DateTime.UtcNow.AddDays(7),
-                    Scope = UserPermissions.FullControl.Value,
-                    User_Id = emailObj.User_Id
-                };
-
-                await db.AuthTokens.AddAsync(token);
-                await db.SaveChangesAsync();
-            }
-            else
-            {
-                token.Created = DateTime.UtcNow;
-                token.Expires = DateTime.UtcNow.AddDays(7);
-
-                db.AuthTokens.Update(token);
-                await db.SaveChangesAsync();
-            }
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsync(token.Id);
-        }
-
-        private static async Task RecoverPassword(HttpContext ctx, ValourDB db, [FromBody] PasswordRecoveryRequest request)
-        {
-            if (request == null) { await BadRequest("Include request data in body", ctx); return; }
-
-            PasswordRecovery recovery = await db.PasswordRecoveries.FindAsync(request.Code);
-
-            if (recovery == null) { await NotFound("Recovery request not found", ctx); return; }
-
-            TaskResult passwordValid = UserUtils.TestPasswordComplexity(request.Password);
-
-            if (!passwordValid.Success) { await BadRequest(passwordValid.Message, ctx); return; }
-
-            // Get user's old credentials
-            Credential credential = await db.Credentials.FirstOrDefaultAsync(x => x.User_Id == recovery.User_Id && x.CredentialType == CredentialType.PASSWORD);
-
-            if (credential == null) { await NotFound("No password-type credentials found. Do you log in via third party service?", ctx); return; }
-
-            // Remove recovery code
-            db.PasswordRecoveries.Remove(recovery);
-
-            // Modify old credentials
-
-            // Generate salt
-            byte[] salt = PasswordManager.GenerateSalt();
-
-            // Generate password hash
-            byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
-
-            credential.Salt = salt;
-            credential.Secret = hash;
-
-            db.Credentials.Update(credential);
-            await db.SaveChangesAsync();
-
-            ctx.Response.StatusCode = 200;
-            await ctx.Response.WriteAsync("Success");
-        }
 
         private static async Task RegisterUser(HttpContext ctx, ValourDB db, string username, string email, string password, string referrer)
         {
