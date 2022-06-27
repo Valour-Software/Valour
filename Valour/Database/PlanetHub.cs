@@ -94,6 +94,12 @@ namespace Valour.Database
         public static async void NotifyPlanetItemDelete(PlanetItem item) =>
             await Current.Clients.Group($"p-{item.Planet_Id}").SendAsync($"{item.ItemType}-Delete", item);
 
+        public static async void NotifyPlanetChange(Planet item, int flags = 0) =>
+            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.ItemType}-Update", item, flags);
+
+        public static async void NotifyPlanetDelete(Planet item) =>
+            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.ItemType}-Delete", item);
+
         public async Task LeaveInteractionGroup(ulong planet_id) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planet_id}");
 

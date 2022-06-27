@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Database.Items.Planets.Members;
 using Valour.Shared;
@@ -32,5 +33,13 @@ public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
         Parent ??= await db.PlanetCategoryChannels.FindAsync(Parent_Id);
         return Parent;
     }
+
+    public abstract Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db);
+
+    public static async Task<bool> HasUniquePosition(ValourDB db, PlanetChannel channel) =>
+        // Ensure position is not already taken
+        !(await db.PlanetChannels.AnyAsync(x => x.Parent_Id == channel.Parent_Id && // Same parent
+                                                x.Position == channel.Position && // Same position
+                                                x.Id != channel.Id)); // Not self
 }
 

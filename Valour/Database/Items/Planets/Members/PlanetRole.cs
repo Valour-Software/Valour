@@ -8,6 +8,14 @@ using Valour.Shared.Items.Planets.Members;
 using Valour.Shared.Items;
 using System.Drawing;
 using Valour.Database.Items.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Valour.Shared.Http;
+using Valour.Database.Attributes;
+using System.Web.Mvc;
+using Valour.Database.Extensions;
+using Microsoft.Extensions.Logging;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -18,17 +26,11 @@ using Valour.Database.Items.Authorization;
 
 namespace Valour.Database.Items.Planets.Members;
 
-public class PlanetRole : Item, ISharedPlanetRole, IPlanetItemAPI<PlanetRole>, INodeSpecific
+public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     [InverseProperty("Role")]
     [JsonIgnore]
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
-
-    [ForeignKey("Planet_Id")]
-    [JsonIgnore]
-    public virtual Planet Planet { get; set; }
-
-    public ulong Planet_Id { get; set; }
 
     /// <summary>
     /// The position of the role: Lower has more authority
@@ -54,16 +56,16 @@ public class PlanetRole : Item, ISharedPlanetRole, IPlanetItemAPI<PlanetRole>, I
     public override ItemType ItemType => ItemType.PlanetRole;
 
     public uint GetAuthority() =>
-        ((ISharedPlanetRole)this).GetAuthority();
+        ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
-        ((ISharedPlanetRole)this).GetColor();
+        ISharedPlanetRole.GetColor(this);
 
     public string GetColorHex() =>
-        ((ISharedPlanetRole)this).GetColorHex();
+        ISharedPlanetRole.GetColorHex(this);
 
     public bool HasPermission(PlanetPermission perm) =>
-        ((ISharedPlanetRole)this).HasPermission(perm);
+        ISharedPlanetRole.HasPermission(this, perm);
 
     public ICollection<PermissionsNode> GetNodes(ValourDB db)
     {
@@ -101,28 +103,8 @@ public class PlanetRole : Item, ISharedPlanetRole, IPlanetItemAPI<PlanetRole>, I
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channel_id, ValourDB db) =>
         (await db.PermissionsNodes.FirstOrDefaultAsync(x => x.Role_Id == Id && x.Target_Id == channel_id)).GetPermissionState(permission);
 
-    /// <summary>
-    /// Tries to delete this role
-    /// </summary>
-    public async Task<TaskResult<int>> TryDeleteAsync(PlanetMember member, ValourDB db)
+    public async Task DeleteAsync(ValourDB db)
     {
-        if (member == null)
-            return new TaskResult<int>(false, "Member not found", 404);
-
-        if (member.Planet_Id != Planet_Id)
-            return new TaskResult<int>(false, "Member is of another planet", 403);
-
-        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-            return new TaskResult<int>(false, "Member lacks PlanetPermissions.ManageRoles", 403);
-
-        if (await member.GetAuthorityAsync() <= GetAuthority())
-            return new TaskResult<int>(false, "Member authority is lower than role authority", 403);
-
-        Planet ??= await db.Planets.FindAsync(Planet_Id);
-
-        if (Id == Planet.Default_Role_Id)
-            return new TaskResult<int>(false, "Cannot remove default role", 400);
-
         // Remove all members
         var members = db.PlanetRoleMembers.Where(x => x.Role_Id == Id);
         db.PlanetRoleMembers.RemoveRange(members);
@@ -134,98 +116,110 @@ public class PlanetRole : Item, ISharedPlanetRole, IPlanetItemAPI<PlanetRole>, I
 
         // Remove self
         db.PlanetRoles.Remove(this);
-
-        await db.SaveChangesAsync();
-
-        // Notify clients
-        PlanetHub.NotifyRoleDeletion(this);
-
-        return new TaskResult<int>(true, "Removed role", 200);
     }
 
-    public async Task<TaskResult<int>> TryUpdateAsync(PlanetMember member, PlanetRole newRole, ValourDB db)
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
     {
-        if (member == null)
-            return new TaskResult<int>(false, "Member not found", 403);
+        var db = ctx.GetDb();
 
-        if (member.Planet_Id != Planet_Id)
-            return new TaskResult<int>(false, "Member is of another planet", 403);
+        var role = await FindAsync<PlanetRole>(id, db);
 
-        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-            return new TaskResult<int>(false, "Member lacks PlanetPermissions.ManageRoles", 403);
+        if (role is null)
+            return ValourResult.NotFound<PlanetRole>();
 
-        if (await member.GetAuthorityAsync() <= GetAuthority())
-            return new TaskResult<int>(false, "Member authority is lower than role authority", 403);
-
-        if (newRole.Id != Id)
-            return new TaskResult<int>(false, "Given role does not match id", 400);
-
-        this.Name = newRole.Name;
-        this.Position = newRole.Position;
-        this.Permissions = newRole.Permissions;
-        this.Color_Red = newRole.Color_Red;
-        this.Color_Green = newRole.Color_Green;
-        this.Color_Blue = newRole.Color_Blue;
-        this.Bold = newRole.Bold;
-        this.Italics = newRole.Italics;
-
-        db.PlanetRoles.Update(this);
-        await db.SaveChangesAsync();
-
-        PlanetHub.NotifyRoleChange(this);
-
-        return new TaskResult<int>(true, "Success", 200);
+        return Results.Json(role);
     }
 
-    public async Task<TaskResult> CanDeleteAsync(PlanetMember member, ValourDB db)
-        => await CanCreateAsync(member, db);
-
-    public async Task<TaskResult> CanUpdateAsync(PlanetMember member, ValourDB db)
-        => await CanCreateAsync(member, db);
-
-    public async Task<TaskResult> CanCreateAsync(PlanetMember member, ValourDB db)
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetRole role,
+        ILogger<PlanetRole> logger)
     {
-        // Needs to be able to GET in order to do anything else
-        var canGet = await((IPlanetItemAPI<PlanetRole>)this).CanGetAsync(member, db);
-        if (!canGet.Success)
-            return canGet;
+        var db = ctx.GetDb();
+        var authMember = ctx.GetMember();
 
-        if (!await member.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
-            return new TaskResult(false, "Member lacks planet permission " + PlanetPermissions.ManageRoles.Name);
+        if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))
+            return ValourResult.Forbid("You cannot manage roles with higher authority than your own.");
 
-        if (GetAuthority() > await member.GetAuthorityAsync())
-            return new TaskResult(false, "You cannot manage roles with higher authority than your own.");
+        role.Position = (uint)await db.PlanetRoles.CountAsync(x => x.Planet_Id == role.Planet_Id);
 
-        if (Permissions == PlanetPermissions.FullControl.Value
-            && (!await member.HasPermissionAsync(PlanetPermissions.FullControl, db)))
-            return new TaskResult(false, "Only an admin can manage admin roles.");
-
-        return TaskResult.SuccessResult;
-    }
-
-    public async Task<TaskResult> ValidateItemAsync(PlanetRole old, ValourDB db)
-    {
-        await ((IPlanetItemAPI<PlanetRole>)this).GetPlanetAsync(db);
-
-        // This role is new
-        if (old is null)
+        try
         {
-            Position = (uint)await db.PlanetRoles.CountAsync(x => x.Planet_Id == Planet_Id);
+            await db.AddAsync(role);
+            await db.SaveChangesAsync();
         }
-        else
+        catch (System.Exception e)
         {
-            if (old.Position != Position)
-            {
-                return new TaskResult(false, "Position cannot be changed directly.");
-            }
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+        
+        PlanetHub.NotifyPlanetItemChange(role);
+
+        return Results.Json(role);
+
+    }
+
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDB]
+    [PlanetMembershipRequired()]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetRole role,
+        ILogger<PlanetRole> logger)
+    {
+        var db = ctx.GetDb();
+
+        var oldRole = await FindAsync<PlanetRole>(id, db);
+
+        if (role.Planet_Id != oldRole.Planet_Id)
+            return Results.BadRequest("You cannot change what planet.");
+
+        if (role.Position != oldRole.Position)
+            return Results.BadRequest("Position cannot be changed directly.");
+
+        try
+        {
+            db.PlanetRoles.Update(role);
+            await db.SaveChangesAsync();
+        }
+        catch(System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
         }
 
-        return TaskResult.SuccessResult;
+        PlanetHub.NotifyPlanetItemChange(role);
+
+        return Results.Json(role);
+
     }
 
-    public async Task DeleteAsync()
+    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDB]
+    [PlanetMembershipRequired]
+    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+        ILogger<PlanetRole> logger)
     {
+        var db = ctx.GetDb();
+
+        var role = await FindAsync<PlanetRole>(id, db);
+
+        try
+        {
+            await role.DeleteAsync(db);
+            await db.SaveChangesAsync();
+        }
+        catch(System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemDelete(role);
+
+        return Results.NoContent();
 
     }
 }
-

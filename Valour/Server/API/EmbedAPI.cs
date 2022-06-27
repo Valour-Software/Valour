@@ -27,7 +27,7 @@ public class EmbedAPI : BaseAPI
 
         var channel = await db.PlanetChatChannels.FindAsync(e.Channel_Id);
 
-        if (!await channel.HasPermission(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
+        if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
 
         PlanetHub.NotifyInteractionEvent(e);
     }

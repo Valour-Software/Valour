@@ -1,6 +1,9 @@
-﻿using Valour.Database;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Valour.Database;
 
-namespace Valour.Server.Workers
+namespace Valour.Database.Workers
 {
     public class StatWorker : BackgroundService
     {
@@ -41,7 +44,7 @@ namespace Valour.Server.Workers
                         stats.PlanetCount = Context.Planets.Count();
                         stats.PlanetMemberCount = Context.PlanetMembers.Count();
                         stats.ChannelCount = Context.PlanetChatChannels.Count();
-                        stats.CategoryCount = Context.PlanetCategories.Count();
+                        stats.CategoryCount = Context.PlanetCategoryChannels.Count();
                         stats.Message24hCount = Context.PlanetMessages.Count();
                         await Context.Stats.AddAsync(stats);
                         await Context.SaveChangesAsync(); 

@@ -8,7 +8,11 @@ namespace Valour.Shared.Items;
 /// </summary>
 public enum ItemType
 {
+    Unknown,
+
     User,
+
+    Message,
 
     Planet,
     Channel,

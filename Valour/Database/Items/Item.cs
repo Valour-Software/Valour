@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Builder;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Items;
+using Valour.Database.Nodes;
 
 namespace Valour.Database.Items;
 
@@ -14,13 +16,21 @@ namespace Valour.Database.Items;
 public abstract class Item : ISharedItem
 {
 
-    public const string Pref = "https://";
-    public const string Post = ".nodes.valour.gg";
+    public const string UriPrefix = "https://";
+    public const string UriPostfix = ".nodes.valour.gg";
 
     public ulong Id { get; set; }
 
     [NotMapped]
     public abstract ItemType ItemType { get; }
+
+    /// <summary>
+    /// This is the node that returned the API item.
+    /// This node should be used for any API 
+    /// </summary>
+    [NotMapped]
+    [JsonInclude]
+    public string Node => DeployedNode.Instance.Name;
 
     /// <summary>
     /// Returns the item with the given id
@@ -35,5 +45,18 @@ public abstract class Item : ISharedItem
     public static async Task<List<T>> FindAllAsync<T>(ValourDB db)
         where T : Item =>
         await db.Set<T>().ToListAsync();
+
+    public virtual string IdRoute =>
+        $"{ItemType}/{{id}}";
+
+    public virtual string BaseRoute =>
+        $"{ItemType}";
+
+    /// <summary>
+    /// Returns the uri to a specific resource
+    /// </summary>
+    public virtual string GetUri() =>
+        $"{DeployedNode.Instance.Address}/{IdRoute}";
+      //  https://coca.nodes.valour.gg/planetmember/001
 }
 

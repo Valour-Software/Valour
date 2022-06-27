@@ -42,6 +42,8 @@ public class Permission
     /// </summary>
     const string Mixed_Description = "A mix of several permissions";
 
+    public virtual string PermissionType => "Base";
+
     /// <summary>
     /// Initializes the permission
     /// </summary>
@@ -104,6 +106,7 @@ public class Permission
 
 public class ChatChannelPermission : Permission
 {
+    public override string PermissionType => "Chat Channel";
     public ChatChannelPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
@@ -111,6 +114,7 @@ public class ChatChannelPermission : Permission
 
 public class CategoryPermission : Permission
 {
+    public override string PermissionType => "Category";
     public CategoryPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
@@ -118,6 +122,7 @@ public class CategoryPermission : Permission
 
 public class UserPermission : Permission
 {
+    public override string PermissionType => "User";
     public UserPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
@@ -125,9 +130,20 @@ public class UserPermission : Permission
 
 public class PlanetPermission : Permission
 {
+    public override string PermissionType => "Planet";
     public PlanetPermission(ulong value, string name, string description) : base(value, name, description)
     {
     }
+}
+
+public enum UserPermissionsEnum
+{
+    FullControl,
+    Minimum,
+    View,
+    Membership,
+    Invites,
+    PlanetManagement
 }
 
 /// <summary>
@@ -149,7 +165,8 @@ public static class UserPermissions
                 Minimum,
                 View,
                 Membership,
-                Invites
+                Invites,
+                PlanetManagement
         };
     }
 
@@ -164,6 +181,19 @@ public static class UserPermissions
     public static readonly UserPermission Membership = new UserPermission(0x04, "Membership", "Allows this app to view the planets you are a member of.");
     public static readonly UserPermission Invites = new UserPermission(0x08, "Invites", "Allows this app to view the planets you are invited to.");
     public static readonly UserPermission PlanetManagement = new UserPermission(0x10, "Planet Management", "Allows this app to manage your planets.");
+}
+
+public enum ChatChannelPermissionsEnum
+{
+    FullControl,
+    View,
+    ViewMessages,
+    PostMessages,
+    ManageChannel,
+    ManagePermissions,
+    Embed,
+    AttachContent,
+    ManageMessages
 }
 
 /// <summary>
@@ -222,6 +252,14 @@ public static class ChatChannelPermissions
     }
 }
 
+public enum CategoryPermissionsEnum
+{
+    FullControl,
+    View,
+    ManageCategory,
+    ManagePermissions,
+}
+
 /// <summary>
 /// This class contains all category permissions and helper methods for working
 /// with them
@@ -261,6 +299,20 @@ public static class CategoryPermissions
 
         Default = Permission.CreateCode(View);
     }
+}
+
+public enum PlanetPermissionsEnum
+{
+    FullControl,
+    View,
+    Invite,
+    DisplayRole,
+    Manage,
+    Kick,
+    Ban,
+    ManageCategories,
+    ManageChannels,
+    ManageRoles
 }
 
 /// <summary>

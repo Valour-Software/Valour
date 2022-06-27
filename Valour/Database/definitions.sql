@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS Users (
     Bot BOOLEAN NOT NULL DEFAULT false,
     Disabled BOOLEAN NOT NULL DEFAULT false,
     ValourStaff BOOLEAN NOT NULL DEFAULT false,
-    UserState_Value INT NOT NULL DEFAULT 0,
+    UserStateCode INT NOT NULL DEFAULT 0,
     LastActive TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
@@ -81,11 +81,11 @@ CREATE TABLE IF NOT EXISTS Planets (
     Id BIGINT NOT NULL PRIMARY KEY,
     Owner_Id BIGINT NOT NULL,
     Name VARCHAR(32) NOT NULL,
-    Image_Url TEXT NOT NULL,
+    IconUrl TEXT NOT NULL,
     Description TEXT NOT NULL,
     Public BOOLEAN NOT NULL DEFAULT true,
     Default_Role_Id BIGINT NOT NULL,
-    Main_Channel_Id BIGINT NOT NULL
+    Primary_Channel_Id BIGINT NOT NULL,
 );
 
 CREATE TABLE IF NOT EXISTS PlanetBans (
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS PlanetInvites (
     Code VARCHAR(8) NOT NULL,
     Planet_Id BIGINT NOT NULL,
     Issuer_Id BIGINT NOT NULL,
-    Time TIMESTAMP NOT NULL,
+    Created TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     Expires TIMESTAMP,
 
     CONSTRAINT fk_planet FOREIGN KEY(Planet_Id) REFERENCES Planets(Id),
@@ -247,8 +247,8 @@ ALTER TABLE Planets
             REFERENCES PlanetRoles(Id);
 
 ALTER TABLE Planets
-    ADD CONSTRAINT fk_main_channel 
-        FOREIGN KEY(Main_Channel_Id) 
+    ADD CONSTRAINT fk_primary_channel 
+        FOREIGN KEY(Primary_Channel_Id) 
             REFERENCES PlanetChatChannels(Id);
 
 COMMIT;

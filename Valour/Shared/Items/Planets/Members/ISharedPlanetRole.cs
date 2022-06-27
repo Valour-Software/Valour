@@ -38,19 +38,33 @@ public interface ISharedPlanetRole
 
     bool Italics { get; set; }
 
-    public uint GetAuthority() => 
-        uint.MaxValue - Position;
+    public uint GetAuthority() =>
+        ISharedPlanetRole.GetAuthority(this);
 
-    public Color GetColor() => 
-        Color.FromArgb(Color_Red, Color_Green, Color_Blue);
+    public Color GetColor() =>
+        ISharedPlanetRole.GetColor(this);
 
-    public string GetColorHex()
+
+    public string GetColorHex() =>
+        ISharedPlanetRole.GetColorHex(this);
+
+    public bool HasPermission(PlanetPermission perm) =>
+        ISharedPlanetRole.HasPermission(this, perm);
+
+    public static uint GetAuthority(ISharedPlanetRole role) =>
+        uint.MaxValue - role.Position;
+
+    public static Color GetColor(ISharedPlanetRole role) =>
+        Color.FromArgb(role.Color_Red, role.Color_Green, role.Color_Blue);
+
+    public static string GetColorHex(ISharedPlanetRole role)
     {
-        Color c = GetColor();
+        Color c = role.GetColor();
         return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
     }
 
-    public bool HasPermission(PlanetPermission perm) =>
-        Permission.HasPermission(Permissions, perm);
+    public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
+        => Permission.HasPermission(role.Permissions, perm);
+
 }
 

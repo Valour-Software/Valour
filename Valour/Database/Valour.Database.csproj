@@ -3,18 +3,21 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="IdGen" Version="3.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.1" />
+    <PackageReference Include="IdGen" Version="3.0.1" />
+    <PackageReference Include="Microsoft.AspNet.Mvc" Version="5.2.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="7.0.0-preview.4.22251.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.0-preview.4.22251.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0-preview.4.22251.1" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.1" />
-    <PackageReference Include="Npgsql" Version="7.0.0-preview.1" />
-    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="6.13.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.0-preview.4.22229.2" />
+    <PackageReference Include="Npgsql" Version="7.0.0-preview.4" />
+    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="7.0.0-preview.4.22229.2-02" />
   </ItemGroup>
 
   <ItemGroup>
@@ -24,8 +27,5 @@
   <ItemGroup>
     <None Remove="Extensions\" />
     <None Remove="Z.EntityFramework.Plus.EFCore" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Extensions\" />
   </ItemGroup>
 </Project>

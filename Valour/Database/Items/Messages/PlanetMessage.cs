@@ -14,15 +14,62 @@ namespace Valour.Database.Items.Messages;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetMessage : PlanetMessageBase, INodeSpecific
+public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
-    [ForeignKey("Planet_Id")]
-    public Planet Planet { get; set;}
-
     [ForeignKey("Author_Id")]
     public User Author { get; set; }
 
     [ForeignKey("Member_Id")]
     public PlanetMember User { get; set; }
+
+    /// <summary>
+    /// The author's user ID
+    /// </summary>
+    public ulong Author_Id { get; set; }
+
+    /// <summary>
+    /// The author's member ID
+    /// </summary>
+    public ulong Member_Id { get; set; }
+
+    /// <summary>
+    /// String representation of message
+    /// </summary>
+    public string Content { get; set; }
+
+    /// <summary>
+    /// The time the message was sent (in UTC)
+    /// </summary>
+    public DateTime TimeSent { get; set; }
+
+    /// <summary>
+    /// Id of the channel this message belonged to
+    /// </summary>
+    public ulong Channel_Id { get; set; }
+
+    /// <summary>
+    /// Index of the message
+    /// </summary>
+    public ulong MessageIndex { get; set; }
+
+    /// <summary>
+    /// Data for representing an embed
+    /// </summary>
+    public string EmbedData { get; set; }
+
+    /// <summary>
+    /// Data for representing mentions in a message
+    /// </summary>
+    public string MentionsData { get; set; }
+
+    /// <summary>
+    /// Used to identify a message returned from the server 
+    /// </summary>
+    public string Fingerprint { get; set; }
+
+    /// <summary>
+    /// The item type of this item
+    /// </summary>
+    public override ItemType ItemType => ItemType.PlanetMessage;
 }
 
