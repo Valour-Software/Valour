@@ -1,8 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared;
@@ -89,7 +85,7 @@ public class Invite : PlanetItem
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-        
+
         PlanetHub.NotifyPlanetItemChange(invite);
 
         return Results.NoContent();
@@ -121,7 +117,7 @@ public class Invite : PlanetItem
             db.PlanetInvites.Update(invite);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -149,7 +145,7 @@ public class Invite : PlanetItem
             await invite.DeleteAsync(db);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -228,7 +224,7 @@ public class Invite : PlanetItem
         if (!invite.Planet.Public)
             return Results.BadRequest("Planet is set to private"); // TODO: Support invites w/ specific users
 
-        TaskResult<PlanetMember> result =  await invite.Planet.AddMemberAsync(await User.FindAsync<User>(userId, db), db);
+        TaskResult<PlanetMember> result = await invite.Planet.AddMemberAsync(await User.FindAsync<User>(userId, db), db);
 
         if (result.Success)
             return Results.Created(result.Data.GetUri(), result.Data);

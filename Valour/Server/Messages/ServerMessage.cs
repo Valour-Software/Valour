@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Valour.Server.Database.Items.Messages;
 using Valour.Shared.Items.Messages;
 
 /*  Valour - A free and secure chat client

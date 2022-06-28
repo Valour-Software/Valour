@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
@@ -7,7 +6,7 @@ using Valour.Server.Database.Items.Planets;
 
 namespace Valour.Server.API;
 
-public class OauthAPI : BaseAPI 
+public class OauthAPI : BaseAPI
 {
     /// <summary>
     /// Adds the routes for this API section
@@ -28,17 +27,19 @@ public class OauthAPI : BaseAPI
 
     public static async Task<object> Authorize(
         ValourDB db, HttpContext context,
-        [FromBody] Shared.Items.Authorization.AuthorizeModel model, 
+        [FromBody] Shared.Items.Authorization.AuthorizeModel model,
         [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
 
-        if (authToken is null){
+        if (authToken is null)
+        {
             await TokenInvalid(context);
             return null;
         }
 
-        if (authToken.UserId != model.userId){
+        if (authToken.UserId != model.userId)
+        {
             await Unauthorized("Token is invalid for this model", context);
             return null;
         }
@@ -51,17 +52,20 @@ public class OauthAPI : BaseAPI
         return Results.Redirect(model.redirect_uri);// + $"?code={model.code}&state={model.state}");
     }
 
-    public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization){
+    public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization)
+    {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
-        
-        if (authToken is null){
+
+        if (authToken is null)
+        {
             await Unauthorized("Include token", context);
             return;
         }
 
         var app = await db.OauthApps.FindAsync(app_id);
 
-        if (app.OwnerId != authToken.UserId){
+        if (app.OwnerId != authToken.UserId)
+        {
             await Unauthorized("You do not own this app!", context);
             return;
         }
@@ -70,20 +74,23 @@ public class OauthAPI : BaseAPI
         await db.SaveChangesAsync();
     }
 
-    public static async Task GetApps(HttpContext context, ValourDB db, [FromHeader] string authorization) 
+    public static async Task GetApps(HttpContext context, ValourDB db, [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
 
-        if (authToken is null){
+        if (authToken is null)
+        {
             await Unauthorized("Include token", context);
             return;
         }
 
         var apps = db.OauthApps.Where(x => x.OwnerId == authToken.UserId);
 
-        foreach (var app in apps) {
+        foreach (var app in apps)
+        {
             // If not owner, hide secret
-            if (authToken.UserId != app.OwnerId){
+            if (authToken.UserId != app.OwnerId)
+            {
                 app.Secret = "";
             }
         }
@@ -92,25 +99,28 @@ public class OauthAPI : BaseAPI
         await context.Response.WriteAsJsonAsync(apps);
     }
 
-    public static async Task GetApp(HttpContext context, ValourDB db, ulong app_id, 
+    public static async Task GetApp(HttpContext context, ValourDB db, ulong app_id,
     [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
 
-        if (authToken is null){
+        if (authToken is null)
+        {
             await TokenInvalid(context);
             return;
         }
 
         var app = await db.OauthApps.FindAsync(app_id);
 
-        if (app is null){
+        if (app is null)
+        {
             await NotFound("App not found", context);
             return;
         }
 
         // If not owner, hide secret
-        if (authToken.UserId != app.OwnerId){
+        if (authToken.UserId != app.OwnerId)
+        {
             app.Secret = "";
         }
 
@@ -122,12 +132,14 @@ public class OauthAPI : BaseAPI
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
 
-        if (authToken is null){
+        if (authToken is null)
+        {
             await Unauthorized("Include token", context);
             return;
         }
 
-        if (app is null){
+        if (app is null)
+        {
             await BadRequest("Include app in body", context);
             return;
         }
@@ -142,11 +154,12 @@ public class OauthAPI : BaseAPI
         app.OwnerId = authToken.UserId;
         app.Uses = 0;
         app.Image_Url = "media/logo/logo-512.png";
-        
+
         // Make name conform to server rules
         var nameValid = Planet.ValidateName(app.Name);
 
-        if (!nameValid.Success){
+        if (!nameValid.Success)
+        {
             await BadRequest(nameValid.Message, context);
             return;
         }

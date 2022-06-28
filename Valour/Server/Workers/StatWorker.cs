@@ -44,7 +44,7 @@ public class StatWorker : BackgroundService
                     stats.CategoryCount = Context.PlanetCategoryChannels.Count();
                     stats.Message24hCount = Context.PlanetMessages.Count();
                     await Context.Stats.AddAsync(stats);
-                    await Context.SaveChangesAsync(); 
+                    await Context.SaveChangesAsync();
                     stats = new StatObject();
                     _logger.LogInformation($"Saved successfully.");
                 }

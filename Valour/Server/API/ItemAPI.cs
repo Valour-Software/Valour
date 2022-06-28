@@ -1,19 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
+﻿using System.Linq.Expressions;
 using Valour.Server.Database;
-using Valour.Server.Attributes;
 using Valour.Server.Database.Items;
 using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
-using Valour.Shared.Items;
-using Valour.Shared.Items.Planets;
-using Valour.Server.Database.Extensions;
-using System.Linq.Expressions;
-using Valour.Server.Database.Items.Planets.Channels;
 
 namespace Valour.Server.API;
 
@@ -107,7 +98,7 @@ public class ItemAPI<T> where T : Item
                                 return ValourResult.InvalidToken();
 
                             ctx.HttpContext.Items.Add("token", authToken);
-                            
+
                             return await next(ctx);
                         });
                     }
@@ -157,7 +148,8 @@ public class ItemAPI<T> where T : Item
 
                             var planet = await db.Planets.FirstOrDefaultAsync(x => x.Id == routeVal);
 
-                            foreach (var permEnum in planetAttr.permissions) {
+                            foreach (var permEnum in planetAttr.permissions)
+                            {
                                 var perm = PlanetPermissions.Permissions[(int)permEnum];
                                 if (!await planet.HasPermissionAsync(member, perm, db))
                                     return ValourResult.LacksPermission(perm);

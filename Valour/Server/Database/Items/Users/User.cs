@@ -1,11 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Email;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Users.Identity;
@@ -134,7 +127,7 @@ public class User : Item, ISharedUser
             db.EmailConfirmCodes.Remove(confirmCode);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
@@ -210,8 +203,8 @@ public class User : Item, ISharedUser
 
         // Check for an old token
         var token = await db.AuthTokens
-            .FirstOrDefaultAsync(x => x.App_Id == "VALOUR" && 
-                                      x.UserId == userEmail.UserId && 
+            .FirstOrDefaultAsync(x => x.App_Id == "VALOUR" &&
+                                      x.UserId == userEmail.UserId &&
                                       x.Scope == UserPermissions.FullControl.Value);
 
         try
@@ -252,7 +245,7 @@ public class User : Item, ISharedUser
 
     [ValourRoute(HttpVerbs.Get, "/self/recovery")]
     public static async Task<IResult> RecoverPasswordRouteAsync(HttpContext ctx, [FromBody] PasswordRecoveryRequest request,
-        ILogger<User>  logger)
+        ILogger<User> logger)
     {
         var db = ctx.GetDb();
 
@@ -487,7 +480,7 @@ public class User : Item, ISharedUser
                 return Results.Problem("Sorry! There was an issue sending the email. Try again?");
             }
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem("Sorry! An unexpected error occured. Try again?");

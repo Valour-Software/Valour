@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.EntityFrameworkCore;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets;
@@ -25,7 +24,8 @@ namespace Valour.Server.Database
         public static IHubContext<PlanetHub> Current;
         public async Task JoinPlanet(ulong planetId, string token)
         {
-            using (ValourDB Context = new ValourDB(ValourDB.DBOptions)) {
+            using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
+            {
 
                 // Authenticate user
                 AuthToken authToken = await AuthToken.TryAuthorize(token, Context);
@@ -48,7 +48,7 @@ namespace Valour.Server.Database
 
         public async Task LeavePlanet(ulong planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"p-{planetId}");
-        
+
 
         public async Task JoinChannel(ulong channelId, string token)
         {
@@ -59,11 +59,12 @@ namespace Valour.Server.Database
 
         public async Task LeaveChannel(ulong channelId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channelId}");
-        
+
 
         public async Task JoinInteractionGroup(ulong planetId, string token)
         {
-            using (ValourDB Context = new(ValourDB.DBOptions)) {
+            using (ValourDB Context = new(ValourDB.DBOptions))
+            {
 
                 // Authenticate user
                 AuthToken authToken = await AuthToken.TryAuthorize(token, Context);
@@ -115,8 +116,8 @@ namespace Valour.Server.Database
                 //var t = Task.Run(async () => {
                 //Console.WriteLine(JsonSerializer.Serialize(user));
 
-                    await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("UserUpdate", user, flags);
-                    //await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("ChannelUpdate", new PlanetChatChannel(), flags);
+                await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("UserUpdate", user, flags);
+                //await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("ChannelUpdate", new PlanetChatChannel(), flags);
                 //});
             }
         }
