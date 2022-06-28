@@ -12,10 +12,6 @@
     <PackageReference Include="Markdig" Version="0.30.2" />
   </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\Database\Valour.Database.csproj" />
-    </ItemGroup>
-
 	<ItemGroup>
 		<ContentWithTargetPath Include=".\FAQ.md">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

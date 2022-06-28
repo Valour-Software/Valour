@@ -273,10 +273,10 @@
         {
             var innerMessage = new PlanetMessage()
             {
-                Author_Id = SelfMember.User_Id,
+                AuthorId = SelfMember.UserId,
                 Content = input,
-                Channel_Id = Window.Channel.Id,
-                Member_Id = SelfMember.Id,
+                ChannelId = Window.Channel.Id,
+                MemberId = SelfMember.Id,
                 TimeSent = DateTime.UtcNow
             };
 
@@ -292,7 +292,7 @@
 
     public async Task PostMessage(string msg)
     {
-        PlanetMessage innerMessage = new PlanetMessage(msg, SelfMember.Id, Window.Channel.Id, Window.Channel.Planet_Id);
+        PlanetMessage innerMessage = new PlanetMessage(msg, SelfMember.Id, Window.Channel.Id, Window.Channel.PlanetId);
 
         ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
 
@@ -303,7 +303,7 @@
         {
             new Mention()
             {
-                Target_Id = 1050746125287424,
+                TargetId = 1050746125287424,
                 Position = 5,
                 Type = MentionType.Member
             }
@@ -321,9 +321,9 @@
             PlanetMessage errorMsg = new()
             {
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {content}",
-                Author_Id = ulong.MaxValue,
-                Member_Id = ulong.MaxValue,
-                Channel_Id = Window.Channel.Id,
+                AuthorId = ulong.MaxValue,
+                MemberId = ulong.MaxValue,
+                ChannelId = Window.Channel.Id,
                 MessageIndex = ulong.MaxValue
             };
 

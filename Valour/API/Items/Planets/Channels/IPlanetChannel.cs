@@ -17,12 +17,12 @@ public interface IPlanetChannel
     public ushort Position { get; set; }
 
     [JsonInclude]
-    [JsonPropertyName("Parent_Id")]
-    public ulong? Parent_Id { get; set; }
+    [JsonPropertyName("ParentId")]
+    public ulong? ParentId { get; set; }
 
     [JsonInclude]
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
+    [JsonPropertyName("PlanetId")]
+    public ulong PlanetId { get; set; }
 
     [JsonInclude]
     [JsonPropertyName("Name")]
@@ -36,10 +36,10 @@ public interface IPlanetChannel
 
     public abstract Task<TaskResult> SetDescriptionAsync(string desc);
     public abstract Task<TaskResult> SetNameAsync(string name);
-    public abstract Task<TaskResult> SetParentIdAsync(ulong? planet_id);
+    public abstract Task<TaskResult> SetParentIdAsync(ulong? planetId);
     public abstract Task<TaskResult> DeleteAsync();
     public abstract string GetItemTypeName();
     public abstract Task<Planet> GetPlanetAsync();
-    public abstract Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false);
+    public abstract Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool force_refresh = false);
 }
 

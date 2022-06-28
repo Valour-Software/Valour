@@ -21,17 +21,17 @@ namespace Valour.Api.Items.Messages;
 
 public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
-    public ulong Planet_Id { get; set; }
+    public ulong PlanetId { get; set; }
 
     /// <summary>
     /// The user's ID
     /// </summary>
-    public ulong Author_Id { get; set; }
+    public ulong AuthorId { get; set; }
 
     /// <summary>
     /// The member's ID
     /// </summary>
-    public ulong Member_Id { get; set; }
+    public ulong MemberId { get; set; }
 
     /// <summary>
     /// String representation of message
@@ -46,7 +46,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// <summary>
     /// Id of the channel this message belonged to
     /// </summary>
-    public ulong Channel_Id { get; set; }
+    public ulong ChannelId { get; set; }
 
     /// <summary>
     /// Index of the message
@@ -164,14 +164,14 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     public override ItemType ItemType => ItemType.PlanetMessage;
 
     // Makes PlanetMessage meant to be sent to valour from the client
-    public PlanetMessage(string text, ulong self_member_id, ulong channel_id, ulong planet_id)
+    public PlanetMessage(string text, ulong self_memberId, ulong channelId, ulong planetId)
     {
-        Channel_Id = channel_id;
+        ChannelId = channelId;
         Content = text;
         TimeSent = DateTime.UtcNow;
-        Author_Id = ValourClient.Self.Id;
-        Planet_Id = planet_id;
-        Member_Id = self_member_id;
+        AuthorId = ValourClient.Self.Id;
+        PlanetId = planetId;
+        MemberId = self_memberId;
         Fingerprint = Guid.NewGuid().ToString();
     }
 
@@ -183,7 +183,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Returns the author member of the message 
     /// </summary> 
     public async Task<PlanetMember> GetAuthorMemberAsync() =>
-        await PlanetMember.FindAsync(Member_Id);
+        await PlanetMember.FindAsync(MemberId);
 
     /// <summary> 
     /// Returns the author user of the message 
@@ -195,32 +195,32 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Returns the planet the message was sent in
     /// </summary>
     public async Task<Planet> GetPlanetAsync() =>
-        await Planet.FindAsync(Planet_Id);
+        await Planet.FindAsync(PlanetId);
 
     /// <summary>
     /// Returns the channel the message was sent in
     /// </summary>
     public async Task<PlanetChatChannel> GetChannelAsync() =>
-        await PlanetChatChannel.FindAsync(Channel_Id);
+        await PlanetChatChannel.FindAsync(ChannelId);
 
     /// <summary>
     /// Attempts to delete this message
     /// </summary>
     public async Task<TaskResult> DeleteAsync() =>
-        await ValourClient.DeleteAsync($"api/channel/{Channel_Id}/messages/{Id}");
+        await ValourClient.DeleteAsync($"api/channel/{ChannelId}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in
     /// </summary>
     public async Task ReplyAsync(string text) =>
-        await ValourClient.SendMessage(new(text, (await ValourClient.GetSelfMember(Planet_Id)).Id, Channel_Id, Planet_Id));
+        await ValourClient.SendMessage(new(text, (await ValourClient.GetSelfMember(PlanetId)).Id, ChannelId, PlanetId));
 
     /// <summary>
     /// Sends a message with a embed to the channel this message was sent in
     /// </summary>
     public async Task ReplyAsync(string text = "", Embed embed = null)
     {
-        PlanetMessage message = new(text, (await ValourClient.GetSelfMember(Planet_Id)).Id, Channel_Id, Planet_Id);
+        PlanetMessage message = new(text, (await ValourClient.GetSelfMember(PlanetId)).Id, ChannelId, PlanetId);
 
         if (embed is not null)
         {

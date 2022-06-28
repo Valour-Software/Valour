@@ -1,61 +1,66 @@
-using Valour.Database;
+using Valour.Server.Database;
 
-namespace Valour.Server.Workers
+namespace Valour.Server.Workers;
+
+/*  Valour - A free and secure chat client
+ *  Copyright (C) 2021 Vooper Media LLC
+ *  This program is subject to the GNU Affero General Public license
+ *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+ */
+
+public class MessageCacheWorker : BackgroundService
 {
-    public class MessageCacheWorker : BackgroundService
+    private readonly IServiceScopeFactory _scopeFactory;
+    public readonly ILogger<MessageCacheWorker> _logger;
+
+    public MessageCacheWorker(ILogger<MessageCacheWorker> logger,
+                        IServiceScopeFactory scopeFactory)
     {
-        private readonly IServiceScopeFactory _scopeFactory;
-        public readonly ILogger<MessageCacheWorker> _logger;
+        _logger = logger;
+        _scopeFactory = scopeFactory;
+    }
 
-        public MessageCacheWorker(ILogger<MessageCacheWorker> logger,
-                            IServiceScopeFactory scopeFactory)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
         {
-            _logger = logger;
-            _scopeFactory = scopeFactory;
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            while (!stoppingToken.IsCancellationRequested)
+            Task task = Task.Run(async () =>
             {
-                Task task = Task.Run(async () =>
+                while (true)
                 {
-                    while (true)
+                    try
                     {
-                        try
+                        using (var scope = _scopeFactory.CreateScope())
                         {
-                            using (var scope = _scopeFactory.CreateScope())
-                            {
-                                ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
-                                DateTime now = DateTime.UtcNow;
-                                var cutOff = now.AddHours(-24);
+                            ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
+                            DateTime now = DateTime.UtcNow;
+                            var cutOff = now.AddHours(-24);
 
-                                context.PlanetMessages.RemoveRange(
-                                    context.PlanetMessages.Where(x => x.TimeSent < cutOff));
+                            context.PlanetMessages.RemoveRange(
+                                context.PlanetMessages.Where(x => x.TimeSent < cutOff));
 
-                                await context.SaveChangesAsync();
-                            }
-                            Console.WriteLine("Checked Message Cache");
-
-                            await Task.Delay(1000 * 60 * 60);
+                            await context.SaveChangesAsync();
                         }
-                        catch(System.Exception e)
-                        {
-                            Console.WriteLine("FATAL MESSAGE CACHE ERROR:");
-                            Console.WriteLine(e.Message);
-                        }
+                        Console.WriteLine("Checked Message Cache");
+
+                        await Task.Delay(1000 * 60 * 60);
                     }
-                });
-
-                while (!task.IsCompleted)
-                {
-                    _logger.LogInformation("Message Cache Worker running at: {time}", DateTimeOffset.Now);
-                    await Task.Delay(60000, stoppingToken);
+                    catch(System.Exception e)
+                    {
+                        Console.WriteLine("FATAL MESSAGE CACHE ERROR:");
+                        Console.WriteLine(e.Message);
+                    }
                 }
+            });
 
-                _logger.LogInformation("Message Cache Worker task stopped at: {time}", DateTimeOffset.Now);
-                _logger.LogInformation("Restarting.", DateTimeOffset.Now);
+            while (!task.IsCompleted)
+            {
+                _logger.LogInformation("Message Cache Worker running at: {time}", DateTimeOffset.Now);
+                await Task.Delay(60000, stoppingToken);
             }
+
+            _logger.LogInformation("Message Cache Worker task stopped at: {time}", DateTimeOffset.Now);
+            _logger.LogInformation("Restarting.", DateTimeOffset.Now);
         }
     }
 }

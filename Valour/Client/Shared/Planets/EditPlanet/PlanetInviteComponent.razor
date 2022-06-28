@@ -31,7 +31,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PlanetMember member = await PlanetMember.FindAsync(Invite.Planet_Id, Invite.Issuer_Id);
+        PlanetMember member = await PlanetMember.FindAsync(Invite.PlanetId, Invite.IssuerId);
         IssuerName = await member.GetNameAsync();
         time = Invite.Issued.AddHours((double)Invite.Hours);
         StateHasChanged();

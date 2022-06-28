@@ -112,20 +112,20 @@
         }
 
 
-        ulong user_id = ValourClient.Self.Id;
+        ulong userId = ValourClient.Self.Id;
 
-        ulong parent_id = Parent.Id;
-        ulong planet_id = Planet.Id;
+        ulong parentId = Parent.Id;
+        ulong planetId = Planet.Id;
 
         PlanetChatChannel newChannel = new()
         {
             Name = name,
             Description = "A chat channel",
-            Planet_Id = planet_id,
-            Parent_Id = parent_id
+            PlanetId = planetId,
+            ParentId = parentId
         };
 
-        var result = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet/{planet_id}/channels", newChannel);
+        var result = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet/{planetId}/channels", newChannel);
 
         if (!result.Success)
         {
@@ -135,7 +135,7 @@
             return;
         }
 
-        ulong channel_id = result.Data;
+        ulong channelId = result.Data;
 
         imageSpan = "Success.";
 
@@ -144,12 +144,12 @@
 
             PermissionsNode PermissionsNode = new()
             {
-                Target_Id = channel_id,
-                Planet_Id = Planet.Id,
-                Role_Id = Planet.Default_Role_Id,
+                TargetId = channelId,
+                PlanetId = Planet.Id,
+                RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                Target_Type = ItemType.ChatChannel
+                TargetType = ItemType.ChatChannel
             };
 
             PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
@@ -174,12 +174,12 @@
 
                 PermissionsNode = new PermissionsNode()
                 {
-                    Target_Id = channel_id,
-                    Planet_Id = Planet.Id,
-                    Role_Id = role.Id,
+                    TargetId = channelId,
+                    PlanetId = Planet.Id,
+                    RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    Target_Type = ItemType.ChatChannel
+                    TargetType = ItemType.ChatChannel
                 };
 
                 PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);

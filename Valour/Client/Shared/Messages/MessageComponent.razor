@@ -44,7 +44,7 @@
             @if (Author != null)
             {
                 <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline' >
-                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.Channel_Id">
+                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
                         @name
                     </p>
                 </ContextMenuTrigger>
@@ -275,7 +275,7 @@
         if (Message is null)
             return;
 
-        Id = $"m-{Message.Channel_Id}-{Message.Message_Index}";
+        Id = $"m-{Message.ChannelId}-{Message.Message_Index}";
 
         if (!Submessage)
         {
@@ -320,7 +320,7 @@
     {
         if (Last_Message != null && Message != null)
         {
-            if (Last_Message.BaseMessage.Author_Id == Message.BaseMessage.Author_Id)
+            if (Last_Message.BaseMessage.AuthorId == Message.BaseMessage.AuthorId)
             {
                 Minimal = true;
                 return;

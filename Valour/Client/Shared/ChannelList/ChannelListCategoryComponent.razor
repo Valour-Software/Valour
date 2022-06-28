@@ -31,7 +31,7 @@
                         PlanetChatChannel channel = item as PlanetChatChannel;
                         if (channel != null)
                         {
-                            if (channel.Parent_Id == Category.Id)
+                            if (channel.ParentId == Category.Id)
                             {
                                 <ChannelListChatChannelComponent @key='channel.Id' ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>        
                             }
@@ -39,7 +39,7 @@
                         else
                         {
                             PlanetCategory planetcategory = item as PlanetCategory;
-                            @if (planetcategory.Parent_Id == Category.Id)
+                            @if (planetcategory.ParentId == Category.Id)
                             {
                                 <ChannelListCategoryComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
                             }
@@ -90,8 +90,8 @@
         PlanetCategory.OnAnyDeleted += OnCategoryDeletion;
         PlanetChatChannel.OnAnyDeleted += OnChatChannelDeletion;
 
-        ChildChannels = Channels.Where(x => x.Parent_Id == Category.Id).ToList();
-        ChildCategories = Categories.Where(x => x.Parent_Id == Category.Id).ToList();
+        ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
+        ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
 
         Planet = await Category.GetPlanetAsync();
 
@@ -201,7 +201,7 @@
             if (old != null)
             {
                 // If removed from this category
-                if (category.Parent_Id != Category.Id)
+                if (category.ParentId != Category.Id)
                 {
                     ChildCategories.Remove(old);
                     BuildItemList();
@@ -222,7 +222,7 @@
                 StateHasChanged();
             }
             // In this case it was just added to this category
-            else if (category.Parent_Id == Category.Id)
+            else if (category.ParentId == Category.Id)
             {
 
                 // Insert
@@ -238,7 +238,7 @@
     }
     public async Task OnChatChannelDeletion(PlanetChatChannel channel)
     {
-        if (channel.Parent_Id == Category.Id) {
+        if (channel.ParentId == Category.Id) {
             var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
             ChildChannels.Remove(old);
             BuildItemList();
@@ -248,7 +248,7 @@
 
     public async Task OnChatChannelUpdate(PlanetChatChannel channel, int flags)
     {
-        // Console.WriteLine($"This: {Category.Id} | New: {channel.Id} | New Parent: {channel.Parent_Id}");
+        // Console.WriteLine($"This: {Category.Id} | New: {channel.Id} | New Parent: {channel.ParentId}");
 
         // If we contain the category and its position or category changed we need to factor for that
         var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
@@ -256,7 +256,7 @@
         if (old != null)
         {
             // If removed from this category
-            if (channel.Parent_Id != Category.Id)
+            if (channel.ParentId != Category.Id)
             {
                 ChildChannels.Remove(old);
                 BuildItemList();
@@ -277,7 +277,7 @@
             StateHasChanged();
         }
         // In this case it was just added to this category
-        else if (channel.Parent_Id == Category.Id)
+        else if (channel.ParentId == Category.Id)
         {
             // Add to childchannels
             ChildChannels.Add(channel);

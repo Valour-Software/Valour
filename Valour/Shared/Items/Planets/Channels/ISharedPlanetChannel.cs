@@ -5,8 +5,8 @@ namespace Valour.Shared.Items.Planets.Channels;
 
 public interface ISharedPlanetChannel
 {
-    ulong Planet_Id { get; set; }
-    ulong? Parent_Id { get; set; }
+    ulong PlanetId { get; set; }
+    ulong? ParentId { get; set; }
 
     // Inherited from ISharedChannel
     ulong Id { get; set; }

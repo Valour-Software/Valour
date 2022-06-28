@@ -1,11 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Valour.Server.MPS;
 using System.Net.Http.Headers;
-using Valour.Database;
-using Valour.Database.Items.Authorization;
-using Valour.Database.Items.Planets;
-using Valour.Database.Items.Planets.Members;
+using Valour.Server.Database;
+using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.API
@@ -77,8 +75,8 @@ namespace Valour.Server.API
 
             if (type == "planet"){
                 member = await db.PlanetMembers.Include(x => x.Planet)
-                                               .FirstOrDefaultAsync(x => x.User_Id == authToken.User_Id &&
-                                                                         x.Planet_Id == item_id);
+                                               .FirstOrDefaultAsync(x => x.UserId == authToken.UserId &&
+                                                                         x.PlanetId == item_id);
                 
                 if (member is null){
                     await NotFound("Could not find member", context);
@@ -101,19 +99,19 @@ namespace Valour.Server.API
                     return;
                 }
 
-                if (app.Owner_Id != authToken.User_Id){
+                if (app.OwnerId != authToken.UserId){
                     await Unauthorized("You do not own the app!", context);
                     return;
                 }
             }
 
-            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{authToken.User_Id}/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
+            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{authToken.UserId}/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
 
             if (response.IsSuccessStatusCode){
                 switch (type){
                     case "profile": 
                     {
-                        var user = await db.Users.FindAsync(authToken.User_Id);
+                        var user = await db.Users.FindAsync(authToken.UserId);
                         var url = await response.Content.ReadAsStringAsync();
                         user.PfpUrl = url;
                         await db.SaveChangesAsync();

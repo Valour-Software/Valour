@@ -22,12 +22,12 @@ public interface ISharedPlanetInvite
     /// <summary>
     /// The planet the invite is for
     /// </summary>
-    ulong Planet_Id { get; set; }
+    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The user that created the invite
     /// </summary>
-    ulong Issuer_Id { get; set; }
+    ulong IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created

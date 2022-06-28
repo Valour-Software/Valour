@@ -57,15 +57,15 @@
 
 		var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet", new_planet);
 
-		ulong planet_id = response.Data;
+		ulong planetId = response.Data;
 
 		descSpan = "Planet created.";
 
-		var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{planet_id}");
+		var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{planetId}");
 
 		if (planet is null)
 		{
-			Console.WriteLine($"Failed to retrieve planet {planet_id}");
+			Console.WriteLine($"Failed to retrieve planet {planetId}");
 			descSpan = "Created planet, but error occured retrieving. Please restart Valour.";
 			return;
 		}

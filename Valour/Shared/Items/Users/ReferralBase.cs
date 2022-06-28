@@ -4,11 +4,11 @@ namespace Valour.Shared.Items.Users;
 
 public class ReferralBase : ISharedItem
 {
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
+    [JsonPropertyName("UserId")]
+    public ulong UserId { get; set; }
 
-    [JsonPropertyName("Referrer_Id")]
-    public ulong Referrer_Id { get; set; }
+    [JsonPropertyName("ReferrerId")]
+    public ulong ReferrerId { get; set; }
 
     [JsonInclude]
     [JsonPropertyName("ItemType")]

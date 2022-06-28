@@ -21,7 +21,7 @@ public interface ISharedPlanetRole
     /// <summary>
     /// The ID of the planet or system this role belongs to
     /// </summary>
-    ulong Planet_Id { get; set; }
+    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
@@ -29,9 +29,9 @@ public interface ISharedPlanetRole
     ulong Permissions { get; set; }
 
     // RGB Components for role color
-    byte Color_Red { get; set; }
-    byte Color_Green { get; set; }
-    byte Color_Blue { get; set; }
+    byte Red { get; set; }
+    byte Green { get; set; }
+    byte Blue { get; set; }
 
     // Formatting options
     bool Bold { get; set; }
@@ -55,7 +55,7 @@ public interface ISharedPlanetRole
         uint.MaxValue - role.Position;
 
     public static Color GetColor(ISharedPlanetRole role) =>
-        Color.FromArgb(role.Color_Red, role.Color_Green, role.Color_Blue);
+        Color.FromArgb(role.Red, role.Green, role.Blue);
 
     public static string GetColorHex(ISharedPlanetRole role)
     {

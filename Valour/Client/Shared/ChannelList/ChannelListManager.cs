@@ -83,14 +83,14 @@ namespace Valour.Client.Shared.ChannelList
                 return;
 
             // Already parent
-            if (target.Planet.Id == currentDragItem.Parent_Id)
+            if (target.Planet.Id == currentDragItem.ParentId)
                 return;
 
             ushort position = (ushort)target.TopCategories.Count;
 
             // Add current item to target category
 
-            var response = await ValourClient.PutAsync($"api/category/{currentDragItem.Id}/parent_id?position={position}", "none");
+            var response = await ValourClient.PutAsync($"api/category/{currentDragItem.Id}/parentId?position={position}", "none");
 
             Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
 
@@ -108,7 +108,7 @@ namespace Valour.Client.Shared.ChannelList
                 return;
 
             // Already parent
-            if (target.Category.Id == currentDragItem.Parent_Id)
+            if (target.Category.Id == currentDragItem.ParentId)
                 return;
 
             // Same item
@@ -117,7 +117,7 @@ namespace Valour.Client.Shared.ChannelList
 
             ushort position = (ushort)target.ItemList.Count();
 
-            currentDragItem.Parent_Id = target.Category.Id;
+            currentDragItem.ParentId = target.Category.Id;
             currentDragItem.Position = position;
 
             // Add current item to target category
@@ -149,7 +149,7 @@ namespace Valour.Client.Shared.ChannelList
             }
             // Insert into new list at correct position
             target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
-            currentDragItem.Parent_Id = target.ParentCategory.Category.Id;
+            currentDragItem.ParentId = target.ParentCategory.Category.Id;
 
             TaskResult response;
             List<CategoryContentData> orderData = null;

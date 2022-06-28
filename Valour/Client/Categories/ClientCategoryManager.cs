@@ -12,14 +12,14 @@ namespace Valour.Client.Categories
             return IsOpen(category.Id);
         }
 
-        public bool IsOpen(ulong category_id)
+        public bool IsOpen(ulong categoryId)
         {
-            if (!CategoryOpenStates.ContainsKey(category_id))
+            if (!CategoryOpenStates.ContainsKey(categoryId))
             {
                 return false;
             }
 
-            return CategoryOpenStates[category_id];
+            return CategoryOpenStates[categoryId];
         }
 
         public void SetOpen(PlanetCategory category, bool value)
@@ -27,18 +27,18 @@ namespace Valour.Client.Categories
             SetOpen(category.Id, value);
         }
 
-        public void SetOpen(ulong category_id, bool value)
+        public void SetOpen(ulong categoryId, bool value)
         {
-            if (!CategoryOpenStates.ContainsKey(category_id))
+            if (!CategoryOpenStates.ContainsKey(categoryId))
             {
-                CategoryOpenStates.TryAdd(category_id, value);
+                CategoryOpenStates.TryAdd(categoryId, value);
 
                 //Console.WriteLine($"Set new state to {value}");
 
                 return;
             }
 
-            CategoryOpenStates[category_id] = value;
+            CategoryOpenStates[categoryId] = value;
 
             //Console.WriteLine($"Set state to {value}");
         }

@@ -29,8 +29,8 @@ public class AuthTokenBase
     /// <summary>
     /// The user that this token is valid for
     /// </summary>
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
+    [JsonPropertyName("UserId")]
+    public ulong UserId { get; set; }
 
     /// <summary>
     /// The scope of the permissions this token is valid for

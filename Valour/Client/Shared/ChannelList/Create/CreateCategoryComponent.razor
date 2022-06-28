@@ -109,23 +109,23 @@
             return;
         }
 
-        ulong planet_id = Planet.Id;
-        ulong? parent_id = null;
+        ulong planetId = Planet.Id;
+        ulong? parentId = null;
         
         if (Parent != null)
-            parent_id = Parent.Id;
+            parentId = Parent.Id;
         
-        ulong user_id = ValourClient.Self.Id;
+        ulong userId = ValourClient.Self.Id;
         //string token = ValourClient.Token;
 
         PlanetCategory category = new(){
             Name = name,
             Description = "A category",
-            Parent_Id = parent_id,
-            Planet_Id = planet_id
+            ParentId = parentId,
+            PlanetId = planetId
         };
 
-        var response = await ValourClient.PostAsync($"api/planet/{planet_id}/categories", category);
+        var response = await ValourClient.PostAsync($"api/planet/{planetId}/categories", category);
 
         if (!response.Success)
         {
@@ -133,7 +133,7 @@
             return;
         }
 
-        ulong category_id = ulong.Parse(response.Message);
+        ulong categoryId = ulong.Parse(response.Message);
 
         imageSpan = "Success";
 
@@ -142,12 +142,12 @@
 
             PermissionsNode PermissionsNode = new()
             {
-                Target_Id = category_id,
-                Planet_Id = planet_id,
-                Role_Id = Planet.Default_Role_Id,
+                TargetId = categoryId,
+                PlanetId = planetId,
+                RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                Target_Type = ItemType.Category
+                TargetType = ItemType.Category
             };
 
             PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
@@ -163,12 +163,12 @@
 
                 PermissionsNode = new()
                 {
-                    Target_Id = category_id,
-                    Planet_Id = planet_id,
-                    Role_Id = role.Id,
+                    TargetId = categoryId,
+                    PlanetId = planetId,
+                    RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    Target_Type = ItemType.Category
+                    TargetType = ItemType.Category
                 };
 
                 PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);

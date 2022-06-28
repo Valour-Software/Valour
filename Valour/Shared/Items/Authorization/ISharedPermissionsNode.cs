@@ -29,22 +29,22 @@ public interface ISharedPermissionsNode
     /// <summary>
     /// The planet this node applies to
     /// </summary>
-    public ulong Planet_Id { get; set; }
+    public ulong PlanetId { get; set; }
 
     /// <summary>
     /// The role this permissions node belongs to
     /// </summary>
-    public ulong Role_Id { get; set; }
+    public ulong RoleId { get; set; }
 
     /// <summary>
     /// The id of the object this node applies to
     /// </summary>
-    public ulong Target_Id { get; set; }
+    public ulong TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public ItemType Target_Type { get; set; }
+    public ItemType TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node

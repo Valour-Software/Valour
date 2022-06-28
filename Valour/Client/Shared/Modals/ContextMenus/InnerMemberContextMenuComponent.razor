@@ -99,10 +99,10 @@
 	{
 		PlanetRoleMember roleMember = new()
 		{
-			Member_Id = Member.Id,
-			Planet_Id = Member.Planet_Id,
-			Role_Id = role.Id,
-			User_Id = Member.User_Id
+			MemberId = Member.Id,
+			PlanetId = Member.PlanetId,
+			RoleId = role.Id,
+			UserId = Member.UserId
 		};
 
         if (value)
@@ -124,8 +124,8 @@
              "Cancel", 
              async () =>
              {
-                 var result = ValourClient.GetJsonAsync<string>($"/Planet/KickUser?planet_id={Member.Planet_Id}" +
-                                                                               $"&target_id={Member.Id}");
+                 var result = ValourClient.GetJsonAsync<string>($"/Planet/KickUser?planetId={Member.PlanetId}" +
+                                                                               $"&targetId={Member.Id}");
                  Console.WriteLine(result);
 
              },
