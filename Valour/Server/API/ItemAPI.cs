@@ -49,19 +49,19 @@ public class ItemAPI<T> where T : Item
 
                     switch (val.method)
                     {
-                        case System.Web.Mvc.HttpVerbs.Get:
+                        case HttpVerbs.Get:
                             builder = app.MapGet(idRoute, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Post:
+                        case HttpVerbs.Post:
                             builder = app.MapPost(dummy.BaseRoute + val.route, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Put:
+                        case HttpVerbs.Put:
                             builder = app.MapPut(idRoute, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Patch:
+                        case HttpVerbs.Patch:
                             builder = app.MapPatch(idRoute, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Delete:
+                        case HttpVerbs.Delete:
                             builder = app.MapDelete(idRoute, del);
                             break;
                     }

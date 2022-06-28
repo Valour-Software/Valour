@@ -7,7 +7,7 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Api.Items.Authorization;
 
-public class OauthApp : OauthAppBase {
+public class OauthApp : Shared.Items.Authorization.OauthApp {
     public static async Task<OauthApp> FindAsync(ulong id) => 
         await ValourClient.GetJsonAsync<OauthApp>($"api/oauth/app/{id}");
 }

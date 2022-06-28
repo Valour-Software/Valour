@@ -9,7 +9,7 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Server.Database.Items.Authorization;
 
-public class OauthApp : OauthAppBase
+public class OauthApp : Shared.Items.Authorization.OauthApp
 {
     [ForeignKey("OwnerId")]
     [JsonIgnore]

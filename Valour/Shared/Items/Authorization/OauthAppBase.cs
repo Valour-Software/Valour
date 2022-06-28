@@ -14,7 +14,7 @@ namespace Valour.Shared.Items.Authorization;
 /// Oauth apps allow an organization or person to issue tokens on behalf of a user
 /// which can be easily tracked and revoked
 /// </summary>
-public class OauthAppBase : ISharedItem, INamed
+public class OauthApp
 {
     /// <summary>
     /// The secret key for the app
@@ -49,6 +49,6 @@ public class OauthAppBase : ISharedItem, INamed
     [NotMapped]
     [JsonInclude]
     [JsonPropertyName("ItemType")]
-    public override ItemType ItemType => ItemType.OauthApp;
+    public ItemType ItemType => ItemType.OauthApp;
 }
 
