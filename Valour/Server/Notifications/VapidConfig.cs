@@ -1,9 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using WebPush;
+﻿using WebPush;
 
 namespace Valour.Server.Notifications
 {
@@ -24,7 +19,7 @@ namespace Valour.Server.Notifications
                 _details = new VapidDetails(Subject, PublicKey, PrivateKey);
             }
 
-            return _details; 
+            return _details;
         }
 
         public string Subject { get; set; }

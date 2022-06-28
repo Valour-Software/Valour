@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;

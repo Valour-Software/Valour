@@ -1,7 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Valour.Server.Database.Nodes;
+﻿using Valour.Server.Nodes;
 using Valour.Shared.Items;
 
 namespace Valour.Server.Database.Items;
@@ -34,7 +31,7 @@ public abstract class Item : ISharedItem
     /// <summary>
     /// Returns the item with the given id
     /// </summary>
-    public static async ValueTask<T> FindAsync<T>(ulong id, ValourDB db) 
+    public static async ValueTask<T> FindAsync<T>(ulong id, ValourDB db)
         where T : Item =>
         await db.FindAsync<T>(id);
 
@@ -46,16 +43,16 @@ public abstract class Item : ISharedItem
         await db.Set<T>().ToListAsync();
 
     public virtual string IdRoute =>
-        $"{ItemType}/{{id}}";
+        $"api/{ItemType}/{{id}}";
 
     public virtual string BaseRoute =>
-        $"{ItemType}";
+        $"api/{ItemType}";
 
     /// <summary>
     /// Returns the uri to a specific resource
     /// </summary>
     public virtual string GetUri() =>
         $"{DeployedNode.Instance.Address}/{IdRoute}";
-      //  https://coca.nodes.valour.gg/planetmember/001
+    //  https://coca.nodes.valour.gg/planetmember/001
 }
 

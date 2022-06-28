@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Headers;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
@@ -25,7 +24,7 @@ namespace Valour.Server.API
             app.MapPost("/upload/{type}", UploadRoute);
         }
 
-        private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db, 
+        private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db,
             string type, [FromHeader] string authorization, ulong item_id = 0)
         {
             var authToken = await AuthToken.TryAuthorize(authorization, db);
@@ -54,7 +53,7 @@ namespace Valour.Server.API
             {
                 context.Response.StatusCode = 404;
                 await context.Response.WriteAsync("Include file");
-                return; 
+                return;
             }
 
             var file = context.Request.Form.Files.FirstOrDefault();
@@ -73,17 +72,20 @@ namespace Valour.Server.API
 
             // Authorization
 
-            if (type == "planet"){
+            if (type == "planet")
+            {
                 member = await db.PlanetMembers.Include(x => x.Planet)
                                                .FirstOrDefaultAsync(x => x.UserId == authToken.UserId &&
                                                                          x.PlanetId == item_id);
-                
-                if (member is null){
+
+                if (member is null)
+                {
                     await NotFound("Could not find member", context);
                     return;
                 }
 
-                if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db)){
+                if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db))
+                {
                     await Unauthorized("Member lacks PlanetPermissions.Manage", context);
                     return;
                 }
@@ -91,15 +93,18 @@ namespace Valour.Server.API
 
             OauthApp app = null;
 
-            if (type == "app"){
+            if (type == "app")
+            {
                 app = await db.OauthApps.FindAsync(item_id);
 
-                if (app is null){
+                if (app is null)
+                {
                     await NotFound("Could not find app", context);
                     return;
                 }
 
-                if (app.OwnerId != authToken.UserId){
+                if (app.OwnerId != authToken.UserId)
+                {
                     await Unauthorized("You do not own the app!", context);
                     return;
                 }
@@ -107,32 +112,34 @@ namespace Valour.Server.API
 
             var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{authToken.UserId}/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
 
-            if (response.IsSuccessStatusCode){
-                switch (type){
-                    case "profile": 
-                    {
-                        var user = await db.Users.FindAsync(authToken.UserId);
-                        var url = await response.Content.ReadAsStringAsync();
-                        user.PfpUrl = url;
-                        await db.SaveChangesAsync();
-                        PlanetHub.NotifyUserChange(user, db);
-                        break;
-                    }
-                    case "planet": 
-                    {
-                        var url = await response.Content.ReadAsStringAsync();
-                        member.Planet.IconUrl = url;
-                        await db.SaveChangesAsync();
-                        PlanetHub.NotifyPlanetChange(member.Planet);
-                        break;
-                    }
+            if (response.IsSuccessStatusCode)
+            {
+                switch (type)
+                {
+                    case "profile":
+                        {
+                            var user = await db.Users.FindAsync(authToken.UserId);
+                            var url = await response.Content.ReadAsStringAsync();
+                            user.PfpUrl = url;
+                            await db.SaveChangesAsync();
+                            PlanetHub.NotifyUserChange(user, db);
+                            break;
+                        }
+                    case "planet":
+                        {
+                            var url = await response.Content.ReadAsStringAsync();
+                            member.Planet.IconUrl = url;
+                            await db.SaveChangesAsync();
+                            PlanetHub.NotifyPlanetChange(member.Planet);
+                            break;
+                        }
                     case "app":
-                    {
-                        var url = await response.Content.ReadAsStringAsync();
-                        app.Image_Url = url;
-                        await db.SaveChangesAsync();
-                        break;
-                    }
+                        {
+                            var url = await response.Content.ReadAsStringAsync();
+                            app.Image_Url = url;
+                            await db.SaveChangesAsync();
+                            break;
+                        }
                     default:
                         break;
 

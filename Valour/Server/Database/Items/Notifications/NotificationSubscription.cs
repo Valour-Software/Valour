@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Server.Database.Items.Users;
+﻿using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Notifications;
 
 /*  Valour - A free and secure chat client

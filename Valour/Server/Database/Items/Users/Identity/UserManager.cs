@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Valour.Server.Database.Items.Users;
+﻿using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 
 namespace Valour.Server.Database.Users.Identity;
@@ -45,6 +44,6 @@ public static class UserManager
         }
 
         return new TaskResult<User>(true, "Succeeded", user);
-        
+
     }
 }

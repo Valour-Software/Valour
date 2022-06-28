@@ -1,13 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Valour.Server.Database;
+﻿using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
 
 namespace Valour.Server.Extensions
 {
@@ -26,7 +19,7 @@ namespace Valour.Server.Extensions
             //if (!ctx.Items.ContainsKey("member"))
             //    return null;
 
-            return (PlanetMember)ctx.Items["member"]; 
+            return (PlanetMember)ctx.Items["member"];
         }
 
         public static T GetItem<T>(this HttpContext ctx, object id)

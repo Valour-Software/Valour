@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
+﻿using System.Net;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 using WebPush.Util;
 
 [assembly: InternalsVisibleTo("WebPush.Test")]

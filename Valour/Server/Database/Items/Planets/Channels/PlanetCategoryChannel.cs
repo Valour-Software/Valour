@@ -1,11 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared;
@@ -136,7 +129,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetCategoryChannel category, 
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetCategoryChannel category,
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources

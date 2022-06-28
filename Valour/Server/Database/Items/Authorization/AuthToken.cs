@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Authorization;
 

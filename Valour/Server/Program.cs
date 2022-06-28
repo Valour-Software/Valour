@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Web;
 using Valour.Server.API;
 using Valour.Server.Database;
@@ -53,18 +52,18 @@ namespace Valour.Server
             app.MapGet("/api/ping", () => "pong");
 
             // Add API routes
-            BaseAPI       .AddRoutes(app);
-            UploadAPI     .AddRoutes(app);
-            ChannelAPI    .AddRoutes(app);
-            CategoryAPI   .AddRoutes(app);
-            PlanetAPI     .AddRoutes(app);
-            UserAPI       .AddRoutes(app);
-            MemberAPI     .AddRoutes(app);
-            RoleAPI       .AddRoutes(app);
-            EmbedAPI      .AddRoutes(app);
+            BaseAPI.AddRoutes(app);
+            UploadAPI.AddRoutes(app);
+            ChannelAPI.AddRoutes(app);
+            CategoryAPI.AddRoutes(app);
+            PlanetAPI.AddRoutes(app);
+            UserAPI.AddRoutes(app);
+            MemberAPI.AddRoutes(app);
+            RoleAPI.AddRoutes(app);
+            EmbedAPI.AddRoutes(app);
             PermissionsAPI.AddRoutes(app);
-            OauthAPI      .AddRoutes(app);
-            InviteAPI     .AddRoutes(app);
+            OauthAPI.AddRoutes(app);
+            InviteAPI.AddRoutes(app);
 
             // Migrations and tasks
 
@@ -161,7 +160,7 @@ namespace Valour.Server
             //}
 
             //db.SaveChanges();
-            
+
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)

@@ -1,10 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Users;
@@ -166,7 +160,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the user (async)
     /// </summary>
-    public async Task<User> GetUserAsync(ValourDB db) => 
+    public async Task<User> GetUserAsync(ValourDB db) =>
         User ??= await db.Users.FindAsync(UserId);
 
     public async Task<ulong> GetAuthorityAsync(ValourDB db)
@@ -337,7 +331,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             if (await authMember.GetAuthorityAsync(db) < await targetMember.GetAuthorityAsync(db))
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
-            
+
 
         using var tran = await db.Database.BeginTransactionAsync();
 
@@ -346,7 +340,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             await targetMember.DeleteAsync(db);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
