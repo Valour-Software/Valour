@@ -14,5 +14,5 @@ namespace Valour.Shared.Items.Planets;
 /// </summary>
 public interface ISharedPlanetItem
 {
-    ulong Planet_Id { get; set; }
+    ulong PlanetId { get; set; }
 }

@@ -78,11 +78,11 @@
 
         StateHasChanged();
 
-        ulong planet_id = Planet.Id;
+        ulong planetId = Planet.Id;
 
-        ulong user_id = ValourClient.Self.Id;
+        ulong userId = ValourClient.Self.Id;
 
-        Invites = await ValourClient.GetJsonAsync<List<Invite>>($"api/planet/{planet_id}/invites");
+        Invites = await ValourClient.GetJsonAsync<List<Invite>>($"api/planet/{planetId}/invites");
 
         StateHasChanged();
     }

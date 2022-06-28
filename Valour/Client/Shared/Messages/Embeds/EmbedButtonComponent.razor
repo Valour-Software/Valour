@@ -28,17 +28,17 @@
     public async Task OnEmbedButtonClick()
     {
 
-        PlanetMember SelfMember = await PlanetMember.FindAsync(Message.BaseMessage.Planet_Id, ValourClient.Self.Id);
+        PlanetMember SelfMember = await PlanetMember.FindAsync(Message.BaseMessage.PlanetId, ValourClient.Self.Id);
 
             Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent()
         {
             Event = "Button Click",
             Element_Id = Item.Id,
-            Planet_Id = Message.BaseMessage.Planet_Id,
+            PlanetId = Message.BaseMessage.PlanetId,
             Message_Id = Message.BaseMessage.Id,
-            Author_Member_Id = Message.BaseMessage.Member_Id,
-            Member_Id = SelfMember.Id,
-            Channel_Id = Message.BaseMessage.Channel_Id,
+            Author_MemberId = Message.BaseMessage.MemberId,
+            MemberId = SelfMember.Id,
+            ChannelId = Message.BaseMessage.ChannelId,
             Time_Interacted = DateTime.UtcNow,
             Form_Data = embed.GetFormData()
         };

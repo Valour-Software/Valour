@@ -20,12 +20,12 @@ namespace Valour.Shared.Items.Messages
         /// <summary>
         /// The author's user ID
         /// </summary>
-        ulong Author_Id { get; set; }
+        ulong AuthorId { get; set; }
 
         /// <summary>
         /// The author's member ID
         /// </summary>
-        ulong Member_Id { get; set; }
+        ulong MemberId { get; set; }
 
         /// <summary>
         /// String representation of message
@@ -40,7 +40,7 @@ namespace Valour.Shared.Items.Messages
         /// <summary>
         /// Id of the channel this message belonged to
         /// </summary>
-        ulong Channel_Id { get; set; }
+        ulong ChannelId { get; set; }
 
         /// <summary>
         /// Index of the message
@@ -69,7 +69,7 @@ namespace Valour.Shared.Items.Messages
         {
             using (SHA256 sha = SHA256.Create())
             {
-                string conc = $"{Author_Id}{Content}{TimeSent}{Channel_Id}{EmbedData}{MentionsData}";
+                string conc = $"{AuthorId}{Content}{TimeSent}{ChannelId}{EmbedData}{MentionsData}";
 
                 byte[] buffer = Encoding.Unicode.GetBytes(conc);
 

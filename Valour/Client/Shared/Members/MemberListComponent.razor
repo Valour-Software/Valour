@@ -55,7 +55,7 @@
     public async Task OnMemberUpdate(PlanetMember member, int flags)
     {
         // not awaited on purpose
-        if (member.Planet_Id == windowManager.FocusedPlanet.Id)
+        if (member.PlanetId == windowManager.FocusedPlanet.Id)
         {
             await RefreshOnRoleChange();
         }
@@ -65,7 +65,7 @@
     public async Task OnRoleDeletion(PlanetRole role)
     {
         // not awaited on purpose
-        if (role.Planet_Id == windowManager.FocusedPlanet.Id)
+        if (role.PlanetId == windowManager.FocusedPlanet.Id)
         {
             await RefreshOnRoleChange();
         }
@@ -74,7 +74,7 @@
     public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
         // not awaited on purpose
-        if (role.Planet_Id == windowManager.FocusedPlanet.Id)
+        if (role.PlanetId == windowManager.FocusedPlanet.Id)
         {
             await RefreshOnRoleChange();
         }

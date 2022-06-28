@@ -79,7 +79,7 @@ public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpeci
     /// <summary>
     /// The ID of the planet or system this role belongs to
     /// </summary>
-    ulong Planet_Id { get; set; }
+    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
@@ -87,9 +87,9 @@ public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpeci
     ulong Permissions { get; set; }
 
     // RGB Components for role color
-    byte Color_Red { get; set; }
-    byte Color_Green { get; set; }
-    byte Color_Blue { get; set; }
+    byte Red { get; set; }
+    byte Green { get; set; }
+    byte Blue { get; set; }
 
     // Formatting options
     bool Bold { get; set; }
@@ -108,17 +108,17 @@ public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpeci
     public bool HasPermission(PlanetPermission perm) =>
         ((ISharedPlanetRole)this).HasPermission(perm);
 
-    public static PlanetRole GetDefault(ulong planet_id)
+    public static PlanetRole GetDefault(ulong planetId)
     {
         return new PlanetRole()
         {
             Name = "Default",
             Id = ulong.MaxValue,
             Position = uint.MaxValue,
-            Planet_Id = planet_id,
-            Color_Red = 255,
-            Color_Green = 255,
-            Color_Blue = 255
+            PlanetId = planetId,
+            Red = 255,
+            Green = 255,
+            Blue = 255
         };
     }
 
@@ -127,10 +127,10 @@ public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpeci
         Name = "Victor Class",
         Id = ulong.MaxValue,
         Position = uint.MaxValue,
-        Planet_Id = 0,
-        Color_Red = 255,
-        Color_Green = 0,
-        Color_Blue = 255
+        PlanetId = 0,
+        Red = 255,
+        Green = 0,
+        Blue = 255
     };
 
     /// <summary>

@@ -41,7 +41,7 @@ public class PermissionsNode : ISharedPermissionsNode
         if (node is not null)
         {
             await ValourCache.Put(id, node);
-            await ValourCache.Put((node.Target_Id, (node.Role_Id, node.ItemType)), node);
+            await ValourCache.Put((node.TargetId, (node.RoleId, node.ItemType)), node);
         }
 
         return node;
@@ -50,21 +50,21 @@ public class PermissionsNode : ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(ulong target_id, ulong role_id, ItemType type, bool force_refresh = false)
+    public static async Task<PermissionsNode> FindAsync(ulong targetId, ulong roleId, ItemType type, bool force_refresh = false)
     {
         if (!force_refresh)
         {
-            var cached = ValourCache.Get<PermissionsNode>((target_id, (role_id, type)));
+            var cached = ValourCache.Get<PermissionsNode>((targetId, (roleId, type)));
             if (cached is not null)
                 return cached;
         }
 
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/{target_id}/{role_id}");
+        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/{targetId}/{roleId}");
 
         if (node is not null)
         {
             await ValourCache.Put(node.Id, node);
-            await ValourCache.Put((target_id, (role_id, type)), node);
+            await ValourCache.Put((targetId, (roleId, type)), node);
         }
 
         return node;

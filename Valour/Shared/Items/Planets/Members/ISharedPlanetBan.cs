@@ -8,17 +8,17 @@ public interface ISharedPlanetBan
     /// <summary>
     /// The user that was banned
     /// </summary>
-    ulong Target_Id { get; set; }
+    ulong TargetId { get; set; }
 
     /// <summary>
     /// The planet the user was within
     /// </summary>
-    ulong Planet_Id { get; set; }
+    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The user that banned the user
     /// </summary>
-    ulong Banner_Id { get; set; }
+    ulong IssuerId { get; set; }
 
     /// <summary>
     /// The reason for the ban

@@ -102,7 +102,7 @@ public class PlanetCategory : PlanetCategoryBase, IPlanetChannel, ISyncedItem<Pl
     /// Returns the planet for this category
     /// </summary>
     public async Task<Planet> GetPlanetAsync() =>
-        await Planet.FindAsync(Planet_Id);
+        await Planet.FindAsync(PlanetId);
 
     /// <summary>
     /// Deletes this category
@@ -131,34 +131,34 @@ public class PlanetCategory : PlanetCategoryBase, IPlanetChannel, ISyncedItem<Pl
     /// <summary>
     /// Sets the parent id of this category
     /// </summary>
-    public async Task<TaskResult> SetParentIdAsync(ulong? parent_id) =>
-        await ValourClient.PutAsync($"api/category/{Id}/parent_id", parent_id);
+    public async Task<TaskResult> SetParentIdAsync(ulong? parentId) =>
+        await ValourClient.PutAsync($"api/category/{Id}/parentId", parentId);
 
     /// <summary>
     /// Returns the planet of this category
     /// </summary>
 
     public async Task<Planet> GetPlanetAsync(bool force_refresh) =>
-        await Planet.FindAsync(Planet_Id, force_refresh);
+        await Planet.FindAsync(PlanetId, force_refresh);
 
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await GetCategoryPermissionsNodeAsync(role_id, force_refresh);
+    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+        await GetCategoryPermissionsNodeAsync(roleId, force_refresh);
 
 
     /// <summary>
     /// Returns the category permissions node for the given role id
     /// </summary>
-    public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, ItemType.Category, force_refresh);
+    public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+        await PermissionsNode.FindAsync(Id, roleId, ItemType.Category, force_refresh);
 
     /// <summary>
     /// Returns the category's default channel permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, ItemType.ChatChannel, force_refresh);
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+        await PermissionsNode.FindAsync(Id, roleId, ItemType.ChatChannel, force_refresh);
 
 
 }

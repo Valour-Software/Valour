@@ -92,7 +92,7 @@ namespace Valour.Client.Windows
                 await ValourClient.CloseChannel(window.Channel);
                 OpenChatWindows.Remove((ChatChannelWindow)window);
 
-                if (newChannel.Planet_Id !=  window.Channel.Planet_Id)
+                if (newChannel.PlanetId !=  window.Channel.PlanetId)
                     await ClosePlanetIfNeeded(await window.Channel.GetPlanetAsync());
             }
 
@@ -116,7 +116,7 @@ namespace Valour.Client.Windows
             if (planet == null)
                 return;
 
-            if (!OpenChatWindows.Any(x => x.Channel.Planet_Id == planet.Id))
+            if (!OpenChatWindows.Any(x => x.Channel.PlanetId == planet.Id))
             {
                 await ValourClient.ClosePlanet(planet);
 

@@ -171,8 +171,8 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static async Task<PlanetMember> GetSelfMember(ulong planet_id, bool force_refresh = false) =>
-        await PlanetMember.FindAsync(planet_id, Self.Id, force_refresh);
+    public static async Task<PlanetMember> GetSelfMember(ulong planetId, bool force_refresh = false) =>
+        await PlanetMember.FindAsync(planetId, Self.Id, force_refresh);
 
     /// <summary>
     /// Sends a message
@@ -181,7 +181,7 @@ public static class ValourClient
     {
         StringContent content = new(JsonSerializer.Serialize(message));
 
-        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{message.Channel_Id}/messages", content);
+        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{message.ChannelId}/messages", content);
 
         string res = await httpresponse.Content.ReadAsStringAsync();
 
@@ -416,7 +416,7 @@ public static class ValourClient
 
     private static async Task OnChannelUpdated(PlanetChatChannel channel, int flags)
     {
-        var planet = await Planet.FindAsync(channel.Planet_Id);
+        var planet = await Planet.FindAsync(channel.PlanetId);
 
         if (planet is not null)
             await planet.NotifyUpdateChannel(channel);
@@ -424,7 +424,7 @@ public static class ValourClient
 
     private static async Task OnCategoryUpdated(PlanetCategory category, int flags)
     {
-        var planet = await Planet.FindAsync(category.Planet_Id);
+        var planet = await Planet.FindAsync(category.PlanetId);
 
         if (planet is not null)
             await planet.NotifyUpdateCategory(category);
@@ -432,7 +432,7 @@ public static class ValourClient
 
     private static async Task OnRoleUpdated(PlanetRole role, int flags)
     {
-        var planet = await Planet.FindAsync(role.Planet_Id);
+        var planet = await Planet.FindAsync(role.PlanetId);
 
         if (planet is not null)
             await planet.NotifyUpdateRole(role);
@@ -440,7 +440,7 @@ public static class ValourClient
 
     private static async Task OnChannelDeleted(PlanetChatChannel channel)
     {
-        var planet = await Planet.FindAsync(channel.Planet_Id);
+        var planet = await Planet.FindAsync(channel.PlanetId);
 
         if (planet is not null)
             await planet.NotifyDeleteChannel(channel);
@@ -448,7 +448,7 @@ public static class ValourClient
 
     private static async Task OnCategoryDeleted(PlanetCategory category)
     {
-        var planet = await Planet.FindAsync(category.Planet_Id);
+        var planet = await Planet.FindAsync(category.PlanetId);
 
         if (planet is not null)
             await planet.NotifyDeleteCategory(category);
@@ -456,7 +456,7 @@ public static class ValourClient
 
     private static async Task OnRoleDeleted(PlanetRole role)
     {
-        var planet = await Planet.FindAsync(role.Planet_Id);
+        var planet = await Planet.FindAsync(role.PlanetId);
 
         if (planet is not null)
             await planet.NotifyDeleteRole(role);
@@ -615,7 +615,7 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var planetIds = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planet_ids");
+        var planetIds = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planetIds");
 
         if (planetIds is null)
             return;

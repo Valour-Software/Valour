@@ -25,8 +25,8 @@ public class OauthAppBase : ISharedItem, INamed
     /// <summary>
     /// The ID of the user that created this app
     /// </summary>
-    [JsonPropertyName("Owner_Id")]
-    public ulong Owner_Id { get; set; }
+    [JsonPropertyName("OwnerId")]
+    public ulong OwnerId { get; set; }
 
     /// <summary>
     /// The amount of times this app has been used

@@ -5,14 +5,9 @@ using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Web;
-using Valour.Database;
-using Valour.Database.Items.Planets.Members;
 using Valour.Server.API;
-using Valour.Server.Email;
-using Valour.Server.MPS;
-using Valour.Server.Nodes;
+using Valour.Server.Database;
 using Valour.Server.Notifications;
-using Valour.Server.Users.Identity;
 using Valour.Server.Workers;
 using WebPush;
 
@@ -79,12 +74,12 @@ namespace Valour.Server
 
             using (ValourDB db = new ValourDB(ValourDB.DBOptions)){
                 foreach (var user in db.Users){
-                    if (!db.PlanetMembers.Any(x => x.Planet_Id == 735703679107072 &&
-                         user.Id == x.User_Id)){
+                    if (!db.PlanetMembers.Any(x => x.PlanetId == 735703679107072 &&
+                         user.Id == x.UserId)){
                         
                         PlanetMember member = new(){
-                            Planet_Id = 735703679107072,
-                            User_Id = user.Id,
+                            PlanetId = 735703679107072,
+                            UserId = user.Id,
                             Id = IdManager.Generate(),
                             Nickname = user.Name
                         };
@@ -159,7 +154,7 @@ namespace Valour.Server
 
             //foreach (PlanetRole role in db.PlanetRoles.Include(x => x.Planet))
             //{
-            //    if (role.Id == role.Planet.Default_Role_Id)
+            //    if (role.Id == role.Planet.DefaultRoleId)
             //    {
             //        role.Position = uint.MaxValue;
             //    }

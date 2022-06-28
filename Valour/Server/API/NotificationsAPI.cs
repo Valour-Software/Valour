@@ -21,16 +21,16 @@ public class NotificationsAPI : BaseAPI
                 return new TaskResult(false, "Could not authorize user.");
             }
 
-            var user = await Context.Users.FindAsync(subscription.User_Id);
+            var user = await Context.Users.FindAsync(subscription.UserId);
 
-            if (auth.User_Id != user.Id)
+            if (auth.UserId != user.Id)
             {
                 return new TaskResult(false, "Mismatch between auth and requested user notification hook.");
             }
 
             if (user == null)
             {
-                return new TaskResult(false, $"Could not find user with Id {subscription.User_Id}");
+                return new TaskResult(false, $"Could not find user with Id {subscription.UserId}");
             }
 
             if (string.IsNullOrWhiteSpace(subscription.Endpoint)

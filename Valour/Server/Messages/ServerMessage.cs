@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using Valour.Database.Items.Messages;
+using Valour.Server.Database.Items.Messages;
 using Valour.Shared.Items.Messages;
 
 /*  Valour - A free and secure chat client
@@ -18,7 +18,7 @@ namespace Valour.Server.Messages
         /// <summary>
         /// Returns true if the client message matches this server message
         /// </summary>
-        public bool EqualsMessage(MessageBase message)
+        public bool EqualsMessage(ISharedMessage message)
         {
             return (Hash == message.GetHash());
         }
