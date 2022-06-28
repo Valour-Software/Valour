@@ -72,9 +72,9 @@
             return;
         }
 
-        ulong planet_id = response.Data;
+        ulong planetId = response.Data;
 
-        Planet result = await Planet.FindAsync(planet_id);
+        Planet result = await Planet.FindAsync(planetId);
 
         if (result == null)
         {

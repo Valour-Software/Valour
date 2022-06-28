@@ -9,8 +9,8 @@ public class AuthorizeModel {
     [JsonPropertyName("redirect_uri")]
     public string redirect_uri { get; set; }
 
-    [JsonPropertyName("user_id")]
-    public ulong user_id { get; set; }
+    [JsonPropertyName("userId")]
+    public ulong userId { get; set; }
 
     [JsonPropertyName("response_type")]
     public string response_type { get; set; }

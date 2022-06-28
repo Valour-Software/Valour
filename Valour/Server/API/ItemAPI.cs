@@ -1,19 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using Valour.Database;
-using Valour.Database.Attributes;
-using Valour.Database.Items;
-using Valour.Database.Items.Authorization;
-using Valour.Database.Items.Planets;
-using Valour.Database.Items.Planets.Members;
+using Valour.Server.Database;
+using Valour.Server.Attributes;
+using Valour.Server.Database.Items;
+using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Planets;
+using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
-using Valour.Database.Extensions;
+using Valour.Server.Database.Extensions;
 using System.Linq.Expressions;
-using Valour.Database.Items.Planets.Channels;
+using Valour.Server.Database.Items.Planets.Channels;
 
 namespace Valour.Server.API;
 
@@ -75,7 +75,7 @@ public class ItemAPI<T> where T : Item
                             break;
                     }
 
-                    if (attributes.Any(x => x is InjectDBAttribute))
+                    if (attributes.Any(x => x is InjectDbAttribute))
                     {
                         builder.AddFilter(async (ctx, next) =>
                         {
@@ -189,7 +189,7 @@ public class ItemAPI<T> where T : Item
                             if (db is null)
                                 throw new Exception("PlanetMembershipRequired attribute requires InjectDB attribute");
 
-                            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.User_Id == token.User_Id && x.Planet_Id == routeVal);
+                            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
                             if (member is null)
                                 return ValourResult.NotPlanetMember();
 

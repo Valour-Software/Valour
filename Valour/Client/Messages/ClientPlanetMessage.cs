@@ -49,17 +49,17 @@ public class ClientPlanetMessage
 
     public ulong Id => BaseMessage.Id;
 
-    public ulong Author_Id => BaseMessage.Author_Id;
+    public ulong AuthorId => BaseMessage.AuthorId;
 
-    public ulong Planet_Id => BaseMessage.Planet_Id;
+    public ulong PlanetId => BaseMessage.PlanetId;
 
-    public ulong Member_Id => BaseMessage.Member_Id;
+    public ulong MemberId => BaseMessage.MemberId;
 
     public string Content => BaseMessage.Content;
 
     public DateTime TimeSent => BaseMessage.TimeSent;
 
-    public ulong Channel_Id => BaseMessage.Channel_Id;
+    public ulong ChannelId => BaseMessage.ChannelId;
 
     public ulong Message_Index => BaseMessage.MessageIndex;
 
@@ -209,7 +209,7 @@ public class ClientPlanetMessage
                         // Create object
                         Mention memberMention = new()
                         {
-                            Target_Id = id,
+                            TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Member
@@ -261,7 +261,7 @@ public class ClientPlanetMessage
                         // Create object
                         Mention channelMention = new()
                         {
-                            Target_Id = id,
+                            TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Channel

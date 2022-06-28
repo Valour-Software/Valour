@@ -72,8 +72,8 @@
             var categories = await planet.GetCategoriesAsync();
 
             // Ensure category has no children if we are deleting it
-            if (channels.Count(x => x.Parent_Id == SelectedItem.Id) > 0 || 
-                categories.Count(x => x.Parent_Id == SelectedItem.Id) > 0){
+            if (channels.Count(x => x.ParentId == SelectedItem.Id) > 0 || 
+                categories.Count(x => x.ParentId == SelectedItem.Id) > 0){
 
                 InfoModalData imodalData = 
                 new($"You can't delete this!",

@@ -104,7 +104,7 @@
 
         await ValourClient.OpenChannel(Channel);
 
-        SelfMember = await PlanetMember.FindAsync(Channel.Planet_Id, ValourClient.Self.Id);
+        SelfMember = await PlanetMember.FindAsync(Channel.PlanetId, ValourClient.Self.Id);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
@@ -153,12 +153,12 @@
 
     public async Task OnPlanetMemberUpdate(PlanetMember member, int flags)
     {
-        if (member.Planet_Id != Planet.Id)
+        if (member.PlanetId != Planet.Id)
         {
             return;
         }
 
-        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.Author.User_Id == member.User_Id))
+        foreach (var msg in MessageHolder.RenderedMessages.Where(x => x.Author.UserId == member.UserId))
         {
             //Console.WriteLine(msg.Message.Message_Index);
 
@@ -170,7 +170,7 @@
 
     public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
-        if (role.Planet_Id != Planet.Id)
+        if (role.PlanetId != Planet.Id)
         {
             return;
         }
@@ -231,7 +231,7 @@
     public async Task OnRecieveMessage(PlanetMessage message)
     {
         // Ignore messages not meant for this channel
-        if (message.Channel_Id != Channel.Id)
+        if (message.ChannelId != Channel.Id)
             return;
 
         // Create client wrapper
@@ -245,7 +245,7 @@
 
     public async Task OnDeleteMessage(PlanetMessage message)
     {
-        if (message.Channel_Id != Channel.Id)
+        if (message.ChannelId != Channel.Id)
             return;
 
         MessageHolder.Messages.RemoveAll(x => x.Id == message.Id);

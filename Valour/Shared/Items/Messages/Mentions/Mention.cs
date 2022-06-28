@@ -30,8 +30,8 @@ public class Mention
     /// <summary>
     /// The item id being mentioned
     /// </summary>
-    [JsonPropertyName("Target_Id")]
-    public ulong Target_Id { get; set; }
+    [JsonPropertyName("TargetId")]
+    public ulong TargetId { get; set; }
 
     /// <summary>
     /// The position of the mention, in chars.

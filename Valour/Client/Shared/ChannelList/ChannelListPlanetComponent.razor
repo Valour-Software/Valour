@@ -94,7 +94,7 @@
     {
         if (Categories == null) return;
 
-        TopCategories = Categories.Where(x => x.Parent_Id == null)
+        TopCategories = Categories.Where(x => x.ParentId == null)
                                   .OrderByDescending(x => x.Position)
                                   .ToList();
 
@@ -133,7 +133,7 @@
         if (old != null)
         {
             // If removed from this
-            if (category.Parent_Id != null)
+            if (category.ParentId != null)
             {
                 TopCategories.Remove(old);
             }
@@ -151,7 +151,7 @@
             StateHasChanged();
         }
         // In this case it was just added to this category
-        else if (category.Parent_Id == null)
+        else if (category.ParentId == null)
         {
 
             // Insert into position

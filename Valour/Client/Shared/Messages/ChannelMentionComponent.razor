@@ -30,7 +30,7 @@
     {
         if (Channel != null)
         {
-            if (Mention.Target_Id != Channel.Id)
+            if (Mention.TargetId != Channel.Id)
             {
                 await Build();
             }
@@ -43,7 +43,7 @@
 
     public async Task Build()
     {
-        Channel = await PlanetChatChannel.FindAsync(Mention.Target_Id);
+        Channel = await PlanetChatChannel.FindAsync(Mention.TargetId);
 
         StateHasChanged();
     }

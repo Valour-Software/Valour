@@ -120,9 +120,9 @@
     public PlanetRole role = new PlanetRole()
     {
         Name = "New Role",
-        Color_Red = 255,
-        Color_Green = 255,
-        Color_Blue = 255
+        Red = 255,
+        Green = 255,
+        Blue = 255
     };
 
     public bool editMode = false;
@@ -153,8 +153,8 @@
         var dropped_on_index = Roles.IndexOf(dropped_on);
 
         // Cannot move default role
-        if (dragging_role.Id == Planet.Default_Role_Id ||
-            dropped_on.Id == Planet.Default_Role_Id)
+        if (dragging_role.Id == Planet.DefaultRoleId ||
+            dropped_on.Id == Planet.DefaultRoleId)
             return;
 
         Roles.Remove(dragging_role);
@@ -162,7 +162,7 @@
 
         var ids = Roles.Select(x => x.Id);
 
-        var result = await ValourClient.PostAsync($"api/planet/{dropped_on.Planet_Id}/roles/order", ids);
+        var result = await ValourClient.PostAsync($"api/planet/{dropped_on.PlanetId}/roles/order", ids);
 
         Console.WriteLine(result.Message);
 
@@ -211,7 +211,7 @@
             Name = "New Role",
             Bold = false,
             Italics = false,
-            Planet_Id = Planet.Id
+            PlanetId = Planet.Id
         };
 
         editMode = false;
@@ -279,7 +279,7 @@
             Name = "New Role",
             Bold = false,
             Italics = false,
-            Planet_Id = Planet.Id
+            PlanetId = Planet.Id
         };
 
         rolePermValues = new bool[PlanetPermissions.Permissions.Length];
@@ -297,11 +297,11 @@
     // Get chosen color
         float[] color = await JS.InvokeAsync<float[]>("GetChosenColor");
 
-        role.Color_Red = (byte) Math.Round(color[0]);
-        role.Color_Green = (byte) Math.Round(color[1]);
-        role.Color_Blue = (byte) Math.Round(color[2]);
+        role.Red = (byte) Math.Round(color[0]);
+        role.Green = (byte) Math.Round(color[1]);
+        role.Blue = (byte) Math.Round(color[2]);
 
-        Console.WriteLine($"Chosen color: rgb({role.Color_Red.ToString()}, {role.Color_Green.ToString()}, {role.Color_Blue.ToString()})");
+        Console.WriteLine($"Chosen color: rgb({role.Red.ToString()}, {role.Green.ToString()}, {role.Blue.ToString()})");
 
     // Create json payload to send to server for request
     // Id and authority is handled by the server

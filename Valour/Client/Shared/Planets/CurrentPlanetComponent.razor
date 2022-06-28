@@ -37,7 +37,7 @@
     // manage the planet
     public async Task OnRoleUpdate(PlanetRole role, int flags)
     {
-        if (Planet.Id != role.Planet_Id)
+        if (Planet.Id != role.PlanetId)
             return;
 
         await Refresh();
@@ -66,7 +66,7 @@
         //Console.WriteLine("Self: " + selfMember.Nickname);
         //Console.WriteLine("Role: " + selfRole.Name);
 
-        if (Planet.Owner_Id == selfMember.User_Id ||
+        if (Planet.OwnerId == selfMember.UserId ||
             selfRole.HasPermission(PlanetPermissions.Manage))
         {
             canEdit = true;

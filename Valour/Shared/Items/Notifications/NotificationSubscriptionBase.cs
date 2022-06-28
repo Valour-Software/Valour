@@ -7,8 +7,8 @@ public class NotificationSubscriptionBase : ISharedItem
     /// <summary>
     /// The Id of the user this subscription is for
     /// </summary>
-    [JsonPropertyName("User_Id")]
-    public ulong User_Id { get; set; }
+    [JsonPropertyName("UserId")]
+    public ulong UserId { get; set; }
 
     [JsonPropertyName("Endpoint")]
     public string Endpoint { get; set; }

@@ -13,8 +13,8 @@ public abstract class Channel : ISharedItem, IPlanetItem, INamed
     public ushort Position { get; set; }
 
     [JsonInclude]
-    [JsonPropertyName("Parent_Id")]
-    public ulong? Parent_Id { get; set; }
+    [JsonPropertyName("ParentId")]
+    public ulong? ParentId { get; set; }
 
     [JsonInclude]
     [JsonPropertyName("Description")]
@@ -25,8 +25,8 @@ public abstract class Channel : ISharedItem, IPlanetItem, INamed
     public string Name { get; set; }
 
     [JsonInclude]
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
+    [JsonPropertyName("PlanetId")]
+    public ulong PlanetId { get; set; }
 
     public override ItemType ItemType => throw new NotImplementedException();
 }

@@ -53,7 +53,7 @@
 {
     PlanetChatChannel channel = Target as PlanetChatChannel;
 
-    if ((Planet.Owner_Id != SelfMember.User_Id) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageChannels))
+    if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageChannels))
     {
         <h4>You do not have permission to manage chat channels!</h4>
         return;
@@ -108,7 +108,7 @@
 }
 else if (Target.ItemType == ItemType.Category)
 {
-    if ((Planet.Owner_Id != SelfMember.User_Id) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
+    if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
     {
         <h4>You do not have permission to manage categories!</h4>
         return;
@@ -227,12 +227,12 @@ else
                 // If there's no node, create a dummy one
                 ChannelPermissionsNode = new()
                     {
-                        Target_Id = Target.Id,
-                        Planet_Id = Target.Planet_Id,
-                        Role_Id = Selected_Role.Id,
+                        TargetId = Target.Id,
+                        PlanetId = Target.PlanetId,
+                        RoleId = Selected_Role.Id,
                         Mask = 0x00,
                         Code = 0x00,
-                        Target_Type = ItemType.ChatChannel
+                        TargetType = ItemType.ChatChannel
                     };
             }
         }
@@ -244,12 +244,12 @@ else
             {
                 CategoryPermissionsNode = new()
                 {
-                    Target_Id = Target.Id,
-                    Planet_Id = Target.Planet_Id,
-                    Role_Id = Selected_Role.Id,
+                    TargetId = Target.Id,
+                    PlanetId = Target.PlanetId,
+                    RoleId = Selected_Role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    Target_Type = ItemType.Category
+                    TargetType = ItemType.Category
                 };
             }
         }

@@ -114,7 +114,7 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedI
     /// Returns the planet this channel belongs to
     /// </summary>
     public async Task<Planet> GetPlanetAsync() => 
-        await Planet.FindAsync(Planet_Id);
+        await Planet.FindAsync(PlanetId);
 
     /// <summary>
     /// Sets the name of this channel
@@ -138,28 +138,28 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedI
     /// Sets the parent category id of the channel
     /// </summary>
     public async Task<TaskResult> SetParentIdAsync(ulong? id) => 
-        await ValourClient.PutAsync($"api/channel/{Id}/parent_id", id);
+        await ValourClient.PutAsync($"api/channel/{Id}/parentId", id);
 
 
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await GetChannelPermissionsNodeAsync(role_id, force_refresh);
+    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+        await GetChannelPermissionsNodeAsync(roleId, force_refresh);
 
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong role_id, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, role_id, ItemType.ChatChannel, force_refresh);
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+        await PermissionsNode.FindAsync(Id, roleId, ItemType.ChatChannel, force_refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
     /// </summary>
-    public async Task<PermissionsNode> GetMemberPermissionsAsync(ulong member_id, bool force_refresh = false)
+    public async Task<PermissionsNode> GetMemberPermissionsAsync(ulong memberId, bool force_refresh = false)
     {
-        var member = await PlanetMember.FindAsync(member_id);
+        var member = await PlanetMember.FindAsync(memberId);
         var roles = await member.GetRolesAsync();
 
         // Start with no permissions
@@ -170,15 +170,15 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedI
             // Default to no permission
             Code = 0x0,
 
-            Planet_Id = Planet_Id,
-            Target_Id = Id,
-            Target_Type = ItemType
+            PlanetId = PlanetId,
+            TargetId = Id,
+            TargetType = ItemType
         };
 
         var planet = await GetPlanetAsync();
 
         // Easy cheat for owner
-        if (planet.Owner_Id == member.User_Id)
+        if (planet.OwnerId == member.UserId)
         {
             dummy_node.Code = Permission.FULL_CONTROL;
             return dummy_node;
@@ -211,8 +211,8 @@ public class PlanetChatChannel : PlanetChatChannelBase, IPlanetChannel, ISyncedI
         return dummy_node;
     } 
 
-    public async Task<bool> HasPermissionAsync(ulong member_id, ChatChannelPermission perm) =>
-        await ValourClient.GetJsonAsync<bool>($"api/channel/{Id}/hasperm/{member_id}/{perm.Value}");
+    public async Task<bool> HasPermissionAsync(ulong memberId, ChatChannelPermission perm) =>
+        await ValourClient.GetJsonAsync<bool>($"api/channel/{Id}/hasperm/{memberId}/{perm.Value}");
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)

@@ -16,20 +16,20 @@ public class EmbedInteractionEvent
     [JsonPropertyName("Element_Id")]
     public string Element_Id { get; set; }
 
-    [JsonPropertyName("Planet_Id")]
-    public ulong Planet_Id { get; set; }
+    [JsonPropertyName("PlanetId")]
+    public ulong PlanetId { get; set; }
 
     [JsonPropertyName("Message_Id")]
     public ulong Message_Id { get; set; }
 
-    [JsonPropertyName("Author_Member_Id")]
-    public ulong Author_Member_Id { get; set; }
+    [JsonPropertyName("Author_MemberId")]
+    public ulong Author_MemberId { get; set; }
 
-    [JsonPropertyName("Member_Id")]
-    public ulong Member_Id { get; set; }
+    [JsonPropertyName("MemberId")]
+    public ulong MemberId { get; set; }
 
-    [JsonPropertyName("Channel_Id")]
-    public ulong Channel_Id { get; set; }
+    [JsonPropertyName("ChannelId")]
+    public ulong ChannelId { get; set; }
 
     [JsonPropertyName("Time_Interacted")]
     public DateTime Time_Interacted { get; set; }

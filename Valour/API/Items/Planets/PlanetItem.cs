@@ -13,7 +13,7 @@ namespace Valour.Api.Items.Planets
 {
     public abstract class PlanetItem<T> : Item, INodeSpecific, ISharedPlanetItem where T : Item
     {
-        public ulong Planet_Id { get; set; }
+        public ulong PlanetId { get; set; }
         public string Node { get; set; }
 
         /// <summary>
@@ -24,7 +24,7 @@ namespace Valour.Api.Items.Planets
         /// <summary>
         /// Returns a planet item for the given IDs.
         /// </summary>
-        public static async Task<T> FindAsync(ulong id, ulong planet_id, bool force_refresh)
+        public static async Task<T> FindAsync(ulong id, ulong planetId, bool force_refresh)
         {
             T item = null;
 
@@ -35,7 +35,7 @@ namespace Valour.Api.Items.Planets
                     return item;
             }
 
-            item = await ValourClient.GetJsonAsync<T>($"{NodeManager.GetLocation(planet_id)}/planets/{planet_id}/{DummyItem.ItemType}/{id}");
+            item = await ValourClient.GetJsonAsync<T>($"{NodeManager.GetLocation(planetId)}/planets/{planetId}/{DummyItem.ItemType}/{id}");
 
             if (item is not null)
                 await ValourCache.Put(id, item);

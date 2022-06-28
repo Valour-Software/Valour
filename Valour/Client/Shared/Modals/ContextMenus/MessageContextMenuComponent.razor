@@ -17,7 +17,7 @@
         </BlazorContextMenu.Item>
     }
 
-    @if (Message.Author_Id == ValourClient.Self.Id)
+    @if (Message.AuthorId == ValourClient.Self.Id)
     {
         <BlazorContextMenu.Item OnClick='OnClickEdit' CssClass='context-item'>
             Edit

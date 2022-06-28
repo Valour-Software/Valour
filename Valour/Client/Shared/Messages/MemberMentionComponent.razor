@@ -18,7 +18,7 @@
     {
         get
         {
-            if (Member == null || Member.User_Id != ValourClient.Self.Id)
+            if (Member == null || Member.UserId != ValourClient.Self.Id)
             {
                 return "mention";
             }
@@ -46,7 +46,7 @@
     {
         if (Member != null)
         {
-            if (Mention.Target_Id != Member.Id)
+            if (Mention.TargetId != Member.Id)
             {
                 await Build();
             }
@@ -59,7 +59,7 @@
 
     public async Task Build()
     {
-        Member = await PlanetMember.FindAsync(Mention.Target_Id);
+        Member = await PlanetMember.FindAsync(Mention.TargetId);
 
         if (Member != null)
         {

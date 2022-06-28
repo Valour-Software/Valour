@@ -116,7 +116,7 @@ public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
             await LoadChannelsAsync();
         }
 
-        return await PlanetChatChannel.FindAsync(Main_Channel_Id, force_refresh);
+        return await PlanetChatChannel.FindAsync(Main_ChannelId, force_refresh);
     }
 
     /// <summary>
@@ -267,8 +267,8 @@ public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
             // Set in cache
             // Skip event for bulk loading
             await ValourCache.Put(info.Member.Id, info.Member, true);
-            await ValourCache.Put((info.Member.Planet_Id, info.Member.User_Id), info.Member, true);
-            await ValourCache.Put(info.Member.User_Id, info.User, true);
+            await ValourCache.Put((info.Member.PlanetId, info.Member.UserId), info.Member, true);
+            await ValourCache.Put(info.Member.UserId, info.User, true);
         }
 
         foreach (var info in result)
@@ -328,9 +328,9 @@ public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async Task<PlanetMember> GetMemberAsync(ulong user_id, bool force_refresh = false)
+    public async Task<PlanetMember> GetMemberAsync(ulong userId, bool force_refresh = false)
     {
-        return await PlanetMember.FindAsync(Id, user_id, force_refresh);
+        return await PlanetMember.FindAsync(Id, userId, force_refresh);
     }
 
     /// <summary>

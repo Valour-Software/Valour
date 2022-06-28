@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
-using Valour.Database;
-using Valour.Database.Items.Authorization;
-using Valour.Database.Items.Planets;
+using Valour.Server.Database;
+using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Planets;
 
 namespace Valour.Server.API;
 
@@ -18,7 +18,7 @@ public class OauthAPI : BaseAPI
         app.MapGet("api/oauth/app/{app_id}", GetApp);
         app.MapDelete("api/oauth/app/{app_id}", DeleteApp);
 
-        app.MapGet("api/user/{user_id}/apps", GetApps);
+        app.MapGet("api/user/{userId}/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
     }
@@ -38,7 +38,7 @@ public class OauthAPI : BaseAPI
             return null;
         }
 
-        if (authToken.User_Id != model.user_id){
+        if (authToken.UserId != model.userId){
             await Unauthorized("Token is invalid for this model", context);
             return null;
         }
@@ -61,7 +61,7 @@ public class OauthAPI : BaseAPI
 
         var app = await db.OauthApps.FindAsync(app_id);
 
-        if (app.Owner_Id != authToken.User_Id){
+        if (app.OwnerId != authToken.UserId){
             await Unauthorized("You do not own this app!", context);
             return;
         }
@@ -79,11 +79,11 @@ public class OauthAPI : BaseAPI
             return;
         }
 
-        var apps = db.OauthApps.Where(x => x.Owner_Id == authToken.User_Id);
+        var apps = db.OauthApps.Where(x => x.OwnerId == authToken.UserId);
 
         foreach (var app in apps) {
             // If not owner, hide secret
-            if (authToken.User_Id != app.Owner_Id){
+            if (authToken.UserId != app.OwnerId){
                 app.Secret = "";
             }
         }
@@ -110,7 +110,7 @@ public class OauthAPI : BaseAPI
         }
 
         // If not owner, hide secret
-        if (authToken.User_Id != app.Owner_Id){
+        if (authToken.UserId != app.OwnerId){
             app.Secret = "";
         }
 
@@ -132,14 +132,14 @@ public class OauthAPI : BaseAPI
             return;
         }
 
-        if (await db.OauthApps.CountAsync(x => x.Owner_Id == authToken.User_Id) > 9)
+        if (await db.OauthApps.CountAsync(x => x.OwnerId == authToken.UserId) > 9)
         {
             await BadRequest("There is currently a 10 app limit!", context);
             return;
         }
 
         // Ensure variables are correctly set
-        app.Owner_Id = authToken.User_Id;
+        app.OwnerId = authToken.UserId;
         app.Uses = 0;
         app.Image_Url = "media/logo/logo-512.png";
         
