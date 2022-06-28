@@ -1,8 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
 using Valour.Shared.Items;
@@ -126,7 +122,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
             // Delete target member
             await target.DeleteAsync(db);
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             await tran.RollbackAsync();
@@ -218,7 +214,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-        
+
 
         // Notify of changes
         PlanetHub.NotifyPlanetItemDelete(ban);

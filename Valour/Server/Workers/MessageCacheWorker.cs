@@ -45,7 +45,7 @@ public class MessageCacheWorker : BackgroundService
 
                         await Task.Delay(1000 * 60 * 60);
                     }
-                    catch(System.Exception e)
+                    catch (System.Exception e)
                     {
                         Console.WriteLine("FATAL MESSAGE CACHE ERROR:");
                         Console.WriteLine(e.Message);

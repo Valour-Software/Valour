@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Valour.Server.Database.Items.Users;
+﻿using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 

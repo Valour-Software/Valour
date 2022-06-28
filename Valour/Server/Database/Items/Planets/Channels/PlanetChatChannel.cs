@@ -1,14 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.RegularExpressions;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
@@ -189,7 +182,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             await db.PlanetChatChannels.AddAsync(channel);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);

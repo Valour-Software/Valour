@@ -1,5 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using Valour.Server.Database.Items.Planets.Members;
+﻿using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 
 namespace Valour.Server.Planets.Members;

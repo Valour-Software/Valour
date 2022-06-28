@@ -1,11 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
@@ -451,7 +444,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, 
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
         ILogger<Planet> logger)
     {
         var db = ctx.GetDb();
@@ -507,7 +500,7 @@ public class Planet : Item, ISharedPlanet
 
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
@@ -635,11 +628,11 @@ public class Planet : Item, ISharedPlanet
         var totalCount = await members.CountAsync();
 
         var roleInfo = await members.Select(x => new
-            {
-                member = x,
-                user = x.User,
-                roleIds = x.RoleMembership.Select(x => x.RoleId)
-            })
+        {
+            member = x,
+            user = x.User,
+            roleIds = x.RoleMembership.Select(x => x.RoleId)
+        })
             .Skip(page * 100)
             .Take(100)
             .ToListAsync();

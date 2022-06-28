@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Valour.Server.Database.Items.Authorization;
+﻿using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
@@ -24,8 +23,9 @@ public class ValourDB : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => { 
-            options.EnableRetryOnFailure(); 
+        options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options =>
+        {
+            options.EnableRetryOnFailure();
         });
     }
 
@@ -42,7 +42,8 @@ public class ValourDB : DbContext
     /// This is only here to fulfill the need of the constructor.
     /// It does literally nothing at all.
     /// </summary>
-    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => {
+    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options =>
+    {
         options.EnableRetryOnFailure();
     }).Options;
 
@@ -149,7 +150,7 @@ public class ValourDB : DbContext
 
     public ValourDB(DbContextOptions options)
     {
-            
+
     }
 }
 

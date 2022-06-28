@@ -1,11 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Drawing;
-using System.Text.Json.Serialization;
-using System.Web.Mvc;
-using Valour.Server.Attributes;
-using Valour.Server.Database.Extensions;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
@@ -155,7 +149,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-        
+
         PlanetHub.NotifyPlanetItemChange(role);
 
         return Results.Created(role.GetUri(), role);
@@ -184,7 +178,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             db.PlanetRoles.Update(role);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -212,7 +206,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             await role.DeleteAsync(db);
             await db.SaveChangesAsync();
         }
-        catch(System.Exception e)
+        catch (System.Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
