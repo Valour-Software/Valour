@@ -18,7 +18,7 @@ public class ItemAPI<T> where T : Item
     /// This method registers the API routes and should only be called
     /// once during the application runtime.
     /// </summary>
-    public void RegisterRoutes(WebApplication app)
+    public ItemAPI<T> RegisterRoutes(WebApplication app)
     {
         T dummy = default(T);
 
@@ -33,8 +33,6 @@ public class ItemAPI<T> where T : Item
                 if (att is ValourRouteAttribute)
                 {
                     var val = (ValourRouteAttribute)att;
-
-                    var prefix = dummy.IdRoute;
 
                     // This magically builds a delegate matching the method
                     var paramTypes = method.GetParameters().Select(x => x.ParameterType);
@@ -273,5 +271,7 @@ public class ItemAPI<T> where T : Item
                 }
             }
         }
+
+        return this;
     }
 }

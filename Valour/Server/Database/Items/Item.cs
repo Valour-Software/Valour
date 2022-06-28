@@ -17,9 +17,6 @@ public abstract class Item : ISharedItem
 
     public ulong Id { get; set; }
 
-    [NotMapped]
-    public abstract ItemType ItemType { get; }
-
     /// <summary>
     /// This is the node that returned the API item.
     /// This node should be used for any API 
@@ -43,16 +40,16 @@ public abstract class Item : ISharedItem
         await db.Set<T>().ToListAsync();
 
     public virtual string IdRoute =>
-        $"api/{ItemType}/{{id}}";
+        $"{BaseRoute}/{{Id}}";
 
     public virtual string BaseRoute =>
-        $"api/{ItemType}";
+        $"/api/{GetType().Name}";
 
     /// <summary>
     /// Returns the uri to a specific resource
     /// </summary>
     public virtual string GetUri() =>
         $"{DeployedNode.Instance.Address}/{IdRoute}";
-    //  https://coca.nodes.valour.gg/planetmember/001
+    //  https://coca.nodes.valour.gg/api/planetmember/001
 }
 

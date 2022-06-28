@@ -28,8 +28,6 @@ namespace Valour.Api.Items
         /// </summary>
         public static event Func<T, Task> OnAnyDeleted;
 
-        public ulong Id { get; set; }
-
         public virtual async Task OnUpdate(int flags)
         {
 

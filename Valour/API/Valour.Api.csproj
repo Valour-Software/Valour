@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>preview</LangVersion>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <Company>Vooper Media LLC</Company>
     <Product>Valour Api</Product>
     <Authors>The Valour Team</Authors>

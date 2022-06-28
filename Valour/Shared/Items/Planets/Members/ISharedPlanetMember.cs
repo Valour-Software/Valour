@@ -35,6 +35,6 @@ public interface ISharedPlanetMember
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
-    string Member_Pfp { get; set; }
+    string MemberPfp { get; set; }
 }
 

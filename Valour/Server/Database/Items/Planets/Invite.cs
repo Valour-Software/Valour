@@ -10,8 +10,6 @@ namespace Valour.Server.Database.Items.Planets;
 
 public class Invite : PlanetItem
 {
-    public override ItemType ItemType => ItemType.PlanetInvite;
-
     /// <summary>
     /// The invite code
     /// </summary>

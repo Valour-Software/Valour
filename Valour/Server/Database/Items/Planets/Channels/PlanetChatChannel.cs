@@ -24,12 +24,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public ulong MessageCount { get; set; }
 
     /// <summary>
-    /// The type of this item
-    /// </summary>
-    [NotMapped]
-    public override ItemType ItemType => ItemType.PlanetChatChannel;
-
-    /// <summary>
     /// The regex used for name validation
     /// </summary>
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");

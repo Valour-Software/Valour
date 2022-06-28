@@ -99,9 +99,6 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public ulong PrimaryChannelId { get; set; }
 
-    [NotMapped]
-    public override ItemType ItemType => ItemType.Planet;
-
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 

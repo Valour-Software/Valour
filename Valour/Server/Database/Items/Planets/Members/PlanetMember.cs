@@ -47,9 +47,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
-    public string Member_Pfp { get; set; }
-
-    public override ItemType ItemType => ItemType.PlanetMember;
+    public string MemberPfp { get; set; }
 
     public static async Task<PlanetMember> FindAsync(ulong userId, ulong planetId, ValourDB db)
     {
@@ -238,7 +236,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             return Results.BadRequest(nameValid.Message);
 
         // Clear out pfp, it *must* be done through VMPS
-        member.Member_Pfp = null;
+        member.MemberPfp = null;
 
         // Ensure member does not already exist
         if (await db.PlanetMembers.AnyAsync(x => x.PlanetId == planetId && x.UserId == token.UserId))
@@ -293,7 +291,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         if (member.PlanetId != planetId)
             return Results.BadRequest("Cannot change PlanetId.");
 
-        if (old.Member_Pfp != member.Member_Pfp)
+        if (old.MemberPfp != member.MemberPfp)
             return Results.BadRequest("Cannot directly change pfp. Use VMPS.");
 
         var nameValid = ValidateName(member);

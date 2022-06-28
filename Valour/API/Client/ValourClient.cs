@@ -145,7 +145,7 @@ public static class ValourClient
         {
             Nickname = "Victor",
             Id = ulong.MaxValue,
-            Member_Pfp = "/media/victor-cyan.png"
+            MemberPfp = "/media/victor-cyan.png"
         });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
@@ -887,6 +887,42 @@ public static class ValourClient
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Puts a json resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
+    {
+        JsonContent jsonContent = JsonContent.Create(content);
+
+        var response = await Http.PutAsync(uri, jsonContent);
+
+        TaskResult<T> result = new()
+        {
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed PUT response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+        else
+        {
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;
