@@ -300,7 +300,7 @@ public class User : Item, ISharedUser
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/register")]
+    [ValourRoute(HttpVerbs.Post, "/register")]
     public static async Task<IResult> RegisterUserRouteAsync(HttpContext ctx, [FromBody] RegisterUserRequest request,
         ILogger<User> logger)
     {
@@ -433,6 +433,100 @@ public class User : Item, ISharedUser
         await tran.CommitAsync();
 
         return Results.Ok("Your confirmation email has been sent!");
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/resetpassword"), InjectDb]
+    public static async Task<IResult> ResetPasswordRouteAsync(HttpContext ctx, [FromBody] string email,
+        ILogger<User> logger)
+    {
+        var db = ctx.GetDb();
+
+        var userEmail = await db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
+
+        if (userEmail is null)
+            return ValourResult.NotFound<UserEmail>();
+
+        try
+        {
+            var oldRecoveries = db.PasswordRecoveries.Where(x => x.User_Id == userEmail.User_Id);
+            if (oldRecoveries.Count() > 0)
+            {
+                await db.PasswordRecoveries.BulkDeleteAsync(oldRecoveries);
+                await db.SaveChangesAsync();
+            }
+
+            string recoveryCode = Guid.NewGuid().ToString();
+
+            PasswordRecovery recovery = new()
+            {
+                Code = recoveryCode,
+                User_Id = userEmail.User_Id
+            };
+
+            await db.PasswordRecoveries.AddAsync(recovery);
+            await db.SaveChangesAsync();
+
+            string emsg = $@"<body>
+                              <h2 style='font-family:Helvetica;'>
+                                Valour Password Recovery
+                              </h2>
+                              <p style='font-family:Helvetica;>
+                                If you did not request this email, please ignore it.
+                                To reset your password, please use the following link: 
+                              </p>
+                              <p style='font-family:Helvetica;'>
+                                <a href='https://valour.gg/RecoverPassword/{recoveryCode}'>Click here to recover</a>
+                              </p>
+                            </body>";
+
+            string rawmsg = $"To reset your password, please go to the following link:\nhttps://valour.gg/RecoverPassword/{recoveryCode}";
+
+            var result = await EmailManager.SendEmailAsync(email, "Valour Password Recovery", rawmsg, emsg);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                logger.LogError($"Error issuing password reset email to {email}. Status code {result.StatusCode}.");
+                return Results.Problem("Sorry! There was an issue sending the email. Try again?");
+            }
+        }
+        catch(System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem("Sorry! An unexpected error occured. Try again?");
+        }
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/self/planets"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+
+    public static async Task<IResult> GetPlanetsRouteAsync(HttpContext ctx)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        var planets = await db.PlanetMembers
+            .Where(x => x.User_Id == token.User_Id)
+            .Include(x => x.Planet)
+            .Select(x => x.Planet)
+            .ToListAsync();
+
+        return Results.Json(planets);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/self/planetids"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+
+    public static async Task<IResult> GetPlanetIdsRouteAsync(HttpContext ctx)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        var planets = await db.PlanetMembers
+            .Where(x => x.User_Id == token.User_Id)
+            .Select(x => x.Planet_Id)
+            .ToListAsync();
+
+        return Results.Json(planets);
     }
 
     #endregion
