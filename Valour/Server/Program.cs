@@ -75,7 +75,7 @@ namespace Valour.Server
                 new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
-                new ItemAPI<Invite>()                   .RegisterRoutes(app),
+                new ItemAPI<PlanetInvite>()                   .RegisterRoutes(app),
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
             };
 

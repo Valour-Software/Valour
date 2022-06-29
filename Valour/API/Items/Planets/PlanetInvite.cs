@@ -11,21 +11,49 @@ namespace Valour.Api.Items.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class Invite : InviteBase
+public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
 {
+    /// <summary>
+    /// the invite code
+    /// </summary>
+    public string Code { get; set; }
+
+    /// <summary>
+    /// The planet the invite is for
+    /// </summary>
+    public ulong PlanetId { get; set; }
+
+    /// <summary>
+    /// The user that created the invite
+    /// </summary>
+    public ulong IssuerId { get; set; }
+
+    /// <summary>
+    /// The time the invite was created
+    /// </summary>
+    public DateTime Issued { get; set; }
+
+    /// <summary>
+    /// The time when this invite expires. Null for never.
+    /// </summary>
+    public DateTime? Expires { get; set; }
+
+    public bool IsPermanent() =>
+        ISharedPlanetInvite.IsPermanent(this);
+
     /// <summary>
     /// Returns the invite for the given invite code
     /// </summary>
-    public static async Task<Invite> FindAsync(string code, bool force_refresh = false)
+    public static async Task<PlanetInvite> FindAsync(string code, bool force_refresh = false)
     {
         if (!force_refresh)
         {
-            var cached = ValourCache.Get<Invite>(code);
+            var cached = ValourCache.Get<PlanetInvite>(code);
             if (cached is not null)
                 return cached; 
         }
 
-        var invResult = await ValourClient.GetJsonAsync<Invite>($"api/invite/{code}");
+        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"api/invite/{code}");
 
         if (invResult is not null)
             await ValourCache.Put(code, invResult);

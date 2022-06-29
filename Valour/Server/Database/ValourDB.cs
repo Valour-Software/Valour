@@ -106,7 +106,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for planet invites
     /// </summary>
-    public DbSet<Invite> PlanetInvites { get; set; }
+    public DbSet<PlanetInvite> PlanetInvites { get; set; }
 
     /// <summary>
     /// Table for planet invites
