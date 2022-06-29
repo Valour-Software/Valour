@@ -48,7 +48,7 @@ namespace Valour.Api.Items
                 await OnDeleted?.Invoke();
         }
 
-        public async static Task InvokeAnyUpdated(T updated, int flags)
+        public async Task InvokeAnyUpdated(T updated, int flags)
         {
             if (OnAnyUpdated != null)
                 await OnAnyUpdated?.Invoke(updated, flags);

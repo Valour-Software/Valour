@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INodeSpecific
+public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
 
@@ -39,13 +39,6 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// The pfp to be used within the planet
     /// </summary>
     public string MemberPfp { get; set; }
-
-    /// <summary>
-    /// The node this item belongs to
-    /// </summary>
-    public string Node { get; set; }
-
-    public override ItemType ItemType => ItemType.PlanetMember;
 
     /// <summary>
     /// Returns the member for the given id

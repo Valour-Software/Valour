@@ -1,13 +1,13 @@
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Valour.Client.Categories;
-using Microsoft.AspNetCore.Components;
-using Valour.Client.Modals;
-using Valour.Client.Shared.ChannelList;
-using Valour.Api.Client;
 using Blazored.Modal;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Valour.Api.Client;
+using Valour.Client.Categories;
+using Valour.Client.Shared.ChannelList;
 using Valour.Client.Windows;
 
+namespace Valour.Client;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -15,49 +15,46 @@ using Valour.Client.Windows;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Client
+public class Program
 {
-    public class Program
+    public static async Task Main(string[] args)
     {
-        public static async Task Main(string[] args)
+        var builder = WebAssemblyHostBuilder.CreateDefault(args);
+        builder.RootComponents.Add<App>("app");
+
+        builder.Services.AddBlazoredLocalStorage();
+
+        var httpClient = new HttpClient
         {
-            var builder = WebAssemblyHostBuilder.CreateDefault(args);
-            builder.RootComponents.Add<App>("app");
+            BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+        };
 
-            builder.Services.AddBlazoredLocalStorage();
+        ValourClient.SetHttpClient(httpClient);
+        await ValourClient.InitializeSignalR(builder.HostEnvironment.BaseAddress.TrimEnd('/') + "/planethub");
 
-            var httpClient = new HttpClient
+        builder.Services.AddScoped(sp =>
+            httpClient
+        );
+
+        builder.Services.AddSingleton<ClientWindowManager>();
+        builder.Services.AddSingleton<ClientCategoryManager>();
+        builder.Services.AddSingleton<ChannelListManager>();
+
+        builder.Services.AddBlazoredModal();
+        builder.Services.AddBlazorContextMenu(options =>
+        {
+            options.ConfigureTemplate("main", template =>
             {
-                BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
-            };
-
-            ValourClient.SetHttpClient(httpClient);
-            await ValourClient.InitializeSignalR(builder.HostEnvironment.BaseAddress.TrimEnd('/') + "/planethub");
-
-            builder.Services.AddScoped(sp =>
-                httpClient
-            );
-
-            builder.Services.AddSingleton<ClientWindowManager>();
-            builder.Services.AddSingleton<ClientCategoryManager>();
-            builder.Services.AddSingleton<ChannelListManager>();
-
-            builder.Services.AddBlazoredModal();
-            builder.Services.AddBlazorContextMenu(options =>
-            {
-                options.ConfigureTemplate("main", template =>
-                {
-                    template.Animation = BlazorContextMenu.Animation.FadeIn;
-                    template.MenuCssClass = "context-menu";
-                    template.MenuItemCssClass = "context-menu-item";
-                });
+                template.Animation = BlazorContextMenu.Animation.FadeIn;
+                template.MenuCssClass = "context-menu";
+                template.MenuItemCssClass = "context-menu-item";
             });
+        });
 
-            var host = builder.Build();
+        var host = builder.Build();
 
-            var navService = host.Services.GetRequiredService<NavigationManager>();
+        var navService = host.Services.GetRequiredService<NavigationManager>();
 
-            await host.RunAsync();
-        }
+        await host.RunAsync();
     }
-} 
+}

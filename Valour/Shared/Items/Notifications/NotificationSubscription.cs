@@ -12,6 +12,4 @@ public class NotificationSubscription
     public string Not_Key { get; set; }
     public string Auth { get; set; }
 
-    [JsonInclude]
-    public ItemType ItemType => ItemType.NotificationSubscription;
 }

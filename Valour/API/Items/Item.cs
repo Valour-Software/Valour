@@ -17,8 +17,8 @@ namespace Valour.Api.Items
         
         public string Node { get; set; }
 
-        public string IdRoute => $"{BaseRoute}/{Id}";
-        public string BaseRoute => $"/api/{GetType().Name}";
+        public virtual string IdRoute => $"{BaseRoute}/{Id}";
+        public virtual string BaseRoute => $"/api/{GetType().Name}";
 
 
         /// <summary>

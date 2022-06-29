@@ -44,16 +44,16 @@ public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
     /// <summary>
     /// Returns the invite for the given invite code
     /// </summary>
-    public static async Task<PlanetInvite> FindAsync(string code, bool force_refresh = false)
+    public static async Task<PlanetInvite> FindAsync(string code, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PlanetInvite>(code);
             if (cached is not null)
                 return cached; 
         }
 
-        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"api/invite/{code}");
+        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"/api/{nameof(PlanetInvite)}/{code}");
 
         if (invResult is not null)
             await ValourCache.Put(code, invResult);
@@ -61,16 +61,18 @@ public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
         return invResult;
     }
 
+    public override string IdRoute => $"/api/{nameof(PlanetInvite)}/{Code}";
+
     /// <summary>
     /// Returns the name of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetNameAsync() =>
-        await ValourClient.GetAsync($"api/invite/{Code}/planet/name") ?? "<Not found>";
+        await ValourClient.GetAsync($"{IdRoute}/planet/name") ?? "<Not found>";
     
     /// <summary>
     /// Returns the icon of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetIconUrl() =>
-        await ValourClient.GetAsync($"api/invite/{Code}/planet/icon_url") ?? "";
+        await ValourClient.GetAsync($"{IdRoute}/planet/icon_url") ?? "";
 }
 

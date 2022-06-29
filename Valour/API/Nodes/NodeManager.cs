@@ -20,7 +20,7 @@ namespace Valour.Api.Nodes
             if (PlanetToNodeLocation.ContainsKey(planetId))
                 return PlanetToNodeLocation[planetId];
 
-            string node = await GetPlanetNode(planetId);
+            string node = await GetNode(planetId);
             string location = null;
 
             if (node is not null) {

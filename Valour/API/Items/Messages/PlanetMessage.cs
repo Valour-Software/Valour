@@ -19,8 +19,11 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : PlanetItem, ISharedPlanetMessage
+public class PlanetMessage : Item<PlanetMessage>, ISharedPlanetMessage
 {
+    /// <summary>
+    /// The Id of the planet this message belongs to
+    /// </summary>
     public ulong PlanetId { get; set; }
 
     /// <summary>
@@ -157,11 +160,6 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
             return false;
         }
     }
-
-    /// <summary>
-    /// The item type of this item
-    /// </summary>
-    public override ItemType ItemType => ItemType.PlanetMessage;
 
     // Makes PlanetMessage meant to be sent to valour from the client
     public PlanetMessage(string text, ulong self_memberId, ulong channelId, ulong planetId)

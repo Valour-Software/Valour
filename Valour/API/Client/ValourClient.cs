@@ -13,6 +13,7 @@ using Valour.Shared.Items;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using Valour.Api.Items.Authorization;
+using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Client;
 
@@ -339,7 +340,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : ISharedItem
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : class, ISharedItem
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -352,13 +353,13 @@ public static class ValourClient
         if (!skipEvent)
         {
             if (local != null) {
-                var s_local = local as ISyncedItem<T>;
+                var s_local = local as SyncedItem<T>;
 
                 await s_local.InvokeUpdated(flags);
                 await s_local.InvokeAnyUpdated(local, flags);
             }
             else {
-                var s_updated = updated as ISyncedItem<T>;
+                var s_updated = updated as SyncedItem<T>;
 
                 await s_updated.InvokeAnyUpdated(updated, flags);
             }
@@ -371,13 +372,13 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : ISharedItem
+    public static async Task DeleteItem<T>(T item) where T : class, ISharedItem
     {
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
 
-        var s_local = local as ISyncedItem<T>;
+        var s_local = local as SyncedItem<T>;
 
         // Invoke specific item deleted
         await s_local.InvokeDeleted();
@@ -480,7 +481,11 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<string>> GetToken(string email, string password)
     {
-        TokenRequest content = new(email, password);
+        TokenRequest content = new()
+        {
+            Email = email,
+            Password = password
+        };
 
         var response = await Http.PostAsJsonAsync($"api/user/requesttoken", content);
 

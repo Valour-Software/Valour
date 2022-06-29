@@ -60,7 +60,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
     public static async Task<Planet> FindAsync(ulong id, bool refresh = false) =>
-        await FindAsync<Planet>(id, refresh);
+        await FindAsync(id, refresh);
     
 
     /// <summary>
@@ -71,7 +71,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await FindAsync<PlanetChatChannel>(Id, refresh);
+        return await PlanetChatChannel.FindAsync(Id, refresh);
     }
 
     /// <summary>

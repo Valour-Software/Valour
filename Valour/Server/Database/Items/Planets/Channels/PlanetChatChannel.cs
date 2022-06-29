@@ -7,6 +7,7 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
 using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 using Valour.Shared.MPS;
 
@@ -61,7 +62,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             var role = roleMembership.Role;
             // For some reason, we need to make sure we get the node that has the same targetId as this channel
             // When loading I suppose it grabs all the nodes even if the target is not the same?
-            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == ItemType);
+            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTarget.PlanetChatChannel);
 
             // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
             if (node == null)

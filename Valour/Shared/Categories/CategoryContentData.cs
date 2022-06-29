@@ -9,13 +9,7 @@ namespace Valour.Shared.Categories
     /// </summary>
     public class CategoryContentData
     {
-        [JsonPropertyName("Id")]
         public ulong Id { get; set; }
-
-        [JsonPropertyName("Position")]
         public ushort Position { get; set; }
-
-        [JsonPropertyName("ItemType")]
-        public ItemType ItemType { get; set; }
     }
 }

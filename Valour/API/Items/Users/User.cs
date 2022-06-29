@@ -75,12 +75,6 @@ public class User : SyncedItem<User>, ISharedUser
         set => ISharedUser.SetUserState(this, value);
     }
 
-    /// <summary>
-    /// Returns the user for the given id
-    /// </summary>
-    public static async Task<User> FindAsync(ulong id, bool refresh = false) =>
-        await FindAsync<User>(id, refresh);
-
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
         await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
 }
