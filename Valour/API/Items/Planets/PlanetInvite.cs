@@ -31,7 +31,7 @@ public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    public DateTime Issued { get; set; }
+    public DateTime Created { get; set; }
 
     /// <summary>
     /// The time when this invite expires. Null for never.

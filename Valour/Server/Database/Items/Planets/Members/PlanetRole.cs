@@ -44,6 +44,10 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     public string Name { get; set; }
 
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(PlanetRole);
+
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 

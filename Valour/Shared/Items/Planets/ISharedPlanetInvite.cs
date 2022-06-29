@@ -12,17 +12,12 @@ namespace Valour.Shared.Items.Planets;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetInvite
+public interface ISharedPlanetInvite : ISharedPlanetItem
 {
     /// <summary>
     /// the invite code
     /// </summary>
     string Code { get; set; }
-
-    /// <summary>
-    /// The planet the invite is for
-    /// </summary>
-    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The user that created the invite
@@ -32,7 +27,7 @@ public interface ISharedPlanetInvite
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    DateTime Issued { get; set; }
+    DateTime Created { get; set; }
 
     /// <summary>
     /// The time when this invite expires. Null for never.

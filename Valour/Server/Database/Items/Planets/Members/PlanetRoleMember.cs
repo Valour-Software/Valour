@@ -28,6 +28,10 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
     public ulong RoleId { get; set; }
     public ulong MemberId { get; set; }
 
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(PlanetRoleMember);
+
     // This doesn't really even need API routes, it's just used internally to map roles to members.
     // Use a route from PlanetMember if you need to get someone's roles.
 }

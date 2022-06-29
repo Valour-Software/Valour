@@ -147,6 +147,8 @@ CREATE TABLE IF NOT EXISTS PlanetMembers (
     Nickname VARCHAR(32),
     MemberPfp TEXT,
 
+    UNIQUE KEY (UserId, PlanetId),
+
     CONSTRAINT fk_planet FOREIGN KEY(PlanetId) REFERENCES Planets(Id),
     CONSTRAINT fk_user FOREIGN KEY(UserId) REFERENCES Users(Id)
 );

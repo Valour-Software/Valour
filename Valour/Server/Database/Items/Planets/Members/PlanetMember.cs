@@ -4,8 +4,6 @@ using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
@@ -48,6 +46,10 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// The pfp to be used within the planet
     /// </summary>
     public string MemberPfp { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(PlanetMember);
 
     public static async Task<PlanetMember> FindAsync(ulong userId, ulong planetId, ValourDB db)
     {
@@ -220,7 +222,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planetId, string invite_code, [FromBody] PlanetMember member,
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planetId, string inviteCode, [FromBody] PlanetMember member,
         ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDb();
@@ -246,10 +248,10 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
         if (!planet.Public)
         {
-            if (invite_code is null)
-                return ValourResult.Forbid("The planet is not public. Please include invite_code.");
+            if (inviteCode is null)
+                return ValourResult.Forbid("The planet is not public. Please include inviteCode.");
 
-            if (!await db.PlanetInvites.AnyAsync(x => x.Code == invite_code && x.PlanetId == planetId && DateTime.UtcNow > x.Created))
+            if (!await db.PlanetInvites.AnyAsync(x => x.Code == inviteCode && x.PlanetId == planetId && DateTime.UtcNow > x.Created))
                 return ValourResult.Forbid("The invite code is invalid or expired.");
         }
 

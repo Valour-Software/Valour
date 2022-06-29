@@ -75,7 +75,7 @@
             navManager.NavigateTo("/");
         }
 
-        var invite = await ValourClient.GetJsonAsync<Valour.Api.Items.Planets.Invite>($"api/invite/{code}");
+        var invite = await PlanetInvite.FindAsync(code);
 
         // TODO: tell user if the invite has expired
 

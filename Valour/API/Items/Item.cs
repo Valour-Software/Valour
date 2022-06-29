@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Shared;
 using Valour.Shared.Items;
@@ -11,11 +7,17 @@ namespace Valour.Api.Items
 {
     public abstract class Item<T> : ISharedItem where T : class, ISharedItem
     {
-        public static string ItemType => nameof(Item<T>);
+        public static string _ItemType => nameof(Item<T>);
 
         public ulong Id { get; set; }
         
         public string Node { get; set; }
+
+        // The *static* field _ItemType on the server is serialized into itemType,
+        // Which is then deserialized into this *non-static* property, allowing us
+        // to determine item type
+        [JsonPropertyName("itemType")]
+        public string ItemType { get; set; }
 
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
         public virtual string BaseRoute => $"/api/{GetType().Name}";
@@ -28,7 +30,7 @@ namespace Valour.Api.Items
         /// <param name="id">The id of the target item</param>
         /// <param name="refresh">If true, the cache will be skipped</param>
         /// <returns>An item of type T</returns>
-        public static async Task<T> FindAsync(ulong id, bool refresh = false)
+        public static async Task<T> FindAsync(object id, bool refresh = false)
         {
             if (!refresh)
             {

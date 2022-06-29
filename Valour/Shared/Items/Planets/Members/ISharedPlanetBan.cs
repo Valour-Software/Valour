@@ -3,17 +3,12 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public interface ISharedPlanetBan
+public interface ISharedPlanetBan : ISharedPlanetItem
 {
     /// <summary>
     /// The user that was banned
     /// </summary>
     ulong TargetId { get; set; }
-
-    /// <summary>
-    /// The planet the user was within
-    /// </summary>
-    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The user that banned the user

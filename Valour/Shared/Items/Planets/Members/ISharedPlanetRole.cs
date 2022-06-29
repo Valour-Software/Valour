@@ -11,17 +11,12 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public interface ISharedPlanetRole
+public interface ISharedPlanetRole : ISharedPlanetItem
 {
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
     uint Position { get; set; }
-
-    /// <summary>
-    /// The ID of the planet or system this role belongs to
-    /// </summary>
-    ulong PlanetId { get; set; }
 
     /// <summary>
     /// The planet permissions for the role

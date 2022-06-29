@@ -4,7 +4,7 @@
     return;
 }
 
-<h3>@Target.GetItemTypeName() Permissions</h3>
+<h3>@Target.GetHumanReadableName() Permissions</h3>
 
 @{
     Console.WriteLine(Selected_Role.Name);
@@ -49,7 +49,7 @@
 <!-- If there's a role selected we show possible permissions that role can have
      for the channel or category -->
 
-@if (Target.ItemType == ItemType.ChatChannel)
+@if (Target is PlanetChatChannel)
 {
     PlanetChatChannel channel = Target as PlanetChatChannel;
 
@@ -106,7 +106,7 @@
         </div>
     }
 }
-else if (Target.ItemType == ItemType.Category)
+else if (Target is PlanetCategoryChannel)
 {
     if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
     {
@@ -212,7 +212,9 @@ else
 
         if (channel is not null)
         {
-            await channel.SetPermInheritModeAsync(!channel.InheritsPerms);
+            channel.InheritsPerms = !channel.InheritsPerms;
+            await PlanetChatChannel.UpdateAsync(channel);
+
             StateHasChanged();
         }
     }
@@ -232,7 +234,7 @@ else
                         RoleId = Selected_Role.Id,
                         Mask = 0x00,
                         Code = 0x00,
-                        TargetType = ItemType.ChatChannel
+                        TargetType = PermissionsTarget.PlanetChatChannel
                     };
             }
         }
@@ -249,7 +251,7 @@ else
                     RoleId = Selected_Role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = ItemType.Category
+                    TargetType = PermissionsTarget.PlanetCategoryChannel
                 };
             }
         }
@@ -304,7 +306,7 @@ else
         Planet = await Target.GetPlanetAsync();
         Roles = await Planet.GetRolesAsync();
 
-        if (Target.ItemType == ItemType.Category)
+        if (Target is PlanetCategoryChannel)
         {
             Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length +
             CategoryPermissions.Permissions.Length];

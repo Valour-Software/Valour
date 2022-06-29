@@ -9,11 +9,10 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Members;
 
-public interface ISharedPlanetRoleMember
+public interface ISharedPlanetRoleMember : ISharedPlanetItem
 {
     ulong UserId { get; set; }
     ulong RoleId { get; set; }
-    ulong PlanetId { get; set; }
     ulong MemberId { get; set; }
 }
 

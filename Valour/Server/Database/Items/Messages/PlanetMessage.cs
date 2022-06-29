@@ -65,9 +65,8 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// </summary>
     public string Fingerprint { get; set; }
 
-    /// <summary>
-    /// The item type of this item
-    /// </summary>
-    public override ItemType ItemType => ItemType.PlanetMessage;
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(PlanetMessage);
 }
 

@@ -28,7 +28,7 @@ public abstract class Item : ISharedItem
     /// <summary>
     /// Returns the item with the given id
     /// </summary>
-    public static async ValueTask<T> FindAsync<T>(ulong id, ValourDB db)
+    public static async ValueTask<T> FindAsync<T>(object id, ValourDB db)
         where T : Item =>
         await db.FindAsync<T>(id);
 

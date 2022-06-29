@@ -4,8 +4,6 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Users.Identity;
 using Valour.Server.Email;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Server.Database.Items.Users;
@@ -74,7 +72,9 @@ public class User : Item, ISharedUser
     /// </summary>
     public DateTime LastActive { get; set; }
 
-    new public static string ItemType => nameof(User);
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(User);
 
     /// <summary>
     /// The span of time from which the user was last active

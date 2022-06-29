@@ -5,8 +5,6 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 using Valour.Shared.MPS;
@@ -23,6 +21,10 @@ namespace Valour.Server.Database.Items.Planets.Channels;
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
     public ulong MessageCount { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(PlanetChatChannel);
 
     /// <summary>
     /// The regex used for name validation

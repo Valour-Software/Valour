@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets;
 
-public interface ISharedPlanet
+public interface ISharedPlanet : ISharedItem
 {
     /// <summary>
     /// The Id of the owner of this planet

@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Users;
 
-public interface ISharedUser
+public interface ISharedUser : ISharedItem
 {
     /// <summary>
     /// The url for the user's profile picture

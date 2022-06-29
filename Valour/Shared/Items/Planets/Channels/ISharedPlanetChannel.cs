@@ -3,8 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Planets.Channels;
 
-public interface ISharedPlanetChannel : ISharedChannel
+public interface ISharedPlanetChannel : ISharedChannel, ISharedPlanetItem
 {
-    ulong PlanetId { get; set; }
     ulong? ParentId { get; set; }
 }

@@ -3,12 +3,11 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
+using Valour.Shared.Items.Planets;
 
 namespace Valour.Server.Database.Items.Planets;
 
-public class PlanetInvite : PlanetItem
+public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 {
     /// <summary>
     /// The invite code
@@ -32,6 +31,10 @@ public class PlanetInvite : PlanetItem
 
     public bool IsPermanent() => Expires is null;
 
+    [JsonInclude]
+    [JsonPropertyName("itemType")]
+    public static string _ItemType => nameof(PlanetInvite);
+
     public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
     {
         bool banned = await db.PlanetBans.AnyAsync(x => x.TargetId == user_Id && x.PlanetId == this.PlanetId);
@@ -46,12 +49,12 @@ public class PlanetInvite : PlanetItem
         db.PlanetInvites.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
+    [ValourRoute(HttpVerbs.Get, "/{code}"), TokenRequired, InjectDb]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, string code)
     {
         var db = ctx.GetDb();
 
-        var invite = await FindAsync<PlanetInvite>(id, db);
+        var invite = await FindAsync<PlanetInvite>(code, db);
 
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
@@ -175,12 +178,12 @@ public class PlanetInvite : PlanetItem
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "/{invite_code}/planetname"), InjectDb]
-    public async Task<IResult> GetPlanetName(HttpContext ctx, string invite_code)
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname"), InjectDb]
+    public async Task<IResult> GetPlanetName(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
 
-        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
 
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
@@ -188,12 +191,12 @@ public class PlanetInvite : PlanetItem
         return Results.Ok(invite.Planet.Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{invite_code}/planeticon"), InjectDb]
-    public async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string invite_code)
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon"), InjectDb]
+    public async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
 
-        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
 
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
@@ -201,13 +204,13 @@ public class PlanetInvite : PlanetItem
         return Results.Ok(invite.Planet.IconUrl);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{invite_code}/join"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Invites)]
-    public async Task<IResult> Join(HttpContext ctx, string invite_code)
+    public async Task<IResult> Join(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
 
-        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
+        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
         if (invite == null)
             return ValourResult.NotFound<PlanetInvite>();
 
