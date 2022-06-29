@@ -283,7 +283,7 @@ else
         }
 
         // Handle additional node for categories
-        if (Target is PlanetCategory)
+        if (Target is PlanetCategoryChannel)
         {
             TaskResult category_response = await ValourClient.PostAsync($"api/node", CategoryPermissionsNode);
 
@@ -351,8 +351,8 @@ else
             PlanetChatChannel channel = Target as PlanetChatChannel;
             ChannelPermissionsNode = await channel.GetPermissionsNodeAsync(Selected_Role.Id);
         }
-        else if (Target is PlanetCategory){
-            PlanetCategory category = Target as PlanetCategory;
+        else if (Target is PlanetCategoryChannel){
+            PlanetCategoryChannel category = Target as PlanetCategoryChannel;
             ChannelPermissionsNode = await category.GetChannelPermissionsNodeAsync(Selected_Role.Id);
             CategoryPermissionsNode = await category.GetCategoryPermissionsNodeAsync(Selected_Role.Id);
         }
@@ -405,9 +405,9 @@ else
                     await Buttons[i].OnChangeState(bState, false);
             }
         }
-        else if (Target is PlanetCategory)
+        else if (Target is PlanetCategoryChannel)
         {
-            PlanetCategory category = Target as PlanetCategory;
+            PlanetCategoryChannel category = Target as PlanetCategoryChannel;
 
             // Setup category buttons
             for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)

@@ -16,7 +16,7 @@
         <!-- The Modal -->
         @if (Open)
         {
-            @foreach (PlanetCategory category in TopCategories)
+            @foreach (PlanetCategoryChannel category in TopCategories)
             {
                 <ChannelListCategoryComponent Categories="Categories"
                                               Channels="Channels"
@@ -36,23 +36,23 @@
 
     public bool Open { get; set; }
 
-    public List<PlanetCategory> TopCategories;
-    public List<PlanetCategory> Categories { get; set; }
+    public List<PlanetCategoryChannel> TopCategories;
+    public List<PlanetCategoryChannel> Categories { get; set; }
     public List<PlanetChatChannel> Channels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
-        Categories = new List<PlanetCategory>();
+        Categories = new List<PlanetCategoryChannel>();
         Channels = new List<PlanetChatChannel>();
-        TopCategories = new List<PlanetCategory>();
+        TopCategories = new List<PlanetCategoryChannel>();
 
         // Handle list change
-        PlanetCategory.OnAnyUpdated += OnCategoryUpdate;
+        PlanetCategoryChannel.OnAnyUpdated += OnCategoryUpdate;
         PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        PlanetCategory.OnAnyDeleted += OnCategoryDeletion;
+        PlanetCategoryChannel.OnAnyDeleted += OnCategoryDeletion;
         PlanetChatChannel.OnAnyDeleted += OnChatChannelDeletion;
 
         await GetCategories();
@@ -113,7 +113,7 @@
         }
     }
 
-    public async Task OnCategoryDeletion(PlanetCategory category)
+    public async Task OnCategoryDeletion(PlanetCategoryChannel category)
     {
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
@@ -125,7 +125,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategory category, int flags)
+    public async Task OnCategoryUpdate(PlanetCategoryChannel category, int flags)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);

@@ -35,7 +35,7 @@
 
     public bool isChannel;
     public PlanetChatChannel Channel;
-    public PlanetCategory Category;
+    public PlanetCategoryChannel Category;
 
 
     public string GetTitle()
@@ -78,7 +78,7 @@
         else
         {
             isChannel = false;
-            Category = (PlanetCategory)ChannelListItem;
+            Category = (PlanetCategoryChannel)ChannelListItem;
             Channel = null;
         }
     }
