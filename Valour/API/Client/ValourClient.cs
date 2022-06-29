@@ -12,6 +12,7 @@ using Valour.Shared;
 using Valour.Shared.Items;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using Valour.Api.Items.Authorization;
 
 namespace Valour.Api.Client;
 
@@ -145,7 +146,7 @@ public static class ValourClient
         {
             Nickname = "Victor",
             Id = ulong.MaxValue,
-            Member_Pfp = "/media/victor-cyan.png"
+            MemberPfp = "/media/victor-cyan.png"
         });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
@@ -407,8 +408,8 @@ public static class ValourClient
         PlanetChatChannel.OnAnyUpdated += OnChannelUpdated;
         PlanetChatChannel.OnAnyDeleted += OnChannelDeleted;
 
-        PlanetCategory.OnAnyUpdated += OnCategoryUpdated;
-        PlanetCategory.OnAnyDeleted += OnCategoryDeleted;
+        PlanetCategoryChannel.OnAnyUpdated += OnCategoryUpdated;
+        PlanetCategoryChannel.OnAnyDeleted += OnCategoryDeleted;
 
         PlanetRole.OnAnyUpdated += OnRoleUpdated;
         PlanetRole.OnAnyDeleted += OnRoleDeleted;
@@ -422,7 +423,7 @@ public static class ValourClient
             await planet.NotifyUpdateChannel(channel);
     }
 
-    private static async Task OnCategoryUpdated(PlanetCategory category, int flags)
+    private static async Task OnCategoryUpdated(PlanetCategoryChannel category, int flags)
     {
         var planet = await Planet.FindAsync(category.PlanetId);
 
@@ -446,7 +447,7 @@ public static class ValourClient
             await planet.NotifyDeleteChannel(channel);
     }
 
-    private static async Task OnCategoryDeleted(PlanetCategory category)
+    private static async Task OnCategoryDeleted(PlanetCategoryChannel category)
     {
         var planet = await Planet.FindAsync(category.PlanetId);
 
@@ -663,23 +664,29 @@ public static class ValourClient
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
         HubConnection.On<PlanetMessage>("DeleteMessage", MessageDeleted);
 
-        HubConnection.On<Planet, int>("PlanetUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<Planet>("PlanetDeletion", DeleteItem);
+        HubConnection.On<Planet, int>($"{nameof(Planet)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<Planet>     ($"{nameof(Planet)}Deletion", DeleteItem);
 
-        HubConnection.On<PlanetChatChannel, int>("ChannelUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetChatChannel>("ChannelDeletion", DeleteItem);
+        HubConnection.On<PlanetChatChannel, int>($"{nameof(PlanetChatChannel)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetChatChannel>     ($"{nameof(PlanetChatChannel)}Deletion", DeleteItem);
 
-        HubConnection.On<PlanetCategory, int>("CategoryUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetCategory>("CategoryDeletion", DeleteItem);
+        HubConnection.On<PlanetCategoryChannel, int> ($"{nameof(PlanetCategoryChannel)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetCategoryChannel>      ($"{nameof(PlanetCategoryChannel)}Deletion", DeleteItem);
 
-        HubConnection.On<PlanetRole, int>("RoleUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetRole>("RoleDeletion", DeleteItem);
+        HubConnection.On<PlanetRole, int>($"{nameof(PlanetRole)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetRole>     ($"{nameof(PlanetRole)}Deletion", DeleteItem);
 
-        HubConnection.On<PlanetMember, int>("MemberUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetMember>("MemberDeletion", DeleteItem);
+        HubConnection.On<PlanetMember, int>($"{nameof(PlanetMember)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetMember>     ($"{nameof(PlanetMember)}Deletion", DeleteItem);
 
-        HubConnection.On<User, int>("UserUpdate", (i, d) => UpdateItem(i, d));
-        HubConnection.On<User>("UserDeletion", DeleteItem);
+        HubConnection.On<PermissionsNode, int>($"{nameof(PermissionsNode)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PermissionsNode>     ($"{nameof(PermissionsNode)}Deletion", DeleteItem);
+
+        HubConnection.On<PlanetInvite, int>($"{nameof(PlanetInvite)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<PlanetInvite>     ($"{nameof(PlanetInvite)}Deletion", DeleteItem);
+
+        HubConnection.On<User, int>($"{nameof(User)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<User>     ($"{nameof(User)}Deletion", DeleteItem);
     }
 
     /// <summary>
@@ -887,6 +894,42 @@ public static class ValourClient
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Puts a json resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
+    {
+        JsonContent jsonContent = JsonContent.Create(content);
+
+        var response = await Http.PutAsync(uri, jsonContent);
+
+        TaskResult<T> result = new()
+        {
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed PUT response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+        else
+        {
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
         }
 
         return result;

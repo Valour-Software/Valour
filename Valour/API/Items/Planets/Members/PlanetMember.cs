@@ -38,7 +38,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
-    public string Member_Pfp { get; set; }
+    public string MemberPfp { get; set; }
 
     /// <summary>
     /// The node this item belongs to
@@ -209,8 +209,8 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// </summary>
     public async Task<string> GetPfpUrlAsync(bool force_refresh = false)
     {
-        if (!string.IsNullOrWhiteSpace(Member_Pfp))
-            return Member_Pfp;
+        if (!string.IsNullOrWhiteSpace(MemberPfp))
+            return MemberPfp;
 
         return (await GetUserAsync(force_refresh))?.PfpUrl ?? "/media/icon-512.png";
     }

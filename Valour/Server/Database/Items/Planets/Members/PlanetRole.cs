@@ -5,6 +5,7 @@ using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
 using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
@@ -43,8 +44,6 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     public string Name { get; set; }
 
-    public override ItemType ItemType => ItemType.PlanetRole;
-
     public uint GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
@@ -66,26 +65,26 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public ICollection<PermissionsNode> GetChannelNodes(ValourDB db)
     {
         PermissionNodes ??= db.PermissionsNodes.Where(x => x.RoleId == Id).ToList();
-        return PermissionNodes.Where(x => x.TargetType == ItemType.PlanetChatChannel).ToList();
+        return PermissionNodes.Where(x => x.TargetType == PermissionsTarget.PlanetChatChannel).ToList();
     }
 
     public ICollection<PermissionsNode> GetCategoryNodes(ValourDB db)
     {
         PermissionNodes ??= db.PermissionsNodes.Where(x => x.RoleId == Id).ToList();
-        return PermissionNodes.Where(x => x.TargetType == ItemType.PlanetCategoryChannel).ToList();
+        return PermissionNodes.Where(x => x.TargetType == PermissionsTarget.PlanetCategoryChannel).ToList();
     }
 
     public async Task<PermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
-                                                                     x.TargetType == ItemType.PlanetChatChannel);
+                                                                     x.TargetType == PermissionsTarget.PlanetChatChannel);
 
     public async Task<PermissionsNode> GetChannelNodeAsync(PlanetCategoryChannel category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                                     x.TargetType == ItemType.PlanetChatChannel);
+                                                                     x.TargetType == PermissionsTarget.PlanetChatChannel);
 
     public async Task<PermissionsNode> GetCategoryNodeAsync(PlanetCategoryChannel category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                                     x.TargetType == ItemType.PlanetCategoryChannel);
+                                                                     x.TargetType == PermissionsTarget.PlanetCategoryChannel);
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel, ValourDB db) =>
         await GetPermissionStateAsync(permission, channel.Id, db);

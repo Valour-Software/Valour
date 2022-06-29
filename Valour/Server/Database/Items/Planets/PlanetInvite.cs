@@ -8,10 +8,8 @@ using Valour.Shared.Items;
 
 namespace Valour.Server.Database.Items.Planets;
 
-public class Invite : PlanetItem
+public class PlanetInvite : PlanetItem
 {
-    public override ItemType ItemType => ItemType.PlanetInvite;
-
     /// <summary>
     /// The invite code
     /// </summary>
@@ -53,10 +51,10 @@ public class Invite : PlanetItem
     {
         var db = ctx.GetDb();
 
-        var invite = await FindAsync<Invite>(id, db);
+        var invite = await FindAsync<PlanetInvite>(id, db);
 
         if (invite is null)
-            return ValourResult.NotFound<Invite>();
+            return ValourResult.NotFound<PlanetInvite>();
 
         return Results.Json(invite);
     }
@@ -65,8 +63,8 @@ public class Invite : PlanetItem
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Invite invite,
-        ILogger<Invite> logger)
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetInvite invite,
+        ILogger<PlanetInvite> logger)
     {
         var db = ctx.GetDb();
         var authMember = ctx.GetMember();
@@ -96,12 +94,12 @@ public class Invite : PlanetItem
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Invite invite,
-        ILogger<Invite> logger)
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetInvite invite,
+        ILogger<PlanetInvite> logger)
     {
         var db = ctx.GetDb();
 
-        var oldInvite = await FindAsync<Invite>(id, db);
+        var oldInvite = await FindAsync<PlanetInvite>(id, db);
 
         if (invite.Code != oldInvite.Code)
             return Results.BadRequest("You cannot change the code.");
@@ -134,11 +132,11 @@ public class Invite : PlanetItem
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
-        ILogger<Invite> logger)
+        ILogger<PlanetInvite> logger)
     {
         var db = ctx.GetDb();
 
-        var invite = await FindAsync<Invite>(id, db);
+        var invite = await FindAsync<PlanetInvite>(id, db);
 
         try
         {
@@ -185,7 +183,7 @@ public class Invite : PlanetItem
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
 
         if (invite is null)
-            return ValourResult.NotFound<Invite>();
+            return ValourResult.NotFound<PlanetInvite>();
 
         return Results.Ok(invite.Planet.Name);
     }
@@ -198,7 +196,7 @@ public class Invite : PlanetItem
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
 
         if (invite is null)
-            return ValourResult.NotFound<Invite>();
+            return ValourResult.NotFound<PlanetInvite>();
 
         return Results.Ok(invite.Planet.IconUrl);
     }
@@ -211,7 +209,7 @@ public class Invite : PlanetItem
 
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == invite_code);
         if (invite == null)
-            return ValourResult.NotFound<Invite>();
+            return ValourResult.NotFound<PlanetInvite>();
 
         ulong userId = ctx.GetToken().UserId;
 

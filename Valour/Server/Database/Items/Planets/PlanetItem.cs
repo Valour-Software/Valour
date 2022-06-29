@@ -25,9 +25,9 @@ public abstract class PlanetItem : Item
         await db.Set<T>().Where(x => x.PlanetId == PlanetId).ToListAsync();
 
     public override string IdRoute =>
-        $"planet/{{planetId}}/{ItemType}/{{id}}";
+        $"{BaseRoute}/{{id}}";
 
     public override string BaseRoute =>
-        $"planet/{{planetId}}/{ItemType}";
+        $"/api/planet/{{planetId}}/{GetType().Name}";
 }
 

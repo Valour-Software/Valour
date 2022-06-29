@@ -39,9 +39,10 @@ public interface ISharedPlanetInvite
     /// </summary>
     DateTime? Expires { get; set; }
 
-    public bool IsPermanent()
-    {
-        return (Expires == null);
-    }
+    public bool IsPermanent() =>
+        ISharedPlanetInvite.IsPermanent(this);
+
+    public static bool IsPermanent(ISharedPlanetInvite item) =>
+        item.Expires == null;
 }
 

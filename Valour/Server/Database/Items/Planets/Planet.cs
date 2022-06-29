@@ -5,17 +5,15 @@ using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
+
+namespace Valour.Server.Database.Items.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-
-namespace Valour.Server.Database.Items.Planets;
-
 
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
@@ -54,7 +52,7 @@ public class Planet : Item, ISharedPlanet
 
     [InverseProperty("Planet")]
     [JsonIgnore]
-    public virtual ICollection<Invite> Invites { get; set; }
+    public virtual ICollection<PlanetInvite> Invites { get; set; }
 
     [InverseProperty("DefaultRoleId")]
     [JsonIgnore]
@@ -98,9 +96,6 @@ public class Planet : Item, ISharedPlanet
     /// The id of the main channel of the planet
     /// </summary>
     public ulong PrimaryChannelId { get; set; }
-
-    [NotMapped]
-    public override ItemType ItemType => ItemType.Planet;
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");

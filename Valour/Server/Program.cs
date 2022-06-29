@@ -6,8 +6,17 @@ using System.Text.Json;
 using System.Web;
 using Valour.Server.API;
 using Valour.Server.Database;
+using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Planets;
+using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Database.Items.Users;
+using Valour.Server.Database.Users.Identity;
+using Valour.Server.Email;
+using Valour.Server.Nodes;
 using Valour.Server.Notifications;
 using Valour.Server.Workers;
+using Valour.Shared.MPS;
 using WebPush;
 
 namespace Valour.Server
@@ -20,6 +29,8 @@ namespace Valour.Server
         public const string MPSCONF_FILE = "MPSConfig.json";
         public const string VAPIDCONF_FILE = "VapidConfig.json";
         public const string NODECONF_FILE = "NodeConfig.json";
+
+        public static List<object> ItemApis { get; set; }
 
         public static void Main(string[] args)
         {
@@ -54,16 +65,19 @@ namespace Valour.Server
             // Add API routes
             BaseAPI.AddRoutes(app);
             UploadAPI.AddRoutes(app);
-            ChannelAPI.AddRoutes(app);
-            CategoryAPI.AddRoutes(app);
-            PlanetAPI.AddRoutes(app);
-            UserAPI.AddRoutes(app);
-            MemberAPI.AddRoutes(app);
-            RoleAPI.AddRoutes(app);
             EmbedAPI.AddRoutes(app);
-            PermissionsAPI.AddRoutes(app);
             OauthAPI.AddRoutes(app);
-            InviteAPI.AddRoutes(app);
+
+            ItemApis = new() {
+                new ItemAPI<User>()                     .RegisterRoutes(app),
+                new ItemAPI<Planet>()                   .RegisterRoutes(app),
+                new ItemAPI<PlanetChatChannel>()        .RegisterRoutes(app),
+                new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
+                new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
+                new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
+                new ItemAPI<PlanetInvite>()                   .RegisterRoutes(app),
+                new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
+            };
 
             // Migrations and tasks
 
@@ -197,16 +211,13 @@ namespace Valour.Server
 
             services.AddDbContextPool<ValourDB>(options =>
             {
-                options.UseMySql(ValourDB.ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options => options.EnableRetryOnFailure());
+                options.UseNpgsql(ValourDB.ConnectionString);
             });
 
             // This probably needs to be customized further but the documentation changed
             services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
             // Adds user manager to dependency injection
-            services.AddScoped<UserManager>();
-            IdManager idManager = new();
-            services.AddSingleton(idManager);
             services.AddSingleton<WebPushClient>();
             services.AddControllersWithViews().AddJsonOptions(options =>
             {

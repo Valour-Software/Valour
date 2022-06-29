@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 
 namespace Valour.Api.Items
 {
-    public abstract class SyncedItem<T> : Item
+    public abstract class SyncedItem<T> : Item<T> where T : class, ISharedItem
     {
         /// <summary>
         /// Ran when this item is updated
@@ -27,8 +28,6 @@ namespace Valour.Api.Items
         /// Run when any of this item type is deleted
         /// </summary>
         public static event Func<T, Task> OnAnyDeleted;
-
-        public ulong Id { get; set; }
 
         public virtual async Task OnUpdate(int flags)
         {

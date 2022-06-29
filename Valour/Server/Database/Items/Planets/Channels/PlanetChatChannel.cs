@@ -24,12 +24,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public ulong MessageCount { get; set; }
 
     /// <summary>
-    /// The type of this item
-    /// </summary>
-    [NotMapped]
-    public override ItemType ItemType => ItemType.PlanetChatChannel;
-
-    /// <summary>
     /// The regex used for name validation
     /// </summary>
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -274,6 +268,23 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.NoContent();
     }
 
+    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired, InjectDb]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
+    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, ulong id, ulong memberId, ulong value)
+    {
+        var db = ctx.GetDb();
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
+
+        var targetMember = await FindAsync<PlanetMember>(memberId, db);
+        if (targetMember is null)
+            return ValourResult.NotFound<PlanetMember>();
+
+        var hasPerm = await channel.HasPermissionAsync(targetMember, new Permission(value, "", ""), db);
+
+        return Results.Json(hasPerm);
+    }
+
     // Message routes
 
     [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDb]
@@ -294,7 +305,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
         if (count > 0)
         {
-            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.MessageIndex < index)
+            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.MessageIndex <= index)
                                                   .OrderByDescending(x => x.MessageIndex)
                                                   .Take(count)
                                                   .Reverse()
