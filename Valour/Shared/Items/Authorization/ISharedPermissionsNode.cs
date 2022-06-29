@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -19,7 +20,7 @@ public enum PermissionsTarget
 /// <summary>
 /// A permission node is a set of permissions for a specific thing
 /// </summary>
-public interface ISharedPermissionsNode
+public interface ISharedPermissionsNode : ISharedPlanetItem
 {
 
     /// <summary>
@@ -31,11 +32,6 @@ public interface ISharedPermissionsNode
     /// A mask used to determine if code bits are disabled
     /// </summary>
     public ulong Mask { get; set; }
-
-    /// <summary>
-    /// The planet this node applies to
-    /// </summary>
-    public ulong PlanetId { get; set; }
 
     /// <summary>
     /// The role this permissions node belongs to

@@ -1,9 +1,6 @@
 ﻿using System.Drawing;
-using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Members;
@@ -14,99 +11,62 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpecific
+public class PlanetRole : SyncedItem<PlanetRole>, ISharedPlanetRole
 {
-    #region Synced Item System
-
-    /// <summary>
-    /// Ran when this item is updated
-    /// </summary>
-    public event Func<int, Task> OnUpdated;
-
-    /// <summary>
-    /// Ran when this item is deleted
-    /// </summary>
-    public event Func<Task> OnDeleted;
-
-    /// <summary>
-    /// Run when any of this item type is updated
-    /// </summary>
-    public static event Func<PlanetRole, int, Task> OnAnyUpdated;
-
-    /// <summary>
-    /// Run when any of this item type is deleted
-    /// </summary>
-    public static event Func<PlanetRole, Task> OnAnyDeleted;
-
-    public async Task InvokeAnyUpdated(PlanetRole updated, int flags)
+    // Coolest role on this damn platform.
+    // Fight me.
+    public static PlanetRole VictorRole = new PlanetRole()
     {
-        if (OnAnyUpdated != null)
-            await OnAnyUpdated?.Invoke(updated, flags);
-    }
-
-    public async Task InvokeAnyDeleted(PlanetRole deleted)
-    {
-        if (OnAnyDeleted != null)
-            await OnAnyDeleted?.Invoke(deleted);
-    }
-
-    public async Task InvokeUpdated(int flags)
-    {
-        await OnUpdate(flags);
-
-        if (OnUpdated != null)
-            await OnUpdated?.Invoke(flags);
-    }
-
-    public async Task InvokeDeleted()
-    {
-        if (OnDeleted != null)
-            await OnDeleted?.Invoke();
-    }
-
-    public async Task OnUpdate(int flags)
-    {
-
-    }
-
-    #endregion
+        Name = "Victor Class",
+        Id = ulong.MaxValue,
+        Position = uint.MaxValue,
+        PlanetId = 0,
+        Red = 255,
+        Green = 0,
+        Blue = 255
+    };
 
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    uint Position { get; set; }
+    public uint Position { get; set; }
 
     /// <summary>
     /// The ID of the planet or system this role belongs to
     /// </summary>
-    ulong PlanetId { get; set; }
+    public ulong PlanetId { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
-    ulong Permissions { get; set; }
+    public ulong Permissions { get; set; }
+
+    /// <summary>
+    /// The name of this role
+    /// </summary>
+    public string Name { get; set; }
 
     // RGB Components for role color
-    byte Red { get; set; }
-    byte Green { get; set; }
-    byte Blue { get; set; }
+    public byte Red { get; set; }
+    public byte Green { get; set; }
+    public byte Blue { get; set; }
 
     // Formatting options
-    bool Bold { get; set; }
+    public bool Bold { get; set; }
 
-    bool Italics { get; set; }
+    public bool Italics { get; set; }
 
     public uint GetAuthority() =>
-        ((ISharedPlanetRole)this).GetAuthority();
+        ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
-        ((ISharedPlanetRole)this).GetColor();
+        ISharedPlanetRole.GetColor(this);
 
     public string GetColorHex() =>
-        ((ISharedPlanetRole)this).GetColorHex();
+        ISharedPlanetRole.GetColorHex(this);
 
     public bool HasPermission(PlanetPermission perm) =>
-        ((ISharedPlanetRole)this).HasPermission(perm);
+        ISharedPlanetRole.HasPermission(this, perm);
 
     public static PlanetRole GetDefault(ulong planetId)
     {
@@ -121,36 +81,4 @@ public class PlanetRole : ISharedPlanetRole, ISyncedItem<PlanetRole>, INodeSpeci
             Blue = 255
         };
     }
-
-    public static PlanetRole VictorRole = new PlanetRole()
-    {
-        Name = "Victor Class",
-        Id = ulong.MaxValue,
-        Position = uint.MaxValue,
-        PlanetId = 0,
-        Red = 255,
-        Green = 0,
-        Blue = 255
-    };
-
-    /// <summary>
-    /// Returns the planet role for the given id
-    /// </summary>
-    public static async Task<PlanetRole> FindAsync(ulong id, bool force_refresh = false)
-    {
-        if (!force_refresh)
-        {
-            var cached = ValourCache.Get<PlanetRole>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var role = await ValourClient.GetJsonAsync<PlanetRole>($"api/role/{id}");
-
-        if (role is not null)
-            await ValourCache.Put(id, role);
-
-        return role;
-    }
-    
 }

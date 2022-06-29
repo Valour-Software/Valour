@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Valour.Shared.Items;
 
 namespace Valour.Api.Items
 {
-    public abstract class SyncedItem<T> : Item
+    public abstract class SyncedItem<T> : Item<T> where T : class, ISharedItem
     {
         /// <summary>
         /// Ran when this item is updated

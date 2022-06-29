@@ -16,39 +16,31 @@ namespace Valour.Shared.Items.Authorization;
 /// </summary>
 public class OauthApp
 {
+    public ulong Id { get; set; }
+
     /// <summary>
     /// The secret key for the app
     /// </summary>
-    [JsonPropertyName("Secret")]
     public string Secret { get; set; }
 
     /// <summary>
     /// The ID of the user that created this app
     /// </summary>
-    [JsonPropertyName("OwnerId")]
     public ulong OwnerId { get; set; }
 
     /// <summary>
     /// The amount of times this app has been used
     /// </summary>
-    [JsonPropertyName("Uses")]
     public int Uses { get; set; }
 
     /// <summary>
     /// The image used to represent the app
     /// </summary>
-    [JsonPropertyName("Image_Url")]
     public string Image_Url { get; set; }
 
     /// <summary>
     /// The name of the app
     /// </summary>
-    [JsonPropertyName("Name")]
     public string Name { get; set; }
-
-    [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.OauthApp;
 }
 

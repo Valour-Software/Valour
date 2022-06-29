@@ -15,42 +15,71 @@ namespace Valour.Api.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : ISharedPermissionsNode
+public class PermissionsNode : SyncedItem<PermissionsNode>, ISharedPermissionsNode
 {
+    /// <summary>
+    /// The Id of this node
+    /// </summary>
+    public ulong Id { get; set; }
+
+    /// <summary>
+    /// The planet this node belongs to
+    /// </summary>
+    public ulong PlanetId { get; set; }
+
+    /// <summary>
+    /// The permission code that this node has set
+    /// </summary>
+    public ulong Code { get; set; }
+
+    /// <summary>
+    /// A mask used to determine if code bits are disabled
+    /// </summary>
+    public ulong Mask { get; set; }
+
+    /// <summary>
+    /// The role this permissions node belongs to
+    /// </summary>
+    public ulong RoleId { get; set; }
+
+    /// <summary>
+    /// The id of the object this node applies to
+    /// </summary>
+    public ulong TargetId { get; set; }
+
+    /// <summary>
+    /// The type of object this node applies to
+    /// </summary>
+    public PermissionsTarget TargetType { get; set; }
+
+    /// <summary>
+    /// Returns the node code for this permission node
+    /// </summary>
+    public PermissionNodeCode GetNodeCode() =>
+        ISharedPermissionsNode.GetNodeCode(this);
+
+    /// <summary>
+    /// Returns the permission state for a given permission
+    /// </summary>
+    public PermissionState GetPermissionState(Permission perm) =>
+        ISharedPermissionsNode.GetPermissionState(this, perm);
+
+    /// <summary>
+    /// Sets a permission to the given state
+    /// </summary>
+    public void SetPermission(Permission perm, PermissionState state) =>
+        ISharedPermissionsNode.SetPermission(this, perm, state);
+
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, ItemType itemType) =>
-        await FindAsync(channel.Id, role.Id, itemType);
-
-
-    /// <summary>
-    /// Returns the chat channel permissions node for the given id
-    /// </summary>
-    public static async Task<PermissionsNode> FindAsync(ulong id, bool force_refresh = false)
-    {
-        if (!force_refresh)
-        {
-            var cached = ValourCache.Get<PermissionsNode>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/channel/{id}");
-
-        if (node is not null)
-        {
-            await ValourCache.Put(id, node);
-            await ValourCache.Put((node.TargetId, (node.RoleId, node.ItemType)), node);
-        }
-
-        return node;
-    }
+    public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
+        await FindAsync(channel.Id, role.Id, targetType);
 
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(ulong targetId, ulong roleId, ItemType type, bool force_refresh = false)
+    public static async Task<PermissionsNode> FindAsync(ulong targetId, ulong roleId, PermissionsTarget type, bool force_refresh = false)
     {
         if (!force_refresh)
         {

@@ -13,63 +13,8 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
+public class Planet : SyncedItem<Planet>, ISharedPlanet
 {
-    #region Synced Item System
-
-    /// <summary>
-    /// Ran when this item is updated
-    /// </summary>
-    public event Func<int, Task> OnUpdated;
-
-    /// <summary>
-    /// Ran when this item is deleted
-    /// </summary>
-    public event Func<Task> OnDeleted;
-
-    /// <summary>
-    /// Run when any of this item type is updated
-    /// </summary>
-    public static event Func<Planet, int, Task> OnAnyUpdated;
-
-    /// <summary>
-    /// Run when any of this item type is deleted
-    /// </summary>
-    public static event Func<Planet, Task> OnAnyDeleted;
-
-    public async Task InvokeAnyUpdated(Planet updated, int flags)
-    {
-        if (OnAnyUpdated != null)
-            await OnAnyUpdated?.Invoke(updated, flags);
-    }
-
-    public async Task InvokeAnyDeleted(Planet deleted)
-    {
-        if (OnAnyDeleted != null)
-            await OnAnyDeleted?.Invoke(deleted);
-    }
-
-    public async Task InvokeUpdated(int flags)
-    {
-        await OnUpdate(flags);
-
-        if (OnUpdated != null)
-            await OnUpdated?.Invoke(flags);
-    }
-
-    public async Task InvokeDeleted()
-    {
-        if (OnDeleted != null)
-            await OnDeleted?.Invoke();
-    }
-
-    public async Task OnUpdate(int flags)
-    {
-
-    }
-
-    #endregion
-
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
     private List<PlanetCategory> Categories { get; set; }
@@ -77,57 +22,65 @@ public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
     private List<PlanetMember> Members { get; set; }
 
     /// <summary>
+    /// The Id of the owner of this planet
+    /// </summary>
+    public ulong OwnerId { get; set; }
+
+    /// <summary>
+    /// The name of this planet
+    /// </summary>
+    public string Name { get; set; }
+
+    /// <summary>
+    /// The image url for the planet 
+    /// </summary>
+    public string IconUrl { get; set; }
+
+    /// <summary>
+    /// The description of the planet
+    /// </summary>
+    public string Description { get; set; }
+
+    /// <summary>
+    /// If the server requires express allowal to join a planet
+    /// </summary>
+    public bool Public { get; set; }
+
+    /// <summary>
+    /// The default role for the planet
+    /// </summary>
+    public ulong DefaultRoleId { get; set; }
+
+    /// <summary>
+    /// The id of the main channel of the planet
+    /// </summary>
+    public ulong PrimaryChannelId { get; set; }
+
+    /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async Task<Planet> FindAsync(ulong id, bool force_refresh = false)
-    {
-        if (!force_refresh)
-        {
-            var cached = ValourCache.Get<Planet>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        // We have to find the location of the planet first
-#if DEBUG
-        string loc = "";
-#else
-        string loc =
-            "https://" +
-            await ValourClient.GetAsync($"https://core.valour.gg/nodes/planet/{id}/name") +
-            ".nodes.valour.gg/";
-#endif
-
-        var planet = await ValourClient.GetJsonAsync<Planet>($"{loc}api/planet/{id}");
-
-        if (planet is not null)
-            await ValourCache.Put(id, planet);
-
-        return planet;
-    }
+    public static async Task<Planet> FindAsync(ulong id, bool refresh = false) =>
+        await FindAsync<Planet>(id, refresh);
+    
 
     /// <summary>
     /// Returns the primary channel of the planet
     /// </summary>
-    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(bool force_refresh = false)
+    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(bool refresh = false)
     {
-        if (Channels == null || force_refresh)
-        {
+        if (Channels == null || refresh)
             await LoadChannelsAsync();
-        }
 
-        return await PlanetChatChannel.FindAsync(Main_ChannelId, force_refresh);
+        return await FindAsync<PlanetChatChannel>(Id, refresh);
     }
 
     /// <summary>
     /// Returns the categories of this planet
     /// </summary>
-    public async Task<List<PlanetCategory>> GetCategoriesAsync(bool force_refresh = false)
+    public async Task<List<PlanetCategory>> GetCategoriesAsync(bool refresh = false)
     {
-        if (Categories == null || force_refresh)
-        {
+        if (Categories == null || refresh)
             await LoadCategoriesAsync();
-        }
 
         return Categories;
     }
@@ -137,7 +90,7 @@ public class Planet : PlanetBase, ISyncedItem<Planet>, INodeSpecific
     /// </summary>
     public async Task LoadCategoriesAsync()
     {
-        var categories = await ValourClient.GetJsonAsync<List<PlanetCategory>>($"api/planet/{Id}/categories");
+        var categories = await ValourClient.GetJsonAsync<List<PlanetCategory>>($"{IdRoute}/categories");
 
         if (categories is null)
             return;
