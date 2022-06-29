@@ -10,7 +10,7 @@ namespace Valour.Api.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetCategoryChannel : SyncedItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel
+public class PlanetCategoryChannel : SyncedItem<PlanetCategoryChannel>, ISharedPlanetCategoryChannel, IPlanetChannel
 {
     /// <summary>
     /// The Id of the planet this category belongs to
@@ -42,7 +42,7 @@ public class PlanetCategoryChannel : SyncedItem<PlanetCategoryChannel>, ISharedP
     /// </summary>
     public bool InheritsPerms { get; set; }
 
-    public string GetItemTypeName() => "Category";
+    public string GetHumanReadableName() => "Category";
 
     /// <summary>
     /// Returns the planet of this category

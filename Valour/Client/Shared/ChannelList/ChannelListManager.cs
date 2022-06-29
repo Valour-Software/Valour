@@ -30,7 +30,7 @@ namespace Valour.Client.Shared.ChannelList
                                           ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Click for {item.GetItemTypeName()} {item.Name} at position {currentDragIndex}");
+            Console.WriteLine($"Click for {item.GetHumanReadableName()} {item.Name} at position {currentDragIndex}");
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace Valour.Client.Shared.ChannelList
                                               ChannelListCategoryComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Starting drag for {item.GetItemTypeName()} {item.Name} at position {currentDragIndex}");
+            Console.WriteLine($"Starting drag for {item.GetHumanReadableName()} {item.Name} at position {currentDragIndex}");
         }
 
         /// <summary>
@@ -79,7 +79,7 @@ namespace Valour.Client.Shared.ChannelList
                 return;
 
             // Only categories can be put under a planet
-            if (currentDragItem.ItemType != Valour.Shared.Items.ItemType.Category)
+            if (currentDragItem is not PlanetCategoryChannel)
                 return;
 
             // Already parent
@@ -122,11 +122,18 @@ namespace Valour.Client.Shared.ChannelList
 
             // Add current item to target category
 
-            var response = await ValourClient.PostAsync($"/api/category/{target.Category.Id}/children?type={currentDragItem.ItemType}", currentDragItem);
-
-            Console.WriteLine($"Inserting {currentDragItem.Id} into {target.Category.Id} at position {position}");
-
-            Console.WriteLine(response.Message);
+            if (currentDragItem is PlanetCategoryChannel)
+            {
+                var response = await PlanetCategoryChannel.UpdateAsync((PlanetCategoryChannel)currentDragItem);
+                Console.WriteLine($"Inserting category {currentDragItem.Id} into {target.Category.Id} at position {position}");
+                Console.WriteLine(response.Message);
+            }
+            else if (currentDragItem is PlanetChatChannel)
+            {
+                var response = await PlanetChatChannel.UpdateAsync((PlanetChatChannel)currentDragItem);
+                Console.WriteLine($"Inserting chat channel {currentDragItem.Id} into {target.Category.Id} at position {position}");
+                Console.WriteLine(response.Message);
+            }
         }
 
         public async Task OnItemDropOnChatChannel(ChannelListChatChannelComponent target)
@@ -152,7 +159,7 @@ namespace Valour.Client.Shared.ChannelList
             currentDragItem.ParentId = target.ParentCategory.Category.Id;
 
             TaskResult response;
-            List<CategoryContentData> orderData = null;
+            List<ulong> orderData = null;
 
             // Categories are not the same
             //if (currentDragParentCategory.Category.Id !=
@@ -161,7 +168,7 @@ namespace Valour.Client.Shared.ChannelList
                 // Update the target's category
 
                 // Create order data
-                orderData = new List<CategoryContentData>();
+                orderData = new List<ulong>();
 
                 ushort pos = 0;
 
@@ -170,18 +177,13 @@ namespace Valour.Client.Shared.ChannelList
                     Console.WriteLine($"{item.Id} at {pos}");
 
                     orderData.Add(
-                        new CategoryContentData()
-                        {
-                            Id = item.Id,
-                            Position = pos,
-                            ItemType = item.ItemType
-                        }
+                        item.Id
                     );
 
                     pos++;
                 }
 
-                response = await ValourClient.PostAsync($"api/category/{target.ParentCategory.Category.Id}/children/order", orderData);
+                response = await ValourClient.PostAsync($"{target.ParentCategory.Category.IdRoute}/children/order", orderData);
 
                 Console.WriteLine(response.Message);
 

@@ -18,7 +18,7 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetChatChannel
+public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetChatChannel, IPlanetChannel
 {
     /// <summary>
     /// The Id of the planet this channel belongs to
@@ -63,8 +63,8 @@ public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetCha
     /// <summary>
     /// Returns the planet this channel belongs to
     /// </summary>
-    public async Task<Planet> GetPlanetAsync() => 
-        await Planet.FindAsync(PlanetId);
+    public async Task<Planet> GetPlanetAsync(bool refresh = false) => 
+        await Planet.FindAsync(PlanetId, refresh);
 
     /// <summary>
     /// Returns the permissions node for the given role id

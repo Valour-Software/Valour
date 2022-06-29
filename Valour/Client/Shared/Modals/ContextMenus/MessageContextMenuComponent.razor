@@ -48,7 +48,7 @@
     {
         MessageComponent = component;
         Message = message;
-        await InnerMemberContextMenuComponent.Initialize(await message.GetAuthorAsync());
+        await InnerMemberContextMenuComponent.Initialize(await message.GetAuthorMemberAsync());
 
         // Console.WriteLine(window.Channel_Permissions.Code + " | " + window.Channel_Permissions.Mask);
 

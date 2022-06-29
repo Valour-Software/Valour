@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets.Members;
+using Valour.Api.Items.Users;
 using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages.Mentions;
 
@@ -44,8 +45,11 @@ public class ClientPlanetMessage
     // Forward a bunch of stuff for my own sake
     #region Forwarding
 
-    public async Task<PlanetMember> GetAuthorAsync() =>
-        await BaseMessage.GetAuthorAsync();
+    public async Task<PlanetMember> GetAuthorMemberAsync() =>
+        await BaseMessage.GetAuthorMemberAsync();
+
+    public async Task<User> GetAuthorUserAsync() =>
+        await BaseMessage.GetAuthorUserAsync();
 
     public ulong Id => BaseMessage.Id;
 
