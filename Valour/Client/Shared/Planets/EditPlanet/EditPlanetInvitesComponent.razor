@@ -82,7 +82,7 @@
 
         ulong userId = ValourClient.Self.Id;
 
-        Invites = await ValourClient.GetJsonAsync<List<PlanetInvite>>($"api/planet/{planetId}/invites");
+        Invites = await Planet.GetInvitesAsync();
 
         StateHasChanged();
     }
@@ -91,8 +91,17 @@
     {
         if (publicValue != Planet.Public)
         {
-            TaskResult result = await Planet.SetPublic(publicValue);
-            publicSpan = result.Message;
+            Planet.Public = publicValue;
+            var result = await Planet.UpdateAsync(Planet);
+
+            if (result.Success)
+            {
+                publicSpan = "Updated successfully.";
+            }
+            else
+            {
+                publicSpan = "Failed to update. Try again?";
+            }
         }
 
         StateHasChanged();

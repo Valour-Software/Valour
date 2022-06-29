@@ -9,9 +9,9 @@
     <th style="width: 125px;">
         @Invite.Created.ToLocalTime().ToShortDateString()
     </th>
-    @if (Invite.Hours != null) {
+    @if (Invite.Expires != null) {
         <th style="width: 125px;">
-            @time.ToLocalTime().ToShortDateString()
+            @Invite.Expires.Value.ToLocalTime().ToShortDateString()
         </th>
     }
     else {
@@ -27,13 +27,10 @@
 
     public string IssuerName { get; set;}
 
-    public DateTime time { get; set;}
-
     protected override async Task OnInitializedAsync()
     {
         PlanetMember member = await PlanetMember.FindAsync(Invite.PlanetId, Invite.IssuerId);
         IssuerName = await member.GetNameAsync();
-        time = Invite.Created.AddHours((double)Invite.Hours);
         StateHasChanged();
     }
 }
