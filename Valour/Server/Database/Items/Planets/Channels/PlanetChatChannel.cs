@@ -2,6 +2,7 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
@@ -21,12 +22,6 @@ namespace Valour.Server.Database.Items.Planets.Channels;
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
     public ulong MessageCount { get; set; }
-
-    /// <summary>
-    /// The type of this item
-    /// </summary>
-    [NotMapped]
-    public override ItemType ItemType => ItemType.PlanetChatChannel;
 
     /// <summary>
     /// The regex used for name validation
@@ -273,6 +268,23 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.NoContent();
     }
 
+    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired, InjectDb]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
+    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, ulong id, ulong memberId, ulong value)
+    {
+        var db = ctx.GetDb();
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
+
+        var targetMember = await FindAsync<PlanetMember>(memberId, db);
+        if (targetMember is null)
+            return ValourResult.NotFound<PlanetMember>();
+
+        var hasPerm = await channel.HasPermissionAsync(targetMember, new Permission(value, "", ""), db);
+
+        return Results.Json(hasPerm);
+    }
+
     // Message routes
 
     [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDb]
@@ -293,7 +305,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
         if (count > 0)
         {
-            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.MessageIndex < index)
+            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.MessageIndex <= index)
                                                   .OrderByDescending(x => x.MessageIndex)
                                                   .Take(count)
                                                   .Reverse()

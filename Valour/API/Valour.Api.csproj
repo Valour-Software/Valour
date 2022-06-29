@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>preview</LangVersion>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <Company>Vooper Media LLC</Company>
     <Product>Valour Api</Product>
     <Authors>The Valour Team</Authors>
@@ -18,9 +19,9 @@
 
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.30.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components" Version="7.0.0-preview.4.22251.1" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0-preview.4.22251.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0-preview.4.22229.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Components" Version="7.0.0-preview.5.22303.8" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0-preview.5.22303.8" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0-preview.5.22301.12" />
   </ItemGroup>
 
   <ItemGroup>

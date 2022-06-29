@@ -43,11 +43,6 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     public DateTime? Expires { get; set; }
 
     /// <summary>
-    /// The type of this item
-    /// </summary>
-    public override ItemType ItemType => ItemType.PlanetBan;
-
-    /// <summary>
     /// True if the ban never expires
     /// </summary>
     public bool Permanent => Expires == null;

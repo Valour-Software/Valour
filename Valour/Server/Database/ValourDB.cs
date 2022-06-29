@@ -19,14 +19,11 @@ public class ValourDB : DbContext
 
     public static ValourDB Instance = new ValourDB(DBOptions);
 
-    public static string ConnectionString = $"server={DBConfig.instance.Host};port=3306;database={DBConfig.instance.Database};uid={DBConfig.instance.Username};pwd={DBConfig.instance.Password};SslMode=Required;charset=utf8mb4;";
+    public static string ConnectionString = $"Host={DBConfig.instance.Host};Database={DBConfig.instance.Database};Username={DBConfig.instance.Username};Password={DBConfig.instance.Password};SslMode=VerifyCA;";
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        options.UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options =>
-        {
-            options.EnableRetryOnFailure();
-        });
+        options.UseNpgsql(ConnectionString);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -42,10 +39,7 @@ public class ValourDB : DbContext
     /// This is only here to fulfill the need of the constructor.
     /// It does literally nothing at all.
     /// </summary>
-    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseMySql(ConnectionString, ServerVersion.Parse("8.0.20-mysql"), options =>
-    {
-        options.EnableRetryOnFailure();
-    }).Options;
+    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseNpgsql(ConnectionString).Options;
 
     /// <summary>
     /// Table for message cache
@@ -112,7 +106,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for planet invites
     /// </summary>
-    public DbSet<Invite> PlanetInvites { get; set; }
+    public DbSet<PlanetInvite> PlanetInvites { get; set; }
 
     /// <summary>
     /// Table for planet invites

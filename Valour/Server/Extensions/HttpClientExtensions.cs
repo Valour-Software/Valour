@@ -4,6 +4,15 @@ using Valour.Server.Database.Items.Planets.Members;
 
 namespace Valour.Server.Extensions
 {
+    public enum HttpVerbs
+    {
+        Get,
+        Put,
+        Post,
+        Delete,
+        Patch
+    }
+
     public static class HttpClientExtensions
     {
         public static AuthToken GetToken(this HttpContext ctx)

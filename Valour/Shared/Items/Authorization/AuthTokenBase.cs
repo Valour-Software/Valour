@@ -17,43 +17,32 @@ public class AuthTokenBase
     /// The ID of the authentification key is also the secret key. Really no need for another random gen.
     /// </summary>
     [Key]
-    [JsonPropertyName("Id")]
     public string Id { get; set; }
 
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
-    [JsonPropertyName("App_Id")]
     public string App_Id { get; set; }
 
     /// <summary>
     /// The user that this token is valid for
     /// </summary>
-    [JsonPropertyName("UserId")]
     public ulong UserId { get; set; }
 
     /// <summary>
     /// The scope of the permissions this token is valid for
     /// </summary>
-    [JsonPropertyName("Scope")]
     public ulong Scope { get; set; }
 
     /// <summary>
     /// The time that this token was issued
     /// </summary>
-    [JsonPropertyName("Created")]
     public DateTime Created { get; set; }
 
     /// <summary>
     /// The time that this token will expire
     /// </summary>
-    [JsonPropertyName("Expires")]
     public DateTime Expires { get; set; }
-
-    [NotMapped]
-    [JsonInclude]
-    [JsonPropertyName("ItemType")]
-    public ItemType ItemType => ItemType.AuthToken;
 
     /// <summary>
     /// Helper method for scope checking

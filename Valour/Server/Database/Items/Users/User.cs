@@ -2,6 +2,7 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Users.Identity;
+using Valour.Server.Email;
 using Valour.Shared.Authorization;
 using Valour.Shared.Http;
 using Valour.Shared.Items;
@@ -73,7 +74,7 @@ public class User : Item, ISharedUser
     /// </summary>
     public DateTime LastActive { get; set; }
 
-    public override ItemType ItemType => ItemType.User;
+    new public static string ItemType => nameof(User);
 
     /// <summary>
     /// The span of time from which the user was last active
@@ -485,6 +486,8 @@ public class User : Item, ISharedUser
             logger.LogError(e.Message);
             return Results.Problem("Sorry! An unexpected error occured. Try again?");
         }
+
+        return Results.NoContent();
     }
 
     [ValourRoute(HttpVerbs.Get, "/self/planets"), TokenRequired, InjectDb]

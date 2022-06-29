@@ -12,7 +12,7 @@ namespace Valour.Shared.Items.Planets;
 /// <summary>
 /// Planet items are items which are owned by a planet
 /// </summary>
-public interface ISharedPlanetItem
+public interface ISharedPlanetItem : ISharedItem
 {
     ulong PlanetId { get; set; }
 }

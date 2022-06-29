@@ -59,8 +59,6 @@ public interface ISharedUser
     /// </summary>
     DateTime LastActive { get; set; }
 
-    ItemType ItemType => ItemType.User;
-
     /// <summary>
     /// The span of time from which the user was last active
     /// </summary>

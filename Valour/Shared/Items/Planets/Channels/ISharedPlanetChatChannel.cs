@@ -13,20 +13,8 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat channel within a planet
 /// </summary>
-public interface ISharedPlanetChatChannel
+public interface ISharedPlanetChatChannel : ISharedPlanetChannel
 {
     ulong MessageCount { get; set; }
-    bool InheritsPerms { get; set; }
-
-    // Inherited from ISharedPlanetChannel
-    ulong PlanetId { get; set; }
-    ulong? ParentId { get; set; }
-
-    // Inherited from ISharedChannel
-    ulong Id { get; set; }
-    string Name { get; set; }
-    int Position { get; set; }
-    string Description { get; set; }
-
 }
 

@@ -45,9 +45,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public ItemType TargetType { get; set; }
-
-    public override ItemType ItemType => throw new NotImplementedException();
+    public PermissionsTarget TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node

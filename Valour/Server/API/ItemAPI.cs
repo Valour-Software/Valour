@@ -18,7 +18,7 @@ public class ItemAPI<T> where T : Item
     /// This method registers the API routes and should only be called
     /// once during the application runtime.
     /// </summary>
-    public void RegisterRoutes(WebApplication app)
+    public ItemAPI<T> RegisterRoutes(WebApplication app)
     {
         T dummy = default(T);
 
@@ -34,8 +34,6 @@ public class ItemAPI<T> where T : Item
                 {
                     var val = (ValourRouteAttribute)att;
 
-                    var prefix = dummy.IdRoute;
-
                     // This magically builds a delegate matching the method
                     var paramTypes = method.GetParameters().Select(x => x.ParameterType);
                     Type delegateType = Expression.GetDelegateType(paramTypes.Append(method.ReturnType).ToArray());
@@ -49,19 +47,19 @@ public class ItemAPI<T> where T : Item
 
                     switch (val.method)
                     {
-                        case System.Web.Mvc.HttpVerbs.Get:
+                        case HttpVerbs.Get:
                             builder = app.MapGet(idRoute, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Post:
+                        case HttpVerbs.Post:
                             builder = app.MapPost(dummy.BaseRoute + val.route, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Put:
+                        case HttpVerbs.Put:
                             builder = app.MapPut(idRoute, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Patch:
+                        case HttpVerbs.Patch:
                             builder = app.MapPatch(idRoute, del);
                             break;
-                        case System.Web.Mvc.HttpVerbs.Delete:
+                        case HttpVerbs.Delete:
                             builder = app.MapDelete(idRoute, del);
                             break;
                     }
@@ -273,5 +271,7 @@ public class ItemAPI<T> where T : Item
                 }
             }
         }
+
+        return this;
     }
 }

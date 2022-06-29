@@ -23,12 +23,6 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
     /// <summary>
-    /// The type of this item
-    /// </summary>
-    [NotMapped]
-    public override ItemType ItemType => ItemType.PlanetCategoryChannel;
-
-    /// <summary>
     /// Returns if the member has the given permission in this category
     /// </summary>
     public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db)

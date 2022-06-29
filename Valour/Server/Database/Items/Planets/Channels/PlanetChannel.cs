@@ -19,8 +19,6 @@ public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
     public ulong? ParentId { get; set; }
     public bool InheritsPerms { get; set; }
 
-    public override ItemType ItemType => ItemType.PlanetChannel;
-
     /// <summary>
     /// Returns the parent category of this channel
     /// </summary>
