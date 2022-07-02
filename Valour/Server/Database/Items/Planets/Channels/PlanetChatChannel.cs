@@ -22,10 +22,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
     public ulong MessageCount { get; set; }
 
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(PlanetChatChannel);
-
     /// <summary>
     /// The regex used for name validation
     /// </summary>

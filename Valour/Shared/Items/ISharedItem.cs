@@ -9,10 +9,6 @@ public interface ISharedItem
 {
     ulong Id { get; set; }
     string Node { get; }
-
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    static abstract string _ItemType { get; }
 }
 
 

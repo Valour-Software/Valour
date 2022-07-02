@@ -31,9 +31,6 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
     public bool IsPermanent() => Expires is null;
 
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(PlanetInvite);
 
     public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
     {

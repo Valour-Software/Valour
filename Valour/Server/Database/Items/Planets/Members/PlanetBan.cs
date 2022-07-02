@@ -47,10 +47,6 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     /// </summary>
     public bool Permanent => Expires == null;
 
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(PlanetBan);
-
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]

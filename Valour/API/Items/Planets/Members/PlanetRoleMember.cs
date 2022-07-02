@@ -11,7 +11,5 @@ public class PlanetRoleMember : ISharedPlanetRoleMember
     public ulong RoleId { get; set; }
     public ulong PlanetId { get; set; }
     public ulong MemberId { get; set; }
-
-    public static string _ItemType => nameof(PlanetRoleMember);
 }
 

@@ -20,10 +20,6 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(PlanetCategoryChannel);
-
     /// <summary>
     /// Returns if the member has the given permission in this category
     /// </summary>

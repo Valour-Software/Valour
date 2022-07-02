@@ -7,8 +7,6 @@ namespace Valour.Api.Items
 {
     public abstract class Item<T> : ISharedItem where T : class, ISharedItem
     {
-        public static string _ItemType => nameof(Item<T>);
-
         public ulong Id { get; set; }
         
         public string Node { get; set; }

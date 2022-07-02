@@ -47,10 +47,6 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// </summary>
     public string MemberPfp { get; set; }
 
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(PlanetMember);
-
     public static async Task<PlanetMember> FindAsync(ulong userId, ulong planetId, ValourDB db)
     {
         return await db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId &&

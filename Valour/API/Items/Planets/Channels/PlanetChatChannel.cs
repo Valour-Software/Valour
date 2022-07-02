@@ -18,37 +18,12 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetChatChannel, IPlanetChannel
+public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanetChatChannel
 {
-    /// <summary>
-    /// The Id of the planet this channel belongs to
-    /// </summary>
-    public ulong PlanetId { get; set; }
-
     /// <summary>
     /// The total number of messages sent in this channel
     /// </summary>
     public ulong MessageCount { get; set; }
-
-    /// <summary>
-    /// The name of this channel
-    /// </summary>
-    public string Name { get; set; }
-
-    /// <summary>
-    /// The position of this channel (lower is higher)
-    /// </summary>
-    public int Position { get; set; }
-
-    /// <summary>
-    /// The description of this channel
-    /// </summary>
-    public string Description { get; set; }
-
-    /// <summary>
-    /// The Id of the parent category this channel belongs to
-    /// </summary>
-    public ulong? ParentId { get; set; }
 
     /// <summary>
     /// True if this channel inherits permissions from its parent
@@ -58,18 +33,18 @@ public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetCha
     /// <summary>
     /// Returns the name of the item type
     /// </summary>
-    public string GetHumanReadableName() => "Chat Channel";
+    public override string GetHumanReadableName() => "Chat Channel";
 
     /// <summary>
     /// Returns the planet this channel belongs to
     /// </summary>
-    public async Task<Planet> GetPlanetAsync(bool refresh = false) => 
+    public override async Task<Planet> GetPlanetAsync(bool refresh = false) => 
         await Planet.FindAsync(PlanetId, refresh);
 
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool refresh = false) =>
+    public override async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool refresh = false) =>
         await GetChannelPermissionsNodeAsync(roleId, refresh);
 
     /// <summary>

@@ -64,9 +64,5 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Used to identify a message returned from the server 
     /// </summary>
     public string Fingerprint { get; set; }
-
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(PlanetMessage);
 }
 

@@ -72,10 +72,6 @@ public class User : Item, ISharedUser
     /// </summary>
     public DateTime LastActive { get; set; }
 
-    [JsonInclude]
-    [JsonPropertyName("itemType")]
-    public static string _ItemType => nameof(User);
-
     /// <summary>
     /// The span of time from which the user was last active
     /// </summary>
