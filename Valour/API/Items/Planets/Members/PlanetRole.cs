@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : SyncedItem<PlanetRole>, ISharedPlanetRole
+public class PlanetRole : Item, ISharedPlanetRole
 {
     // Coolest role on this damn platform.
     // Fight me.

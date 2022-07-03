@@ -15,13 +15,8 @@ namespace Valour.Api.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : SyncedItem<PermissionsNode>, ISharedPermissionsNode
+public class PermissionsNode : Item, ISharedPermissionsNode
 {
-    /// <summary>
-    /// The Id of this node
-    /// </summary>
-    public ulong Id { get; set; }
-
     /// <summary>
     /// The planet this node belongs to
     /// </summary>

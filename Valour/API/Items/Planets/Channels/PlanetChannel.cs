@@ -6,7 +6,7 @@ namespace Valour.Api.Items.Planets.Channels;
 
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
-public abstract class PlanetChannel<T> : SyncedItem<T> where T : class, ISharedItem
+public abstract class PlanetChannel : Item
 {
     public int Position { get; set; }
     public ulong? ParentId { get; set; }

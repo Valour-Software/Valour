@@ -13,7 +13,7 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : SyncedItem<Planet>, ISharedPlanet
+public class Planet : Item, ISharedPlanet
 {
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
@@ -72,7 +72,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await PlanetChatChannel.FindAsync(Id, refresh);
+        return await FindAsync<PlanetChatChannel>(Id, refresh);
     }
 
     /// <summary>
@@ -251,7 +251,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
 
         foreach (var invite in invites)
         {
-            var cInvite = await PlanetRole.FindAsync(invite.Id);
+            var cInvite = await FindAsync<PlanetRole>(invite.Id);
 
             if (cInvite is not null)
                 Roles.Add(cInvite);
@@ -294,7 +294,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
 
         foreach (var role in roles)
         {
-            var cRole = await PlanetRole.FindAsync(role.Id);
+            var cRole = await FindAsync<PlanetRole>(role.Id);
 
             if (cRole is not null)
                 Roles.Add(cRole);

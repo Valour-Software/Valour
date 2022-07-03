@@ -340,7 +340,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : class, ISharedItem
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -353,15 +353,11 @@ public static class ValourClient
         if (!skipEvent)
         {
             if (local != null) {
-                var s_local = local as SyncedItem<T>;
-
-                await s_local.InvokeUpdated(flags);
-                await s_local.InvokeAnyUpdated(local, flags);
+                await local.InvokeUpdatedEventAsync(flags);
+                await ItemObserver<T>.InvokeAnyUpdated(local, flags);
             }
             else {
-                var s_updated = updated as SyncedItem<T>;
-
-                await s_updated.InvokeAnyUpdated(updated, flags);
+                await ItemObserver<T>.InvokeAnyUpdated(updated, flags);
             }
 
             // printing to console is SLOW, only turn on for debugging reasons
@@ -372,19 +368,17 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : class, ISharedItem
+    public static async Task DeleteItem<T>(T item) where T : Item
     {
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
 
-        var s_local = local as SyncedItem<T>;
-
         // Invoke specific item deleted
-        await s_local.InvokeDeleted();
+        await item.InvokeDeletedEventAsync();
 
         // Invoke static "any" delete
-        await s_local.InvokeAnyDeleted(local);
+        await ItemObserver<T>.InvokeAnyDeleted(local);
     }
 
     /// <summary>
@@ -406,14 +400,14 @@ public static class ValourClient
 
     private static void HookPlanetEvents()
     {
-        PlanetChatChannel.OnAnyUpdated += OnChannelUpdated;
-        PlanetChatChannel.OnAnyDeleted += OnChannelDeleted;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChannelUpdated;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDeleted;
 
-        PlanetCategoryChannel.OnAnyUpdated += OnCategoryUpdated;
-        PlanetCategoryChannel.OnAnyDeleted += OnCategoryDeleted;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdated;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeleted;
 
-        PlanetRole.OnAnyUpdated += OnRoleUpdated;
-        PlanetRole.OnAnyDeleted += OnRoleDeleted;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdated;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeleted;
     }
 
     private static async Task OnChannelUpdated(PlanetChatChannel channel, int flags)
@@ -669,7 +663,7 @@ public static class ValourClient
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
         HubConnection.On<PlanetMessage>("DeleteMessage", MessageDeleted);
 
-        HubConnection.On<Planet, int>($"{nameof(Planet)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<Planet, int>($"{nameof(Planet)}Update", async (i, d) => await UpdateItem(i, d));
         HubConnection.On<Planet>     ($"{nameof(Planet)}Deletion", DeleteItem);
 
         HubConnection.On<PlanetChatChannel, int>($"{nameof(PlanetChatChannel)}Update", (i, d) => UpdateItem(i, d));

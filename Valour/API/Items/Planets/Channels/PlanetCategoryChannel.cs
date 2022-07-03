@@ -10,7 +10,7 @@ namespace Valour.Api.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PlanetCategoryChannel : PlanetChannel<PlanetCategoryChannel>, ISharedPlanetCategoryChannel
+public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 {
     /// <summary>
     /// True if this category inherits permissions from its parent

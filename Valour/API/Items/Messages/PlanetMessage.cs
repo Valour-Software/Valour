@@ -19,7 +19,7 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : Item<PlanetMessage>, ISharedPlanetMessage
+public class PlanetMessage : Item, ISharedPlanetMessage
 {
     /// <summary>
     /// The Id of the planet this message belongs to
@@ -199,7 +199,7 @@ public class PlanetMessage : Item<PlanetMessage>, ISharedPlanetMessage
     /// Returns the channel the message was sent in
     /// </summary>
     public async Task<PlanetChatChannel> GetChannelAsync() =>
-        await PlanetChatChannel.FindAsync(ChannelId);
+        await FindAsync<PlanetChatChannel>(ChannelId);
 
     /// <summary>
     /// Attempts to delete this message

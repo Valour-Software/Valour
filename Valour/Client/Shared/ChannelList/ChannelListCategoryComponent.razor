@@ -79,7 +79,7 @@
 
     public Planet Planet { get; set; }
 
-    public List<IPlanetChannel> ItemList = new List<IPlanetChannel>();
+    public List<PlanetChannel> ItemList = new List<PlanetChannel>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -291,7 +291,7 @@
     int currentDragIndex;
 
     // Get local index
-    public int GetIndex(IPlanetChannel item)
+    public int GetIndex(PlanetChannel item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
     }

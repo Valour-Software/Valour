@@ -5,7 +5,7 @@ using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Items.Users;
 
-public class User : SyncedItem<User>, ISharedUser
+public class User : Item, ISharedUser
 {
     [JsonIgnore]
     public static User Victor = new User()

@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember
+public class PlanetMember : Item, ISharedPlanetMember
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
 
@@ -161,7 +161,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember
 
         foreach (var id in roleIds)
         {
-            var role = await PlanetRole.FindAsync(id);
+            var role = await FindAsync<PlanetRole>(id);
 
             if (role is not null)
                 Roles.Add(role);
@@ -181,7 +181,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember
     /// Returns the user of the member
     /// </summary>
     public async Task<User> GetUserAsync(bool force_refresh = false) =>
-        await User.FindAsync(UserId, force_refresh);
+        await FindAsync<User>(UserId, force_refresh);
 
     /// <summary>
     /// Returns the status of the member

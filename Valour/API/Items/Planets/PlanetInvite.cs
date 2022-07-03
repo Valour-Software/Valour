@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
+public class PlanetInvite : Item, ISharedPlanetInvite
 {
     /// <summary>
     /// the invite code

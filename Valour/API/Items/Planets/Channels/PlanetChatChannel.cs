@@ -18,7 +18,7 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : PlanetChannel<PlanetChatChannel>, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
     /// <summary>
     /// The total number of messages sent in this channel
