@@ -19,10 +19,10 @@ public class ItemAPI<T> where T : Item
     /// </summary>
     public ItemAPI<T> RegisterRoutes(WebApplication app)
     {
-        T dummy = default(T);
+        T dummy = (T)Activator.CreateInstance(typeof(T));
 
         // Custom routes
-        var methods = dummy.GetType().GetMethods();
+        var methods = typeof(T).GetMethods();
         foreach (var method in methods)
         {
             var attributes = method.GetCustomAttributes(false);
@@ -31,6 +31,9 @@ public class ItemAPI<T> where T : Item
             {
                 if (att is ValourRouteAttribute)
                 {
+                    if (!method.IsStatic)
+                        throw new Exception($"Cannot use a non-static method for ValourRoute! Class: {typeof(T).Name}, Method: {method.Name}");
+
                     var val = (ValourRouteAttribute)att;
 
                     // This magically builds a delegate matching the method

@@ -83,12 +83,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        PlanetCategoryChannel.OnAnyUpdated += OnCategoryUpdate;
-        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        PlanetCategoryChannel.OnAnyDeleted += OnCategoryDeletion;
-        PlanetChatChannel.OnAnyDeleted += OnChatChannelDeletion;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeletion;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
 
         ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
@@ -114,11 +114,11 @@
 
     public void Dispose()
     {
-        PlanetCategoryChannel.OnAnyUpdated -= OnCategoryUpdate;
-        PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated -= OnCategoryUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
-        PlanetCategoryChannel.OnAnyDeleted -= OnCategoryDeletion;
-        PlanetChatChannel.OnAnyDeleted -= OnChatChannelDeletion;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted -= OnCategoryDeletion;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
     }
 
     public void OnClick()

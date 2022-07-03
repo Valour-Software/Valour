@@ -256,7 +256,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
-    public async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ulong id)
     {
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
         var db = ctx.GetDb();

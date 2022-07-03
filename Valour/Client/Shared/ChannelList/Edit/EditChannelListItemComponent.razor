@@ -15,7 +15,7 @@
                 @switch (selected)
                 {
                     case 0:
-                        <EditCLIDetailsComponent Item="ChannelListItem"></EditCLIDetailsComponent>
+                        <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
                         break;
                     case 1:
                         <EditCLIPermissionsComponent Target="ChannelListItem"></EditCLIPermissionsComponent>
@@ -69,7 +69,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ChannelListItem.ItemType == ItemType.ChatChannel)
+        if (ChannelListItem is PlanetChatChannel)
         {
             isChannel = true;
             Channel = (PlanetChatChannel)ChannelListItem;

@@ -48,12 +48,12 @@
         TopCategories = new List<PlanetCategoryChannel>();
 
         // Handle list change
-        PlanetCategoryChannel.OnAnyUpdated += OnCategoryUpdate;
-        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        PlanetCategoryChannel.OnAnyDeleted += OnCategoryDeletion;
-        PlanetChatChannel.OnAnyDeleted += OnChatChannelDeletion;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeletion;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
 
         await GetCategories();
         await GetChannels();

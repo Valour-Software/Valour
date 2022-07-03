@@ -361,7 +361,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public async Task<IResult> GetAllRolesForMember(HttpContext ctx, ulong id, ulong planetId)
+    public static async Task<IResult> GetAllRolesForMember(HttpContext ctx, ulong id, ulong planetId)
     {
         var db = ctx.GetDb();
 
@@ -376,7 +376,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Post, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planetId, ulong roleId,
+    public static async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planetId, ulong roleId,
         ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDb();
@@ -430,7 +430,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, ulong planetId, ulong roleId, [FromHeader] string authorization,
+    public static async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, ulong planetId, ulong roleId, [FromHeader] string authorization,
         ILogger<PlanetMember> logger)
     {
 

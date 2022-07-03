@@ -95,9 +95,9 @@
 
         Window.Component = this;
 
-        PlanetMember.OnAnyUpdated += OnPlanetMemberUpdate;
-        PlanetRole.OnAnyUpdated += OnRoleUpdate;
-        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetMember>.OnAnyUpdated += OnPlanetMemberUpdate;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         ValourClient.OnMessageRecieved += OnRecieveMessage;
         ValourClient.OnMessageDeleted += OnDeleteMessage;
@@ -133,9 +133,9 @@
 
     void IDisposable.Dispose()
     {
-        PlanetMember.OnAnyUpdated -= OnPlanetMemberUpdate;
-        PlanetRole.OnAnyUpdated -= OnRoleUpdate;
-        PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+        ItemObserver<PlanetMember>.OnAnyUpdated -= OnPlanetMemberUpdate;
+        ItemObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
         ValourClient.OnMessageRecieved -= OnRecieveMessage;
         ValourClient.OnMessageDeleted -= OnDeleteMessage;

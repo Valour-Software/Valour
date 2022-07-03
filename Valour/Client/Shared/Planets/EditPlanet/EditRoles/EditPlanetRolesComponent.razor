@@ -199,12 +199,12 @@
     {
         Roles = await Planet.GetRolesAsync();
 
-        PlanetRole.OnAnyUpdated += OnRolesUpdate;
-        PlanetRole.OnAnyDeleted += OnRoleDeletion;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRolesUpdate;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
     }
 
 
-    public async Task GoBack()
+    public async Task GoBack() 
     {
         role = new PlanetRole()
         {

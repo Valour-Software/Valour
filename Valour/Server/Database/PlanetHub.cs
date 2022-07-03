@@ -86,16 +86,16 @@ namespace Valour.Server.Database
         }
 
         public static async void NotifyPlanetItemChange(PlanetItem item, int flags = 0) =>
-            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.ItemType}-Update", item, flags);
+            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Update", item, flags);
 
         public static async void NotifyPlanetItemDelete(PlanetItem item) =>
-            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.ItemType}-Delete", item);
+            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Delete", item);
 
         public static async void NotifyPlanetChange(Planet item, int flags = 0) =>
-            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.ItemType}-Update", item, flags);
+            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Update", item, flags);
 
         public static async void NotifyPlanetDelete(Planet item) =>
-            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.ItemType}-Delete", item);
+            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Delete", item);
 
         public async Task LeaveInteractionGroup(ulong planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");

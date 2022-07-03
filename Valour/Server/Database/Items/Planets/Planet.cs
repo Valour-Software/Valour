@@ -53,11 +53,11 @@ public class Planet : Item, ISharedPlanet
     [JsonIgnore]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
 
-    [InverseProperty("DefaultRoleId")]
+    [ForeignKey("DefaultRoleId")]
     [JsonIgnore]
     public virtual PlanetRole DefaultRole { get; set; }
 
-    [InverseProperty("PrimaryChannelId")]
+    [ForeignKey("PrimaryChannelId")]
     [JsonIgnore]
     public virtual PlanetChatChannel PrimaryChannel { get; set; }
 

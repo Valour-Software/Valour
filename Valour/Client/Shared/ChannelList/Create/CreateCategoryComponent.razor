@@ -140,19 +140,19 @@
         if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode PermissionsNode = new()
+            PermissionsNode permissionsNode = new()
             {
                 TargetId = categoryId,
                 PlanetId = planetId,
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = ItemType.Category
+                TargetType = PermissionsTarget.PlanetCategoryChannel
             };
 
-            PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
+            permissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
+            response = await ValourClient.PostAsync($"api/node/category", permissionsNode);
 
             foreach (PlanetRole role in Roles)
             {
@@ -161,19 +161,19 @@
                     continue;
                 }
 
-                PermissionsNode = new()
+                permissionsNode = new()
                 {
                     TargetId = categoryId,
                     PlanetId = planetId,
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = ItemType.Category
+                    TargetType = PermissionsTarget.PlanetCategoryChannel
                 };
 
-                PermissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
+                permissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
 
-                response = await ValourClient.PostAsync($"api/node/category", PermissionsNode);
+                response = await ValourClient.PostAsync($"api/node/category", permissionsNode);
                 // TODO: Clean this
             }
         }

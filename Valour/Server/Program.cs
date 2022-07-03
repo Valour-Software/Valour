@@ -36,9 +36,7 @@ namespace Valour.Server
         {
             // Load configs
             LoadConfigsAsync();
-
-            ValourDB.Node = DeployedNode.Instance.Name;
-
+            
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
 
@@ -75,7 +73,7 @@ namespace Valour.Server
                 new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
-                new ItemAPI<PlanetInvite>()                   .RegisterRoutes(app),
+                new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
             };
 

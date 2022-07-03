@@ -61,7 +61,7 @@
         Planet planet = new Planet()
         {
             Name = name,
-            Image_Url = image_url
+            IconUrl = image_url
         };
 
         var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet", planet);

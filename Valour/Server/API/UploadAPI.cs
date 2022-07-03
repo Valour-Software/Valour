@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
+using Valour.Shared.MPS;
 
 namespace Valour.Server.API
 {

@@ -42,12 +42,12 @@
 
     public async Task OnSaveChanges()
     {
-        var invite = new Invite()
+        var invite = new PlanetInvite()
         {
             PlanetId = Planet.Id,
             IssuerId = ValourClient.Self.Id,
-            Issued = DateTime.UtcNow,
-            Hours = hoursValue
+            Created = DateTime.UtcNow,
+            Expires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
         };
 
         JsonContent content = JsonContent.Create(invite);

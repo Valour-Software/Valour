@@ -1,5 +1,6 @@
 ﻿namespace Valour.Server.Database.Items.Users
 {
+    [Keyless]
     public class Referral : Shared.Items.Users.Referral
     {
         [ForeignKey("UserId")]

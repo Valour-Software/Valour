@@ -36,7 +36,7 @@
             pfpurl = User.PfpUrl;
 
             // did not work without this
-            User _user = await User.FindAsync(User.Id);
+            User _user = await Api.Items.Item.FindAsync<User>(User.Id);
 
             _user.OnUpdated += (async data =>
             {

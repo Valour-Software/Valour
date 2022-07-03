@@ -47,9 +47,9 @@
 
         ValourClient.OnPlanetClose += OnPlanetClose;
 
-        PlanetRole.OnAnyUpdated += OnRoleUpdate;
-        PlanetMember.OnAnyUpdated += OnMemberUpdate;
-        PlanetRole.OnAnyDeleted += OnRoleDeletion;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
     }
 
     public async Task OnMemberUpdate(PlanetMember member, int flags)

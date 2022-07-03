@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client

@@ -43,7 +43,7 @@
 
     public async Task Build()
     {
-        Channel = await PlanetChatChannel.FindAsync(Mention.TargetId);
+        Channel = await Api.Items.Item.FindAsync<PlanetChatChannel>(Mention.TargetId);
 
         StateHasChanged();
     }

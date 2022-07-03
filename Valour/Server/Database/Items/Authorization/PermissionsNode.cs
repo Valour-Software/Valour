@@ -3,8 +3,6 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 
 namespace Valour.Server.Database.Items.Authorization;

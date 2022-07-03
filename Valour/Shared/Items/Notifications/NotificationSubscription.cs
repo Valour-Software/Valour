@@ -1,9 +1,13 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Notifications;
 
 public class NotificationSubscription
 {
+    [Key]
+    public ulong Id { get; set; }
+
     /// <summary>
     /// The Id of the user this subscription is for
     /// </summary>

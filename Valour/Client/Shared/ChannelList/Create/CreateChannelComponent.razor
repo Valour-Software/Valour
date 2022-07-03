@@ -149,7 +149,7 @@
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = ItemType.ChatChannel
+                TargetType = PermissionsTarget.PlanetChatChannel
             };
 
             PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
@@ -179,7 +179,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = ItemType.ChatChannel
+                    TargetType = PermissionsTarget.PlanetChatChannel
                 };
 
                 PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);

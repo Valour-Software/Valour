@@ -176,7 +176,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     // Custom routes
 
     [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname"), InjectDb]
-    public async Task<IResult> GetPlanetName(HttpContext ctx, string inviteCode)
+    public static async Task<IResult> GetPlanetName(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
 
@@ -189,7 +189,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     }
 
     [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon"), InjectDb]
-    public async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string inviteCode)
+    public static async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
 
@@ -203,7 +203,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
     [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Invites)]
-    public async Task<IResult> Join(HttpContext ctx, string inviteCode)
+    public static async Task<IResult> Join(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
 
