@@ -5,7 +5,7 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
 
-[Table("PlanetChannels")]
+[Table("planetchannels")]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
 public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel

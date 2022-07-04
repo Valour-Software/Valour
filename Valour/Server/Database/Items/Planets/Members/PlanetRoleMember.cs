@@ -10,6 +10,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Server.Database.Items.Planets.Members;
 
+[Table("planetrolemembers")]
 public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
 {
     [ForeignKey("MemberId")]

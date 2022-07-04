@@ -15,6 +15,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Server.Database.Items.Planets.Members;
 
+[Table("planetroles")]
 public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     [InverseProperty("Role")]

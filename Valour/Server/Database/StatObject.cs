@@ -26,9 +26,9 @@ public class StatObject
     public int PlanetMemberCount { get; set; }
     public int ChannelCount { get; set; }
     public int CategoryCount { get; set; }
-    public int Message24hCount { get; set; }
+    public int MessageNameCount { get; set; }
 
-    public DateTime Time { get; set; }
+    public DateTime Created { get; set; }
 
     public StatObject()
     {

@@ -18,6 +18,7 @@ namespace Valour.Server.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
+[Table("planetmembers")]
 public class PlanetMember : PlanetItem, ISharedPlanetMember
 {
 

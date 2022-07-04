@@ -13,7 +13,7 @@ namespace Valour.Server.Database.Items.Users;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-
+[Table("users")]
 public class User : Item, ISharedUser
 {
     [InverseProperty("User")]
@@ -32,7 +32,7 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The Date and Time that the user joined Valour
     /// </summary>
-    public DateTime Joined { get; set; }
+    public DateTime TimeJoined { get; set; }
 
     /// <summary>
     /// The name of this user
@@ -70,7 +70,7 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
-    public DateTime LastActive { get; set; }
+    public DateTime TimeLastActive { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active
@@ -215,8 +215,8 @@ public class User : Item, ISharedUser
                 {
                     App_Id = "VALOUR",
                     Id = "val-" + Guid.NewGuid().ToString(),
-                    Created = DateTime.UtcNow,
-                    Expires = DateTime.UtcNow.AddDays(7),
+                    TimeCreated = DateTime.UtcNow,
+                    TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userEmail.UserId
                 };
@@ -226,8 +226,8 @@ public class User : Item, ISharedUser
             }
             else
             {
-                token.Created = DateTime.UtcNow;
-                token.Expires = DateTime.UtcNow.AddDays(7);
+                token.TimeCreated = DateTime.UtcNow;
+                token.TimeExpires = DateTime.UtcNow.AddDays(7);
 
                 db.AuthTokens.Update(token);
                 await db.SaveChangesAsync();
@@ -347,8 +347,8 @@ public class User : Item, ISharedUser
             {
                 Id = IdManager.Generate(),
                 Name = request.Username,
-                Joined = DateTime.UtcNow,
-                LastActive = DateTime.UtcNow,
+                TimeJoined = DateTime.UtcNow,
+                TimeLastActive = DateTime.UtcNow,
             };
 
             await db.Users.AddAsync(user);

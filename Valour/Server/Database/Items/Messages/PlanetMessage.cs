@@ -12,6 +12,7 @@ namespace Valour.Server.Database.Items.Messages;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+[Table("planetmessages")]
 public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
     [ForeignKey("AuthorId")]

@@ -3,9 +3,8 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Notifications;
 
-public class NotificationSubscription
+public interface ISharedNotificationSubscription
 {
-    [Key]
     public ulong Id { get; set; }
 
     /// <summary>

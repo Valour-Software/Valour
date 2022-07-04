@@ -23,16 +23,16 @@ public interface ISharedPlanetBan : ISharedPlanetItem
     /// <summary>
     /// The time the ban was placed
     /// </summary>
-    DateTime Time { get; set; }
+    DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time the ban expires. Null for permanent.
     /// </summary>
-    DateTime? Expires { get; set; }
+    DateTime? TimeExpires { get; set; }
 
     /// <summary>
     /// True if the ban never expires
     /// </summary>
-    public bool Permanent => Expires == null;
+    public bool Permanent => TimeExpires == null;
 }
 

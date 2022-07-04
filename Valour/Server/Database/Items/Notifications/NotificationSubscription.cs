@@ -1,4 +1,5 @@
-﻿using Valour.Server.Database.Items.Users;
+﻿using System.ComponentModel.DataAnnotations;
+using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Notifications;
 
 /*  Valour - A free and secure chat client
@@ -9,8 +10,20 @@ using Valour.Shared.Items.Notifications;
 
 namespace Valour.Server.Database.Items.Notifications;
 
-public class NotificationSubscription : Shared.Items.Notifications.NotificationSubscription
+[Table("notificationsubscriptions")]
+public class NotificationSubscription : ISharedNotificationSubscription
 {
     [ForeignKey("UserId")]
     public User User { get; set; }
+
+    [Key]
+    public ulong Id { get; set; }
+
+    /// <summary>
+    /// The Id of the user this subscription is for
+    /// </summary>
+    public ulong UserId { get; set; }
+    public string Endpoint { get; set; }
+    public string Not_Key { get; set; }
+    public string Auth { get; set; }
 }

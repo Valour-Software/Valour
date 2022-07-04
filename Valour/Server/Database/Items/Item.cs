@@ -1,4 +1,5 @@
-﻿using Valour.Server.Nodes;
+﻿using System.ComponentModel.DataAnnotations;
+using Valour.Server.Nodes;
 using Valour.Shared.Items;
 
 namespace Valour.Server.Database.Items;
@@ -15,6 +16,8 @@ public abstract class Item : ISharedItem
     public const string UriPrefix = "https://";
     public const string UriPostfix = ".nodes.valour.gg";
 
+    [Key]
+    [Column("id")]
     public ulong Id { get; set; }
 
     /// <summary>

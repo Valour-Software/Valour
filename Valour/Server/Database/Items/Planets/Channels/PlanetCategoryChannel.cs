@@ -13,7 +13,7 @@ namespace Valour.Server.Database.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-[Table("PlanetCategoryChannels")]
+[Table("planetcategorychannels")]
 public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 {
 

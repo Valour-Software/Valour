@@ -17,6 +17,7 @@ namespace Valour.Server.Database.Items.Planets;
 /// <summary>
 /// This class exists to add server funtionality to the Planet class.
 /// </summary>
+[Table("planets")]
 public class Planet : Item, ISharedPlanet
 {
     // Constant planet variables //

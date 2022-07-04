@@ -26,7 +26,7 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The Date and Time that the user joined Valour
     /// </summary>
-    public DateTime Joined { get; set; }
+    public DateTime TimeJoined { get; set; }
 
     /// <summary>
     /// The name of this user
@@ -64,7 +64,7 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
-    public DateTime LastActive { get; set; }
+    public DateTime TimeLastActive { get; set; }
 
     public TimeSpan LastActiveSpan =>
         ISharedUser.GetLastActiveSpan(this);

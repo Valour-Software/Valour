@@ -7,7 +7,35 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Api.Items.Authorization;
 
-public class OauthApp : Shared.Items.Authorization.OauthApp {
+public class OauthApp : ISharedOauthApp {
+
+    public ulong Id { get; set; }
+
+    /// <summary>
+    /// The secret key for the app
+    /// </summary>
+    public string Secret { get; set; }
+
+    /// <summary>
+    /// The ID of the user that created this app
+    /// </summary>
+    public ulong OwnerId { get; set; }
+
+    /// <summary>
+    /// The amount of times this app has been used
+    /// </summary>
+    public int Uses { get; set; }
+
+    /// <summary>
+    /// The image used to represent the app
+    /// </summary>
+    public string Image_Url { get; set; }
+
+    /// <summary>
+    /// The name of the app
+    /// </summary>
+    public string Name { get; set; }
+
     public static async Task<OauthApp> FindAsync(ulong id) => 
         await ValourClient.GetJsonAsync<OauthApp>($"api/oauth/app/{id}");
 }

@@ -13,6 +13,7 @@ namespace Valour.Server.Database.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
+[Table("planetbans")]
 public class PlanetBan : PlanetItem, ISharedPlanetBan
 {
     /// <summary>
@@ -33,17 +34,17 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     /// <summary>
     /// The time the ban was placed
     /// </summary>
-    public DateTime Time { get; set; }
+    public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time the ban expires. Null for permanent.
     /// </summary>
-    public DateTime? Expires { get; set; }
+    public DateTime? TimeExpires { get; set; }
 
     /// <summary>
     /// True if the ban never expires
     /// </summary>
-    public bool Permanent => Expires == null;
+    public bool Permanent => TimeExpires == null;
 
     #region Routes
 
@@ -156,7 +157,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         if (ban.IssuerId != old.IssuerId)
             return Results.BadRequest("You cannot change who banned the user.");
 
-        if (ban.Time != old.Time)
+        if (ban.TimeCreated != old.TimeCreated)
             return Results.BadRequest("You cannot change the creation time");
 
         try

@@ -11,6 +11,7 @@ namespace Valour.Server.Database.Items.Users;
 /// <summary>
 /// Assists in password recovery systems
 /// </summary>
+[Table("passwordrecoveries")]
 public class PasswordRecovery
 {
     [Key]

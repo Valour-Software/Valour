@@ -3,8 +3,16 @@ using Valour.Shared.Items.Notifications;
 
 namespace Valour.Api.Items.Notifications;
 
-public class NotificationSubscription : Shared.Items.Notifications.NotificationSubscription
+public class NotificationSubscription : ISharedNotificationSubscription
 {
+    public ulong Id { get; set; }
 
+    /// <summary>
+    /// The Id of the user this subscription is for
+    /// </summary>
+    public ulong UserId { get; set; }
+    public string Endpoint { get; set; }
+    public string Not_Key { get; set; }
+    public string Auth { get; set; }
 }
 

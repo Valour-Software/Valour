@@ -7,6 +7,7 @@ using Valour.Shared.Items.Planets;
 
 namespace Valour.Server.Database.Items.Planets;
 
+[Table("planetinvites")]
 public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 {
     /// <summary>
@@ -69,6 +70,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
         var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
+        invite.Id = IdManager.Generate();
         invite.IssuerId = authMember.UserId;
         invite.Created = DateTime.UtcNow;
         invite.Code = await invite.GenerateCode(db);

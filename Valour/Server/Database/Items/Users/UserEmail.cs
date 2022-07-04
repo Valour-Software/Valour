@@ -14,6 +14,7 @@ namespace Valour.Server.Database.Items.Users;
 /// greatly reducing the mental burden of ensuring security
 ///  - Spike
 /// </summary>
+[Table("useremails")]
 public class UserEmail
 {
     [ForeignKey("UserId")]
