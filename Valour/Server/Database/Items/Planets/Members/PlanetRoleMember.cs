@@ -10,7 +10,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Server.Database.Items.Planets.Members;
 
-[Table("planetrolemembers")]
+[Table("planet_role_members")]
 public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
 {
     [ForeignKey("MemberId")]
@@ -25,8 +25,13 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
     [JsonIgnore]
     public virtual User User { get; set; }
 
+    [Column("user_id")]
     public ulong UserId { get; set; }
+
+    [Column("role_id")]
     public ulong RoleId { get; set; }
+
+    [Column("member_id")]
     public ulong MemberId { get; set; }
 
     // This doesn't really even need API routes, it's just used internally to map roles to members.

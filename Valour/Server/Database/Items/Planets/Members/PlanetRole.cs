@@ -15,7 +15,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Server.Database.Items.Planets.Members;
 
-[Table("planetroles")]
+[Table("planet_roles")]
 public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     [InverseProperty("Role")]
@@ -25,22 +25,33 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
+    [Column("position")]
     public uint Position { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
+    [Column("permissions")]
     public ulong Permissions { get; set; }
 
     // RGB Components for role color
+    [Column("red")]
     public byte Red { get; set; }
+
+    [Column("green")]
     public byte Green { get; set; }
+
+    [Column("blue")]
     public byte Blue { get; set; }
 
     // Formatting options
+    [Column("bold")]
     public bool Bold { get; set; }
+
+    [Column("italics")]
     public bool Italics { get; set; }
 
+    [Column("name")]
     public string Name { get; set; }
 
     public uint GetAuthority() =>

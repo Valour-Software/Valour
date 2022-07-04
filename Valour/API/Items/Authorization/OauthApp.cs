@@ -29,7 +29,7 @@ public class OauthApp : ISharedOauthApp {
     /// <summary>
     /// The image used to represent the app
     /// </summary>
-    public string Image_Url { get; set; }
+    public string ImageUrl { get; set; }
 
     /// <summary>
     /// The name of the app

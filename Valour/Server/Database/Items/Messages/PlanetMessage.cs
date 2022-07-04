@@ -12,7 +12,7 @@ namespace Valour.Server.Database.Items.Messages;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-[Table("planetmessages")]
+[Table("planet_messages")]
 public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
     [ForeignKey("AuthorId")]
@@ -24,46 +24,55 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// <summary>
     /// The author's user ID
     /// </summary>
+    [Column("author_id")]
     public ulong AuthorId { get; set; }
 
     /// <summary>
     /// The author's member ID
     /// </summary>
+    [Column("member_id")]
     public ulong MemberId { get; set; }
 
     /// <summary>
     /// String representation of message
     /// </summary>
+    [Column("content")]
     public string Content { get; set; }
 
     /// <summary>
     /// The time the message was sent (in UTC)
     /// </summary>
+    [Column("time_sent")]
     public DateTime TimeSent { get; set; }
 
     /// <summary>
     /// Id of the channel this message belonged to
     /// </summary>
+    [Column("channel_id")]
     public ulong ChannelId { get; set; }
 
     /// <summary>
     /// Index of the message
     /// </summary>
+    [Column("message_index")]
     public ulong MessageIndex { get; set; }
 
     /// <summary>
     /// Data for representing an embed
     /// </summary>
+    [Column("embed_data")]
     public string EmbedData { get; set; }
 
     /// <summary>
     /// Data for representing mentions in a message
     /// </summary>
+    [Column("mentions_data")]
     public string MentionsData { get; set; }
 
     /// <summary>
     /// Used to identify a message returned from the server 
     /// </summary>
+    [NotMapped]
     public string Fingerprint { get; set; }
 }
 

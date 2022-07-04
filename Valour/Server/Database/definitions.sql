@@ -133,8 +133,8 @@ CREATE TABLE IF NOT EXISTS planet_invites (
     code VARCHAR(8) NOT NULL,
     planet_id BIGINT NOT NULL,
     issuer_id BIGINT NOT NULL,
-    created TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-    expires TIMESTAMP,
+    time_created TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    time_expires TIMESTAMP,
 
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
     CONSTRAINT fk_issuer FOREIGN KEY(issuer_id) REFERENCES users(id)
@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS message_hashes (
 
 CREATE TABLE IF NOT EXISTS stats (
     id BIGSERIAL NOT NULL PRIMARY KEY,
-    created TIMESTAMP NOT NULL,
+    time_created TIMESTAMP NOT NULL,
     messages_sent BIGINT NOT NULL,
     user_count BIGINT NOT NULL,
     planet_count BIGINT NOT NULL,

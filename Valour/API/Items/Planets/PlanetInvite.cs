@@ -31,12 +31,12 @@ public class PlanetInvite : Item, ISharedPlanetInvite
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    public DateTime Created { get; set; }
+    public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time when this invite expires. Null for never.
     /// </summary>
-    public DateTime? Expires { get; set; }
+    public DateTime? TimeExpires { get; set; }
 
     public bool IsPermanent() =>
         ISharedPlanetInvite.IsPermanent(this);

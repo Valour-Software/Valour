@@ -7,11 +7,11 @@
         @IssuerName
     </td>
     <th style="width: 125px;">
-        @Invite.Created.ToLocalTime().ToShortDateString()
+        @Invite.TimeCreated.ToLocalTime().ToShortDateString()
     </th>
-    @if (Invite.Expires != null) {
+    @if (Invite.TimeExpires != null) {
         <th style="width: 125px;">
-            @Invite.Expires.Value.ToLocalTime().ToShortDateString()
+            @Invite.TimeExpires.Value.ToLocalTime().ToShortDateString()
         </th>
     }
     else {

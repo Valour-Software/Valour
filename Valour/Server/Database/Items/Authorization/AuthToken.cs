@@ -6,12 +6,13 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Server.Database.Items.Authorization;
 
-[Table("authtokens")]
+[Table("auth_tokens")]
 public class AuthToken : ISharedAuthToken
 {
     public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
 
     [Key]
+    [Column("id")]
     public string Id { get; set; }
 
     [ForeignKey("UserId")]
@@ -27,22 +28,25 @@ public class AuthToken : ISharedAuthToken
     /// <summary>
     /// The user that this token is valid for
     /// </summary>
-    [Column("userid")]
+    [Column("user_id")]
     public ulong UserId { get; set; }
 
     /// <summary>
     /// The scope of the permissions this token is valid for
     /// </summary>
+    [Column("scope")]
     public ulong Scope { get; set; }
 
     /// <summary>
     /// The time that this token was issued
     /// </summary>
+    [Column("time_created")]
     public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time that this token will expire
     /// </summary>
+    [Column("time_expires")]
     public DateTime TimeExpires { get; set; }
 
     /// <summary>
@@ -86,7 +90,7 @@ public class AuthToken : ISharedAuthToken
                 if (authToken != null)
                 {
                     User user = await tdb.Users.FindAsync(authToken.UserId);
-                    user.LastActive = DateTime.UtcNow;
+                    user.TimeLastActive = DateTime.UtcNow;
 
                     await tdb.SaveChangesAsync();
                 }

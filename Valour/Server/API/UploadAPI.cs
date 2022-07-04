@@ -137,7 +137,7 @@ namespace Valour.Server.API
                     case "app":
                         {
                             var url = await response.Content.ReadAsStringAsync();
-                            app.Image_Url = url;
+                            app.ImageUrl = url;
                             await db.SaveChangesAsync();
                             break;
                         }

@@ -46,8 +46,8 @@
         {
             PlanetId = Planet.Id,
             IssuerId = ValourClient.Self.Id,
-            Created = DateTime.UtcNow,
-            Expires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
+            TimeCreated = DateTime.UtcNow,
+            TimeExpires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
         };
 
         JsonContent content = JsonContent.Create(invite);

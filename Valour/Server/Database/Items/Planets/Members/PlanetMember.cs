@@ -18,7 +18,7 @@ namespace Valour.Server.Database.Items.Planets.Members;
 /// This class exists to add server funtionality to the PlanetMember
 /// class.
 /// </summary>
-[Table("planetmembers")]
+[Table("planet_members")]
 public class PlanetMember : PlanetItem, ISharedPlanetMember
 {
 
@@ -36,16 +36,19 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// The user within the planet
     /// </summary>
+    [Column("user_id")]
     public ulong UserId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet
     /// </summary>
+    [Column("nickname")]
     public string Nickname { get; set; }
 
     /// <summary>
     /// The pfp to be used within the planet
     /// </summary>
+    [Column("member_pfp")]
     public string MemberPfp { get; set; }
 
     public static async Task<PlanetMember> FindAsync(ulong userId, ulong planetId, ValourDB db)
@@ -248,7 +251,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             if (inviteCode is null)
                 return ValourResult.Forbid("The planet is not public. Please include inviteCode.");
 
-            if (!await db.PlanetInvites.AnyAsync(x => x.Code == inviteCode && x.PlanetId == planetId && DateTime.UtcNow > x.Created))
+            if (!await db.PlanetInvites.AnyAsync(x => x.Code == inviteCode && x.PlanetId == planetId && DateTime.UtcNow > x.TimeCreated))
                 return ValourResult.Forbid("The invite code is invalid or expired.");
         }
 

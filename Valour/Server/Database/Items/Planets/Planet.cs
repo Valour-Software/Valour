@@ -65,36 +65,43 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
+    [Column("owner_id")]
     public ulong OwnerId { get; set; }
 
     /// <summary>
     /// The name of this planet
     /// </summary>
+    [Column("name")]
     public string Name { get; set; }
 
     /// <summary>
     /// The image url for the planet 
     /// </summary>
+    [Column("icon_url")]
     public string IconUrl { get; set; }
 
     /// <summary>
     /// The description of the planet
     /// </summary>
+    [Column("description")]
     public string Description { get; set; }
 
     /// <summary>
     /// If the server requires express allowal to join a planet
     /// </summary>
+    [Column("public")]
     public bool Public { get; set; }
 
     /// <summary>
     /// The default role for the planet
     /// </summary>
+    [Column("default_role_id")]
     public ulong DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
+    [Column("primary_channel_id")]
     public ulong PrimaryChannelId { get; set; }
 
     [JsonIgnore]

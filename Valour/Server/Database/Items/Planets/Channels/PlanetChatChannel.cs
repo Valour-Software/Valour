@@ -17,9 +17,10 @@ using Valour.Shared.MPS;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
 
-[Table("planetchatchannels")]
+[Table("planet_chat_channels")]
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
+    [Column("message_count")]
     public ulong MessageCount { get; set; }
 
     /// <summary>

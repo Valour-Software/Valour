@@ -13,37 +13,43 @@ namespace Valour.Server.Database.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-[Table("planetbans")]
+[Table("planet_bans")]
 public class PlanetBan : PlanetItem, ISharedPlanetBan
 {
     /// <summary>
     /// The member that banned the user
     /// </summary>
+    [Column("issuer_id")]
     public ulong IssuerId { get; set; }
 
     /// <summary>
     /// The userId of the target that was banned
     /// </summary>
+    [Column("target_id")]
     public ulong TargetId { get; set; }
 
     /// <summary>
     /// The reason for the ban
     /// </summary>
+    [Column("reason")]
     public string Reason { get; set; }
 
     /// <summary>
     /// The time the ban was placed
     /// </summary>
+    [Column("time_created")]
     public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time the ban expires. Null for permanent.
     /// </summary>
+    [Column("time_expires")]
     public DateTime? TimeExpires { get; set; }
 
     /// <summary>
     /// True if the ban never expires
     /// </summary>
+    [NotMapped]
     public bool Permanent => TimeExpires == null;
 
     #region Routes

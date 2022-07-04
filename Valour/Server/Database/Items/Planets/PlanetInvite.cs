@@ -7,30 +7,34 @@ using Valour.Shared.Items.Planets;
 
 namespace Valour.Server.Database.Items.Planets;
 
-[Table("planetinvites")]
+[Table("planet_invites")]
 public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 {
     /// <summary>
     /// The invite code
     /// </summary>
+    [Column("code")]
     public string Code { get; set; }
 
     /// <summary>
     /// The user that created the invite
     /// </summary>
+    [Column("issuer_id")]
     public ulong IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    public DateTime Created { get; set; }
+    [Column("time_created")]
+    public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// When the invite expires
     /// </summary>
-    public DateTime? Expires { get; set; }
+    [Column("time_expires")]
+    public DateTime? TimeExpires { get; set; }
 
-    public bool IsPermanent() => Expires is null;
+    public bool IsPermanent() => TimeExpires is null;
 
 
     public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
@@ -72,7 +76,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
         invite.Id = IdManager.Generate();
         invite.IssuerId = authMember.UserId;
-        invite.Created = DateTime.UtcNow;
+        invite.TimeCreated = DateTime.UtcNow;
         invite.Code = await invite.GenerateCode(db);
 
         try
@@ -107,7 +111,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
             return Results.BadRequest("You cannot change the code.");
         if (invite.IssuerId != oldInvite.IssuerId)
             return Results.BadRequest("You cannot change who issued.");
-        if (invite.Created != oldInvite.Created)
+        if (invite.TimeCreated != oldInvite.TimeCreated)
             return Results.BadRequest("You cannot change the creation time.");
         if (invite.PlanetId != oldInvite.PlanetId)
             return Results.BadRequest("You cannot change what planet.");

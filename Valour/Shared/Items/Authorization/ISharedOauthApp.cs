@@ -36,7 +36,7 @@ public interface ISharedOauthApp
     /// <summary>
     /// The image used to represent the app
     /// </summary>
-    string Image_Url { get; set; }
+    string ImageUrl { get; set; }
 
     /// <summary>
     /// The name of the app

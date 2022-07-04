@@ -27,17 +27,17 @@ public interface ISharedPlanetInvite : ISharedPlanetItem
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    DateTime Created { get; set; }
+    DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time when this invite expires. Null for never.
     /// </summary>
-    DateTime? Expires { get; set; }
+    DateTime? TimeExpires { get; set; }
 
     public bool IsPermanent() =>
         ISharedPlanetInvite.IsPermanent(this);
 
     public static bool IsPermanent(ISharedPlanetInvite item) =>
-        item.Expires == null;
+        item.TimeExpires == null;
 }
 
