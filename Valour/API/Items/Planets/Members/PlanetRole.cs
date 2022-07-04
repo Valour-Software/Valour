@@ -19,7 +19,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     {
         Name = "Victor Class",
         Id = long.MaxValue,
-        Position = uint.MaxValue,
+        Position = int.MaxValue,
         PlanetId = 0,
         Red = 255,
         Green = 0,
@@ -29,7 +29,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    public int Position { get; set; }
 
     /// <summary>
     /// The ID of the planet or system this role belongs to
@@ -56,7 +56,7 @@ public class PlanetRole : Item, ISharedPlanetRole
 
     public bool Italics { get; set; }
 
-    public uint GetAuthority() =>
+    public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
@@ -74,7 +74,7 @@ public class PlanetRole : Item, ISharedPlanetRole
         {
             Name = "Default",
             Id = long.MaxValue,
-            Position = uint.MaxValue,
+            Position = int.MaxValue,
             PlanetId = planetId,
             Red = 255,
             Green = 255,

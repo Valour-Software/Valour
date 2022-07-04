@@ -163,7 +163,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public async Task<User> GetUserAsync(ValourDB db) =>
         User ??= await db.Users.FindAsync(UserId);
 
-    public async Task<ulong> GetAuthorityAsync(ValourDB db)
+    public async Task<int> GetAuthorityAsync(ValourDB db)
     {
         if (Planet is null)
             await GetPlanetAsync(db);
@@ -171,7 +171,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         if (Planet.OwnerId == UserId)
         {
             // Highest possible authority for owner
-            return ulong.MaxValue;
+            return int.MaxValue;
         }
         else
         {

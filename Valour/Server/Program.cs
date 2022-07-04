@@ -223,7 +223,7 @@ namespace Valour.Server
                 //options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 
-                options.JsonSerializerOptions.PropertyNamingPolicy = null;
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             }
             );
             services.AddRazorPages();

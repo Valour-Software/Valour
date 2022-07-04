@@ -134,6 +134,11 @@ public static class ValourClient
 
     public static event Func<Task> OnJoinedPlanetsUpdate;
 
+    public static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     #endregion
 
     static ValourClient()
@@ -507,7 +512,11 @@ public static class ValourClient
         // Store token 
         _token = token;
 
-        // Add auth header so we never have to do that again
+        if (Http.DefaultRequestHeaders.Contains("authorization"))
+        {
+            Http.DefaultRequestHeaders.Remove("authorization");
+        }
+
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
         var response = await GetJsonAsync<User>($"api/user/self");
@@ -571,7 +580,7 @@ public static class ValourClient
     /// </summary>
     public static async Task JoinAllChannelsAsync()
     {
-        var planets = await GetJsonAsync<List<Planet>>($"api/user/{Self.Id}/planets");
+        var planets = await GetJsonAsync<List<Planet>>("api/user/self/planets");
 
         // Add to cache
         foreach (var planet in planets)
@@ -598,7 +607,7 @@ public static class ValourClient
     /// </summary>
     public static async Task LoadJoinedPlanetsAsync()
     {
-        var planets = await GetJsonAsync<List<Planet>>($"api/user/{Self.Id}/planets");
+        var planets = await GetJsonAsync<List<Planet>>($"api/user/self/planets");
 
         // Add to cache
         foreach (var planet in planets)
@@ -617,7 +626,7 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var planetIds = await GetJsonAsync<List<long>>($"api/user/{Self.Id}/planetIds");
+        var planetIds = await GetJsonAsync<List<long>>($"api/user/self/planetIds");
 
         if (planetIds is null)
             return;
@@ -800,7 +809,7 @@ public static class ValourClient
         }
         else
         {
-            result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -930,7 +939,7 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -1029,7 +1038,41 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Posts a json resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
+    {
+        var response = await Http.PostAsync(uri, null);
+
+        TaskResult<T> result = new TaskResult<T>()
+        {
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed POST response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+        else
+        {
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -1063,7 +1106,7 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -1100,7 +1143,10 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            {
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
+                Console.WriteLine(result.Data is null);
+            }
         }
 
         return result;

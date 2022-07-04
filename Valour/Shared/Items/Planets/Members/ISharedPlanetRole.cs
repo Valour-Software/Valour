@@ -16,7 +16,7 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    uint Position { get; set; }
+    int Position { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
@@ -33,7 +33,7 @@ public interface ISharedPlanetRole : ISharedPlanetItem
 
     bool Italics { get; set; }
 
-    public uint GetAuthority() =>
+    public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
@@ -46,8 +46,8 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
-    public static uint GetAuthority(ISharedPlanetRole role) =>
-        uint.MaxValue - role.Position;
+    public static int GetAuthority(ISharedPlanetRole role) =>
+        int.MaxValue - role.Position;
 
     public static Color GetColor(ISharedPlanetRole role) =>
         Color.FromArgb(role.Red, role.Green, role.Blue);

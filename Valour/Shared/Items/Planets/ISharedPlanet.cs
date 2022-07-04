@@ -39,11 +39,11 @@ public interface ISharedPlanet : ISharedItem
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    long DefaultRoleId { get; set; }
+    long? DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    long PrimaryChannelId { get; set; }
+    long? PrimaryChannelId { get; set; }
 }
 

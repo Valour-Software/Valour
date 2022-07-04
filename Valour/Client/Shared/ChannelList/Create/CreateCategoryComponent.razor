@@ -81,7 +81,7 @@
 
         var roles = await Planet.GetRolesAsync();
 
-        ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
+        int SelfAuthority = await SelfMember.GetAuthorityAsync();
         foreach (PlanetRole item in roles)
         {
             if (item.GetAuthority() >= SelfAuthority)
@@ -144,7 +144,7 @@
             {
                 TargetId = categoryId,
                 PlanetId = planetId,
-                RoleId = Planet.DefaultRoleId,
+                RoleId = Planet.DefaultRoleId.Value,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = PermissionsTarget.PlanetCategoryChannel

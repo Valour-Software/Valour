@@ -96,13 +96,13 @@ public class Planet : Item, ISharedPlanet
     /// The default role for the planet
     /// </summary>
     [Column("default_role_id")]
-    public long DefaultRoleId { get; set; }
+    public long? DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
     [Column("primary_channel_id")]
-    public long PrimaryChannelId { get; set; }
+    public long? PrimaryChannelId { get; set; }
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -234,7 +234,7 @@ public class Planet : Item, ISharedPlanet
             Id = IdManager.Generate(),
             PlanetId = Id,
             UserId = user.Id,
-            RoleId = DefaultRoleId,
+            RoleId = DefaultRoleId.Value,
             MemberId = member.Id
         };
 
@@ -305,6 +305,8 @@ public class Planet : Item, ISharedPlanet
 
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
+        planet.PrimaryChannelId = null;
+        planet.DefaultRoleId = null;
 
         // Create general category
         var category = new PlanetCategoryChannel()
@@ -333,7 +335,7 @@ public class Planet : Item, ISharedPlanet
         {
             Id = IdManager.Generate(),
             PlanetId = planet.Id,
-            Position = uint.MaxValue,
+            Position = int.MaxValue,
             Blue = 255,
             Green = 255,
             Red = 255,
@@ -345,16 +347,21 @@ public class Planet : Item, ISharedPlanet
         try
         {
             await db.Planets.AddAsync(planet);
+
+            await db.SaveChangesAsync();
+
             await db.PlanetCategoryChannels.AddAsync(category);
             await db.PlanetChatChannels.AddAsync(channel);
-
-            planet.PrimaryChannelId = channel.Id;
-
             await db.PlanetRoles.AddAsync(defaultRole);
 
+            await db.SaveChangesAsync();
+
+            planet.PrimaryChannelId = channel.Id;
             planet.DefaultRoleId = defaultRole.Id;
 
             await db.SaveChangesAsync();
+
+            await planet.AddMemberAsync(user, db);
         }
         catch (System.Exception e)
         {
@@ -512,7 +519,7 @@ public class Planet : Item, ISharedPlanet
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/channels"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, long id)
@@ -544,7 +551,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannels"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, long id)
@@ -566,7 +573,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/categories"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, long id)
@@ -587,7 +594,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedCategories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/channelids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, long id)
@@ -597,7 +604,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(channels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannelids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, long id)
@@ -607,7 +614,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(chatChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/categoryids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, long id)
@@ -617,7 +624,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(categories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/memberinfo"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, long id, int page = 0)
@@ -642,7 +649,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json((members: roleInfo, totalCount: totalCount));
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/roles"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, long id)
@@ -653,7 +660,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(roles);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/roleids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/roleids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, long id)
@@ -664,7 +671,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(roles);
     }
 
-    [ValourRoute(HttpVerbs.Post, "{id}/roleorder")]
+    [ValourRoute(HttpVerbs.Post, "/{id}/roleorder")]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
@@ -691,7 +698,7 @@ public class Planet : Item, ISharedPlanet
 
         try
         {
-            uint pos = 0;
+            int pos = 0;
 
             foreach (var roleId in order)
             {
@@ -731,7 +738,7 @@ public class Planet : Item, ISharedPlanet
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/invites")]
+    [ValourRoute(HttpVerbs.Get, "/{id}/invites")]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
@@ -743,7 +750,7 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(invites);
     }
 
-    [ValourRoute(HttpVerbs.Get, "{id}/inviteids")]
+    [ValourRoute(HttpVerbs.Get, "/{id}/inviteids")]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]

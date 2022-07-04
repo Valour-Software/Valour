@@ -26,7 +26,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     [Column("position")]
-    public uint Position { get; set; }
+    public int Position { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
@@ -54,7 +54,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     [Column("name")]
     public string Name { get; set; }
 
-    public uint GetAuthority() =>
+    public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
@@ -142,7 +142,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
-        role.Position = (uint)await db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
+        role.Position = await db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
         role.Id = IdManager.Generate();
 
         if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))

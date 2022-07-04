@@ -79,7 +79,7 @@
 
         PlanetMember SelfMember = await ValourClient.GetSelfMember(Planet);
 
-        ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
+        int SelfAuthority = await SelfMember.GetAuthorityAsync();
 
         var roleResponse = await Planet.GetRolesAsync();
 
@@ -146,7 +146,7 @@
             {
                 TargetId = channelId,
                 PlanetId = Planet.Id,
-                RoleId = Planet.DefaultRoleId,
+                RoleId = Planet.DefaultRoleId.Value,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = PermissionsTarget.PlanetChatChannel

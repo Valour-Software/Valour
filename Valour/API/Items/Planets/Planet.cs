@@ -50,12 +50,12 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    public long DefaultRoleId { get; set; }
+    public long? DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    public long PrimaryChannelId { get; set; }
+    public long? PrimaryChannelId { get; set; }
 
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server

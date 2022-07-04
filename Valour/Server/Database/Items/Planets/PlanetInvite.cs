@@ -51,12 +51,12 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
         db.PlanetInvites.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{code}"), TokenRequired, InjectDb]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, string code)
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}", $"api/{nameof(PlanetInvite)}"), TokenRequired, InjectDb]
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, [FromRoute] string inviteCode)
     {
         var db = ctx.GetDb();
 
-        var invite = await FindAsync<PlanetInvite>(code, db);
+        var invite = await db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == inviteCode);
 
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
@@ -181,7 +181,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname"), InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname", $"api/{nameof(PlanetInvite)}"), InjectDb]
     public static async Task<IResult> GetPlanetName(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
@@ -191,10 +191,10 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
 
-        return Results.Ok(invite.Planet.Name);
+        return Results.Json(invite.Planet.Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon"), InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon", $"api/{nameof(PlanetInvite)}"), InjectDb]
     public static async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string inviteCode)
     {
         var db = ctx.GetDb();
@@ -204,10 +204,10 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
 
-        return Results.Ok(invite.Planet.IconUrl);
+        return Results.Json(invite.Planet.IconUrl);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join", $"api/{nameof(PlanetInvite)}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> Join(HttpContext ctx, string inviteCode)
     {

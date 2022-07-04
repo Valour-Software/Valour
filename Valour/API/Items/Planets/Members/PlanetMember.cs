@@ -143,8 +143,8 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// Returns the authority of the member
     /// </summary>
-    public async Task<ulong> GetAuthorityAsync() =>
-        await ValourClient.GetJsonAsync<ulong>($"api/member/{Id}/authority");
+    public async Task<int> GetAuthorityAsync() =>
+        await ValourClient.GetJsonAsync<int>($"api/member/{Id}/authority");
 
     /// <summary>
     /// Loads all role Ids from the server

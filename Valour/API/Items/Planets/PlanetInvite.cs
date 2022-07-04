@@ -53,7 +53,7 @@ public class PlanetInvite : Item, ISharedPlanetInvite
                 return cached; 
         }
 
-        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"/api/{nameof(PlanetInvite)}/{code}");
+        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"api/{nameof(PlanetInvite)}/{code}");
 
         if (invResult is not null)
             await ValourCache.Put(code, invResult);
@@ -67,12 +67,12 @@ public class PlanetInvite : Item, ISharedPlanetInvite
     /// Returns the name of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetNameAsync() =>
-        await ValourClient.GetAsync($"{IdRoute}/planet/name") ?? "<Not found>";
+        await ValourClient.GetJsonAsync<string>($"{IdRoute}/planetname") ?? "<Not found>";
     
     /// <summary>
     /// Returns the icon of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetIconUrl() =>
-        await ValourClient.GetAsync($"{IdRoute}/planet/icon_url") ?? "";
+        await ValourClient.GetJsonAsync<string>($"{IdRoute}/planeticon") ?? "";
 }
 

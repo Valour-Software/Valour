@@ -23,7 +23,7 @@
                         <h3 class="invite-name">?</h3>
                     </div>
                     <center>
-                        <img class="planet-card-icon" style="width:128px;" src="@PlanetImage" />
+                        <img class="planet-card-icon" style="width:128px;" src="@PlanetImage" @onerror="OnIconError" />
                     </center>
 
                     <br />
@@ -113,21 +113,25 @@
 
     public async Task Joined()
     {
-        var response = await Http.GetAsync($"api/invite/{InviteCode}/join");
+        var response = await ValourClient.PostAsyncWithResponse<PlanetMember>($"api/planetinvite/{InviteCode}/join");
 
-        var message = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
+        if (!response.Success)
         {
-            errorSpan = message;
+            errorSpan = response.Message;
         }
         else
         {
-            infoSpan = message;
+            infoSpan = "Joined " + PlanetName + "!";
         }
 
         Clicked = true;
 
+        StateHasChanged();
+    }
+
+    public void OnIconError()
+    {
+        PlanetImage = "/icon-512.png";
         StateHasChanged();
     }
 
