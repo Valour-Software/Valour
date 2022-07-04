@@ -16,7 +16,7 @@ namespace Valour.Shared.Items.Authorization;
 /// </summary>
 public interface ISharedOauthApp
 {
-    ulong Id { get; set; }
+    long Id {get; set; }
 
     /// <summary>
     /// The secret key for the app
@@ -26,7 +26,7 @@ public interface ISharedOauthApp
     /// <summary>
     /// The ID of the user that created this app
     /// </summary>
-    ulong OwnerId { get; set; }
+    long OwnerId { get; set; }
 
     /// <summary>
     /// The amount of times this app has been used

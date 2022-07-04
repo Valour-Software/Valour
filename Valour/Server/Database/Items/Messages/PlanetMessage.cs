@@ -25,13 +25,13 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// The author's user ID
     /// </summary>
     [Column("author_id")]
-    public ulong AuthorId { get; set; }
+    public long AuthorId { get; set; }
 
     /// <summary>
     /// The author's member ID
     /// </summary>
     [Column("member_id")]
-    public ulong MemberId { get; set; }
+    public long MemberId { get; set; }
 
     /// <summary>
     /// String representation of message
@@ -49,13 +49,13 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Id of the channel this message belonged to
     /// </summary>
     [Column("channel_id")]
-    public ulong ChannelId { get; set; }
+    public long ChannelId { get; set; }
 
     /// <summary>
     /// Index of the message
     /// </summary>
     [Column("message_index")]
-    public ulong MessageIndex { get; set; }
+    public long MessageIndex { get; set; }
 
     /// <summary>
     /// Data for representing an embed

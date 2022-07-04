@@ -4,7 +4,7 @@ namespace Valour.Server.Database.Items.Users
 {
     [Keyless]
     [Table("referrals")]
-    public class Referral : ISharedReferral
+    public class Referral :  ISharedReferral
     {
         [ForeignKey("UserId")]
         [JsonIgnore]
@@ -15,9 +15,9 @@ namespace Valour.Server.Database.Items.Users
         public virtual User Referrer { get; set; }
 
         [Column("user_id")]
-        public ulong UserId { get; set; }
+        public long UserId { get; set; }
 
         [Column("referrer_id")]
-        public ulong ReferrerId { get; set; }
+        public long ReferrerId { get; set; }
     }
 }

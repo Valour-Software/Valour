@@ -7,7 +7,7 @@ namespace Valour.Api.Items
 {
     public abstract class Item : ISharedItem
     {
-        public ulong Id { get; set; }
+        public long Id { get; set; }
         
         public string Node { get; set; }
 
@@ -90,7 +90,12 @@ namespace Valour.Api.Items
         /// <returns>The result, with the created item (if successful)</returns>
         public static async Task<TaskResult<T>> CreateAsync<T>(T item) where T : Item
         {
+#if DEBUG
             return await ValourClient.PostAsyncWithResponse<T>($"api/{nameof(T)}", item);
+#else
+            return await ValourClient.PostAsyncWithResponse<T>(
+                $"https://{item.Node}.nodes.valour.gg/api/{nameof(T)}", item);
+#endif
         }
 
         /// <summary>
@@ -101,7 +106,12 @@ namespace Valour.Api.Items
         /// <returns>The result, with the updated item (if successful)</returns>
         public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : Item
         {
+#if DEBUG
             return await ValourClient.PutAsyncWithResponse<T>($"api/{nameof(T)}/{item.Id}", item);
+#else
+            return await ValourClient.PutAsyncWithResponse<T>(
+                $"https://{item.Node}.nodes.valour.gg/api/{nameof(T)}/{item.Id}", item);
+#endif
         }
 
         /// <summary>
@@ -112,7 +122,12 @@ namespace Valour.Api.Items
         /// <returns>The result</returns>
         public static async Task<TaskResult> DeleteAsync<T>(T item) where T : Item
         {
+#if DEBUG
             return await ValourClient.DeleteAsync($"api/{nameof(T)}/{item.Id}");
+#else
+            return await ValourClient.DeleteAsync(
+                $"https://{item.Node}.nodes.valour.gg/api/{nameof(T)}/{item.Id}");
+#endif
         }
     }
 }

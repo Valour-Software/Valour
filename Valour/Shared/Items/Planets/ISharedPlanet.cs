@@ -14,7 +14,7 @@ public interface ISharedPlanet : ISharedItem
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
-    ulong OwnerId { get; set; }
+    long OwnerId { get; set; }
 
     /// <summary>
     /// The name of this planet
@@ -39,11 +39,11 @@ public interface ISharedPlanet : ISharedItem
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    ulong DefaultRoleId { get; set; }
+    long DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    ulong PrimaryChannelId { get; set; }
+    long PrimaryChannelId { get; set; }
 }
 

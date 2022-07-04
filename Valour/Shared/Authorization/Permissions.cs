@@ -15,7 +15,7 @@ public class Permission
     /// <summary>
     /// Permission node to have complete control
     /// </summary>
-    public const ulong FULL_CONTROL = ulong.MaxValue;
+    public const long FULL_CONTROL = long.MinValue;
 
     /// <summary>
     /// The name of this permission
@@ -30,7 +30,7 @@ public class Permission
     /// <summary>
     /// The value of this permission
     /// </summary>
-    public ulong Value { get; set; }
+    public long Value { get; set; }
 
     /// <summary>
     /// Constant used for mixed permission name
@@ -47,7 +47,7 @@ public class Permission
     /// <summary>
     /// Initializes the permission
     /// </summary>
-    public Permission(ulong value, string name, string description)
+    public Permission(long value, string name, string description)
     {
         this.Name = name;
         this.Description = description;
@@ -57,7 +57,7 @@ public class Permission
     /// <summary>
     /// Returns whether the given code includes the given permission
     /// </summary>
-    public static bool HasPermission(ulong code, Permission permission)
+    public static bool HasPermission(long code, Permission permission)
     {
         // Case if full control is granted
         if (code == FULL_CONTROL) return true;
@@ -69,9 +69,9 @@ public class Permission
     /// <summary>
     /// Creates and returns a permission code from given permissions 
     /// </summary>
-    public static ulong CreateCode(params Permission[] permissions)
+    public static long CreateCode(params Permission[] permissions)
     {
-        ulong code = 0x00;
+        long code = 0x00;
 
         foreach (Permission permission in permissions)
         {
@@ -107,7 +107,7 @@ public class Permission
 public class ChatChannelPermission : Permission
 {
     public override string PermissionType => "Chat Channel";
-    public ChatChannelPermission(ulong value, string name, string description) : base(value, name, description)
+    public ChatChannelPermission(long value, string name, string description) : base(value, name, description)
     {
     }
 }
@@ -115,7 +115,7 @@ public class ChatChannelPermission : Permission
 public class CategoryPermission : Permission
 {
     public override string PermissionType => "Category";
-    public CategoryPermission(ulong value, string name, string description) : base(value, name, description)
+    public CategoryPermission(long value, string name, string description) : base(value, name, description)
     {
     }
 }
@@ -123,7 +123,7 @@ public class CategoryPermission : Permission
 public class UserPermission : Permission
 {
     public override string PermissionType => "User";
-    public UserPermission(ulong value, string name, string description) : base(value, name, description)
+    public UserPermission(long value, string name, string description) : base(value, name, description)
     {
     }
 }
@@ -131,7 +131,7 @@ public class UserPermission : Permission
 public class PlanetPermission : Permission
 {
     public override string PermissionType => "Planet";
-    public PlanetPermission(ulong value, string name, string description) : base(value, name, description)
+    public PlanetPermission(long value, string name, string description) : base(value, name, description)
     {
     }
 }
@@ -204,7 +204,7 @@ public enum ChatChannelPermissionsEnum
 public static class ChatChannelPermissions
 {
 
-    public static readonly ulong Default;
+    public static readonly long Default;
 
     /// <summary>
     /// Contains every channel permission
@@ -268,7 +268,7 @@ public enum CategoryPermissionsEnum
 public static class CategoryPermissions
 {
 
-    public static readonly ulong Default;
+    public static readonly long Default;
 
     /// <summary>
     /// Contains every category permission
@@ -322,7 +322,7 @@ public enum PlanetPermissionsEnum
 /// </summary>
 public static class PlanetPermissions
 {
-    public static readonly ulong Default =
+    public static readonly long Default =
         Permission.CreateCode(View);
 
     /// <summary>
@@ -378,10 +378,10 @@ public struct PermissionNodeCode
     // If the mask but is 1, then if the code bit is 1 it is true. Otherwise it is false.
     // This basically compresses 64 booleans (64 bytes) into 2 ulongs (16 bytes)
 
-    public ulong Code { get; set; }
-    public ulong Mask { get; set; }
+    public long Code { get; set; }
+    public long Mask { get; set; }
 
-    public PermissionNodeCode(ulong code, ulong mask)
+    public PermissionNodeCode(long code, long mask)
     {
         this.Code = code;
         this.Mask = mask;

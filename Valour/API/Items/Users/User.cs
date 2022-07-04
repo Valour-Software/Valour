@@ -15,7 +15,7 @@ public class User : Item, ISharedUser
         PfpUrl = "/media/victor-cyan.png",
         Name = "Victor",
         ValourStaff = true,
-        Id = ulong.MaxValue
+        Id = long.MaxValue
     };
 
     /// <summary>

@@ -101,7 +101,7 @@ public class User : Item, ISharedUser
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var user = await FindAsync<User>(id, db);
@@ -112,19 +112,18 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/verify/{code}"), InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/verify/{code}"), InjectDb]
     public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
         ILogger<User> logger)
     {
         var db = ctx.GetDb();
-        var token = ctx.GetToken();
 
         var confirmCode = await db.EmailConfirmCodes
             .Include(x => x.User)
             .ThenInclude(x => x.Email)
             .FirstOrDefaultAsync(x => x.Code == code);
 
-        if (confirmCode is null || token.User.Id != confirmCode.UserId)
+        if (confirmCode is null)
             return ValourResult.NotFound<EmailConfirmCode>();
 
         using var tran = await db.Database.BeginTransactionAsync();
@@ -183,7 +182,7 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/token"), InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/token"), InjectDb]
     public static async Task<IResult> GetTokenRouteAsync(HttpContext ctx, [FromBody] TokenRequest tokenRequest,
         ILogger<User> logger)
     {
@@ -211,7 +210,7 @@ public class User : Item, ISharedUser
 
         // Check for an old token
         var token = await db.AuthTokens
-            .FirstOrDefaultAsync(x => x.App_Id == "VALOUR" &&
+            .FirstOrDefaultAsync(x => x.AppId == "VALOUR" &&
                                       x.UserId == userEmail.UserId &&
                                       x.Scope == UserPermissions.FullControl.Value);
 
@@ -222,7 +221,7 @@ public class User : Item, ISharedUser
                 // We now have to create a token for the user
                 token = new AuthToken()
                 {
-                    App_Id = "VALOUR",
+                    AppId = "VALOUR",
                     Id = "val-" + Guid.NewGuid().ToString(),
                     TimeCreated = DateTime.UtcNow,
                     TimeExpires = DateTime.UtcNow.AddDays(7),
@@ -299,7 +298,7 @@ public class User : Item, ISharedUser
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/register")]
+    [ValourRoute(HttpVerbs.Post, "/register"), InjectDb]
     public static async Task<IResult> RegisterUserRouteAsync(HttpContext ctx, [FromBody] RegisterUserRequest request,
         ILogger<User> logger)
     {
@@ -330,7 +329,7 @@ public class User : Item, ISharedUser
             return Results.BadRequest(passwordValid.Message);
 
         Referral refer = null;
-        if (!string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
         {
             var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
             if (referUser is null)
@@ -380,6 +379,7 @@ public class User : Item, ISharedUser
 
             Credential cred = new()
             {
+                Id = IdManager.Generate(),
                 CredentialType = CredentialType.PASSWORD,
                 Identifier = request.Email,
                 Salt = salt,

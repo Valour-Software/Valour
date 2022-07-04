@@ -321,10 +321,10 @@
             PlanetMessage errorMsg = new()
             {
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {content}",
-                AuthorId = ulong.MaxValue,
-                MemberId = ulong.MaxValue,
+                AuthorId = long.MaxValue,
+                MemberId = long.MaxValue,
                 ChannelId = Window.Channel.Id,
-                MessageIndex = ulong.MaxValue
+                MessageIndex = long.MaxValue
             };
 
             MessageHolder.RemoveErrorMessage();

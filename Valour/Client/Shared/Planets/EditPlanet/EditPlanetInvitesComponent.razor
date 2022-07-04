@@ -78,9 +78,9 @@
 
         StateHasChanged();
 
-        ulong planetId = Planet.Id;
+        long planetId = Planet.Id;
 
-        ulong userId = ValourClient.Self.Id;
+        long userId = ValourClient.Self.Id;
 
         Invites = await Planet.GetInvitesAsync();
 

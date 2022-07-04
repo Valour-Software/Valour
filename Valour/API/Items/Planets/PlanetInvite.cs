@@ -21,12 +21,12 @@ public class PlanetInvite : Item, ISharedPlanetInvite
     /// <summary>
     /// The planet the invite is for
     /// </summary>
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// The user that created the invite
     /// </summary>
-    public ulong IssuerId { get; set; }
+    public long IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created

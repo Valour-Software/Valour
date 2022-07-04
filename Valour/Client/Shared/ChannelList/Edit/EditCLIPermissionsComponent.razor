@@ -338,7 +338,7 @@ else
 
     public async Task OnRoleSelect(ChangeEventArgs e)
     {
-        ulong newRoleId = ulong.Parse(e.Value.ToString());
+        long newRoleId = long.Parse(e.Value.ToString());
 
         await OnRoleChange(Roles.FirstOrDefault(x => x.Id == newRoleId));
     }

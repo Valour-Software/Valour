@@ -28,6 +28,6 @@ public class EmailConfirmCode
     /// The user this code is verifying
     /// </summary>
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 }
 

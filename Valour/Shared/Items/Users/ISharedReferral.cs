@@ -4,7 +4,7 @@ namespace Valour.Shared.Items.Users;
 
 public interface ISharedReferral
 {
-    ulong UserId { get; set; }
-    ulong ReferrerId { get; set; }
+    long UserId { get; set; }
+    long ReferrerId { get; set; }
 }
 

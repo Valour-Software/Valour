@@ -22,7 +22,7 @@ public interface ISharedPlanetInvite : ISharedPlanetItem
     /// <summary>
     /// The user that created the invite
     /// </summary>
-    ulong IssuerId { get; set; }
+    long IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created

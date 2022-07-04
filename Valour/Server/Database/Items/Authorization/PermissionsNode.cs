@@ -25,25 +25,25 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     /// The permission code that this node has set
     /// </summary>
     [Column("code")]
-    public ulong Code { get; set; }
+    public long Code { get; set; }
 
     /// <summary>
     /// A mask used to determine if code bits are disabled
     /// </summary>
     [Column("mask")]
-    public ulong Mask { get; set; }
+    public long Mask { get; set; }
 
     /// <summary>
     /// The role this permissions node belongs to
     /// </summary>
     [Column("role_id")]
-    public ulong RoleId { get; set; }
+    public long RoleId { get; set; }
 
     /// <summary>
     /// The id of the object this node applies to
     /// </summary>
     [Column("target_id")]
-    public ulong TargetId { get; set; }
+    public long TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to
@@ -77,7 +77,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
         => await db.PlanetChannels.FindAsync(TargetId);
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetNodeRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetNodeRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
 
@@ -89,7 +89,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     }
 
     [ValourRoute(HttpVerbs.Get, "/{targetId}/{roleId}"), TokenRequired, InjectDb]
-    public static async Task<IResult> GetNodeForTargetRouteAsync(HttpContext ctx, ulong targetId, ulong roleId)
+    public static async Task<IResult> GetNodeForTargetRouteAsync(HttpContext ctx, long targetId, long roleId)
     {
         var db = ctx.GetDb();
 
@@ -104,7 +104,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PermissionsNode node,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PermissionsNode node,
         ILogger<PermissionsNode> logger)
     {
         var db = ctx.GetDb();
@@ -147,7 +147,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong id, [FromBody] PermissionsNode node,
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long id, [FromBody] PermissionsNode node,
         ILogger<PermissionsNode> logger)
     {
         var db = ctx.GetDb();

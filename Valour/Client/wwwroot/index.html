@@ -38,7 +38,7 @@
                 <img src='/media/logo/logo-512.png' class='loading-logo color-shift'>
                 <p class="loading-title">Valour</p>
             </div>
-        </div>      
+        </div>
     </app>
 </body>
 
@@ -56,9 +56,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
 <script src="_content/Blazored.Modal/blazored.modal.js"></script>
 <script src="_content/Blazor.ContextMenu/blazorContextMenu.min.js"></script>
+
 <script>navigator.serviceWorker.register('service-worker.js');</script>
-<script>
-    window.updateAvailable = new Promise(function (resolve, reject) {
+<script>window.updateAvailable = new Promise(function (resolve, reject) {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(function (registration) {
@@ -82,5 +82,4 @@
                 .catch(error =>
                     console.log('Service worker registration failed, error:', error));
         }
-    });
-</script>
+    });</script>

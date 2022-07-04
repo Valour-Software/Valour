@@ -23,12 +23,12 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// The user within the planet
     /// </summary>
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// The planet the user is within
     /// </summary>
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet
@@ -43,7 +43,7 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<PlanetMember> FindAsync(long id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -66,7 +66,7 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given ids
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(ulong planetId, ulong userId, bool force_refresh = false)
+    public static async Task<PlanetMember> FindAsync(long planetId, long userId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -118,7 +118,7 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async Task<bool> HasRoleAsync(ulong id, bool force_refresh = false)
+    public async Task<bool> HasRoleAsync(long id, bool force_refresh = false)
     {
         if (Roles is null || force_refresh)
         {

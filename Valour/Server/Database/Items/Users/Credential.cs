@@ -20,13 +20,13 @@ public class Credential
     /// The ID of this credential
     /// </summary>
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id {get; set; }
 
     /// <summary>
     /// The ID of the user using this credential
     /// </summary>
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// The type of credential. This could be password, google, or whatever

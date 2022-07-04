@@ -8,12 +8,12 @@ public interface ISharedPlanetBan : ISharedPlanetItem
     /// <summary>
     /// The user that was banned
     /// </summary>
-    ulong TargetId { get; set; }
+    long TargetId { get; set; }
 
     /// <summary>
     /// The user that banned the user
     /// </summary>
-    ulong IssuerId { get; set; }
+    long IssuerId { get; set; }
 
     /// <summary>
     /// The reason for the ban

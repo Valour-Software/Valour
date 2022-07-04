@@ -16,13 +16,14 @@
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="form-group mt-2">
                     <label>Birthday</label>
-                    <input class="form-control" id="ageVeriInput" type="date" @bind-value="@date" />
+                    <InputDate @bind-Value="date"></InputDate>
+                    <br />
                     <span id="date-span" class="text-danger">@dateSpan</span>
                 </div>
                 <div class="form-group mt-4">
                     <div style="display: inline-block">
                         <p>
-                            <input type="checkbox" @bind-value="@agreed" /> &nbsp; By checking this box, you acknowledge that the given age is truthful and that any attempt to provide misleading or false information will lead to account disablement.
+                            <input type="checkbox" @bind="agreed" /> &nbsp; By checking this box, you acknowledge that the given age is truthful and that any attempt to provide misleading or false information will lead to account disablement.
                         </p>
                     </div>
                     <span id="agreed-span" class="text-danger">@agreedSpan</span>

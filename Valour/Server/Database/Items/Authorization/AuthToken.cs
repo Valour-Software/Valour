@@ -9,6 +9,7 @@ namespace Valour.Server.Database.Items.Authorization;
 [Table("auth_tokens")]
 public class AuthToken : ISharedAuthToken
 {
+    [NotMapped]
     public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
 
     [Key]
@@ -23,19 +24,19 @@ public class AuthToken : ISharedAuthToken
     /// The ID of the app that has been issued this token
     /// </summary>
     [Column("app_id")]
-    public string App_Id { get; set; }
+    public string AppId { get; set; }
 
     /// <summary>
     /// The user that this token is valid for
     /// </summary>
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// The scope of the permissions this token is valid for
     /// </summary>
     [Column("scope")]
-    public ulong Scope { get; set; }
+    public long Scope { get; set; }
 
     /// <summary>
     /// The time that this token was issued

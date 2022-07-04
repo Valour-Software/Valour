@@ -11,8 +11,8 @@ namespace Valour.Shared.Items.Planets.Members;
 
 public interface ISharedPlanetRoleMember : ISharedPlanetItem
 {
-    ulong UserId { get; set; }
-    ulong RoleId { get; set; }
-    ulong MemberId { get; set; }
+    long UserId { get; set; }
+    long RoleId { get; set; }
+    long MemberId { get; set; }
 }
 

@@ -26,7 +26,7 @@ namespace Valour.Server.API
         }
 
         private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db,
-            string type, [FromHeader] string authorization, ulong item_id = 0)
+            string type, [FromHeader] string authorization, long item_id = 0)
         {
             var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken == null) { await TokenInvalid(context); return; }

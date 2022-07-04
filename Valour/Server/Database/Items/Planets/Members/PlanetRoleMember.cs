@@ -26,13 +26,13 @@ public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
     public virtual User User { get; set; }
 
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     [Column("role_id")]
-    public ulong RoleId { get; set; }
+    public long RoleId { get; set; }
 
     [Column("member_id")]
-    public ulong MemberId { get; set; }
+    public long MemberId { get; set; }
 
     // This doesn't really even need API routes, it's just used internally to map roles to members.
     // Use a route from PlanetMember if you need to get someone's roles.

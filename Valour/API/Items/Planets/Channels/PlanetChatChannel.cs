@@ -23,7 +23,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// The total number of messages sent in this channel
     /// </summary>
-    public ulong MessageCount { get; set; }
+    public long MessageCount { get; set; }
 
     /// <summary>
     /// True if this channel inherits permissions from its parent
@@ -44,20 +44,20 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public override async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool refresh = false) =>
+    public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool refresh = false) =>
         await GetChannelPermissionsNodeAsync(roleId, refresh);
 
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong roleId, bool refresh = false) =>
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
         await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
     /// </summary>
-    public async Task<PermissionsNode> GetMemberPermissionsAsync(ulong memberId, bool force_refresh = false)
+    public async Task<PermissionsNode> GetMemberPermissionsAsync(long memberId, bool force_refresh = false)
     {
         var member = await PlanetMember.FindAsync(memberId);
         var roles = await member.GetRolesAsync();
@@ -111,13 +111,13 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return dummy_node;
     } 
 
-    public async Task<bool> HasPermissionAsync(ulong memberId, ChatChannelPermission perm) =>
+    public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
         await ValourClient.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}");
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
-    public async Task<List<PlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10) =>
+    public async Task<List<PlanetMessage>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
         await ValourClient.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}");
 
     /// <summary>

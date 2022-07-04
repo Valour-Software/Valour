@@ -140,7 +140,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
                                 throw new Exception($"Could not bind route value for '{routeId}'");
 
-                            var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
+                            var routeVal = (long)ctx.HttpContext.Request.RouteValues[routeId];
 
                             var db = ctx.HttpContext.GetDb();
                             if (db is null)
@@ -175,7 +175,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
                                 throw new Exception($"Could not bind route value for '{routeId}'");
 
-                            var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
+                            var routeVal = (long)ctx.HttpContext.Request.RouteValues[routeId];
 
                             var db = ctx.HttpContext.GetDb();
                             if (db is null)

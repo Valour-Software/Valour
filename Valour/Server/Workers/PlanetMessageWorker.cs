@@ -21,15 +21,15 @@ namespace Valour.Server.Workers
         private static BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
 
         // Prevents deleted messages from being staged
-        private static HashSet<ulong> BlockSet = new();
+        private static HashSet<long> BlockSet = new();
 
-        private static ConcurrentDictionary<ulong, PlanetMessage> StagedMessages = new();
+        private static ConcurrentDictionary<long, PlanetMessage> StagedMessages = new();
 
         private static ValourDB Context;
 
-        public static Dictionary<ulong, ulong> ChannelMessageIndices = new();
+        public static Dictionary<long, long> ChannelMessageIndices = new();
 
-        public static PlanetMessage GetStagedMessage(ulong id)
+        public static PlanetMessage GetStagedMessage(long id)
         {
             StagedMessages.TryGetValue(id, out PlanetMessage msg);
             return msg;
@@ -49,7 +49,7 @@ namespace Valour.Server.Workers
             BlockSet.Add(message.Id);
         }
 
-        public static List<PlanetMessage> GetStagedMessages(ulong channelId, int max)
+        public static List<PlanetMessage> GetStagedMessages(long channelId, int max)
         {
             return StagedMessages.Values.Where(x => x.ChannelId == channelId).TakeLast(max).Reverse().ToList();
         }
@@ -74,12 +74,12 @@ namespace Valour.Server.Workers
                             continue;
                         }
 
-                        ulong channelId = Message.ChannelId;
+                        long channelId = Message.ChannelId;
 
                         PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channelId);
 
                         // Get index for message
-                        ulong index = channel.MessageCount;
+                        long index = channel.MessageCount;
 
                         // Update message count. May have to queue this in the future to prevent concurrency issues (done).
                         channel.MessageCount += 1;

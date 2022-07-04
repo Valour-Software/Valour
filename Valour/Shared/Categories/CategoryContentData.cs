@@ -9,7 +9,7 @@ namespace Valour.Shared.Categories
     /// </summary>
     public class CategoryContentData
     {
-        public ulong Id { get; set; }
+        public long Id {get; set; }
         public ushort Position { get; set; }
     }
 }

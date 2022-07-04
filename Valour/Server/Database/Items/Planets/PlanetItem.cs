@@ -10,7 +10,7 @@ public abstract class PlanetItem : Item
     public Planet Planet { get; set; }
 
     [Column("planet_id")]
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// Returns the planet for this item

@@ -51,21 +51,21 @@ public class ClientPlanetMessage
     public async Task<User> GetAuthorUserAsync() =>
         await BaseMessage.GetAuthorUserAsync();
 
-    public ulong Id => BaseMessage.Id;
+    public long Id => BaseMessage.Id;
 
-    public ulong AuthorId => BaseMessage.AuthorId;
+    public long AuthorId => BaseMessage.AuthorId;
 
-    public ulong PlanetId => BaseMessage.PlanetId;
+    public long PlanetId => BaseMessage.PlanetId;
 
-    public ulong MemberId => BaseMessage.MemberId;
+    public long MemberId => BaseMessage.MemberId;
 
     public string Content => BaseMessage.Content;
 
     public DateTime TimeSent => BaseMessage.TimeSent;
 
-    public ulong ChannelId => BaseMessage.ChannelId;
+    public long ChannelId => BaseMessage.ChannelId;
 
-    public ulong Message_Index => BaseMessage.MessageIndex;
+    public long Message_Index => BaseMessage.MessageIndex;
 
     public string Embed_Data => BaseMessage.EmbedData;
 
@@ -204,7 +204,7 @@ public class ClientPlanetMessage
                             pos++;
                             continue;
                         }
-                        bool parsed = ulong.TryParse(id_chars, out ulong id);
+                        bool parsed = long.TryParse(id_chars, out long id);
                         if (!parsed)
                         {
                             pos++;
@@ -256,7 +256,7 @@ public class ClientPlanetMessage
                             pos++;
                             continue;
                         }
-                        bool parsed = ulong.TryParse(id_chars, out ulong id);
+                        bool parsed = long.TryParse(id_chars, out long id);
                         if (!parsed)
                         {
                             pos++;

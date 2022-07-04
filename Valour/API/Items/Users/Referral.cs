@@ -5,7 +5,7 @@ namespace Valour.Api.Items.Users;
 
 public class Referral : ISharedReferral
 {
-    public ulong UserId { get; set; }
-    public ulong ReferrerId { get; set; }
+    public long UserId { get; set; }
+    public long ReferrerId { get; set; }
 }
 

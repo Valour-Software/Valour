@@ -66,7 +66,7 @@ public class Planet : Item, ISharedPlanet
     /// The Id of the owner of this planet
     /// </summary>
     [Column("owner_id")]
-    public ulong OwnerId { get; set; }
+    public long OwnerId { get; set; }
 
     /// <summary>
     /// The name of this planet
@@ -96,13 +96,13 @@ public class Planet : Item, ISharedPlanet
     /// The default role for the planet
     /// </summary>
     [Column("default_role_id")]
-    public ulong DefaultRoleId { get; set; }
+    public long DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
     [Column("primary_channel_id")]
-    public ulong PrimaryChannelId { get; set; }
+    public long PrimaryChannelId { get; set; }
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
@@ -152,7 +152,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns if a given user id is a member (async)
     /// </summary>
-    public async Task<bool> IsMemberAsync(ulong userId, ValourDB db) =>
+    public async Task<bool> IsMemberAsync(long userId, ValourDB db) =>
         await db.PlanetMembers.AnyAsync(x => x.PlanetId == this.Id && x.UserId == userId);
 
     /// <summary>
@@ -371,7 +371,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] Planet planet,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] Planet planet,
         ILogger<Planet> logger)
     {
         var db = ctx.GetDb();
@@ -446,7 +446,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<Planet> logger)
     {
         var db = ctx.GetDb();
@@ -515,7 +515,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/channels"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var member = ctx.GetMember();
@@ -547,7 +547,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/chatchannels"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var member = ctx.GetMember();
@@ -569,7 +569,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/categories"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var member = ctx.GetMember();
@@ -590,7 +590,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/channelids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var channels = await db.PlanetChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
@@ -600,7 +600,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/chatchannelids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var chatChannels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
@@ -610,7 +610,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/categoryids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
@@ -620,7 +620,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/memberinfo"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, ulong id, int page = 0)
+    public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, long id, int page = 0)
     {
         var db = ctx.GetDb();
 
@@ -645,7 +645,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/roles"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).ToListAsync();
@@ -656,7 +656,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get, "{id}/roleids"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
@@ -668,7 +668,7 @@ public class Planet : Item, ISharedPlanet
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> SetRoleOrderRouteAsync(HttpContext ctx, ulong id, [FromBody] ulong[] order,
+    public static async Task<IResult> SetRoleOrderRouteAsync(HttpContext ctx, long id, [FromBody] long[] order,
         ILogger<Planet> logger)
     {
         var db = ctx.GetDb();
@@ -735,7 +735,7 @@ public class Planet : Item, ISharedPlanet
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> GetInvitesRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetInvitesRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).ToListAsync();
@@ -747,7 +747,7 @@ public class Planet : Item, ISharedPlanet
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> GetInviteIdsRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetInviteIdsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();

@@ -19,7 +19,7 @@ public class PasswordRecovery
     public string Code { get; set; }
 
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     [ForeignKey("UserId")]
     public virtual User User { get; set; }

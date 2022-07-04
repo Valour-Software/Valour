@@ -29,20 +29,20 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public override async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+    public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
         await GetCategoryPermissionsNodeAsync(roleId, force_refresh);
 
 
     /// <summary>
     /// Returns the category permissions node for the given role id
     /// </summary>
-    public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+    public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
         await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetCategoryChannel, force_refresh);
 
     /// <summary>
     /// Returns the category's default channel permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong roleId, bool force_refresh = false) =>
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
         await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, force_refresh);
 
 

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     name VARCHAR(32) NOT NULL,
     time_joined TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     pfp_url TEXT,
+    status TEXT,
     bot BOOLEAN NOT NULL DEFAULT false,
     disabled BOOLEAN NOT NULL DEFAULT false,
     valour_staff BOOLEAN NOT NULL DEFAULT false,

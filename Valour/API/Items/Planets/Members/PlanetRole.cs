@@ -18,7 +18,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     public static PlanetRole VictorRole = new PlanetRole()
     {
         Name = "Victor Class",
-        Id = ulong.MaxValue,
+        Id = long.MaxValue,
         Position = uint.MaxValue,
         PlanetId = 0,
         Red = 255,
@@ -34,12 +34,12 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// <summary>
     /// The ID of the planet or system this role belongs to
     /// </summary>
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
-    public ulong Permissions { get; set; }
+    public long Permissions { get; set; }
 
     /// <summary>
     /// The name of this role
@@ -68,12 +68,12 @@ public class PlanetRole : Item, ISharedPlanetRole
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
-    public static PlanetRole GetDefault(ulong planetId)
+    public static PlanetRole GetDefault(long planetId)
     {
         return new PlanetRole()
         {
             Name = "Default",
-            Id = ulong.MaxValue,
+            Id = long.MaxValue,
             Position = uint.MaxValue,
             PlanetId = planetId,
             Red = 255,

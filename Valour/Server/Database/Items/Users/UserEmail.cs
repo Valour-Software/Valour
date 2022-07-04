@@ -38,6 +38,6 @@ public class UserEmail
     /// The user this email belongs to
     /// </summary>
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 }
 

@@ -26,22 +26,22 @@ public interface ISharedPermissionsNode : ISharedPlanetItem
     /// <summary>
     /// The permission code that this node has set
     /// </summary>
-    public ulong Code { get; set; }
+    public long Code { get; set; }
 
     /// <summary>
     /// A mask used to determine if code bits are disabled
     /// </summary>
-    public ulong Mask { get; set; }
+    public long Mask { get; set; }
 
     /// <summary>
     /// The role this permissions node belongs to
     /// </summary>
-    public ulong RoleId { get; set; }
+    public long RoleId { get; set; }
 
     /// <summary>
     /// The id of the object this node applies to
     /// </summary>
-    public ulong TargetId { get; set; }
+    public long TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to

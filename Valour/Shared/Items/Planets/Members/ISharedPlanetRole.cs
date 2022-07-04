@@ -21,7 +21,7 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
-    ulong Permissions { get; set; }
+    long Permissions { get; set; }
 
     // RGB Components for role color
     byte Red { get; set; }

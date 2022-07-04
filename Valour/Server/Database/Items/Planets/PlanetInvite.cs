@@ -20,7 +20,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     /// The user that created the invite
     /// </summary>
     [Column("issuer_id")]
-    public ulong IssuerId { get; set; }
+    public long IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created
@@ -37,9 +37,9 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     public bool IsPermanent() => TimeExpires is null;
 
 
-    public async Task<TaskResult> IsUserBanned(ulong user_Id, ValourDB db)
+    public async Task<TaskResult> IsUserBanned(long userId, ValourDB db)
     {
-        bool banned = await db.PlanetBans.AnyAsync(x => x.TargetId == user_Id && x.PlanetId == this.PlanetId);
+        bool banned = await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == this.PlanetId);
         if (banned)
             return new TaskResult(false, "User is banned from the planet");
 
@@ -100,7 +100,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetInvite invite,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetInvite invite,
         ILogger<PlanetInvite> logger)
     {
         var db = ctx.GetDb();
@@ -137,7 +137,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<PlanetInvite> logger)
     {
         var db = ctx.GetDb();
@@ -217,7 +217,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
         if (invite == null)
             return ValourResult.NotFound<PlanetInvite>();
 
-        ulong userId = ctx.GetToken().UserId;
+        long userId = ctx.GetToken().UserId;
 
         if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == invite.PlanetId))
             return Results.BadRequest("User is banned from the planet");

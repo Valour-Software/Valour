@@ -112,10 +112,10 @@
         }
 
 
-        ulong userId = ValourClient.Self.Id;
+        long userId = ValourClient.Self.Id;
 
-        ulong parentId = Parent.Id;
-        ulong planetId = Planet.Id;
+        long parentId = Parent.Id;
+        long planetId = Planet.Id;
 
         PlanetChatChannel newChannel = new()
         {
@@ -125,7 +125,7 @@
             ParentId = parentId
         };
 
-        var result = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet/{planetId}/channels", newChannel);
+        var result = await ValourClient.PostAsyncWithResponse<long>($"api/planet/{planetId}/channels", newChannel);
 
         if (!result.Success)
         {
@@ -135,7 +135,7 @@
             return;
         }
 
-        ulong channelId = result.Data;
+        long channelId = result.Data;
 
         imageSpan = "Success.";
 

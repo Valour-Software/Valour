@@ -20,7 +20,7 @@ public interface ISharedPlanetMember : ISharedPlanetItem
     /// <summary>
     /// The user within the planet
     /// </summary>
-    ulong UserId { get; set; }
+    long UserId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet

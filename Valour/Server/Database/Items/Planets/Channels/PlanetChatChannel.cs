@@ -21,7 +21,7 @@ namespace Valour.Server.Database.Items.Planets.Channels;
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
     [Column("message_count")]
-    public ulong MessageCount { get; set; }
+    public long MessageCount { get; set; }
 
     /// <summary>
     /// The regex used for name validation
@@ -136,13 +136,13 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
-    public static IResult GetRoute(HttpContext ctx, ulong id) =>
+    public static IResult GetRoute(HttpContext ctx, long id) =>
         Results.Json(ctx.GetItem<PlanetChatChannel>(id));
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planetId, [FromBody] PlanetChatChannel channel,
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -193,7 +193,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
      ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -241,7 +241,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
      ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planetId,
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
         ILogger<PlanetChatChannel> logger)
     {
         var db = ctx.GetDb();
@@ -271,7 +271,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
-    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, ulong id, ulong memberId, ulong value)
+    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, long id, long memberId, long value)
     {
         var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
@@ -291,7 +291,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, ulong id, ulong index = ulong.MaxValue, int count = 10)
+    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, long index = long.MaxValue, int count = 10)
     {
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
@@ -367,7 +367,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, ulong id, ulong message_id,
+    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, long id, long message_id,
         ILogger<PlanetChatChannel> logger)
     {
         var db = ctx.GetDb();

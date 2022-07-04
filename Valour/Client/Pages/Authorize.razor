@@ -72,7 +72,7 @@
     [Parameter]
     [SupplyParameterFromQuery(Name = "client_id")]
     public string client_id { get; set; }
-    public ulong u_client_id;
+    public long u_client_id;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "redirect_uri")]
@@ -81,7 +81,7 @@
     [Parameter]
     [SupplyParameterFromQuery(Name = "scope")]
     public string scope { get; set; }
-    public ulong u_scope;
+    public long u_scope;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "state")]
@@ -123,7 +123,7 @@
             return;
         }
 
-        bool suc_0 = ulong.TryParse(scope, out u_scope);
+        bool suc_0 = long.TryParse(scope, out u_scope);
 
         if (!suc_0){
             isError = true;

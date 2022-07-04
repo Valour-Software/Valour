@@ -109,13 +109,13 @@
             return;
         }
 
-        ulong planetId = Planet.Id;
-        ulong? parentId = null;
+        long planetId = Planet.Id;
+        long? parentId = null;
         
         if (Parent != null)
             parentId = Parent.Id;
         
-        ulong userId = ValourClient.Self.Id;
+        long userId = ValourClient.Self.Id;
         //string token = ValourClient.Token;
 
         PlanetCategoryChannel category = new(){
@@ -133,7 +133,7 @@
             return;
         }
 
-        ulong categoryId = ulong.Parse(response.Message);
+        long categoryId = long.Parse(response.Message);
 
         imageSpan = "Success";
 

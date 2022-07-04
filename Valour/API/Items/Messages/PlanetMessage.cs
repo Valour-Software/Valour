@@ -24,17 +24,17 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     /// <summary>
     /// The Id of the planet this message belongs to
     /// </summary>
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// The user's ID
     /// </summary>
-    public ulong AuthorId { get; set; }
+    public long AuthorId { get; set; }
 
     /// <summary>
     /// The member's ID
     /// </summary>
-    public ulong MemberId { get; set; }
+    public long MemberId { get; set; }
 
     /// <summary>
     /// String representation of message
@@ -49,12 +49,12 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     /// <summary>
     /// Id of the channel this message belonged to
     /// </summary>
-    public ulong ChannelId { get; set; }
+    public long ChannelId { get; set; }
 
     /// <summary>
     /// Index of the message
     /// </summary>
-    public ulong MessageIndex { get; set; }
+    public long MessageIndex { get; set; }
 
     /// <summary>
     /// Data for representing an embed
@@ -162,7 +162,7 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     }
 
     // Makes PlanetMessage meant to be sent to valour from the client
-    public PlanetMessage(string text, ulong self_memberId, ulong channelId, ulong planetId)
+    public PlanetMessage(string text, long self_memberId, long channelId, long planetId)
     {
         ChannelId = channelId;
         Content = text;

@@ -20,13 +20,13 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     /// The member that banned the user
     /// </summary>
     [Column("issuer_id")]
-    public ulong IssuerId { get; set; }
+    public long IssuerId { get; set; }
 
     /// <summary>
     /// The userId of the target that was banned
     /// </summary>
     [Column("target_id")]
-    public ulong TargetId { get; set; }
+    public long TargetId { get; set; }
 
     /// <summary>
     /// The reason for the ban
@@ -57,7 +57,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
-    public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRoute(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var ban = await FindAsync<PlanetBan>(id, db);
@@ -78,7 +78,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PostRoute(HttpContext ctx, ulong planetId, [FromBody] PlanetBan ban,
+    public static async Task<IResult> PostRoute(HttpContext ctx, long planetId, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDb();
@@ -140,7 +140,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PutRoute(HttpContext ctx, ulong id, ulong planetId, [FromBody] PlanetBan ban,
+    public static async Task<IResult> PutRoute(HttpContext ctx, long id, long planetId, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDb();
@@ -185,7 +185,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> DeleteRoute(HttpContext ctx, ulong id, ulong planetId,
+    public static async Task<IResult> DeleteRoute(HttpContext ctx, long id, long planetId,
         ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDb();

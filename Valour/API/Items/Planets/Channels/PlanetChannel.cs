@@ -9,13 +9,13 @@ namespace Valour.Api.Items.Planets.Channels;
 public abstract class PlanetChannel : Item
 {
     public int Position { get; set; }
-    public ulong? ParentId { get; set; }
-    public ulong PlanetId { get; set; }
+    public long? ParentId { get; set; }
+    public long PlanetId { get; set; }
     public string Name { get; set; }
     public string Description { get; set; }
 
     public abstract string GetHumanReadableName();
     public abstract Task<Planet> GetPlanetAsync(bool refresh = false);
-    public abstract Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool force_refresh = false);
+    public abstract Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool force_refresh = false);
 }
 

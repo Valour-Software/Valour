@@ -37,7 +37,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// The user within the planet
     /// </summary>
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet
@@ -51,7 +51,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     [Column("member_pfp")]
     public string MemberPfp { get; set; }
 
-    public static async Task<PlanetMember> FindAsync(ulong userId, ulong planetId, ValourDB db)
+    public static async Task<PlanetMember> FindAsync(long userId, long planetId, ValourDB db)
     {
         return await db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId &&
                                                                   x.UserId == userId);
@@ -197,7 +197,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRoute(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var member = await FindAsync<PlanetMember>(id, db);
@@ -210,7 +210,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRoute(HttpContext ctx, ulong planetId, ulong userId)
+    public static async Task<IResult> GetRoute(HttpContext ctx, long planetId, long userId)
     {
         var db = ctx.GetDb();
         var member = await FindAsync(userId, planetId, db);
@@ -222,7 +222,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planetId, string inviteCode, [FromBody] PlanetMember member,
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, string inviteCode, [FromBody] PlanetMember member,
         ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDb();
@@ -273,7 +273,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, ulong planetId, [FromBody] PlanetMember member,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] PlanetMember member,
         ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDb();
@@ -316,7 +316,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDb();
@@ -365,7 +365,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetAllRolesForMember(HttpContext ctx, ulong id, ulong planetId)
+    public static async Task<IResult> GetAllRolesForMember(HttpContext ctx, long id, long planetId)
     {
         var db = ctx.GetDb();
 
@@ -380,7 +380,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Post, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> AddRoleToMember(HttpContext ctx, ulong id, ulong planetId, ulong roleId,
+    public static async Task<IResult> AddRoleToMember(HttpContext ctx, long id, long planetId, long roleId,
         ILogger<PlanetMember> logger)
     {
         var db = ctx.GetDb();
@@ -434,7 +434,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, ulong planetId, ulong roleId, [FromHeader] string authorization,
+    public static async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, long planetId, long roleId, [FromHeader] string authorization,
         ILogger<PlanetMember> logger)
     {
 

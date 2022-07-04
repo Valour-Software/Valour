@@ -48,7 +48,7 @@ public static class ValourClient
     /// <summary>
     /// The IDs of the client's joined planets
     /// </summary>
-    private static List<ulong> _joinedPlanetIds;
+    private static List<long> _joinedPlanetIds;
 
     /// <summary>
     /// The HttpClient to be used for connections
@@ -143,10 +143,10 @@ public static class ValourClient
 
         // Add victor dummy member
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        ValourCache.Put(ulong.MaxValue, new PlanetMember()
+        ValourCache.Put(long.MaxValue, new PlanetMember()
         {
             Nickname = "Victor",
-            Id = ulong.MaxValue,
+            Id = long.MaxValue,
             MemberPfp = "/media/victor-cyan.png"
         });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -173,7 +173,7 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static async Task<PlanetMember> GetSelfMember(ulong planetId, bool force_refresh = false) =>
+    public static async Task<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
         await PlanetMember.FindAsync(planetId, Self.Id, force_refresh);
 
     /// <summary>
@@ -475,26 +475,28 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<string>> GetToken(string email, string password)
     {
-        TokenRequest content = new()
+        TokenRequest request = new()
         {
             Email = email,
             Password = password
         };
 
-        var response = await Http.PostAsJsonAsync($"api/user/requesttoken", content);
+        var response = await PostAsyncWithResponse<AuthToken>($"api/user/token", request);
 
-        var message = await response.Content.ReadAsStringAsync();
+        var token = response.Data.Id;
 
-        if (!response.IsSuccessStatusCode)
+        Console.WriteLine(token);
+
+        if (!response.Success)
         {
             Console.WriteLine("Failed to request user token.");
-            Console.WriteLine(message);
-            return new TaskResult<string>(false, $"Failed to request user. Error code {response.StatusCode}", message);
+            Console.WriteLine(response.Message);
+            return new TaskResult<string>(false, $"Failed to request user.", response.Message);
         }
 
-        _token = message;
+        _token = token;
 
-        return new TaskResult<string>(true, "Success", message);
+        return new TaskResult<string>(true, "Success", token);
     }
 
     /// <summary>
@@ -502,19 +504,19 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<User>> InitializeUser(string token)
     {
-        var response = await PostAsyncWithResponse<User>($"api/user/withtoken", token);
-
-        if (!response.Success)
-            return response;
-
-        // Set reference to self user
-        Self = response.Data;
-
-        // Store token that worked successfully
+        // Store token 
         _token = token;
 
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
+
+        var response = await GetJsonAsync<User>($"api/user/self");
+
+        if (response is null)
+            return new TaskResult<User>(false, "Failed to get user.");
+
+        // Set reference to self user
+        Self = response;
 
         Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
@@ -615,7 +617,7 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var planetIds = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planetIds");
+        var planetIds = await GetJsonAsync<List<long>>($"api/user/{Self.Id}/planetIds");
 
         if (planetIds is null)
             return;

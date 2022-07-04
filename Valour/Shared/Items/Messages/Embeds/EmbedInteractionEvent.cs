@@ -17,19 +17,19 @@ public class EmbedInteractionEvent
     public string Element_Id { get; set; }
 
     [JsonPropertyName("PlanetId")]
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     [JsonPropertyName("Message_Id")]
-    public ulong Message_Id { get; set; }
+    public long Message_Id { get; set; }
 
     [JsonPropertyName("Author_MemberId")]
-    public ulong Author_MemberId { get; set; }
+    public long Author_MemberId { get; set; }
 
     [JsonPropertyName("MemberId")]
-    public ulong MemberId { get; set; }
+    public long MemberId { get; set; }
 
     [JsonPropertyName("ChannelId")]
-    public ulong ChannelId { get; set; }
+    public long ChannelId { get; set; }
 
     [JsonPropertyName("Time_Interacted")]
     public DateTime Time_Interacted { get; set; }

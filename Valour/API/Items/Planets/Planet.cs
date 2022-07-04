@@ -25,7 +25,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
-    public ulong OwnerId { get; set; }
+    public long OwnerId { get; set; }
 
     /// <summary>
     /// The name of this planet
@@ -50,17 +50,17 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    public ulong DefaultRoleId { get; set; }
+    public long DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    public ulong PrimaryChannelId { get; set; }
+    public long PrimaryChannelId { get; set; }
 
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async Task<Planet> FindAsync(ulong id, bool refresh = false) =>
+    public static async Task<Planet> FindAsync(long id, bool refresh = false) =>
         await FindAsync(id, refresh);
 
 
@@ -306,7 +306,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async Task<PlanetMember> GetMemberAsync(ulong userId, bool force_refresh = false)
+    public async Task<PlanetMember> GetMemberAsync(long userId, bool force_refresh = false)
     {
         return await PlanetMember.FindAsync(Id, userId, force_refresh);
     }

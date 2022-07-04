@@ -19,7 +19,7 @@ public class OauthApp : ISharedOauthApp
 
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id {get; set; }
 
     /// <summary>
     /// The secret key for the app
@@ -31,7 +31,7 @@ public class OauthApp : ISharedOauthApp
     /// The ID of the user that created this app
     /// </summary>
     [Column("owner_id")]
-    public ulong OwnerId { get; set; }
+    public long OwnerId { get; set; }
 
     /// <summary>
     /// The amount of times this app has been used

@@ -18,17 +18,17 @@ public interface ISharedAuthToken
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
-    string App_Id { get; set; }
+    string AppId { get; set; }
 
     /// <summary>
     /// The user that this token is valid for
     /// </summary>
-    ulong UserId { get; set; }
+    long UserId { get; set; }
 
     /// <summary>
     /// The scope of the permissions this token is valid for
     /// </summary>
-    ulong Scope { get; set; }
+    long Scope { get; set; }
 
     /// <summary>
     /// The time that this token was issued

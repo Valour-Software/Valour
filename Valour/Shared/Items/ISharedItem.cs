@@ -7,7 +7,7 @@ namespace Valour.Shared.Items;
 
 public interface ISharedItem
 {
-    ulong Id { get; set; }
+    long Id { get; set; }
     string Node { get; }
 }
 

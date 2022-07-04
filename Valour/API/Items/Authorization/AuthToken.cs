@@ -10,17 +10,17 @@ public class AuthToken : ISharedAuthToken
     /// <summary>
     /// The ID of the app that has been issued this token
     /// </summary>
-    public string App_Id { get; set; }
+    public string AppId { get; set; }
 
     /// <summary>
     /// The user that this token is valid for
     /// </summary>
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// The scope of the permissions this token is valid for
     /// </summary>
-    public ulong Scope { get; set; }
+    public long Scope { get; set; }
 
     /// <summary>
     /// The time that this token was issued

@@ -18,7 +18,7 @@ public abstract class Item : ISharedItem
 
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id { get; set; }
 
     /// <summary>
     /// This is the node that returned the API item.

@@ -18,13 +18,13 @@ public class NotificationSubscription : ISharedNotificationSubscription
 
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id {get; set; }
 
     /// <summary>
     /// The Id of the user this subscription is for
     /// </summary>
     [Column("user_id")]
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
 
     [Column("endpoint")]
     public string Endpoint { get; set; }

@@ -20,7 +20,7 @@ public class StatObject
     /// </summary>
     [Key]
     [Column("id")]
-    public ulong Id { get; set; }
+    public long Id {get; set; }
 
     [Column("messages_sent")]
     public int MessagesSent { get; set; }

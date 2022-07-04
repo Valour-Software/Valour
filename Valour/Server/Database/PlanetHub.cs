@@ -22,7 +22,7 @@ namespace Valour.Server.Database
         //public async Task JoinChannel()
 
         public static IHubContext<PlanetHub> Current;
-        public async Task JoinPlanet(ulong planetId, string token)
+        public async Task JoinPlanet(long planetId, string token)
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
@@ -46,22 +46,22 @@ namespace Valour.Server.Database
             await Groups.AddToGroupAsync(Context.ConnectionId, $"p-{planetId}");
         }
 
-        public async Task LeavePlanet(ulong planetId) =>
+        public async Task LeavePlanet(long planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"p-{planetId}");
 
 
-        public async Task JoinChannel(ulong channelId, string token)
+        public async Task JoinChannel(long channelId, string token)
         {
 
             // TODO: Check if user has permission to view channel
             await Groups.AddToGroupAsync(Context.ConnectionId, $"c-{channelId}");
         }
 
-        public async Task LeaveChannel(ulong channelId) =>
+        public async Task LeaveChannel(long channelId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channelId}");
 
 
-        public async Task JoinInteractionGroup(ulong planetId, string token)
+        public async Task JoinInteractionGroup(long planetId, string token)
         {
             using (ValourDB Context = new(ValourDB.DBOptions))
             {
@@ -97,7 +97,7 @@ namespace Valour.Server.Database
         public static async void NotifyPlanetDelete(Planet item) =>
             await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Delete", item);
 
-        public async Task LeaveInteractionGroup(ulong planetId) =>
+        public async Task LeaveInteractionGroup(long planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
 
         public static async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>

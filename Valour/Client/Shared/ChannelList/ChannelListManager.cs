@@ -159,7 +159,7 @@ namespace Valour.Client.Shared.ChannelList
             currentDragItem.ParentId = target.ParentCategory.Category.Id;
 
             TaskResult response;
-            List<ulong> orderData = null;
+            List<long> orderData = null;
 
             // Categories are not the same
             //if (currentDragParentCategory.Category.Id !=
@@ -168,7 +168,7 @@ namespace Valour.Client.Shared.ChannelList
                 // Update the target's category
 
                 // Create order data
-                orderData = new List<ulong>();
+                orderData = new List<long>();
 
                 ushort pos = 0;
 

@@ -5,12 +5,12 @@ namespace Valour.Api.Items.Notifications;
 
 public class NotificationSubscription : ISharedNotificationSubscription
 {
-    public ulong Id { get; set; }
+    public long Id {get; set; }
 
     /// <summary>
     /// The Id of the user this subscription is for
     /// </summary>
-    public ulong UserId { get; set; }
+    public long UserId { get; set; }
     public string Endpoint { get; set; }
     public string Not_Key { get; set; }
     public string Auth { get; set; }

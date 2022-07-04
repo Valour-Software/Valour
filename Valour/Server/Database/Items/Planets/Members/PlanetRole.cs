@@ -32,7 +32,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     /// The planet permissions for the role
     /// </summary>
     [Column("permissions")]
-    public ulong Permissions { get; set; }
+    public long Permissions { get; set; }
 
     // RGB Components for role color
     [Column("red")]
@@ -99,7 +99,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel, ValourDB db) =>
         await GetPermissionStateAsync(permission, channel.Id, db);
 
-    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channelId, ValourDB db) =>
+    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, ValourDB db) =>
         (await db.PermissionsNodes.FirstOrDefaultAsync(x => x.RoleId == Id && x.TargetId == channelId)).GetPermissionState(permission);
 
     public async Task DeleteAsync(ValourDB db)
@@ -120,7 +120,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
 
@@ -169,7 +169,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetRole role,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
         var db = ctx.GetDb();
@@ -203,7 +203,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired]
     [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<PlanetRole> logger)
     {
         var db = ctx.GetDb();

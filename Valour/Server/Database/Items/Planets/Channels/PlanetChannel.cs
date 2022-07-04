@@ -25,7 +25,7 @@ public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
     public string Description { get; set; }
 
     [Column("parent_id")]
-    public ulong? ParentId { get; set; }
+    public long? ParentId { get; set; }
 
     [Column("inherits_perms")]
     public bool InheritsPerms { get; set; }
