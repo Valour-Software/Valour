@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : Item, ISharedPlanetMember
+public class PlanetMember : PlanetItem, ISharedPlanetMember
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
 
@@ -24,11 +24,6 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// The user within the planet
     /// </summary>
     public long UserId { get; set; }
-
-    /// <summary>
-    /// The planet the user is within
-    /// </summary>
-    public long PlanetId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet
@@ -75,7 +70,7 @@ public class PlanetMember : Item, ISharedPlanetMember
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/member/{planetId}/{userId}");
+        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/planet/{planetId}/planetmember/byuser/{userId}");
 
         if (member is not null)
         {
@@ -133,12 +128,6 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// </summary>
     public async Task<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
         await HasRoleAsync(role.Id, force_refresh);
-
-    /// <summary>
-    /// Returns the planet of the member
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync() =>
-        await Planet.FindAsync(PlanetId);
     
     /// <summary>
     /// Returns the authority of the member
@@ -149,10 +138,10 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// <summary>
     /// Loads all role Ids from the server
     /// </summary>
-    public async Task LoadRolesAsync(List<ulong> roleIds = null)
+    public async Task LoadRolesAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
-            roleIds = await ValourClient.GetJsonAsync<List<ulong>>($"api/member/{Id}/roleIds");
+            roleIds = await ValourClient.GetJsonAsync<List<long>>($"api/member/{Id}/roleIds");
 
         if (Roles is null)
             Roles = new List<PlanetRole>();
@@ -174,7 +163,7 @@ public class PlanetMember : Item, ISharedPlanetMember
     /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
     /// It will NOT change anything on the server.
     /// </summary>
-    public async Task SetLocalRoleIds(List<ulong> ids) =>
+    public async Task SetLocalRoleIds(List<long> ids) =>
         await LoadRolesAsync(ids);
 
     /// <summary>

@@ -42,9 +42,11 @@ public abstract class Item : ISharedItem
         where T : Item =>
         await db.Set<T>().ToListAsync();
 
+    [JsonIgnore]
     public virtual string IdRoute =>
         $"{BaseRoute}/{{Id}}";
 
+    [JsonIgnore]
     public virtual string BaseRoute =>
         $"/api/{GetType().Name}";
 

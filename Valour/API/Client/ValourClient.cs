@@ -188,7 +188,7 @@ public static class ValourClient
     {
         StringContent content = new(JsonSerializer.Serialize(message));
 
-        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{message.ChannelId}/messages", content);
+        HttpResponseMessage httpresponse = await Http.PostAsync($"api/planet/{message.PlanetId}/{nameof(PlanetChatChannel)}/{message.ChannelId}/messages", content);
 
         string res = await httpresponse.Content.ReadAsStringAsync();
 

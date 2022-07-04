@@ -8,8 +8,14 @@ namespace Valour.Api.Items.Planets.Members;
 /// </summary>
 public class PlanetMemberInfo
 {
+    public int TotalCount { get; set; }
+    public PlanetMemberData[] Members { get; set; }
+}
+
+public class PlanetMemberData
+{
     public PlanetMember Member { get; set; }
-    public List<ulong> RoleIds { get; set; }
+    public List<long> RoleIds { get; set; }
     public User User { get; set; }
 }
 

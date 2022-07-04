@@ -646,7 +646,7 @@ public class Planet : Item, ISharedPlanet
             .Take(100)
             .ToListAsync();
 
-        return Results.Json((members: roleInfo, totalCount: totalCount));
+        return Results.Json(new { members = roleInfo, totalCount = totalCount });
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDb]

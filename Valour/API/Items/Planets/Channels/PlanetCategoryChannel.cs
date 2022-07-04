@@ -20,13 +20,6 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public override string GetHumanReadableName() => "Category";
 
     /// <summary>
-    /// Returns the planet of this category
-    /// </summary>
-
-    public override async Task<Planet> GetPlanetAsync(bool refresh = false) =>
-        await Planet.FindAsync(PlanetId, refresh);
-
-    /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
     public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool force_refresh = false) =>

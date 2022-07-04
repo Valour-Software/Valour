@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : Item, ISharedPlanetRole
+public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     // Coolest role on this damn platform.
     // Fight me.
@@ -30,11 +30,6 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     public int Position { get; set; }
-
-    /// <summary>
-    /// The ID of the planet or system this role belongs to
-    /// </summary>
-    public long PlanetId { get; set; }
 
     /// <summary>
     /// The planet permissions for the role

@@ -36,12 +36,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public override string GetHumanReadableName() => "Chat Channel";
 
     /// <summary>
-    /// Returns the planet this channel belongs to
-    /// </summary>
-    public override async Task<Planet> GetPlanetAsync(bool refresh = false) => 
-        await Planet.FindAsync(PlanetId, refresh);
-
-    /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
     public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool refresh = false) =>

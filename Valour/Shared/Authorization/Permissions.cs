@@ -167,7 +167,8 @@ public static class UserPermissions
                 View,
                 Membership,
                 Invites,
-                PlanetManagement
+                PlanetManagement,
+                Messages
         };
     }
 
@@ -182,6 +183,7 @@ public static class UserPermissions
     public static readonly UserPermission Membership = new UserPermission(0x04, "Membership", "Allows this app to view the planets you are a member of.");
     public static readonly UserPermission Invites = new UserPermission(0x08, "Invites", "Allows this app to view the planets you are invited to.");
     public static readonly UserPermission PlanetManagement = new UserPermission(0x10, "Planet Management", "Allows this app to manage your planets.");
+    public static readonly UserPermission Messages = new UserPermission(0x20, "Messages", "Allows this app to send and receive messages.");
 }
 
 public enum ChatChannelPermissionsEnum

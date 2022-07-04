@@ -291,7 +291,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, long index = long.MaxValue, int count = 10)
+    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, [FromQuery] long index = long.MaxValue, [FromQuery] int count = 10)
     {
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
@@ -363,7 +363,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]

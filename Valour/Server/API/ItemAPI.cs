@@ -149,7 +149,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
                                 throw new Exception($"Could not bind route value for '{routeId}'");
 
-                            var routeVal = (long)ctx.HttpContext.Request.RouteValues[routeId];
+                            var routeVal = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeId]);
 
                             var db = ctx.HttpContext.GetDb();
                             if (db is null)
@@ -184,7 +184,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
                                 throw new Exception($"Could not bind route value for '{routeId}'");
 
-                            var routeVal = (long)ctx.HttpContext.Request.RouteValues[routeId];
+                            var routeVal = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeId]);
 
                             var db = ctx.HttpContext.GetDb();
                             if (db is null)
@@ -220,7 +220,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
                                 throw new Exception($"Could not bind route value for '{routeName}'");
 
-                            var categoryId = (long)ctx.HttpContext.Request.RouteValues[routeName];
+                            var categoryId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
 
                             var category = await db.PlanetCategoryChannels.FindAsync(categoryId);
 
@@ -260,7 +260,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
                                 throw new Exception($"Could not bind route value for '{routeName}'");
 
-                            var channelId = (long)ctx.HttpContext.Request.RouteValues[routeName];
+                            var channelId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
 
                             var channel = await db.PlanetChatChannels.FindAsync(channelId);
 

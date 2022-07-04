@@ -61,8 +61,13 @@ public class Planet : Item, ISharedPlanet
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
     public static async Task<Planet> FindAsync(long id, bool refresh = false) =>
-        await FindAsync(id, refresh);
+        await Item.FindAsync<Planet>(id, refresh);
 
+    /// <summary>
+    /// Returns a planet item that belongs to this planet
+    /// </summary>
+    public async Task<T> FindPlanetItemAsync<T>(object id, bool refresh = false) where T : Item, ISharedPlanetItem
+        => await PlanetItem.FindAsync<T>(id, Id, refresh);
 
     /// <summary>
     /// Returns the primary channel of the planet
@@ -72,7 +77,7 @@ public class Planet : Item, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await FindAsync<PlanetChatChannel>(Id, refresh);
+        return await FindPlanetItemAsync<PlanetChatChannel>(PrimaryChannelId, refresh);
     }
 
     /// <summary>
@@ -140,7 +145,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/channels");
+        var channels = await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels");
 
         if (channels is null)
             return;
@@ -188,14 +193,14 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadMemberDataAsync()
     {
-        var result = await ValourClient.GetJsonAsync<List<PlanetMemberInfo>>($"{IdRoute}/memberinfo");
+        var result = await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo");
 
         if (Members is null)
             Members = new List<PlanetMember>();
         else
             Members.Clear();
 
-        foreach (var info in result)
+        foreach (var info in result.Members)
         {
             // Set role id data manually
             await info.Member.SetLocalRoleIds(info.RoleIds);
@@ -207,7 +212,7 @@ public class Planet : Item, ISharedPlanet
             await ValourCache.Put(info.Member.UserId, info.User, true);
         }
 
-        foreach (var info in result)
+        foreach (var info in result.Members)
         {
             var member = ValourCache.Get<PlanetMember>(info.Member.Id);
 
@@ -294,7 +299,7 @@ public class Planet : Item, ISharedPlanet
 
         foreach (var role in roles)
         {
-            var cRole = await FindAsync<PlanetRole>(role.Id);
+            var cRole = await PlanetItem.FindAsync<PlanetRole>(role.Id, Id);
 
             if (cRole is not null)
                 Roles.Add(cRole);
