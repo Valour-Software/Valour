@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
@@ -212,7 +213,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Adds a member to the server
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db)
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db, bool doTransaction = true)
     {
         // Already a member
         if (await db.PlanetMembers.AnyAsync(x => x.UserId == user.Id && x.PlanetId == Id))
@@ -238,7 +239,11 @@ public class Planet : Item, ISharedPlanet
             MemberId = member.Id
         };
 
-        var trans = await db.Database.BeginTransactionAsync();
+
+        IDbContextTransaction trans = null;
+
+        if (doTransaction)
+            trans = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -252,7 +257,8 @@ public class Planet : Item, ISharedPlanet
             return new TaskResult<PlanetMember>(false, e.Message);
         }
 
-        await trans.CommitAsync();
+        if (doTransaction)
+            await trans.CommitAsync();
 
         Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
 
@@ -361,7 +367,7 @@ public class Planet : Item, ISharedPlanet
 
             await db.SaveChangesAsync();
 
-            await planet.AddMemberAsync(user, db);
+            await planet.AddMemberAsync(user, db, false);
         }
         catch (System.Exception e)
         {
