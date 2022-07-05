@@ -77,5 +77,24 @@ public class User : Item, ISharedUser
 
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
         await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
+
+    public static async Task<User> FindAsync(long id, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<User>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<User>($"api/{nameof(User)}/{id}");
+
+        if (item is not null)
+        {
+            await ValourCache.Put(id, item);
+        }
+
+        return item;
+    }
 }
 

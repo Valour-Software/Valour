@@ -673,8 +673,7 @@ public class Planet : Item, ISharedPlanet
 
     [ValourRoute(HttpVerbs.Post, "/{id}/roleorder")]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired("id")]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    [PlanetMembershipRequired("id", PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> SetRoleOrderRouteAsync(HttpContext ctx, long id, [FromBody] long[] order,
         ILogger<Planet> logger)
     {
@@ -740,8 +739,7 @@ public class Planet : Item, ISharedPlanet
 
     [ValourRoute(HttpVerbs.Get, "/{id}/invites")]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
-    [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
+    [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> GetInvitesRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
@@ -752,8 +750,7 @@ public class Planet : Item, ISharedPlanet
 
     [ValourRoute(HttpVerbs.Get, "/{id}/inviteids")]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
-    [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
+    [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> GetInviteIdsRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();

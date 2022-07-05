@@ -71,6 +71,9 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
         await FindAsync(channel.Id, role.Id, targetType);
 
+    public override string IdRoute => $"{BaseRoute}/{TargetId}/{RoleId}";
+    public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
+
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>

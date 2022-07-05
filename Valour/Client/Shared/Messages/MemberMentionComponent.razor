@@ -59,7 +59,7 @@
 
     public async Task Build()
     {
-        Member = await PlanetMember.FindAsync(Mention.TargetId);
+        Member = await PlanetMember.FindAsync(Mention.TargetId, Mention.PlanetId);
 
         if (Member != null)
         {

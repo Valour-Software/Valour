@@ -102,8 +102,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PermissionsNode node,
         ILogger<PermissionsNode> logger)
     {
@@ -145,9 +144,8 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long id, [FromBody] PermissionsNode node,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PermissionsNode node,
         ILogger<PermissionsNode> logger)
     {
         var db = ctx.GetDb();

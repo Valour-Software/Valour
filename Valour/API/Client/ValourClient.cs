@@ -179,7 +179,7 @@ public static class ValourClient
     /// Returns the member for this client's user given a planet id
     /// </summary>
     public static async Task<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
-        await PlanetMember.FindAsync(planetId, Self.Id, force_refresh);
+        await PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
 
     /// <summary>
     /// Sends a message

@@ -135,42 +135,7 @@ public class ItemAPI<T> where T : Item
                         });
                     }
 
-                    var planetAttr = (PlanetPermsRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetPermsRequiredAttribute);
-                    if (planetAttr is not null)
-                    {
-                        builder.AddFilter(async (ctx, next) =>
-                        {
-                            var member = ctx.HttpContext.GetMember();
-                            if (member is null)
-                                throw new Exception("PlanetPermsRequiredAttribute attribute requires a PlanetMembershipRequired attribute.");
-
-                            var routeId = planetAttr.planetRouteName;
-
-                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
-                                throw new Exception($"Could not bind route value for '{routeId}'");
-
-                            var routeVal = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeId]);
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("PlanetPermsRequired attribute requires InjectDB attribute");
-
-                            var planet = await db.Planets.FirstOrDefaultAsync(x => x.Id == routeVal);
-
-                            foreach (var permEnum in planetAttr.permissions)
-                            {
-                                var perm = PlanetPermissions.Permissions[(int)permEnum];
-                                if (!await planet.HasPermissionAsync(member, perm, db))
-                                    return ValourResult.LacksPermission(perm);
-                            }
-
-                            ctx.HttpContext.Items.Add(planet.Id, planet);
-
-                            return await next(ctx);
-                        });
-                    }
-
-                    var memberAttr = attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
+                    var memberAttr = (PlanetMembershipRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
                     if (memberAttr is not null)
                     {
                         builder.AddFilter(async (ctx, next) =>
@@ -179,7 +144,7 @@ public class ItemAPI<T> where T : Item
                             if (token is null)
                                 throw new Exception("PlanetMembershipRequired attribute requires a TokenRequired attribute.");
 
-                            var routeId = ((PlanetMembershipRequiredAttribute)memberAttr).planetRouteName;
+                            var routeId = memberAttr.planetRouteName;
 
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
                                 throw new Exception($"Could not bind route value for '{routeId}'");
@@ -190,11 +155,19 @@ public class ItemAPI<T> where T : Item
                             if (db is null)
                                 throw new Exception("PlanetMembershipRequired attribute requires InjectDB attribute");
 
-                            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
+                            var member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
                             if (member is null)
                                 return ValourResult.NotPlanetMember();
 
+                            foreach (var permEnum in memberAttr.permissions)
+                            {
+                                var perm = PlanetPermissions.Permissions[(int)permEnum];
+                                if (!await member.Planet.HasPermissionAsync(member, perm, db))
+                                    return ValourResult.LacksPermission(perm);
+                            }
+
                             ctx.HttpContext.Items.Add("member", member);
+                            ctx.HttpContext.Items.Add(routeVal, member.Planet);
 
                             return await next(ctx);
                         });

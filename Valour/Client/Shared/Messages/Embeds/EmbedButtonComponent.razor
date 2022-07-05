@@ -28,7 +28,7 @@
     public async Task OnEmbedButtonClick()
     {
 
-        PlanetMember SelfMember = await PlanetMember.FindAsync(Message.BaseMessage.PlanetId, ValourClient.Self.Id);
+        PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.BaseMessage.PlanetId);
 
             Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent()
         {

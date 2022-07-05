@@ -104,7 +104,7 @@
 
         await ValourClient.OpenChannel(Channel);
 
-        SelfMember = await PlanetMember.FindAsync(Channel.PlanetId, ValourClient.Self.Id);
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
@@ -199,7 +199,7 @@
 
         MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
 
-        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id);
+        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)

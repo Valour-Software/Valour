@@ -77,7 +77,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
     public static async Task<IResult> PostRoute(HttpContext ctx, long planetId, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
@@ -139,7 +139,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
     public static async Task<IResult> PutRoute(HttpContext ctx, long id, long planetId, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
@@ -184,7 +184,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
     public static async Task<IResult> DeleteRoute(HttpContext ctx, long id, long planetId,
         ILogger<PlanetBan> logger)
     {

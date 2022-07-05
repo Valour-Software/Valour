@@ -51,9 +51,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
     /// </summary>
-    public async Task<PermissionsNode> GetMemberPermissionsAsync(long memberId, bool force_refresh = false)
+    public async Task<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
     {
-        var member = await PlanetMember.FindAsync(memberId);
+        var member = await PlanetMember.FindAsync(memberId, planetId);
         var roles = await member.GetRolesAsync();
 
         // Start with no permissions
@@ -103,7 +103,27 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         }
 
         return dummy_node;
-    } 
+    }
+
+    /// <summary>
+    /// Returns the item for the given id
+    /// </summary>
+    public static async Task<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
+    {
+        if (!refresh)
+        {
+            var cached = ValourCache.Get<PlanetChatChannel>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<PlanetChatChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{id}");
+
+        if (item is not null)
+            await ValourCache.Put(id, item);
+
+        return item;
+    }
 
     public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
         await ValourClient.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}");

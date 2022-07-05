@@ -216,7 +216,8 @@ public class ClientPlanetMessage
                             TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
-                            Type = MentionType.Member
+                            Type = MentionType.Member,
+                            PlanetId = PlanetId                     
                         };
 
                         BaseMessage.Mentions.Add(memberMention);
@@ -268,7 +269,8 @@ public class ClientPlanetMessage
                             TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
-                            Type = MentionType.Channel
+                            Type = MentionType.Channel,
+                            PlanetId = PlanetId
                         };
 
                         BaseMessage.Mentions.Add(channelMention);

@@ -1,4 +1,5 @@
-﻿using Valour.Api.Items.Authorization;
+﻿using Valour.Api.Client;
+using Valour.Api.Items.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 
@@ -18,6 +19,26 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public bool InheritsPerms { get; set; }
 
     public override string GetHumanReadableName() => "Category";
+
+    /// <summary>
+    /// Returns the item for the given id
+    /// </summary>
+    public static async Task<PlanetCategoryChannel> FindAsync(long id, long planetId, bool refresh = false)
+    {
+        if (!refresh)
+        {
+            var cached = ValourCache.Get<PlanetCategoryChannel>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<PlanetCategoryChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetCategoryChannel)}/{id}");
+
+        if (item is not null)
+            await ValourCache.Put(id, item);
+
+        return item;
+    }
 
     /// <summary>
     /// Returns the permissions node for the given role id

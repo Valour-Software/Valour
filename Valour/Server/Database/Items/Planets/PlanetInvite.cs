@@ -66,8 +66,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.Invite)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetInvite invite,
         ILogger<PlanetInvite> logger)
     {
@@ -98,8 +97,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetInvite invite,
         ILogger<PlanetInvite> logger)
     {
@@ -135,8 +133,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.Manage)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Manage)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<PlanetInvite> logger)
     {

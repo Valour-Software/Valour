@@ -119,7 +119,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetCategoryChannel category,
         ILogger<PlanetCategoryChannel> logger)
@@ -166,7 +166,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetCategoryChannel category,
         ILogger<PlanetCategoryChannel> logger)
     {
@@ -216,7 +216,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
         ILogger<PlanetCategoryChannel> logger)
@@ -270,7 +270,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [ValourRoute(HttpVerbs.Post, "/children/order"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
     public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] ulong[] order,
         ILogger<PlanetCategoryChannel> logger)

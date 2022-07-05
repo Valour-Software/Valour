@@ -38,7 +38,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(long id, bool force_refresh = false)
+    public static async Task<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -47,7 +47,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/member/{id}");
+        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/{id}");
 
         if (member is not null)
         {
@@ -59,9 +59,9 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     }
 
     /// <summary>
-    /// Returns the member for the given ids
+    /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(long planetId, long userId, bool force_refresh = false)
+    public static async Task<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -70,7 +70,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/planet/{planetId}/planetmember/byuser/{userId}");
+        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/byuser/{userId}");
 
         if (member is not null)
         {
@@ -150,7 +150,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
         foreach (var id in roleIds)
         {
-            var role = await FindAsync<PlanetRole>(id);
+            var role = await PlanetRole.FindAsync(id, PlanetId);
 
             if (role is not null)
                 Roles.Add(role);
@@ -170,7 +170,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// Returns the user of the member
     /// </summary>
     public async Task<User> GetUserAsync(bool force_refresh = false) =>
-        await FindAsync<User>(UserId, force_refresh);
+        await User.FindAsync(UserId, force_refresh);
 
     /// <summary>
     /// Returns the status of the member

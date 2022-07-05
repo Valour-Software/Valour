@@ -134,8 +134,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
@@ -167,8 +166,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
@@ -201,8 +199,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<PlanetRole> logger)
     {

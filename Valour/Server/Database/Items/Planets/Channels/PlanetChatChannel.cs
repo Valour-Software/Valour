@@ -141,7 +141,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
@@ -190,9 +190,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
@@ -238,9 +237,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
         ILogger<PlanetChatChannel> logger)
     {

@@ -60,14 +60,24 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async Task<Planet> FindAsync(long id, bool refresh = false) =>
-        await Item.FindAsync<Planet>(id, refresh);
+    public static async Task<Planet> FindAsync(long id, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<Planet>(id);
+            if (cached is not null)
+                return cached;
+        }
 
-    /// <summary>
-    /// Returns a planet item that belongs to this planet
-    /// </summary>
-    public async Task<T> FindPlanetItemAsync<T>(object id, bool refresh = false) where T : Item, ISharedPlanetItem
-        => await PlanetItem.FindAsync<T>(id, Id, refresh);
+        var item = await ValourClient.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}");
+
+        if (item is not null)
+        {
+            await ValourCache.Put(id, item);
+        }
+
+        return item;
+    }
 
     /// <summary>
     /// Returns the primary channel of the planet
@@ -77,7 +87,7 @@ public class Planet : Item, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await FindPlanetItemAsync<PlanetChatChannel>(PrimaryChannelId, refresh);
+        return await PlanetChatChannel.FindAsync(PrimaryChannelId.Value, Id, refresh);
     }
 
     /// <summary>
@@ -256,7 +266,7 @@ public class Planet : Item, ISharedPlanet
 
         foreach (var invite in invites)
         {
-            var cInvite = await FindAsync<PlanetRole>(invite.Id);
+            var cInvite = await PlanetRole.FindAsync(invite.Id, Id);
 
             if (cInvite is not null)
                 Roles.Add(cInvite);
@@ -299,7 +309,7 @@ public class Planet : Item, ISharedPlanet
 
         foreach (var role in roles)
         {
-            var cRole = await PlanetItem.FindAsync<PlanetRole>(role.Id, Id);
+            var cRole = await PlanetRole.FindAsync(role.Id, Id);
 
             if (cRole is not null)
                 Roles.Add(cRole);
@@ -311,9 +321,9 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async Task<PlanetMember> GetMemberAsync(long userId, bool force_refresh = false)
+    public async Task<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
     {
-        return await PlanetMember.FindAsync(Id, userId, force_refresh);
+        return await PlanetMember.FindAsync(userId, Id, force_refresh);
     }
 
     /// <summary>

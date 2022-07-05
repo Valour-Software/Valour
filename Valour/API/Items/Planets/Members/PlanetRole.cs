@@ -76,4 +76,23 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
             Blue = 255
         };
     }
+
+    public static async Task<PlanetRole> FindAsync(long id, long planetId, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<PlanetRole>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}");
+
+        if (item is not null)
+        {
+            await ValourCache.Put(id, item);
+        }
+
+        return item;
+    }
 }

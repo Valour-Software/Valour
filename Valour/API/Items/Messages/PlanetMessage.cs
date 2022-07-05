@@ -176,7 +176,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Returns the author member of the message 
     /// </summary> 
     public async Task<PlanetMember> GetAuthorMemberAsync() =>
-        await PlanetMember.FindAsync(MemberId);
+        await PlanetMember.FindAsync(MemberId, PlanetId);
 
     /// <summary> 
     /// Returns the author user of the message 
@@ -188,7 +188,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Returns the channel the message was sent in
     /// </summary>
     public async Task<PlanetChatChannel> GetChannelAsync() =>
-        await (await GetPlanetAsync()).FindPlanetItemAsync<PlanetChatChannel>(ChannelId);
+        await PlanetChatChannel.FindAsync(ChannelId, PlanetId);
 
     /// <summary>
     /// Attempts to delete this message

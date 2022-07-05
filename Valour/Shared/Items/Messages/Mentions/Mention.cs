@@ -33,6 +33,9 @@ public class Mention
     [JsonPropertyName("TargetId")]
     public long TargetId { get; set; }
 
+    [JsonPropertyName("PlanetId")]
+    public long PlanetId { get; set; }
+
     /// <summary>
     /// The position of the mention, in chars.
     /// For example, the message "Hey @SpikeViper!" would have Position = 4
