@@ -156,20 +156,20 @@ CREATE TABLE IF NOT EXISTS planet_members (
 
 CREATE TABLE IF NOT EXISTS planet_messages (
     id BIGINT NOT NULL PRIMARY KEY,
-    author_id BIGINT NOT NULL,
+    author_user_id BIGINT NOT NULL,
     content TEXT NOT NULL,
     time_sent TIMESTAMP NOT NULL,
     message_index BIGINT NOT NULL,
-    embed_data JSONB,
-    mentions_data JSONB,
-    member_id BIGINT NOT NULL,
+    embed_data TEXT,
+    mentions_data TEXT,
+    author_member_id BIGINT NOT NULL,
     planet_id BIGINT NOT NULL,
     channel_id BIGINT NOT NULL,
 
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
-    CONSTRAINT fk_member FOREIGN KEY(member_id) REFERENCES planet_members(id),
+    CONSTRAINT fk_member FOREIGN KEY(author_member_id) REFERENCES planet_members(id),
     CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES planet_chat_channels(id),
-    CONSTRAINT fk_author FOREIGN KEY(author_id) REFERENCES users(id)
+    CONSTRAINT fk_author FOREIGN KEY(author_user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS planet_roles (

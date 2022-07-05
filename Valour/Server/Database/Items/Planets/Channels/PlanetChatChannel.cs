@@ -172,6 +172,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
+        channel.Id = IdManager.Generate();
+
         try
         {
             await db.PlanetChatChannels.AddAsync(channel);
@@ -337,10 +339,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         if (message.Fingerprint is null)
             return Results.BadRequest("Please include a Fingerprint.");
 
-        if (message.AuthorId != member.UserId)
+        if (message.AuthorUserId != member.UserId)
             return Results.BadRequest("UserId must match sender.");
 
-        if (message.MemberId != member.Id)
+        if (message.AuthorMemberId != member.Id)
             return Results.BadRequest("MemberId must match sender.");
 
         if (message.Content != null && message.Content.Length > 2048)
@@ -389,7 +391,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         if (message.ChannelId != id)
             return ValourResult.NotFound<PlanetMessage>();
 
-        if (member.Id != message.MemberId)
+        if (member.Id != message.AuthorMemberId)
         {
             if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageMessages, db))
                 return ValourResult.LacksPermission(ChatChannelPermissions.ManageMessages);

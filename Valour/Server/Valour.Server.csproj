@@ -35,4 +35,9 @@
     <None Remove="Z.EntityFramework.Plus.EFCore" />
     <None Remove="EntityFrameworkCore.Exceptions.PostgreSQL" />
   </ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
 </Project>

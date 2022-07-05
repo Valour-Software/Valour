@@ -197,6 +197,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
+        category.Id = IdManager.Generate();
+
         try
         {
             await db.PlanetCategoryChannels.AddAsync(category);

@@ -53,11 +53,11 @@ public class ClientPlanetMessage
 
     public long Id => BaseMessage.Id;
 
-    public long AuthorId => BaseMessage.AuthorId;
+    public long AuthorUserId => BaseMessage.AuthorUserId;
 
     public long PlanetId => BaseMessage.PlanetId;
 
-    public long MemberId => BaseMessage.MemberId;
+    public long AuthorMemberId => BaseMessage.AuthorMemberId;
 
     public string Content => BaseMessage.Content;
 

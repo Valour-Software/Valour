@@ -133,7 +133,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// Returns the authority of the member
     /// </summary>
     public async Task<int> GetAuthorityAsync() =>
-        await ValourClient.GetJsonAsync<int>($"api/member/{Id}/authority");
+        await ValourClient.GetJsonAsync<int>($"{IdRoute}/authority");
 
     /// <summary>
     /// Loads all role Ids from the server
@@ -141,7 +141,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public async Task LoadRolesAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
-            roleIds = await ValourClient.GetJsonAsync<List<long>>($"api/member/{Id}/roleIds");
+            roleIds = await ValourClient.GetJsonAsync<List<long>>($"{IdRoute}/roleIds");
 
         if (Roles is null)
             Roles = new List<PlanetRole>();

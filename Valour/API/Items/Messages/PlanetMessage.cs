@@ -24,12 +24,12 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// <summary>
     /// The user's ID
     /// </summary>
-    public long AuthorId { get; set; }
+    public long AuthorUserId { get; set; }
 
     /// <summary>
     /// The member's ID
     /// </summary>
-    public long MemberId { get; set; }
+    public long AuthorMemberId { get; set; }
 
     /// <summary>
     /// String representation of message
@@ -162,9 +162,9 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
         ChannelId = channelId;
         Content = text;
         TimeSent = DateTime.UtcNow;
-        AuthorId = ValourClient.Self.Id;
+        AuthorUserId = ValourClient.Self.Id;
         PlanetId = planetId;
-        MemberId = self_memberId;
+        AuthorMemberId = self_memberId;
         Fingerprint = Guid.NewGuid().ToString();
     }
 
@@ -176,7 +176,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Returns the author member of the message 
     /// </summary> 
     public async Task<PlanetMember> GetAuthorMemberAsync() =>
-        await PlanetMember.FindAsync(MemberId, PlanetId);
+        await PlanetMember.FindAsync(AuthorMemberId, PlanetId);
 
     /// <summary> 
     /// Returns the author user of the message 

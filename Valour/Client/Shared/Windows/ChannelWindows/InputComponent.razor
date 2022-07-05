@@ -273,10 +273,10 @@
         {
             var innerMessage = new PlanetMessage()
             {
-                AuthorId = SelfMember.UserId,
+                AuthorUserId = SelfMember.UserId,
                 Content = input,
                 ChannelId = Window.Channel.Id,
-                MemberId = SelfMember.Id,
+                AuthorMemberId = SelfMember.Id,
                 TimeSent = DateTime.UtcNow
             };
 
@@ -312,17 +312,17 @@
 
         MessageHolder.AddQueuedMessage(message);
 
-        (var response, var content) = await ValourClient.SendMessage(innerMessage);
+        var result = await ValourClient.SendMessage(innerMessage);
 
-        if (!response.IsSuccessStatusCode)
+        if (!result.Success)
         {
             MessageHolder.RemoveQueuedMessage(message.Fingerprint);
 
             PlanetMessage errorMsg = new()
             {
-                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {content}",
-                AuthorId = long.MaxValue,
-                MemberId = long.MaxValue,
+                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
+                AuthorUserId = long.MaxValue,
+                AuthorMemberId = long.MaxValue,
                 ChannelId = Window.Channel.Id,
                 MessageIndex = long.MaxValue
             };

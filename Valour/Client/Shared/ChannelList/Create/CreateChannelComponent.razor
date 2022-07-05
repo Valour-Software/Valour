@@ -122,10 +122,11 @@
             Name = name,
             Description = "A chat channel",
             PlanetId = planetId,
-            ParentId = parentId
+            ParentId = parentId,
+            Position = (await Planet.GetChannelsAsync()).Count
         };
 
-        var result = await ValourClient.PostAsyncWithResponse<long>($"api/planet/{planetId}/channels", newChannel);
+        var result = await Api.Items.Item.CreateAsync(newChannel);
 
         if (!result.Success)
         {
@@ -135,14 +136,14 @@
             return;
         }
 
-        long channelId = result.Data;
+        long channelId = result.Data.Id;
 
         imageSpan = "Success.";
 
         if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode PermissionsNode = new()
+            PermissionsNode newNode = new()
             {
                 TargetId = channelId,
                 PlanetId = Planet.Id,
@@ -152,11 +153,11 @@
                 TargetType = PermissionsTarget.PlanetChatChannel
             };
 
-            PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
-            PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
-            PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+            newNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
+            newNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
+            newNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
-            var response = await ValourClient.PostAsync($"api/node", PermissionsNode);
+            var response = await Api.Items.Item.CreateAsync(newNode);
 
             if (!response.Success)
             {
@@ -172,7 +173,7 @@
                     continue;
                 }
 
-                PermissionsNode = new PermissionsNode()
+                newNode = new PermissionsNode()
                 {
                     TargetId = channelId,
                     PlanetId = Planet.Id,
@@ -182,11 +183,11 @@
                     TargetType = PermissionsTarget.PlanetChatChannel
                 };
 
-                PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
-                PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
-                PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+                newNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
+                newNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
+                newNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await ValourClient.PostAsync($"api/node", PermissionsNode);
+                response = await Api.Items.Item.CreateAsync(newNode);
 
                 if (!response.Success)
                 {

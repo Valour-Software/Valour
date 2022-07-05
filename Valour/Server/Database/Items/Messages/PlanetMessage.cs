@@ -15,23 +15,23 @@ namespace Valour.Server.Database.Items.Messages;
 [Table("planet_messages")]
 public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
-    [ForeignKey("AuthorId")]
+    [ForeignKey("AuthorUserId")]
     public User Author { get; set; }
 
-    [ForeignKey("MemberId")]
+    [ForeignKey("AuthorMemberId")]
     public PlanetMember User { get; set; }
 
     /// <summary>
     /// The author's user ID
     /// </summary>
-    [Column("author_id")]
-    public long AuthorId { get; set; }
+    [Column("author_user_id")]
+    public long AuthorUserId { get; set; }
 
     /// <summary>
     /// The author's member ID
     /// </summary>
-    [Column("member_id")]
-    public long MemberId { get; set; }
+    [Column("author_member_id")]
+    public long AuthorMemberId { get; set; }
 
     /// <summary>
     /// String representation of message
