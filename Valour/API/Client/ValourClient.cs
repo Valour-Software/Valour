@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using Valour.Api.Items.Authorization;
 using Valour.Shared.Items.Users;
+using System.Reflection;
 
 namespace Valour.Api.Client;
 
@@ -667,32 +668,20 @@ public static class ValourClient
 
     private static void HookSignalREvents()
     {
+        // For every single item...
+        foreach (var type in Assembly.GetAssembly(typeof(Item)).GetTypes()
+            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(Item))))
+        {
+            Console.WriteLine(type.Name);
+
+            // Register events
+
+            HubConnection.On($"{type.Name}-Update", new Type[] { type, typeof(int) }, i => UpdateItem((dynamic)i[0], (int)i[1]));
+            HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => DeleteItem((Item)i[0]));
+        }
+
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
         HubConnection.On<PlanetMessage>("DeleteMessage", MessageDeleted);
-
-        HubConnection.On<Planet, int>($"{nameof(Planet)}-Update", async (i, d) => await UpdateItem(i, d));
-        HubConnection.On<Planet>     ($"{nameof(Planet)}-Delete", DeleteItem);
-
-        HubConnection.On<PlanetChatChannel, int>($"{nameof(PlanetChatChannel)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetChatChannel>     ($"{nameof(PlanetChatChannel)}-Delete", DeleteItem);
-
-        HubConnection.On<PlanetCategoryChannel, int> ($"{nameof(PlanetCategoryChannel)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetCategoryChannel>      ($"{nameof(PlanetCategoryChannel)}-Delete", DeleteItem);
-
-        HubConnection.On<PlanetRole, int>($"{nameof(PlanetRole)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetRole>     ($"{nameof(PlanetRole)}-Delete", DeleteItem);
-
-        HubConnection.On<PlanetMember, int>($"{nameof(PlanetMember)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetMember>     ($"{nameof(PlanetMember)}-Delete", DeleteItem);
-
-        HubConnection.On<PermissionsNode, int>($"{nameof(PermissionsNode)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PermissionsNode>     ($"{nameof(PermissionsNode)}-Delete", DeleteItem);
-
-        HubConnection.On<PlanetInvite, int>($"{nameof(PlanetInvite)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<PlanetInvite>     ($"{nameof(PlanetInvite)}-Delete", DeleteItem);
-
-        HubConnection.On<User, int>($"{nameof(User)}-Update", (i, d) => UpdateItem(i, d));
-        HubConnection.On<User>     ($"{nameof(User)}-Delete", DeleteItem);
     }
 
     /// <summary>
