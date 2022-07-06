@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
@@ -15,44 +13,51 @@ namespace Valour.Server.Database.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
+[Table("planet_bans")]
 public class PlanetBan : PlanetItem, ISharedPlanetBan
 {
     /// <summary>
     /// The member that banned the user
     /// </summary>
-    public ulong IssuerId { get; set; }
+    [Column("issuer_id")]
+    public long IssuerId { get; set; }
 
     /// <summary>
     /// The userId of the target that was banned
     /// </summary>
-    public ulong TargetId { get; set; }
+    [Column("target_id")]
+    public long TargetId { get; set; }
 
     /// <summary>
     /// The reason for the ban
     /// </summary>
+    [Column("reason")]
     public string Reason { get; set; }
 
     /// <summary>
     /// The time the ban was placed
     /// </summary>
-    public DateTime Time { get; set; }
+    [Column("time_created")]
+    public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time the ban expires. Null for permanent.
     /// </summary>
-    public DateTime? Expires { get; set; }
+    [Column("time_expires")]
+    public DateTime? TimeExpires { get; set; }
 
     /// <summary>
     /// True if the ban never expires
     /// </summary>
-    public bool Permanent => Expires == null;
+    [NotMapped]
+    public bool Permanent => TimeExpires == null;
 
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
-    public static async Task<IResult> GetRoute(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRoute(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var ban = await FindAsync<PlanetBan>(id, db);
@@ -72,8 +77,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PostRoute(HttpContext ctx, ulong planetId, [FromBody] PlanetBan ban,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
+    public static async Task<IResult> PostRoute(HttpContext ctx, long planetId, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDb();
@@ -134,8 +139,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PutRoute(HttpContext ctx, ulong id, ulong planetId, [FromBody] PlanetBan ban,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
+    public static async Task<IResult> PutRoute(HttpContext ctx, long id, long planetId, [FromBody] PlanetBan ban,
         ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDb();
@@ -158,7 +163,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
         if (ban.IssuerId != old.IssuerId)
             return Results.BadRequest("You cannot change who banned the user.");
 
-        if (ban.Time != old.Time)
+        if (ban.TimeCreated != old.TimeCreated)
             return Results.BadRequest("You cannot change the creation time");
 
         try
@@ -179,8 +184,8 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> DeleteRoute(HttpContext ctx, ulong id, ulong planetId,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
+    public static async Task<IResult> DeleteRoute(HttpContext ctx, long id, long planetId,
         ILogger<PlanetBan> logger)
     {
         var db = ctx.GetDb();

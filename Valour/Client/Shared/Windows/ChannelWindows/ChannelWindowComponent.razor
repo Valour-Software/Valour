@@ -95,16 +95,16 @@
 
         Window.Component = this;
 
-        PlanetMember.OnAnyUpdated += OnPlanetMemberUpdate;
-        PlanetRole.OnAnyUpdated += OnRoleUpdate;
-        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetMember>.OnAnyUpdated += OnPlanetMemberUpdate;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         ValourClient.OnMessageRecieved += OnRecieveMessage;
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 
         await ValourClient.OpenChannel(Channel);
 
-        SelfMember = await PlanetMember.FindAsync(Channel.PlanetId, ValourClient.Self.Id);
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
@@ -133,9 +133,9 @@
 
     void IDisposable.Dispose()
     {
-        PlanetMember.OnAnyUpdated -= OnPlanetMemberUpdate;
-        PlanetRole.OnAnyUpdated -= OnRoleUpdate;
-        PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+        ItemObserver<PlanetMember>.OnAnyUpdated -= OnPlanetMemberUpdate;
+        ItemObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
         ValourClient.OnMessageRecieved -= OnRecieveMessage;
         ValourClient.OnMessageDeleted -= OnDeleteMessage;
@@ -199,7 +199,7 @@
 
         MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
 
-        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id);
+        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)
@@ -295,7 +295,7 @@
             return;
         }
 
-        ulong firstIndex = Holder.Messages[0].Message_Index;
+        long firstIndex = Holder.Messages[0].Message_Index;
 
         Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Index}");
 

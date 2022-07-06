@@ -17,7 +17,7 @@
         </BlazorContextMenu.Item>
     }
 
-    @if (Message.AuthorId == ValourClient.Self.Id)
+    @if (Message.AuthorUserId == ValourClient.Self.Id)
     {
         <BlazorContextMenu.Item OnClick='OnClickEdit' CssClass='context-item'>
             Edit
@@ -48,7 +48,7 @@
     {
         MessageComponent = component;
         Message = message;
-        await InnerMemberContextMenuComponent.Initialize(await message.GetAuthorAsync());
+        await InnerMemberContextMenuComponent.Initialize(await message.GetAuthorMemberAsync());
 
         // Console.WriteLine(window.Channel_Permissions.Code + " | " + window.Channel_Permissions.Mask);
 

@@ -153,7 +153,7 @@ public class OauthAPI : BaseAPI
         // Ensure variables are correctly set
         app.OwnerId = authToken.UserId;
         app.Uses = 0;
-        app.Image_Url = "media/logo/logo-512.png";
+        app.ImageUrl = "media/logo/logo-512.png";
 
         // Make name conform to server rules
         var nameValid = Planet.ValidateName(app.Name);

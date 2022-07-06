@@ -55,9 +55,9 @@
 			Description = desc
 		};
 
-		var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet", new_planet);
+		var response = await ValourClient.PostAsyncWithResponse<long>($"api/planet", new_planet);
 
-		ulong planetId = response.Data;
+		long planetId = response.Data;
 
 		descSpan = "Planet created.";
 

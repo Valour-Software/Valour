@@ -58,7 +58,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public PlanetCategory Parent { get; set; }
+    public PlanetCategoryChannel Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -79,7 +79,7 @@
 
         PlanetMember SelfMember = await ValourClient.GetSelfMember(Planet);
 
-        ulong SelfAuthority = await SelfMember.GetAuthorityAsync();
+        int SelfAuthority = await SelfMember.GetAuthorityAsync();
 
         var roleResponse = await Planet.GetRolesAsync();
 
@@ -112,20 +112,71 @@
         }
 
 
-        ulong userId = ValourClient.Self.Id;
+        long userId = ValourClient.Self.Id;
 
-        ulong parentId = Parent.Id;
-        ulong planetId = Planet.Id;
+        long parentId = Parent.Id;
+        long planetId = Planet.Id;
 
-        PlanetChatChannel newChannel = new()
+        PlanetChatChannelCreateRequest createRequest = new()
         {
-            Name = name,
-            Description = "A chat channel",
-            PlanetId = planetId,
-            ParentId = parentId
+            Channel = new  PlanetChatChannel()
+            {
+                Name = name,
+                Description = "A chat channel",
+                PlanetId = planetId,
+                ParentId = parentId,
+                Position = (await Planet.GetChannelsAsync()).Count
+            },
+            Nodes = new()
         };
 
-        var result = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet/{planetId}/channels", newChannel);
+        if (isprivate)
+        {
+            // set the default role channel view perms to false
+
+            PermissionsNode defaultNode = new()
+            {
+                TargetId = 0,
+                PlanetId = Planet.Id,
+                RoleId = Planet.DefaultRoleId.Value,
+                Mask = 0x00,
+                Code = 0x00,
+                TargetType = PermissionsTarget.PlanetChatChannel
+            };
+
+            defaultNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
+            defaultNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
+            defaultNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+
+            createRequest.Nodes.Add(defaultNode);
+
+            foreach (PlanetRole role in Roles)
+            {
+
+                if (!SelectedRoles[role])
+                {
+                    continue;
+                }
+
+                var roleNode = new PermissionsNode()
+                {
+                    TargetId = 0,
+                    PlanetId = Planet.Id,
+                    RoleId = role.Id,
+                    Mask = 0x00,
+                    Code = 0x00,
+                    TargetType = PermissionsTarget.PlanetChatChannel
+                };
+
+                roleNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
+                roleNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
+                roleNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+
+                createRequest.Nodes.Add(roleNode);
+            }
+        }
+
+        var result = await PlanetChatChannel.CreateWithDetails(createRequest);
 
         if (!result.Success)
         {
@@ -133,68 +184,6 @@
             Console.WriteLine(errorText);
             imageSpan = errorText;
             return;
-        }
-
-        ulong channelId = result.Data;
-
-        imageSpan = "Success.";
-
-        if (isprivate) {
-            // set the default role channel view perms to false
-
-            PermissionsNode PermissionsNode = new()
-            {
-                TargetId = channelId,
-                PlanetId = Planet.Id,
-                RoleId = Planet.DefaultRoleId,
-                Mask = 0x00,
-                Code = 0x00,
-                TargetType = ItemType.ChatChannel
-            };
-
-            PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
-            PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
-            PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
-
-            var response = await ValourClient.PostAsync($"api/node", PermissionsNode);
-
-            if (!response.Success)
-            {
-                string errorText = $"Error: " + response.Message;
-                Console.WriteLine(errorText);
-                imageSpan = errorText;
-            }
-
-            foreach (PlanetRole role in Roles)
-            {
-
-                if (!SelectedRoles[role]) {
-                    continue;
-                }
-
-                PermissionsNode = new PermissionsNode()
-                {
-                    TargetId = channelId,
-                    PlanetId = Planet.Id,
-                    RoleId = role.Id,
-                    Mask = 0x00,
-                    Code = 0x00,
-                    TargetType = ItemType.ChatChannel
-                };
-
-                PermissionsNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
-                PermissionsNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
-                PermissionsNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
-
-                response = await ValourClient.PostAsync($"api/node", PermissionsNode);
-
-                if (!response.Success)
-                {
-                    string errorText = $"Error: " + response.Message;
-                    Console.WriteLine(errorText);
-                    imageSpan = errorText;
-                }
-            }
         }
 
         // close modal

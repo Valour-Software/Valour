@@ -5,7 +5,9 @@ using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
 
-[Table("PlanetChannels")]
+[Table("planet_channels")]
+[JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
+[JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
 public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
 {
 
@@ -13,10 +15,19 @@ public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
     [ForeignKey("ParentId")]
     public PlanetCategoryChannel Parent { get; set; }
 
+    [Column("name")]
     public string Name { get; set; }
+
+    [Column("position")]
     public int Position { get; set; }
+
+    [Column("description")]
     public string Description { get; set; }
-    public ulong? ParentId { get; set; }
+
+    [Column("parent_id")]
+    public long? ParentId { get; set; }
+
+    [Column("inherits_perms")]
     public bool InheritsPerms { get; set; }
 
     /// <summary>

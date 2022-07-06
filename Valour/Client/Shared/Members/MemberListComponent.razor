@@ -47,9 +47,9 @@
 
         ValourClient.OnPlanetClose += OnPlanetClose;
 
-        PlanetRole.OnAnyUpdated += OnRoleUpdate;
-        PlanetMember.OnAnyUpdated += OnMemberUpdate;
-        PlanetRole.OnAnyDeleted += OnRoleDeletion;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
     }
 
     public async Task OnMemberUpdate(PlanetMember member, int flags)
@@ -107,7 +107,7 @@
                 continue;
 
             // Don't list at all if this is true
-            if (user.Last_Active_Span.TotalDays > 7)
+            if (user.LastActiveSpan.TotalDays > 7)
                 continue;
 
             // Throw directly into offline group
@@ -193,6 +193,6 @@
         var task = m.GetUserAsync();
         task.Wait();
 
-        return task.Result.LastActive.Ticks;
+        return task.Result.TimeLastActive.Ticks;
     }
 }

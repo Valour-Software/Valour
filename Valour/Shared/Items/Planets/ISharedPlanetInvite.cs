@@ -12,7 +12,7 @@ namespace Valour.Shared.Items.Planets;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetInvite
+public interface ISharedPlanetInvite : ISharedPlanetItem
 {
     /// <summary>
     /// the invite code
@@ -20,29 +20,24 @@ public interface ISharedPlanetInvite
     string Code { get; set; }
 
     /// <summary>
-    /// The planet the invite is for
-    /// </summary>
-    ulong PlanetId { get; set; }
-
-    /// <summary>
     /// The user that created the invite
     /// </summary>
-    ulong IssuerId { get; set; }
+    long IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    DateTime Issued { get; set; }
+    DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time when this invite expires. Null for never.
     /// </summary>
-    DateTime? Expires { get; set; }
+    DateTime? TimeExpires { get; set; }
 
     public bool IsPermanent() =>
         ISharedPlanetInvite.IsPermanent(this);
 
     public static bool IsPermanent(ISharedPlanetInvite item) =>
-        item.Expires == null;
+        item.TimeExpires == null;
 }
 

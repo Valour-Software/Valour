@@ -15,7 +15,7 @@
                 @switch (selected)
                 {
                     case 0:
-                        <EditCLIDetailsComponent Item="ChannelListItem"></EditCLIDetailsComponent>
+                        <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
                         break;
                     case 1:
                         <EditCLIPermissionsComponent Target="ChannelListItem"></EditCLIPermissionsComponent>
@@ -31,11 +31,11 @@
 
 @code {
     [Parameter]
-    public IPlanetChannel ChannelListItem { get; set; }
+    public PlanetChannel ChannelListItem { get; set; }
 
     public bool isChannel;
     public PlanetChatChannel Channel;
-    public PlanetCategory Category;
+    public PlanetCategoryChannel Category;
 
 
     public string GetTitle()
@@ -69,7 +69,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (ChannelListItem.ItemType == ItemType.ChatChannel)
+        if (ChannelListItem is PlanetChatChannel)
         {
             isChannel = true;
             Channel = (PlanetChatChannel)ChannelListItem;
@@ -78,7 +78,7 @@
         else
         {
             isChannel = false;
-            Category = (PlanetCategory)ChannelListItem;
+            Category = (PlanetCategoryChannel)ChannelListItem;
             Channel = null;
         }
     }

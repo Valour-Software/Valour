@@ -13,6 +13,7 @@ using Valour.Shared.Items;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using Valour.Api.Items.Authorization;
+using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Client;
 
@@ -47,7 +48,7 @@ public static class ValourClient
     /// <summary>
     /// The IDs of the client's joined planets
     /// </summary>
-    private static List<ulong> _joinedPlanetIds;
+    private static List<long> _joinedPlanetIds;
 
     /// <summary>
     /// The HttpClient to be used for connections
@@ -133,6 +134,11 @@ public static class ValourClient
 
     public static event Func<Task> OnJoinedPlanetsUpdate;
 
+    public static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     #endregion
 
     static ValourClient()
@@ -142,10 +148,10 @@ public static class ValourClient
 
         // Add victor dummy member
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        ValourCache.Put(ulong.MaxValue, new PlanetMember()
+        ValourCache.Put(long.MaxValue, new PlanetMember()
         {
             Nickname = "Victor",
-            Id = ulong.MaxValue,
+            Id = long.MaxValue,
             MemberPfp = "/media/victor-cyan.png"
         });
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -172,23 +178,19 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static async Task<PlanetMember> GetSelfMember(ulong planetId, bool force_refresh = false) =>
-        await PlanetMember.FindAsync(planetId, Self.Id, force_refresh);
+    public static async Task<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
+        await PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
 
     /// <summary>
     /// Sends a message
     /// </summary>
-    public static async Task<(HttpResponseMessage response, string content)> SendMessage(PlanetMessage message)
+    public static async Task<TaskResult> SendMessage(PlanetMessage message)
     {
-        StringContent content = new(JsonSerializer.Serialize(message));
+        var response = await PostAsync($"api/planet/{message.PlanetId}/{nameof(PlanetChatChannel)}/{message.ChannelId}/messages", message);
 
-        HttpResponseMessage httpresponse = await Http.PostAsync($"api/channel/{message.ChannelId}/messages", content);
+        Console.WriteLine("Message post: " + response.Message);
 
-        string res = await httpresponse.Content.ReadAsStringAsync();
-
-        Console.WriteLine("Message post: " + res);
-
-        return (httpresponse, res);
+        return response;
     }
 
     #region SignalR Groups
@@ -339,7 +341,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : ISharedItem
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -352,15 +354,11 @@ public static class ValourClient
         if (!skipEvent)
         {
             if (local != null) {
-                var s_local = local as ISyncedItem<T>;
-
-                await s_local.InvokeUpdated(flags);
-                await s_local.InvokeAnyUpdated(local, flags);
+                await local.InvokeUpdatedEventAsync(flags);
+                await ItemObserver<T>.InvokeAnyUpdated(local, flags);
             }
             else {
-                var s_updated = updated as ISyncedItem<T>;
-
-                await s_updated.InvokeAnyUpdated(updated, flags);
+                await ItemObserver<T>.InvokeAnyUpdated(updated, flags);
             }
 
             // printing to console is SLOW, only turn on for debugging reasons
@@ -371,19 +369,17 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : ISharedItem
+    public static async Task DeleteItem<T>(T item) where T : Item
     {
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
 
-        var s_local = local as ISyncedItem<T>;
-
         // Invoke specific item deleted
-        await s_local.InvokeDeleted();
+        await item.InvokeDeletedEventAsync();
 
         // Invoke static "any" delete
-        await s_local.InvokeAnyDeleted(local);
+        await ItemObserver<T>.InvokeAnyDeleted(local);
     }
 
     /// <summary>
@@ -405,14 +401,14 @@ public static class ValourClient
 
     private static void HookPlanetEvents()
     {
-        PlanetChatChannel.OnAnyUpdated += OnChannelUpdated;
-        PlanetChatChannel.OnAnyDeleted += OnChannelDeleted;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChannelUpdated;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDeleted;
 
-        PlanetCategoryChannel.OnAnyUpdated += OnCategoryUpdated;
-        PlanetCategoryChannel.OnAnyDeleted += OnCategoryDeleted;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdated;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeleted;
 
-        PlanetRole.OnAnyUpdated += OnRoleUpdated;
-        PlanetRole.OnAnyDeleted += OnRoleDeleted;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdated;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeleted;
     }
 
     private static async Task OnChannelUpdated(PlanetChatChannel channel, int flags)
@@ -480,22 +476,28 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<string>> GetToken(string email, string password)
     {
-        TokenRequest content = new(email, password);
+        TokenRequest request = new()
+        {
+            Email = email,
+            Password = password
+        };
 
-        var response = await Http.PostAsJsonAsync($"api/user/requesttoken", content);
+        var response = await PostAsyncWithResponse<AuthToken>($"api/user/token", request);
 
-        var message = await response.Content.ReadAsStringAsync();
+        var token = response.Data.Id;
 
-        if (!response.IsSuccessStatusCode)
+        Console.WriteLine(token);
+
+        if (!response.Success)
         {
             Console.WriteLine("Failed to request user token.");
-            Console.WriteLine(message);
-            return new TaskResult<string>(false, $"Failed to request user. Error code {response.StatusCode}", message);
+            Console.WriteLine(response.Message);
+            return new TaskResult<string>(false, $"Failed to request user.", response.Message);
         }
 
-        _token = message;
+        _token = token;
 
-        return new TaskResult<string>(true, "Success", message);
+        return new TaskResult<string>(true, "Success", token);
     }
 
     /// <summary>
@@ -503,19 +505,23 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<User>> InitializeUser(string token)
     {
-        var response = await PostAsyncWithResponse<User>($"api/user/withtoken", token);
-
-        if (!response.Success)
-            return response;
-
-        // Set reference to self user
-        Self = response.Data;
-
-        // Store token that worked successfully
+        // Store token 
         _token = token;
 
-        // Add auth header so we never have to do that again
+        if (Http.DefaultRequestHeaders.Contains("authorization"))
+        {
+            Http.DefaultRequestHeaders.Remove("authorization");
+        }
+
         Http.DefaultRequestHeaders.Add("authorization", Token);
+
+        var response = await GetJsonAsync<User>($"api/user/self");
+
+        if (response is null)
+            return new TaskResult<User>(false, "Failed to get user.");
+
+        // Set reference to self user
+        Self = response;
 
         Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
@@ -570,7 +576,7 @@ public static class ValourClient
     /// </summary>
     public static async Task JoinAllChannelsAsync()
     {
-        var planets = await GetJsonAsync<List<Planet>>($"api/user/{Self.Id}/planets");
+        var planets = await GetJsonAsync<List<Planet>>("api/user/self/planets");
 
         // Add to cache
         foreach (var planet in planets)
@@ -597,7 +603,7 @@ public static class ValourClient
     /// </summary>
     public static async Task LoadJoinedPlanetsAsync()
     {
-        var planets = await GetJsonAsync<List<Planet>>($"api/user/{Self.Id}/planets");
+        var planets = await GetJsonAsync<List<Planet>>($"api/user/self/planets");
 
         // Add to cache
         foreach (var planet in planets)
@@ -616,7 +622,7 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var planetIds = await GetJsonAsync<List<ulong>>($"api/user/{Self.Id}/planetIds");
+        var planetIds = await GetJsonAsync<List<long>>($"api/user/self/planetIds");
 
         if (planetIds is null)
             return;
@@ -664,7 +670,7 @@ public static class ValourClient
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
         HubConnection.On<PlanetMessage>("DeleteMessage", MessageDeleted);
 
-        HubConnection.On<Planet, int>($"{nameof(Planet)}Update", (i, d) => UpdateItem(i, d));
+        HubConnection.On<Planet, int>($"{nameof(Planet)}Update", async (i, d) => await UpdateItem(i, d));
         HubConnection.On<Planet>     ($"{nameof(Planet)}Deletion", DeleteItem);
 
         HubConnection.On<PlanetChatChannel, int>($"{nameof(PlanetChatChannel)}Update", (i, d) => UpdateItem(i, d));
@@ -799,7 +805,7 @@ public static class ValourClient
         }
         else
         {
-            result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -929,7 +935,7 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -1028,7 +1034,41 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Posts a json resource in the specified uri and returns the response message
+    /// </summary>
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
+    {
+        var response = await Http.PostAsync(uri, null);
+
+        TaskResult<T> result = new TaskResult<T>()
+        {
+            Success = response.IsSuccessStatusCode
+        };
+
+        if (!result.Success)
+        {
+            Console.WriteLine("-----------------------------------------\n" +
+                              "Failed POST response for the following:\n" +
+                              $"[{uri}]\n" +
+                              $"Code: {response.StatusCode}\n" +
+                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"-----------------------------------------");
+
+            Console.WriteLine(Environment.StackTrace);
+        }
+        else
+        {
+            if (typeof(T) == typeof(string))
+                result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
+            else
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -1062,7 +1102,7 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
         return result;
@@ -1099,7 +1139,10 @@ public static class ValourClient
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
-                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync());
+            {
+                result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
+                Console.WriteLine(result.Data is null);
+            }
         }
 
         return result;

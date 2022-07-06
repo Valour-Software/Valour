@@ -31,7 +31,10 @@ public class Mention
     /// The item id being mentioned
     /// </summary>
     [JsonPropertyName("TargetId")]
-    public ulong TargetId { get; set; }
+    public long TargetId { get; set; }
+
+    [JsonPropertyName("PlanetId")]
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// The position of the mention, in chars.

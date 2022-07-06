@@ -6,22 +6,23 @@
 <br />
 
 <div class="settings-inner">
+    <span class="text-danger">@resultSpan</span>
+    <br />
+
     <p>Name</p>
     <input class="form-control" type="text" @bind-value="@nameValue" />
-    <span class="text-danger">@nameSpan</span>
 
     <br />
 
     <p>Description</p>
     <input class="form-control" type="text" @bind-value="@descValue" />
-    <span class="text-danger">@descSpan</span>
 
     <br/>
 
     <p>Icon</p>
 
     <div>
-        <img @bind-src='Image_Url' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
+        <img @bind-src='IconUrl' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
         <div style="display:inline-block">
             <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
             <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
@@ -41,11 +42,10 @@
     public string nameValue;
     public string descValue;
 
-    public string nameSpan;
-    public string descSpan;
+    public string resultSpan;
 
     // Image fields
-    public string Image_Url;
+    public string IconUrl;
     public string Image_Output;
     public string Image_Error;
 
@@ -56,14 +56,14 @@
 
     protected async Task OnPfpError()
     {
-        Image_Url = "/icon-512.png";
+        IconUrl = "/icon-512.png";
 
         StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Image_Url = Planet.Image_Url;
+        IconUrl = Planet.IconUrl;
         nameValue = Planet.Name;
         descValue = Planet.Description;
 
@@ -103,7 +103,7 @@
 
         if (result.Success)
         {
-            Image_Url = result.Data;
+            IconUrl = result.Data;
             Console.WriteLine("Response from VMPS: " + result.Data);
             Image_Output = "Successfully changed planet icon.";
         }
@@ -117,16 +117,21 @@
 
     public async Task OnSaveChanges()
     {
-        if (nameValue != Planet.Name)
+        if (nameValue != Planet.Name || descValue != Planet.Description)
         {
-            TaskResult result = await Planet.TrySetNameAsync(nameValue);
-            nameSpan = result.Message;
-        }
+            Planet.Name = nameValue;
+            Planet.Description = descValue;
 
-        if (descValue != Planet.Description)
-        {
-            TaskResult result = await Planet.TrySetDescriptionAsync(descValue);
-            descSpan = result.Message;
+            var result = await Planet.UpdateAsync(Planet);
+
+            if (result.Success)
+            {
+                resultSpan = "Updated successfully.";
+            }
+            else
+            {
+                resultSpan = "Something went wrong! Please try again.";
+            }
         }
 
         StateHasChanged();

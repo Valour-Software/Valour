@@ -30,7 +30,7 @@
     protected async override Task OnInitializedAsync()
     {
         windowManager.OnPlanetFocused += OnPlanetChange;
-        PlanetRole.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
     }
 
     // Must refresh if roles update because it may remove permission to

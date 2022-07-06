@@ -150,15 +150,17 @@
             return;
         }
 
-        string encodedUsername = System.Web.HttpUtility.UrlEncode(username);
-        string encodedEmail = System.Web.HttpUtility.UrlEncode(email);
-        string encodedPassword = System.Web.HttpUtility.UrlEncode(password);
-        string encodedReferral = System.Web.HttpUtility.UrlEncode(referral);
+        var request = new RegisterUserRequest()
+        {
+            Username = username,
+            Email = email,
+            Password = password,
+            Referrer = referral
+        };
 
-        var response = await Http.PostAsync($"api/user/register?username={encodedUsername}" +
-                                                             $"&email={encodedEmail}" +
-                                                             $"&password={encodedPassword}" +
-                                                             $"&referrer={encodedReferral}", null);
+        var content = JsonContent.Create(request);
+
+        var response = await Http.PostAsync("api/user/register", content);
 
         passwordSpan = await response.Content.ReadAsStringAsync();
 

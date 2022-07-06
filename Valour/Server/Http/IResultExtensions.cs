@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Valour.Shared.Authorization;
+﻿using Valour.Shared.Authorization;
 
-namespace Valour.Shared.Http
+namespace Valour.Server.Http
 {
     public static class ValourResult
     {

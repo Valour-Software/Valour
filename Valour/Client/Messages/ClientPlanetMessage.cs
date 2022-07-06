@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets.Members;
+using Valour.Api.Items.Users;
 using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages.Mentions;
 
@@ -44,24 +45,27 @@ public class ClientPlanetMessage
     // Forward a bunch of stuff for my own sake
     #region Forwarding
 
-    public async Task<PlanetMember> GetAuthorAsync() =>
-        await BaseMessage.GetAuthorAsync();
+    public async Task<PlanetMember> GetAuthorMemberAsync() =>
+        await BaseMessage.GetAuthorMemberAsync();
 
-    public ulong Id => BaseMessage.Id;
+    public async Task<User> GetAuthorUserAsync() =>
+        await BaseMessage.GetAuthorUserAsync();
 
-    public ulong AuthorId => BaseMessage.AuthorId;
+    public long Id => BaseMessage.Id;
 
-    public ulong PlanetId => BaseMessage.PlanetId;
+    public long AuthorUserId => BaseMessage.AuthorUserId;
 
-    public ulong MemberId => BaseMessage.MemberId;
+    public long PlanetId => BaseMessage.PlanetId;
+
+    public long AuthorMemberId => BaseMessage.AuthorMemberId;
 
     public string Content => BaseMessage.Content;
 
     public DateTime TimeSent => BaseMessage.TimeSent;
 
-    public ulong ChannelId => BaseMessage.ChannelId;
+    public long ChannelId => BaseMessage.ChannelId;
 
-    public ulong Message_Index => BaseMessage.MessageIndex;
+    public long Message_Index => BaseMessage.MessageIndex;
 
     public string Embed_Data => BaseMessage.EmbedData;
 
@@ -200,7 +204,7 @@ public class ClientPlanetMessage
                             pos++;
                             continue;
                         }
-                        bool parsed = ulong.TryParse(id_chars, out ulong id);
+                        bool parsed = long.TryParse(id_chars, out long id);
                         if (!parsed)
                         {
                             pos++;
@@ -212,7 +216,8 @@ public class ClientPlanetMessage
                             TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
-                            Type = MentionType.Member
+                            Type = MentionType.Member,
+                            PlanetId = PlanetId                     
                         };
 
                         BaseMessage.Mentions.Add(memberMention);
@@ -252,7 +257,7 @@ public class ClientPlanetMessage
                             pos++;
                             continue;
                         }
-                        bool parsed = ulong.TryParse(id_chars, out ulong id);
+                        bool parsed = long.TryParse(id_chars, out long id);
                         if (!parsed)
                         {
                             pos++;
@@ -264,7 +269,8 @@ public class ClientPlanetMessage
                             TargetId = id,
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
-                            Type = MentionType.Channel
+                            Type = MentionType.Channel,
+                            PlanetId = PlanetId
                         };
 
                         BaseMessage.Mentions.Add(channelMention);

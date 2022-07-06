@@ -7,11 +7,11 @@
         @IssuerName
     </td>
     <th style="width: 125px;">
-        @Invite.Issued.ToLocalTime().ToShortDateString()
+        @Invite.TimeCreated.ToLocalTime().ToShortDateString()
     </th>
-    @if (Invite.Hours != null) {
+    @if (Invite.TimeExpires != null) {
         <th style="width: 125px;">
-            @time.ToLocalTime().ToShortDateString()
+            @Invite.TimeExpires.Value.ToLocalTime().ToShortDateString()
         </th>
     }
     else {
@@ -23,17 +23,14 @@
 
 @code {
     [Parameter]
-    public Invite Invite { get; set; }
+    public PlanetInvite Invite { get; set; }
 
     public string IssuerName { get; set;}
 
-    public DateTime time { get; set;}
-
     protected override async Task OnInitializedAsync()
     {
-        PlanetMember member = await PlanetMember.FindAsync(Invite.PlanetId, Invite.IssuerId);
+        PlanetMember member = await PlanetMember.FindAsync(Invite.IssuerId, Invite.PlanetId);
         IssuerName = await member.GetNameAsync();
-        time = Invite.Issued.AddHours((double)Invite.Hours);
         StateHasChanged();
     }
 }

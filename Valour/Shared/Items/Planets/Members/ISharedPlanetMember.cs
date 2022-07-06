@@ -15,17 +15,12 @@ namespace Valour.Shared.Items.Planets.Members;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
-public interface ISharedPlanetMember
+public interface ISharedPlanetMember : ISharedPlanetItem
 {
     /// <summary>
     /// The user within the planet
     /// </summary>
-    ulong UserId { get; set; }
-
-    /// <summary>
-    /// The planet the user is within
-    /// </summary>
-    ulong PlanetId { get; set; }
+    long UserId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet

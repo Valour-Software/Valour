@@ -3,8 +3,6 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 
 namespace Valour.Server.Database.Items.Authorization;
@@ -15,6 +13,7 @@ namespace Valour.Server.Database.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+[Table("permissions_nodes")]
 public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 {
 
@@ -25,26 +24,31 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     /// <summary>
     /// The permission code that this node has set
     /// </summary>
-    public ulong Code { get; set; }
+    [Column("code")]
+    public long Code { get; set; }
 
     /// <summary>
     /// A mask used to determine if code bits are disabled
     /// </summary>
-    public ulong Mask { get; set; }
+    [Column("mask")]
+    public long Mask { get; set; }
 
     /// <summary>
     /// The role this permissions node belongs to
     /// </summary>
-    public ulong RoleId { get; set; }
+    [Column("role_id")]
+    public long RoleId { get; set; }
 
     /// <summary>
     /// The id of the object this node applies to
     /// </summary>
-    public ulong TargetId { get; set; }
+    [Column("target_id")]
+    public long TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
+    [Column("target_type")]
     public PermissionsTarget TargetType { get; set; }
 
     /// <summary>
@@ -73,7 +77,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
         => await db.PlanetChannels.FindAsync(TargetId);
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetNodeRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetNodeRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
 
@@ -85,7 +89,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
     }
 
     [ValourRoute(HttpVerbs.Get, "/{targetId}/{roleId}"), TokenRequired, InjectDb]
-    public static async Task<IResult> GetNodeForTargetRouteAsync(HttpContext ctx, ulong targetId, ulong roleId)
+    public static async Task<IResult> GetNodeForTargetRouteAsync(HttpContext ctx, long targetId, long roleId)
     {
         var db = ctx.GetDb();
 
@@ -98,9 +102,8 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PermissionsNode node,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PermissionsNode node,
         ILogger<PermissionsNode> logger)
     {
         var db = ctx.GetDb();
@@ -141,9 +144,8 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong id, [FromBody] PermissionsNode node,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PermissionsNode node,
         ILogger<PermissionsNode> logger)
     {
         var db = ctx.GetDb();

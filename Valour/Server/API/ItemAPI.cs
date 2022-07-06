@@ -4,7 +4,6 @@ using Valour.Server.Database.Items;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
 
 namespace Valour.Server.API;
 
@@ -20,10 +19,10 @@ public class ItemAPI<T> where T : Item
     /// </summary>
     public ItemAPI<T> RegisterRoutes(WebApplication app)
     {
-        T dummy = default(T);
+        T dummy = (T)Activator.CreateInstance(typeof(T));
 
         // Custom routes
-        var methods = dummy.GetType().GetMethods();
+        var methods = typeof(T).GetMethods();
         foreach (var method in methods)
         {
             var attributes = method.GetCustomAttributes(false);
@@ -32,6 +31,9 @@ public class ItemAPI<T> where T : Item
             {
                 if (att is ValourRouteAttribute)
                 {
+                    if (!method.IsStatic)
+                        throw new Exception($"Cannot use a non-static method for ValourRoute! Class: {typeof(T).Name}, Method: {method.Name}");
+
                     var val = (ValourRouteAttribute)att;
 
                     // This magically builds a delegate matching the method
@@ -43,7 +45,16 @@ public class ItemAPI<T> where T : Item
 
                     var idRoute = dummy.IdRoute;
                     if (val.route != null)
-                        idRoute = dummy.BaseRoute + val.route;
+                    {
+                        if (val.baseRoute is null)
+                            idRoute = dummy.BaseRoute + val.route;
+                        else
+                            idRoute = val.baseRoute + val.route;
+                    }
+
+                    var baseRoute = dummy.BaseRoute;
+                    if (val.baseRoute is not null)
+                        baseRoute = val.baseRoute;
 
                     switch (val.method)
                     {
@@ -51,7 +62,7 @@ public class ItemAPI<T> where T : Item
                             builder = app.MapGet(idRoute, del);
                             break;
                         case HttpVerbs.Post:
-                            builder = app.MapPost(dummy.BaseRoute + val.route, del);
+                            builder = app.MapPost(baseRoute + val.route, del);
                             break;
                         case HttpVerbs.Put:
                             builder = app.MapPut(idRoute, del);
@@ -124,42 +135,7 @@ public class ItemAPI<T> where T : Item
                         });
                     }
 
-                    var planetAttr = (PlanetPermsRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetPermsRequiredAttribute);
-                    if (planetAttr is not null)
-                    {
-                        builder.AddFilter(async (ctx, next) =>
-                        {
-                            var member = ctx.HttpContext.GetMember();
-                            if (member is null)
-                                throw new Exception("PlanetPermsRequiredAttribute attribute requires a PlanetMembershipRequired attribute.");
-
-                            var routeId = planetAttr.planetRouteName;
-
-                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
-                                throw new Exception($"Could not bind route value for '{routeId}'");
-
-                            var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("PlanetPermsRequired attribute requires InjectDB attribute");
-
-                            var planet = await db.Planets.FirstOrDefaultAsync(x => x.Id == routeVal);
-
-                            foreach (var permEnum in planetAttr.permissions)
-                            {
-                                var perm = PlanetPermissions.Permissions[(int)permEnum];
-                                if (!await planet.HasPermissionAsync(member, perm, db))
-                                    return ValourResult.LacksPermission(perm);
-                            }
-
-                            ctx.HttpContext.Items.Add(planet.Id, planet);
-
-                            return await next(ctx);
-                        });
-                    }
-
-                    var memberAttr = attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
+                    var memberAttr = (PlanetMembershipRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
                     if (memberAttr is not null)
                     {
                         builder.AddFilter(async (ctx, next) =>
@@ -168,22 +144,30 @@ public class ItemAPI<T> where T : Item
                             if (token is null)
                                 throw new Exception("PlanetMembershipRequired attribute requires a TokenRequired attribute.");
 
-                            var routeId = ((PlanetMembershipRequiredAttribute)memberAttr).planetRouteName;
+                            var routeId = memberAttr.planetRouteName;
 
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
                                 throw new Exception($"Could not bind route value for '{routeId}'");
 
-                            var routeVal = (ulong)ctx.HttpContext.Request.RouteValues[routeId];
+                            var routeVal = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeId]);
 
                             var db = ctx.HttpContext.GetDb();
                             if (db is null)
                                 throw new Exception("PlanetMembershipRequired attribute requires InjectDB attribute");
 
-                            var member = await db.PlanetMembers.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
+                            var member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
                             if (member is null)
                                 return ValourResult.NotPlanetMember();
 
+                            foreach (var permEnum in memberAttr.permissions)
+                            {
+                                var perm = PlanetPermissions.Permissions[(int)permEnum];
+                                if (!await member.Planet.HasPermissionAsync(member, perm, db))
+                                    return ValourResult.LacksPermission(perm);
+                            }
+
                             ctx.HttpContext.Items.Add("member", member);
+                            ctx.HttpContext.Items.Add(routeVal, member.Planet);
 
                             return await next(ctx);
                         });
@@ -209,7 +193,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
                                 throw new Exception($"Could not bind route value for '{routeName}'");
 
-                            var categoryId = (ulong)ctx.HttpContext.Request.RouteValues[routeName];
+                            var categoryId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
 
                             var category = await db.PlanetCategoryChannels.FindAsync(categoryId);
 
@@ -249,7 +233,7 @@ public class ItemAPI<T> where T : Item
                             if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
                                 throw new Exception($"Could not bind route value for '{routeName}'");
 
-                            var channelId = (ulong)ctx.HttpContext.Request.RouteValues[routeName];
+                            var channelId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
 
                             var channel = await db.PlanetChatChannels.FindAsync(channelId);
 

@@ -70,7 +70,7 @@
 
     public void RemoveErrorMessage()
     {
-        var error = Messages.FirstOrDefault(x => x.Message_Index == ulong.MaxValue);
+        var error = Messages.FirstOrDefault(x => x.Message_Index == long.MaxValue);
         if (error != null) { QueuedMessages.Remove(error); }
 
         StateHasChanged();

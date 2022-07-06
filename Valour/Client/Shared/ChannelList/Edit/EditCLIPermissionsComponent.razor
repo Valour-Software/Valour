@@ -4,7 +4,7 @@
     return;
 }
 
-<h3>@Target.GetItemTypeName() Permissions</h3>
+<h3>@Target.GetHumanReadableName() Permissions</h3>
 
 @{
     Console.WriteLine(Selected_Role.Name);
@@ -49,7 +49,7 @@
 <!-- If there's a role selected we show possible permissions that role can have
      for the channel or category -->
 
-@if (Target.ItemType == ItemType.ChatChannel)
+@if (Target is PlanetChatChannel)
 {
     PlanetChatChannel channel = Target as PlanetChatChannel;
 
@@ -106,7 +106,7 @@
         </div>
     }
 }
-else if (Target.ItemType == ItemType.Category)
+else if (Target is PlanetCategoryChannel)
 {
     if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
     {
@@ -194,13 +194,13 @@ else
     public Planet Planet { get; set; }
 
     [Parameter]
-    public IPlanetChannel Target { get; set; }
+    public PlanetChannel Target { get; set; }
 
     public PlanetMember SelfMember { get; set; }
 
     public PlanetRole SelfPrimaryRole { get; set; }
 
-    public ulong SelfAuthority { get; set; }
+    public int SelfAuthority { get; set; }
 
     public bool changed = false;
 
@@ -212,7 +212,9 @@ else
 
         if (channel is not null)
         {
-            await channel.SetPermInheritModeAsync(!channel.InheritsPerms);
+            channel.InheritsPerms = !channel.InheritsPerms;
+            await PlanetChatChannel.UpdateAsync(channel);
+
             StateHasChanged();
         }
     }
@@ -232,7 +234,7 @@ else
                         RoleId = Selected_Role.Id,
                         Mask = 0x00,
                         Code = 0x00,
-                        TargetType = ItemType.ChatChannel
+                        TargetType = PermissionsTarget.PlanetChatChannel
                     };
             }
         }
@@ -249,7 +251,7 @@ else
                     RoleId = Selected_Role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = ItemType.Category
+                    TargetType = PermissionsTarget.PlanetCategoryChannel
                 };
             }
         }
@@ -283,7 +285,7 @@ else
         }
 
         // Handle additional node for categories
-        if (Target is PlanetCategory)
+        if (Target is PlanetCategoryChannel)
         {
             TaskResult category_response = await ValourClient.PostAsync($"api/node", CategoryPermissionsNode);
 
@@ -304,7 +306,7 @@ else
         Planet = await Target.GetPlanetAsync();
         Roles = await Planet.GetRolesAsync();
 
-        if (Target.ItemType == ItemType.Category)
+        if (Target is PlanetCategoryChannel)
         {
             Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length +
             CategoryPermissions.Permissions.Length];
@@ -336,7 +338,7 @@ else
 
     public async Task OnRoleSelect(ChangeEventArgs e)
     {
-        ulong newRoleId = ulong.Parse(e.Value.ToString());
+        long newRoleId = long.Parse(e.Value.ToString());
 
         await OnRoleChange(Roles.FirstOrDefault(x => x.Id == newRoleId));
     }
@@ -351,8 +353,8 @@ else
             PlanetChatChannel channel = Target as PlanetChatChannel;
             ChannelPermissionsNode = await channel.GetPermissionsNodeAsync(Selected_Role.Id);
         }
-        else if (Target is PlanetCategory){
-            PlanetCategory category = Target as PlanetCategory;
+        else if (Target is PlanetCategoryChannel){
+            PlanetCategoryChannel category = Target as PlanetCategoryChannel;
             ChannelPermissionsNode = await category.GetChannelPermissionsNodeAsync(Selected_Role.Id);
             CategoryPermissionsNode = await category.GetCategoryPermissionsNodeAsync(Selected_Role.Id);
         }
@@ -405,9 +407,9 @@ else
                     await Buttons[i].OnChangeState(bState, false);
             }
         }
-        else if (Target is PlanetCategory)
+        else if (Target is PlanetCategoryChannel)
         {
-            PlanetCategory category = Target as PlanetCategory;
+            PlanetCategoryChannel category = Target as PlanetCategoryChannel;
 
             // Setup category buttons
             for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)

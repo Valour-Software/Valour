@@ -11,11 +11,15 @@ namespace Valour.Server.Database.Items.Users;
 /// <summary>
 /// Assists in password recovery systems
 /// </summary>
+[Table("password_recoveries")]
 public class PasswordRecovery
 {
     [Key]
+    [Column("code")]
     public string Code { get; set; }
-    public ulong UserId { get; set; }
+
+    [Column("user_id")]
+    public long UserId { get; set; }
 
     [ForeignKey("UserId")]
     public virtual User User { get; set; }

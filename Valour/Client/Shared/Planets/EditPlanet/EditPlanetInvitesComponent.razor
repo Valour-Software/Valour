@@ -26,7 +26,7 @@
                     <th style="width: 125px;">Created</th>
                     <th style="width: 125px;">Expires</th>
                 </tr>
-                @foreach(Invite invite in Invites) {
+                @foreach(var invite in Invites) {
                     <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
                 }
             </table>
@@ -46,7 +46,7 @@
 
     public bool linksChosen = true;
 
-    public List<Invite> Invites = new List<Invite>();
+    public List<PlanetInvite> Invites = new();
 
     public string linksButtonStyle = "settings-button left active";
     public string usersButtonStyle = "settings-button right";
@@ -78,11 +78,11 @@
 
         StateHasChanged();
 
-        ulong planetId = Planet.Id;
+        long planetId = Planet.Id;
 
-        ulong userId = ValourClient.Self.Id;
+        long userId = ValourClient.Self.Id;
 
-        Invites = await ValourClient.GetJsonAsync<List<Invite>>($"api/planet/{planetId}/invites");
+        Invites = await Planet.GetInvitesAsync();
 
         StateHasChanged();
     }
@@ -91,8 +91,17 @@
     {
         if (publicValue != Planet.Public)
         {
-            TaskResult result = await Planet.SetPublic(publicValue);
-            publicSpan = result.Message;
+            Planet.Public = publicValue;
+            var result = await Planet.UpdateAsync(Planet);
+
+            if (result.Success)
+            {
+                publicSpan = "Updated successfully.";
+            }
+            else
+            {
+                publicSpan = "Failed to update. Try again?";
+            }
         }
 
         StateHasChanged();

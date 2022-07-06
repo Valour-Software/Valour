@@ -41,8 +41,8 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		PlanetRole.OnAnyUpdated += OnRoleUpdate;
-		PlanetMember.OnAnyUpdated += OnMemberUpdate;
+		ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+		ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
 	}
 
 	public static async Task Initialize(PlanetMember member)

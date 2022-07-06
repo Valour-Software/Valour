@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Valour.Shared.Items.Users;
 
-public interface ISharedUser
+public interface ISharedUser : ISharedItem
 {
     /// <summary>
     /// The url for the user's profile picture
@@ -19,7 +19,7 @@ public interface ISharedUser
     /// <summary>
     /// The Date and Time that the user joined Valour
     /// </summary>
-    DateTime Joined { get; set; }
+    DateTime TimeJoined { get; set; }
 
     /// <summary>
     /// The name of this user
@@ -57,7 +57,7 @@ public interface ISharedUser
     /// <summary>
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
-    DateTime LastActive { get; set; }
+    DateTime TimeLastActive { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active
@@ -76,7 +76,7 @@ public interface ISharedUser
 
     public static TimeSpan GetLastActiveSpan(ISharedUser user)
     {
-        return DateTime.UtcNow.Subtract(user.LastActive);
+        return DateTime.UtcNow.Subtract(user.TimeLastActive);
     }
 
     public static UserState GetUserState(ISharedUser user)
@@ -84,7 +84,7 @@ public interface ISharedUser
         // Automatically determine
         if (user.UserStateCode == 0)
         {
-            double minPassed = DateTime.UtcNow.Subtract(user.LastActive).TotalMinutes;
+            double minPassed = DateTime.UtcNow.Subtract(user.TimeLastActive).TotalMinutes;
 
             if (minPassed < 3)
             {

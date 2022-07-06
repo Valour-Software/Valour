@@ -20,7 +20,7 @@ public static class ValourCache
     /// <summary>
     /// Places an item into the cache
     /// </summary>
-    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : ISharedItem
+    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : Item
     {
         // Empty object is ignored
         if (obj == null)
@@ -36,11 +36,9 @@ public static class ValourCache
         // If there is already an object with this ID, update it
         if (HCache[type].ContainsKey(id))
         {
-            if (obj is ISyncedItem<T>)
-                await ValourClient.UpdateItem(obj, flags, skipEvent);
-            // Otherwise, place it into the cache
+            await ValourClient.UpdateItem(obj, flags, skipEvent);
         }
-        else
+        else // Otherwise, place it into the cache
         {
             HCache[type][id] = obj;
         }
@@ -49,7 +47,7 @@ public static class ValourCache
     /// <summary>
     /// Returns true if the cache contains the item
     /// </summary>
-    public static bool Contains<T>(object id) where T : class
+    public static bool Contains<T>(object id) where T : Item
     {
         var type = typeof(T);
 
@@ -62,7 +60,7 @@ public static class ValourCache
     /// <summary>
     /// Returns the item for the given id, or null if it does not exist
     /// </summary>
-    public static T Get<T>(object id) where T : class
+    public static T Get<T>(object id) where T : Item
     {
         var type = typeof(T);
 
@@ -76,7 +74,7 @@ public static class ValourCache
     /// <summary>
     /// Removes an item if present in the cache
     /// </summary>
-    public static void Remove<T>(object id) where T : class
+    public static void Remove<T>(object id) where T : Item
     {
         var type = typeof(T);
 

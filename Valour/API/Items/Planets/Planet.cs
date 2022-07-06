@@ -13,18 +13,19 @@ namespace Valour.Api.Items.Planets;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : SyncedItem<Planet>, ISharedPlanet
+public class Planet : Item, ISharedPlanet
 {
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
     private List<PlanetCategoryChannel> Categories { get; set; }
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
+    private List<PlanetInvite> Invites { get; set; }
 
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
-    public ulong OwnerId { get; set; }
+    public long OwnerId { get; set; }
 
     /// <summary>
     /// The name of this planet
@@ -49,19 +50,34 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    public ulong DefaultRoleId { get; set; }
+    public long? DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    public ulong PrimaryChannelId { get; set; }
+    public long? PrimaryChannelId { get; set; }
 
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async Task<Planet> FindAsync(ulong id, bool refresh = false) =>
-        await FindAsync<Planet>(id, refresh);
-    
+    public static async Task<Planet> FindAsync(long id, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<Planet>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}");
+
+        if (item is not null)
+        {
+            await ValourCache.Put(id, item);
+        }
+
+        return item;
+    }
 
     /// <summary>
     /// Returns the primary channel of the planet
@@ -71,7 +87,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await FindAsync<PlanetChatChannel>(Id, refresh);
+        return await PlanetChatChannel.FindAsync(PrimaryChannelId.Value, Id, refresh);
     }
 
     /// <summary>
@@ -139,7 +155,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"/api/planet/{Id}/channels");
+        var channels = await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels");
 
         if (channels is null)
             return;
@@ -170,24 +186,6 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     }
 
     /// <summary>
-    /// Attempts to set the name of the planet
-    /// </summary>
-    public async Task<TaskResult> TrySetNameAsync(string name) =>
-        await ValourClient.PutAsync($"api/planet/{Id}/name", name);
-
-    /// <summary>
-    /// Attempts to set the description of the planet
-    /// </summary>
-    public async Task<TaskResult> TrySetDescriptionAsync(string description) =>
-        await ValourClient.PutAsync($"api/planet/{Id}/description", description);
-
-    /// <summary>
-    /// Attempts to set the public value of the planet
-    /// </summary>
-    public async Task<TaskResult> SetPublic(bool is_public) =>
-        await ValourClient.PutAsync($"api/planet/{Id}/public", is_public);
-
-    /// <summary>
     /// Returns the members of the planet
     /// </summary>
     public async Task<List<PlanetMember>> GetMembersAsync(bool force_refresh = false)
@@ -205,14 +203,14 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     /// </summary>
     public async Task LoadMemberDataAsync()
     {
-        var result = await ValourClient.GetJsonAsync<List<PlanetMemberInfo>>($"api/planet/{Id}/member_info");
+        var result = await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo");
 
         if (Members is null)
             Members = new List<PlanetMember>();
         else
             Members.Clear();
 
-        foreach (var info in result)
+        foreach (var info in result.Members)
         {
             // Set role id data manually
             await info.Member.SetLocalRoleIds(info.RoleIds);
@@ -224,12 +222,54 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
             await ValourCache.Put(info.Member.UserId, info.User, true);
         }
 
-        foreach (var info in result)
+        foreach (var info in result.Members)
         {
             var member = ValourCache.Get<PlanetMember>(info.Member.Id);
 
             if (member is not null)
                 Members.Add(member);
+        }
+    }
+
+    /// <summary>
+    /// Returns the invites of the planet
+    /// </summary>
+    public async Task<List<PlanetInvite>> GetInvitesAsync(bool refresh = false)
+    {
+        if (Invites is null || refresh)
+            await LoadInvitesAsync();
+
+        return Invites;
+    }
+
+    /// <summary>
+    /// Loads the planet's invites from the server
+    /// </summary>
+    public async Task LoadInvitesAsync()
+    {
+        var invites = await ValourClient.GetJsonAsync<List<PlanetInvite>>($"{IdRoute}/invites");
+
+        if (invites is null)
+            return;
+
+        foreach (var invite in invites)
+        {
+            // Skip event for bulk loading
+            await ValourCache.Put(invite.Id, invite, true);
+            await ValourCache.Put(invite.Code, invite, true);
+        }
+
+        if (Invites is null)
+            Invites = new();
+        else
+            Invites.Clear();
+
+        foreach (var invite in invites)
+        {
+            var cInvite = await PlanetRole.FindAsync(invite.Id, Id);
+
+            if (cInvite is not null)
+                Roles.Add(cInvite);
         }
     }
 
@@ -251,7 +291,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     /// </summary>
     public async Task LoadRolesAsync()
     {
-        var roles = await ValourClient.GetJsonAsync<List<PlanetRole>>($"api/planet/{Id}/roles");
+        var roles = await ValourClient.GetJsonAsync<List<PlanetRole>>($"{IdRoute}/roles");
 
         if (roles is null)
             return;
@@ -269,7 +309,7 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
 
         foreach (var role in roles)
         {
-            var cRole = await PlanetRole.FindAsync(role.Id);
+            var cRole = await PlanetRole.FindAsync(role.Id, Id);
 
             if (cRole is not null)
                 Roles.Add(cRole);
@@ -281,9 +321,9 @@ public class Planet : SyncedItem<Planet>, ISharedPlanet
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async Task<PlanetMember> GetMemberAsync(ulong userId, bool force_refresh = false)
+    public async Task<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
     {
-        return await PlanetMember.FindAsync(Id, userId, force_refresh);
+        return await PlanetMember.FindAsync(userId, Id, force_refresh);
     }
 
     /// <summary>

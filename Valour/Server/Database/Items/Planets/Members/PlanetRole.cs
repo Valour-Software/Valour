@@ -3,8 +3,6 @@ using System.Drawing;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
@@ -17,6 +15,7 @@ using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Server.Database.Items.Planets.Members;
 
+[Table("planet_roles")]
 public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     [InverseProperty("Role")]
@@ -26,25 +25,36 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
+    [Column("position")]
+    public int Position { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
-    public ulong Permissions { get; set; }
+    [Column("permissions")]
+    public long Permissions { get; set; }
 
     // RGB Components for role color
+    [Column("red")]
     public byte Red { get; set; }
+
+    [Column("green")]
     public byte Green { get; set; }
+
+    [Column("blue")]
     public byte Blue { get; set; }
 
     // Formatting options
+    [Column("bold")]
     public bool Bold { get; set; }
+
+    [Column("italics")]
     public bool Italics { get; set; }
 
+    [Column("name")]
     public string Name { get; set; }
 
-    public uint GetAuthority() =>
+    public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
@@ -89,7 +99,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel, ValourDB db) =>
         await GetPermissionStateAsync(permission, channel.Id, db);
 
-    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, ulong channelId, ValourDB db) =>
+    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, ValourDB db) =>
         (await db.PermissionsNodes.FirstOrDefaultAsync(x => x.RoleId == Id && x.TargetId == channelId)).GetPermissionState(permission);
 
     public async Task DeleteAsync(ValourDB db)
@@ -110,7 +120,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
 
@@ -124,15 +134,14 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
         var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
-        role.Position = (uint)await db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
+        role.Position = await db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
         role.Id = IdManager.Generate();
 
         if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))
@@ -157,9 +166,8 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetRole role,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetRole role,
         ILogger<PlanetRole> logger)
     {
         var db = ctx.GetDb();
@@ -191,9 +199,8 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
         ILogger<PlanetRole> logger)
     {
         var db = ctx.GetDb();

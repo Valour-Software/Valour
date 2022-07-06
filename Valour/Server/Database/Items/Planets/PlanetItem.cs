@@ -9,7 +9,8 @@ public abstract class PlanetItem : Item
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
 
-    public ulong PlanetId { get; set; }
+    [Column("planet_id")]
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// Returns the planet for this item

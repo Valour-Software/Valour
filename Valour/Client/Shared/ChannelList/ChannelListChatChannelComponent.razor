@@ -84,7 +84,7 @@
     {
         // Console.WriteLine("Init " + Channel.Name);
 
-        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         ValourClient.OnChannelOpen += OnChannelStateChange;
         ValourClient.OnChannelClose += OnChannelStateChange;
@@ -94,7 +94,7 @@
     {
         // Console.WriteLine("Disposed " + Channel.Name);
 
-        PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
         ValourClient.OnChannelOpen -= OnChannelStateChange;
         ValourClient.OnChannelClose -= OnChannelStateChange;

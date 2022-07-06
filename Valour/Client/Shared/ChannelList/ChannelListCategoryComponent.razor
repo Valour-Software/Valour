@@ -38,7 +38,7 @@
                         }
                         else
                         {
-                            PlanetCategory planetcategory = item as PlanetCategory;
+                            PlanetCategoryChannel planetcategory = item as PlanetCategoryChannel;
                             @if (planetcategory.ParentId == Category.Id)
                             {
                                 <ChannelListCategoryComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
@@ -58,13 +58,13 @@
     public bool IsTopLevel { get; set; }
 
     [Parameter]
-    public PlanetCategory Category { get; set; }
+    public PlanetCategoryChannel Category { get; set; }
 
     [Parameter]
     public List<PlanetChatChannel> Channels { get; set; }
 
     [Parameter]
-    public List<PlanetCategory> Categories { get; set; }
+    public List<PlanetCategoryChannel> Categories { get; set; }
 
     [Parameter]
     public ChatChannelWindow ChannelWindow { get; set; }
@@ -73,22 +73,22 @@
     public ChannelListCategoryComponent ParentCategory { get; set; }
 
     public List<PlanetChatChannel> ChildChannels { get; set; }
-    public List<PlanetCategory> ChildCategories { get; set; }
+    public List<PlanetCategoryChannel> ChildCategories { get; set; }
 
     public bool IsOpen { get; set; }
 
     public Planet Planet { get; set; }
 
-    public List<IPlanetChannel> ItemList = new List<IPlanetChannel>();
+    public List<PlanetChannel> ItemList = new List<PlanetChannel>();
 
     protected override async Task OnInitializedAsync()
     {
-        PlanetCategory.OnAnyUpdated += OnCategoryUpdate;
-        PlanetChatChannel.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         // Handle Deletions
-        PlanetCategory.OnAnyDeleted += OnCategoryDeletion;
-        PlanetChatChannel.OnAnyDeleted += OnChatChannelDeletion;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeletion;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
 
         ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
@@ -96,7 +96,7 @@
         Planet = await Category.GetPlanetAsync();
 
         if (ChildCategories == null)
-            ChildCategories = new List<PlanetCategory>();
+            ChildCategories = new List<PlanetCategoryChannel>();
 
         IsOpen = categoryManager.IsOpen(Category);
 
@@ -114,11 +114,11 @@
 
     public void Dispose()
     {
-        PlanetCategory.OnAnyUpdated -= OnCategoryUpdate;
-        PlanetChatChannel.OnAnyUpdated -= OnChatChannelUpdate;
+        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated -= OnCategoryUpdate;
+        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
-        PlanetCategory.OnAnyDeleted -= OnCategoryDeletion;
-        PlanetChatChannel.OnAnyDeleted -= OnChatChannelDeletion;
+        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted -= OnCategoryDeletion;
+        ItemObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
     }
 
     public void OnClick()
@@ -173,7 +173,7 @@
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
-    public async Task OnCategoryDeletion(PlanetCategory category)
+    public async Task OnCategoryDeletion(PlanetCategoryChannel category)
     {
 
         var old = ChildCategories.FirstOrDefault(x => x.Id == category.Id);
@@ -187,7 +187,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategory category, int flags)
+    public async Task OnCategoryUpdate(PlanetCategoryChannel category, int flags)
     {
         if (Category.Id == category.Id)
         {
@@ -291,7 +291,7 @@
     int currentDragIndex;
 
     // Get local index
-    public int GetIndex(IPlanetChannel item)
+    public int GetIndex(PlanetChannel item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
     }

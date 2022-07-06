@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared.Items.Planets.Channels;
 
-public interface ISharedChannel
+public interface ISharedChannel : ISharedItem
 {
-    ulong Id { get; set; }
     string Name { get; set; }
     int Position { get; set; }
     string Description { get; set; }

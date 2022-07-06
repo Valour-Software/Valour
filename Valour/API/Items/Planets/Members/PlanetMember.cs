@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INodeSpecific
+public class PlanetMember : PlanetItem, ISharedPlanetMember
 {
     public const int FLAG_UPDATE_ROLES = 0x01;
 
@@ -23,12 +23,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// <summary>
     /// The user within the planet
     /// </summary>
-    public ulong UserId { get; set; }
-
-    /// <summary>
-    /// The planet the user is within
-    /// </summary>
-    public ulong PlanetId { get; set; }
+    public long UserId { get; set; }
 
     /// <summary>
     /// The name to be used within the planet
@@ -41,16 +36,9 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     public string MemberPfp { get; set; }
 
     /// <summary>
-    /// The node this item belongs to
-    /// </summary>
-    public string Node { get; set; }
-
-    public override ItemType ItemType => ItemType.PlanetMember;
-
-    /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(ulong id, bool force_refresh = false)
+    public static async Task<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -59,7 +47,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/member/{id}");
+        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/{id}");
 
         if (member is not null)
         {
@@ -71,9 +59,9 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     }
 
     /// <summary>
-    /// Returns the member for the given ids
+    /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(ulong planetId, ulong userId, bool force_refresh = false)
+    public static async Task<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -82,7 +70,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/member/{planetId}/{userId}");
+        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/byuser/{userId}");
 
         if (member is not null)
         {
@@ -125,7 +113,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async Task<bool> HasRoleAsync(ulong id, bool force_refresh = false)
+    public async Task<bool> HasRoleAsync(long id, bool force_refresh = false)
     {
         if (Roles is null || force_refresh)
         {
@@ -140,26 +128,20 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// </summary>
     public async Task<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
         await HasRoleAsync(role.Id, force_refresh);
-
-    /// <summary>
-    /// Returns the planet of the member
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync() =>
-        await Planet.FindAsync(PlanetId);
     
     /// <summary>
     /// Returns the authority of the member
     /// </summary>
-    public async Task<ulong> GetAuthorityAsync() =>
-        await ValourClient.GetJsonAsync<ulong>($"api/member/{Id}/authority");
+    public async Task<int> GetAuthorityAsync() =>
+        await ValourClient.GetJsonAsync<int>($"{IdRoute}/authority");
 
     /// <summary>
     /// Loads all role Ids from the server
     /// </summary>
-    public async Task LoadRolesAsync(List<ulong> roleIds = null)
+    public async Task LoadRolesAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
-            roleIds = await ValourClient.GetJsonAsync<List<ulong>>($"api/member/{Id}/roleIds");
+            roleIds = await ValourClient.GetJsonAsync<List<long>>($"{IdRoute}/roleIds");
 
         if (Roles is null)
             Roles = new List<PlanetRole>();
@@ -168,7 +150,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
 
         foreach (var id in roleIds)
         {
-            var role = await PlanetRole.FindAsync(id);
+            var role = await PlanetRole.FindAsync(id, PlanetId);
 
             if (role is not null)
                 Roles.Add(role);
@@ -181,7 +163,7 @@ public class PlanetMember : SyncedItem<PlanetMember>, ISharedPlanetMember, INode
     /// Sets the role Ids manually. This exists for optimization purposes, and you probably shouldn't use it.
     /// It will NOT change anything on the server.
     /// </summary>
-    public async Task SetLocalRoleIds(List<ulong> ids) =>
+    public async Task SetLocalRoleIds(List<long> ids) =>
         await LoadRolesAsync(ids);
 
     /// <summary>

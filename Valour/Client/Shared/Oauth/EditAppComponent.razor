@@ -6,7 +6,7 @@
     <h5>Editing</h5>
     <h4 class='name'>@App.Name</h4>
     <br/>
-    <img src="@App.Image_Url" onclick="document.getElementById('upload-core').click()" class='icon' />
+    <img src="@App.ImageUrl" onclick="document.getElementById('upload-core').click()" class='icon' />
 
     <div style='display: none'>
         <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
@@ -107,7 +107,7 @@
 
         if (result.Success)
         {
-            App.Image_Url = result.Data;
+            App.ImageUrl = result.Data;
             Icon_Output = "Successfully changed app icon.";
         }
         else

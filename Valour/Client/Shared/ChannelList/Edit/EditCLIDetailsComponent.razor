@@ -5,19 +5,21 @@
 <br />
 
 <div class="settings-inner">
+    <span class="text-danger">@errorSpan</span>
+    
+    <br/>
+    
     <p>Name</p>
-    <input class="form-control" type="text" @bind-value="@nameValue" />
+    <input class="form-control" type="text" @bind-value="@nameValue"/>
     <span id="result-span" class="text-info">@nameSpan</span>
-    <span class="text-danger">@nameErrorSpan</span>
 
     <div class="mb-2"></div>
 
-    <br />
+    <br/>
 
     <p>Description</p>
-    <input class="form-control" type="text" @bind-value="@descValue" />
+    <input class="form-control" type="text" @bind-value="@descValue"/>
     <span id="result-span" class="text-info">@descSpan</span>
-    <span class="text-danger">@descErrorSpan</span>
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 </div>
@@ -25,56 +27,43 @@
 
 @code {
     [Parameter]
-    public IPlanetChannel Item { get; set; }
+    public PlanetChannel Channel { get; set; }
 
     public string nameValue;
     public string descValue;
 
-    public string nameErrorSpan;
-    public string descErrorSpan;
+    public string errorSpan;
 
     public string nameSpan;
     public string descSpan;
 
     protected override async Task OnInitializedAsync()
     {
-        nameValue = Item.Name;
-        descValue = Item.Description;
+        nameValue = Channel.Name;
+        descValue = Channel.Description;
 
-        nameErrorSpan = "";
-        descErrorSpan = "";
-
+        errorSpan = "";
+        
         StateHasChanged();
     }
 
     public async Task OnSaveChanges()
     {
 
-        if (nameValue != Item.Name)
+        if (nameValue != Channel.Name || descValue != Channel.Description)
         {
-            TaskResult result = await Item.SetNameAsync(nameValue);
+            Channel.Name = nameValue;
+            Channel.Description = descValue;
+
+            TaskResult<PlanetChannel> result = await Api.Items.Item.UpdateAsync(Channel);
 
             if (!result.Success)
             {
-                nameErrorSpan = result.Message;
+                errorSpan = "Failed to save changes. Try again?";
             }
             else
             {
-                nameSpan = result.Message;
-            }
-        }
-
-        if (descValue != Item.Description)
-        {
-            TaskResult result = await Item.SetDescriptionAsync(descValue);
-
-            if (!result.Success)
-            {
-                descErrorSpan = result.Message;
-            }
-            else
-            {
-                descSpan = result.Message;
+                nameSpan = "Changes saved successfully.";
             }
         }
 

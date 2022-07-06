@@ -36,9 +36,7 @@ namespace Valour.Server
         {
             // Load configs
             LoadConfigsAsync();
-
-            ValourDB.Node = DeployedNode.Instance.Name;
-
+            
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
 
@@ -75,7 +73,7 @@ namespace Valour.Server
                 new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
-                new ItemAPI<PlanetInvite>()                   .RegisterRoutes(app),
+                new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
             };
 
@@ -225,7 +223,7 @@ namespace Valour.Server
                 //options.JsonSerializerOptions.PropertyNameCaseInsensitive = false;
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 
-                options.JsonSerializerOptions.PropertyNamingPolicy = null;
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             }
             );
             services.AddRazorPages();

@@ -15,37 +15,32 @@ namespace Valour.Api.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : SyncedItem<PermissionsNode>, ISharedPermissionsNode
+public class PermissionsNode : Item, ISharedPermissionsNode
 {
-    /// <summary>
-    /// The Id of this node
-    /// </summary>
-    public ulong Id { get; set; }
-
     /// <summary>
     /// The planet this node belongs to
     /// </summary>
-    public ulong PlanetId { get; set; }
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// The permission code that this node has set
     /// </summary>
-    public ulong Code { get; set; }
+    public long Code { get; set; }
 
     /// <summary>
     /// A mask used to determine if code bits are disabled
     /// </summary>
-    public ulong Mask { get; set; }
+    public long Mask { get; set; }
 
     /// <summary>
     /// The role this permissions node belongs to
     /// </summary>
-    public ulong RoleId { get; set; }
+    public long RoleId { get; set; }
 
     /// <summary>
     /// The id of the object this node applies to
     /// </summary>
-    public ulong TargetId { get; set; }
+    public long TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to
@@ -76,10 +71,13 @@ public class PermissionsNode : SyncedItem<PermissionsNode>, ISharedPermissionsNo
     public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
         await FindAsync(channel.Id, role.Id, targetType);
 
+    public override string IdRoute => $"{BaseRoute}/{TargetId}/{RoleId}";
+    public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
+
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(ulong targetId, ulong roleId, PermissionsTarget type, bool force_refresh = false)
+    public static async Task<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTarget type, bool force_refresh = false)
     {
         if (!force_refresh)
         {

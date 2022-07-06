@@ -61,10 +61,10 @@
         Planet planet = new Planet()
         {
             Name = name,
-            Image_Url = image_url
+            IconUrl = image_url
         };
 
-        var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/planet", planet);
+        var response = await ValourClient.PostAsyncWithResponse<long>($"api/planet", planet);
 
         if (!response.Success)
         {
@@ -72,7 +72,7 @@
             return;
         }
 
-        ulong planetId = response.Data;
+        long planetId = response.Data;
 
         Planet result = await Planet.FindAsync(planetId);
 

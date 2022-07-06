@@ -162,7 +162,7 @@
 
     public bool Edit = false;
 
-    public ulong roleId;
+    public long roleId;
 
     bool mentioned = false;
 
@@ -231,11 +231,11 @@
 
         if (!Submessage)
         {
-            var self_id = Holder.Window.Component.SelfMember.Id;
+            var selfId = Holder.Window.Component.SelfMember.Id;
 
             if (Message.BaseMessage.MentionsData != null)
             {
-                mentioned = Message.BaseMessage.MentionsData.Contains(self_id.ToString());
+                mentioned = Message.BaseMessage.MentionsData.Contains(selfId.ToString());
             }
         }
 
@@ -243,7 +243,7 @@
             return;
         }
 
-        Author = await Message.BaseMessage.GetAuthorAsync();
+        Author = await Message.BaseMessage.GetAuthorMemberAsync();
 
         name = await Author.GetNameAsync();
 
@@ -282,8 +282,8 @@
             Holder.AddRenderedMessage(this);
         }
 
-        PlanetRole.OnAnyDeleted += OnRoleDeletion;
-        PlanetRole.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
 
         await BuildMessage();
 
@@ -299,7 +299,7 @@
 
     public async Task OnAuthorUpdated(int flags)
     {
-        if((flags & PlanetMemberBase.FLAG_UPDATE_ROLES) != 0)
+        if((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
             await UpdateForRoleChange();
 
         name = await Author.GetNameAsync();
@@ -320,13 +320,13 @@
     {
         if (Last_Message != null && Message != null)
         {
-            if (Last_Message.BaseMessage.AuthorId == Message.BaseMessage.AuthorId)
+            if (Last_Message.BaseMessage.AuthorUserId == Message.BaseMessage.AuthorUserId)
             {
                 Minimal = true;
                 return;
             }
         }
-        
+
         Minimal = false;
     }
 
@@ -342,7 +342,7 @@
     {
         ShouldRenderValue = true;
         StateHasChanged();
-        
+
         ContentComponent?.ReRender();
 
         ShouldRenderValue = false;
@@ -381,7 +381,7 @@
 
         Console.WriteLine("pfp error caught");
 
-        StateHasChanged();
+        ReRender();
     }
 
     /// <summary>

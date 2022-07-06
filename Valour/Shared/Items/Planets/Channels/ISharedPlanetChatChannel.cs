@@ -15,6 +15,6 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// </summary>
 public interface ISharedPlanetChatChannel : ISharedPlanetChannel
 {
-    ulong MessageCount { get; set; }
+    long MessageCount { get; set; }
 }
 

@@ -5,7 +5,7 @@ using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Items.Users;
 
-public class User : SyncedItem<User>, ISharedUser
+public class User : Item, ISharedUser
 {
     [JsonIgnore]
     public static User Victor = new User()
@@ -15,7 +15,7 @@ public class User : SyncedItem<User>, ISharedUser
         PfpUrl = "/media/victor-cyan.png",
         Name = "Victor",
         ValourStaff = true,
-        Id = ulong.MaxValue
+        Id = long.MaxValue
     };
 
     /// <summary>
@@ -26,7 +26,7 @@ public class User : SyncedItem<User>, ISharedUser
     /// <summary>
     /// The Date and Time that the user joined Valour
     /// </summary>
-    public DateTime Joined { get; set; }
+    public DateTime TimeJoined { get; set; }
 
     /// <summary>
     /// The name of this user
@@ -64,7 +64,7 @@ public class User : SyncedItem<User>, ISharedUser
     /// <summary>
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
-    public DateTime LastActive { get; set; }
+    public DateTime TimeLastActive { get; set; }
 
     public TimeSpan LastActiveSpan =>
         ISharedUser.GetLastActiveSpan(this);
@@ -75,13 +75,26 @@ public class User : SyncedItem<User>, ISharedUser
         set => ISharedUser.SetUserState(this, value);
     }
 
-    /// <summary>
-    /// Returns the user for the given id
-    /// </summary>
-    public static async Task<User> FindAsync(ulong id, bool refresh = false) =>
-        await FindAsync<User>(id, refresh);
-
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
         await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
+
+    public static async Task<User> FindAsync(long id, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<User>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<User>($"api/{nameof(User)}/{id}");
+
+        if (item is not null)
+        {
+            await ValourCache.Put(id, item);
+        }
+
+        return item;
+    }
 }
 

@@ -26,9 +26,9 @@ public static class IdManager
         Generator = new IdGenerator(0, options);
     }
 
-    public static ulong Generate()
+    public static long Generate()
     {
-        return (ulong)Generator.CreateId();
+        return Generator.CreateId();
     }
 }
 

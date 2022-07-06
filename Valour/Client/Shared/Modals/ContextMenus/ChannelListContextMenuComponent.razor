@@ -1,6 +1,7 @@
+@using Item = Valour.Api.Items.Item
 <ContextMenu Id='list-context' CssClass='context'>
 
-    @if (SelectedItem.ItemType == ItemType.Category){
+    @if (SelectedItem is PlanetCategoryChannel){
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
@@ -14,13 +15,11 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public static IPlanetChannel SelectedItem { get; set; }
+    public static PlanetChannel SelectedItem { get; set; }
 
     public static ChannelListContextMenuComponent Instance;
 
-    public static async Task SetSelectedItem(IPlanetChannel item){
-
-        Console.WriteLine(item.ItemType.ToString());
+    public static async Task SetSelectedItem(PlanetChannel item){
 
         SelectedItem = item;
         Instance.Refresh();
@@ -39,7 +38,7 @@
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
 
-        if (SelectedItem.ItemType == ItemType.Category){
+        if (SelectedItem is PlanetCategoryChannel){
             modalParams.Add("Parent", SelectedItem);
         }
         else{
@@ -54,7 +53,7 @@
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
 
-        if (SelectedItem.ItemType == ItemType.Category){
+        if (SelectedItem is PlanetCategoryChannel){
             modalParams.Add("Parent", SelectedItem);
         }
         else{
@@ -65,7 +64,7 @@
     }
 
     public async Task DeleteChannelListItem(){
-        if (SelectedItem.ItemType == ItemType.Category){
+        if (SelectedItem is PlanetCategoryChannel){
             var planet = await SelectedItem.GetPlanetAsync();
 
             var channels = await planet.GetChannelsAsync();
@@ -100,7 +99,7 @@
              async () =>
              {
                  Console.WriteLine("Confirmed channel item deletion.");
-                 var result = await SelectedItem.DeleteAsync();
+                 var result = await Item.DeleteAsync(SelectedItem);
                  Console.WriteLine("Deletion: " + result.Message);
 
              },

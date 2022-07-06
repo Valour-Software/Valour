@@ -79,6 +79,7 @@
 }
 
 .message .message-content {
+    width: 95%;
     display: inline-block;
     margin-left: 3px;
     margin-top: 4px;
@@ -88,6 +89,7 @@
 }
 
 .message .content {
+    width: 100%;
     font-family: Ubuntu;
     font-style: normal;
     font-weight: 300;
@@ -182,6 +184,7 @@
 }
 
 .multi-message .message-content {
+    width: 95%;
     display: inline-block;
     margin-left: 7px;
     margin-top: 4px;
@@ -190,6 +193,7 @@
 }
 
 .multi-message .content {
+    width: 100%;
     font-family: Ubuntu;
     font-style: normal;
     font-weight: 300;
