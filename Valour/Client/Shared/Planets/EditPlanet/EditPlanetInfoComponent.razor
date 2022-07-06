@@ -5,34 +5,31 @@
 <hr />
 <br />
 
-<div class="settings-inner">
-    <span class="text-danger">@resultSpan</span>
-    <br />
+<span class="text-danger">@resultSpan</span>
+<br />
 
-    <p>Name</p>
-    <input class="form-control" type="text" @bind-value="@nameValue" />
+<p>Name</p>
+<input class="form-control" type="text" @bind-value="@nameValue" />
 
-    <br />
+<br />
 
-    <p>Description</p>
-    <input class="form-control" type="text" @bind-value="@descValue" />
+<p>Description</p>
+<input class="form-control" type="text" @bind-value="@descValue" />
 
-    <br/>
+<br />
 
-    <p>Icon</p>
+<p>Icon</p>
 
-    <div>
-        <img @bind-src='IconUrl' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
-        <div style="display:inline-block">
-            <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
-            <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
-            <span id="error-span" style="display:block" class="text-danger">@Image_Error</span>
-        </div>
+<div>
+    <img @bind-src='IconUrl' @bind-src:event='onchange' style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" @onerror="OnPfpError" />
+    <div style="display:inline-block">
+        <InputFile OnChange="LoadFiles" AdditionalAttributes="@InputAttributes"></InputFile>
+        <span id="result-span" style="display:block" class="text-info">@Image_Output</span>
+        <span id="error-span" style="display:block" class="text-danger">@Image_Error</span>
     </div>
-
-    <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 </div>
 
+<div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
 
 @code {
 

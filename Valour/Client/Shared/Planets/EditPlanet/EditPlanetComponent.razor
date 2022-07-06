@@ -4,44 +4,42 @@
 
 @if (Planet != null)
 {
-    <body class="edit-body">
-        <div class="container">
-            <div class="row settings-row">
-                <div class="col-3 edit-col-left">
-                    <b>@Planet.Name</b>
-                    <hr />
-                    <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
-                    <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Invites</div>
-                    <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
-                    <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
-                    <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
-                </div>
-                <div class="col-9 edit-col-right">
-                    @switch (selected)
-                    {
-                        case 0:
-                            <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
-                            break;
-                        case 1:
-                            <EditPlanetInvitesComponent Planet="Planet"></EditPlanetInvitesComponent>
-                            break;
-                        case 2:
-                            <EditPlanetUsersComponent></EditPlanetUsersComponent>
-                            break;
-                        case 3:
-                            <EditPlanetBansComponent></EditPlanetBansComponent>
-                            break;
-                        case 4:
-                            <EditPlanetRolesComponent Planet="Planet"></EditPlanetRolesComponent>
-                            break;
-                        default:
-                            break;
+    <div class="settings-modal container" style="padding: 0">
+        <div class="row settings-row">
+            <div class="col-md-3 edit-col-left">
+                <b>@Planet.Name</b>
+                <hr />
+                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Invites</div>
+                <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
+                <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
+                <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
+            </div>
+            <div class="col-md-9 edit-col-right">
+                @switch (selected)
+                {
+                    case 0:
+                        <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
+                        break;
+                    case 1:
+                        <EditPlanetInvitesComponent Planet="Planet"></EditPlanetInvitesComponent>
+                        break;
+                    case 2:
+                        <EditPlanetUsersComponent></EditPlanetUsersComponent>
+                        break;
+                    case 3:
+                        <EditPlanetBansComponent></EditPlanetBansComponent>
+                        break;
+                    case 4:
+                        <EditPlanetRolesComponent Planet="Planet"></EditPlanetRolesComponent>
+                        break;
+                    default:
+                        break;
 
-                    }
-                </div>
+                }
             </div>
         </div>
-    </body>
+    </div>
 }
 else
 {
