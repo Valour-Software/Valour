@@ -52,7 +52,7 @@
 
         JsonContent content = JsonContent.Create(invite);
 
-        var response = await Http.PostAsync($"api/invite", content);
+        var response = await Http.PostAsync($"api/planet/{Planet.Id}/planetinvite", content);
 
         var message = await response.Content.ReadAsStringAsync();
 
