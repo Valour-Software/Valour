@@ -13,7 +13,7 @@ namespace Valour.Server.Database.Items.Authorization;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-[Table("permissions_node")]
+[Table("permissions_nodes")]
 public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 {
 
