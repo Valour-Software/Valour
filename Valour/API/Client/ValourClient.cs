@@ -356,10 +356,11 @@ public static class ValourClient
         {
             if (local != null) {
                 await local.InvokeUpdatedEventAsync(flags);
-                await ItemObserver<T>.InvokeAnyUpdated(local, flags);
+                await ItemObserver<T>.InvokeAnyUpdated(local, false, flags);
             }
             else {
-                await ItemObserver<T>.InvokeAnyUpdated(updated, flags);
+                await updated.AddToCache();
+                await ItemObserver<T>.InvokeAnyUpdated(updated, true, flags);
             }
 
             // printing to console is SLOW, only turn on for debugging reasons

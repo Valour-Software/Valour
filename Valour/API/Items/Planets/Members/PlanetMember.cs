@@ -50,12 +50,15 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
         var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/{id}");
 
         if (member is not null)
-        {
-            await ValourCache.Put(id, member);
-            await ValourCache.Put((member.PlanetId, member.UserId), member);
-        }
+            await member.AddToCache();
 
         return member;
+    }
+
+    public override async Task AddToCache()
+    {
+        await ValourCache.Put(Id, this);
+        await ValourCache.Put((PlanetId, UserId), this);
     }
 
     /// <summary>

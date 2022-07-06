@@ -22,7 +22,7 @@ namespace Valour.Api.Items
         /// </summary>
         public static event Func<T, Task> OnAnyDeleted;
 
-        public static async Task InvokeAnyUpdated(T updated, int flags)
+        public static async Task InvokeAnyUpdated(T updated, bool newItem, int flags)
         {
             if (OnAnyUpdated != null)
                 await OnAnyUpdated?.Invoke(updated, flags);
