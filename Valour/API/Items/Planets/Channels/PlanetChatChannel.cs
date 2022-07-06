@@ -3,6 +3,7 @@ using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets.Members;
+using Valour.Api.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
@@ -124,6 +125,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
         return item;
     }
+
+    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(PlanetChatChannelCreateRequest request)
+    {
+        return await ValourClient.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
+    } 
 
     public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
         await ValourClient.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}");

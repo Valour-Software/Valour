@@ -197,7 +197,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRoute(HttpContext ctx, long id)
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var member = await FindAsync<PlanetMember>(id, db);
@@ -206,6 +206,19 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             return ValourResult.NotFound<PlanetMember>();
 
         return Results.Json(member);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired, InjectDb]
+    [PlanetMembershipRequired]
+    public static async Task<IResult> GetAuthorityRouteAsync(HttpContext ctx, long id)
+    {
+        var db = ctx.GetDb();
+        var member = await FindAsync<PlanetMember>(id, db);
+
+        if (member is null)
+            return ValourResult.NotFound<PlanetMember>();
+
+        return Results.Json(await member.GetAuthorityAsync(db));
     }
 
     [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired, InjectDb]
