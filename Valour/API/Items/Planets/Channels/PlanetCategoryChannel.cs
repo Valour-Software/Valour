@@ -35,7 +35,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         var item = await ValourClient.GetJsonAsync<PlanetCategoryChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetCategoryChannel)}/{id}");
 
         if (item is not null)
-            await ValourCache.Put(id, item);
+            await item.AddToCache();
 
         return item;
     }

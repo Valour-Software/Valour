@@ -117,35 +117,26 @@
         long parentId = Parent.Id;
         long planetId = Planet.Id;
 
-        PlanetChatChannel newChannel = new()
+        PlanetChatChannelCreateRequest createRequest = new()
         {
-            Name = name,
-            Description = "A chat channel",
-            PlanetId = planetId,
-            ParentId = parentId,
-            Position = (await Planet.GetChannelsAsync()).Count
+            Channel = new  PlanetChatChannel()
+            {
+                Name = name,
+                Description = "A chat channel",
+                PlanetId = planetId,
+                ParentId = parentId,
+                Position = (await Planet.GetChannelsAsync()).Count
+            },
+            Nodes = new()
         };
 
-        var result = await Api.Items.Item.CreateAsync(newChannel);
-
-        if (!result.Success)
+        if (isprivate)
         {
-            string errorText = result.Message;
-            Console.WriteLine(errorText);
-            imageSpan = errorText;
-            return;
-        }
-
-        long channelId = result.Data.Id;
-
-        imageSpan = "Success.";
-
-        if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode newNode = new()
+            PermissionsNode defaultNode = new()
             {
-                TargetId = channelId,
+                TargetId = 0,
                 PlanetId = Planet.Id,
                 RoleId = Planet.DefaultRoleId.Value,
                 Mask = 0x00,
@@ -153,29 +144,23 @@
                 TargetType = PermissionsTarget.PlanetChatChannel
             };
 
-            newNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
-            newNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
-            newNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+            defaultNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
+            defaultNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.False);
+            defaultNode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
 
-            var response = await Api.Items.Item.CreateAsync(newNode);
-
-            if (!response.Success)
-            {
-                string errorText = $"Error: " + response.Message;
-                Console.WriteLine(errorText);
-                imageSpan = errorText;
-            }
+            createRequest.Nodes.Add(defaultNode);
 
             foreach (PlanetRole role in Roles)
             {
 
-                if (!SelectedRoles[role]) {
+                if (!SelectedRoles[role])
+                {
                     continue;
                 }
 
-                newNode = new PermissionsNode()
+                var roleNode = new PermissionsNode()
                 {
-                    TargetId = channelId,
+                    TargetId = 0,
                     PlanetId = Planet.Id,
                     RoleId = role.Id,
                     Mask = 0x00,
@@ -183,19 +168,22 @@
                     TargetType = PermissionsTarget.PlanetChatChannel
                 };
 
-                newNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
-                newNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
-                newNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+                roleNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);
+                roleNode.SetPermission(ChatChannelPermissions.ViewMessages, PermissionState.True);
+                roleNode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
 
-                response = await Api.Items.Item.CreateAsync(newNode);
-
-                if (!response.Success)
-                {
-                    string errorText = $"Error: " + response.Message;
-                    Console.WriteLine(errorText);
-                    imageSpan = errorText;
-                }
+                createRequest.Nodes.Add(roleNode);
             }
+        }
+
+        var result = await PlanetChatChannel.CreateWithDetails(createRequest);
+
+        if (!result.Success)
+        {
+            string errorText = result.Message;
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
+            return;
         }
 
         // close modal

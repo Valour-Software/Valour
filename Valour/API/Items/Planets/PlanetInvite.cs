@@ -51,9 +51,14 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
         var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"api/{nameof(PlanetInvite)}/{code}");
 
         if (invResult is not null)
-            await ValourCache.Put(code, invResult);
+            await invResult.AddToCache();
 
         return invResult;
+    }
+
+    public override async Task AddToCache()
+    {
+        await ValourCache.Put(Code, this);
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";
