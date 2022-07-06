@@ -192,7 +192,7 @@
             }
         }
 
-    //StateHasChanged();
+        //StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
@@ -294,7 +294,7 @@
         resultSpan = "";
         errorSpan = "";
 
-    // Get chosen color
+        // Get chosen color
         float[] color = await JS.InvokeAsync<float[]>("GetChosenColor");
 
         role.Red = (byte) Math.Round(color[0]);
@@ -303,21 +303,21 @@
 
         Console.WriteLine($"Chosen color: rgb({role.Red.ToString()}, {role.Green.ToString()}, {role.Blue.ToString()})");
 
-    // Create json payload to send to server for request
-    // Id and authority is handled by the server
+        // Create json payload to send to server for request
+        // Id and authority is handled by the server
 
-    //string json = JsonConvert.SerializeObject(role);
+        //string json = JsonConvert.SerializeObject(role);
 
-        TaskResult response;
+        TaskResult<PlanetRole> response;
 
         JsonContent content = JsonContent.Create(role);
 
         // If the id is not set, this is a new role to be created
         if (role.Id == 0)
-            response = await ValourClient.PostAsync($"api/planet/{Planet.Id}/roles", role);
+            response = await Api.Items.Item.CreateAsync(role);
         // Otherwise we are editing a prior role
         else
-            response = await ValourClient.PutAsync($"api/role/{role.Id}", role);
+            response = await Api.Items.Item.UpdateAsync(role);
 
         if (response.Success)
         {

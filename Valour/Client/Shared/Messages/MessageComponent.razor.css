@@ -79,13 +79,12 @@
 }
 
 .message .message-content {
-    width: 95%;
     display: inline-block;
     margin-left: 3px;
     margin-top: 4px;
     vertical-align: top;
     padding-left: 52px;
-    max-width: 100%;
+    max-width: 95%;
 }
 
 .message .content {

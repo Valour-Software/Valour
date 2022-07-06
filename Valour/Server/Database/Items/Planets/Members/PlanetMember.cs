@@ -425,7 +425,8 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
             Id = IdManager.Generate(),
             MemberId = member.Id,
             RoleId = roleId,
-            UserId = member.UserId
+            UserId = member.UserId,
+            PlanetId = member.PlanetId
         };
 
         try
@@ -447,7 +448,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
-    public static async Task<IResult> RemoveRoleFromMember(HttpContext ctx, ulong id, long planetId, long roleId, [FromHeader] string authorization,
+    public static async Task<IResult> RemoveRoleFromMember(HttpContext ctx, long id, long planetId, long roleId, [FromHeader] string authorization,
         ILogger<PlanetMember> logger)
     {
 

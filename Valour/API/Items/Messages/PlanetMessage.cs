@@ -194,7 +194,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     /// Attempts to delete this message
     /// </summary>
     public async Task<TaskResult> DeleteAsync() =>
-        await ValourClient.DeleteAsync($"api/channel/{ChannelId}/messages/{Id}");
+        await ValourClient.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in
