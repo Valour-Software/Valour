@@ -89,9 +89,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
         var item = await ValourClient.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}");
 
         if (item is not null)
-        {
-            await ValourCache.Put(id, item);
-        }
+            await item.AddToCache();
 
         return item;
     }

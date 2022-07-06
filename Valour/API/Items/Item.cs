@@ -39,6 +39,11 @@ namespace Valour.Api.Items
 
         }
 
+        public virtual async Task AddToCache()
+        {
+            await ValourCache.Put(this.Id, this);
+        }
+
         /// <summary>
         /// Safely invokes the updated event
         /// </summary>

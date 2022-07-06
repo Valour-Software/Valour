@@ -121,7 +121,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         var item = await ValourClient.GetJsonAsync<PlanetChatChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{id}");
 
         if (item is not null)
-            await ValourCache.Put(id, item);
+            await item.AddToCache();
 
         return item;
     }

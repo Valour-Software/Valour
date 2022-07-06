@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using System.Xml.Linq;
 using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
@@ -89,12 +90,15 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/{targetId}/{roleId}");
 
         if (node is not null)
-        {
-            await ValourCache.Put(node.Id, node);
-            await ValourCache.Put((targetId, (roleId, type)), node);
-        }
+            await node.AddToCache();
 
         return node;
+    }
+
+    public override async Task AddToCache()
+    {
+        await ValourCache.Put(Id, this);
+        await ValourCache.Put((TargetId, (RoleId, TargetType)), this);
     }
 }
 
