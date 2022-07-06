@@ -373,6 +373,7 @@ public static class ValourClient
     /// </summary>
     public static async Task DeleteItem<T>(T item) where T : Item
     {
+        Console.WriteLine($"Deletion for {item.Id}, type {item.GetType()}");
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
@@ -411,6 +412,45 @@ public static class ValourClient
 
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdated;
         ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeleted;
+
+        ItemObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdated;
+        ItemObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
+    }
+
+    private static async Task OnMemberRoleUpdated(PlanetRoleMember rolemember, int flags)
+    {
+        var planet = await Planet.FindAsync(rolemember.PlanetId);
+
+        if (planet is not null)
+        {
+            var member = await PlanetMember.FindAsync(rolemember.MemberId, rolemember.PlanetId);
+            if (!await member.HasRoleAsync(rolemember.RoleId))
+            {
+                var roleids = (await member.GetRolesAsync()).Select(x => x.Id).ToList();
+                roleids.Add(rolemember.RoleId);
+                await member.SetLocalRoleIds(roleids);
+            }
+            await ItemObserver<PlanetMember>.InvokeAnyUpdated(member, false, PlanetMember.FLAG_UPDATE_ROLES);
+            await member.InvokeUpdatedEventAsync(PlanetMember.FLAG_UPDATE_ROLES);
+        }
+    }
+
+    private static async Task OnMemberRoleDeleted(PlanetRoleMember rolemember)
+    {
+        var planet = await Planet.FindAsync(rolemember.PlanetId);
+
+        if (planet is not null)
+        {
+            var member = await PlanetMember.FindAsync(rolemember.MemberId, rolemember.PlanetId);
+            if (await member.HasRoleAsync(rolemember.RoleId))
+            {
+                var roleids = (await member.GetRolesAsync()).Select(x => x.Id).ToList();
+                roleids.Remove(rolemember.RoleId);
+                await member.SetLocalRoleIds(roleids);
+            }
+            await ItemObserver<PlanetMember>.InvokeAnyUpdated(member, false, PlanetMember.FLAG_UPDATE_ROLES);
+            await member.InvokeDeletedEventAsync();
+        }
     }
 
     private static async Task OnChannelUpdated(PlanetChatChannel channel, int flags)
@@ -678,7 +718,7 @@ public static class ValourClient
             // Register events
 
             HubConnection.On($"{type.Name}-Update", new Type[] { type, typeof(int) }, i => UpdateItem((dynamic)i[0], (int)i[1]));
-            HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => DeleteItem((Item)i[0]));
+            HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => DeleteItem((dynamic)i[0]));
         }
 
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);

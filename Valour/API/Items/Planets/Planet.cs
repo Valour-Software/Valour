@@ -245,7 +245,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadInvitesAsync()
     {
-        var invites = await ValourClient.GetJsonAsync<List<PlanetInvite>>($"{IdRoute}/invites");
+        var invites = await ValourClient.GetJsonAsync<List<PlanetInvite>>($"api/Planet/{Id}/invites");
 
         if (invites is null)
             return;
@@ -264,10 +264,10 @@ public class Planet : Item, ISharedPlanet
 
         foreach (var invite in invites)
         {
-            var cInvite = await PlanetRole.FindAsync(invite.Id, Id);
+            var cInvite = await PlanetInvite.FindAsync(invite.Code);
 
             if (cInvite is not null)
-                Roles.Add(cInvite);
+                Invites.Add(cInvite);
         }
     }
 
