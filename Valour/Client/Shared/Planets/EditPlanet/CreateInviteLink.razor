@@ -30,7 +30,7 @@
     public int hoursValue;
 
     public string nameSpan;
-    
+
     public bool Failed = false;
 
     protected override async Task OnInitializedAsync()
@@ -49,6 +49,11 @@
             TimeCreated = DateTime.UtcNow,
             TimeExpires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
         };
+
+        if (hoursValue == 0)
+        {
+            invite.TimeExpires = null;
+        }
 
 
         var response = await ValourClient.PostAsyncWithResponse<PlanetInvite>($"api/planet/{Planet.Id}/planetinvite", invite);
