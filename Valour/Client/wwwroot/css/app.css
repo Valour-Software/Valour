@@ -849,12 +849,9 @@ body {
     padding: 20px;
     border-radius: 10px;
     filter: drop-shadow(0px 0px 8px black);
-
-    height: 100%;
-    width: 100%;
-
-    max-height: 80%;
-    max-width: 80%;
+    height: 80vh;
+    width: 80vw;
+    max-width: 1200px;
 }
 
 .modal-shrink-fit {
@@ -1079,45 +1076,22 @@ body {
     background-color: var(--main-5);
 }
 
-.settings-row {
-    overflow-y: auto;
-}
-
-.settings-row::-webkit-scrollbar {
-    width: 0px;
-}
-
-.edit-body {
-    background-color: var(--main-2);
-    width: 100%;
-    height: 100%;
-}
-
-.edit-body .container {
-    background-color: var(--main-2);
-    height: 100%;
-    width: 100%;
-}
-
-.edit-body .row {
+.settings-modal {
     height: 100%;
     width: 100%;
     margin: 0;
 }
 
-.settings-inner .row {
-    height: auto;
-}
-
-.edit-col-left {
-    background-color: var(--main-2);
-    min-width: 150px;
+.settings-modal .row {
+    height: 100%;
+    width: 100%;
+    margin: 0;
 }
 
 .edit-col-right {
     border-left: solid 1px rgba(255, 255, 255, 0.25);
-    background-color: var(--main-2);
-    min-width: 200px;
+    padding-left: 35px;
+    overflow-y: auto;
 }
 
 .roles-row {
@@ -1229,30 +1203,6 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-}
-
-@media screen and (max-width: 770px) {
-    .settings-row {
-        flex-wrap: wrap;
-    }
-
-    .edit-col-left {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-
-    .edit-col-right {
-        width: 100%;
-        border: none;
-        margin-bottom: 20px;
-    }
-}
-
-.settings-inner {
-    position: relative;
-    height: 90%;
-    /*overflow-y: auto;*/
-    /*overflow-x: hidden;*/
 }
 
 .settings-save-button {
