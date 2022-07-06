@@ -91,7 +91,7 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 
         PlanetHub.NotifyPlanetItemChange(invite);
 
-        return Results.Text(invite.Code);
+        return Results.Created(invite.GetUri(), invite);
 
     }
 
