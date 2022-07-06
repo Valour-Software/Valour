@@ -84,7 +84,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the primary role of this member
     /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(bool force_refresh = false)
+    public async ValueTask<PlanetRole> GetPrimaryRoleAsync(bool force_refresh = false)
     {
         if (Roles is null || force_refresh)
         {
@@ -100,7 +100,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the roles of this member
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetRole>> GetRolesAsync(bool force_refresh = false)
     {
         if (Roles is null || force_refresh)
         {
@@ -113,7 +113,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async Task<bool> HasRoleAsync(long id, bool force_refresh = false)
+    public async ValueTask<bool> HasRoleAsync(long id, bool force_refresh = false)
     {
         if (Roles is null || force_refresh)
         {
@@ -126,7 +126,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async Task<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
+    public async ValueTask<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
         await HasRoleAsync(role.Id, force_refresh);
     
     /// <summary>
