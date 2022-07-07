@@ -85,6 +85,7 @@ public class User : Item, ISharedUser
     /// The span of time from which the user was last active
     /// </summary>
     [NotMapped]
+    [JsonIgnore]
     public TimeSpan LastActiveSpan =>
         ISharedUser.GetLastActiveSpan(this);
 
@@ -92,6 +93,7 @@ public class User : Item, ISharedUser
     /// The current activity state of the user
     /// </summary>
     [NotMapped]
+    [JsonIgnore]
     public UserState UserState
     {
         get => ISharedUser.GetUserState(this);

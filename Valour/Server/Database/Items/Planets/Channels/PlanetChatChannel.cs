@@ -27,6 +27,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// The regex used for name validation
     /// </summary>
+    [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
     /// <summary>
