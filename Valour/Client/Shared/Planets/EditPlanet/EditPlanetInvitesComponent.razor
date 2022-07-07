@@ -90,7 +90,7 @@
 
     }
 
-    public async Task OnPlanetInviteUpdated(PlanetInvite invite, int flags)
+    public async Task OnPlanetInviteUpdated(PlanetInvite invite, bool newitem, int flags)
     {
         if (invite.PlanetId == Planet.Id)
         {
