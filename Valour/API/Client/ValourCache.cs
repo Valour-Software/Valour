@@ -58,6 +58,21 @@ public static class ValourCache
     }
 
     /// <summary>
+    /// Returns all the items of the given type. You can use Linq functions like .Where on this function.
+    /// </summary>
+    public static IEnumerable<T> GetAll<T>() where T : class
+    {
+        var type = typeof(T);
+
+        if (!HCache.ContainsKey(type))
+            yield break;
+
+        foreach (T item in HCache[type].Values)
+            yield return item;
+    }
+
+
+    /// <summary>
     /// Returns the item for the given id, or null if it does not exist
     /// </summary>
     public static T Get<T>(object id) where T : Item
