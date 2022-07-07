@@ -413,7 +413,7 @@ public static class ValourClient
         ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeleted;
     }
 
-    private static async Task OnChannelUpdated(PlanetChatChannel channel, int flags)
+    private static async Task OnChannelUpdated(PlanetChatChannel channel, bool newItem, int flags)
     {
         var planet = await Planet.FindAsync(channel.PlanetId);
 
@@ -421,7 +421,7 @@ public static class ValourClient
             await planet.NotifyUpdateChannel(channel);
     }
 
-    private static async Task OnCategoryUpdated(PlanetCategoryChannel category, int flags)
+    private static async Task OnCategoryUpdated(PlanetCategoryChannel category, bool newItem, int flags)
     {
         var planet = await Planet.FindAsync(category.PlanetId);
 
@@ -429,7 +429,7 @@ public static class ValourClient
             await planet.NotifyUpdateCategory(category);
     }
 
-    private static async Task OnRoleUpdated(PlanetRole role, int flags)
+    private static async Task OnRoleUpdated(PlanetRole role, bool newItem, int flags)
     {
         var planet = await Planet.FindAsync(role.PlanetId);
 

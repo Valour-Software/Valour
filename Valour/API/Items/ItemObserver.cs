@@ -15,7 +15,7 @@ namespace Valour.Api.Items
         /// <summary>
         /// Run when any of this item type is updated
         /// </summary>
-        public static event Func<T, int, Task> OnAnyUpdated;
+        public static event Func<T, bool, int, Task> OnAnyUpdated;
 
         /// <summary>
         /// Run when any of this item type is deleted
@@ -25,7 +25,7 @@ namespace Valour.Api.Items
         public static async Task InvokeAnyUpdated(T updated, bool newItem, int flags)
         {
             if (OnAnyUpdated != null)
-                await OnAnyUpdated?.Invoke(updated, flags);
+                await OnAnyUpdated?.Invoke(updated, newItem, flags);
         }
 
         public static async Task InvokeAnyDeleted(T deleted)

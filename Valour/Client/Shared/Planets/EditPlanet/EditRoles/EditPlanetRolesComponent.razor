@@ -346,7 +346,7 @@
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(PlanetRole role, int flags)
+    public async Task OnRolesUpdate(PlanetRole role, bool newItem, int flags)
     {
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 

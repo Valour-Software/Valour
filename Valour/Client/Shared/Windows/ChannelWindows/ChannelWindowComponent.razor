@@ -141,7 +141,7 @@
         ValourClient.OnMessageDeleted -= OnDeleteMessage;
     }
 
-    public async Task OnChatChannelUpdate(PlanetChatChannel channel, int flags)
+    public async Task OnChatChannelUpdate(PlanetChatChannel channel, bool newItem, int flags)
     {
         if (Channel.Id == channel.Id)
         {
@@ -151,7 +151,7 @@
         }
     }
 
-    public async Task OnPlanetMemberUpdate(PlanetMember member, int flags)
+    public async Task OnPlanetMemberUpdate(PlanetMember member, bool newItem, int flags)
     {
         if (member.PlanetId != Planet.Id)
         {
@@ -168,7 +168,7 @@
         }
     }
 
-    public async Task OnRoleUpdate(PlanetRole role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
     {
         if (role.PlanetId != Planet.Id)
         {

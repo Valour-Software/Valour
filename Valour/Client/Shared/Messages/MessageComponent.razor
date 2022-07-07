@@ -348,7 +348,7 @@
         ShouldRenderValue = false;
     }
 
-    public async Task OnRoleUpdate(PlanetRole role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
     {
         if (role != null && primaryRole != null && role.Id == primaryRole.Id)
         {
