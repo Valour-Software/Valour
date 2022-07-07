@@ -244,15 +244,13 @@
     object-position: left;
     margin-bottom: 10px;
     display: block;
-    transition: all 0.125s ease;
-    transition-delay: 0s;
+
+    cursor: pointer;
 }
 
-::deep .content img:hover {
-    max-width: 500px;
-    max-height: 500px;
-    transition: all 0.125s ease;
-    transition-delay: 0.5s;
+::deep .content .enlarged {
+    max-width: 900px !important;
+    max-height: 900px !important;
 }
 
 ::deep .content a {

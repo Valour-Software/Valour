@@ -214,6 +214,15 @@ function OnMessageLoad(innerContent) {
                 hljs.highlightElement(item);
             }
         }
+
+        var images = innerContent.getElementsByTagName('img');
+        if (images != null) {
+            for (let image of images) {
+                image.addEventListener('click', function () {
+                    image.classList.toggle('enlarged');
+                });
+            }
+        }
     }
 
     //innerContent.getElementsByTagName('code').forEach(el => 
