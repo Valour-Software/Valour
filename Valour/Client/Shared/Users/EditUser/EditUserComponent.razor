@@ -3,33 +3,31 @@
 
 @if (User != null)
 {
-    <body class="edit-body">
-        <div class="container">
-            <div class="row settings-row">
-                <div class="col-3 edit-col-left">
-                    <b>@User.Name</b>
-                    <hr />
-                    <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
-                    <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Notifications</div>
-                    <div class="logout-button" @onclick="LogOut">Log Out</div>
-                </div>
-                <div class="col-9 edit-col-right">
-                    @switch (selected)
-                    {
-                        case 0:
-                            <EditUserInfoComponent User="User"></EditUserInfoComponent>
-                            break;
-                        case 1:
-                            <EditUserNotificationsComponent></EditUserNotificationsComponent>
-                            break;
-                        default:
-                            break;
+    <div class="settings-modal container">
+        <div class="row settings-row">
+            <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
+                <b>@User.Name</b>
+                <hr />
+                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Notifications</div>
+                <div class="logout-button" @onclick="LogOut">Log Out</div>
+            </div>
+            <div class="col-md-9 edit-col-right">
+                @switch (selected)
+                {
+                    case 0:
+                        <EditUserInfoComponent User="User"></EditUserInfoComponent>
+                        break;
+                    case 1:
+                        <EditUserNotificationsComponent></EditUserNotificationsComponent>
+                        break;
+                    default:
+                        break;
 
-                    }
-                </div>
+                }
             </div>
         </div>
-    </body>
+    </div>
 }
 else
 {

@@ -35,7 +35,7 @@
 
     // Must refresh if roles update because it may remove permission to
     // manage the planet
-    public async Task OnRoleUpdate(PlanetRole role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
     {
         if (Planet.Id != role.PlanetId)
             return;
