@@ -849,6 +849,7 @@ body {
     padding: 20px;
     border-radius: 10px;
     filter: drop-shadow(0px 0px 8px black);
+    height: 80vh;
     width: 80vw;
     max-width: 1200px;
 }
