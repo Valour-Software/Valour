@@ -1,14 +1,13 @@
-using System.Text.Json;
 using Blazored.LocalStorage;
 using Blazored.Modal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Valour.Api.Client;
+using Valour.Client.Components.ChannelList;
 using Valour.Client.Categories;
-using Valour.Client.Shared.ChannelList;
 using Valour.Client.Windows;
 
-namespace Valour.Client;
+namespace Valour.Client.Blazor;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

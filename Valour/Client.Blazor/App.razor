@@ -1,4 +1,14 @@
 ﻿@using Valour.Shared
+@using Valour.Api.Items.Users
+@using Valour.Api.Client
+@using Valour.Client.Components.Utility
+@using Valour.Client.Notifications
+@using Valour.Client.Blazor.Layout
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Components.Routing
+@using Blazored.LocalStorage
+@using Blazored.Modal
+
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
@@ -10,7 +20,7 @@
     <CascadingBlazoredModal Class='modal-main' HideHeader='true' HideCloseButton='true'>
 
         <!-- Main routing component -->
-        <Router AppAssembly="@typeof(Program).Assembly">
+        <Router AppAssembly="@typeof(Valour.Client.Pages.Index).Assembly">
             <Found Context="routeData">
                 <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
             </Found>

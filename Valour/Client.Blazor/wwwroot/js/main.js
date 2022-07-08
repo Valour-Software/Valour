@@ -243,7 +243,7 @@ function handleVisibilityChange() {
     if (document[hidden]) {
         // Nothing yet
     } else {
-        DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
+        DotNet.invokeMethodAsync('Valour.Client.Blazor', 'OnRefocus');
     }
 }
 
@@ -300,7 +300,7 @@ function SetupWindow(index) {
 
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
-            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', index);
+            DotNet.invokeMethodAsync('Valour.Client.Blazor', 'OnScrollTopInvoke', index);
         }
 
         if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
@@ -323,7 +323,7 @@ window.onpointerdown = function (event) {
         id = event.target.id;
     }
 
-    DotNet.invokeMethodAsync('Valour.Client', 'OnClickInterop', id);
+    DotNet.invokeMethodAsync('Valour.Client.Blazor', 'OnClickInterop', id);
 }
 
 async function postData(url = '', data = {}) {

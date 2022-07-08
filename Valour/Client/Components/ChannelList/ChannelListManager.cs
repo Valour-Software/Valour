@@ -3,7 +3,7 @@ using Valour.Shared.Categories;
 using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
 
-namespace Valour.Client.Shared.ChannelList
+namespace Valour.Client.Components.ChannelList
 {
     public class ChannelListManager
     {

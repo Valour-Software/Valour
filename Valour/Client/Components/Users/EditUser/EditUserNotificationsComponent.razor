@@ -23,11 +23,11 @@
     public bool notif_enabled = false;
     public bool notif_blocked = false;
 
-    public Client.Notifications.NotificationSubscription Subscription = null;
+    public Notifications.NotificationSubscription Subscription = null;
 
     protected override async Task OnInitializedAsync()
     {
-        Subscription = await JS.InvokeAsync<Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
 
         if (Subscription != null)
         {
@@ -42,7 +42,7 @@
     public async Task OnNotifClick()
     {
 
-        Subscription = await JS.InvokeAsync<Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
 
         if (Subscription != null)
         {
