@@ -71,7 +71,7 @@
             </div>
         }
 
-        <button @onclick='() => DeleteRole(Selected)' style="color: red; border-color: red" class="mt-4 btn v-button">Delete this role</button>
+        <button @onclick='() => DeleteRole(Selected)' class="mt-4 btn v-button danger">Delete this role</button>
     </div>
 
     @{
@@ -346,7 +346,7 @@
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(PlanetRole role, int flags)
+    public async Task OnRolesUpdate(PlanetRole role, bool newItem, int flags)
     {
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 

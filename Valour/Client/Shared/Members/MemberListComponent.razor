@@ -52,7 +52,7 @@
         ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
     }
 
-    public async Task OnMemberUpdate(PlanetMember member, int flags)
+    public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
     {
         // not awaited on purpose
         if (member.PlanetId == windowManager.FocusedPlanet.Id)
@@ -71,7 +71,7 @@
         }
     }
 
-    public async Task OnRoleUpdate(PlanetRole role, int flags)
+    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
     {
         // not awaited on purpose
         if (role.PlanetId == windowManager.FocusedPlanet.Id)

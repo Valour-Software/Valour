@@ -125,7 +125,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategoryChannel category, int flags)
+    public async Task OnCategoryUpdate(PlanetCategoryChannel category, bool newItem, int flags)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
@@ -168,7 +168,7 @@
         GetTopLevelCategories();
     }
 
-    public async Task OnChatChannelUpdate(PlanetChatChannel channel, int flags)
+    public async Task OnChatChannelUpdate(PlanetChatChannel channel, bool newItem, int flags)
     {
 
         //Console.WriteLine(channel.Name);

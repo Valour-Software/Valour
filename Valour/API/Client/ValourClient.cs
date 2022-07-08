@@ -381,8 +381,16 @@ public static class ValourClient
         // Invoke specific item deleted
         await item.InvokeDeletedEventAsync();
 
-        // Invoke static "any" delete
-        await ItemObserver<T>.InvokeAnyDeleted(local);
+        if (local is null)
+        {
+            // Invoke static "any" delete
+            await ItemObserver<T>.InvokeAnyDeleted(item);
+        }
+        else
+        {
+            // Invoke static "any" delete
+            await ItemObserver<T>.InvokeAnyDeleted(local);
+        }
     }
 
     /// <summary>
@@ -417,7 +425,7 @@ public static class ValourClient
         ItemObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
     }
 
-    private static async Task OnMemberRoleUpdated(PlanetRoleMember rolemember, int flags)
+    private static async Task OnMemberRoleUpdated(PlanetRoleMember rolemember, bool newitem, int flags)
     {
         var planet = await Planet.FindAsync(rolemember.PlanetId);
 
@@ -449,11 +457,11 @@ public static class ValourClient
                 await member.SetLocalRoleIds(roleids);
             }
             await ItemObserver<PlanetMember>.InvokeAnyUpdated(member, false, PlanetMember.FLAG_UPDATE_ROLES);
-            await member.InvokeDeletedEventAsync();
+            await member.InvokeUpdatedEventAsync(PlanetMember.FLAG_UPDATE_ROLES);
         }
     }
 
-    private static async Task OnChannelUpdated(PlanetChatChannel channel, int flags)
+    private static async Task OnChannelUpdated(PlanetChatChannel channel, bool newItem, int flags)
     {
         var planet = await Planet.FindAsync(channel.PlanetId);
 
@@ -461,7 +469,7 @@ public static class ValourClient
             await planet.NotifyUpdateChannel(channel);
     }
 
-    private static async Task OnCategoryUpdated(PlanetCategoryChannel category, int flags)
+    private static async Task OnCategoryUpdated(PlanetCategoryChannel category, bool newItem, int flags)
     {
         var planet = await Planet.FindAsync(category.PlanetId);
 
@@ -469,7 +477,7 @@ public static class ValourClient
             await planet.NotifyUpdateCategory(category);
     }
 
-    private static async Task OnRoleUpdated(PlanetRole role, int flags)
+    private static async Task OnRoleUpdated(PlanetRole role, bool newItem, int flags)
     {
         var planet = await Planet.FindAsync(role.PlanetId);
 

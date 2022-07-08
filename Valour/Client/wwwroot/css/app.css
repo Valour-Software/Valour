@@ -1088,11 +1088,40 @@ body {
     margin: 0;
 }
 
-.edit-col-right {
-    border-left: solid 1px rgba(255, 255, 255, 0.25);
-    padding-left: 35px;
-    overflow-y: auto;
+.edit-col-left {
+    max-height: 100%;
 }
+
+.edit-col-right {
+    max-height: 100%;
+}
+
+/* This controls how modals act on large screens */
+@media (min-width: 768px){
+    .modal-main {
+        height: 80vh;
+    }
+
+    .edit-col-right {
+        border-left: solid 1px rgba(255, 255, 255, 0.25);
+        padding-left: 35px;
+        overflow-y: auto;
+    }
+}
+/* This controls how modals act on small screens */
+@media (max-width: 767px) {
+
+    .modal-main {
+        margin-top: 40px;
+        margin-bottom:  40px;
+    }
+
+    .blazored-modal-container {
+        align-items: start !important;
+        overflow-y: auto !important;
+    }
+}
+
 
 .roles-row {
     width: 100%;
