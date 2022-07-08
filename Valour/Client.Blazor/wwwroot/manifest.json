@@ -7,7 +7,7 @@
   "theme_color": "#00faff",
   "icons": [
     {
-      "src": "media/logo/logo-512.png",
+      "src": "_content/Valour.Client/media/logo/logo-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

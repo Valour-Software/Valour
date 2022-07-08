@@ -243,7 +243,7 @@ function handleVisibilityChange() {
     if (document[hidden]) {
         // Nothing yet
     } else {
-        DotNet.invokeMethodAsync('Valour.Client.Blazor', 'OnRefocus');
+        DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
     }
 }
 
@@ -300,7 +300,7 @@ function SetupWindow(index) {
 
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
-            DotNet.invokeMethodAsync('Valour.Client.Blazor', 'OnScrollTopInvoke', index);
+            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', index);
         }
 
         if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
@@ -314,16 +314,6 @@ function SetupWindow(index) {
             scrollStates[index] = 0;
         }
     });
-}
-
-// When the user clicks anywhere outside of the modal, close it
-window.onpointerdown = function (event) {
-    var id = 'null';
-    if (event.target != null) {
-        id = event.target.id;
-    }
-
-    DotNet.invokeMethodAsync('Valour.Client.Blazor', 'OnClickInterop', id);
 }
 
 async function postData(url = '', data = {}) {

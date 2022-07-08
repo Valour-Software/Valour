@@ -25,7 +25,7 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public string pfpurl = "/icon-512.png";
+    public string pfpurl = "_content/Valour.Client/icon-512.png";
 
     protected override async Task OnInitializedAsync()
     {
@@ -51,7 +51,7 @@
 
     protected async Task OnPfpError()
     {
-        pfpurl = "/icon-512.png";
+        pfpurl = "_content/Valour.Client/icon-512.png";
 
         StateHasChanged();
     }
