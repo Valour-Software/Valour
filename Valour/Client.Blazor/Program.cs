@@ -1,12 +1,11 @@
-using System.Text.Json;
 using Blazored.LocalStorage;
 using Blazored.Modal;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Valour.Api.Client;
-using Valour.Client.Blazor.Categories;
-using Valour.Client.Blazor.Shared.ChannelList;
-using Valour.Client.Blazor.Windows;
+using Valour.Client.Components.ChannelList;
+using Valour.Client.Categories;
+using Valour.Client.Windows;
 
 namespace Valour.Client.Blazor;
 
