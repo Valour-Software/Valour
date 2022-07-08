@@ -1,4 +1,4 @@
-﻿using Valour.Client.Messages;
+﻿using Valour.Client.Blazor.Messages;
 
 namespace Valour.Server.API;
 
