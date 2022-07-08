@@ -97,22 +97,15 @@
 
 	public async Task OnRoleClick(PlanetRole role, bool value)
 	{
-		PlanetRoleMember roleMember = new()
-		{
-			MemberId = Member.Id,
-			PlanetId = Member.PlanetId,
-			RoleId = role.Id,
-			UserId = Member.UserId
-		};
-
         if (value)
             // Add role
-            await ValourClient.PostAsync($"api/member/{Member.Id}/role_membership", roleMember);
+            await ValourClient.PostAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}", null);
         else
             // Remove role
-            await ValourClient.DeleteAsync($"api/member/{Member.Id}/roles/{role.Id}");
+			await ValourClient.DeleteAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}");
 
-        StateHasChanged();
+
+		StateHasChanged();
 	}
 
 	public async Task OnClickKick()

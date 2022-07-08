@@ -30,7 +30,7 @@
     public int hoursValue;
 
     public string nameSpan;
-    
+
     public bool Failed = false;
 
     protected override async Task OnInitializedAsync()
@@ -50,21 +50,22 @@
             TimeExpires = DateTime.UtcNow.Add(TimeSpan.FromHours(hoursValue)) // TODO: Make this a date picker
         };
 
-        JsonContent content = JsonContent.Create(invite);
-
-        var response = await Http.PostAsync($"api/invite", content);
-
-        var message = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
+        if (hoursValue == 0)
         {
-            nameSpan = message;
+            invite.TimeExpires = null;
+        }
+
+        var response = await ValourClient.PostAsyncWithResponse<PlanetInvite>($"api/planet/{Planet.Id}/planetinvite", invite);
+
+        if (!response.Success)
+        {
+            nameSpan = response.Message;
             Failed = true;
             StateHasChanged();
             return;
         }
 
-        string link = navManager.BaseUri.TrimEnd('/') + "/I/" + message;
+        string link = navManager.BaseUri.TrimEnd('/') + "/I/" + response.Data.Code;
 
         nameSpan = link;
         

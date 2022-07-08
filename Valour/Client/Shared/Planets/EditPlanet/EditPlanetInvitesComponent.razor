@@ -85,6 +85,18 @@
         Invites = await Planet.GetInvitesAsync();
 
         StateHasChanged();
+
+        ItemObserver<PlanetInvite>.OnAnyUpdated += OnPlanetInviteUpdated;
+
+    }
+
+    public async Task OnPlanetInviteUpdated(PlanetInvite invite, bool newitem, int flags)
+    {
+        if (invite.PlanetId == Planet.Id)
+        {
+            Invites = await Planet.GetInvitesAsync(true);
+            StateHasChanged();
+        }
     }
 
     public async Task OnSaveChanges()
