@@ -849,7 +849,6 @@ body {
     padding: 20px;
     border-radius: 10px;
     filter: drop-shadow(0px 0px 8px black);
-    height: 80vh;
     width: 80vw;
     max-width: 1200px;
 }
@@ -861,8 +860,8 @@ body {
     border-radius: 10px;
     filter: drop-shadow(0px 0px 8px black);
 
-    max-height: 1000px;
-    max-width: 1000px;
+    max-height: 90vh;
+    max-width: 90vw;
 }
 
 .modal-main .blazored-modal-content {
@@ -1114,6 +1113,10 @@ body {
     .modal-main {
         margin-top: 40px;
         margin-bottom:  40px;
+    }
+
+    .modal-shrink-fit {
+        transform: translate(0, 30vh);
     }
 
     .blazored-modal-container {

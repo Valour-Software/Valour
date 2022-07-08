@@ -1,9 +1,6 @@
 .preview-scale {
-    max-width: 70vw;
-    max-height: 70vh;
+    max-width: 90%;
+    max-height: 90%;
     min-width: 200px;
-
     text-align: center;
-
-    /* min-height: 200px; */
 }

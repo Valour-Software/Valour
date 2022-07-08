@@ -14,6 +14,7 @@ namespace Valour.Server.Database.Items.Notifications;
 public class NotificationSubscription : ISharedNotificationSubscription
 {
     [ForeignKey("UserId")]
+    [JsonIgnore]
     public User User { get; set; }
 
     [Key]

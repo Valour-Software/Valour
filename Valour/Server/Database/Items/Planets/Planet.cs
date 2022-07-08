@@ -27,12 +27,14 @@ public class Planet : Item, ISharedPlanet
     /// The maximum planets a user is allowed to have. This will increase after 
     /// the alpha period is complete.
     /// </summary>
+    [JsonIgnore]
     public const int MAX_OWNED_PLANETS = 5;
 
     /// <summary>
     /// The maximum planets a user is allowed to join. This will increase after the 
     /// alpha period is complete.
     /// </summary>
+    [JsonIgnore]
     public const int MAX_JOINED_PLANETS = 20;
 
     [InverseProperty("Planet")]

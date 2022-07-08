@@ -14,18 +14,21 @@ namespace Valour.Server.Database.Items.Users;
 public class Credential
 {
     [ForeignKey("UserId")]
+    [JsonIgnore]
     public virtual User User { get; set; }
 
     /// <summary>
     /// The ID of this credential
     /// </summary>
     [Column("id")]
+    [JsonIgnore]
     public long Id {get; set; }
 
     /// <summary>
     /// The ID of the user using this credential
     /// </summary>
     [Column("user_id")]
+    [JsonIgnore]
     public long UserId { get; set; }
 
     /// <summary>
@@ -33,6 +36,7 @@ public class Credential
     /// way the user is signing in
     /// </summary>
     [Column("credential_type")]
+    [JsonIgnore]
     public string CredentialType { get; set; }
 
     /// <summary>
@@ -40,6 +44,7 @@ public class Credential
     /// this would be the email used to log in.
     /// </summary>
     [Column("identifier")]
+    [JsonIgnore]
     public string Identifier { get; set; }
 
     /// <summary>
@@ -48,6 +53,7 @@ public class Credential
     /// If password hash, should be 32 bytes (256 bits)
     /// </summary>
     [Column("secret")]
+    [JsonIgnore]
     public byte[] Secret { get; set; }
 
     /// <summary>
@@ -56,6 +62,7 @@ public class Credential
     /// This only really applies to a password login.
     /// </summary>
     [Column("salt")]
+    [JsonIgnore]
     public byte[] Salt { get; set; }
 }
 
