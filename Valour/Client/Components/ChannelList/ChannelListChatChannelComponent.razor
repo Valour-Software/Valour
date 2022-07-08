@@ -9,7 +9,7 @@
             @onclick="OnClick"
             @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
             @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id">
-            <img class="chat-icon" src="media/Channel-Icon.svg">
+            <img class="chat-icon" src="_content/Valour.Client/media/Channel-Icon.svg">
             <p class="channel-name">
                 @Channel.Name
             </p>

@@ -1,0 +1,1601 @@
+﻿:root {
+    --primary-color: #040d14;
+    --secondary-color: #aaaaaa;
+    --font-color: #ffffff;
+    --bg-color: #040d14;
+    --heading-color: #040d14;
+    --link-color: #00aaff;
+    --border-color: #303030;
+    --alt-border-color: #666666;
+    --input-color: #000000;
+    --comment-hue: rgba(0, 0, 0, 0.02);
+    --main-1: #040d14;
+    --main-2: #0b151d;
+    --main-3: #121e27;
+    --main-4: #192630;
+    --main-5: #212f3a;
+    --v-purple: #bf06fd;
+    --v-blue: #0c06fd;
+    --v-cyan: #00faff;
+}
+
+.full-screen {
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+    overflow-x: hidden;
+    overflow-y: hidden;  
+}
+
+.v-button {
+    color: #fff;
+    border-color: #fff;
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 90%;
+}
+
+.v-button:hover {
+    color: var(--v-cyan);
+    border-color: var(--v-cyan);
+}
+
+.v-button.danger {
+    color: rgb(255, 0, 0);
+    border-color: rgb(255, 0, 0);
+}
+
+.v-button.danger:hover {
+    color: white;
+    border-color: white;
+}
+
+a {
+    color: var(--link-color);
+    user-select: text;
+}
+
+p {
+    user-select: text;
+}
+
+.p-1 {
+    color: var(--font-color);
+    user-select: text;
+}
+
+h1 {
+    color: var(--font-color);
+    user-select: text;
+}
+
+h2 {
+    color: var(--font-color);
+    user-select: text;
+}
+
+h3 {
+    color: var(--font-color);
+    user-select: text;
+}
+
+h4 {
+    color: var(--font-color);
+    user-select: text;
+}
+
+pre {
+    padding: 0;
+}
+
+label {
+    color: var(--font-color);
+    user-select: text;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.form-control {
+    margin-top: 5px;
+    background-color: var(--main-1);
+    border-color: var(--main-5);
+    color: var(--font-color);
+}
+
+.form-control:disabled {
+    background-color: var(--border-color);
+    border-color: var(--alt-border-color);
+    color: var(--font-color);
+}
+
+body {
+    /* Theming */
+    background-color: var(--bg-color);
+    color: var(--font-color);
+    line-height: NORMAL;
+}
+
+.chat-holder {
+    padding-right: 0.5rem;
+}
+
+video {
+    /* override other styles to make responsive */
+    width: 70% !important;
+    max-width: 400px;
+    height: auto !important;
+}
+
+.topline {
+    border-top: 3px solid var(--main-5);
+    width: 100%;
+    background-color: var(--main-3);
+}
+
+.topbar {
+    height: 115px;
+    min-height: 115px;
+    background-color: var(--main-4);
+}
+
+.window {
+    width: 100%;
+}
+
+    .window .welcome-channel-description {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 30px;
+        line-height: 34px;
+        color: #9E9E9E;
+        margin: 0px;
+        margin-left: 34px;
+    }
+
+    .window .welcome-divider {
+        border: 2px solid #FFFFFF;
+        margin: 0px;
+        margin-top: 24px;
+        margin-left: 34px;
+    }
+
+    .window .welcome-channel-name {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 50px;
+        line-height: 57px;
+        color: #FFFFFF;
+        margin: 0px;
+        margin-left: 34px;
+    }
+
+    .window .welcome-text {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 20px;
+        line-height: 23px;
+        color: #9E9E9E;
+        margin: 0px;
+        margin-top: 11px;
+        margin-left: 34px;
+    }
+
+    .window .start-chat-icon {
+        margin: 0px;
+        margin-left: 34px;
+        margin-top: 32px;
+    }
+
+.sidebar-2 .user-info {
+    width: 269px;
+    height: 44.53px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 5px;
+    margin: 0px;
+    margin-top: 13px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 11px;
+}
+
+.sidebar-2 .user-info .pfp {
+    width: 32.72px;
+    height: 32.72px;
+    border-radius: 50%;
+    margin-top: 6.36px;
+    margin-bottom: 6.36px;
+    margin-left: 8.18px;
+}
+
+.sidebar-2 .category .arrow {
+    border-radius: 1px;
+    margin-top: 9px;
+    margin-bottom: 9px;
+    margin-left: 6px;
+    cursor: pointer;
+}
+
+.sidebar-2 .category .name {
+    margin: 0px;
+    margin-top: 6px;
+    margin-bottom: 7px;
+    margin-left: 12px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 18px;
+    line-height: 21px;
+    color: #FFFFFF;
+}
+
+.sidebar-2 .category .channel.open {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-2 .category .channel.open:hover {
+    background: rgba(255, 255, 255, 0.125);
+}
+
+.sidebar-2 .category .channel:nth-child(1) {
+    margin-top: 2px;
+}
+
+.sidebar-2 .category .channel {
+    width: 95%;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sidebar-2 .category .channel:hover {
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.sidebar-2 .category .channel .channel-name {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 21px;
+    color: #FFFFFF;
+    margin-left: 8px;
+    margin-top: 5px;
+    vertical-align: top;
+    display: inline-block;
+}
+
+.sidebar-2 .category .channel .chat-icon {
+    margin-top: 10px;
+    margin-bottom: 9px;
+    margin-left: 8px
+}
+
+.top-level-category .is-open{
+    /*padding-bottom:12px;*/
+}
+
+.top-level-category {
+    /*margin-bottom: 16px;*/
+}
+
+.planet-list {
+    margin-bottom: 5px;
+    padding-left: 0px;
+}
+
+
+.sidebar-2 .category .channel-list {
+    margin: 0px;
+    margin-top: -1px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+    overflow: hidden;
+}
+
+.sidebar-2 .category .name-open {
+    margin: 0px;
+    margin-top: 6px;
+    margin-bottom: 7px;
+    margin-left: 11px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 18px;
+    line-height: 21px;
+    color: #FFFFFF;
+}
+
+.sidebar-2 .category {
+    max-width: 269px;
+    background: rgb(41, 49, 56);
+    border-radius: 5px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.sidebar-2 .user-info .settings {
+    display: inline-block;
+    margin: 0px;
+    margin-top: 10.96px;
+    margin-bottom: 10.96px;
+    margin-right: 10.96px;
+    margin-left: 36.4px;
+    float: right;
+    cursor: pointer;
+}
+
+.sidebar-2 .user-info .active {
+    display: inline-block;
+    width: 11.81px;
+    height: 11.81px;
+    background: #05FF00;
+    border-radius: 50%;
+    margin: 0px;
+    vertical-align: top;
+    margin-top: 17.5px;
+    margin-left: 8px;
+}
+
+.sidebar-2 .user-info .username {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 23px;
+    margin: 0px;
+    margin-left: 8.18px;
+    margin-top: 11px;
+    vertical-align: top;
+}
+
+.sidebar-2 {
+    float: left;
+    max-width: 294px;
+    margin: 0px;
+    background-color: var(--main-2);
+    z-index: 1;
+}
+
+.channel-and-topbar {
+    display: flex;
+    margin: 0px;
+    background: #040D14;
+    flex: 1;
+    background-color: var(--main-1);
+    flex-direction: column;
+    height: 100%;
+    max-width: calc(100% - (64px + 294px));
+}
+
+.channel-and-topbar-mobile {
+    transform: translateX(-358px);
+    flex: 0;
+    max-width: 100%;
+}
+
+.sidebar-2 .channel-name {
+    display: inline-block;
+    margin: 0px;
+    margin-top: 5px;
+    margin-left: 3px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 27.5px;
+    line-height: 32px;
+    color: #FFFFFF;
+}
+
+.sidebar-2 .top-bar {
+    width: 294px;
+    border-top: 3px solid var(--main-3);
+}
+
+.sidebar-2 .channel-description {
+    font-family: Futura;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 15px;
+    color: #9E9E9E;
+}
+
+.sidebar-2 .channel-name-plus-pin .pin {
+    display: inline-block;
+    margin: 0px;
+    margin-left: 18px;
+}
+
+
+.sidebar-2 .viewing-current-channel {
+    margin-left: 15px;
+}
+
+    .sidebar-2 .viewing-current-channel .pfp {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        margin-left: -15px;
+    }
+
+.sidebar-2 .current-channel-info {
+    padding-top: 16px;
+    margin-left: 16px;
+    height: 115px;
+}
+
+.mainrow {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+.sidebar {
+    float: left;
+    width: 64px;
+    padding: 5px;
+    background-color: var(--main-1);
+    transition: width ease-in-out .2s;
+    z-index: 1;
+}
+
+.sidebar-menu {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+.sidebar-menu-mobile {
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    transform: translateX(-358px);
+    transition: transform 0.5s ease-in-out;
+    z-index: 1;
+}
+
+.sidebar-menu-mobile-active {
+    transform: translate(0px);
+}
+
+.sidebar-mobile {
+    float: left;
+    width: 64px;
+    padding: 5px;
+    background-color: var(--main-1);
+    z-index: 1;
+    transition: width 0.5s ease-in-out;
+}
+
+.sidebar-mobile-expanded {
+    width: 250px;
+}
+
+
+.sidebar:hover {
+    width: 250px;
+}
+
+.valour-version {
+    margin: 0px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 10px;
+    line-height: 7px;
+    text-align: center;
+    color: #00FAFF;
+}
+
+.valour-name {
+    margin: 0px;
+    margin-top: 6px;
+    margin-left: 10px;
+    margin-right: 10px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 24px;
+    line-height: 28px;
+    text-align: center;
+    color: #00FAFF;
+}
+
+.valour-logo {
+    width: 50px;
+    margin-left: 5px;
+    margin-top: 5px;
+    margin-right: 5px;
+    margin-bottom: 0px;
+    display: inline-block;
+}
+
+.rolename {
+    margin: 0px;
+    margin-left: 5px;
+    margin-top: 12px;
+    margin-bottom: 5px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 10px;
+    text-decoration-line: underline;
+    color: #7A7A7A;
+    text-wrap: none;
+    white-space: nowrap;
+    text-align: center;
+    width: 250px;
+}
+
+.sidebar-user {
+    width: 240px;
+    height: 56px;
+    background-color: var(--main-2);
+    margin-right: auto;
+}
+
+    .sidebar-user:first-child {
+        border-top-left-radius: 6px;
+        border-top-right-radius: 6px;
+    }
+
+    .sidebar-user:last-child {
+        border-bottom-left-radius: 6px;
+        border-bottom-right-radius: 6px;
+    }
+
+    .sidebar-user .user-status-state {
+        display: inline-block;
+        position: relative;
+    }
+
+    .sidebar-user .user-info {
+        display: inline-block;
+        vertical-align: top;
+        margin-top: 6px;
+    }
+
+    .sidebar-user .status {
+        display: inline-block;
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 14px;
+        line-height: 11px;
+        color: #7A7A7A;
+        margin: 0px;
+        position: absolute;
+        top: 0;
+        left: 15px;
+        width: 250px;
+        height: 12px;
+    }
+
+    .sidebar-user .staff-tag {
+        display: inline-block;
+        width: 24px;
+        height: 9px;
+        background: #00FAFF;
+        border-radius: 2px;
+        margin-top: 9px;
+    }
+
+    .sidebar-user .staff-tag p {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 7px;
+        line-height: 8px;
+        margin: 0px;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        /* identical to box height */
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #000000;
+    }
+
+    .sidebar-user .bot-tag {
+        display: inline-block;
+        width: 17px;
+        height: 9px;
+        background: #FF00E9;
+        border-radius: 2px;
+        margin-top: 9px;
+    }
+
+    .sidebar-user .bot-tag p {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: bold;
+        font-size: 7px;
+        line-height: 8px;
+        margin: 0px;
+        margin-left: 1px;
+        margin-bottom: 1px;
+        /* identical to box height */
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #FFFFFF;
+    }
+
+    .sidebar-user .state-circle {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        margin: 0px;
+        margin-bottom: 7px;
+        margin-left: 4px;
+    }
+
+    .sidebar-user .state-circle.online {
+        background: #05FF00;
+    }
+
+    .sidebar-user .state-circle.away {
+        background: #F0E62E;
+    }
+
+    .sidebar-user .state-circle.do-not-disturb {
+        background: #F21F1F;
+    }
+
+    .sidebar-user .state-circle.offline {
+        background: #B3B3B3;
+    }
+
+    .sidebar-user .username {
+        display: inline-block;
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 15px;
+        line-height: 15px;
+        vertical-align: top;
+        margin: 0px;
+        margin: 5px;
+    }
+
+    .sidebar-user .pfp {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        margin-left: 6px;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        vertical-align: unset;
+        display: inline-block;
+    }
+
+body {
+    background-color: #040D14;
+}
+
+@media screen and (max-width: 992px) {
+    .popup-box {
+        max-width: 90%;
+        max-height: 100%;
+        padding: 20px;
+    }
+
+    .modal-content-EditPlanet .popup-box {
+        max-width: 90%;
+        max-height: 100%;
+        padding: 20px;
+    }
+}
+
+.popup-box {
+    background-color: var(--main-2);
+    border-radius: 10px;
+    border-color: grey;
+    padding: 50px;
+    width: 400px;
+    z-index: 2;
+    box-shadow: 0px 0px 15px #000000;
+    margin: auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    -ms-transform: translate(-50%, -50%);
+}
+
+
+.modal-content-CreatePlanet .popup-box {
+    transform: none;
+    border-radius: 10px;
+    width: 100%;
+    height: 100%;
+    margin: 0px;
+    transform: translateY(0%);
+}
+
+.modal-content-EditPlanet {
+    width: 70%;
+    height: 70%;
+    margin: auto;
+}
+
+@media screen and (max-width: 992px) {
+    .modal-content-EditPlanet {
+        width: 100%;
+        max-height: 100%;
+    }
+}
+
+.modal-content-EditPlanet .popup-box {
+    transform: none;
+    border-radius: 10px;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    transform: translateY(0%);
+    background-color: var(--main-2);
+}
+
+.modal-content-EditUser {
+    width: 70%;
+    height: 70%;
+    margin: auto;
+}
+
+@media screen and (max-width: 992px) {
+    .modal-content-EditUser {
+        width: 100%;
+        max-height: 100%;
+    }
+}
+
+.modal-content-EditUser .popup-box {
+    transform: none;
+    border-radius: 10px;
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    transform: translateY(0%);
+    background-color: var(--main-2);
+}
+
+.window-grid {
+    display: flex;
+    flex: 2;
+    flex-grow: 1;
+    justify-content: space-between;
+    height: calc(100% - (115px + 16px));
+    padding: 0px;
+}
+
+.main-window {
+    background-color: var(--main-4);
+    width: 100%;
+    height: 50%;
+    overflow-y: auto;
+}
+
+.main-window-full {
+    background-color: var(--main-3);
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.window-col {
+    width: 50%;
+}
+
+.add-window-button {
+    width: 64px;
+    height: 64px;
+    padding: 8px;
+    position: absolute;
+    left: calc(100% - 98px);
+    top: 200px;
+    cursor: pointer;
+    z-index: 6;
+}
+
+/* Scrollbar */
+*::-webkit-scrollbar {
+    width: 12px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--main-4);
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: white;
+    border-radius: 20px;
+    border: 3px solid black;
+}
+
+/* The Modal (background) */
+.modal {
+    display: inline-block;
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+.modal-main {
+    background-color: var(--main-2);
+    z-index: 200;
+    padding: 20px;
+    border-radius: 10px;
+    filter: drop-shadow(0px 0px 8px black);
+    width: 80vw;
+    max-width: 1200px;
+}
+
+.modal-shrink-fit {
+    background-color: var(--main-2);
+    z-index: 200;
+    padding: 20px;
+    border-radius: 10px;
+    filter: drop-shadow(0px 0px 8px black);
+
+    max-height: 90vh;
+    max-width: 90vw;
+}
+
+.modal-main .blazored-modal-content {
+    height: 100%;
+    width: 100%;
+}
+
+.login-background {
+    background-image: url(/media/Spookvooper-tall.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    /* height: 100vh; */
+    margin: 0px;
+    backdrop-filter: blur(5px);
+    position: absolute;
+    width: 100%;
+    /* bottom: 0px; */
+    min-height: 100vh;
+}
+
+.add-channel-button {
+    margin: 0px;
+    margin-top: 3px;
+    margin-right: 8px;
+    vertical-align: top;
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    text-align: right;
+    font-size: 24px;
+    float: right;
+    cursor: pointer;
+}
+
+.context-menu {
+    width: 188px;
+    background: #030B11;
+    mix-blend-mode: normal;
+    border: 1px solid #192630;
+    box-sizing: border-box;
+    box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    position: absolute;
+    z-index: 2000;
+}
+
+.context-menu-item {
+    border-radius: 6px;
+    margin: 0px;
+    margin-top: 0px;
+    margin-left: 10px;
+    margin-right: 10px;
+    height: 35px;
+    cursor: pointer;
+}
+
+.context-menu-item:hover {
+    background-color: #192630;
+}
+
+.context-menu-item:nth-last-child(1) {
+    margin-bottom: 10px;
+}
+
+.context-menu-item-text {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 15px;
+    margin-left: 10px;
+    margin-top: 10px;
+    line-height: 17px;
+    display: flex;
+    padding-top: 10px;
+    align-items: center;
+    mix-blend-mode: normal;
+}
+
+.channel-info .channel-buttons {
+    float: right;
+}
+
+.home-buttons {
+    float: right;
+    margin-top: 15px;
+}
+
+.channel-buttons .channel-home {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.channel-buttons .channel-close {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.home-buttons .home-close {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.modal-content-EditUser .popup-box {
+    height: 100%;
+    width: 100%;
+}
+
+.tri-button {
+    margin: 5px;
+}
+
+.logout-button {
+    background-color: var(--main-2);
+    width: 95%;
+    height: 35px;
+    line-height: 27px;
+    color: red;
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 4px;
+    padding-left: 8px;
+    margin-top: 2px;
+    text-align: left;
+    vertical-align: central;
+}
+
+.logout-button:hover {
+    background-color: rgba(255, 200, 200, 0.1);
+}
+
+.logout-button:active {
+    background-color: rgba(255, 200, 200, 0.2);
+}
+
+.settings-button {
+    background-color: var(--main-2);
+    width: 95%;
+    height: 35px;
+    line-height: 27px;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 4px;
+    padding-left: 8px;
+    margin-top: 2px;
+    text-align: left;
+    vertical-align: central;
+}
+
+.settings-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+
+.invite-tab-holder .settings-button {
+    display: inline-block;
+    width: 45%;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+    .invite-tab-holder .settings-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .invite-tab-holder .settings-button:active {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .invite-tab-holder .settings-button.active {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .invite-tab-holder .settings-button:hover.active {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .invite-tab-holder .settings-button.left {
+        border-radius: 5px 0px 0px 0px;
+        margin-right: 0px;
+        float: left;
+    }
+
+    .invite-tab-holder .settings-button.right {
+        border-radius: 0px 5px 0px 0px;
+        margin-left: 0px;
+        float: left;
+    }
+
+.invite-list {
+    width: 90%;
+    height: 60%;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    margin-top: 35px;
+    overflow-y: scroll;
+}
+
+.settings-button:hover {
+    background-color: var(--main-4);
+}
+
+.settings-button.active {
+    background-color: var(--main-4);
+}
+
+.settings-button:hover.active {
+    background-color: var(--main-5);
+}
+
+.settings-modal {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+}
+
+.settings-modal .row {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+}
+
+.edit-col-left {
+    max-height: 100%;
+}
+
+.edit-col-right {
+    max-height: 100%;
+}
+
+/* This controls how modals act on large screens */
+@media (min-width: 768px){
+    .modal-main {
+        height: 80vh;
+    }
+
+    .edit-col-right {
+        border-left: solid 1px rgba(255, 255, 255, 0.25);
+        padding-left: 35px;
+        overflow-y: auto;
+    }
+}
+/* This controls how modals act on small screens */
+@media (max-width: 767px) {
+
+    .modal-main {
+        margin-top: 40px;
+        margin-bottom:  40px;
+    }
+
+    .modal-shrink-fit {
+        transform: translate(0, 30vh);
+    }
+
+    .blazored-modal-container {
+        align-items: start !important;
+        overflow-y: auto !important;
+    }
+}
+
+
+.roles-row {
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    user-select: none;
+    border-radius: 5px;
+    margin-right: 1px;
+    margin-left: 1px;
+    margin-top: 4px;
+    margin-bottom: 1px;
+    border: 0px solid;
+}
+
+.roles-row:hover {
+    border: 1px solid;
+    margin-right: 0px;
+    margin-left: 0px;
+    margin-top: 3px;
+    margin-bottom: 0px;
+}
+
+.roles-row:active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.roles-name {
+    margin: 0;
+    line-height: 32px;
+    margin-left: 10px;
+    user-select: none;
+}
+
+.roles-buttons {
+    position: absolute;
+    right: 0;
+    transform: translate(-50%, -50%);
+    user-select: none;
+}
+
+.btn-role-edit {
+    opacity: 85%;
+    background-color: rgba(0, 0, 0, 0);
+    color: #fff;
+    position: relative;
+    display: inline-block;
+    border: 1px solid #fff;
+    border-radius: 5px 0px 0px 5px;
+    width: 10%;
+    min-width: 60px;
+    height: 30px;
+    margin: 0px;
+    cursor: pointer;
+}
+
+.btn-role-text {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    position: absolute;
+}
+
+.btn-role-edit.edit {
+    border-radius: 5px 0px 0px 5px;
+}
+.btn-role-edit.edit:hover {
+    color: var(--v-blue);
+}
+.btn-role-edit.edit:active {
+    color: #fff;
+    background-color: var(--v-blue);
+}
+
+.btn-role-edit.delete {
+    border-radius: 0px 5px 5px 0px;
+}
+.btn-role-edit.delete:hover {
+    color: var(--v-purple);
+}
+
+.btn-role-edit.delete:active {
+    color: #fff;
+    background-color: var(--v-purple);
+}
+
+.btn-role-edit.create {
+    background-color: rgba(0, 255, 0, 0.4);
+    border-radius: 5px;
+    display: block;
+    margin-left: 20px;
+    min-width: 55px;
+}
+.btn-role-edit.create:hover {
+    background-color: rgba(0, 255, 0, 0.6);
+}
+
+.btn-role-edit.create:active {
+    background-color: rgba(0, 255, 0, 0.8);
+}
+
+
+.role-edit-delete:hover {
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.center-t {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.settings-save-button {
+    margin-top: 20px;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.keep-scrolling::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.keep-scrolling {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+.RoleList {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: 100%;
+}
+
+.UserList {
+    overflow-x: hidden;
+}
+
+.category-list {
+    max-height: calc(90% - 90px);
+    overflow-y: scroll;
+}
+
+.update-footer {
+    position: absolute;
+    top: 0px;
+    z-index: 5;
+    width: 100%;
+    background-color: var(--main-5);
+    opacity: 0.8;
+    padding: 10px;
+}
+
+.update-text {
+    margin: 2px;
+}
+
+.btn-update {
+    width: 32px;
+    height: 20px;
+    display: inline-block;
+    margin-left: 10px;
+    padding: 0px;
+    cursor: pointer;
+}
+
+.forgot-password {
+    display:block;
+    cursor: pointer;
+}
+
+#window-0:focus {
+    outline: 2px solid var(--main5);
+}
+
+#window-1:focus {
+    outline: 2px solid var(--main5);
+}
+
+#window-2:focus {
+    outline: 2px solid var(--main5);
+}
+
+#window-3:focus {
+    outline: 2px solid var(--main5);
+}
+
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 8px;
+}
+
+.color-picker {
+
+}
+
+.picker-holder {
+    margin: 5px;
+}
+
+.rolecreate-cont {
+    display: flex;
+}
+
+.perm-list-item {
+    padding: 5px;
+    border-top: solid 1px rgba(255, 255, 255, 0.3);
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.perm-list-name {
+    display: inline-block;
+}
+
+.perm-list-desc {
+    font-size: 14px;
+}
+
+/* Slider stuff */
+
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 0px;
+    bottom: 0px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+}
+
+input:checked + .slider {
+    background-color: #42f5f5;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+    -webkit-transform: translateX(20px);
+    -ms-transform: translateX(20px);
+    transform: translateX(20px);
+}
+
+/* Rounded sliders */
+
+.slider.round {
+    border-radius: 20px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Invite page stuff */
+.invite-title {
+    text-align: center;
+}
+
+.invite-name {
+    text-align: center;
+    display: inline-block;
+}
+
+.join-btn .btn-pos {
+    position: absolute;
+    bottom: 40px;
+    left: 0px;
+    right: 0px;
+    margin: auto;
+}
+
+.center-text {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: auto;
+    text-align: center;
+}
+
+blockquote {
+    border-left: 3px rgba(255, 255, 255, 0.2) solid;
+    padding-top: 5px;
+    padding-left: 5px;
+    margin: 0px;
+    background-color: rgba(255, 255, 255, 0.01);
+}
+
+/* Fix for safari */
+[contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.noselect {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+/* Loading screen */
+@keyframes logo-anim {
+    0% {
+        filter: hue-rotate(0);
+    }
+    100% {
+        filter: hue-rotate(360deg);
+    }
+}
+
+@keyframes fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.color-shift {
+    animation: logo-anim 3s infinite, fadein 0.4s;
+}
+
+.loading-container {
+    height: 100%;
+    width: 100%;
+}
+
+.loading-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.loading-title {
+    text-align: center;
+    font-weight: 700;
+    font-size: 24px;
+    user-select: none;
+}
+
+.loading-subtext {
+    text-align: center;
+    font-size: 16px;
+    user-select: none;
+}
+
+.loading-logo {
+    width: 128px;
+    user-select: none;
+}
+
+.input-magic {
+    font-size: 0;
+    display: inline !important;
+}
+
+.input-magic::before {
+    content: attr(data-before);
+    display: inline;
+    font-size: 16px;
+}
+
+/* Mention css must be in global css file so input injection works */
+.mention {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.mention.target {
+    font-weight: 500;
+}
+
+.mention:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mention:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* These are the ones that work in the textbox */
+.mention::before {
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.mention:hover::before {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mention:active::before {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.channel-mention {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    color: rgb(140, 220, 255);
+    background-color: rgba(170, 170, 255, 0.1);
+    cursor: pointer;
+}
+
+.channel-mention:hover {
+    background-color: rgba(170, 170, 255, 0.2);
+}
+
+.channel-mention:active {
+    background-color: rgba(170, 170, 255, 0.3);
+}
+
+/* These are the ones that work in the textbox */
+.channel-mention::before {
+    display: inline-block;
+    border-radius: 4px;
+    padding-left: 2px;
+    padding-right: 2px;
+    font-weight: 500;
+    color: rgb(140, 220, 255);
+    background-color: rgba(170, 170, 255, 0.1);
+    cursor: pointer;
+}
+
+.channel-mention:hover::before {
+    background-color: rgba(170, 170, 255, 0.2);
+}
+
+.channel-mention:active::before {
+    background-color: rgba(170, 170, 255, 0.3);
+}
