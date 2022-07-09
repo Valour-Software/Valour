@@ -186,7 +186,7 @@ namespace Valour.Client.Components.ChannelList
                     pos++;
                 }
 
-                response = await ValourClient.PostAsync($"{target.ParentCategory.Category.IdRoute}/children/order", orderData);
+                response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
 
                 Console.WriteLine(response.Message);
 

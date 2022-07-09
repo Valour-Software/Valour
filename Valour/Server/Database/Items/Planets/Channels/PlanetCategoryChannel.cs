@@ -351,11 +351,11 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.Json(children_ids);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/children/order"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/children/order"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] ulong[] order,
+    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] long[] order,
         ILogger<PlanetCategoryChannel> logger)
     {
         var db = ctx.GetDb();
