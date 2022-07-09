@@ -6,6 +6,7 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Messages.Embeds;
+using Valour.Shared.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -53,7 +54,24 @@ namespace Valour.Server.Database
         public async Task JoinChannel(long channelId, string token)
         {
 
-            // TODO: Check if user has permission to view channel
+            using ValourDB db = new(ValourDB.DBOptions);
+
+            // Grab channel
+            var channel = await db.PlanetChatChannels.FindAsync(channelId);
+            if (channel is null)
+                return;
+
+            // Authenticate user
+            AuthToken authToken = await AuthToken.TryAuthorize(token, db);
+
+            if (authToken is null) return;
+
+            PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(
+                x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId);
+
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ViewMessages, db))
+                return;
+
             await Groups.AddToGroupAsync(Context.ConnectionId, $"c-{channelId}");
         }
 
