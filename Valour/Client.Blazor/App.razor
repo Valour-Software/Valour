@@ -4,6 +4,8 @@
 @using Valour.Client.Components.Utility
 @using Valour.Client.Notifications
 @using Valour.Client.Blazor.Layout
+@using Valour.Client.Messages;
+@using Valour.Shared.Items.Users
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Routing
 @using Blazored.LocalStorage
@@ -45,7 +47,7 @@ else
     <div class="update-footer">
         <p class="update-text">There is a new version of Valour available! Refresh to blast into new features! 🚀🚀🚀</p>
         <p style="display: inline-block" class="update-text">Current version:&nbsp;</p>
-        <p style="color:red; display:inline-block" class="update-text">@GetType().Assembly.GetName().Version.ToString()</p>
+        <p style="color:red; display:inline-block" class="update-text">@(typeof(ISharedUser).Assembly.GetName().Version.ToString())</p>
         <p style="display: inline-block" class="update-text">&nbsp;|&nbsp;</p>
         <p style="display: inline-block" class="update-text">New version:&nbsp;</p>
         <p style="color:lawngreen; display:inline-block" class="update-text">@newVersion</p>
@@ -63,10 +65,12 @@ else
 
     bool hideUpdate = true;
 
-    public void OnClickUpdateOk()
+    public async Task OnClickUpdateOk()
     {
         hideUpdate = true;
         StateHasChanged();
+
+        await JS.InvokeVoidAsync("location.reload");
     }
 
     // Runs when page is initialized
