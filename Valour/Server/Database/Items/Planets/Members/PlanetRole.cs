@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Drawing;
+using System.Security.Cryptography;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Authorization;
@@ -179,9 +180,9 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
         if (role.Position != oldRole.Position)
             return Results.BadRequest("Position cannot be changed directly.");
-
         try
         {
+            db.Entry(oldRole).State = EntityState.Detached;
             db.PlanetRoles.Update(role);
             await db.SaveChangesAsync();
         }

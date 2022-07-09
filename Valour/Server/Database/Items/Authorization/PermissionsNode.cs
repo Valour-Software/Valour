@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
@@ -125,9 +126,9 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
         if (role.GetAuthority() > await member.GetAuthorityAsync(db))
             return ValourResult.Forbid("The target node's role has higher authority than you.");
-
         try
         {
+            db.Entry(oldNode).State = EntityState.Detached;
             db.PermissionsNodes.Update(node);
             await db.SaveChangesAsync();
         }

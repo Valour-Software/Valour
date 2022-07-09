@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared;
@@ -113,9 +114,9 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
             return Results.BadRequest("You cannot change the creation time.");
         if (invite.PlanetId != oldInvite.PlanetId)
             return Results.BadRequest("You cannot change what planet.");
-
         try
         {
+            db.Entry(oldInvite).State = EntityState.Detached;
             db.PlanetInvites.Update(invite);
             await db.SaveChangesAsync();
         }

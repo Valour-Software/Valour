@@ -150,6 +150,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         // Update
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetCategoryChannels.Update(category);
             await db.SaveChangesAsync();
         }

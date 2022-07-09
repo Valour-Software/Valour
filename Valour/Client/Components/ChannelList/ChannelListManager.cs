@@ -2,6 +2,7 @@
 using Valour.Shared.Categories;
 using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items;
 
 namespace Valour.Client.Components.ChannelList
 {
@@ -90,7 +91,9 @@ namespace Valour.Client.Components.ChannelList
 
             // Add current item to target category
 
-            var response = await ValourClient.PutAsync($"api/category/{currentDragItem.Id}/parentId?position={position}", "none");
+            currentDragItem.Position =  position;
+            currentDragItem.ParentId = null;
+            var response = await Item.UpdateAsync(currentDragItem);
 
             Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
 

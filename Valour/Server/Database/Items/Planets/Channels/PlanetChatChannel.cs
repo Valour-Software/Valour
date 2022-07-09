@@ -303,6 +303,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         // Update
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetChatChannels.Update(channel);
             await db.SaveChangesAsync();
         }

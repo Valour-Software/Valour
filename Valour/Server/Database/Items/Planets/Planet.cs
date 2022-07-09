@@ -444,6 +444,7 @@ public class Planet : Item, ISharedPlanet
 
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.Planets.Update(planet);
             await db.SaveChangesAsync();
         }
