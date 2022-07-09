@@ -3,9 +3,8 @@ using Valour.Server.Database.Items.Planets.Channels;
 
 namespace Valour.Server.Requests;
 
-public class CreatePlanetChatChannelRequest
+public class CreatePlanetCategoryChannelRequest
 {
-    public PlanetChatChannel Channel { get; set; }
+    public PlanetCategoryChannel Category { get; set; }
     public List<PermissionsNode> Nodes { get; set; }
 }
-

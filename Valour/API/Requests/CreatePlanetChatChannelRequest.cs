@@ -3,7 +3,7 @@ using Valour.Api.Items.Planets.Channels;
 
 namespace Valour.Api.Requests;
 
-public class PlanetChatChannelCreateRequest
+public class CreatePlanetChatChannelRequest
 {
     public PlanetChatChannel Channel { get; set; }
     public List<PermissionsNode> Nodes { get; set; }

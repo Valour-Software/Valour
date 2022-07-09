@@ -126,7 +126,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return item;
     }
 
-    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(PlanetChatChannelCreateRequest request)
+    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(CreatePlanetChatChannelRequest request)
     {
         return await ValourClient.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
     } 
