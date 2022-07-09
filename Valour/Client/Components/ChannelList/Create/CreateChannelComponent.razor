@@ -117,7 +117,7 @@
         long parentId = Parent.Id;
         long planetId = Planet.Id;
 
-        PlanetChatChannelCreateRequest createRequest = new()
+        CreatePlanetChatChannelRequest createRequest = new()
         {
             Channel = new  PlanetChatChannel()
             {
@@ -125,7 +125,7 @@
                 Description = "A chat channel",
                 PlanetId = planetId,
                 ParentId = parentId,
-                Position = (await Planet.GetChannelsAsync()).Count
+                Position = -1
             },
             Nodes = new()
         };

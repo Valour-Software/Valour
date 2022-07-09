@@ -195,14 +195,14 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId, [FromBody] PlanetChatChannelCreateRequest request,
-        ILogger<PlanetChatChannel> logger)
+    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId, 
+        [FromBody] CreatePlanetChatChannelRequest request, ILogger<PlanetChatChannel> logger)
     {
         // Get resources
         var db = ctx.GetDb();
         var member = ctx.GetMember();
 
-        var channel = request.Channel as PlanetChatChannel;
+        var channel = request.Channel;
 
         if (channel.PlanetId != planetId)
             return Results.BadRequest("PlanetId mismatch.");
@@ -234,7 +234,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         // Create nodes
         foreach (var nodeReq in request.Nodes)
         {
-            var node = nodeReq as PermissionsNode;
+            var node = nodeReq;
             node.TargetId = channel.Id;
             node.PlanetId = planetId;
 
