@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Valour.Shared.Items.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -13,7 +14,7 @@ namespace Valour.Shared.Items.Planets.Channels;
 /// <summary>
 /// Represents a single chat channel within a planet
 /// </summary>
-public interface ISharedPlanetChatChannel : ISharedPlanetChannel
+public interface ISharedPlanetChatChannel : ISharedPlanetChannel, ISharedPermissionsTarget
 {
     long MessageCount { get; set; }
 }
