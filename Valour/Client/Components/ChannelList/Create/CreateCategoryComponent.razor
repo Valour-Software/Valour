@@ -111,74 +111,77 @@
 
         long planetId = Planet.Id;
         long? parentId = null;
-        
+
         if (Parent != null)
             parentId = Parent.Id;
-        
+
         long userId = ValourClient.Self.Id;
         //string token = ValourClient.Token;
 
-        PlanetCategoryChannel category = new(){
-            Name = name,
-            Description = "A category",
-            ParentId = parentId,
-            PlanetId = planetId
+        CreatePlanetCategoryChannelRequest createRequest = new()
+        {
+            Category = new()
+            {
+                Name = name,
+                Description = "A category",
+                ParentId = parentId,
+                PlanetId = planetId,
+                Position = -1
+            },
+            Nodes = new()
         };
 
-        var response = await ValourClient.PostAsync($"api/planet/{planetId}/categories", category);
-
-        if (!response.Success)
+        if (isprivate)
         {
-            imageSpan = "An error occured retrieving a response. Please try again.";
-            return;
-        }
-
-        long categoryId = long.Parse(response.Message);
-
-        imageSpan = "Success";
-
-        if (isprivate) {
             // set the default role channel view perms to false
 
-            PermissionsNode permissionsNode = new()
+            PermissionsNode node = new()
             {
-                TargetId = categoryId,
+                TargetId = 0,
                 PlanetId = planetId,
                 RoleId = Planet.DefaultRoleId.Value,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermissionsTarget.PlanetCategoryChannel
+                TargetType = PermissionsTargetType.PlanetCategoryChannel
             };
 
-            permissionsNode.SetPermission(CategoryPermissions.View, PermissionState.False);
+            node.SetPermission(CategoryPermissions.View, PermissionState.False);
 
-            response = await ValourClient.PostAsync($"api/node/category", permissionsNode);
+            createRequest.Nodes.Add(node);
 
             foreach (PlanetRole role in Roles)
             {
 
-                if (!SelectedRoles[role]) {
+                if (!SelectedRoles[role])
+                {
                     continue;
                 }
 
-                permissionsNode = new()
+                node = new()
                 {
-                    TargetId = categoryId,
+                    TargetId = 0,
                     PlanetId = planetId,
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermissionsTarget.PlanetCategoryChannel
+                    TargetType = PermissionsTargetType.PlanetCategoryChannel
                 };
 
-                permissionsNode.SetPermission(CategoryPermissions.View, PermissionState.True);
-
-                response = await ValourClient.PostAsync($"api/node/category", permissionsNode);
-                // TODO: Clean this
+                node.SetPermission(CategoryPermissions.View, PermissionState.True);
             }
         }
 
-        // close model
+        var result = await PlanetCategoryChannel.CreateWithDetails(createRequest);
+
+        if (!result.Success)
+        {
+            string errorText = result.Message;
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
+            return;
+        }
+
+        // close modal
         await ModalInstance.CloseAsync();
     }
 

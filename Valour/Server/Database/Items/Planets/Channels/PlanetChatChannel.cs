@@ -24,6 +24,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [Column("message_count")]
     public long MessageCount { get; set; }
 
+    [NotMapped]
+    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+
     /// <summary>
     /// The regex used for name validation
     /// </summary>
@@ -63,7 +66,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             var role = roleMembership.Role;
             // For some reason, we need to make sure we get the node that has the same targetId as this channel
             // When loading I suppose it grabs all the nodes even if the target is not the same?
-            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTarget.PlanetChatChannel);
+            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTargetType.PlanetChatChannel);
 
             // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
             if (node == null)
@@ -195,14 +198,14 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId, [FromBody] PlanetChatChannelCreateRequest request,
-        ILogger<PlanetChatChannel> logger)
+    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId, 
+        [FromBody] CreatePlanetChatChannelRequest request, ILogger<PlanetChatChannel> logger)
     {
         // Get resources
         var db = ctx.GetDb();
         var member = ctx.GetMember();
 
-        var channel = request.Channel as PlanetChatChannel;
+        var channel = request.Channel;
 
         if (channel.PlanetId != planetId)
             return Results.BadRequest("PlanetId mismatch.");
@@ -234,7 +237,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         // Create nodes
         foreach (var nodeReq in request.Nodes)
         {
-            var node = nodeReq as PermissionsNode;
+            var node = nodeReq;
             node.TargetId = channel.Id;
             node.PlanetId = planetId;
 
@@ -303,6 +306,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         // Update
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetChatChannels.Update(channel);
             await db.SaveChangesAsync();
         }

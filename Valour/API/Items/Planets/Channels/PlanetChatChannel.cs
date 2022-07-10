@@ -36,6 +36,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// </summary>
     public override string GetHumanReadableName() => "Chat Channel";
 
+    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
@@ -46,7 +48,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// Returns the channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, refresh);
+        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetChatChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
@@ -67,7 +69,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermissionsTarget.PlanetChatChannel
+            TargetType = PermissionsTargetType.PlanetChatChannel
         };
 
         var planet = await GetPlanetAsync();
@@ -126,7 +128,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return item;
     }
 
-    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(PlanetChatChannelCreateRequest request)
+    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(CreatePlanetChatChannelRequest request)
     {
         return await ValourClient.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
     } 

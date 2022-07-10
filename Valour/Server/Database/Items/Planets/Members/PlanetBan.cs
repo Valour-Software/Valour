@@ -168,6 +168,7 @@ public class PlanetBan : PlanetItem, ISharedPlanetBan
 
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetBans.Update(ban);
             await db.SaveChangesAsync();
         }

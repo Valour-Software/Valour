@@ -315,6 +315,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetMembers.Update(member);
             await db.SaveChangesAsync();
         }

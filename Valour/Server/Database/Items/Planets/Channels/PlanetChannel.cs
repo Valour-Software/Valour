@@ -1,6 +1,7 @@
 ﻿using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
@@ -8,7 +9,7 @@ namespace Valour.Server.Database.Items.Planets.Channels;
 [Table("planet_channels")]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
-public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
+public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel, ISharedPermissionsTarget
 {
 
     [JsonIgnore]
@@ -29,6 +30,7 @@ public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
 
     [Column("inherits_perms")]
     public bool InheritsPerms { get; set; }
+    public abstract PermissionsTargetType PermissionsTargetType { get; }
 
     /// <summary>
     /// Returns the parent category of this channel
