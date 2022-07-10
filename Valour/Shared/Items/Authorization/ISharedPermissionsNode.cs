@@ -11,10 +11,18 @@ using Valour.Shared.Items.Planets;
 
 namespace Valour.Shared.Items.Authorization;
 
-public enum PermissionsTarget
+public enum PermissionsTargetType
 {
     PlanetChatChannel,
     PlanetCategoryChannel
+}
+
+public interface ISharedPermissionsTarget
+{
+    /// <summary>
+    /// The type of target this item is
+    /// </summary>
+    public PermissionsTargetType PermissionsTargetType { get; }
 }
 
 /// <summary>
@@ -46,7 +54,7 @@ public interface ISharedPermissionsNode : ISharedPlanetItem
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public PermissionsTarget TargetType { get; set; }
+    public PermissionsTargetType TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node

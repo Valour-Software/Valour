@@ -817,7 +817,7 @@ public static class ValourClient
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public static async Task<T> GetJsonAsync<T>(string uri)
+    public static async Task<T> GetJsonAsync<T>(string uri, bool allowNull = false)
     {
         var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
 
@@ -828,9 +828,8 @@ public static class ValourClient
             var message = await response.Content.ReadAsStringAsync();
 
             // This means the null is expected
-            if (message == "null"){
+            if (allowNull && response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return default(T);
-            }
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +

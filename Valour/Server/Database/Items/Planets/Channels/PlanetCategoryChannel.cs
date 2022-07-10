@@ -4,6 +4,7 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
@@ -20,6 +21,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetCategoryChannel;
 
     /// <summary>
     /// Returns if the member has the given permission in this category

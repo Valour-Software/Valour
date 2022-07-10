@@ -24,6 +24,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [Column("message_count")]
     public long MessageCount { get; set; }
 
+    [NotMapped]
+    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+
     /// <summary>
     /// The regex used for name validation
     /// </summary>
@@ -63,7 +66,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             var role = roleMembership.Role;
             // For some reason, we need to make sure we get the node that has the same targetId as this channel
             // When loading I suppose it grabs all the nodes even if the target is not the same?
-            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTarget.PlanetChatChannel);
+            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTargetType.PlanetChatChannel);
 
             // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
             if (node == null)
