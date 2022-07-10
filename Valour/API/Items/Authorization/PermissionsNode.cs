@@ -69,10 +69,10 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
+    public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTargetType targetType) =>
         await FindAsync(channel.Id, role.Id, targetType);
 
-    public override string IdRoute => $"{BaseRoute}/{TargetId}/{RoleId}";
+    public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
 
 #if (Nodes)
     public override string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{nameof(PermissionsNode)}";
@@ -83,7 +83,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTarget type, bool force_refresh = false)
+    public static async Task<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTargetType type, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -92,7 +92,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
                 return cached;
         }
 
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/{targetId}/{roleId}");
+        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}");
 
         if (node is not null)
             await node.AddToCache();
