@@ -1,5 +1,5 @@
-﻿
-namespace Valour.Server.API;
+﻿namespace Valour.Server.API;
+
 public class NotificationsAPI : BaseAPI
 {
     /// <summary>

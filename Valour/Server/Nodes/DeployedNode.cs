@@ -12,7 +12,7 @@ public class DeployedNode
     /// <summary>
     /// All of the planets this node is responsible for
     /// </summary>
-    public Dictionary<ulong, Planet> Planets = new();
+    public Dictionary<long, Planet> Planets = new();
 
     /// <summary>
     /// This is the name of this node

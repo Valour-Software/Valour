@@ -36,7 +36,15 @@ namespace Valour.Server
         {
             // Load configs
             LoadConfigsAsync();
-            
+
+            // Communicate with core node
+#if (NODES)
+            HttpClient client = new();
+            client.pos
+#else
+
+#endif
+
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
 
