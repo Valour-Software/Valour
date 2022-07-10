@@ -31,10 +31,7 @@ namespace Valour.Api.Nodes
             return location;
         }
             
-
-#if DEBUG
-        public static async Task<string> GetNode(long planetId) => "";
-#else
+#if (NODES)
         public static async Task<string> GetNode(long planetId)
         {
             if (PlanetToNode.ContainsKey(planetId))
@@ -47,6 +44,8 @@ namespace Valour.Api.Nodes
 
             return location;
         }
+#else
+            public static async Task<string> GetNode(long planetId) => "null";
 #endif
     }
 }

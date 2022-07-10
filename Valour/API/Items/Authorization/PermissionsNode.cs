@@ -73,7 +73,12 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         await FindAsync(channel.Id, role.Id, targetType);
 
     public override string IdRoute => $"{BaseRoute}/{TargetId}/{RoleId}";
+
+#if (Nodes)
+    public override string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{nameof(PermissionsNode)}";
+#else
     public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
+#endif
 
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
