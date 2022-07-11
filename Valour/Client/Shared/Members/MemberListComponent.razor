@@ -190,7 +190,7 @@
 
     public long GetComparator(PlanetMember m)
     {
-        var task = m.GetUserAsync();
+        var task = m.GetUserAsync().AsTask();
         task.Wait();
 
         return task.Result.TimeLastActive.Ticks;

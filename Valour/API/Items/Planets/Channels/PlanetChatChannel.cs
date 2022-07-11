@@ -45,8 +45,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
-    public async ValueTask<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, refresh);
+    public ValueTask<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
+        PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.

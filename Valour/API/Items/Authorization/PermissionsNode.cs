@@ -69,8 +69,8 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
-        await FindAsync(channel.Id, role.Id, targetType);
+    public static ValueTask<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
+        FindAsync(channel.Id, role.Id, targetType);
 
     public override string IdRoute => $"{BaseRoute}/{TargetId}/{RoleId}";
     public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
@@ -78,7 +78,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async Task<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTarget type, bool force_refresh = false)
+    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTarget type, bool force_refresh = false)
     {
         if (!force_refresh)
         {
