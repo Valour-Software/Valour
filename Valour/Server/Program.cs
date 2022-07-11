@@ -148,7 +148,7 @@ namespace Valour.Server
 
             app.MapRazorPages();
             app.MapControllers();
-            app.MapFallbackToFile("index.html");
+            app.MapFallbackToFile("_content/Valour.Client/index.html");
             app.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
             {
                 //options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);

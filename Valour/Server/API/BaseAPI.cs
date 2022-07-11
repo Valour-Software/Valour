@@ -1,4 +1,4 @@
-﻿using Valour.Client.Messages;
+﻿using Valour.Shared.Items.Users;
 
 namespace Valour.Server.API;
 
@@ -17,7 +17,7 @@ public class BaseAPI
 
     public static void AddRoutes(WebApplication app)
     {
-        VERSION = new ClientPlanetMessage(null).GetType().Assembly.GetName().Version.ToString();
+        VERSION = typeof(ISharedUser).Assembly.GetName().Version.ToString();
         app.MapGet("api/version", () => VERSION);
     }
 

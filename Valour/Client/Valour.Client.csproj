@@ -1,10 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>preview</LangVersion>
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
-    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
-    <Version>0.1.2.2</Version>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
   </PropertyGroup>
@@ -23,10 +23,6 @@
   <ItemGroup>
     <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
   </ItemGroup>
 
 </Project>

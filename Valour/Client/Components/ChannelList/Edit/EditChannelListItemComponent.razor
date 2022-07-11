@@ -1,0 +1,99 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+
+
+<div class="settings-modal container">
+    <div class="row settings-row">
+        <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
+            <b>@GetTitle()</b>
+            <hr />
+            <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+            <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Permissions</div>
+        </div>
+        <div class="col-md-9 edit-col-right">
+            @switch (selected)
+            {
+                case 0:
+                    <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
+                    break;
+                case 1:
+                    <EditCLIPermissionsComponent Target="ChannelListItem"></EditCLIPermissionsComponent>
+                    break;
+                default:
+                    break;
+
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public PlanetChannel ChannelListItem { get; set; }
+
+    public bool isChannel;
+    public PlanetChatChannel Channel;
+    public PlanetCategoryChannel Category;
+
+
+    public string GetTitle()
+    {
+        if (isChannel)
+        {
+            return $"Channel: {Channel.Name}";
+        }
+        else
+        {
+            return $"Category: {Category.Name}";
+        }
+    }
+
+    public string GetButtonClass(int tab)
+    {
+        if (buttonStates[tab])
+        {
+            return "settings-button active";
+        }
+
+        return "settings-button";
+    }
+
+    public bool[] buttonStates = new bool[2]
+    {
+        true, false
+    };
+
+    public int selected = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ChannelListItem is PlanetChatChannel)
+        {
+            isChannel = true;
+            Channel = (PlanetChatChannel)ChannelListItem;
+            Category = null;
+        }
+        else
+        {
+            isChannel = false;
+            Category = (PlanetCategoryChannel)ChannelListItem;
+            Channel = null;
+        }
+    }
+
+    public void SetSelectedTab(int tab)
+    {
+        Console.WriteLine("Set selected to " + tab);
+
+        for (int i = 0; i < buttonStates.Length; i++)
+        {
+            buttonStates[i] = false;
+        }
+
+        buttonStates[tab] = true;
+
+        selected = tab;
+
+        StateHasChanged();
+    }
+}

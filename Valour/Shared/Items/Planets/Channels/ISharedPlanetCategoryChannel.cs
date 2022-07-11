@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Items.Planets.Channels;
+﻿using Valour.Shared.Items.Authorization;
+
+namespace Valour.Shared.Items.Planets.Channels;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -9,7 +11,7 @@
 /// <summary>
 /// Represents a single chat Category within a planet
 /// </summary>
-public interface ISharedPlanetCategoryChannel : ISharedPlanetChannel
+public interface ISharedPlanetCategoryChannel : ISharedPlanetChannel, ISharedPermissionsTarget
 {
 
 }

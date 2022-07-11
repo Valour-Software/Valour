@@ -16,9 +16,11 @@ namespace Valour.Server.Database.Items.Messages;
 public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
     [ForeignKey("AuthorUserId")]
+    [JsonIgnore]
     public User Author { get; set; }
 
     [ForeignKey("AuthorMemberId")]
+    [JsonIgnore]
     public PlanetMember User { get; set; }
 
     /// <summary>

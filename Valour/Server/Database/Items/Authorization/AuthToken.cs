@@ -10,6 +10,7 @@ namespace Valour.Server.Database.Items.Authorization;
 public class AuthToken : ISharedAuthToken
 {
     [NotMapped]
+    [JsonIgnore]
     public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
 
     [Key]

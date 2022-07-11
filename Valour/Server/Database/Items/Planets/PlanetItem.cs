@@ -25,9 +25,11 @@ public abstract class PlanetItem : Item
         where T : PlanetItem =>
         await db.Set<T>().Where(x => x.PlanetId == PlanetId).ToListAsync();
 
+    [JsonIgnore]
     public override string IdRoute =>
         $"{BaseRoute}/{{id}}";
 
+    [JsonIgnore]
     public override string BaseRoute =>
         $"/api/planet/{{planetId}}/{GetType().Name}";
 }

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
+    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <ImplicitUsings>true</ImplicitUsings>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Blazor.ContextMenu" Version="1.14.0" />
+    <PackageReference Include="Blazored.LocalStorage" Version="4.3.0-preview.1" />
+    <PackageReference Include="Blazored.Modal" Version="7.0.0-preiew.2" />
+    <PackageReference Include="Markdig" Version="0.30.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.0-preview.5.22303.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.0-preview.5.22303.8" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0-preview.5.22303.8" />
+    <PackageReference Include="System.Net.Http.Json" Version="7.0.0-preview.5.22301.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\API\Valour.Api.csproj" />
+    <ProjectReference Include="..\Client\Valour.Client.csproj" />
+    <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+  </ItemGroup>
+
+</Project>

@@ -46,7 +46,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public PermissionsTarget TargetType { get; set; }
+    public PermissionsTargetType TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node
@@ -69,16 +69,16 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static ValueTask<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTarget targetType) =>
+    public static ValueTask<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermissionsTargetType targetType) =>
         FindAsync(channel.Id, role.Id, targetType);
 
-    public override string IdRoute => $"{BaseRoute}/{TargetId}/{RoleId}";
+    public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
     public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
 
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTarget type, bool force_refresh = false)
+    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, PermissionsTargetType type, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -87,7 +87,8 @@ public class PermissionsNode : Item, ISharedPermissionsNode
                 return cached;
         }
 
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/node/{targetId}/{roleId}");
+        // Nodes are *expected* to be null sometimes, so we're passing in true for null
+        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}", true);
 
         if (node is not null)
             await node.AddToCache();

@@ -1,0 +1,395 @@
+﻿@inject IJSRuntime JS
+@implements IDisposable
+
+@if (Message == null)
+{
+    return;
+}
+<ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component, this)'>
+<div id="@Id" class="@Class" style="@Style" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
+
+    @if (Minimal)
+    {
+        <div class="time-container">
+            <p class="time">
+                @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+            </p> 
+        </div>
+        <div class="message-content">
+            
+            <p class="content" @ref="InnerRef">
+                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                {
+                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                }
+                else
+                {
+                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                }
+            </p>
+        </div>
+
+    }
+    else
+    {
+        <div style="display:inline-block; position: absolute">
+            <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+            <div class="time-container">
+                <p class="time">
+                    @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                </p>
+            </div>
+        </div>
+        <div class="message-content">
+            @if (Author != null)
+            {
+                <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline' >
+                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
+                        @name
+                    </p>
+                </ContextMenuTrigger>
+
+                <p class="role-name">
+                    &nbsp;- @roleName
+                </p>
+            }
+            else
+            {
+                <p class="author-name" style="color: @roleColor;">
+                    User not found
+                </p>
+            }
+                <p class="content" @ref="InnerRef">
+                    @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                    {
+
+                        Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
+
+                        <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                    }
+                </p>
+        </div>
+    }
+</div>
+</ContextMenuTrigger>   
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+    [Parameter]
+    public ClientPlanetMessage Message { get; set; }
+
+    [Parameter]
+    public ClientPlanetMessage Last_Message { get; set; }
+
+    [Parameter]
+    public MessageHolderComponent Holder { get; set; }
+
+    public MessageContentComponent ContentComponent;
+
+    public ElementReference InnerRef;
+
+    [Parameter]
+    public string Key { get; set; }
+
+    [Parameter]
+    public bool Ghost { get; set; }
+
+    public PlanetMember Author;
+
+    public bool ShouldRenderValue = false;
+
+    public bool Minimal = false;
+
+    public ElementReference this_ref;
+
+    public string Class
+    {
+        get
+        {
+            string _class = "";
+
+            if (Minimal)
+            {
+                _class += "multi-message";
+            }
+            else
+            {
+                _class += "message";
+            }
+
+            if (mentioned)
+            {
+                _class += " mentioned";
+            }
+
+            if (Edit)
+            {
+                _class += " edit";
+            }
+
+            return _class;
+        }
+    }
+
+    public string Style
+    {
+        get
+        {
+            if (Ghost)
+            {
+                return "opacity: 0.8";
+            }
+            else
+            {
+                return "";
+            }
+        }
+    }
+
+    string Id = "";
+
+    string roleColor = "#ffffff";
+
+    string roleName = "Default";
+
+    string pfpurl = "_content/Valour.Client/icon-512.png";
+
+    string name = "";
+
+    public bool Edit = false;
+
+    public long roleId;
+
+    bool mentioned = false;
+
+    [Parameter]
+    public bool Submessage { get; set; }
+
+    private PlanetRole primaryRole;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
+    }
+
+    public async Task OnClickAsync()
+    {
+        Console.WriteLine("Setting window selection due to click");
+        await ClientWindowManager.Instance.SetSelectedWindow(Holder.Window);
+    }
+
+    public async Task OpenEditMode()
+    {
+        //await this_ref.FocusAsync();
+
+        Edit = true;
+        ReRender();
+
+        await Holder.Window.Component.OpenEditMode(this);
+    }
+
+    public async Task CloseEditMode()
+    {
+        if (!Edit)
+            return;
+
+        Edit = false;
+        ReRender();
+    }
+
+    public async Task SetMessage(ClientPlanetMessage message)
+    {
+        this.Message = message;
+        await BuildMessage();
+
+        ReRender();
+    }
+
+    public async Task RefreshMessage()
+    {
+        await BuildMessage();
+        StateHasChanged();
+    }
+
+    public void SetLast(ClientPlanetMessage msg)
+    {
+        Last_Message = msg;
+    }
+
+    public async Task BuildMessage()
+    {
+        if (Message == null)
+        {
+            return;
+        }
+
+        CheckMinimal();
+
+        if (!Submessage)
+        {
+            var selfId = Holder.Window.Component.SelfMember.Id;
+
+            if (Message.BaseMessage.MentionsData != null)
+            {
+                mentioned = Message.BaseMessage.MentionsData.Contains(selfId.ToString());
+            }
+        }
+
+        if (Minimal){
+            return;
+        }
+
+        Author = await Message.BaseMessage.GetAuthorMemberAsync();
+
+        name = await Author.GetNameAsync();
+
+        roleColor = await Author.GetRoleColorAsync();
+
+        primaryRole = await Author.GetPrimaryRoleAsync();
+
+        if (primaryRole != null)
+        {
+            roleName = primaryRole.Name;
+            roleId = primaryRole.Id;
+        }
+
+        string pfp = await Author.GetPfpUrlAsync();
+
+        //Console.WriteLine(Submessage);
+        //Console.WriteLine(Message.Mentions_Data);
+
+        if (Author != null && !string.IsNullOrWhiteSpace(pfp))
+        {
+            pfpurl = pfp;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (Message is null)
+            return;
+
+        Id = $"m-{Message.ChannelId}-{Message.Message_Index}";
+
+        if (!Submessage)
+        {
+            Holder.AddRenderedMessage(this);
+        }
+
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+
+        await BuildMessage();
+
+        if (Author != null)
+        {
+            Author.OnUpdated += OnAuthorUpdated;
+            var user = await Author.GetUserAsync();
+
+            if (user != null)
+                user.OnUpdated += OnUserUpdated;
+        }
+    }
+
+    public async Task OnAuthorUpdated(int flags)
+    {
+        if((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+            await UpdateForRoleChange();
+
+        name = await Author.GetNameAsync();
+        pfpurl = await Author.GetPfpUrlAsync();
+
+        ReRender();
+    }
+
+    public async Task OnUserUpdated(int flags)
+    {
+        name = await Author.GetNameAsync();
+        pfpurl = await Author.GetPfpUrlAsync();
+
+        ReRender();
+    }
+
+    public void CheckMinimal()
+    {
+        if (Last_Message != null && Message != null)
+        {
+            if (Last_Message.BaseMessage.AuthorUserId == Message.BaseMessage.AuthorUserId)
+            {
+                Minimal = true;
+                return;
+            }
+        }
+
+        Minimal = false;
+    }
+
+    public async Task UpdateForRoleChange()
+    {
+        roleColor = await Author.GetRoleColorAsync();
+        var primRole = await Author.GetPrimaryRoleAsync();
+        roleName = primRole.Name;
+        roleId = primRole.Id;
+    }
+
+    public void ReRender()
+    {
+        ShouldRenderValue = true;
+        StateHasChanged();
+
+        ContentComponent?.ReRender();
+
+        ShouldRenderValue = false;
+    }
+
+    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+    {
+        if (role != null && primaryRole != null && role.Id == primaryRole.Id)
+        {
+            primaryRole = role;
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
+    public async Task OnRoleDeletion(PlanetRole role)
+    {
+        if (role.Id == primaryRole.Id)
+        {
+            primaryRole = await Author.GetPrimaryRoleAsync();
+            await UpdateForRoleChange();
+            ReRender();
+        }
+    }
+
+    void IDisposable.Dispose()
+    {
+        if (Holder !=  null){
+            Holder.RemoveRenderedMessage(this);
+        }
+    }
+
+    protected async Task OnPfpError()
+    {
+        pfpurl = "_content/Valour.Client/icon-512.png";
+
+        Console.WriteLine("pfp error caught");
+
+        ReRender();
+    }
+
+    /// <summary>
+    /// This prevents the message from re-rendering. This should be expanded to support message edits in the future.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        return ShouldRenderValue;
+    }
+
+}

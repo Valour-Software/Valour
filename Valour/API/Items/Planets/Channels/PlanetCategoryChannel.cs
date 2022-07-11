@@ -1,5 +1,7 @@
 ﻿using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
+using Valour.Api.Requests;
+using Valour.Shared;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 
@@ -17,6 +19,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     /// True if this category inherits permissions from its parent
     /// </summary>
     public bool InheritsPerms { get; set; }
+
+    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetCategoryChannel;
 
     public override string GetHumanReadableName() => "Category";
 
@@ -51,14 +55,18 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     /// Returns the category permissions node for the given role id
     /// </summary>
     public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetCategoryChannel, force_refresh);
+        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetCategoryChannel, force_refresh);
 
     /// <summary>
     /// Returns the category's default channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, force_refresh);
+        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetChatChannel, force_refresh);
 
+    public async Task<TaskResult> SetChildOrderAsync(List<long> childIds) =>
+        await ValourClient.PostAsync($"{IdRoute}/children/order", childIds);
 
+    public static async Task<TaskResult<PlanetCategoryChannel>> CreateWithDetails(CreatePlanetCategoryChannelRequest request) =>
+        await ValourClient.PostAsyncWithResponse<PlanetCategoryChannel>($"{request.Category.BaseRoute}/detailed", request);
 }
 

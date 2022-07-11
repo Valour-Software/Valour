@@ -62,7 +62,7 @@
 }
 
 function TransmitSub(endpoint, key, auth) {
-    DotNet.invokeMethodAsync('Valour.Client', 'NotifyPushSub', endpoint, key, auth);
+    DotNet.invokeMethodAsync('Valour.Client.Blazor', 'NotifyPushSub', endpoint, key, auth);
 }
 
 function SetVapidKey(key) {

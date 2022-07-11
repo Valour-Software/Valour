@@ -1,0 +1,15 @@
+{
+  "name": "Valour",
+  "short_name": "Valour",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#040d14",
+  "theme_color": "#00faff",
+  "icons": [
+    {
+      "src": "_content/Valour.Client/media/logo/logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
