@@ -173,13 +173,13 @@ public static class ValourClient
     /// <summary>
     /// Returns the member for this client's user given a planet
     /// </summary>
-    public static async Task<PlanetMember> GetSelfMember(Planet planet, bool force_refresh = false) =>
+    public static async ValueTask<PlanetMember> GetSelfMember(Planet planet, bool force_refresh = false) =>
         await GetSelfMember(planet.Id, force_refresh);
 
     /// <summary>
     /// Returns the member for this client's user given a planet id
     /// </summary>
-    public static async Task<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
+    public static async ValueTask<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
         await PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
 
     /// <summary>

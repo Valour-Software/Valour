@@ -38,7 +38,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
+    public static async ValueTask<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -64,7 +64,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
+    public static async ValueTask<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -192,7 +192,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async Task<string> GetPfpUrlAsync(bool force_refresh = false)
+    public async ValueTask<string> GetPfpUrlAsync(bool force_refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(MemberPfp))
             return MemberPfp;
@@ -203,7 +203,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the name of the member
     /// </summary>
-    public async Task<string> GetNameAsync(bool force_refresh = false)
+    public async ValueTask<string> GetNameAsync(bool force_refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(Nickname))
             return Nickname;

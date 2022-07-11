@@ -45,14 +45,14 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
+    public async ValueTask<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
         await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
     /// </summary>
-    public async Task<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
+    public async ValueTask<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
     {
         var member = await PlanetMember.FindAsync(memberId, planetId);
         var roles = await member.GetRolesAsync();
@@ -109,7 +109,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// <summary>
     /// Returns the item for the given id
     /// </summary>
-    public static async Task<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
+    public static async ValueTask<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
     {
         if (!refresh)
         {
