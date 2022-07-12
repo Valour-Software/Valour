@@ -36,7 +36,7 @@ public class EmbedItem
     public string Text { get; set; }
 
     /// <summary>
-    /// The name of the event for when this button is clicked
+    /// The name of the event for when a user has interacted with this item.
     /// </summary>
     public string? Event { get; set; }
 
