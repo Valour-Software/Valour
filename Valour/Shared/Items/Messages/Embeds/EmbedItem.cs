@@ -41,6 +41,12 @@ public class EmbedItem
     public string? Event { get; set; }
 
     /// <summary>
+    /// Whether or not when this button is pressed, it should submit the form data if any
+    /// </summary>
+
+    public bool SubmitForm { get; set; }
+
+    /// <summary>
     /// Name of the embed. Not required.
     /// </summary>
     public string Name { get; set; }

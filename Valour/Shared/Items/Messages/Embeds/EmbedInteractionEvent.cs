@@ -10,7 +10,8 @@ namespace Valour.Shared.Items.Messages.Embeds;
 
 public enum EmbedIteractionEventType
 {
-    ButtonClick = 1
+    ButtonClick = 1,
+    FormSubmitted = 2
 }
 
 public class EmbedInteractionEvent

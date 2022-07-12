@@ -14,6 +14,19 @@ public class Embed
     /// </summary>
     public EmbedItem[][] Pages { get; set; }
 
+    public string? Title { get; set; }
+    public string? Footer { get; set; }
+
+    /// <summary>
+    /// The color (hex) of this embed item's text
+    /// </summary>
+    public string TitleColor { get; set; }
+
+    /// <summary>
+    /// The color (hex) of this embed item's text
+    /// </summary>
+    public string FooterColor { get; set; }
+
     public int currentPage = 0;
 
     /// <summary>
@@ -62,12 +75,12 @@ public class Embed
                 };
 
                 // do only if input is not null
-                // limit the size of the input to 32 char
+                // limit the size of the input to 4096 char
                 if (DataItem.Value != null)
                 {
-                    if (DataItem.Value.Length > 32)
+                    if (DataItem.Value.Length > 4096)
                     {
-                        DataItem.Value = DataItem.Value.Substring(0, 31);
+                        DataItem.Value = DataItem.Value.Substring(0, 4095);
                     }
                 }
                 data.Add(DataItem);
