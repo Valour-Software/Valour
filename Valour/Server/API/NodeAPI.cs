@@ -29,7 +29,12 @@ namespace Valour.Server.API
 
         public class NodeHandshakeResponse
         {
+            [JsonInclude]
+            [JsonPropertyName("version")]
             public string Version { get; set; }
+
+            [JsonInclude]
+            [JsonPropertyName("planetIds")]
             public IEnumerable<long> PlanetIds { get; set; }
         }
 
