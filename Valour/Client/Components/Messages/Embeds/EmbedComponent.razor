@@ -8,6 +8,11 @@
 <div class="embed">
 	@if (embed.Currently_Displayed != null)
 	{
+		@if (embed.Title is not null) {
+			<div style="color:#@embed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
+				@((MarkupString)MarkdownManager.GetHtml(embed.Title))
+			</div>
+		}
 		foreach (EmbedItem item in embed.Currently_Displayed)
 		{
 			switch (item.Type)
@@ -55,6 +60,11 @@
 				<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
 				<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
 				<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+			</div>
+		}
+		@if (embed.Footer is not null) {
+			<div style="color:#@embed.FooterColor;font-size:14px;margin-top: 8px;">
+				@((MarkupString)MarkdownManager.GetHtml(embed.Footer))
 			</div>
 		}
 	}

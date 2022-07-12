@@ -3,6 +3,7 @@
     padding: 1rem 1rem 1rem 1rem;
     max-width: 512px;
     border-radius: 8px;
+    width: fit-content;
 }
 
 .embed a {
