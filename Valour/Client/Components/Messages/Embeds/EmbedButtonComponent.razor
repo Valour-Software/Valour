@@ -32,7 +32,8 @@
 
             Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent()
         {
-            Event = "Button Click",
+            Event = Item.Event,
+            EventType = EmbedIteractionEventType.ButtonClick,
             Element_Id = Item.Id,
             PlanetId = Message.BaseMessage.PlanetId,
             Message_Id = Message.BaseMessage.Id,

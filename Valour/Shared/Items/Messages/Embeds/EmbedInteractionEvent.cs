@@ -8,10 +8,18 @@ namespace Valour.Shared.Items.Messages.Embeds;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+public enum EmbedIteractionEventType
+{
+    ButtonClick = 1
+}
+
 public class EmbedInteractionEvent
 {
     [JsonPropertyName("Event")]
     public string Event { get; set; }
+
+    [JsonPropertyName("EmbedIteractionEventType")]
+    public EmbedIteractionEventType EventType { get; set; } 
 
     [JsonPropertyName("Element_Id")]
     public string Element_Id { get; set; }
