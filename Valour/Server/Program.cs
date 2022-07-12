@@ -32,6 +32,8 @@ namespace Valour.Server
 
         public static List<object> ItemApis { get; set; }
 
+        public static NodeAPI NodeAPI { get; set; }
+
         public static void Main(string[] args)
         {
             // Load configs
@@ -84,6 +86,9 @@ namespace Valour.Server
                 new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
             };
+
+            NodeAPI = new NodeAPI(NodeConfig.Instance);
+            NodeAPI.AddRoutes(app);
 
             // Migrations and tasks
 
@@ -239,8 +244,6 @@ namespace Valour.Server
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
 
-            DeployedNode node = new DeployedNode(NodeConfig.Instance.Name);
-
             services.AddEndpointsApiExplorer();
 
             services.AddSwaggerGen(c =>
@@ -361,7 +364,7 @@ namespace Valour.Server
                 // Otherwise create a config with default values and write it to the location
                 nodeconfig = new NodeConfig()
                 {
-                    API_Key = "insert api key",
+                    ApiKey = "insert api key",
                     Name = "node name"
                 };
 

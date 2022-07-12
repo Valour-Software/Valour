@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Xml.Linq;
+using Valour.Server.Database.Items.Planets;
 using Valour.Server.Nodes;
 using Valour.Shared.Items.Users;
 
@@ -6,6 +8,25 @@ namespace Valour.Server.API
 {
 	public class NodeAPI : BaseAPI
 	{
+        public readonly string Name;
+        public readonly string Address;
+
+        public readonly string Version;
+
+        public Dictionary<long, Planet> Planets { get; }
+
+        public static NodeAPI Node;
+
+        public NodeAPI(NodeConfig config)
+        {
+            Node = this;
+            Name = config.Name;
+            Address = config.Address;
+            Planets = new();
+            Version = typeof(ISharedUser).Assembly.GetName().Version.ToString();
+        }
+
+
         public class NodeHandshakeResponse
         {
             public string Version { get; set; }
@@ -20,8 +41,8 @@ namespace Valour.Server.API
         {
             app.MapGet("/api/node/handshake", () => new NodeHandshakeResponse()
             {
-                Version = typeof(ISharedUser).Assembly.GetName().Version.ToString(),
-                PlanetIds = DeployedNode.Instance.Planets.Keys
+                Version = Node.Version,
+                PlanetIds = Node.Planets.Keys
             });
         }
     }
