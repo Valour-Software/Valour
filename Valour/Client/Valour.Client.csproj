@@ -6,6 +6,7 @@
     <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <ImplicitUsings>true</ImplicitUsings>
+    <PublishTrimmed>false</PublishTrimmed>
     <DebugType>portable</DebugType>
   </PropertyGroup>
 
