@@ -253,7 +253,7 @@ public class User : Item, ISharedUser
         return Results.Json(token);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/self/recovery")]
+    [ValourRoute(HttpVerbs.Post, "/self/recovery"), InjectDb]
     public static async Task<IResult> RecoverPasswordRouteAsync(HttpContext ctx, [FromBody] PasswordRecoveryRequest request,
         ILogger<User> logger)
     {
@@ -270,7 +270,7 @@ public class User : Item, ISharedUser
         if (!passValid.Success)
             return Results.BadRequest(passValid.Message);
 
-        // Old credentials
+        // Old credentialsto set 
         Credential cred = await db.Credentials.FirstOrDefaultAsync(x => x.UserId == recovery.UserId);
         if (cred is null)
             return Results.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");
