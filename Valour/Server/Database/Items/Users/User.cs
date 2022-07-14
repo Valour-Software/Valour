@@ -253,7 +253,7 @@ public class User : Item, ISharedUser
         return Results.Json(token);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/self/recovery")]
+    [ValourRoute(HttpVerbs.Post, "/self/recovery"), InjectDb]
     public static async Task<IResult> RecoverPasswordRouteAsync(HttpContext ctx, [FromBody] PasswordRecoveryRequest request,
         ILogger<User> logger)
     {
