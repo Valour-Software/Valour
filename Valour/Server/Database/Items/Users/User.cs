@@ -114,6 +114,7 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
+    // This HAS to be GET so that we can forward it from the generic valour.gg domain
     [ValourRoute(HttpVerbs.Get, "/verify/{code}"), InjectDb]
     public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
         ILogger<User> logger)
