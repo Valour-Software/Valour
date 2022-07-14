@@ -11,15 +11,15 @@
   <ItemGroup>
     <PackageReference Include="IdGen" Version="3.0.1" />
     <PackageReference Include="Markdig" Version="0.30.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.0-preview.5.22303.8" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="7.0.0-preview.5.22303.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.0-preview.5.22302.2" />
-    <PackageReference Include="Npgsql" Version="7.0.0-preview.5" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.0-preview.5" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="7.0.0-preview.6.22330.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="7.0.0-preview.6.22330.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.0-preview.6.22329.4" />
+    <PackageReference Include="Npgsql" Version="7.0.0-preview.6" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.0-preview.6" />
     <PackageReference Include="SendGrid" Version="9.28.0" />
     <PackageReference Include="Swashbuckle" Version="5.6.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
-    <PackageReference Include="System.Net.Http.Json" Version="7.0.0-preview.5.22301.12" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.2" />
+    <PackageReference Include="System.Net.Http.Json" Version="7.0.0-preview.6.22324.4" />
     <PackageReference Include="WebPush" Version="1.0.12" />
     <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="7.0.0-preview.4.22229.2-04" />
     <PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL" Version="6.0.3" />
