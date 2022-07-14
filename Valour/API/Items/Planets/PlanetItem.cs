@@ -17,8 +17,14 @@ namespace Valour.Api.Items.Planets
         public override string IdRoute =>
             $"{BaseRoute}/{Id}";
 
+#if (NODES)
+        public override string BaseRoute =>
+            $"https://{Node}.nodes.valour.gg/api/{nameof(Planet)}/{PlanetId}/{GetType().Name}";
+#else
         public override string BaseRoute =>
             $"/api/{nameof(Planet)}/{PlanetId}/{GetType().Name}";
+#endif
+
     }
 }
 

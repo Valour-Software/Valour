@@ -19,7 +19,12 @@ namespace Valour.Api.Items
         public string ItemType { get; set; }
 
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
+
+#if (NODES)
+        public virtual string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{GetType().Name}";
+#else
         public virtual string BaseRoute => $"/api/{GetType().Name}";
+#endif
 
         /// <summary>
         /// Ran when this item is updated
@@ -72,12 +77,7 @@ namespace Valour.Api.Items
         /// <returns>The result, with the created item (if successful)</returns>
         public static async Task<TaskResult<T>> CreateAsync<T>(T item) where T : Item
         {
-#if DEBUG
             return await ValourClient.PostAsyncWithResponse<T>(item.BaseRoute, item);
-#else
-            return await ValourClient.PostAsyncWithResponse<T>(
-                $"https://{item.Node}.nodes.valour.gg/api/{nameof(T)}", item);
-#endif
         }
 
         /// <summary>
@@ -88,12 +88,7 @@ namespace Valour.Api.Items
         /// <returns>The result, with the updated item (if successful)</returns>
         public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : Item
         {
-#if DEBUG
             return await ValourClient.PutAsyncWithResponse<T>(item.IdRoute, item);
-#else
-            return await ValourClient.PutAsyncWithResponse<T>(
-                $"https://{item.Node}.nodes.valour.gg/api/{nameof(T)}/{item.Id}", item);
-#endif
         }
 
         /// <summary>
@@ -104,12 +99,7 @@ namespace Valour.Api.Items
         /// <returns>The result</returns>
         public static async Task<TaskResult> DeleteAsync<T>(T item) where T : Item
         {
-#if DEBUG
             return await ValourClient.DeleteAsync(item.IdRoute);
-#else
-            return await ValourClient.DeleteAsync(
-                $"https://{item.Node}.nodes.valour.gg/api/{nameof(T)}/{item.Id}");
-#endif
         }
     }
 }
