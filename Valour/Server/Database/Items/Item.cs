@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Valour.Server.API;
 using Valour.Server.Nodes;
 using Valour.Shared.Items;
 
@@ -26,7 +27,7 @@ public abstract class Item : ISharedItem
     /// </summary>
     [NotMapped]
     [JsonInclude]
-    public string Node => DeployedNode.Instance.Name;
+    public string Node => NodeAPI.Node.Name;
 
     /// <summary>
     /// Returns the item with the given id
@@ -54,7 +55,7 @@ public abstract class Item : ISharedItem
     /// Returns the uri to a specific resource
     /// </summary>
     public virtual string GetUri() =>
-        $"{DeployedNode.Instance.Address}/{IdRoute}";
+        $"{NodeAPI.Node.Address}/{IdRoute}";
     //  https://coca.nodes.valour.gg/api/planetmember/001
 }
 

@@ -6,6 +6,7 @@
     <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
+    <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
