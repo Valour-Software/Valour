@@ -270,7 +270,7 @@ public class User : Item, ISharedUser
         if (!passValid.Success)
             return Results.BadRequest(passValid.Message);
 
-        // Old credentials
+        // Old credentialsto set 
         Credential cred = await db.Credentials.FirstOrDefaultAsync(x => x.UserId == recovery.UserId);
         if (cred is null)
             return Results.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");
