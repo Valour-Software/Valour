@@ -1,4 +1,5 @@
-﻿using Valour.Server.Database.Items.Authorization;
+﻿using EntityFramework.Exceptions.PostgreSQL;
+using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
@@ -19,11 +20,11 @@ public class ValourDB : DbContext
 
     public static ValourDB Instance = new ValourDB(DBOptions);
 
-    public static string ConnectionString = $"Host={DBConfig.instance.Host};Database={DBConfig.instance.Database};Username={DBConfig.instance.Username};Password={DBConfig.instance.Password};SslMode=VerifyCA;";
+    public static string ConnectionString = $"Host={DBConfig.instance.Host};Database={DBConfig.instance.Database};Username={DBConfig.instance.Username};Password={DBConfig.instance.Password};SslMode=Prefer;";
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
-        options.UseNpgsql(ConnectionString);
+        options.UseNpgsql(ConnectionString).UseExceptionProcessor();
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -39,7 +40,7 @@ public class ValourDB : DbContext
     /// This is only here to fulfill the need of the constructor.
     /// It does literally nothing at all.
     /// </summary>
-    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseNpgsql(ConnectionString).Options;
+    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseNpgsql(ConnectionString).UseExceptionProcessor().Options;
 
     /// <summary>
     /// Table for message cache

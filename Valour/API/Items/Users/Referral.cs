@@ -3,8 +3,9 @@ using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Items.Users;
 
-public class Referral : Shared.Items.Users.Referral
+public class Referral : ISharedReferral
 {
-
+    public long UserId { get; set; }
+    public long ReferrerId { get; set; }
 }
 

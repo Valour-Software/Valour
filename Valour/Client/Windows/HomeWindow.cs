@@ -1,4 +1,4 @@
-using Valour.Client.Shared.Windows.HomeWindows;
+using Valour.Client.Components.Windows.HomeWindows;
 
 namespace Valour.Client.Windows;
 

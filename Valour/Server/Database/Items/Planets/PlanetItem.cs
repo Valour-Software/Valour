@@ -9,7 +9,8 @@ public abstract class PlanetItem : Item
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
 
-    public ulong PlanetId { get; set; }
+    [Column("planet_id")]
+    public long PlanetId { get; set; }
 
     /// <summary>
     /// Returns the planet for this item
@@ -24,9 +25,11 @@ public abstract class PlanetItem : Item
         where T : PlanetItem =>
         await db.Set<T>().Where(x => x.PlanetId == PlanetId).ToListAsync();
 
+    [JsonIgnore]
     public override string IdRoute =>
         $"{BaseRoute}/{{id}}";
 
+    [JsonIgnore]
     public override string BaseRoute =>
         $"/api/planet/{{planetId}}/{GetType().Name}";
 }

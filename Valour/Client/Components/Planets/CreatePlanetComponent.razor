@@ -1,0 +1,89 @@
+@inject HttpClient Http
+@inject NavigationManager navManager
+@inject ClientWindowManager windowManager
+
+<div class="col-md-12">
+	<section>
+		<h2>Create a new Planet</h2>
+
+		<h4>The birth of a community!</h4>
+		
+		<hr />
+
+		<div asp-validation-summary="All" class="text-info"></div>
+
+		<div class="form-group mt-4">
+			<label>Community Name</label>
+			<input class="form-control" @bind-value="@name" type='' />
+			<span id="name-span" style="color:#888888">@nameSpan</span>
+		</div>
+
+		<div class="form-group mt-4">
+			<label>Description</label>
+			<input class="form-control" @bind-value="@desc" />
+			<span id="name-span" style="color:#888888">@descSpan</span>
+		</div>
+
+		<div class="form-group mt-4">
+			<button class="btn v-button mt-2" @onclick="OnClickSubmit">Submit</button>
+		</div>
+	</section>
+</div>
+
+@code {
+	// Input fields
+	string name;
+	string desc;
+
+	// Spans
+	string nameSpan = "The name of your community";
+
+	string descSpan = "A description of your community";
+
+	private async Task OnClickSubmit(MouseEventArgs e)
+	{
+		// Require a name
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			name = "Please input a planet name.";
+			return;
+		}
+
+		var new_planet = new Planet()
+		{
+			Name = name,
+			Description = desc
+		};
+
+		var response = await ValourClient.PostAsyncWithResponse<long>($"api/planet", new_planet);
+
+		long planetId = response.Data;
+
+		descSpan = "Planet created.";
+
+		var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{planetId}");
+
+		if (planet is null)
+		{
+			Console.WriteLine($"Failed to retrieve planet {planetId}");
+			descSpan = "Created planet, but error occured retrieving. Please restart Valour.";
+			return;
+		}
+
+		PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+
+		windowManager.ClearWindows();
+
+		await windowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
+
+		await windowManager.SetSelectedWindow(0);
+
+		// Return to index
+		navManager.NavigateTo("/", true);
+	}
+
+	private async Task OnImageInput()
+	{
+	}
+
+}

@@ -1,5 +1,5 @@
 using Valour.Api.Items.Planets.Channels;
-using Valour.Client.Shared.Windows.ChannelWindows;
+using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows;
 

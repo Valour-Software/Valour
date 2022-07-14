@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Valour</title>
     <base href="/" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/media/favicon/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/media/favicon/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/media/favicon/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="_content/Valour.Client/media/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="_content/Valour.Client/media/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="_content/Valour.Client/media/favicon/favicon-16x16.png">
     <link rel="manifest" href="manifest.json">
     <meta name="msapplication-TileColor" content="#2d89ef">
     <meta name="description" content="Valour is a community social platform based on privacy and transparency.">
@@ -19,11 +19,11 @@
     <meta property="og:site_name" content="Valour">
     <meta name="twitter:image:alt" content="The Valour logo">
     <meta name="theme-color" content="#00FAFF">
-    <link rel="stylesheet" href="css/bootstrap.css" />
-    <link href="css/app.css" rel="stylesheet" />
-    <link href="css/context-menus.css" rel="stylesheet" />
-    <link href="css/jquery-ui.min.css" rel="stylesheet" />
-    <link href="Valour.Client.styles.css" rel="stylesheet">
+    <link rel="stylesheet" href="_content/Valour.Client/css/bootstrap.css" />
+    <link href="_content/Valour.Client/css/app.css" rel="stylesheet" />
+    <link href="_content/Valour.Client/css/context-menus.css" rel="stylesheet" />
+    <link href="_content/Valour.Client/css/jquery-ui.min.css" rel="stylesheet" />
+    <link href="Valour.Client.Blazor.styles.css" rel="stylesheet">
     <link href="_content/Blazored.Modal/blazored-modal.css" rel="stylesheet" />
     <link href="_content/Blazor.ContextMenu/blazorContextMenu.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/vs2015.min.css">
@@ -35,30 +35,30 @@
     <app>
         <div class='loading-container'>
             <div class='loading-center'>
-                <img src='/media/logo/logo-512.png' class='loading-logo color-shift'>
+                <img src='_content/Valour.Client/media/logo/logo-512.png' class='loading-logo color-shift'>
                 <p class="loading-title">Valour</p>
             </div>
-        </div>      
+        </div>
     </app>
 </body>
 
 </html>
 
 <script src="_framework/blazor.webassembly.js"></script>
-<script src="js/bootstrap.min.js"></script>
-<script src="js/jquery-min.js"></script>
-<script src="js/jquery-ui.min.js"></script>
-<script src="js/channel.js"></script>
-<script src="js/main.js"></script>
-<script src="js/split.min.js"></script>
-<script src="js/notifications.js"></script>
+<script src="_content/Valour.Client/js/bootstrap.min.js"></script>
+<script src="_content/Valour.Client/js/jquery-min.js"></script>
+<script src="_content/Valour.Client/js/jquery-ui.min.js"></script>
+<script src="_content/Valour.Client/js/channel.js"></script>
+<script src="_content/Valour.Client/js/main.js"></script>
+<script src="_content/Valour.Client/js/split.min.js"></script>
+<script src="_content/Valour.Client/js/notifications.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
 <script src="_content/Blazored.Modal/blazored.modal.js"></script>
 <script src="_content/Blazor.ContextMenu/blazorContextMenu.min.js"></script>
+
 <script>navigator.serviceWorker.register('service-worker.js');</script>
-<script>
-    window.updateAvailable = new Promise(function (resolve, reject) {
+<script>window.updateAvailable = new Promise(function (resolve, reject) {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/service-worker.js')
                 .then(function (registration) {
@@ -82,5 +82,4 @@
                 .catch(error =>
                     console.log('Service worker registration failed, error:', error));
         }
-    });
-</script>
+    });</script>

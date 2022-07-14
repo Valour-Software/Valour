@@ -3,7 +3,7 @@ using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Messages;
 using Valour.Client.Messages;
-using Valour.Client.Shared.Windows;
+using Valour.Client.Components.Windows;
 
 namespace Valour.Client.Windows
 {

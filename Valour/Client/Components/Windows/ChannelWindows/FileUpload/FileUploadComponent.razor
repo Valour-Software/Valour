@@ -1,0 +1,98 @@
+@inject IJSRuntime JS
+
+<div class="col-md-12" @onkeydown='OnKeyDown'>
+	<section>
+		<h4>Upload?</h4>
+
+        <br/> 
+
+        <div class="preview-scale">
+            @switch (type){
+                case DisplayType.Image:
+                    <img style="max-width: 80vw; max-height: 80vh;" src="data:@mime;base64,@base64" />
+                    break;
+                case DisplayType.Video:
+                    <video style='max-width: 80vw; max-height: 80vh;' id='video-preview' type='@mime' src="data:@mime;base64,@base64" controls>
+                    </video>
+                    break;
+                case DisplayType.Audio:
+                    <audio style="min-height: 0px; max-width: 80vw; max-height: 80vh;" type='@mime' src="data:@mime;base64,@base64" controls>
+                    </audio>
+                    break;
+            }
+        </div>    
+
+        <br/>
+
+        <div class="d-flex flex-column align-content-center align-items-center">
+            <button class='btn v-button mb-4' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
+            <button class='btn v-button danger' @onclick='OnClickCancel'>Cancel</button>
+        </div>
+	</section>
+</div>
+
+@code
+{
+    [Parameter]
+    public IBrowserFile File { get; set; }
+
+    [Parameter]
+    public byte[] Data { get; set; }
+
+    [Parameter]
+    public Func<Task> OnConfirm { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance Instance { get; set; }
+
+    public enum DisplayType {
+        Image,
+        Video,
+        Audio,
+        File
+    }
+
+    public string base64;
+
+    public string mime;
+
+    public DisplayType type;
+
+    protected override async Task OnInitializedAsync(){
+        base64 = Convert.ToBase64String(Data);
+        type = GetDisplayType(File);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (type == DisplayType.Video)
+            await JS.InvokeVoidAsync("loadVideo3", Data, mime);
+    }
+
+    public async Task OnKeyDown(KeyboardEventArgs e){
+        if (e.Key.ToLower() == "enter")
+            await OnClickConfirm();
+    }
+
+    public DisplayType GetDisplayType(IBrowserFile file){
+        mime = file.ContentType.ToLower();
+
+        if (mime.StartsWith("image"))
+            return DisplayType.Image;
+        else if (mime.StartsWith("video"))
+            return DisplayType.Video;
+        else if (mime.StartsWith("audio"))
+            return DisplayType.Audio;
+
+        return DisplayType.File;
+    }
+
+    public async Task OnClickCancel(){
+        await Instance.CloseAsync();
+    }
+
+    public async Task OnClickConfirm(){
+        await Instance.CloseAsync();
+        await OnConfirm.Invoke();
+    }
+}

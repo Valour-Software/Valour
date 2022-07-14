@@ -1,0 +1,36 @@
+
+<tr>
+    <td style="width: 110px;">
+        @Invite.Code
+    </td>
+    <td style="width: 300px;">
+        @IssuerName
+    </td>
+    <th style="width: 125px;">
+        @Invite.TimeCreated.ToLocalTime().ToShortDateString()
+    </th>
+    @if (Invite.TimeExpires != null) {
+        <th style="width: 125px;">
+            @Invite.TimeExpires.Value.ToLocalTime().ToShortDateString()
+        </th>
+    }
+    else {
+        <th style="width: 125px;">
+            Never Expires
+        </th>
+    }
+</tr>
+
+@code {
+    [Parameter]
+    public PlanetInvite Invite { get; set; }
+
+    public string IssuerName { get; set;}
+
+    protected override async Task OnInitializedAsync()
+    {
+        PlanetMember member = await PlanetMember.FindAsyncByUser(Invite.IssuerId, Invite.PlanetId);
+        IssuerName = await member.GetNameAsync();
+        StateHasChanged();
+    }
+}

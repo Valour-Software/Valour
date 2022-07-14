@@ -1,0 +1,81 @@
+﻿@inject NavigationManager navManager
+@inject ClientWindowManager windowManager
+
+<div class="current-planet-info">
+    @if (Planet != null)
+    {
+        <div>
+            <h2 class="planet-title">@Planet.Name</h2>
+
+            @if (canEdit)
+            {
+                <img class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
+            }
+        </div>
+        <div style="width:100%; height: 36px;">
+            <p class="planet-desc">@Planet.Description</p>
+        </div>
+    }
+</div>
+
+@code {
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public Planet Planet { get; set; }
+
+    public bool canEdit = false;
+
+    protected async override Task OnInitializedAsync()
+    {
+        windowManager.OnPlanetFocused += OnPlanetChange;
+        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+    }
+
+    // Must refresh if roles update because it may remove permission to
+    // manage the planet
+    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+    {
+        if (Planet.Id != role.PlanetId)
+            return;
+
+        await Refresh();
+    }
+
+    public async Task OnPlanetChange(Planet planet)
+    {
+        this.Planet = planet;
+
+        await Refresh();
+    }
+
+    public async Task Refresh()
+    {
+        if (Planet == null)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        Console.WriteLine($"Updating current planet component for {Planet.Name}.");
+
+        var selfMember = await ValourClient.GetSelfMember(Planet);
+        var selfRole = await selfMember.GetPrimaryRoleAsync();
+
+        //Console.WriteLine("Self: " + selfMember.Nickname);
+        //Console.WriteLine("Role: " + selfRole.Name);
+
+        if (Planet.OwnerId == selfMember.UserId ||
+            selfRole.HasPermission(PlanetPermissions.Manage))
+        {
+            canEdit = true;
+        }
+        else
+        {
+            canEdit = false;
+        }
+
+        StateHasChanged();
+    }
+}

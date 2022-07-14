@@ -1,0 +1,90 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject ClientWindowManager windowManager
+
+@if (Planet != null)
+{
+    <div class="settings-modal container" style="padding: 0">
+        <div class="row settings-row">
+            <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
+                <b>@Planet.Name</b>
+                <hr />
+                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Invites</div>
+                <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
+                <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
+                <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
+            </div>
+            <div class="col-md-9 edit-col-right">
+                @switch (selected)
+                {
+                    case 0:
+                        <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
+                        break;
+                    case 1:
+                        <EditPlanetInvitesComponent Planet="Planet"></EditPlanetInvitesComponent>
+                        break;
+                    case 2:
+                        <EditPlanetUsersComponent></EditPlanetUsersComponent>
+                        break;
+                    case 3:
+                        <EditPlanetBansComponent></EditPlanetBansComponent>
+                        break;
+                    case 4:
+                        <EditPlanetRolesComponent Planet="Planet"></EditPlanetRolesComponent>
+                        break;
+                    default:
+                        break;
+
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <h5>Loading planet details...</h5>
+}
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    public string GetButtonClass(int tab)
+    {
+        if (buttonStates[tab])
+        {
+            return "settings-button active";
+        }
+
+        return "settings-button";
+    }
+
+    public bool[] buttonStates = new bool[5]
+    {
+        true, false, false, false, false
+    };
+
+    public int selected = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Planet = windowManager.FocusedPlanet;
+    }
+
+    public void SetSelectedTab(int tab)
+    {
+        Console.WriteLine("Set selected to " + tab);
+
+        for (int i = 0; i < buttonStates.Length; i++)
+        {
+            buttonStates[i] = false;
+        }
+
+        buttonStates[tab] = true;
+
+        selected = tab;
+
+        StateHasChanged();
+    }
+}

@@ -2,11 +2,11 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Requests;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 using Valour.Shared.MPS;
 
@@ -18,14 +18,19 @@ using Valour.Shared.MPS;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
 
-[Table("PlanetChatChannels")]
+[Table("planet_chat_channels")]
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
-    public ulong MessageCount { get; set; }
+    [Column("message_count")]
+    public long MessageCount { get; set; }
+
+    [NotMapped]
+    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
 
     /// <summary>
     /// The regex used for name validation
     /// </summary>
+    [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
     /// <summary>
@@ -61,7 +66,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
             var role = roleMembership.Role;
             // For some reason, we need to make sure we get the node that has the same targetId as this channel
             // When loading I suppose it grabs all the nodes even if the target is not the same?
-            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == ItemType);
+            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTargetType.PlanetChatChannel);
 
             // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
             if (node == null)
@@ -136,13 +141,13 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
-    public static IResult GetRoute(HttpContext ctx, ulong id) =>
+    public static IResult GetRoute(HttpContext ctx, long id) =>
         Results.Json(ctx.GetItem<PlanetChatChannel>(id));
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planetId, [FromBody] PlanetChatChannel channel,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -172,6 +177,8 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
+        channel.Id = IdManager.Generate();
+
         try
         {
             await db.PlanetChatChannels.AddAsync(channel);
@@ -188,12 +195,90 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.Created(channel.GetUri(), channel);
     }
 
+    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId, 
+        [FromBody] CreatePlanetChatChannelRequest request, ILogger<PlanetChatChannel> logger)
+    {
+        // Get resources
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var channel = request.Channel;
+
+        if (channel.PlanetId != planetId)
+            return Results.BadRequest("PlanetId mismatch.");
+
+        var nameValid = ValidateName(channel.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(channel.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        var positionValid = await ValidateParentAndPosition(db, channel);
+        if (!positionValid.Success)
+            return Results.BadRequest(positionValid.Message);
+
+        // Ensure user has permission for parent category management
+        if (channel.ParentId is not null)
+        {
+            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
+            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+
+        channel.Id = IdManager.Generate();
+        
+        List<PermissionsNode> nodes = new();
+
+        // Create nodes
+        foreach (var nodeReq in request.Nodes)
+        {
+            var node = nodeReq;
+            node.TargetId = channel.Id;
+            node.PlanetId = planetId;
+
+            var role = await FindAsync<PlanetRole>(node.RoleId, db);
+            if (role.GetAuthority() > await member.GetAuthorityAsync(db))
+                return ValourResult.Forbid("A permission node's role has higher authority than you.");
+
+            node.Id = IdManager.Generate();
+
+            nodes.Add(node);
+        }
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            await db.PlanetChatChannels.AddAsync(channel);
+            await db.SaveChangesAsync();
+
+            await db.PermissionsNodes.AddRangeAsync(nodes);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        await tran.CommitAsync();
+
+        PlanetHub.NotifyPlanetItemChange(channel);
+
+        return Results.Created(channel.GetUri(), channel);
+    }
+
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetChatChannel channel,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetChatChannel channel,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -221,6 +306,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         // Update
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetChatChannels.Update(channel);
             await db.SaveChangesAsync();
         }
@@ -238,10 +324,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired]
-    [PlanetPermsRequired(PlanetPermissionsEnum.ManageChannels),
-     ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planetId,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
         ILogger<PlanetChatChannel> logger)
     {
         var db = ctx.GetDb();
@@ -271,7 +356,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired, InjectDb]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
-    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, ulong id, ulong memberId, ulong value)
+    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, long id, long memberId, long value)
     {
         var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
@@ -291,7 +376,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, ulong id, ulong index = ulong.MaxValue, int count = 10)
+    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, [FromQuery] long index = long.MaxValue, [FromQuery] int count = 10)
     {
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
@@ -339,10 +424,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         if (message.Fingerprint is null)
             return Results.BadRequest("Please include a Fingerprint.");
 
-        if (message.AuthorId != member.UserId)
+        if (message.AuthorUserId != member.UserId)
             return Results.BadRequest("UserId must match sender.");
 
-        if (message.MemberId != member.Id)
+        if (message.AuthorMemberId != member.Id)
             return Results.BadRequest("MemberId must match sender.");
 
         if (message.Content != null && message.Content.Length > 2048)
@@ -363,11 +448,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, ulong id, ulong message_id,
+    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, long id, long message_id,
         ILogger<PlanetChatChannel> logger)
     {
         var db = ctx.GetDb();
@@ -391,7 +476,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         if (message.ChannelId != id)
             return ValourResult.NotFound<PlanetMessage>();
 
-        if (member.Id != message.MemberId)
+        if (member.Id != message.AuthorMemberId)
         {
             if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageMessages, db))
                 return ValourResult.LacksPermission(ChatChannelPermissions.ManageMessages);

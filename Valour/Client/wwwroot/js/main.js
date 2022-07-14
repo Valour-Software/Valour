@@ -316,16 +316,6 @@ function SetupWindow(index) {
     });
 }
 
-// When the user clicks anywhere outside of the modal, close it
-window.onpointerdown = function (event) {
-    var id = 'null';
-    if (event.target != null) {
-        id = event.target.id;
-    }
-
-    DotNet.invokeMethodAsync('Valour.Client', 'OnClickInterop', id);
-}
-
 async function postData(url = '', data = {}) {
     // Default options are marked with *
     const response = await fetch(url, {

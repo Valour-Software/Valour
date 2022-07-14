@@ -4,8 +4,6 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Users.Identity;
 using Valour.Server.Email;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Server.Database.Items.Users;
@@ -15,7 +13,7 @@ namespace Valour.Server.Database.Items.Users;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-
+[Table("users")]
 public class User : Item, ISharedUser
 {
     [InverseProperty("User")]
@@ -29,26 +27,31 @@ public class User : Item, ISharedUser
     /// <summary>
     /// The url for the user's profile picture
     /// </summary>
+    [Column("pfp_url")]
     public string PfpUrl { get; set; }
 
     /// <summary>
     /// The Date and Time that the user joined Valour
     /// </summary>
-    public DateTime Joined { get; set; }
+    [Column("time_joined")]
+    public DateTime TimeJoined { get; set; }
 
     /// <summary>
     /// The name of this user
     /// </summary>
+    [Column("name")]
     public string Name { get; set; }
 
     /// <summary>
     /// True if the user is a bot
     /// </summary>
+    [Column("bot")]
     public bool Bot { get; set; }
 
     /// <summary>
     /// True if the account has been disabled
     /// </summary>
+    [Column("disabled")]
     public bool Disabled { get; set; }
 
     /// <summary>
@@ -56,35 +59,41 @@ public class User : Item, ISharedUser
     /// through a client modification to present non-official staff as staff is a breach of our
     /// license. Don't do that.
     /// </summary>
+    [Column("valour_staff")]
     public bool ValourStaff { get; set; }
 
     /// <summary>
     /// The user's currently set status - this could represent how they feel, their disdain for the political climate
     /// of the modern world, their love for their mother's cooking, or their hate for lazy programmers.
     /// </summary>
+    [Column("status")]
     public string Status { get; set; }
 
     /// <summary>
     /// The integer representation of the current user state
     /// </summary>
+    [Column("user_state_code")]
     public int UserStateCode { get; set; }
 
     /// <summary>
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
-    public DateTime LastActive { get; set; }
-
-    new public static string ItemType => nameof(User);
+    [Column("time_last_active")]
+    public DateTime TimeLastActive { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active
     /// </summary>
+    [NotMapped]
+    [JsonIgnore]
     public TimeSpan LastActiveSpan =>
         ISharedUser.GetLastActiveSpan(this);
 
     /// <summary>
     /// The current activity state of the user
     /// </summary>
+    [NotMapped]
+    [JsonIgnore]
     public UserState UserState
     {
         get => ISharedUser.GetUserState(this);
@@ -94,7 +103,7 @@ public class User : Item, ISharedUser
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var user = await FindAsync<User>(id, db);
@@ -105,19 +114,18 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/verify/{code}"), InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/verify/{code}"), InjectDb]
     public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
         ILogger<User> logger)
     {
         var db = ctx.GetDb();
-        var token = ctx.GetToken();
 
         var confirmCode = await db.EmailConfirmCodes
             .Include(x => x.User)
             .ThenInclude(x => x.Email)
             .FirstOrDefaultAsync(x => x.Code == code);
 
-        if (confirmCode is null || token.User.Id != confirmCode.UserId)
+        if (confirmCode is null)
             return ValourResult.NotFound<EmailConfirmCode>();
 
         using var tran = await db.Database.BeginTransactionAsync();
@@ -176,7 +184,7 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/token"), InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/token"), InjectDb]
     public static async Task<IResult> GetTokenRouteAsync(HttpContext ctx, [FromBody] TokenRequest tokenRequest,
         ILogger<User> logger)
     {
@@ -204,7 +212,7 @@ public class User : Item, ISharedUser
 
         // Check for an old token
         var token = await db.AuthTokens
-            .FirstOrDefaultAsync(x => x.App_Id == "VALOUR" &&
+            .FirstOrDefaultAsync(x => x.AppId == "VALOUR" &&
                                       x.UserId == userEmail.UserId &&
                                       x.Scope == UserPermissions.FullControl.Value);
 
@@ -215,10 +223,10 @@ public class User : Item, ISharedUser
                 // We now have to create a token for the user
                 token = new AuthToken()
                 {
-                    App_Id = "VALOUR",
+                    AppId = "VALOUR",
                     Id = "val-" + Guid.NewGuid().ToString(),
-                    Created = DateTime.UtcNow,
-                    Expires = DateTime.UtcNow.AddDays(7),
+                    TimeCreated = DateTime.UtcNow,
+                    TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userEmail.UserId
                 };
@@ -228,8 +236,8 @@ public class User : Item, ISharedUser
             }
             else
             {
-                token.Created = DateTime.UtcNow;
-                token.Expires = DateTime.UtcNow.AddDays(7);
+                token.TimeCreated = DateTime.UtcNow;
+                token.TimeExpires = DateTime.UtcNow.AddDays(7);
 
                 db.AuthTokens.Update(token);
                 await db.SaveChangesAsync();
@@ -292,7 +300,7 @@ public class User : Item, ISharedUser
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/register")]
+    [ValourRoute(HttpVerbs.Post, "/register"), InjectDb]
     public static async Task<IResult> RegisterUserRouteAsync(HttpContext ctx, [FromBody] RegisterUserRequest request,
         ILogger<User> logger)
     {
@@ -323,7 +331,7 @@ public class User : Item, ISharedUser
             return Results.BadRequest(passwordValid.Message);
 
         Referral refer = null;
-        if (!string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
         {
             var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
             if (referUser is null)
@@ -349,8 +357,8 @@ public class User : Item, ISharedUser
             {
                 Id = IdManager.Generate(),
                 Name = request.Username,
-                Joined = DateTime.UtcNow,
-                LastActive = DateTime.UtcNow,
+                TimeJoined = DateTime.UtcNow,
+                TimeLastActive = DateTime.UtcNow,
             };
 
             await db.Users.AddAsync(user);
@@ -373,6 +381,7 @@ public class User : Item, ISharedUser
 
             Credential cred = new()
             {
+                Id = IdManager.Generate(),
                 CredentialType = CredentialType.PASSWORD,
                 Identifier = request.Email,
                 Salt = salt,

@@ -1,0 +1,51 @@
+@inject HttpClient Http
+@using Valour.Api.Items.Messages
+
+<div style="@Item.GetInlineStyle" class="embed-item">
+    @if (Item.Name != null) {
+        <div style="color:#@Item.TextColor;font-weight:bold;font-size:14px;">
+            @((MarkupString)MarkdownManager.GetHtml(Item.Name))
+        </div>
+    }
+    <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => await OnEmbedButtonClick())">
+        @if (Item.Link != "") {
+            <a href="@Item.Link" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
+        }
+        else {
+            @((MarkupString)MarkdownManager.GetHtml(Item.Text))
+        }
+    </button>
+</div>
+
+@code {
+    [Parameter]
+    public EmbedItem Item {get; set;}
+    [Parameter]
+    public ClientPlanetMessage Message {get; set;}
+    [Parameter]
+    public Embed embed { get; set;}
+
+    public async Task OnEmbedButtonClick()
+    {
+
+        PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.BaseMessage.PlanetId);
+
+            Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent()
+        {
+            Event = "Button Click",
+            Element_Id = Item.Id,
+            PlanetId = Message.BaseMessage.PlanetId,
+            Message_Id = Message.BaseMessage.Id,
+            Author_MemberId = Message.BaseMessage.AuthorMemberId,
+            MemberId = SelfMember.Id,
+            ChannelId = Message.BaseMessage.ChannelId,
+            Time_Interacted = DateTime.UtcNow,
+            Form_Data = embed.GetFormData()
+        };
+
+        var response = await Http.PostAsJsonAsync($"api/embed/interact", Interaction);
+
+        Console.WriteLine(response.Content.ReadAsStringAsync());
+    }
+
+}

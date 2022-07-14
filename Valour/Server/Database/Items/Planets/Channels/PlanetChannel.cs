@@ -1,23 +1,36 @@
 ﻿using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
 
-[Table("PlanetChannels")]
-public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel
+[Table("planet_channels")]
+[JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
+[JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
+public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel, ISharedPermissionsTarget
 {
 
     [JsonIgnore]
     [ForeignKey("ParentId")]
     public PlanetCategoryChannel Parent { get; set; }
 
+    [Column("name")]
     public string Name { get; set; }
+
+    [Column("position")]
     public int Position { get; set; }
+
+    [Column("description")]
     public string Description { get; set; }
-    public ulong? ParentId { get; set; }
+
+    [Column("parent_id")]
+    public long? ParentId { get; set; }
+
+    [Column("inherits_perms")]
     public bool InheritsPerms { get; set; }
+    public abstract PermissionsTargetType PermissionsTargetType { get; }
 
     /// <summary>
     /// Returns the parent category of this channel

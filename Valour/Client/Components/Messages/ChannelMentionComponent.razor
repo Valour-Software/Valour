@@ -1,0 +1,61 @@
+﻿@using Valour.Shared.Items.Messages
+@using Valour.Api.Client
+
+@inject ClientWindowManager windowManager
+
+<div class="channel-mention" @onclick='OnClicked'>
+    @if (Channel == null)
+    {
+        <div>#NotFound!</div>
+    }
+    else
+    {
+        <div>#@Channel.Name</div>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public Mention Mention { get; set; }
+
+    public PlanetChatChannel Channel { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await Build();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Channel != null)
+        {
+            if (Mention.TargetId != Channel.Id)
+            {
+                await Build();
+            }
+        }
+        else
+        {
+            await Build();
+        }
+    }
+
+    public async Task Build()
+    {
+        Channel = await PlanetChatChannel.FindAsync(Mention.TargetId, Mention.PlanetId);
+
+        StateHasChanged();
+    }
+
+    public async Task OnClicked(){
+
+        var win = windowManager.GetSelectedWindow();
+
+        if (win is ChatChannelWindow)
+        {
+            var comp = ((ChatChannelWindow)win).Component;
+            await comp.SwapChannel(Channel);
+        }
+    }
+}

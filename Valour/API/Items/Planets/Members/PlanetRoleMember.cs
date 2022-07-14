@@ -1,11 +1,12 @@
-﻿using System.Text.Json.Serialization;
-using Valour.Shared.Items;
-using Valour.Shared.Items.Planets.Members;
+﻿using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Members;
 
-public class PlanetRoleMember : PlanetRoleMemberBase, INodeSpecific
+public class PlanetRoleMember : Item, ISharedPlanetRoleMember
 {
-
+    public long UserId { get; set; }
+    public long RoleId { get; set; }
+    public long PlanetId { get; set; }
+    public long MemberId { get; set; }
 }
 

@@ -11,7 +11,7 @@ namespace Valour.Api.Items.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
+public class PlanetInvite : PlanetItem, ISharedPlanetInvite
 {
     /// <summary>
     /// the invite code
@@ -19,24 +19,19 @@ public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
     public string Code { get; set; }
 
     /// <summary>
-    /// The planet the invite is for
-    /// </summary>
-    public ulong PlanetId { get; set; }
-
-    /// <summary>
     /// The user that created the invite
     /// </summary>
-    public ulong IssuerId { get; set; }
+    public long IssuerId { get; set; }
 
     /// <summary>
     /// The time the invite was created
     /// </summary>
-    public DateTime Issued { get; set; }
+    public DateTime TimeCreated { get; set; }
 
     /// <summary>
     /// The time when this invite expires. Null for never.
     /// </summary>
-    public DateTime? Expires { get; set; }
+    public DateTime? TimeExpires { get; set; }
 
     public bool IsPermanent() =>
         ISharedPlanetInvite.IsPermanent(this);
@@ -44,33 +39,41 @@ public class PlanetInvite : SyncedItem<PlanetInvite>, ISharedPlanetInvite
     /// <summary>
     /// Returns the invite for the given invite code
     /// </summary>
-    public static async Task<PlanetInvite> FindAsync(string code, bool force_refresh = false)
+    public static async Task<PlanetInvite> FindAsync(string code, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PlanetInvite>(code);
             if (cached is not null)
                 return cached; 
         }
 
-        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"api/invite/{code}");
+        var invResult = await ValourClient.GetJsonAsync<PlanetInvite>($"api/{nameof(PlanetInvite)}/{code}");
 
         if (invResult is not null)
-            await ValourCache.Put(code, invResult);
+            await invResult.AddToCache();
 
         return invResult;
     }
+
+    public override async Task AddToCache()
+    {
+        await ValourCache.Put(Code, this);
+    }
+
+    public override string IdRoute => $"{BaseRoute}/{Code}";
+    public override string BaseRoute => $"/api/{nameof(PlanetInvite)}";
 
     /// <summary>
     /// Returns the name of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetNameAsync() =>
-        await ValourClient.GetAsync($"api/invite/{Code}/planet/name") ?? "<Not found>";
+        await ValourClient.GetJsonAsync<string>($"{IdRoute}/planetname") ?? "<Not found>";
     
     /// <summary>
     /// Returns the icon of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetIconUrl() =>
-        await ValourClient.GetAsync($"api/invite/{Code}/planet/icon_url") ?? "";
+        await ValourClient.GetJsonAsync<string>($"{IdRoute}/planeticon") ?? "";
 }
 

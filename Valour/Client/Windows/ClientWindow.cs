@@ -1,4 +1,4 @@
-using Valour.Client.Shared.Windows;
+using Valour.Client.Components.Windows;
 
 namespace Valour.Client.Windows;
 public abstract class ClientWindow

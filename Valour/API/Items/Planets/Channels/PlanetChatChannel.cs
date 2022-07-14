@@ -3,6 +3,7 @@ using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets.Members;
+using Valour.Api.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
@@ -18,37 +19,12 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
-    /// <summary>
-    /// The Id of the planet this channel belongs to
-    /// </summary>
-    public ulong PlanetId { get; set; }
-
     /// <summary>
     /// The total number of messages sent in this channel
     /// </summary>
-    public ulong MessageCount { get; set; }
-
-    /// <summary>
-    /// The name of this channel
-    /// </summary>
-    public string Name { get; set; }
-
-    /// <summary>
-    /// The position of this channel (lower is higher)
-    /// </summary>
-    public int Position { get; set; }
-
-    /// <summary>
-    /// The description of this channel
-    /// </summary>
-    public string Description { get; set; }
-
-    /// <summary>
-    /// The Id of the parent category this channel belongs to
-    /// </summary>
-    public ulong? ParentId { get; set; }
+    public long MessageCount { get; set; }
 
     /// <summary>
     /// True if this channel inherits permissions from its parent
@@ -58,33 +34,29 @@ public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetCha
     /// <summary>
     /// Returns the name of the item type
     /// </summary>
-    public string GetHumanReadableName() => "Chat Channel";
+    public override string GetHumanReadableName() => "Chat Channel";
 
-    /// <summary>
-    /// Returns the planet this channel belongs to
-    /// </summary>
-    public async Task<Planet> GetPlanetAsync() => 
-        await Planet.FindAsync(PlanetId);
+    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
 
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetPermissionsNodeAsync(ulong roleId, bool refresh = false) =>
+    public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool refresh = false) =>
         await GetChannelPermissionsNodeAsync(roleId, refresh);
 
     /// <summary>
     /// Returns the channel permissions node for the given role id
     /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(ulong roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTarget.PlanetChatChannel, refresh);
+    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
+        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetChatChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
     /// </summary>
-    public async Task<PermissionsNode> GetMemberPermissionsAsync(ulong memberId, bool force_refresh = false)
+    public async Task<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
     {
-        var member = await PlanetMember.FindAsync(memberId);
+        var member = await PlanetMember.FindAsync(memberId, planetId);
         var roles = await member.GetRolesAsync();
 
         // Start with no permissions
@@ -97,7 +69,7 @@ public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetCha
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermissionsTarget.PlanetChatChannel
+            TargetType = PermissionsTargetType.PlanetChatChannel
         };
 
         var planet = await GetPlanetAsync();
@@ -134,15 +106,40 @@ public class PlanetChatChannel : SyncedItem<PlanetChatChannel>, ISharedPlanetCha
         }
 
         return dummy_node;
+    }
+
+    /// <summary>
+    /// Returns the item for the given id
+    /// </summary>
+    public static async Task<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
+    {
+        if (!refresh)
+        {
+            var cached = ValourCache.Get<PlanetChatChannel>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<PlanetChatChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{id}");
+
+        if (item is not null)
+            await item.AddToCache();
+
+        return item;
+    }
+
+    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(CreatePlanetChatChannelRequest request)
+    {
+        return await ValourClient.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
     } 
 
-    public async Task<bool> HasPermissionAsync(ulong memberId, ChatChannelPermission perm) =>
+    public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
         await ValourClient.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}");
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
-    public async Task<List<PlanetMessage>> GetMessagesAsync(ulong index = ulong.MaxValue, int count = 10) =>
+    public async Task<List<PlanetMessage>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
         await ValourClient.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}");
 
     /// <summary>

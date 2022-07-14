@@ -13,7 +13,7 @@ public class EmbedPageBuilder
             Inline = inline,
             TextColor = textColor
         };
-        if (string.IsNullOrEmpty(name)) item.Name = name;
+        if (!string.IsNullOrEmpty(name)) item.Name = name;
         Items.Add(item);
         return this;
     }

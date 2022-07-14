@@ -11,15 +11,15 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : SyncedItem<PlanetRole>, ISharedPlanetRole
+public class PlanetRole : PlanetItem, ISharedPlanetRole
 {
     // Coolest role on this damn platform.
     // Fight me.
     public static PlanetRole VictorRole = new PlanetRole()
     {
         Name = "Victor Class",
-        Id = ulong.MaxValue,
-        Position = uint.MaxValue,
+        Id = long.MaxValue,
+        Position = int.MaxValue,
         PlanetId = 0,
         Red = 255,
         Green = 0,
@@ -29,17 +29,12 @@ public class PlanetRole : SyncedItem<PlanetRole>, ISharedPlanetRole
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
-    public uint Position { get; set; }
-
-    /// <summary>
-    /// The ID of the planet or system this role belongs to
-    /// </summary>
-    public ulong PlanetId { get; set; }
+    public int Position { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
     /// </summary>
-    public ulong Permissions { get; set; }
+    public long Permissions { get; set; }
 
     /// <summary>
     /// The name of this role
@@ -56,7 +51,7 @@ public class PlanetRole : SyncedItem<PlanetRole>, ISharedPlanetRole
 
     public bool Italics { get; set; }
 
-    public uint GetAuthority() =>
+    public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
     public Color GetColor() =>
@@ -68,17 +63,34 @@ public class PlanetRole : SyncedItem<PlanetRole>, ISharedPlanetRole
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
-    public static PlanetRole GetDefault(ulong planetId)
+    public static PlanetRole GetDefault(long planetId)
     {
         return new PlanetRole()
         {
             Name = "Default",
-            Id = ulong.MaxValue,
-            Position = uint.MaxValue,
+            Id = long.MaxValue,
+            Position = int.MaxValue,
             PlanetId = planetId,
             Red = 255,
             Green = 255,
             Blue = 255
         };
+    }
+
+    public static async Task<PlanetRole> FindAsync(long id, long planetId, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<PlanetRole>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = await ValourClient.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}");
+
+        if (item is not null)
+            await item.AddToCache();
+
+        return item;
     }
 }

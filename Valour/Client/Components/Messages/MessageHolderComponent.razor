@@ -1,0 +1,197 @@
+﻿@inject IJSRuntime JS
+
+<div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
+    
+    @{
+        ClientPlanetMessage last = null;    
+
+        if (Messages != null && Messages.Count > 0)
+        {
+            last = null;
+
+            foreach (ClientPlanetMessage msg in Messages)
+            {
+                string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last"></MessageComponent>
+
+                last = msg;
+            }
+        }
+
+        if (QueuedMessages != null && QueuedMessages.Count > 0){
+            last = null;
+
+            if (Messages != null)
+            {
+                last = Messages.Last();
+            }
+
+            foreach (ClientPlanetMessage msg in QueuedMessages)
+            {
+                string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Ghost="true" Last_Message="last"></MessageComponent>
+
+                last = msg;
+            }
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    public ChatChannelWindow Window { get; set; }
+
+    [Parameter]
+    public List<ClientPlanetMessage> Messages { get; set; }
+
+    public List<ClientPlanetMessage> QueuedMessages { get; set; }
+
+    public List<MessageComponent> RenderedMessages { get; set; }
+
+    public string state = "none";
+
+    //public HashSet<string> Keys = new HashSet<string>();
+
+    public void AddQueuedMessage(ClientPlanetMessage message)
+    {
+        QueuedMessages.Add(message);
+        StateHasChanged();
+    }
+
+    public void RemoveQueuedMessage(string fingerprint)
+    {
+        var queued = QueuedMessages.FirstOrDefault(x => x.Fingerprint == fingerprint);
+        if (queued != null) { QueuedMessages.Remove(queued); }
+
+        StateHasChanged();
+    }
+
+    public void RemoveErrorMessage()
+    {
+        var error = Messages.FirstOrDefault(x => x.Message_Index == long.MaxValue);
+        if (error != null) { QueuedMessages.Remove(error); }
+
+        StateHasChanged();
+    }
+
+    public void Clear()
+    {
+        Messages.Clear();
+    }
+
+    public ClientPlanetMessage GetLastMessage()
+    {
+        if (QueuedMessages != null && QueuedMessages.Count > 0){
+            return QueuedMessages.Last();
+        }
+        else if (Messages != null && Messages.Count > 0)
+        {
+            return Messages.Last();
+        }
+
+        return null;
+    }
+
+    public void AddMessages(List<ClientPlanetMessage> messages, bool refresh = true)
+    {
+        Messages.AddRange(messages);
+
+        if (refresh)
+        {
+            StateHasChanged();
+        }
+    }
+
+    public void InsertMessages(int position, List<ClientPlanetMessage> messages, bool refresh = true)
+    {
+        //foreach(var m in messages)
+        //{
+        //    Console.WriteLine(m.Content);
+        //}
+
+        Messages.InsertRange(position, messages);
+
+        if (refresh)
+        {
+            StateHasChanged();
+        }
+    }
+
+    public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
+    {
+        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+
+        //Get current window scroll pos
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
+
+        // check if theres too many messages
+        if (IsAtBottom && Messages.Count > 120)
+        {
+            Messages.RemoveRange(0, Messages.Count - 120);
+        }
+
+        Messages.Add(message);
+
+        // Flag for UI refresh
+        if (refresh)
+        {
+            StateHasChanged();
+        }
+
+        await Window.Component.ScrollToBottom();
+    }
+
+    public void ForceRefresh()
+    {
+        state = "force-ref";
+        StateHasChanged();
+    }
+
+    public void AddRenderedMessage(MessageComponent message)
+    {
+        RenderedMessages.Add(message);
+    }
+
+    public void RemoveRenderedMessage(MessageComponent message)
+    {
+        RenderedMessages.Remove(message);
+    }
+
+    //protected override async Task OnParametersSetAsync()
+    //{
+
+    //}
+
+    protected override async Task OnInitializedAsync()
+    {
+        RenderedMessages = new List<MessageComponent>();
+        Messages = new List<ClientPlanetMessage>();
+        QueuedMessages = new List<ClientPlanetMessage>();
+        StateHasChanged();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        Console.WriteLine("Rendered messages");
+        state = GetState();
+    }
+
+    public string GetState()
+    {
+        if (Messages == null || Messages.Count == 0)
+        {
+            return "none";
+        }
+        else
+        {
+            return $"{Messages.First().Message_Index}-{Messages.Last().Message_Index}-{QueuedMessages.Count}";
+        }
+    }
+
+    protected override bool ShouldRender()
+    {
+        return GetState() != state;
+    }
+}

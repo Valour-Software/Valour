@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Authorization;
 
@@ -9,9 +10,44 @@ using Valour.Shared.Items.Authorization;
 
 namespace Valour.Server.Database.Items.Authorization;
 
-public class OauthApp : Shared.Items.Authorization.OauthApp
+[Table("oauth_apps")]
+public class OauthApp : ISharedOauthApp
 {
     [ForeignKey("OwnerId")]
     [JsonIgnore]
     public virtual User Owner { get; set; }
+
+    [Key]
+    [Column("id")]
+    public long Id {get; set; }
+
+    /// <summary>
+    /// The secret key for the app
+    /// </summary>
+    [Column("secret")]
+    public string Secret { get; set; }
+
+    /// <summary>
+    /// The ID of the user that created this app
+    /// </summary>
+    [Column("owner_id")]
+    public long OwnerId { get; set; }
+
+    /// <summary>
+    /// The amount of times this app has been used
+    /// </summary>
+    [Column("uses")]
+    public int Uses { get; set; }
+
+    /// <summary>
+    /// The image used to represent the app
+    /// </summary>
+    [Column("image_url")]
+    public string ImageUrl { get; set; }
+
+    /// <summary>
+    /// The name of the app
+    /// </summary>
+    [Column("name")]
+    public string Name { get; set; }
 }

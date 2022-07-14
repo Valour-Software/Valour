@@ -1,0 +1,143 @@
+@inject IJSRuntime JS
+
+<BlazorContextMenu.Item OnClick='OnClickKick' CssClass='context-item'>Kick</BlazorContextMenu.Item>
+<BlazorContextMenu.Item OnClick='OnClickBan' CssClass='context-item'>Ban</BlazorContextMenu.Item>
+<BlazorContextMenu.Item CssClass='context-item'>
+	Roles
+	<SubMenu CssClass='context-sub'>
+		@foreach (var role in Roles)
+		{
+			var cRole = role;
+			var hasRole = MemberRoles.Any(x => x.Id == role.Id);
+
+			<BlazorContextMenu.Item CssClass='context-item'>
+				<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
+					<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
+					<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
+									checked="@hasRole" disabled />
+				</div>
+			</BlazorContextMenu.Item>
+		}
+	</SubMenu>
+</BlazorContextMenu.Item>
+<BlazorContextMenu.Item CssClass='context-item'>
+	Copy
+	<SubMenu CssClass='context-sub'>
+		<BlazorContextMenu.Item OnClick='OnClickCopyNickname' CssClass='context-item'>Nickname</BlazorContextMenu.Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyUsername' CssClass='context-item'>Username</BlazorContextMenu.Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyMemberId' CssClass='context-item'>Member Id</BlazorContextMenu.Item>
+		<BlazorContextMenu.Item OnClick='OnClickCopyUserId' CssClass='context-item'>User Id</BlazorContextMenu.Item>
+	</SubMenu>
+</BlazorContextMenu.Item>
+
+@code {
+
+    [CascadingParameter]
+	public IModalService Modal { get; set; }
+
+	public static PlanetMember Member { get; set; }
+	public static List<PlanetRole> Roles { get; set; }
+	public static List<PlanetRole> MemberRoles { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+		ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
+	}
+
+	public static async Task Initialize(PlanetMember member)
+	{
+		Member = member;
+		Roles = await (await member.GetPlanetAsync()).GetRolesAsync();
+		MemberRoles = await member.GetRolesAsync();
+	}
+        
+	public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
+	{
+		if (member.Id == Member.Id)
+		{
+			MemberRoles = await Member.GetRolesAsync();
+			StateHasChanged();
+		}
+	}
+
+	public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+			StateHasChanged();
+	}
+
+	public async Task OnRoleDeleted(PlanetRole role)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+		{
+			Roles.RemoveAll(x => x.Id == role.Id);
+			MemberRoles.RemoveAll(x => x.Id == role.Id);
+			StateHasChanged();
+		}
+	}
+
+	public async Task OnClickCopyNickname(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", await Member.GetNameAsync());
+	}
+
+	public async Task OnClickCopyUsername(){
+		var user = await Member.GetUserAsync();
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Name);
+	}
+
+	public async Task OnClickCopyMemberId(){
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", Member.Id);
+	}
+
+	public async Task OnClickCopyUserId(){
+		var user = await Member.GetUserAsync();
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Id);
+	}
+
+	public async Task OnRoleClick(PlanetRole role, bool value)
+	{
+        if (value)
+            // Add role
+            await ValourClient.PostAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}", null);
+        else
+            // Remove role
+			await ValourClient.DeleteAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}");
+
+
+		StateHasChanged();
+	}
+
+	public async Task OnClickKick()
+	{
+		ConfirmModalData modalData =
+        new($"Kick {Member.Nickname}?",
+             $"This will remove them from the planet.",
+             "Confirm",
+             "Cancel", 
+             async () =>
+             {
+                 var result = ValourClient.GetJsonAsync<string>($"/Planet/KickUser?planetId={Member.PlanetId}" +
+                                                                               $"&targetId={Member.Id}");
+                 Console.WriteLine(result);
+
+             },
+             async () =>
+             {
+
+             }
+        );
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
+
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+	}
+
+	public async Task OnClickBan()
+	{
+		ModalParameters par = new();
+        par.Add("Member", Member);
+        Modal.Show<BanUserComponent>("Ban User", par);
+	}
+}

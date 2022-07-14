@@ -11,6 +11,7 @@ namespace Valour.Server.Database.Items.Users;
 /// <summary>
 /// Allows tracking of email verification codes
 /// </summary>
+[Table("email_confirm_codes")]
 public class EmailConfirmCode
 {
     [ForeignKey("UserId")]
@@ -20,11 +21,13 @@ public class EmailConfirmCode
     /// The code for the email verification
     /// </summary>
     [Key]
+    [Column("code")]
     public string Code { get; set; }
 
     /// <summary>
     /// The user this code is verifying
     /// </summary>
-    public ulong UserId { get; set; }
+    [Column("user_id")]
+    public long UserId { get; set; }
 }
 

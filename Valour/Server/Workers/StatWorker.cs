@@ -36,13 +36,13 @@ public class StatWorker : BackgroundService
 
                 if (Context != null && System.Diagnostics.Debugger.IsAttached == false)
                 {
-                    stats.Time = DateTime.UtcNow;
+                    stats.TimeCreated = DateTime.UtcNow;
                     stats.UserCount = Context.Users.Count();
                     stats.PlanetCount = Context.Planets.Count();
                     stats.PlanetMemberCount = Context.PlanetMembers.Count();
                     stats.ChannelCount = Context.PlanetChatChannels.Count();
                     stats.CategoryCount = Context.PlanetCategoryChannels.Count();
-                    stats.Message24hCount = Context.PlanetMessages.Count();
+                    stats.MessageDayCount = Context.PlanetMessages.Count();
                     await Context.Stats.AddAsync(stats);
                     await Context.SaveChangesAsync();
                     stats = new StatObject();

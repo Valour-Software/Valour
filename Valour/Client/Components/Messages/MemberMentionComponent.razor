@@ -1,0 +1,75 @@
+﻿@using Valour.Shared.Items.Messages
+@using Valour.Api.Client
+
+<div class="@Class" style="color: @Role_Color">
+    @if (Member == null)
+    {
+        <div>@@NotFound</div>
+    }
+    else
+    {
+        <div>@@@Member.Nickname</div>
+    }
+</div>
+
+@code {
+
+    public string Class
+    {
+        get
+        {
+            if (Member == null || Member.UserId != ValourClient.Self.Id)
+            {
+                return "mention";
+            }
+            else
+            {
+                return "mention target";
+            }
+        }
+    }
+
+
+    [Parameter]
+    public Mention Mention { get; set; }
+
+    public PlanetMember Member { get; set; }
+
+    public string Role_Color = "#ffffff";
+
+    protected async override Task OnInitializedAsync()
+    {
+        await Build();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Member != null)
+        {
+            if (Mention.TargetId != Member.Id)
+            {
+                await Build();
+            }
+        }
+        else
+        {
+            await Build();
+        }
+    }
+
+    public async Task Build()
+    {
+        Member = await PlanetMember.FindAsync(Mention.TargetId, Mention.PlanetId);
+
+        if (Member != null)
+        {
+            Role_Color = await Member.GetRoleColorAsync();
+        }
+        else
+        {
+            Role_Color = "#ffffff";
+        }
+
+        StateHasChanged();
+    }
+}

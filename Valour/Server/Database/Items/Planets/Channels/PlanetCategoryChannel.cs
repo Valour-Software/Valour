@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Http;
-using Valour.Shared.Items;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 
 namespace Valour.Server.Database.Items.Planets.Channels;
@@ -15,12 +15,14 @@ namespace Valour.Server.Database.Items.Planets.Channels;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-[Table("PlanetCategoryChannels")]
+[Table("planet_category_channels")]
 public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 {
 
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetCategoryChannel;
 
     /// <summary>
     /// Returns if the member has the given permission in this category
@@ -116,14 +118,14 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
-    public static IResult GetRoute(HttpContext ctx, ulong id) =>
+    public static IResult GetRoute(HttpContext ctx, long id) =>
         Results.Json(ctx.GetItem<PlanetCategoryChannel>(id));
 
     [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, ulong id, [FromBody] PlanetCategoryChannel category,
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetCategoryChannel category,
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
@@ -151,6 +153,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         // Update
         try
         {
+            db.Entry(old).State = EntityState.Detached;
             db.PlanetCategoryChannels.Update(category);
             await db.SaveChangesAsync();
         }
@@ -168,8 +171,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, ulong planetId, [FromBody] PlanetCategoryChannel category,
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetCategoryChannel category,
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
@@ -199,6 +202,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
+        category.Id = IdManager.Generate();
+
         try
         {
             await db.PlanetCategoryChannels.AddAsync(category);
@@ -215,12 +220,91 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.Created(category.GetUri(), category);
     }
 
+    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
+    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId,
+        [FromBody] CreatePlanetCategoryChannelRequest request, ILogger<PlanetCategoryChannel> logger)
+    {
+        // Get resources
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        var category = request.Category;
+
+        if (category.PlanetId != planetId)
+            return Results.BadRequest("PlanetId mismatch.");
+
+        var nameValid = ValidateName(category.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(category.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        var positionValid = await ValidateParentAndPosition(db, category);
+        if (!positionValid.Success)
+            return Results.BadRequest(positionValid.Message);
+
+        // Ensure user has permission for parent category management
+        if (category.ParentId is not null)
+        {
+            var parent_cat = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
+            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+
+        category.Id = IdManager.Generate();
+
+        List<PermissionsNode> nodes = new();
+
+        // Create nodes
+        foreach (var nodeReq in request.Nodes)
+        {
+            var node = nodeReq;
+            node.TargetId = category.Id;
+            node.PlanetId = planetId;
+
+            var role = await FindAsync<PlanetRole>(node.RoleId, db);
+            if (role.GetAuthority() > await member.GetAuthorityAsync(db))
+                return ValourResult.Forbid("A permission node's role has higher authority than you.");
+
+            node.Id = IdManager.Generate();
+
+            nodes.Add(node);
+        }
+
+        var tran = await db.Database.BeginTransactionAsync();
+
+        try
+        {
+            await db.PlanetCategoryChannels.AddAsync(category);
+            await db.SaveChangesAsync();
+
+            await db.PermissionsNodes.AddRangeAsync(nodes);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        await tran.CommitAsync();
+
+        PlanetHub.NotifyPlanetItemChange(category);
+
+        return Results.Created(category.GetUri(), category);
+    }
+
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, ulong id, ulong planetId,
+    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
         ILogger<PlanetCategoryChannel> logger)
     {
         var db = ctx.GetDb();
@@ -258,7 +342,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
-    public async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, long id)
     {
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
         var db = ctx.GetDb();
@@ -270,11 +354,11 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         return Results.Json(children_ids);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/children/order"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/children/order"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, ulong id, ulong planetId, [FromBody] ulong[] order,
+    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] long[] order,
         ILogger<PlanetCategoryChannel> logger)
     {
         var db = ctx.GetDb();
@@ -345,7 +429,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     [PlanetMembershipRequired, PlanetPermsRequired(PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired("id", CategoryPermissionsEnum.ManageCategory), // Need permission for parent
      CategoryChannelPermsRequired("child_id", CategoryPermissionsEnum.ManageCategory)] // Need permission for child
-        public static async Task<IResult> AddChildRouteAsync(HttpContext ctx, ulong id, ulong planetId, ulong child_id)
+        public static async Task<IResult> AddChildRouteAsync(HttpContext ctx, ulong id, long planetId, ulong child_id)
         {
             var db = ctx.GetDB();
 

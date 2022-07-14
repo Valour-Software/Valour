@@ -1,0 +1,87 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+
+@if (User != null)
+{
+    <div class="settings-modal container">
+        <div class="row settings-row">
+            <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
+                <b>@User.Name</b>
+                <hr />
+                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
+                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Notifications</div>
+                <div class="logout-button" @onclick="LogOut">Log Out</div>
+            </div>
+            <div class="col-md-9 edit-col-right">
+                @switch (selected)
+                {
+                    case 0:
+                        <EditUserInfoComponent User="User"></EditUserInfoComponent>
+                        break;
+                    case 1:
+                        <EditUserNotificationsComponent></EditUserNotificationsComponent>
+                        break;
+                    default:
+                        break;
+
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <h5>Loading planet details...</h5>
+}
+
+@code {
+    [Parameter]
+    public User User { get; set; }
+
+    public string GetButtonClass(int tab)
+    {
+        if (buttonStates[tab])
+        {
+            return "settings-button active";
+        }
+
+        return "settings-button";
+    }
+
+    public bool[] buttonStates = new bool[2]
+    {
+        true, false
+    };
+
+    public int selected = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        User = ValourClient.Self;
+    }
+
+    public void SetSelectedTab(int tab)
+    {
+        Console.WriteLine("Set selected to " + tab);
+
+        for (int i = 0; i < buttonStates.Length; i++)
+        {
+            buttonStates[i] = false;
+        }
+
+        buttonStates[tab] = true;
+
+        selected = tab;
+
+        StateHasChanged();
+    }
+
+    public async Task LogOut()
+    {
+        var response = await ValourClient.PostAsync($"api/user/logout", null);
+
+        Console.WriteLine(response.Message);
+
+        navManager.NavigateTo("/", true);
+    }
+}

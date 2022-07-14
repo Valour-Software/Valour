@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Client;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Messages.Embeds;
+using Valour.Shared.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -22,7 +22,7 @@ namespace Valour.Server.Database
         //public async Task JoinChannel()
 
         public static IHubContext<PlanetHub> Current;
-        public async Task JoinPlanet(ulong planetId, string token)
+        public async Task JoinPlanet(long planetId, string token)
         {
             using (ValourDB Context = new ValourDB(ValourDB.DBOptions))
             {
@@ -46,22 +46,39 @@ namespace Valour.Server.Database
             await Groups.AddToGroupAsync(Context.ConnectionId, $"p-{planetId}");
         }
 
-        public async Task LeavePlanet(ulong planetId) =>
+        public async Task LeavePlanet(long planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"p-{planetId}");
 
 
-        public async Task JoinChannel(ulong channelId, string token)
+        public async Task JoinChannel(long channelId, string token)
         {
 
-            // TODO: Check if user has permission to view channel
+            using ValourDB db = new(ValourDB.DBOptions);
+
+            // Grab channel
+            var channel = await db.PlanetChatChannels.FindAsync(channelId);
+            if (channel is null)
+                return;
+
+            // Authenticate user
+            AuthToken authToken = await AuthToken.TryAuthorize(token, db);
+
+            if (authToken is null) return;
+
+            PlanetMember member = await db.PlanetMembers.FirstOrDefaultAsync(
+                x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId);
+
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ViewMessages, db))
+                return;
+
             await Groups.AddToGroupAsync(Context.ConnectionId, $"c-{channelId}");
         }
 
-        public async Task LeaveChannel(ulong channelId) =>
+        public async Task LeaveChannel(long channelId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"c-{channelId}");
 
 
-        public async Task JoinInteractionGroup(ulong planetId, string token)
+        public async Task JoinInteractionGroup(long planetId, string token)
         {
             using (ValourDB Context = new(ValourDB.DBOptions))
             {
@@ -86,18 +103,18 @@ namespace Valour.Server.Database
         }
 
         public static async void NotifyPlanetItemChange(PlanetItem item, int flags = 0) =>
-            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.ItemType}-Update", item, flags);
+            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Update", item, flags);
 
         public static async void NotifyPlanetItemDelete(PlanetItem item) =>
-            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.ItemType}-Delete", item);
+            await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Delete", item);
 
         public static async void NotifyPlanetChange(Planet item, int flags = 0) =>
-            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.ItemType}-Update", item, flags);
+            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Update", item, flags);
 
         public static async void NotifyPlanetDelete(Planet item) =>
-            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.ItemType}-Delete", item);
+            await Current.Clients.Group($"p-{item.Id}").SendAsync($"{item.GetType().Name}-Delete", item);
 
-        public async Task LeaveInteractionGroup(ulong planetId) =>
+        public async Task LeaveInteractionGroup(long planetId) =>
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"i-{planetId}");
 
         public static async void NotifyInteractionEvent(EmbedInteractionEvent interaction) =>

@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
+using Valour.Shared.MPS;
 
 namespace Valour.Server.API
 {
@@ -25,7 +26,7 @@ namespace Valour.Server.API
         }
 
         private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db,
-            string type, [FromHeader] string authorization, ulong item_id = 0)
+            string type, [FromHeader] string authorization, long item_id = 0)
         {
             var authToken = await AuthToken.TryAuthorize(authorization, db);
             if (authToken == null) { await TokenInvalid(context); return; }
@@ -136,7 +137,7 @@ namespace Valour.Server.API
                     case "app":
                         {
                             var url = await response.Content.ReadAsStringAsync();
-                            app.Image_Url = url;
+                            app.ImageUrl = url;
                             await db.SaveChangesAsync();
                             break;
                         }

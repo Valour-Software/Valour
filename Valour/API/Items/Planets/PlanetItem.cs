@@ -1,54 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Valour.Api.Client;
-using Valour.Api.Nodes;
-using Valour.Shared;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
 
 namespace Valour.Api.Items.Planets
 {
-    public abstract class PlanetItem<T> : Item, INodeSpecific, ISharedPlanetItem where T : Item
-    {
-        public ulong PlanetId { get; set; }
-        public string Node { get; set; }
+	public class PlanetItem : Item
+	{
+        public long PlanetId { get; set; }
 
         /// <summary>
-        /// This is used to get a reference to ItemType
+        /// Returns the planet for this item
         /// </summary>
-        public static T DummyItem = default(T);
+        public virtual async ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
+            await Planet.FindAsync(PlanetId, refresh);
 
-        /// <summary>
-        /// Returns a planet item for the given IDs.
-        /// </summary>
-        public static async Task<T> FindAsync(ulong id, ulong planetId, bool force_refresh)
-        {
-            T item = null;
+        public override string IdRoute =>
+            $"{BaseRoute}/{Id}";
 
-            if (!force_refresh)
-            {
-                item = ValourCache.Get<T>(id);
-                if (item is not null)
-                    return item;
-            }
-
-            item = await ValourClient.GetJsonAsync<T>($"{NodeManager.GetLocation(planetId)}/planets/{planetId}/{DummyItem.ItemType}/{id}");
-
-            if (item is not null)
-                await ValourCache.Put(id, item);
-
-            return item;
-        }
-        
-        /// <summary>
-        /// Applies changes to this planet item.
-        /// </summary>
-        public virtual async Task<TaskResult> UpdateAsync()
-        {
-
-        }
+        public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{GetType().Name}";
     }
 }
+

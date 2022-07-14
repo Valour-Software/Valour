@@ -9,18 +9,18 @@ namespace Valour.Api.Nodes
 {
     public static class NodeManager
     {
-        public static Dictionary<ulong, string> PlanetToNode { get; } = new Dictionary<ulong, string>();
-        public static Dictionary<ulong, string> PlanetToNodeLocation { get; } = new Dictionary<ulong, string>();
+        public static Dictionary<long, string> PlanetToNode { get; } = new Dictionary<long, string>();
+        public static Dictionary<long, string> PlanetToNodeLocation { get; } = new Dictionary<long, string>();
 
         const string CoreLocation = "https://core.valour.gg";
 
 
-        public static async Task<string> GetLocation(ulong planetId)
+        public static async Task<string> GetLocation(long planetId)
         {
             if (PlanetToNodeLocation.ContainsKey(planetId))
                 return PlanetToNodeLocation[planetId];
 
-            string node = await GetPlanetNode(planetId);
+            string node = await GetNode(planetId);
             string location = null;
 
             if (node is not null) {
@@ -33,9 +33,9 @@ namespace Valour.Api.Nodes
             
 
 #if DEBUG
-        public static async Task<string> GetNode(ulong planetId) => "";
+        public static async Task<string> GetNode(long planetId) => "";
 #else
-        public static async Task<string> GetNode(ulong planetId)
+        public static async Task<string> GetNode(long planetId)
         {
             if (PlanetToNode.ContainsKey(planetId))
                 return PlanetToNode[planetId];

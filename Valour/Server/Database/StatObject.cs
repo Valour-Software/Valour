@@ -12,23 +12,39 @@ namespace Valour.Server.Database;
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
+[Table("stat_objects")]
 public class StatObject
 {
     /// <summary>
     /// The Id of this object
     /// </summary>
     [Key]
-    public ulong Id { get; set; }
+    [Column("id")]
+    public long Id {get; set; }
 
+    [Column("messages_sent")]
     public int MessagesSent { get; set; }
-    public int UserCount { get; set; }
-    public int PlanetCount { get; set; }
-    public int PlanetMemberCount { get; set; }
-    public int ChannelCount { get; set; }
-    public int CategoryCount { get; set; }
-    public int Message24hCount { get; set; }
 
-    public DateTime Time { get; set; }
+    [Column("user_count")]
+    public int UserCount { get; set; }
+
+    [Column("planet_count")]
+    public int PlanetCount { get; set; }
+
+    [Column("planet_member_count")]
+    public int PlanetMemberCount { get; set; }
+
+    [Column("channel_count")]
+    public int ChannelCount { get; set; }
+
+    [Column("category_count")]
+    public int CategoryCount { get; set; }
+
+    [Column("message")]
+    public int MessageDayCount { get; set; }
+
+    [Column("time_created")]
+    public DateTime TimeCreated { get; set; }
 
     public StatObject()
     {

@@ -1,4 +1,5 @@
-﻿using Valour.Server.Nodes;
+﻿using System.ComponentModel.DataAnnotations;
+using Valour.Server.Nodes;
 using Valour.Shared.Items;
 
 namespace Valour.Server.Database.Items;
@@ -15,7 +16,9 @@ public abstract class Item : ISharedItem
     public const string UriPrefix = "https://";
     public const string UriPostfix = ".nodes.valour.gg";
 
-    public ulong Id { get; set; }
+    [Key]
+    [Column("id")]
+    public long Id { get; set; }
 
     /// <summary>
     /// This is the node that returned the API item.
@@ -28,7 +31,7 @@ public abstract class Item : ISharedItem
     /// <summary>
     /// Returns the item with the given id
     /// </summary>
-    public static async ValueTask<T> FindAsync<T>(ulong id, ValourDB db)
+    public static async ValueTask<T> FindAsync<T>(object id, ValourDB db)
         where T : Item =>
         await db.FindAsync<T>(id);
 
@@ -39,9 +42,11 @@ public abstract class Item : ISharedItem
         where T : Item =>
         await db.Set<T>().ToListAsync();
 
+    [JsonIgnore]
     public virtual string IdRoute =>
         $"{BaseRoute}/{{Id}}";
 
+    [JsonIgnore]
     public virtual string BaseRoute =>
         $"/api/{GetType().Name}";
 
