@@ -1,16 +1,21 @@
+@inject IJSRuntime JS
+
 @using Item = Valour.Api.Items.Item
 <ContextMenu Id='list-context' CssClass='context'>
 
-    @if (SelectedItem is PlanetCategoryChannel){
+    @if (SelectedItem is PlanetCategoryChannel && CanModifyCategory){
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
 
-    <BlazorContextMenu.Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
-    <BlazorContextMenu.Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
+    @if ((SelectedItem is PlanetCategoryChannel && CanModifyCategory) || (SelectedItem is PlanetChannel && CanModifyChannel)) {
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
+    }
+    <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-item'>Copy Id</BlazorContextMenu.Item>
 </ContextMenu>
 
-@code {
+    @code {
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
@@ -19,9 +24,30 @@
 
     public static ChannelListContextMenuComponent Instance;
 
+    public static bool CanModifyChannel { get; set; }
+    public static bool CanModifyCategory { get; set; }
+
     public static async Task SetSelectedItem(PlanetChannel item){
 
         SelectedItem = item;
+        var planet = await item.GetPlanetAsync();
+        if (planet.OwnerId == ValourClient.Self.Id)
+        {
+            CanModifyCategory = true;
+            CanModifyChannel = true;
+        }
+        else {
+            var selfmember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, item.PlanetId);
+            var primaryrole = await selfmember.GetPrimaryRoleAsync();
+            if (item is PlanetCategoryChannel)
+            {
+                CanModifyCategory = await item.HasPermissionAsync(selfmember, CategoryPermissions.ManageCategory);
+            }
+            else if (item is PlanetChatChannel)
+            {
+                CanModifyChannel = await item.HasPermissionAsync(selfmember, ChatChannelPermissions.ManageChannel);
+            }
+        }
         Instance.Refresh();
     }
 
@@ -31,6 +57,10 @@
 
     public void Refresh(){
         StateHasChanged();
+    }
+
+    public async Task OnClickCopyId(){
+        await JS.InvokeVoidAsync("clipboardCopy.copyText", SelectedItem.Id);
     }
 
     public async Task OpenCreateChannel(){

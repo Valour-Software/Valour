@@ -2,8 +2,10 @@
 using Valour.Api.Items.Authorization;
 using Valour.Api.Requests;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
+using Valour.Api.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Channels;
 
@@ -68,5 +70,71 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     public static async Task<TaskResult<PlanetCategoryChannel>> CreateWithDetails(CreatePlanetCategoryChannelRequest request) =>
         await ValourClient.PostAsyncWithResponse<PlanetCategoryChannel>($"{request.Category.BaseRoute}/detailed", request);
+
+    /// <summary>
+    /// Returns if the member has the given permission in this category
+    /// </summary>
+    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
+    {
+        Planet planet = await member.GetPlanetAsync();
+
+        if (planet.OwnerId == member.UserId)
+        {
+            return true;
+        }
+
+        // If true, we ask the parent
+        if (InheritsPerms)
+        {
+            return await (await GetParentAsync()).HasPermissionAsync(member, permission);
+        }
+
+        var roles = await member.GetRolesAsync();
+
+        var do_channel = permission is ChatChannelPermission;
+
+        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
+        // If we get an undecided, we continue to the next role down
+        foreach (var role in roles.OrderBy(x => x.Position))
+        {
+            PermissionsNode node = null;
+
+            node = await GetPermissionsNodeAsync(role.Id);
+
+            // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
+            if (node == null)
+            {
+                if (role.Id == planet.DefaultRoleId)
+                {
+                    if (do_channel)
+                        return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+                    else
+                        return Permission.HasPermission(CategoryPermissions.Default, permission);
+                }
+
+                continue;
+            }
+
+            PermissionState state = PermissionState.Undefined;
+
+            state = node.GetPermissionState(permission);
+
+            if (state == PermissionState.Undefined)
+            {
+                continue;
+            }
+            else if (state == PermissionState.True)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // No roles ever defined behavior: resort to false.
+        return false;
+    }
 }
 
