@@ -158,7 +158,8 @@ public class User : Item, ISharedUser
 
         try
         {
-            db.AuthTokens.Remove(token);
+            db.Entry(token).State = EntityState.Deleted;
+            AuthToken.QuickCache.Remove(token.Id, out _);
             await db.SaveChangesAsync();
         }
         catch (System.Exception e)
