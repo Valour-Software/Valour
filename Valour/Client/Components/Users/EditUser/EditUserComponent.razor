@@ -78,7 +78,7 @@ else
 
     public async Task LogOut()
     {
-        var response = await ValourClient.PostAsync($"api/user/logout", null);
+        var response = await ValourClient.PostAsync($"api/user/self/logout", null);
 
         Console.WriteLine(response.Message);
 

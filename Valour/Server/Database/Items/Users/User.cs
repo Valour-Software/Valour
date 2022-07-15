@@ -158,7 +158,8 @@ public class User : Item, ISharedUser
 
         try
         {
-            db.AuthTokens.Remove(token);
+            db.Entry(token).State = EntityState.Deleted;
+            AuthToken.QuickCache.Remove(token.Id, out _);
             await db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -196,7 +197,7 @@ public class User : Item, ISharedUser
 
         UserEmail userEmail = await db.UserEmails
             .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Email == tokenRequest.Email.ToLower());
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == tokenRequest.Email.ToLower());
 
         if (userEmail is null)
             return ValourResult.InvalidToken();
