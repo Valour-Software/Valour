@@ -287,10 +287,10 @@ public static class CategoryPermissions
 
     static CategoryPermissions()
     {
-        FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
-        View = new CategoryPermission(0x01, "View", "Allow members to view this channel in the channel list.");
-        ManageCategory = new CategoryPermission(0x08, "Manage", "Allow members to manage this channel's details.");
-        ManagePermissions = new CategoryPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+        FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the category");
+        View = new CategoryPermission(0x01, "View", "Allow members to view this category in the channel list.");
+        ManageCategory = new CategoryPermission(0x08, "Manage", "Allow members to manage this category's details.");
+        ManagePermissions = new CategoryPermission(0x10, "Permissions", "Allow members to manage permissions for this category.");
 
         Permissions = new CategoryPermission[]
         {

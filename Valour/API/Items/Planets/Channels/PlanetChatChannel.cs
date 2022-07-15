@@ -54,7 +54,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// Returns the current total permissions for this channel for a member.
     /// This result is NOT SYNCED, since it flattens several nodes into one!
     /// </summary>
-    public async Task<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
+    public async ValueTask<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
     {
         var member = await PlanetMember.FindAsync(memberId, planetId);
         var roles = await member.GetRolesAsync();
@@ -109,9 +109,69 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     }
 
     /// <summary>
+    /// Returns if the member has the given permission in this category
+    /// </summary>
+    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
+    {
+        Planet planet = await member.GetPlanetAsync();
+
+        if (planet.OwnerId == member.UserId)
+        {
+            return true;
+        }
+
+        // If true, we ask the parent
+        if (InheritsPerms)
+        {
+            return await (await GetParentAsync()).HasPermissionAsync(member, permission);
+        }
+
+        var roles = await member.GetRolesAsync();
+
+        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
+        // If we get an undecided, we continue to the next role down
+        foreach (var role in roles.OrderBy(x => x.Position))
+        {
+            PermissionsNode node = null;
+
+            node = await GetPermissionsNodeAsync(role.Id);
+
+            // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
+            if (node == null)
+            {
+                if (role.Id == planet.DefaultRoleId)
+                {
+                    return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+                }
+                continue;
+            }
+
+            PermissionState state = PermissionState.Undefined;
+
+            state = node.GetPermissionState(permission);
+
+            if (state == PermissionState.Undefined)
+            {
+                continue;
+            }
+            else if (state == PermissionState.True)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        // No roles ever defined behavior: resort to false.
+        return false;
+    }
+
+    /// <summary>
     /// Returns the item for the given id
     /// </summary>
-    public static async Task<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
+    public static async ValueTask<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
     {
         if (!refresh)
         {

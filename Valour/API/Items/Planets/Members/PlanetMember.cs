@@ -38,7 +38,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
+    public static async ValueTask<PlanetMember> FindAsync(long id, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -64,7 +64,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the member for the given id
     /// </summary>
-    public static async Task<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
+    public static async ValueTask<PlanetMember> FindAsyncByUser(long userId, long planetId, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -129,8 +129,8 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns if the member has the given role
     /// </summary>
-    public async ValueTask<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
-        await HasRoleAsync(role.Id, force_refresh);
+    public ValueTask<bool> HasRoleAsync(PlanetRole role, bool force_refresh = false) =>
+        HasRoleAsync(role.Id, force_refresh);
     
     /// <summary>
     /// Returns the authority of the member
@@ -172,8 +172,8 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the user of the member
     /// </summary>
-    public async Task<User> GetUserAsync(bool force_refresh = false) =>
-        await User.FindAsync(UserId, force_refresh);
+    public ValueTask<User> GetUserAsync(bool force_refresh = false) =>
+        User.FindAsync(UserId, force_refresh);
 
     /// <summary>
     /// Returns the status of the member
@@ -192,7 +192,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the pfp url of the member
     /// </summary>
-    public async Task<string> GetPfpUrlAsync(bool force_refresh = false)
+    public async ValueTask<string> GetPfpUrlAsync(bool force_refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(MemberPfp))
             return MemberPfp;
@@ -203,7 +203,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// <summary>
     /// Returns the name of the member
     /// </summary>
-    public async Task<string> GetNameAsync(bool force_refresh = false)
+    public async ValueTask<string> GetNameAsync(bool force_refresh = false)
     {
         if (!string.IsNullOrWhiteSpace(Nickname))
             return Nickname;

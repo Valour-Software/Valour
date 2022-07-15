@@ -60,7 +60,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async Task<Planet> FindAsync(long id, bool force_refresh = false)
+    public static async ValueTask<Planet> FindAsync(long id, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -80,7 +80,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the primary channel of the planet
     /// </summary>
-    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(bool refresh = false)
+    public async ValueTask<PlanetChatChannel> GetPrimaryChannelAsync(bool refresh = false)
     {
         if (Channels == null || refresh)
             await LoadChannelsAsync();
@@ -91,7 +91,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the categories of this planet
     /// </summary>
-    public async Task<List<PlanetCategoryChannel>> GetCategoriesAsync(bool refresh = false)
+    public async ValueTask<List<PlanetCategoryChannel>> GetCategoriesAsync(bool refresh = false)
     {
         if (Categories == null || refresh)
             await LoadCategoriesAsync();
@@ -138,7 +138,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the channels of a planet
     /// </summary>
-    public async Task<List<PlanetChatChannel>> GetChannelsAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetChatChannel>> GetChannelsAsync(bool force_refresh = false)
     {
         if (Channels == null || force_refresh)
         {
@@ -186,7 +186,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the members of the planet
     /// </summary>
-    public async Task<List<PlanetMember>> GetMembersAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetMember>> GetMembersAsync(bool force_refresh = false)
     {
         if (Members is null || force_refresh)
         {
@@ -232,7 +232,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the invites of the planet
     /// </summary>
-    public async Task<List<PlanetInvite>> GetInvitesAsync(bool refresh = false)
+    public async ValueTask<List<PlanetInvite>> GetInvitesAsync(bool refresh = false)
     {
         if (Invites is null || refresh)
             await LoadInvitesAsync();
@@ -274,7 +274,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the roles of a planet
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetRole>> GetRolesAsync(bool force_refresh = false)
     {
         if (Roles is null || force_refresh)
         {
@@ -319,7 +319,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the member for a given user id
     /// </summary>
-    public async Task<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
+    public async ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
     {
         return await PlanetMember.FindAsync(userId, Id, force_refresh);
     }
@@ -327,7 +327,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a channel has been updated
     /// </summary>
-    public async Task NotifyUpdateChannel(PlanetChatChannel channel)
+    public async ValueTask NotifyUpdateChannel(PlanetChatChannel channel)
     {
         if (Channels == null)
             await LoadChannelsAsync();
@@ -342,7 +342,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a channel has been deleted
     /// </summary>
-    public async Task NotifyDeleteChannel(PlanetChatChannel channel)
+    public async ValueTask NotifyDeleteChannel(PlanetChatChannel channel)
     {
         if (Channels == null)
             await LoadChannelsAsync();
@@ -356,7 +356,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a category has been updated
     /// </summary>
-    public async Task NotifyUpdateCategory(PlanetCategoryChannel category)
+    public async ValueTask NotifyUpdateCategory(PlanetCategoryChannel category)
     {
         if (Categories == null)
             await LoadCategoriesAsync();
@@ -371,7 +371,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a category has been deleted
     /// </summary>
-    public async Task NotifyDeleteCategory(PlanetCategoryChannel category)
+    public async ValueTask NotifyDeleteCategory(PlanetCategoryChannel category)
     {
         if (Categories == null)
             await LoadCategoriesAsync();
@@ -385,7 +385,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a role has been updated
     /// </summary>
-    public async Task NotifyUpdateRole(PlanetRole role)
+    public async ValueTask NotifyUpdateRole(PlanetRole role)
     {
         if (Roles == null)
             await LoadRolesAsync();
@@ -402,7 +402,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a role has been deleted
     /// </summary>
-    public async Task NotifyDeleteRole(PlanetRole role)
+    public async ValueTask NotifyDeleteRole(PlanetRole role)
     {
         if (Roles == null)
             await LoadRolesAsync();

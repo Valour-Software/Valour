@@ -78,7 +78,7 @@ public class User : Item, ISharedUser
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
         await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps");
 
-    public static async Task<User> FindAsync(long id, bool force_refresh = false)
+    public static async ValueTask<User> FindAsync(long id, bool force_refresh = false)
     {
         if (!force_refresh)
         {

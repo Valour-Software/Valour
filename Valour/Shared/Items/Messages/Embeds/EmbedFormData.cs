@@ -19,4 +19,3 @@ public class EmbedFormData
     [JsonPropertyName("Type")]
     public EmbedItemType Type { get; set; }
 }
-
