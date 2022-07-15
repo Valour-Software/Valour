@@ -17,10 +17,14 @@
     <Version>0.1.1.0</Version>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DefineConstants>TRACE;DEBUG;NET;NET7_0;NETCOREAPP</DefineConstants>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.30.2" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0-preview.5.22303.8" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0-preview.5.22301.12" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.0-preview.6.22330.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0-preview.6.22324.4" />
   </ItemGroup>
 
   <ItemGroup>

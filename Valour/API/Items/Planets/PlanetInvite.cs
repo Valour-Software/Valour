@@ -62,7 +62,12 @@ public class PlanetInvite : PlanetItem, ISharedPlanetInvite
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";
+
+#if (NODES)
+    public override string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{nameof(PlanetInvite)}";
+#else
     public override string BaseRoute => $"/api/{nameof(PlanetInvite)}";
+#endif
 
     /// <summary>
     /// Returns the name of the invite's planet

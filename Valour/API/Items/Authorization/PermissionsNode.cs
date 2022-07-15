@@ -73,7 +73,12 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         FindAsync(channel.Id, role.Id, targetType);
 
     public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
+
+#if (Nodes)
+    public override string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{nameof(PermissionsNode)}";
+#else
     public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
+#endif
 
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
@@ -87,8 +92,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
                 return cached;
         }
 
-        // Nodes are *expected* to be null sometimes, so we're passing in true for null
-        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}", true);
+        var node = await ValourClient.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}");
 
         if (node is not null)
             await node.AddToCache();

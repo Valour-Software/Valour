@@ -32,20 +32,30 @@ namespace Valour.Server
 
         public static List<object> ItemApis { get; set; }
 
+        public static NodeAPI NodeAPI { get; set; }
+
         public static void Main(string[] args)
         {
             // Load configs
             LoadConfigsAsync();
-            
+
+            // Communicate with core node
+#if (NODES)
+            HttpClient client = new();
+            client.pos
+#else
+
+#endif
+
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
 
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
-                options.Listen(IPAddress.Any, 3001, listenOptions =>
+                options.Listen(IPAddress.Any, 5000, listenOptions =>
                 {
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
-                    listenOptions.UseHttps();
+                    //listenOptions.UseHttps();
                 });
             });
 
@@ -76,6 +86,9 @@ namespace Valour.Server
                 new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
             };
+
+            NodeAPI = new NodeAPI(NodeConfig.Instance);
+            NodeAPI.AddRoutes(app);
 
             // Migrations and tasks
 
@@ -231,8 +244,6 @@ namespace Valour.Server
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
 
-            DeployedNode node = new DeployedNode(NodeConfig.Instance.Name);
-
             services.AddEndpointsApiExplorer();
 
             services.AddSwaggerGen(c =>
@@ -353,7 +364,7 @@ namespace Valour.Server
                 // Otherwise create a config with default values and write it to the location
                 nodeconfig = new NodeConfig()
                 {
-                    API_Key = "insert api key",
+                    ApiKey = "insert api key",
                     Name = "node name"
                 };
 

@@ -5,7 +5,7 @@
 @inject ILocalStorageService storage
 @inject IJSRuntime JS
 
-<body class="login-background" style="background-image: url(/media/Abstract-Background.png)">
+<body class="login-background" style="background-image: url(/_content/Valour.Client/media/Abstract-Background.png)">
     <div class="popup-box">
         <div class="col-md-12">
             <section>
@@ -38,7 +38,7 @@
 
 @code {
         // Input fields
-        DateTime date;
+        DateTime date = DateTime.UtcNow;
 
         // Spans
         string dateSpan;

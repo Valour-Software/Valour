@@ -114,6 +114,7 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
+    // This HAS to be GET so that we can forward it from the generic valour.gg domain
     [ValourRoute(HttpVerbs.Get, "/verify/{code}"), InjectDb]
     public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
         ILogger<User> logger)
@@ -157,7 +158,8 @@ public class User : Item, ISharedUser
 
         try
         {
-            db.AuthTokens.Remove(token);
+            db.Entry(token).State = EntityState.Deleted;
+            AuthToken.QuickCache.Remove(token.Id, out _);
             await db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -195,7 +197,7 @@ public class User : Item, ISharedUser
 
         UserEmail userEmail = await db.UserEmails
             .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Email == tokenRequest.Email.ToLower());
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == tokenRequest.Email.ToLower());
 
         if (userEmail is null)
             return ValourResult.InvalidToken();
@@ -252,7 +254,7 @@ public class User : Item, ISharedUser
         return Results.Json(token);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self/recovery")]
+    [ValourRoute(HttpVerbs.Post, "/self/recovery"), InjectDb]
     public static async Task<IResult> RecoverPasswordRouteAsync(HttpContext ctx, [FromBody] PasswordRecoveryRequest request,
         ILogger<User> logger)
     {
@@ -269,7 +271,7 @@ public class User : Item, ISharedUser
         if (!passValid.Success)
             return Results.BadRequest(passValid.Message);
 
-        // Old credentials
+        // Old credentialsto set 
         Credential cred = await db.Credentials.FirstOrDefaultAsync(x => x.UserId == recovery.UserId);
         if (cred is null)
             return Results.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");

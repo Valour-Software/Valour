@@ -8,12 +8,16 @@ public class NodeConfig
     public static NodeConfig Instance;
 
     [JsonInclude]
-    [JsonPropertyName("api_key")]
-    public string API_Key { get; set; }
+    [JsonPropertyName("apiKey")]
+    public string ApiKey { get; set; }
 
     [JsonInclude]
     [JsonPropertyName("name")]
     public string Name { get; set; }
+
+    [JsonInclude]
+    [JsonPropertyName("address")]
+    public string Address { get; set; }
 
     public NodeConfig()
     {
