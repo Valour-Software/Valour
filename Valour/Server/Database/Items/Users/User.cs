@@ -197,7 +197,7 @@ public class User : Item, ISharedUser
 
         UserEmail userEmail = await db.UserEmails
             .Include(x => x.User)
-            .FirstOrDefaultAsync(x => x.Email == tokenRequest.Email.ToLower());
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == tokenRequest.Email.ToLower());
 
         if (userEmail is null)
             return ValourResult.InvalidToken();
