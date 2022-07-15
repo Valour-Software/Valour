@@ -144,7 +144,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public async Task LoadRolesAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
-            roleIds = await ValourClient.GetJsonAsync<List<long>>($"{IdRoute}/roleIds");
+            roleIds = await ValourClient.GetJsonAsync<List<long>>($"{IdRoute}/roles");
 
         if (Roles is null)
             Roles = new List<PlanetRole>();
