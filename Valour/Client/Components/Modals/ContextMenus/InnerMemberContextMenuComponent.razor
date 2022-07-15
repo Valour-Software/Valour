@@ -1,7 +1,12 @@
 @inject IJSRuntime JS
 
-<BlazorContextMenu.Item OnClick='OnClickKick' CssClass='context-item'>Kick</BlazorContextMenu.Item>
-<BlazorContextMenu.Item OnClick='OnClickBan' CssClass='context-item'>Ban</BlazorContextMenu.Item>
+@if (CanKick)
+{
+	<BlazorContextMenu.Item OnClick='OnClickKick' CssClass='context-item'>Kick</BlazorContextMenu.Item>
+}
+@if (CanBan) {
+	<BlazorContextMenu.Item OnClick='OnClickBan' CssClass='context-item'>Ban</BlazorContextMenu.Item>
+}
 <BlazorContextMenu.Item CssClass='context-item'>
 	Roles
 	<SubMenu CssClass='context-sub'>
@@ -32,12 +37,14 @@
 
 @code {
 
-    [CascadingParameter]
+	[CascadingParameter]
 	public IModalService Modal { get; set; }
 
 	public static PlanetMember Member { get; set; }
 	public static List<PlanetRole> Roles { get; set; }
 	public static List<PlanetRole> MemberRoles { get; set; }
+	public static bool CanKick { get; set; }
+	public static bool CanBan { get; set; }
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -50,6 +57,18 @@
 		Member = member;
 		Roles = await (await member.GetPlanetAsync()).GetRolesAsync();
 		MemberRoles = await member.GetRolesAsync();
+		if ((await member.GetPlanetAsync()).OwnerId == ValourClient.Self.Id)
+		{
+			CanKick = true;
+			CanBan = true;
+		}
+		else {
+			var selfmember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, member.PlanetId);
+			var primaryrole = await selfmember.GetPrimaryRoleAsync();
+			CanKick = primaryrole.HasPermission(PlanetPermissions.Kick);
+			CanBan = primaryrole.HasPermission(PlanetPermissions.Kick);
+		}
+		
 	}
         
 	public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
