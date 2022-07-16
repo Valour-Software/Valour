@@ -52,7 +52,13 @@
 
         // Console.WriteLine(window.Channel_Permissions.Code + " | " + window.Channel_Permissions.Mask);
 
-        Can_Delete = window.Channel_Permissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+        if (message.AuthorUserId == ValourClient.Self.Id)
+        {
+            Can_Delete = PermissionState.True;
+        }
+        else {
+            Can_Delete = window.Channel_Permissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+        }
 
         // Console.WriteLine(Can_Delete);
     }

@@ -1,0 +1,59 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject ILocalStorageService storage
+
+<section>
+    <h4>Please check your email!</h4>
+    <h5>You can close this once you have clicked the link in the email</h5>
+
+    @if (@responseResult.Success)
+    {
+        <span id="agreed-span" class="text-success">@responseResult.Message</span>
+
+    }
+    else
+    {
+        <span id="agreed-span" class="text-danger">@responseResult.Message</span>
+    }
+
+    <div class="form-group mt-4">
+        <button class="btn v-button v-button-primary mt-2" @onclick="OnClickResend" disabled="@queuedMail">Resend Email</button>
+    </div>
+</section>
+
+@code {
+    private static readonly int RateLimitSeconds = 20;
+
+    [Parameter]
+    public RegisterUserRequest RegisterRequest { get; set; }
+
+    public DateTime time = DateTime.Now;
+    public bool queuedMail = false;
+
+    // Spans
+    TaskResult responseResult;
+
+    private async Task OnClickResend(MouseEventArgs e)
+    {
+        queuedMail = true;
+
+        using PeriodicTimer periodicTimer = new(TimeSpan.FromSeconds(1));
+
+        for (int i = (DateTime.Now - time).Seconds; i < RateLimitSeconds + 1 && await periodicTimer.WaitForNextTickAsync(); i++)
+        {
+            responseResult = new(true, $"Sending another email in {RateLimitSeconds - i} seconds!");
+            StateHasChanged();
+        }
+        
+        responseResult = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/resendemail", RegisterRequest)).Data;
+
+        time = DateTime.Now;
+
+        StateHasChanged();
+
+        await Task.Delay(4000);
+
+        queuedMail = false;
+        responseResult = new TaskResult(true, "");
+    }
+}

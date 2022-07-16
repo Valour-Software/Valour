@@ -8,47 +8,54 @@
 <body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
     <div class="popup-box">
         <div class="col-md-12">
-            <section>
-                <h2>Register for Valour</h2>
+            @if (!responseSuccess)
+            {
+                <section>
+                    <h2>Register for Valour</h2>
 
-                <h4>Welcome to our app!</h4>
-                <hr />
-                <div asp-validation-summary="All" class="text-danger"></div>
-                <div class="form-group mt-2">
-                    <label>Username</label>
-                    <input class="form-control" @bind-value="@username" />
-                </div>
-                <div class="form-group mt-2">
-                    <label>Email</label>
-                    <input type="email" class="form-control" @bind-value="@email" />
-                </div>
-                <div class="form-group mt-2">
-                    <label>Password</label>
-                    <input type="password" class="form-control" @bind-value="@password" />
-                </div>
-                <div class="form-group mt-2">
-                    <label>Confirm Password</label>
-                    <input type="password" class="form-control" @bind-value="@passwordConf" />
-                </div>
-                <div class="form-group mt-2">
-                    <label>Referral (Optional)</label>
-                    <input type="text" class="form-control" @bind-value="@referral" />
-                    <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour!</span>
-                </div>
-                <div class="form-group mt-4">
-                    <div style="display: inline-block">
-                        <p>
-                            <input type="checkbox" @bind-value="@agreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
-                            and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules. </a>
-                        </p>
+                    <h4>Welcome to our app!</h4>
+                    <hr />
+                    <div asp-validation-summary="All" class="text-danger"></div>
+                    <div class="form-group mt-2">
+                        <label>Username</label>
+                        <input class="form-control" @bind-value="@username" />
                     </div>
-                </div>
-                <span id="agreed-span" class="text-danger">@errorSpan</span>
+                    <div class="form-group mt-2">
+                        <label>Email</label>
+                        <input type="email" class="form-control" @bind-value="@email" />
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>Password</label>
+                        <input type="password" class="form-control" @bind-value="@password" />
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>Confirm Password</label>
+                        <input type="password" class="form-control" @bind-value="@passwordConf" />
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>Referral (Optional)</label>
+                        <input type="text" class="form-control" @bind-value="@referral" />
+                        <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour!</span>
+                    </div>
+                    <div class="form-group mt-4">
+                        <div style="display: inline-block">
+                            <p>
+                                <input type="checkbox" @bind-value="@agreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
+                                and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules. </a>
+                            </p>
+                        </div>
+                    </div>
+                    <span id="agreed-span" class="text-danger">@errorSpan</span>
 
-                <div class="form-group mt-4">
-                    <button class="btn v-button v-button-primary mt-2" @onclick="OnClickSubmit">Submit</button>
-                </div>
-            </section>
+                    <div class="form-group mt-4">
+                        <button class="btn v-button v-button-primary mt-2" @onclick="OnClickSubmit" disabled="@disableSubmit">Submit</button>
+                    </div>
+                </section>
+            }
+            else
+            {
+                <ConfirmationEmail RegisterRequest="@registerRequest"></ConfirmationEmail>
+            }
         </div>
     </div>
 </body>
@@ -59,6 +66,12 @@
     public string birthDayString { get; set; }
 
     public DateTime birthDay;
+
+    public RegisterUserRequest registerRequest;
+
+    bool responseSuccess = false;
+
+    bool disableSubmit = false;
 
     // Input fields
     string email;
@@ -136,7 +149,10 @@
             return;
         }
 
-        var request = new RegisterUserRequest()
+        disableSubmit = true;
+        StateHasChanged();
+
+        registerRequest = new RegisterUserRequest()
         {
             Username = username,
             Email = email,
@@ -144,15 +160,11 @@
             Referrer = referral
         };
 
-        var content = JsonContent.Create(request);
+        TaskResult result = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/register", registerRequest)).Data;
 
-        var response = await Http.PostAsync("api/user/register", content);
+        errorSpan = result.Message;
+        responseSuccess = result.Success;
 
-        errorSpan = await response.Content.ReadAsStringAsync();
-
-        if (response.IsSuccessStatusCode)
-        {
-            navManager.NavigateTo("/");
-        }
+        disableSubmit = result.Success;
     }
 }
