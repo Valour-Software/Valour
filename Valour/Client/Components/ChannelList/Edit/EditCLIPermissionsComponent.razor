@@ -348,6 +348,15 @@ else
         await OnRoleChange(SelectedRole);
 
         await RefreshButtons();
+
+        ItemObserver<PermissionsNode>.OnAnyUpdated += OnPermissionNodeUpdate;
+    }
+
+    public async Task OnPermissionNodeUpdate(PermissionsNode node, bool newitem, int flags) 
+    {
+        if (node.TargetId == Target.Id) {
+            await OnRoleChange(await PlanetRole.FindAsync(node.RoleId, Target.PlanetId));
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

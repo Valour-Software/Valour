@@ -87,6 +87,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         {
             var role = roles[i];
             var node = await GetChannelPermissionsNodeAsync(role.Id, force_refresh);
+            if (node is null)
+            {
+                continue;
+            }
 
             foreach (var perm in ChatChannelPermissions.Permissions)
             {
