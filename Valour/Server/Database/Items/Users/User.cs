@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using SendGrid;
+using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Users.Identity;
@@ -138,7 +139,7 @@ public class User : Item, ISharedUser
             db.EmailConfirmCodes.Remove(confirmCode);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
@@ -147,7 +148,7 @@ public class User : Item, ISharedUser
 
         await tran.CommitAsync();
 
-        return Results.NoContent();
+        return Results.LocalRedirect("/", true, false);
     }
 
     [ValourRoute(HttpVerbs.Post, "/self/logout"), TokenRequired, InjectDb]
@@ -246,7 +247,7 @@ public class User : Item, ISharedUser
                 await db.SaveChangesAsync();
             }
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -292,7 +293,7 @@ public class User : Item, ISharedUser
             db.Credentials.Update(cred);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem("We're sorry. Something unexpected occured. Try again?");
@@ -404,22 +405,8 @@ public class User : Item, ISharedUser
             await db.EmailConfirmCodes.AddAsync(confirmCode);
             await db.SaveChangesAsync();
 
-            // Send registration email
-            string emsg = $@"<body>
-                              <h2 style='font-family:Helvetica;'>
-                                Welcome to Valour!
-                              </h2>
-                              <p style='font-family:Helvetica;>
-                                To verify your new account, please use the following link: 
-                              </p>
-                              <p style='font-family:Helvetica;'>
-                                <a href='https://valour.gg/api/user/verify/{emailCode}'>Verify</a>
-                              </p>
-                            </body>";
+            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
 
-            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/api/user/verify/{emailCode}";
-
-            var result = await EmailManager.SendEmailAsync(request.Email, "Valour Registration", rawmsg, emsg);
             if (!result.IsSuccessStatusCode)
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
@@ -469,22 +456,7 @@ public class User : Item, ISharedUser
             await db.EmailConfirmCodes.AddAsync(confirmCode);
             await db.SaveChangesAsync();
 
-            // Send registration email
-            string emsg = $@"<body>
-                                  <h2 style='font-family:Helvetica;'>
-                                    Welcome to Valour!
-                                  </h2>
-                                  <p style='font-family:Helvetica;>
-                                    To verify your new account, please use the following link: 
-                                  </p>
-                                  <p style='font-family:Helvetica;'>
-                                    <a href='https://valour.gg/api/user/verify/{emailCode}'>Verify</a>
-                                  </p>
-                                </body>";
-
-            string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\nhttps://valour.gg/api/user/verify/{emailCode}";
-
-            var result = await EmailManager.SendEmailAsync(request.Email, "Valour Registration", rawmsg, emsg);
+            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
             if (!result.IsSuccessStatusCode)
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
@@ -504,6 +476,28 @@ public class User : Item, ISharedUser
         return Results.Json(new TaskResult(true, "Confirmation email has been resent!"));
     }
 
+    private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
+    {
+        var host = request.Host.ToUriComponent();
+        string link = $"{request.Scheme}://{host}/api/user/verify/{code}";
+
+        string emsg = $@"<body>
+                                  <h2 style='font-family:Helvetica;'>
+                                    Welcome to Valour!
+                                  </h2>
+                                  <p style='font-family:Helvetica;>
+                                    To verify your new account, please use the following link: 
+                                  </p>
+                                  <p style='font-family:Helvetica;'>
+                                    <a href='{link}'>Verify</a>
+                                  </p>
+                                </body>";
+
+        string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\n{link}";
+
+        var result = await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
+        return result;
+    }
 
     [ValourRoute(HttpVerbs.Post, "/resetpassword"), InjectDb]
     public static async Task<IResult> ResetPasswordRouteAsync(HttpContext ctx, [FromBody] string email,
@@ -519,7 +513,7 @@ public class User : Item, ISharedUser
         try
         {
             var oldRecoveries = db.PasswordRecoveries.Where(x => x.UserId == userEmail.UserId);
-            if (oldRecoveries.Count() > 0)
+            if (oldRecoveries.Any())
             {
                 await db.PasswordRecoveries.BulkDeleteAsync(oldRecoveries);
                 await db.SaveChangesAsync();
@@ -536,6 +530,9 @@ public class User : Item, ISharedUser
             await db.PasswordRecoveries.AddAsync(recovery);
             await db.SaveChangesAsync();
 
+            var host = ctx.Request.Host.ToUriComponent();
+            string link = $"{ctx.Request.Scheme}://{host}/RecoverPassword/{recoveryCode}";
+
             string emsg = $@"<body>
                               <h2 style='font-family:Helvetica;'>
                                 Valour Password Recovery
@@ -545,11 +542,11 @@ public class User : Item, ISharedUser
                                 To reset your password, please use the following link: 
                               </p>
                               <p style='font-family:Helvetica;'>
-                                <a href='https://valour.gg/RecoverPassword/{recoveryCode}'>Click here to recover</a>
+                                <a href='{link}'>Click here to recover</a>
                               </p>
                             </body>";
 
-            string rawmsg = $"To reset your password, please go to the following link:\nhttps://valour.gg/RecoverPassword/{recoveryCode}";
+            string rawmsg = $"To reset your password, please go to the following link:\n{link}";
 
             var result = await EmailManager.SendEmailAsync(email, "Valour Password Recovery", rawmsg, emsg);
 
@@ -559,7 +556,7 @@ public class User : Item, ISharedUser
                 return Results.Problem("Sorry! There was an issue sending the email. Try again?");
             }
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem("Sorry! An unexpected error occured. Try again?");
