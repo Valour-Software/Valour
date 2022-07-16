@@ -44,10 +44,8 @@
             responseResult = new(true, $"Sending another email in {RateLimitSeconds - i} seconds!");
             StateHasChanged();
         }
-
-        var response = await Http.PostAsJsonAsync("api/user/resendemail", RegisterRequest);
-
-        responseResult = await response.Content.ReadFromJsonAsync<TaskResult>();
+        
+        responseResult = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/resendemail", RegisterRequest)).Data;
 
         time = DateTime.Now;
 

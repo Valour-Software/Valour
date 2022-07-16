@@ -162,9 +162,7 @@
             Referrer = referral
         };
 
-        var response = await Http.PostAsJsonAsync("api/user/register", registerRequest);
-
-        TaskResult result = await response.Content.ReadFromJsonAsync<TaskResult>();
+        TaskResult result = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/register", registerRequest)).Data;
 
         errorSpan = result.Message;
         responseSuccess = result.Success;
