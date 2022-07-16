@@ -24,7 +24,7 @@
 @code {
     private static readonly int RateLimitSeconds = 20;
 
-    [CascadingParameter]
+    [Parameter]
     public RegisterUserRequest RegisterRequest { get; set; }
 
     public DateTime time = DateTime.Now;
