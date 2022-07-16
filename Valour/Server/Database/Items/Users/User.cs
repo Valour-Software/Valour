@@ -376,11 +376,7 @@ public class User : Item, ISharedUser
             UserEmail userEmail = new()
             {
                 Email = request.Email,
-#if DEBUG
-                Verified = true,
-#else
                 Verified = false,
-#endif
                 UserId = user.Id
             };
 
@@ -408,7 +404,6 @@ public class User : Item, ISharedUser
             await db.EmailConfirmCodes.AddAsync(confirmCode);
             await db.SaveChangesAsync();
 
-            #if !DEBUG
             // Send registration email
             string emsg = $@"<body>
                               <h2 style='font-family:Helvetica;'>
@@ -431,7 +426,6 @@ public class User : Item, ISharedUser
                 await tran.RollbackAsync();
                 return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
             }
-            #endif
         }
         catch (Exception e)
         {
@@ -475,7 +469,6 @@ public class User : Item, ISharedUser
             await db.EmailConfirmCodes.AddAsync(confirmCode);
             await db.SaveChangesAsync();
 
-            #if !DEBUG
             // Send registration email
             string emsg = $@"<body>
                                   <h2 style='font-family:Helvetica;'>
@@ -498,7 +491,6 @@ public class User : Item, ISharedUser
                 await tran.RollbackAsync();
                 return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
             }
-            #endif
         }
         catch (Exception e)
         {
