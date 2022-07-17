@@ -7,18 +7,25 @@
 <div class="settings-inner">
     <p>Public</p>
     <p>
-        <input type="checkbox" @bind="publicValue" /> &nbsp; Setting a server to public will allow any user to join
+        <input type="checkbox" @oninput="OnCheckPublic" checked="@publicValue" /> &nbsp; Setting a server to public will allow any user to join
         through an invite link.
     </p>
-    <span class="text-danger">@publicSpan</span>
-    <br />
+    @if (!string.IsNullOrWhiteSpace(publicErrorSpan))
+    {
+        <span class="text-danger mb-4">@publicErrorSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(publicInfoSpan))
+    {
+        <span class="text-info mb-4">@publicInfoSpan</span>
+    }
 
-    <div class="invite-tab-holder">
+    <div class="invite-tab-holder mt-4">
         <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
         <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
     </div>
     <div class="invite-list">
-        @if (linksChosen) {
+        @if (linksChosen)
+        {
             <table>
                 <tr>
                     <th style="width: 110px;">Invite Code</th>
@@ -26,7 +33,8 @@
                     <th style="width: 125px;">Created</th>
                     <th style="width: 125px;">Expires</th>
                 </tr>
-                @foreach(var invite in Invites) {
+                @foreach (var invite in Invites)
+                {
                     <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
                 }
             </table>
@@ -42,7 +50,8 @@
 
     public bool publicValue;
 
-    public string publicSpan;
+    public string publicInfoSpan;
+    public string publicErrorSpan;
 
     public bool linksChosen = true;
 
@@ -99,21 +108,21 @@
         }
     }
 
-    public async Task OnSaveChanges()
+    public async Task OnCheckPublic()
     {
-        if (publicValue != Planet.Public)
-        {
-            Planet.Public = publicValue;
-            var result = await Planet.UpdateAsync(Planet);
+        publicValue = !publicValue;
 
-            if (result.Success)
-            {
-                publicSpan = "Updated successfully.";
-            }
-            else
-            {
-                publicSpan = "Failed to update. Try again?";
-            }
+        Planet.Public = publicValue;
+        var result = await Planet.UpdateAsync(Planet);
+
+        if (result.Success)
+        {
+            publicInfoSpan = "Updated successfully.";
+        }
+        else
+        {
+            publicValue = !Planet.Public;
+            publicErrorSpan = "Failed to update. Try again?";
         }
 
         StateHasChanged();
