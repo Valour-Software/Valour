@@ -534,16 +534,14 @@ public static class ValourClient
 
         var response = await PostAsyncWithResponse<AuthToken>($"api/user/token", request);
 
-        var token = response.Data.Id;
-
-        Console.WriteLine(token);
-
         if (!response.Success)
         {
             Console.WriteLine("Failed to request user token.");
             Console.WriteLine(response.Message);
-            return new TaskResult<string>(false, $"Failed to request user.", response.Message);
+            return new TaskResult<string>(false, $"Incorrect email or password. (Are you using your email?)", response.Message);
         }
+
+        var token = response.Data.Id;
 
         _token = token;
 
@@ -567,11 +565,11 @@ public static class ValourClient
 
         var response = await GetJsonAsync<User>($"api/user/self");
 
-        if (response is null)
-            return new TaskResult<User>(false, "Failed to get user.");
+        if (!response.Success)
+            return response;
 
         // Set reference to self user
-        Self = response;
+        Self = response.Data;
 
         Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
@@ -626,7 +624,7 @@ public static class ValourClient
     /// </summary>
     public static async Task JoinAllChannelsAsync()
     {
-        var planets = await GetJsonAsync<List<Planet>>("api/user/self/planets");
+        var planets = (await GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
 
         // Add to cache
         foreach (var planet in planets)
@@ -653,7 +651,12 @@ public static class ValourClient
     /// </summary>
     public static async Task LoadJoinedPlanetsAsync()
     {
-        var planets = await GetJsonAsync<List<Planet>>($"api/user/self/planets");
+        var response = await GetJsonAsync<List<Planet>>($"api/user/self/planets");
+
+        if (!response.Success)
+            return;
+
+        var planets = response.Data;
 
         // Add to cache
         foreach (var planet in planets)
@@ -672,10 +675,12 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var planetIds = await GetJsonAsync<List<long>>($"api/user/self/planetIds");
+        var response = await GetJsonAsync<List<long>>($"api/user/self/planetIds");
 
-        if (planetIds is null)
+        if (!response.Success)
             return;
+
+        var planetIds = response.Data;
 
         JoinedPlanets.Clear();
 
@@ -817,7 +822,7 @@ public static class ValourClient
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public static async Task<T> GetJsonAsync<T>(string uri, bool allowNull = false)
+    public static async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allowNull = false)
     {
         var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
 
@@ -829,7 +834,7 @@ public static class ValourClient
 
             // This means the null is expected
             if (allowNull && response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                return default(T);
+                return new TaskResult<T>(false, $"An error occured. ({response.StatusCode})");
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +
@@ -845,40 +850,42 @@ public static class ValourClient
             result = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
         }
 
-        return result;
+        return new TaskResult<T>(true, "Success", result);
     }
 
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public static async Task<string> GetAsync(string uri)
+    public static async Task<TaskResult<string>> GetAsync(string uri)
     {
         var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+        var msg = await response.Content.ReadAsStringAsync();
+
+        TaskResult<string> result = new()
+        {
+            Success = response.IsSuccessStatusCode,
+        };
 
         if (!response.IsSuccessStatusCode)
         {
-            var message = await response.Content.ReadAsStringAsync();
-
-            // This means the null is expected
-            if (message == "null")
-            {
-                return null;
-            }
+            result.Message = msg;
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {message}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
 
-            return null;
+            return result;
         }
         else
         {
-            return await response.Content.ReadAsStringAsync();
+            result.Message = "Success";
+            result.Data = msg;
+            return result;
         }
     }
 
@@ -890,11 +897,12 @@ public static class ValourClient
         StringContent stringContent = new StringContent(content);
 
         var response = await Http.PutAsync(uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = await response.Content.ReadAsStringAsync(),
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -903,7 +911,7 @@ public static class ValourClient
                               "Failed PUT response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -920,11 +928,12 @@ public static class ValourClient
         JsonContent jsonContent = JsonContent.Create(content);
 
         var response = await Http.PutAsync(uri, jsonContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = await response.Content.ReadAsStringAsync(),
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -933,7 +942,7 @@ public static class ValourClient
                               "Failed PUT response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -953,16 +962,18 @@ public static class ValourClient
 
         TaskResult<T> result = new()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
         };
 
         if (!result.Success)
         {
+            result.Message = await response.Content.ReadAsStringAsync();
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed PUT response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -989,11 +1000,12 @@ public static class ValourClient
             stringContent = new StringContent(content);
 
         var response = await Http.PostAsync(uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = await response.Content.ReadAsStringAsync(),
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -1002,7 +1014,7 @@ public static class ValourClient
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -1019,11 +1031,12 @@ public static class ValourClient
         JsonContent jsonContent = JsonContent.Create(content);
 
         var response = await Http.PostAsync(uri, jsonContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = await response.Content.ReadAsStringAsync(),
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -1032,7 +1045,7 @@ public static class ValourClient
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -1057,17 +1070,21 @@ public static class ValourClient
 
         if (!result.Success)
         {
+            result.Message = await response.Content.ReadAsStringAsync(); ;
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
         }
         else
         {
+            result.Message = "Success";
+
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
@@ -1091,17 +1108,21 @@ public static class ValourClient
 
         if (!result.Success)
         {
+            result.Message = await response.Content.ReadAsStringAsync();
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
         }
         else
         {
+            result.Message = "Success";
+
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
@@ -1125,17 +1146,21 @@ public static class ValourClient
 
         if (!result.Success)
         {
+            result.Message = await response.Content.ReadAsStringAsync();
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
         }
         else
         {
+            result.Message = "Success";
+
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
@@ -1162,23 +1187,26 @@ public static class ValourClient
 
         if (!result.Success)
         {
+            result.Message = await response.Content.ReadAsStringAsync();
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
         }
         else
         {
+            result.Message = "Success";
+
             if (typeof(T) == typeof(string))
                 result.Data = (T)(object)(await response.Content.ReadAsStringAsync());
             else
             {
                 result.Data = await JsonSerializer.DeserializeAsync<T>(await response.Content.ReadAsStreamAsync(), DefaultJsonOptions);
-                Console.WriteLine(result.Data is null);
             }
         }
 
@@ -1191,20 +1219,23 @@ public static class ValourClient
     public static async Task<TaskResult> DeleteAsync(string uri)
     {
         var response = await Http.DeleteAsync(uri);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = await response.Content.ReadAsStringAsync(),
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
         {
+            result.Message = $"An error occured. ({response.StatusCode})";
+
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed DELETE response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
