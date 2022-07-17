@@ -184,7 +184,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
                 return cached;
         }
 
-        var item = await ValourClient.GetJsonAsync<PlanetChatChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{id}");
+        var item = (await ValourClient.GetJsonAsync<PlanetChatChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();
@@ -198,18 +198,18 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     } 
 
     public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
-        await ValourClient.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}");
+        (await ValourClient.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}")).Data;
 
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
     public async Task<List<PlanetMessage>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
-        await ValourClient.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}");
+        (await ValourClient.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data;
 
     /// <summary>
     /// Returns the last (count) messages
     /// </summary>
     public async Task<List<PlanetMessage>> GetLastMessagesAsync(int count = 10) =>
-        await ValourClient.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}");
+        (await ValourClient.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data;
 }
 

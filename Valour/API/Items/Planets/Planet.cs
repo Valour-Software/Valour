@@ -69,7 +69,7 @@ public class Planet : Item, ISharedPlanet
                 return cached;
         }
 
-        var item = await ValourClient.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}");
+        var item = (await ValourClient.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();
@@ -104,7 +104,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadCategoriesAsync()
     {
-        var categories = await ValourClient.GetJsonAsync<List<PlanetCategoryChannel>>($"{IdRoute}/categories");
+        var categories = (await ValourClient.GetJsonAsync<List<PlanetCategoryChannel>>($"{IdRoute}/categories")).Data;
 
         if (categories is null)
             return;
@@ -153,7 +153,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels");
+        var channels = (await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels")).Data;
 
         if (channels is null)
             return;
@@ -201,7 +201,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadMemberDataAsync()
     {
-        var result = await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo");
+        var result = (await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo")).Data;
 
         if (Members is null)
             Members = new List<PlanetMember>();
@@ -245,7 +245,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadInvitesAsync()
     {
-        var invites = await ValourClient.GetJsonAsync<List<PlanetInvite>>($"api/Planet/{Id}/invites");
+        var invites = (await ValourClient.GetJsonAsync<List<PlanetInvite>>($"api/Planet/{Id}/invites")).Data;
 
         if (invites is null)
             return;
@@ -289,7 +289,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadRolesAsync()
     {
-        var roles = await ValourClient.GetJsonAsync<List<PlanetRole>>($"{IdRoute}/roles");
+        var roles = (await ValourClient.GetJsonAsync<List<PlanetRole>>($"{IdRoute}/roles")).Data;
 
         if (roles is null)
             return;

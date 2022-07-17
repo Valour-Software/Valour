@@ -61,14 +61,16 @@
 
 		descSpan = "Planet created.";
 
-		var planet = await ValourClient.GetJsonAsync<Planet>($"api/planet/{planetId}");
+		var result = await ValourClient.GetJsonAsync<Planet>($"api/planet/{planetId}");
 
-		if (planet is null)
+		if (!result.Success)
 		{
 			Console.WriteLine($"Failed to retrieve planet {planetId}");
-			descSpan = "Created planet, but error occured retrieving. Please restart Valour.";
+			descSpan = result.Message;
 			return;
 		}
+
+		var planet = result.Data;
 
 		PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
 
