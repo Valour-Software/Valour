@@ -48,7 +48,7 @@
                     <span id="agreed-span" class="text-danger">@errorSpan</span>
 
                     <div class="form-group mt-4">
-                        <button class="btn v-button v-button-primary mt-2" @onclick="OnClickSubmit" disabled="@disableSubmit">Submit</button>
+                        <button class="btn v-button v-button-primary mt-2" @onclick="OnClickSubmit">Submit</button>
                     </div>
                 </section>
             }
@@ -70,8 +70,6 @@
     public RegisterUserRequest registerRequest;
 
     bool responseSuccess = false;
-
-    bool disableSubmit = false;
 
     // Input fields
     string email;
@@ -149,9 +147,6 @@
             return;
         }
 
-        disableSubmit = true;
-        StateHasChanged();
-
         registerRequest = new RegisterUserRequest()
         {
             Username = username,
@@ -163,8 +158,9 @@
         TaskResult result = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/register", registerRequest)).Data;
 
         errorSpan = result.Message;
-        responseSuccess = result.Success;
 
-        disableSubmit = result.Success;
+        // This is important so that the flag cannot be unset by a double click of the button
+        if (result.Success)
+            responseSuccess = true;
     }
 }

@@ -311,7 +311,7 @@ public class User : Item, ISharedUser
         var db = ctx.GetDb();
 
         if (request is null)
-            return Results.Json(new TaskResult(false, "Include request in body"));
+            return Results.Json(new TaskResult(false, "Include request in body"), statusCode: 400);
 
         // Prevent trailing whitespace
         request.Username = request.Username.Trim();
@@ -319,22 +319,22 @@ public class User : Item, ISharedUser
         request.Email = request.Email.ToLower();
 
         if (await db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
-            return Results.Json(new TaskResult(false, "Username is taken"));
+            return Results.Json(new TaskResult(false, "Username is taken"), statusCode: 400);
 
         if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
-            return Results.Json(new TaskResult(false, "This email has already been used"));
+            return Results.Json(new TaskResult(false, "This email has already been used"), statusCode: 400);
 
         var emailValid = UserUtils.TestEmail(request.Email);
         if (!emailValid.Success)
-            return Results.Json(emailValid);
+            return Results.Json(emailValid, statusCode: 400);
 
         var usernameValid = UserUtils.TestUsername(request.Username);
         if (!usernameValid.Success)
-            return Results.Json(usernameValid);
+            return Results.Json(usernameValid, statusCode: 400);
 
         var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
         if (!passwordValid.Success)
-            return Results.Json(passwordValid);
+            return Results.Json(passwordValid, statusCode: 400);
 
         Referral refer = null;
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
@@ -413,19 +413,19 @@ public class User : Item, ISharedUser
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
                 await tran.RollbackAsync();
-                return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
+                return Results.Json(new TaskResult(false, "Sorry! We had an issue emailing your confirmation. Try again?"), statusCode: 500);
             }
         }
         catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Json(new TaskResult(false, "Sorry! An unexpected error occured. Try again?"));
+            return Results.Json(new TaskResult(false, "Sorry! An unexpected error occured. Try again?"), statusCode: 500);
         }
 
         await tran.CommitAsync();
 
-        return Results.Json(new TaskResult(true, "Your confirmation email has been sent!"));
+        return Results.Json(new TaskResult(true, "Your confirmation email has been sent!"), statusCode: 200);
     }
 
     [ValourRoute(HttpVerbs.Post, "/resendemail"), InjectDb]
