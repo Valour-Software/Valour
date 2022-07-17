@@ -214,8 +214,7 @@ CREATE TABLE IF NOT EXISTS permissions_nodes (
 );
 
 CREATE TABLE IF NOT EXISTS referrals (
-    id BIGINT NOT NULL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL PRIMARY KEY,
     referrer_id BIGINT NOT NULL,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),

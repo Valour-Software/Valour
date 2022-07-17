@@ -346,7 +346,6 @@ public class User : Item, ISharedUser
 
             refer = new Referral()
             {
-                Id = IdManager.Generate(),
                 ReferrerId = referUser.Id
             };
         }
