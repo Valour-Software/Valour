@@ -45,7 +45,12 @@ namespace Valour.Client
         {
             // Store token for future use
             var user = await ValourClient.InitializeUser(token);
-            await StoreToken(storage);
+
+            if (user.Success)
+            {
+                await StoreToken(storage);
+            }
+
             return user;
         }
 
