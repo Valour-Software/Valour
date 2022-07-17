@@ -337,8 +337,9 @@ public class User : Item, ISharedUser
             return ValourResult.BadRequest(passwordValid.Message);
 
         Referral refer = null;
-        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
+            request.Referrer = request.Referrer.Trim();
             var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
             if (referUser is null)
                 return ValourResult.NotFound("Referrer not found");
@@ -351,7 +352,6 @@ public class User : Item, ISharedUser
 
         byte[] salt = PasswordManager.GenerateSalt();
         byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
-
 
         using var tran = await db.Database.BeginTransactionAsync();
 
