@@ -311,37 +311,38 @@ public class User : Item, ISharedUser
         var db = ctx.GetDb();
 
         if (request is null)
-            return Results.Json(new TaskResult(false, "Include request in body"), statusCode: 400);
+            return Results.Json(new TaskResult(false, "Include request in body"));
 
         // Prevent trailing whitespace
         request.Username = request.Username.Trim();
+        request.Referrer = request.Referrer.Trim();
         // Prevent comparisons issues
         request.Email = request.Email.ToLower();
 
         if (await db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
-            return Results.Json(new TaskResult(false, "Username is taken"), statusCode: 400);
+            return Results.Json(new TaskResult(false, "Username is taken"));
 
         if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
-            return Results.Json(new TaskResult(false, "This email has already been used"), statusCode: 400);
+            return Results.Json(new TaskResult(false, "This email has already been used"));
 
         var emailValid = UserUtils.TestEmail(request.Email);
         if (!emailValid.Success)
-            return Results.Json(emailValid, statusCode: 400);
+            return Results.Json(emailValid);
 
         var usernameValid = UserUtils.TestUsername(request.Username);
         if (!usernameValid.Success)
-            return Results.Json(usernameValid, statusCode: 400);
+            return Results.Json(usernameValid);
 
         var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
         if (!passwordValid.Success)
-            return Results.Json(passwordValid, statusCode: 400);
+            return Results.Json(passwordValid);
 
         Referral refer = null;
-        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
             if (referUser is null)
-                return Results.Json("Referrer not found");
+                return Results.Json(new TaskResult(false, "Referrer not found"));
 
             refer = new Referral()
             {
@@ -413,19 +414,19 @@ public class User : Item, ISharedUser
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
                 await tran.RollbackAsync();
-                return Results.Json(new TaskResult(false, "Sorry! We had an issue emailing your confirmation. Try again?"), statusCode: 500);
+                return Results.Json(new TaskResult(false, "Sorry! We had an issue emailing your confirmation. Try again?"));
             }
         }
         catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Json(new TaskResult(false, "Sorry! An unexpected error occured. Try again?"), statusCode: 500);
+            return Results.Json(new TaskResult(false, "Sorry! An unexpected error occured. Try again?"));
         }
 
         await tran.CommitAsync();
 
-        return Results.Json(new TaskResult(true, "Your confirmation email has been sent!"), statusCode: 200);
+        return Results.Json(new TaskResult(true, "Your confirmation email has been sent!"));
     }
 
     [ValourRoute(HttpVerbs.Post, "/resendemail"), InjectDb]
@@ -466,7 +467,7 @@ public class User : Item, ISharedUser
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
                 await tran.RollbackAsync();
-                return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
+                return Results.Json(new TaskResult(false, "Sorry! We had an issue emailing your confirmation. Try again?"));
             }
         }
         catch (Exception e)
