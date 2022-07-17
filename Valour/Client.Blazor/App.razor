@@ -79,8 +79,6 @@ else
         // Attempt to re-login the user from local token
         TaskResult<User> tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage, navManager);
 
-        Console.WriteLine(tokenResult.Message);
-
         triedInitialLogin = true;
 
         await JS.InvokeAsync<object>(
