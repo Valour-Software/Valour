@@ -11,7 +11,7 @@
 <!-- Check login status -->
 @if (!ValourClient.IsLoggedIn)
 {
-	<LoginComponent></LoginComponent>
+	<LoginComponent FromVerified="false"></LoginComponent>
 	return;
 }
 
@@ -63,7 +63,6 @@
 
 
 @code {
-
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();

@@ -34,18 +34,10 @@ namespace Valour.Server
 
         public static NodeAPI NodeAPI { get; set; }
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             // Load configs
-            LoadConfigsAsync();
-
-            // Communicate with core node
-#if (NODES)
-            HttpClient client = new();
-            client.pos
-#else
-
-#endif
+            await LoadConfigsAsync();
 
             // Create builder
             var builder = WebApplication.CreateBuilder(args);

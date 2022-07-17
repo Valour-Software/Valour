@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS planet_members (
 
 CREATE TABLE IF NOT EXISTS planet_messages (
     id BIGINT NOT NULL PRIMARY KEY,
+    reply_to_id BIGINT,
     author_user_id BIGINT NOT NULL,
     content TEXT NOT NULL,
     time_sent TIMESTAMP NOT NULL,
@@ -169,7 +170,8 @@ CREATE TABLE IF NOT EXISTS planet_messages (
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
     CONSTRAINT fk_member FOREIGN KEY(author_member_id) REFERENCES planet_members(id),
     CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES planet_chat_channels(id),
-    CONSTRAINT fk_author FOREIGN KEY(author_user_id) REFERENCES users(id)
+    CONSTRAINT fk_author FOREIGN KEY(author_user_id) REFERENCES users(id),
+    CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES planet_messages(id)
 );
 
 CREATE TABLE IF NOT EXISTS planet_roles (
@@ -214,8 +216,7 @@ CREATE TABLE IF NOT EXISTS permissions_nodes (
 );
 
 CREATE TABLE IF NOT EXISTS referrals (
-    id BIGINT NOT NULL PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL PRIMARY KEY,
     referrer_id BIGINT NOT NULL,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),

@@ -47,7 +47,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/{id}");
+        var member = (await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/{id}")).Data;
 
         if (member is not null)
             await member.AddToCache();
@@ -73,7 +73,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
                 return cached;
         }
 
-        var member = await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/byuser/{userId}");
+        var member = (await ValourClient.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/byuser/{userId}")).Data;
 
         if (member is not null)
         {
@@ -136,7 +136,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     /// Returns the authority of the member
     /// </summary>
     public async Task<int> GetAuthorityAsync() =>
-        await ValourClient.GetJsonAsync<int>($"{IdRoute}/authority");
+        (await ValourClient.GetJsonAsync<int>($"{IdRoute}/authority")).Data;
 
     /// <summary>
     /// Loads all role Ids from the server
@@ -144,7 +144,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
     public async Task LoadRolesAsync(List<long> roleIds = null)
     {
         if (roleIds is null)
-            roleIds = await ValourClient.GetJsonAsync<List<long>>($"{IdRoute}/roles");
+            roleIds = (await ValourClient.GetJsonAsync<List<long>>($"{IdRoute}/roles")).Data;
 
         if (Roles is null)
             Roles = new List<PlanetRole>();

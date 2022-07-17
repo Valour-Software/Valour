@@ -143,12 +143,12 @@ public class User : Item, ISharedUser
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return ValourResult.Problem(e.Message);
         }
 
         await tran.CommitAsync();
 
-        return Results.LocalRedirect("/", true, false);
+        return Results.LocalRedirect("/FromVerify", true, false);
     }
 
     [ValourRoute(HttpVerbs.Post, "/self/logout"), TokenRequired, InjectDb]
@@ -164,10 +164,10 @@ public class User : Item, ISharedUser
             AuthToken.QuickCache.Remove(token.Id, out _);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return ValourResult.Problem(e.Message);
         }
 
         return Results.Ok("Come back soon!");
@@ -195,7 +195,7 @@ public class User : Item, ISharedUser
         var db = ctx.GetDb();
 
         if (tokenRequest is null)
-            return Results.BadRequest("Include request in body.");
+            return ValourResult.BadRequest("Include request in body.");
 
         UserEmail userEmail = await db.UserEmails
             .Include(x => x.User)
@@ -250,7 +250,7 @@ public class User : Item, ISharedUser
         catch (Exception e)
         {
             logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return ValourResult.Problem(e.Message);
         }
 
         return Results.Json(token);
@@ -263,7 +263,7 @@ public class User : Item, ISharedUser
         var db = ctx.GetDb();
 
         if (request is null)
-            return Results.BadRequest("Include request in body.");
+            return ValourResult.BadRequest("Include request in body.");
 
         var recovery = await db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == request.Code);
         if (recovery is null)
@@ -271,12 +271,12 @@ public class User : Item, ISharedUser
 
         var passValid = UserUtils.TestPasswordComplexity(request.Password);
         if (!passValid.Success)
-            return Results.BadRequest(passValid.Message);
+            return ValourResult.BadRequest(passValid.Message);
 
         // Old credentialsto set 
         Credential cred = await db.Credentials.FirstOrDefaultAsync(x => x.UserId == recovery.UserId);
         if (cred is null)
-            return Results.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");
+            return ValourResult.BadRequest("No old credentials found. Do you log in via third party service (Like Google)?");
 
         using var tran = await db.Database.BeginTransactionAsync();
 
@@ -296,7 +296,7 @@ public class User : Item, ISharedUser
         catch (Exception e)
         {
             logger.LogError(e.Message);
-            return Results.Problem("We're sorry. Something unexpected occured. Try again?");
+            return ValourResult.Problem("We're sorry. Something unexpected occured. Try again?");
         }
 
         await tran.CommitAsync();
@@ -311,35 +311,38 @@ public class User : Item, ISharedUser
         var db = ctx.GetDb();
 
         if (request is null)
-            return Results.Json(new TaskResult(false, "Include request in body"));
+            return ValourResult.BadRequest("Include request in body");
 
         // Prevent trailing whitespace
         request.Username = request.Username.Trim();
+        // Prevent comparisons issues
+        request.Email = request.Email.ToLower();
 
         if (await db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
-            return Results.Json(new TaskResult(false, "Username is taken"));
+            return ValourResult.BadRequest("Username is taken");
 
-        if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email.ToLower()))
-            return Results.Json(new TaskResult(false, "This email has already been used"));
+        if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
+            return ValourResult.BadRequest("This email has already been used");
 
         var emailValid = UserUtils.TestEmail(request.Email);
         if (!emailValid.Success)
-            return Results.Json(emailValid);
+            return ValourResult.BadRequest(emailValid.Message);
 
         var usernameValid = UserUtils.TestUsername(request.Username);
         if (!usernameValid.Success)
-            return Results.Json(usernameValid);
+            return ValourResult.BadRequest(usernameValid.Message);
 
         var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
         if (!passwordValid.Success)
-            return Results.Json(passwordValid);
+            return ValourResult.BadRequest(passwordValid.Message);
 
         Referral refer = null;
-        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
+            request.Referrer = request.Referrer.Trim();
             var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
             if (referUser is null)
-                return Results.Json("Referrer not found");
+                return ValourResult.NotFound("Referrer not found");
 
             refer = new Referral()
             {
@@ -349,7 +352,6 @@ public class User : Item, ISharedUser
 
         byte[] salt = PasswordManager.GenerateSalt();
         byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
-
 
         using var tran = await db.Database.BeginTransactionAsync();
 
@@ -411,19 +413,19 @@ public class User : Item, ISharedUser
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
                 await tran.RollbackAsync();
-                return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
+                return ValourResult.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
             }
         }
         catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Json(new TaskResult(false, "Sorry! An unexpected error occured. Try again?"));
+            return ValourResult.Problem("Sorry! An unexpected error occured. Try again?");
         }
 
         await tran.CommitAsync();
 
-        return Results.Json(new TaskResult(true, "Your confirmation email has been sent!"));
+        return Results.Ok("Your confirmation email has been sent!");
     }
 
     [ValourRoute(HttpVerbs.Post, "/resendemail"), InjectDb]
@@ -433,24 +435,27 @@ public class User : Item, ISharedUser
         var db = ctx.GetDb();
 
         if (request is null)
-            return Results.Json(new TaskResult(false, "Include request in body"));
+            return ValourResult.BadRequest("Include request in body");
 
-        Credential credentials = await db.Credentials.FirstOrDefaultAsync(x => x.Identifier.ToLower() == request.Email.ToLower());
+        UserEmail userEmail = await db.UserEmails.FindAsync(request.Email);
 
-        if (credentials is null)
-            return Results.Json(new TaskResult(false, "Could not find credentials. Retry registration?"));
+        if (userEmail is null)
+            return ValourResult.NotFound("Could not find user. Retry registration?");
+
+        if (userEmail.Verified)
+            return Results.Ok("You are already verified, you can close this!");
 
         using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
-            db.EmailConfirmCodes.RemoveRange(db.EmailConfirmCodes.Where(x => x.UserId == credentials.UserId));
+            db.EmailConfirmCodes.RemoveRange(db.EmailConfirmCodes.Where(x => x.UserId == userEmail.UserId));
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()
             {
                 Code = emailCode,
-                UserId = credentials.UserId
+                UserId = userEmail.UserId
             };
 
             await db.EmailConfirmCodes.AddAsync(confirmCode);
@@ -461,19 +466,19 @@ public class User : Item, ISharedUser
             {
                 logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
                 await tran.RollbackAsync();
-                return Results.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
+                return ValourResult.Problem("Sorry! We had an issue emailing your confirmation. Try again?");
             }
         }
         catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Json(new TaskResult(false, "Sorry! An unexpected error occured. Try again?"));
+            return ValourResult.Problem("Sorry! An unexpected error occured. Try again?");
         }
 
         await tran.CommitAsync();
 
-        return Results.Json(new TaskResult(true, "Confirmation email has been resent!"));
+        return Results.Ok("Confirmation email has been resent!");
     }
 
     private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
@@ -553,13 +558,13 @@ public class User : Item, ISharedUser
             if (!result.IsSuccessStatusCode)
             {
                 logger.LogError($"Error issuing password reset email to {email}. Status code {result.StatusCode}.");
-                return Results.Problem("Sorry! There was an issue sending the email. Try again?");
+                return ValourResult.Problem("Sorry! There was an issue sending the email. Try again?");
             }
         }
         catch (Exception e)
         {
             logger.LogError(e.Message);
-            return Results.Problem("Sorry! An unexpected error occured. Try again?");
+            return ValourResult.Problem("Sorry! An unexpected error occured. Try again?");
         }
 
         return Results.NoContent();
