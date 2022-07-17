@@ -289,15 +289,15 @@ public class Planet : Item, ISharedPlanet
         var db = ctx.GetDb();
 
         if (planet is null)
-            return Results.BadRequest("Include planet in body.");
+            return Results.Json(new TaskResult(false, "Include planet in body."), statusCode: 400);
 
         var nameValid = ValidateName(planet.Name);
         if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
+            return Results.Json(nameValid, statusCode: 400);
 
         var descValid = ValidateDescription(planet.Description);
         if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
+            return Results.Json(descValid, statusCode: 400);
 
         var user = await FindAsync<User>(token.UserId, db);
 
@@ -305,7 +305,7 @@ public class Planet : Item, ISharedPlanet
         {
             var ownedPlanets = await db.Planets.CountAsync(x => x.OwnerId == user.Id);
             if (ownedPlanets > MAX_OWNED_PLANETS)
-                return ValourResult.Forbid("You have reached the maximum owned planets!");
+                return Results.Json(new TaskResult(false, "You have reached the maximum owned planets!"), statusCode: 400);
         }
 
         // Default image to start
@@ -371,11 +371,11 @@ public class Planet : Item, ISharedPlanet
 
             await planet.AddMemberAsync(user, db, false);
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return Results.Json(new TaskResult(false, "Sorry! We had an issue creating your planet. Try again?"), statusCode: 500);
         }
 
         await tran.CommitAsync();
