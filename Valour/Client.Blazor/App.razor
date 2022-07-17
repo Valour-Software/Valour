@@ -117,7 +117,7 @@ else
     public async Task<string> AppUpdate()
     {
         // Get latest version number
-        newVersion = await ValourClient.GetAsync("api/version");
+        newVersion = (await ValourClient.GetAsync("api/version")).Data;
 
         Console.WriteLine("New version available");
         hideUpdate = false;

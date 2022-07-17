@@ -86,7 +86,7 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
                 return cached;
         }
 
-        var item = await ValourClient.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}");
+        var item = (await ValourClient.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();

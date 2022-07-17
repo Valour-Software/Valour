@@ -37,5 +37,5 @@ public class OauthApp : ISharedOauthApp {
     public string Name { get; set; }
 
     public static async Task<OauthApp> FindAsync(ulong id) => 
-        await ValourClient.GetJsonAsync<OauthApp>($"api/oauth/app/{id}");
+        (await ValourClient.GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
 }
