@@ -15,7 +15,7 @@ public class Permission
     /// <summary>
     /// Permission node to have complete control
     /// </summary>
-    public const long FULL_CONTROL = long.MinValue;
+    public const long FULL_CONTROL = ~(0x0);
 
     /// <summary>
     /// The name of this permission
