@@ -123,13 +123,14 @@ hr {
 }
 
 .index-back {
-  background-image: url("../media/Spookvooper-tall.svg");
-  background-position: center;
-  background-repeat: no-repeat;
-  height: calc(100% - 74px);
-  margin: 0;
-  padding: 20px;
-  background-size: cover;
+    /* Jpeg loads first on slow connections */
+    background-image: url("../media/Spookvooper-tall.svg"),url("../media/Spookvooper-tall-comp.jpg");
+    background-position: center;
+    background-repeat: no-repeat;
+    height: calc(100% - 74px);
+    margin: 0;
+    padding: 20px;
+    background-size: cover;
 }
 
 .v-link {
