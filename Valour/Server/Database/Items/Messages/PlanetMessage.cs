@@ -23,6 +23,16 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
     [JsonIgnore]
     public PlanetMember User { get; set; }
 
+    [ForeignKey("ReplyToId")]
+    [JsonIgnore]
+    public PlanetMessage ReplyToMessage { get; set; }
+
+    /// <summary>
+    /// The message (if any) this is a reply to
+    /// </summary>
+    [Column("reply_to_id")]
+    public long? ReplyToId { get; set; }
+
     /// <summary>
     /// The author's user ID
     /// </summary>

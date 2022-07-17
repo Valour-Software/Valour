@@ -18,6 +18,11 @@ namespace Valour.Shared.Items.Messages
     public interface ISharedMessage
     {
         /// <summary>
+        /// The message (if any) this is a reply to
+        /// </summary>
+        long? ReplyToId { get; set; }
+
+        /// <summary>
         /// The author's user ID
         /// </summary>
         long AuthorUserId { get; set; }
