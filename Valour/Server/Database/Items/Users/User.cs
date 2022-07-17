@@ -148,7 +148,7 @@ public class User : Item, ISharedUser
 
         await tran.CommitAsync();
 
-        return Results.LocalRedirect("/", true, false);
+        return Results.LocalRedirect("/FromVerify", true, false);
     }
 
     [ValourRoute(HttpVerbs.Post, "/self/logout"), TokenRequired, InjectDb]
@@ -164,7 +164,7 @@ public class User : Item, ISharedUser
             AuthToken.QuickCache.Remove(token.Id, out _);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -315,11 +315,13 @@ public class User : Item, ISharedUser
 
         // Prevent trailing whitespace
         request.Username = request.Username.Trim();
+        // Prevent comparisons issues
+        request.Email = request.Email.ToLower();
 
         if (await db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
             return Results.Json(new TaskResult(false, "Username is taken"));
 
-        if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email.ToLower()))
+        if (await db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
             return Results.Json(new TaskResult(false, "This email has already been used"));
 
         var emailValid = UserUtils.TestEmail(request.Email);
@@ -435,22 +437,25 @@ public class User : Item, ISharedUser
         if (request is null)
             return Results.Json(new TaskResult(false, "Include request in body"));
 
-        Credential credentials = await db.Credentials.FirstOrDefaultAsync(x => x.Identifier.ToLower() == request.Email.ToLower());
+        UserEmail? userEmail = await db.UserEmails.FindAsync(request.Email);
 
-        if (credentials is null)
-            return Results.Json(new TaskResult(false, "Could not find credentials. Retry registration?"));
+        if (userEmail is null)
+            return Results.Json(new TaskResult(false, "Could not find user. Retry registration?"));
+
+        if (userEmail.Verified)
+            return Results.Json(new TaskResult(true, "You are already verified, you can close this!"));
 
         using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
-            db.EmailConfirmCodes.RemoveRange(db.EmailConfirmCodes.Where(x => x.UserId == credentials.UserId));
+            db.EmailConfirmCodes.RemoveRange(db.EmailConfirmCodes.Where(x => x.UserId == userEmail.UserId));
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()
             {
                 Code = emailCode,
-                UserId = credentials.UserId
+                UserId = userEmail.UserId
             };
 
             await db.EmailConfirmCodes.AddAsync(confirmCode);
