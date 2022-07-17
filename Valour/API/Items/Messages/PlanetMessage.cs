@@ -10,6 +10,7 @@ using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Messages.Mentions;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Valour.Api.Items.Messages;
 
@@ -21,6 +22,11 @@ namespace Valour.Api.Items.Messages;
 
 public class PlanetMessage : PlanetItem, ISharedPlanetMessage
 {
+    /// <summary>
+    /// The message (if any) this is a reply to
+    /// </summary>
+    public long? ReplyToId { get; set; }
+
     /// <summary>
     /// The user's ID
     /// </summary>

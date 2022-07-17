@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using Valour.Shared.Items.Users;
+
 
 namespace Valour.Server.Database.Items.Users
 {
