@@ -35,6 +35,6 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-Valour.Web.MarkdownToHtml.LoadMarkdown();
+await Valour.Web.MarkdownToHtml.LoadMarkdown();
 app.Run();
 
