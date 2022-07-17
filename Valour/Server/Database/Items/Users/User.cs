@@ -315,6 +315,7 @@ public class User : Item, ISharedUser
 
         // Prevent trailing whitespace
         request.Username = request.Username.Trim();
+        request.Referrer = request.Referrer.Trim();
         // Prevent comparisons issues
         request.Email = request.Email.ToLower();
 
@@ -337,7 +338,7 @@ public class User : Item, ISharedUser
             return ValourResult.BadRequest(passwordValid.Message);
 
         Referral refer = null;
-        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer.Trim()))
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             var referUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
             if (referUser is null)
