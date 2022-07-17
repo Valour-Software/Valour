@@ -76,6 +76,34 @@ hr {
   color: var(--v-cyan) !important;
 }
 
+.btn-primary {
+    color: #fff;
+    background-color: #1b6ec2;
+    border-color: #1861ac;
+}
+
+.v-button {
+    color: #fff;
+    border-color: #fff;
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 90%;
+}
+
+.v-button:hover {
+    color: var(--v-cyan);
+    border-color: var(--v-cyan);
+}
+
+.v-button.danger {
+    color: rgb(255, 0, 0);
+    border-color: rgb(255, 0, 0);
+}
+
+.v-button.danger:hover {
+    color: white;
+    border-color: white;
+}
+
 .navbar-icon {
   width: 30px;
   height: 30px;
@@ -95,13 +123,14 @@ hr {
 }
 
 .index-back {
-  background-image: url("../media/Spookvooper-tall.jpg");
-  background-position: center;
-  background-repeat: no-repeat;
-  height: calc(100% - 74px);
-  margin: 0;
-  padding: 20px;
-  background-size: cover;
+    /* Jpeg loads first on slow connections */
+    background-image: url("../media/Spookvooper-tall.svg"),url("../media/Spookvooper-tall-comp.jpg");
+    background-position: center;
+    background-repeat: no-repeat;
+    height: calc(100% - 74px);
+    margin: 0;
+    padding: 20px;
+    background-size: cover;
 }
 
 .v-link {
@@ -109,20 +138,6 @@ hr {
   text-decoration: none;
 }
 
-a:link {
-    color: #12BEFF;
-    background-color: transparent;
-    text-decoration: none;
-}
-
-a:visited {
-    color: #804ac5;
-    background-color: transparent;
-    text-decoration: none;
-}
-
-a:hover {
-    color: #61D7F2;
-    background-color: transparent;
-    text-decoration: underline;
+.footer {
+    position: sticky !important;
 }

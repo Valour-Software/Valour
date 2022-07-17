@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Valour.Web.styles.css" asp-append-version="true" />
+    <meta name="msapplication-TileColor" content="#2d89ef">
+    <meta name="description" content="Valour is a community social platform based on privacy and transparency.">
+    <meta name="keywords" content="Chat, Communication, Gaming, Privacy">
+    <meta property="og:site_name" content="Valour">
+    <meta name="twitter:image:alt" content="The Valour logo">
+    <meta name="theme-color" content="#00FAFF">
 </head>
 <body style="height: 100vh; margin: 0px;">
     <header>
@@ -22,10 +28,13 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
+                            <a class="nav-link v-nav-link" href="@this.Context.Request.Scheme://app.@this.Context.Request.Host.ToUriComponent()">App</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link v-nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link v-nav-link" href="https://github.com/Vooper-Media-LLC/Valour/blob/main/PRIVACY">Privacy</a>
+                            <a class="nav-link v-nav-link" href="https://raw.githubusercontent.com/Vooper-Media-LLC/Valour/main/PRIVACY">Privacy</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link v-nav-link" asp-area="" asp-controller="FAQ" asp-action="Index">FAQ</a>
