@@ -859,25 +859,33 @@ public static class ValourClient
     public static async Task<TaskResult<string>> GetAsync(string uri)
     {
         var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+        var msg = await response.Content.ReadAsStringAsync();
+
+        TaskResult<string> result = new()
+        {
+            Success = response.IsSuccessStatusCode,
+        };
 
         if (!response.IsSuccessStatusCode)
         {
-            var message = await response.Content.ReadAsStringAsync();
+            result.Message = msg;
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed GET response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {message}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
 
-            return new TaskResult<string>(false, $"An error occured. ({response.StatusCode})");
+            return result;
         }
         else
         {
-            return new TaskResult<string>(true, "Success", await response.Content.ReadAsStringAsync());
+            result.Message = "Success";
+            result.Data = msg;
+            return result;
         }
     }
 
@@ -889,11 +897,12 @@ public static class ValourClient
         StringContent stringContent = new StringContent(content);
 
         var response = await Http.PutAsync(uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = $"An error occured. ({response.StatusCode})",
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -902,7 +911,7 @@ public static class ValourClient
                               "Failed PUT response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -919,11 +928,12 @@ public static class ValourClient
         JsonContent jsonContent = JsonContent.Create(content);
 
         var response = await Http.PutAsync(uri, jsonContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Message = $"An error occured. ({response.StatusCode})",
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -932,7 +942,7 @@ public static class ValourClient
                               "Failed PUT response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -952,18 +962,18 @@ public static class ValourClient
 
         TaskResult<T> result = new()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
         };
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
+            result.Message = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed PUT response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -990,28 +1000,24 @@ public static class ValourClient
             stringContent = new StringContent(content);
 
         var response = await Http.PostAsync(uri, stringContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
-
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
-        }
-        else
-        {
-            result.Message = await response.Content.ReadAsStringAsync();
         }
 
         return result;
@@ -1025,28 +1031,24 @@ public static class ValourClient
         JsonContent jsonContent = JsonContent.Create(content);
 
         var response = await Http.PostAsync(uri, jsonContent);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
-
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
-        }
-        else
-        {
-            result.Message = await response.Content.ReadAsStringAsync();
         }
 
         return result;
@@ -1068,13 +1070,13 @@ public static class ValourClient
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
+            result.Message = await response.Content.ReadAsStringAsync(); ;
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -1106,13 +1108,13 @@ public static class ValourClient
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
+            result.Message = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -1144,13 +1146,13 @@ public static class ValourClient
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
+            result.Message = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -1185,13 +1187,13 @@ public static class ValourClient
 
         if (!result.Success)
         {
-            result.Message = $"An error occured. ({response.StatusCode})";
+            result.Message = await response.Content.ReadAsStringAsync();
 
             Console.WriteLine("-----------------------------------------\n" +
                               "Failed POST response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {result.Message}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
@@ -1217,10 +1219,12 @@ public static class ValourClient
     public static async Task<TaskResult> DeleteAsync(string uri)
     {
         var response = await Http.DeleteAsync(uri);
+        var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
         {
-            Success = response.IsSuccessStatusCode
+            Success = response.IsSuccessStatusCode,
+            Message = msg
         };
 
         if (!result.Success)
@@ -1231,14 +1235,10 @@ public static class ValourClient
                               "Failed DELETE response for the following:\n" +
                               $"[{uri}]\n" +
                               $"Code: {response.StatusCode}\n" +
-                              $"Message: {await response.Content.ReadAsStringAsync()}\n" +
+                              $"Message: {msg}\n" +
                               $"-----------------------------------------");
 
             Console.WriteLine(Environment.StackTrace);
-        }
-        else
-        {
-            result.Message = await response.Content.ReadAsStringAsync();
         }
 
         return result;
