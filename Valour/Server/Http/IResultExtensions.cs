@@ -72,6 +72,57 @@ namespace Valour.Server.Http
             }
         }
 
+        private struct NotFoundResult : IResult
+        {
+            private string _message;
+
+            public NotFoundResult(string message)
+            {
+                _message = message;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 404;
+                await httpContext.Response.WriteAsync(_message);
+            }
+        }
+
+        private struct ProblemResult : IResult
+        {
+            private string _message;
+
+            public ProblemResult(string message)
+            {
+                _message = message;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 500;
+                await httpContext.Response.WriteAsync(_message);
+            }
+        }
+
+        private struct BadRequestResult : IResult
+        {
+            private string _message;
+
+            public BadRequestResult(string message)
+            {
+                _message = message;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 400;
+                await httpContext.Response.WriteAsync(_message);
+            }
+        }
+
+        public static IResult BadRequest(string reason) => new BadRequestResult(reason);
+        public static IResult Problem(string reason) => new ProblemResult(reason);
+        public static IResult NotFound(string reason) => new NotFoundResult(reason);
         public static IResult NotFound<T>() => new NotFoundResult<T>();
         public static IResult Forbid(string reason) => new ForbidResult(reason);
         public static IResult NoToken() => new NoTokenResult();

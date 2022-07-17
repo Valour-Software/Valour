@@ -45,7 +45,8 @@
                             </p>
                         </div>
                     </div>
-                    <span id="agreed-span" class="text-danger">@errorSpan</span>
+                    <span id="error-span" class="text-danger">@errorSpan</span>
+                    <span id="success-span" class="text-info">@successSpan</span>
 
                     <div class="form-group mt-4">
                         <button class="btn v-button v-button-primary mt-2" @onclick="OnClickSubmit">Submit</button>
@@ -80,11 +81,12 @@
 
     // Spans
     string errorSpan;
+    string successSpan;
 
     // Agreeance
     bool agreed;
 
-    protected async override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if (string.IsNullOrWhiteSpace(birthDayString))
         {
@@ -116,6 +118,7 @@
     private async Task OnClickSubmit(MouseEventArgs e)
     {
         errorSpan = "";
+        successSpan = "";
 
         if (!agreed)
         {
@@ -155,12 +158,17 @@
             Referrer = referral
         };
 
-        TaskResult result = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/register", registerRequest)).Data;
+        TaskResult result = await ValourClient.PostAsync("api/user/register", registerRequest);
 
-        errorSpan = result.Message;
-
-        // This is important so that the flag cannot be unset by a double click of the button
-        if (result.Success)
+        if (!result.Success)
+        {
+            errorSpan = result.Message;
+        }
+        else
+        {
+            // This is important so that the flag cannot be unset by a double click of the button
             responseSuccess = true;
+            successSpan = "Logging you in!";
+        }
     }
-}
+    }
