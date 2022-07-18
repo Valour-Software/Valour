@@ -142,9 +142,13 @@ namespace Valour.Server.Http
         public static IResult NotFound(string reason) => new NotFoundResult(reason);
         public static IResult NotFound<T>() => new NotFoundResult<T>();
         public static IResult Forbid(string reason) => new ForbidResult(reason);
-        public static IResult NoToken { get; } = new NoTokenResult();
-        public static IResult InvalidToken { get; } = new InvalidTokenResult();
-        public static IResult NotPlanetMember { get; } = new NotPlanetMemberResult();
+        public static IResult NoToken() => _noToken;
+        public static IResult InvalidToken() => _invalidToken;
+        public static IResult NotPlanetMember() => _notPlanetMember;
         public static IResult LacksPermission(Permission permission) => new LacksPermissionResult(permission);
+
+        private static readonly IResult _noToken = new NoTokenResult();
+        private static readonly IResult _invalidToken = new InvalidTokenResult();
+        private static readonly IResult _notPlanetMember = new NotPlanetMemberResult();
     }
 }

@@ -93,7 +93,7 @@ public class ItemAPI<T> where T : Item
                             var hasAuth = ctx.HttpContext.Request.Headers.ContainsKey("authorization");
 
                             if (!hasAuth)
-                                return ValourResult.NoToken;
+                                return ValourResult.NoToken();
 
                             var authKey = ctx.HttpContext.Request.Headers["authorization"];
 
@@ -104,7 +104,7 @@ public class ItemAPI<T> where T : Item
                             var authToken = await AuthToken.TryAuthorize(authKey, db);
 
                             if (authToken is null)
-                                return ValourResult.InvalidToken;
+                                return ValourResult.InvalidToken();
 
                             ctx.HttpContext.Items.Add("token", authToken);
 
@@ -157,7 +157,7 @@ public class ItemAPI<T> where T : Item
 
                             var member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
                             if (member is null)
-                                return ValourResult.NotPlanetMember;
+                                return ValourResult.NotPlanetMember();
 
                             foreach (var permEnum in memberAttr.permissions)
                             {

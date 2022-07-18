@@ -202,7 +202,7 @@ public class User : Item, ISharedUser
             .FirstOrDefaultAsync(x => x.Email.ToLower() == tokenRequest.Email.ToLower());
 
         if (userEmail is null)
-            return ValourResult.InvalidToken;
+            return ValourResult.InvalidToken();
 
         if (userEmail.User.Disabled)
             return ValourResult.Forbid("Your account is disabled.");
