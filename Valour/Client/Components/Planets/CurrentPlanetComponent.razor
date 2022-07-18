@@ -31,6 +31,16 @@
     {
         windowManager.OnPlanetFocused += OnPlanetChange;
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ItemObserver<Planet>.OnAnyUpdated += OnPlanetUpdate;
+    }
+
+
+    public async Task OnPlanetUpdate(Planet planet, bool newItem, int flags)
+    {
+        if (planet.Id == Planet.Id)
+        {
+            StateHasChanged();
+        }
     }
 
     // Must refresh if roles update because it may remove permission to
