@@ -14,6 +14,7 @@
                 <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
                 <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
                 <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
+                <div class="settings-button text-danger" @onclick="OnClickDelete">Delete</div>
             </div>
             <div class="col-md-9 edit-col-right">
                 @switch (selected)
@@ -49,6 +50,12 @@ else
 @code {
     [Parameter]
     public Planet Planet { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
 
     public string GetButtonClass(int tab)
     {
@@ -86,5 +93,34 @@ else
         selected = tab;
 
         StateHasChanged();
+    }
+
+    private async Task OnClickDelete()
+    {
+        ConfirmModalData modalData =
+        new($"Delete {Planet.Name}?",
+                "Are you sure?",
+                "Continue",
+                "Cancel",
+                async () =>
+                {
+                    Console.WriteLine("Confirmed planet deletion.");
+                    var result = await Valour.Api.Items.Item.DeleteAsync(Planet);
+
+                    if (result.Success)
+                    {
+                        await ModalInstance.CloseAsync();
+                    }
+                },
+                async () =>
+                {
+                    Console.WriteLine("Cancelled channel item deletion.");
+                }
+        );
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
+
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
     }
 }

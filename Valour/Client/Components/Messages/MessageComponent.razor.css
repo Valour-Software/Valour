@@ -305,6 +305,20 @@
     margin-bottom: -5px;
 }
 
+.message:hover .reply .author-pfp {
+    width: 25px;
+    height: 25px;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: -5px;
+}
+
+.message:hover .reply .time {
+    display: block;
+    font-size: 10px;
+    margin-left: -12px;
+}
+
 .reply .message-content {
     padding-left:40px;
 }

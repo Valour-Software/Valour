@@ -31,6 +31,12 @@
     {
         windowManager.OnPlanetFocused += OnPlanetChange;
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+
+        ValourClient.OnPlanetClose += async planet =>
+        {
+            if (planet.Id == Planet.Id)
+                await OnPlanetChange(null);
+        };
         ItemObserver<Planet>.OnAnyUpdated += OnPlanetUpdate;
     }
 

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.Http;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets;
@@ -138,7 +139,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public static TaskResult ValidateDescription(string description)
     {
-        if (description.Length > 128)
+        if (description is not null && description.Length > 128)
         {
             return new TaskResult(false, "Description must be under 128 characters.");
         }
@@ -289,15 +290,18 @@ public class Planet : Item, ISharedPlanet
         var db = ctx.GetDb();
 
         if (planet is null)
-            return Results.Json(new TaskResult(false, "Include planet in body."), statusCode: 400);
+            return ValourResult.BadRequest("Include planet in body.");
 
         var nameValid = ValidateName(planet.Name);
         if (!nameValid.Success)
-            return Results.Json(nameValid, statusCode: 400);
+            return ValourResult.BadRequest(nameValid.Message);
+
+        if (planet.Description is null)
+            planet.Description = String.Empty;
 
         var descValid = ValidateDescription(planet.Description);
         if (!descValid.Success)
-            return Results.Json(descValid, statusCode: 400);
+            return ValourResult.BadRequest(descValid.Message);
 
         var user = await FindAsync<User>(token.UserId, db);
 
@@ -305,11 +309,11 @@ public class Planet : Item, ISharedPlanet
         {
             var ownedPlanets = await db.Planets.CountAsync(x => x.OwnerId == user.Id);
             if (ownedPlanets > MAX_OWNED_PLANETS)
-                return Results.Json(new TaskResult(false, "You have reached the maximum owned planets!"), statusCode: 400);
+                return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
         // Default image to start
-        planet.IconUrl = "/media/logo/logo-512.png";
+        planet.IconUrl = "_content/Valour.Client/media/logo/logo-512.png";
 
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
@@ -375,7 +379,7 @@ public class Planet : Item, ISharedPlanet
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
-            return Results.Json(new TaskResult(false, "Sorry! We had an issue creating your planet. Try again?"), statusCode: 500);
+            return ValourResult.Problem("Sorry! We had an issue creating your planet. Try again?");
         }
 
         await tran.CommitAsync();
@@ -478,11 +482,11 @@ public class Planet : Item, ISharedPlanet
 
         try
         {
-            var channels = db.PlanetChatChannels.Where(x => x.PlanetId == id);
-            var categories = db.PlanetCategoryChannels.Where(x => x.PlanetId == id);
-            var roles = db.PlanetRoles.Where(x => x.PlanetId == id);
-            var members = db.PlanetMembers.Where(x => x.PlanetId == id);
-            var invites = db.PlanetInvites.Where(x => x.PlanetId == id);
+            var channels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).ToListAsync();
+            var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).ToListAsync();
+            var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).ToListAsync();
+            var members = await db.PlanetMembers.Where(x => x.PlanetId == id).ToListAsync();
+            var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).ToListAsync();
 
             // Channels (also deletes messages and nodes)
             foreach (var channel in channels)
@@ -490,11 +494,15 @@ public class Planet : Item, ISharedPlanet
                 await channel.DeleteAsync(db);
             }
 
+            await db.SaveChangesAsync();
+
             // Categories (also deletes nodes)
             foreach (var category in categories)
             {
                 await category.DeleteAsync(db);
             }
+
+            await db.SaveChangesAsync();
 
             // Roles (Also deletes role membership)
             foreach (var role in roles)
@@ -502,11 +510,15 @@ public class Planet : Item, ISharedPlanet
                 await role.DeleteAsync(db);
             }
 
+            await db.SaveChangesAsync();
+
             // Members
             foreach (var member in members)
             {
                 await member.DeleteAsync(db);
             }
+
+            await db.SaveChangesAsync();
 
             // Invites
             foreach (var invite in invites)
@@ -514,9 +526,13 @@ public class Planet : Item, ISharedPlanet
                 await invite.DeleteAsync(db);
             }
 
+            await db.SaveChangesAsync();
+
             db.Remove(planet);
 
             await db.SaveChangesAsync();
+
+            await tran.CommitAsync();
         }
         catch (System.Exception e)
         {
@@ -524,6 +540,8 @@ public class Planet : Item, ISharedPlanet
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
+
+        PlanetHub.NotifyPlanetDelete(planet);
 
         return Results.NoContent();
     }
