@@ -200,10 +200,6 @@
 
     public async Task SetupNewChannelAsync()
     {
-        MessageHolder.Clear();
-
-        MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
-
         SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId);
 
         InputComponent.SelfMember = SelfMember;
@@ -211,6 +207,10 @@
         InputComponent.MessageHolder = MessageHolder;
 
         Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
+
+        MessageHolder.Clear();
+
+        MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)
