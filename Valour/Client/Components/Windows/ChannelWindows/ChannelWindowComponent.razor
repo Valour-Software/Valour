@@ -10,44 +10,44 @@
     <CascadingValue Value='Window'>
         <CascadingValue Value='this'>
             <CascadingValue Value='SelfMember'>
-                <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
+                    <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
-                    <div class="channel-info">
-                        <h3 class="title">
-                            @Channel.Name
-                        </h3>
-                        @if (!string.IsNullOrWhiteSpace(Channel.Description))
-                        {
-                            <p class="description">
-                                @Channel.Description
-                            </p>
-                        }
-
-                        <div class="channel-buttons">
-                            <div class="channel-home" @onclick="ReturnHome">
-                                Home
-                            </div>
-                            @if (windowManager.GetWindowCount() > 1)
+                        <div class="channel-info">
+                            <h3 class="title">
+                                @Channel.Name
+                            </h3>
+                            @if (!string.IsNullOrWhiteSpace(Channel.Description))
                             {
-                                <div class="channel-close" @onclick="CloseWindow">
-                                    X
-                                </div>
+                                <p class="description">
+                                    @Channel.Description
+                                </p>
                             }
+
+                            <div class="channel-buttons">
+                                <div class="channel-home" @onclick="ReturnHome">
+                                    Home
+                                </div>
+                                @if (windowManager.GetWindowCount() > 1)
+                                {
+                                    <div class="channel-close" @onclick="CloseWindow">
+                                        X
+                                    </div>
+                                }
+                            </div>
+
                         </div>
 
+                        <CascadingValue Value='Channel_Permissions'>
+                            <MessageHolderComponent @ref="MessageHolder" @key='$"mh-{Window.Index}"'></MessageHolderComponent>
+                        </CascadingValue>
+
+                        @{
+                            var lastMessage = MessageHolder?.GetLastMessage();
+                        }
+
+                        <InputComponent @ref='InputComponent' />
+
                     </div>
-
-                    <CascadingValue Value='Channel_Permissions'>
-                        <MessageHolderComponent @ref="MessageHolder" @key='$"mh-{Window.Index}"'></MessageHolderComponent>
-                    </CascadingValue>
-
-                    @{
-                        var lastMessage = MessageHolder?.GetLastMessage();
-                    }
-
-                    <InputComponent @ref='InputComponent' />
-
-                </div>
             </CascadingValue>
         </CascadingValue>
     </CascadingValue>
@@ -89,6 +89,8 @@
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        Console.WriteLine("Initializing channel window component.");
+
         Channel = Window.Channel;
 
         Planet = await Window.Channel.GetPlanetAsync();
@@ -102,9 +104,9 @@
         ValourClient.OnMessageRecieved += OnRecieveMessage;
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 
-        await ValourClient.OpenChannel(Channel);
+        ValourClient.OnPlanetClose += OnPlanetClosed;
 
-        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId);
+        await ValourClient.OpenChannel(Channel);
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Index);
 
@@ -115,10 +117,13 @@
         await SetupNewChannelAsync();
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    public async Task OnPlanetClosed(Planet planet)
     {
-        InputComponent.SelfMember = SelfMember;
-        InputComponent.MessageHolder = MessageHolder;
+        if (planet.Id != Planet.Id)
+            return;
+
+        HomeWindow newWindow = new(Window.Index);
+        await windowManager.SetWindow(Window.Index, newWindow);
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -195,6 +200,14 @@
 
     public async Task SetupNewChannelAsync()
     {
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId);
+
+        InputComponent.SelfMember = SelfMember;
+
+        InputComponent.MessageHolder = MessageHolder;
+
+        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
+
         MessageHolder.Clear();
 
         var msgs = ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64));
@@ -203,8 +216,6 @@
             await ValourCache.Put(msg.BaseMessage.Id, msg.BaseMessage);
 
         MessageHolder.AddMessages(msgs);
-
-        Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)
