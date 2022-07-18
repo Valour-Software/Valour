@@ -182,10 +182,7 @@ public class PlanetMember : PlanetItem, ISharedPlanetMember
 
     public async Task DeleteAsync(ValourDB db)
     {
-        await db.BulkDeleteAsync(
-            db.PlanetRoleMembers.Where(x => x.MemberId == Id)
-        );
-
+        db.RemoveRange(db.PlanetRoleMembers.Where(x => x.MemberId == Id));
         db.PlanetMembers.Remove(this);
     }
 
