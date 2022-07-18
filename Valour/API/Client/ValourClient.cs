@@ -378,6 +378,9 @@ public static class ValourClient
 
         ValourCache.Remove<T>(item.Id);
 
+        // Invoke specific item deleted
+        await item.InvokeDeletedEventAsync();
+
         if (local is null)
         {
             // Invoke static "any" delete
@@ -386,7 +389,6 @@ public static class ValourClient
         else
         {
             // Invoke static "any" delete
-            await local.InvokeDeletedEventAsync();
             await ItemObserver<T>.InvokeAnyDeleted(local);
         }
     }
@@ -422,14 +424,6 @@ public static class ValourClient
 
         ItemObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdated;
         ItemObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
-
-        ItemObserver<Planet>.OnAnyDeleted += OnPlanetDeleted;
-    }
-
-    private static async Task OnPlanetDeleted(Planet planet)
-    {
-        JoinedPlanets.Remove(planet);
-        await ClosePlanet(planet);
     }
 
     private static async Task OnMemberRoleUpdated(PlanetRoleMember rolemember, bool newitem, int flags)
