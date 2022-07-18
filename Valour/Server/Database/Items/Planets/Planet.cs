@@ -109,7 +109,7 @@ public class Planet : Item, ISharedPlanet
     public long? PrimaryChannelId { get; set; }
 
     [JsonIgnore]
-    public static Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+    public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
 
     /// <summary>
     /// Validates that a given name is allowable for a planet

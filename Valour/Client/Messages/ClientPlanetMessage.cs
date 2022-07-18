@@ -59,6 +59,8 @@ public class ClientPlanetMessage
 
     public long AuthorMemberId => BaseMessage.AuthorMemberId;
 
+    public long? ReplyToId => BaseMessage.ReplyToId;
+
     public string Content => BaseMessage.Content;
 
     public DateTime TimeSent => BaseMessage.TimeSent;

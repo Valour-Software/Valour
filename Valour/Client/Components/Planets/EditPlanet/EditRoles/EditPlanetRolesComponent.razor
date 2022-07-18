@@ -91,7 +91,7 @@
             var role_x = role;
 
             <div  
-                @onmousedown='e => OnRoleItemClick(role_x)' 
+                @onpointerdown='e => OnRoleItemClick(role_x)' 
                 @ondragstart='() => OnRoleDrag(role_x)' 
                 @ondrop='async () => await OnRoleDrop(role_x)' 
                 draggable="true"

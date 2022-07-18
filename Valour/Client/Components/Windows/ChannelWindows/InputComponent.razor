@@ -4,8 +4,8 @@
 @using Valour.Api.Items.Messages
 
 <div>
-    <div style="opacity: 0.7; width: 95%">
-        <MessageComponent @ref="PreviewMessageComponent" Message="PreviewMessage" Submessage ="true" Last_Message="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
+    <div style="opacity: 0.7; width: 95%" class="preview-message">
+        <MessageComponent @ref="PreviewMessageComponent" Message="PreviewMessage" Submessage ="true" Ghost="true" Last_Message="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
     <div class="textbox-holder" @onclick="WindowComponent.ScrollToBottomAnim">
@@ -36,7 +36,6 @@
 
     public MessageHolderComponent MessageHolder { get; set; }
 
-    [CascadingParameter]
     public PlanetMember SelfMember { get; set; }
 
     /// <summary>
@@ -53,12 +52,17 @@
     /// The input currently within the chatbox, this is bound and any changes will
     /// be reflected within the box.
     /// </summary>
-    private string currentInput;
+    public string CurrentInput { get; set; }
 
     /// <summary>
     /// True if the mention selection system list visible
     /// </summary>
     private bool mentionSelect;
+
+    /// <summary>
+    /// The message that we are replying to if we are
+    /// </summary>
+    public ClientPlanetMessage ReplyingTo { get; set; }
 
     /// <summary>
     /// The message component for the preview message
@@ -175,14 +179,14 @@
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
-        Console.WriteLine(currentInput);
+        Console.WriteLine(CurrentInput);
 
-        if (currentInput == null)
+        if (CurrentInput == null)
         {
             return;
         }
 
-        string temp = currentInput.TrimEnd('\n');
+        string temp = CurrentInput.TrimEnd('\n');
         temp = temp.Trim();
 
         if (string.IsNullOrWhiteSpace(temp))
@@ -192,7 +196,7 @@
 
         if (temp != "")
         {
-            currentInput = "";
+            CurrentInput = "";
             await OnChatboxUpdate(null, "");
 
             // Post message to server
@@ -261,7 +265,7 @@
             input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
         }
 
-        currentInput = input;
+        CurrentInput = input;
 
         // Console.WriteLine(input);
 
@@ -272,28 +276,70 @@
         }
         else
         {
-            var innerMessage = new PlanetMessage()
-            {
-                AuthorUserId = SelfMember.UserId,
-                Content = input,
-                ChannelId = Window.Channel.Id,
-                AuthorMemberId = SelfMember.Id,
-                TimeSent = DateTime.UtcNow
-            };
-
-            PreviewMessage = new ClientPlanetMessage(innerMessage);
-
-            PreviewMessage.GenerateForPost();
-
-            await PreviewMessageComponent.SetMessage(PreviewMessage);
+            await UpdatePreviewMessage(input);
         }
 
         StateHasChanged();
     }
 
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
+
+    public async Task UpdatePreviewMessage(string input) {
+        var innerMessage = new PlanetMessage()
+        {
+            AuthorUserId = SelfMember.UserId,
+            Content = input,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = SelfMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = ReplyingTo?.Id
+        };
+
+        PreviewMessage = new ClientPlanetMessage(innerMessage);
+
+        PreviewMessage.GenerateForPost();
+
+        await PreviewMessageComponent.SetMessage(PreviewMessage);
+    }
+
+    public async Task SetReplyMessage(ClientPlanetMessage message)
+    {
+        PreviewMessageComponent.ReplyMessage = message;
+        ReplyingTo = message;
+        await UpdatePreviewMessage(PreviewMessage?.Content ?? "");
+        Refresh();
+
+        await InnerInput_Ref.FocusAsync();
+    }
+
+    public async Task RemoveReply()
+    {
+        ReplyingTo = null;
+        PreviewMessage.BaseMessage.ReplyToId = null;
+        PreviewMessageComponent.ReplyMessage = null;
+        PreviewMessageComponent.ReRender();
+
+        if (string.IsNullOrWhiteSpace(CurrentInput))
+        {
+            PreviewMessage = null;
+            await PreviewMessageComponent.SetMessage(null);
+        }
+    }
+
     public async Task PostMessage(string msg)
     {
         PlanetMessage innerMessage = new PlanetMessage(msg, SelfMember.Id, Window.Channel.Id, Window.Channel.PlanetId);
+
+        innerMessage.ReplyToId = ReplyingTo?.Id;
+
+        ReplyingTo = null;
+
+        PreviewMessageComponent.ReplyMessage = null;
+        PreviewMessageComponent.ReRender();
+
 
         ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
 

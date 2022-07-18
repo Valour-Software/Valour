@@ -1,81 +1,112 @@
 ﻿@inject IJSRuntime JS
 @implements IDisposable
+@using Valour.Api.Items.Messages;
 
 @if (Message == null)
 {
     return;
 }
-<ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component, this)'>
-<div id="@Id" class="@Class" style="@Style" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
 
-    @if (Minimal)
-    {
-        <div class="time-container">
-            <p class="time">
-                @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
-            </p> 
-        </div>
-        <div class="message-content">
-            
-            <p class="content" @ref="InnerRef">
-                @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
-                {
-                    <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-                }
-                else
-                {
-                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                }
-            </p>
-        </div>
+@{
+    var width = "";
+    if (Reply)
+        width = "fit-content";
+}
 
-    }
-    else
-    {
-        <div style="display:inline-block; position: absolute">
-            <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
-            <div class="time-container">
-                <p class="time">
-                    @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
-                </p>
-            </div>
-        </div>
-        <div class="message-content">
-            @if (Author != null)
+<div @onpointerup:stopPropagation='true' @onpointerup:preventDefault='true' style="width: @width">
+    <ContextMenuTrigger MenuId="message-context" @onpointerup='async () => { if (!Ghost) { await MessageContextMenuComponent.Initialize(Message, Window.Component, this); } }'>
+        <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
+
+            @if (Minimal)
             {
-                <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline' >
-                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
-                        @name
+                <div class="time-container">
+                    <p class="time">
+                        @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                    </p> 
+                </div>
+                <div class="message-content">
+            
+                    <p class="content" @ref="InnerRef">
+                        @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                        {
+                            <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                        }
+                        else
+                        {
+                            <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                        }
                     </p>
-                </ContextMenuTrigger>
+                </div>
 
-                <p class="role-name">
-                    &nbsp;- @roleName
-                </p>
             }
             else
             {
-                <p class="author-name" style="color: @roleColor;">
-                    User not found
-                </p>
-            }
-                <p class="content" @ref="InnerRef">
-                    @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                <div style="display:inline-block; position: absolute">
+                    <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                    <div class="time-container">
+                        <p class="time">
+                            @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                        </p>
+                    </div>
+                </div>
+                <div class="message-content">
+                    @if (Author != null)
                     {
+                        <div style="width: max-content">
+                            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
+                                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
+                                    @name
+                                </p>
+                            </ContextMenuTrigger>
 
-                        Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
-
-                        <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                            <p class="role-name">
+                                &nbsp;- @roleName
+                            </p>
+                        </div>
                     }
                     else
                     {
-                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                        <p class="author-name" style="color: @roleColor;">
+                            User not found
+                        </p>
                     }
-                </p>
+                    @if (ReplyMessage is not null && !Reply)
+                    {
+                        string replykey = "";
+                        if (Holder is null)
+                        {
+                            replykey = $"REPLYMESSAGE-{ReplyMessage.Id}";
+                        }
+                        else
+                        {
+                            replykey = $"{Window.Index}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
+                        }
+
+                        <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
+                    }
+                    <p class="content" @ref="InnerRef">
+                        @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                        {
+
+                            Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
+
+                            <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                        }
+                        else
+                        {
+                            <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                        }
+                    </p>
+                </div>
+
+                @if (Reply)
+                {
+                    <div class="reply-x">x</div>
+                }
+            }
         </div>
-    }
+    </ContextMenuTrigger>
 </div>
-</ContextMenuTrigger>   
 
 @code {
     // Demonstrates how a parent component can supply parameters
@@ -85,8 +116,11 @@
     [Parameter]
     public ClientPlanetMessage Last_Message { get; set; }
 
-    [Parameter]
+    [CascadingParameter]
     public MessageHolderComponent Holder { get; set; }
+
+    [CascadingParameter]
+    public ChatChannelWindow Window { get; set; }
 
     public MessageContentComponent ContentComponent;
 
@@ -103,6 +137,11 @@
     public bool ShouldRenderValue = false;
 
     public bool Minimal = false;
+
+    [Parameter]
+    public bool Reply { get; set; }
+
+    public ClientPlanetMessage ReplyMessage;
 
     public ElementReference this_ref;
 
@@ -131,22 +170,17 @@
                 _class += " edit";
             }
 
-            return _class;
-        }
-    }
+            if (Reply)
+            {
+                _class += " reply";
+            }
 
-    public string Style
-    {
-        get
-        {
-            if (Ghost)
+            if (ReplyMessage is not null) 
             {
-                return "opacity: 0.8";
+                _class += " hasreply";
             }
-            else
-            {
-                return "";
-            }
+
+            return _class;
         }
     }
 
@@ -178,8 +212,21 @@
 
     public async Task OnClickAsync()
     {
-        Console.WriteLine("Setting window selection due to click");
-        await ClientWindowManager.Instance.SetSelectedWindow(Holder.Window);
+        if (!Ghost)
+        {
+            Console.WriteLine("Setting window selection due to click");
+            await ClientWindowManager.Instance.SetSelectedWindow(Window);
+        }
+        else
+        {
+            if (Reply)
+            {
+                Console.WriteLine("Removing replyto");
+                var input = Window.Component.InputComponent;
+                await input.RemoveReply();
+
+            }
+        }
     }
 
     public async Task OpenEditMode()
@@ -189,7 +236,7 @@
         Edit = true;
         ReRender();
 
-        await Holder.Window.Component.OpenEditMode(this);
+        await Window.Component.OpenEditMode(this);
     }
 
     public async Task CloseEditMode()
@@ -227,11 +274,16 @@
             return;
         }
 
+        if (Message.ReplyToId is not null)
+        {
+            ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.BaseMessage.ReplyToId, Message.BaseMessage.ChannelId, Message.BaseMessage.PlanetId));
+        }
+
         CheckMinimal();
 
         if (!Submessage)
         {
-            var selfId = Holder.Window.Component.SelfMember.Id;
+            var selfId = Window.Component.SelfMember.Id;
 
             if (Message.BaseMessage.MentionsData != null)
             {
@@ -320,6 +372,10 @@
     {
         if (Last_Message != null && Message != null)
         {
+            if (ReplyMessage is not null) {
+                Minimal = false;
+                return;
+            }
             if (Last_Message.BaseMessage.AuthorUserId == Message.BaseMessage.AuthorUserId)
             {
                 Minimal = true;
