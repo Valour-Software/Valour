@@ -127,7 +127,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
         var member = await PlanetMember.FindAsync(token.UserId, planet.Id, db);
         if (member is null)
-            return ValourResult.NotPlanetMember();
+            return ValourResult.NotPlanetMember;
 
         if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
@@ -187,7 +187,7 @@ public class PermissionsNode : PlanetItem, ISharedPermissionsNode
 
         var member = await PlanetMember.FindAsync(token.UserId, planet.Id, db);
         if (member is null)
-            return ValourResult.NotPlanetMember();
+            return ValourResult.NotPlanetMember;
 
         if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
