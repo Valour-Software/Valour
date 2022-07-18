@@ -13,7 +13,7 @@
             {
                 string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
-                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last"></MessageComponent>
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last" Reply="false"></MessageComponent>
 
                 last = msg;
             }
@@ -31,7 +31,7 @@
             {
                 string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
-                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Ghost="true" Last_Message="last"></MessageComponent>
+                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Ghost="true" Last_Message="last" Reply="false"></MessageComponent>
 
                 last = msg;
             }

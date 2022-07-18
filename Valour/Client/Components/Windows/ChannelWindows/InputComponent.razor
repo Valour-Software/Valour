@@ -60,6 +60,11 @@
     private bool mentionSelect;
 
     /// <summary>
+    /// The message that we are replying to if we are
+    /// </summary>
+    public ClientPlanetMessage? ReplyingTo { get; set; }
+
+    /// <summary>
     /// The message component for the preview message
     /// </summary>
     public MessageComponent PreviewMessageComponent { get; set; }
@@ -271,28 +276,42 @@
         }
         else
         {
-            var innerMessage = new PlanetMessage()
-            {
-                AuthorUserId = SelfMember.UserId,
-                Content = input,
-                ChannelId = Window.Channel.Id,
-                AuthorMemberId = SelfMember.Id,
-                TimeSent = DateTime.UtcNow
-            };
-
-            PreviewMessage = new ClientPlanetMessage(innerMessage);
-
-            PreviewMessage.GenerateForPost();
-
-            await PreviewMessageComponent.SetMessage(PreviewMessage);
+            await UpdatePreviewMessage(input);
         }
 
         StateHasChanged();
     }
 
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
+
+    public async Task UpdatePreviewMessage(string input) {
+        var innerMessage = new PlanetMessage()
+        {
+            AuthorUserId = SelfMember.UserId,
+            Content = input,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = SelfMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = ReplyingTo?.Id
+        };
+
+        PreviewMessage = new ClientPlanetMessage(innerMessage);
+
+        PreviewMessage.GenerateForPost();
+
+        await PreviewMessageComponent.SetMessage(PreviewMessage);
+    }
+
     public async Task PostMessage(string msg)
     {
         PlanetMessage innerMessage = new PlanetMessage(msg, SelfMember.Id, Window.Channel.Id, Window.Channel.PlanetId);
+
+        innerMessage.ReplyToId = ReplyingTo.Id;
+
+        ReplyingTo = null;
 
         ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
 

@@ -398,6 +398,7 @@ public static class ValourClient
     /// </summary>
     private static async Task MessageRecieved(PlanetMessage message)
     {
+        await ValourCache.Put(message.Id, message);
         await OnMessageRecieved?.Invoke(message);
     }
 

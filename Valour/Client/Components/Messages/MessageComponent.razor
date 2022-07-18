@@ -1,5 +1,6 @@
 ﻿@inject IJSRuntime JS
 @implements IDisposable
+@using Valour.Api.Items.Messages;
 
 @if (Message == null)
 {
@@ -59,19 +60,32 @@
                     User not found
                 </p>
             }
-                <p class="content" @ref="InnerRef">
-                    @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
-                    {
+            @if (ReplyMessage is not null && !Reply)
+            {
+                string replykey = "";
+                if (Holder is null)
+                {
+                    replykey = $"REPLYMESSAGE-{ReplyMessage.Id}";
+                }
+                else
+                {
+                    replykey = $"{Holder.Window.Index}-{Holder.Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
+                }
+                <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Holder="@Holder" Submessage="true" Last_Message="@Message" Reply="true"></MessageComponent>
+            }
+            <p class="content" @ref="InnerRef">
+                @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                {
 
-                        Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
+                    Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
 
-                        <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
-                    }
-                    else
-                    {
-                        <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                    }
-                </p>
+                    <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                }
+                else
+                {
+                    <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                }
+            </p>
         </div>
     }
 </div>
@@ -104,6 +118,11 @@
 
     public bool Minimal = false;
 
+    [Parameter]
+    public bool Reply { get; set; }
+
+    public ClientPlanetMessage ReplyMessage;
+
     public ElementReference this_ref;
 
     public string Class
@@ -129,6 +148,16 @@
             if (Edit)
             {
                 _class += " edit";
+            }
+
+            if (Reply)
+            {
+                _class += " reply";
+            }
+
+            if (ReplyMessage is not null) 
+            {
+                _class += " hasreply";
             }
 
             return _class;
@@ -227,6 +256,11 @@
             return;
         }
 
+        if (Message.BaseMessage.ReplyToId is not null)
+        {
+            ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.BaseMessage.ReplyToId, Message.BaseMessage.ChannelId, Message.BaseMessage.PlanetId));
+        }
+
         CheckMinimal();
 
         if (!Submessage)
@@ -320,6 +354,10 @@
     {
         if (Last_Message != null && Message != null)
         {
+            if (ReplyMessage is not null) {
+                Minimal = false;
+                return;
+            }
             if (Last_Message.BaseMessage.AuthorUserId == Message.BaseMessage.AuthorUserId)
             {
                 Minimal = true;

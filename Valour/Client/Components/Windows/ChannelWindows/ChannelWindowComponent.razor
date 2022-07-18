@@ -197,7 +197,12 @@
     {
         MessageHolder.Clear();
 
-        MessageHolder.AddMessages(ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64)));
+        var msgs = ClientPlanetMessage.FromList(await Channel.GetLastMessagesAsync(64));
+
+        foreach (var msg in msgs)
+            await ValourCache.Put(msg.BaseMessage.Id, msg.BaseMessage);
+
+        MessageHolder.AddMessages(msgs);
 
         Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
     }
@@ -305,6 +310,9 @@
         {
             return;
         }
+
+        foreach (var msg in messages)
+            await ValourCache.Put(msg.Id, msg, true);
 
         await Window.Component.UpdateScrollPosition(); // This saves the scroll position
 

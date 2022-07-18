@@ -1,5 +1,6 @@
 @inject IJSRuntime JS
 @inject IBlazorContextMenuService contextService
+@using Valour.Api.Items.Messages
 
 <ContextMenu Id='message-context' CssClass='context' class='member-context'>
     <BlazorContextMenu.Item CssClass='context-item'>
@@ -10,17 +11,21 @@
         </SubMenu>
     </BlazorContextMenu.Item>
 
-    @if (Can_Delete == PermissionState.True)
-    {
-        <BlazorContextMenu.Item OnClick='OnClickDelete' CssClass='context-item'>
-            Delete
-        </BlazorContextMenu.Item>
-    }
+    <BlazorContextMenu.Item OnClick='OnClickReply' CssClass='context-item'>
+        Reply
+    </BlazorContextMenu.Item>
 
     @if (Message.AuthorUserId == ValourClient.Self.Id)
     {
         <BlazorContextMenu.Item OnClick='OnClickEdit' CssClass='context-item'>
             Edit
+        </BlazorContextMenu.Item>
+    }
+
+    @if (Can_Delete == PermissionState.True)
+    {
+        <BlazorContextMenu.Item OnClick='OnClickDelete' CssClass='context-item'>
+            Delete
         </BlazorContextMenu.Item>
     }
 
@@ -61,6 +66,15 @@
         }
 
         // Console.WriteLine(Can_Delete);
+    }
+
+    public async Task OnClickReply()
+    {
+        var inputcomponent = MessageComponent.Holder.Window.Component.InputComponent;
+        inputcomponent.PreviewMessageComponent.ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.BaseMessage.Id, Message.BaseMessage.ChannelId, Message.BaseMessage.PlanetId, true));
+        inputcomponent.ReplyingTo = Message;
+        await inputcomponent.UpdatePreviewMessage(inputcomponent.PreviewMessage?.Content ?? "");
+        inputcomponent.Refresh();
     }
 
     public async Task OnClickDelete()

@@ -129,6 +129,25 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
         }
     }
 
+    public static async ValueTask<PlanetMessage> FindAsync(long id, long channelid, long planetid, bool force_refresh = false)
+    {
+        if (!force_refresh)
+        {
+            var cached = ValourCache.Get<PlanetMessage>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var item = (await ValourClient.GetJsonAsync<PlanetMessage>($"api/{nameof(Planet)}/{planetid}/{nameof(PlanetChatChannel)}/{channelid}/message/{id}")).Data;
+
+        if (item is not null)
+        {
+            await ValourCache.Put(id, item);
+        }
+
+        return item;
+    }
+
     public void SetMentions(IEnumerable<Mention> mentions)
     {
         _mentions = mentions.ToList();
