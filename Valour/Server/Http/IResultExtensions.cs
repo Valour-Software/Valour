@@ -4,7 +4,23 @@ namespace Valour.Server.Http
 {
     public static class ValourResult
     {
-        private struct NoTokenResult : IResult
+        private struct OkResult : IResult
+        {
+            private readonly string _message;
+
+            public OkResult(string message)
+            {
+                _message = message;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 200;
+                await httpContext.Response.WriteAsync(_message);
+            }
+        }
+
+        private readonly struct NoTokenResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
             {
@@ -13,9 +29,9 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct ForbidResult : IResult
+        private readonly struct ForbidResult : IResult
         {
-            private string _reason;
+            private readonly string _reason;
 
             public ForbidResult(string reason)
             {
@@ -29,7 +45,7 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct InvalidTokenResult : IResult
+        private readonly struct InvalidTokenResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
             {
@@ -38,7 +54,7 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct NotPlanetMemberResult : IResult
+        private readonly struct NotPlanetMemberResult : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
             {
@@ -47,9 +63,9 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct LacksPermissionResult : IResult
+        private readonly struct LacksPermissionResult : IResult
         {
-            private Permission _perm;
+            private readonly Permission _perm;
 
             public LacksPermissionResult(Permission perm)
             {
@@ -63,18 +79,18 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct NotFoundResult<T> : IResult
+        private readonly struct NotFoundResult<T> : IResult
         {
             public async Task ExecuteAsync(HttpContext httpContext)
             {
                 httpContext.Response.StatusCode = 404;
-                await httpContext.Response.WriteAsync($"Object of type {typeof(T).Name} was not found.");
+                await httpContext.Response.WriteAsync($"{typeof(T).Name} was not found!");
             }
         }
 
-        private struct NotFoundResult : IResult
+        private readonly struct NotFoundResult : IResult
         {
-            private string _message;
+            private readonly string _message;
 
             public NotFoundResult(string message)
             {
@@ -88,9 +104,9 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct ProblemResult : IResult
+        private readonly struct ProblemResult : IResult
         {
-            private string _message;
+            private readonly string _message;
 
             public ProblemResult(string message)
             {
@@ -104,9 +120,9 @@ namespace Valour.Server.Http
             }
         }
 
-        private struct BadRequestResult : IResult
+        private readonly struct BadRequestResult : IResult
         {
-            private string _message;
+            private readonly string _message;
 
             public BadRequestResult(string message)
             {
@@ -120,6 +136,7 @@ namespace Valour.Server.Http
             }
         }
 
+        public static IResult Ok(string message) => new OkResult(message);
         public static IResult BadRequest(string reason) => new BadRequestResult(reason);
         public static IResult Problem(string reason) => new ProblemResult(reason);
         public static IResult NotFound(string reason) => new NotFoundResult(reason);

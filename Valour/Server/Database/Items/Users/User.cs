@@ -202,7 +202,7 @@ public class User : Item, ISharedUser
             .FirstOrDefaultAsync(x => x.Email.ToLower() == tokenRequest.Email.ToLower());
 
         if (userEmail is null)
-            return ValourResult.InvalidToken();
+            return ValourResult.InvalidToken;
 
         if (userEmail.User.Disabled)
             return ValourResult.Forbid("Your account is disabled.");
@@ -478,7 +478,7 @@ public class User : Item, ISharedUser
 
         await tran.CommitAsync();
 
-        return Results.Ok("Confirmation email has been resent!");
+        return ValourResult.Ok("Confirmation email has been resent!");
     }
 
     private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
