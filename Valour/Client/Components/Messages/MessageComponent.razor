@@ -6,9 +6,16 @@
 {
     return;
 }
-<div @onmousedown:stopPropagation='true' @onmousedown:preventDefault='true'>
-    <ContextMenuTrigger MenuId="message-context" @onmousedown='async () => await MessageContextMenuComponent.Initialize(Message, Holder.Window.Component, this)'>
-        <div id="@Id" class="@Class" style="@Style" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
+
+@{
+    var width = "";
+    if (Reply)
+        width = "fit-content";
+}
+
+<div @onpointerup:stopPropagation='true' @onpointerup:preventDefault='true' style="width: @width">
+    <ContextMenuTrigger MenuId="message-context" @onpointerup='async () => { if (!Ghost) { await MessageContextMenuComponent.Initialize(Message, Window.Component, this); } }'>
+        <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
 
             @if (Minimal)
             {
@@ -45,16 +52,17 @@
                 <div class="message-content">
                     @if (Author != null)
                     {
+                        <div style="width: max-content">
+                            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
+                                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
+                                    @name
+                                </p>
+                            </ContextMenuTrigger>
 
-                        <ContextMenuTrigger MenuId="member-context" @onmousedown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
-                            <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
-                                @name
+                            <p class="role-name">
+                                &nbsp;- @roleName
                             </p>
-                        </ContextMenuTrigger>
-
-                        <p class="role-name">
-                            &nbsp;- @roleName
-                        </p>
+                        </div>
                     }
                     else
                     {
@@ -71,10 +79,10 @@
                         }
                         else
                         {
-                            replykey = $"{Holder.Window.Index}-{Holder.Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
+                            replykey = $"{Window.Index}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
                         }
 
-                        <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Holder="@Holder" Submessage="true" Last_Message="@Message" Reply="true"></MessageComponent>
+                        <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                     }
                     <p class="content" @ref="InnerRef">
                         @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
@@ -90,6 +98,11 @@
                         }
                     </p>
                 </div>
+
+                @if (Reply)
+                {
+                    <div class="reply-x">x</div>
+                }
             }
         </div>
     </ContextMenuTrigger>
@@ -103,8 +116,11 @@
     [Parameter]
     public ClientPlanetMessage Last_Message { get; set; }
 
-    [Parameter]
+    [CascadingParameter]
     public MessageHolderComponent Holder { get; set; }
+
+    [CascadingParameter]
+    public ChatChannelWindow Window { get; set; }
 
     public MessageContentComponent ContentComponent;
 
@@ -168,21 +184,6 @@
         }
     }
 
-    public string Style
-    {
-        get
-        {
-            if (Ghost)
-            {
-                return "opacity: 0.8";
-            }
-            else
-            {
-                return "";
-            }
-        }
-    }
-
     string Id = "";
 
     string roleColor = "#ffffff";
@@ -211,8 +212,21 @@
 
     public async Task OnClickAsync()
     {
-        Console.WriteLine("Setting window selection due to click");
-        await ClientWindowManager.Instance.SetSelectedWindow(Holder.Window);
+        if (!Ghost)
+        {
+            Console.WriteLine("Setting window selection due to click");
+            await ClientWindowManager.Instance.SetSelectedWindow(Window);
+        }
+        else
+        {
+            if (Reply)
+            {
+                Console.WriteLine("Removing replyto");
+                var input = Window.Component.InputComponent;
+                await input.RemoveReply();
+
+            }
+        }
     }
 
     public async Task OpenEditMode()
@@ -222,7 +236,7 @@
         Edit = true;
         ReRender();
 
-        await Holder.Window.Component.OpenEditMode(this);
+        await Window.Component.OpenEditMode(this);
     }
 
     public async Task CloseEditMode()
@@ -260,7 +274,7 @@
             return;
         }
 
-        if (Message.BaseMessage.ReplyToId is not null)
+        if (Message.ReplyToId is not null)
         {
             ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.BaseMessage.ReplyToId, Message.BaseMessage.ChannelId, Message.BaseMessage.PlanetId));
         }
@@ -269,7 +283,7 @@
 
         if (!Submessage)
         {
-            var selfId = Holder.Window.Component.SelfMember.Id;
+            var selfId = Window.Component.SelfMember.Id;
 
             if (Message.BaseMessage.MentionsData != null)
             {

@@ -11,8 +11,21 @@ window.clipboardCopy = {
     }
 };
 
+/*
+document.addEventListener('pointerup', function (e) {
+
+    var elem = e.target;
+
+    console.log(elem.id)
+
+    if (typeof elem.onclick == "function") {
+        elem.onclick.apply(elem)
+    }
+}, true); 
+*/
+
 function EventForContextMenu(event) {
-    if (event.target.className.includes("EnableRightCLick")) {
+    if (event.target.className.includes("EnableRightClick")) {
         return;
     }
     else {

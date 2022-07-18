@@ -16,11 +16,13 @@
 .reply {
     border-left: 3px rgba(255, 255, 255, 0.2) solid;
     margin-left: 10px;
-    background-color: rgba(255, 255, 255, 0.01);
+    background-color: rgba(255, 255, 255, 0.04);
     border-bottom-right-radius: 8px;
     border-top-right-radius: 8px;
     margin-top: 5px;
     margin-bottom: 5px;
+    width: fit-content;
+    padding-right: 20px;
 }
 
 .message.mentioned {
@@ -305,6 +307,12 @@
     margin-bottom: -5px;
 }
 
+.preview-message .message .reply:hover {
+    padding-right: 50px !important;
+    background-color: rgba(255, 0, 0, 0.1) !important;
+    cursor: pointer;
+}
+
 .message:hover .reply .author-pfp {
     width: 25px;
     height: 25px;
@@ -321,4 +329,17 @@
 
 .reply .message-content {
     padding-left:40px;
+}
+
+.reply-x {
+    display: none;
+    position: absolute;
+    color: red;
+    top: 10px;
+    right: 5%;
+    font-size: 20px;
+}
+
+.preview-message .reply:hover .reply-x {
+    display: block;
 }
