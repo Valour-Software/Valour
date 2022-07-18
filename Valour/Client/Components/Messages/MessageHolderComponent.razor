@@ -1,42 +1,43 @@
 ﻿@inject IJSRuntime JS
 
 <div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
-    
-    @{
-        ClientPlanetMessage last = null;    
+    <CascadingValue Value="this">
+        @{
+            ClientPlanetMessage last = null;    
 
-        if (Messages != null && Messages.Count > 0)
-        {
-            last = null;
-
-            foreach (ClientPlanetMessage msg in Messages)
+            if (Messages != null && Messages.Count > 0)
             {
-                string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+                last = null;
 
-                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Last_Message="last"></MessageComponent>
+                foreach (ClientPlanetMessage msg in Messages)
+                {
+                    string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
-                last = msg;
+                    <MessageComponent Message="msg" Key="@key" @key='msg' Submessage="false" Last_Message="last" Reply="false"></MessageComponent>
+
+                    last = msg;
+                }
+            }
+
+            if (QueuedMessages != null && QueuedMessages.Count > 0){
+                last = null;
+
+                if (Messages != null)
+                {
+                    last = Messages.Last();
+                }
+
+                foreach (ClientPlanetMessage msg in QueuedMessages)
+                {
+                    string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+
+                    <MessageComponent Message="msg" Key="@key" @key='msg' Submessage="false" Ghost="true" Last_Message="last" Reply="false"></MessageComponent>
+
+                    last = msg;
+                }
             }
         }
-
-        if (QueuedMessages != null && QueuedMessages.Count > 0){
-            last = null;
-
-            if (Messages != null)
-            {
-                last = Messages.Last();
-            }
-
-            foreach (ClientPlanetMessage msg in QueuedMessages)
-            {
-                string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
-
-                <MessageComponent Message="msg" Key="@key" @key='msg' Holder="this" Submessage="false" Ghost="true" Last_Message="last"></MessageComponent>
-
-                last = msg;
-            }
-        }
-    }
+    </CascadingValue>
 </div>
 
 @code {

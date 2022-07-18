@@ -7,6 +7,24 @@
     min-height: 51.333px;
 }
 
+.hasreply {
+    width: initial;
+    overflow-y: hidden;
+    overflow-x: hidden;
+}
+
+.reply {
+    border-left: 3px rgba(255, 255, 255, 0.2) solid;
+    margin-left: 10px;
+    background-color: rgba(255, 255, 255, 0.04);
+    border-bottom-right-radius: 8px;
+    border-top-right-radius: 8px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    width: fit-content;
+    padding-right: 20px;
+}
+
 .message.mentioned {
     border-left: 2px solid #ffac6c;
     background: rgba(168, 115, 87, 0.15);
@@ -281,4 +299,47 @@
 .edit {
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid var(--v-cyan);
+}
+
+.reply .author-pfp {
+    width: 25px;
+    height: 25px;
+    margin-bottom: -5px;
+}
+
+.preview-message .message .reply:hover {
+    padding-right: 50px !important;
+    background-color: rgba(255, 0, 0, 0.1) !important;
+    cursor: pointer;
+}
+
+.message:hover .reply .author-pfp {
+    width: 25px;
+    height: 25px;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: -5px;
+}
+
+.message:hover .reply .time {
+    display: block;
+    font-size: 10px;
+    margin-left: -12px;
+}
+
+.reply .message-content {
+    padding-left:40px;
+}
+
+.reply-x {
+    display: none;
+    position: absolute;
+    color: red;
+    top: 10px;
+    right: 5%;
+    font-size: 20px;
+}
+
+.preview-message .reply:hover .reply-x {
+    display: block;
 }
