@@ -13,11 +13,13 @@ var blazorContextMenu = function (blazorContextMenu) {
         }
     }
 
-    blazorContextMenu.DoPointerDown = function DoPointerDown() {
+    blazorContextMenu.DoPointerDown = function DoPointerDown(event) {
         //console.log("Touched")
         pressTimer = window.setTimeout(function () {
             longPress = true;
         }, 1000);
+
+        handleAutoHideEvent(event, "mousedown", true);
     }
 
     var closest = null;
@@ -218,6 +220,22 @@ var blazorContextMenu = function (blazorContextMenu) {
         });
     }
 
+    function handleAutoHideEvent(e, autoHideEvent, force = false) {
+        if (openMenus.length > 0) {
+            for (var i = 0; i < openMenus.length; i++) {
+                var currentMenu = openMenus[i];
+                var menuElement = document.getElementById(currentMenu.id);
+                if (force || (menuElement && menuElement.dataset["autohide"] == "true" && menuElement.dataset["autohideevent"] == autoHideEvent)) {
+                    var clickedInsideMenu = menuElement.contains(e.target);
+                    if (!clickedInsideMenu) {
+                        blazorContextMenu.Hide(currentMenu.id);
+                    }
+                }
+
+            }
+        }
+    }
+
     blazorContextMenu.Init = function () {
         document.addEventListener("mouseup", function (e) {
             handleAutoHideEvent(e, "mouseup");
@@ -226,22 +244,6 @@ var blazorContextMenu = function (blazorContextMenu) {
         document.addEventListener("mousedown", function (e) {
             handleAutoHideEvent(e, "mousedown");
         });
-
-        function handleAutoHideEvent(e, autoHideEvent) {
-            if (openMenus.length > 0) {
-                for (var i = 0; i < openMenus.length; i++) {
-                    var currentMenu = openMenus[i];
-                    var menuElement = document.getElementById(currentMenu.id);
-                    if (menuElement && menuElement.dataset["autohide"] == "true" && menuElement.dataset["autohideevent"] == autoHideEvent) {
-                        var clickedInsideMenu = menuElement.contains(e.target);
-                        if (!clickedInsideMenu) {
-                            blazorContextMenu.Hide(currentMenu.id);
-                        }
-                    }
-
-                }
-            }
-        }
 
         window.addEventListener('resize', function () {
             if (openMenus.length > 0) {
