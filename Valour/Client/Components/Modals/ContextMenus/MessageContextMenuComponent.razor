@@ -70,11 +70,8 @@
 
     public async Task OnClickReply()
     {
-        var inputcomponent = MessageComponent.Holder.Window.Component.InputComponent;
-        inputcomponent.PreviewMessageComponent.ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.BaseMessage.Id, Message.BaseMessage.ChannelId, Message.BaseMessage.PlanetId, true));
-        inputcomponent.ReplyingTo = Message;
-        await inputcomponent.UpdatePreviewMessage(inputcomponent.PreviewMessage?.Content ?? "");
-        inputcomponent.Refresh();
+        var input = MessageComponent.Holder.Window.Component.InputComponent;
+        await input.SetReplyMessage(Message);
     }
 
     public async Task OnClickDelete()

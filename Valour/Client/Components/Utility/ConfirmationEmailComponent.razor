@@ -8,7 +8,7 @@
 
     @if (@responseResult.Success)
     {
-        <span id="agreed-span" class="text-success">@responseResult.Message</span>
+        <span id="agreed-span" class="text-info">@responseResult.Message</span>
 
     }
     else
@@ -45,7 +45,7 @@
             StateHasChanged();
         }
         
-        responseResult = (await ValourClient.PostAsyncWithResponse<TaskResult>("api/user/resendemail", RegisterRequest)).Data;
+        responseResult = await ValourClient.PostAsync("api/user/resendemail", RegisterRequest);
 
         time = DateTime.Now;
 

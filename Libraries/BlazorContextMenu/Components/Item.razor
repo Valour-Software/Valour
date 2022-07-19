@@ -1,0 +1,188 @@
+﻿@inherits MenuTreeComponent
+@inject BlazorContextMenuSettings settings
+@inject IMenuTreeTraverser menuTreeTraverser
+@inject IInternalContextMenuHandler contextMenuHandler
+@namespace BlazorContextMenu
+
+<li @attributes="Attributes"
+    id="@Id"
+    @onclick="@((e) => OnClickInternal(e))"
+    class="@("blazor-context-menu__item " + ClassCalc)"
+    style="@(Visible ? "display:block;" : "display:none;")"
+    itemEnabled="@Enabled.ToString().ToLower()"
+    onmouseover="@(Enabled ? $"blazorContextMenu.OnMenuItemMouseOver(event, {SubmenuXOffset ?? settings.GetTemplate(Template).SubMenuXPositionPixelsOffset}, this);" : "")"
+    onmouseout="@(Enabled ? "blazorContextMenu.OnMenuItemMouseOut(event);" : "")"
+    @ref="MenuItemElement">
+    <CascadingValue Value="(MenuTreeComponent)this" Name="ParentComponent">
+        @ChildContent
+    </CascadingValue>
+</li>
+
+
+@code{
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object> Attributes { get; set; }
+
+    /// <summary>
+    /// Allows you to override the default css class of the <see cref="Item"/>'s li element, for full customization.
+    /// </summary>
+    [Parameter]
+    public string OverrideDefaultCssClass { get; set; }
+
+    /// <summary>
+    /// Allows you to override the default css class of the <see cref="Item"/>'s li element when disabled, for full customization.
+    /// </summary>
+    [Parameter]
+    public string OverrideDefaultDisabledCssClass { get; set; }
+
+    /// <summary>
+    /// Allows you to override the default css class of the <see cref="Item"/>'s li element when it contains a <see cref="SubMenu"/>, for full customization.
+    /// </summary>
+    [Parameter]
+    public string OverrideDefaultCssClassWithSubMenu { get; set; }
+
+    /// <summary>
+    /// Additional css class for the <see cref="Item"/>'s li element. Use this to extend the default css.
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; }
+
+    /// <summary>
+    /// Additional css class for the <see cref="Item"/>'s li element when disabled. Use this to extend the default css.
+    /// </summary>
+    [Parameter]
+    public string DisabledCssClass { get; set; }
+
+    /// <summary>
+    /// Additional css class for the <see cref="Item"/>'s li element when it contains a <see cref="SubMenu"/>. Use this to extend the default css.
+    /// </summary>
+    [Parameter]
+    public string CssClassWithSubMenu { get; set; }
+
+    /// <summary>
+    /// The menu item's onclick handler. A <see cref="ItemClickEventArgs"/> is passed to the action.
+    /// If you want to cancel the click (i.e. stop the menu from closing), then set the "IsCanceled" event args property to "true".
+    /// </summary>
+    [Parameter]
+    public EventCallback<ItemClickEventArgs> OnClick { get; set; }
+
+    /// <summary>
+    /// Sets the item's enabled state. Default <see cref="true" />.
+    /// </summary>
+    [Parameter]
+    public bool Enabled { get; set; } = true;
+
+    /// <summary>
+    /// Sets the item's visible state. Default <see cref="true" />.
+    /// </summary>
+    [Parameter]
+    public bool Visible { get; set; } = true;
+
+    /// <summary>
+    /// A handler that can be used to set the item's <see cref="Visible"/> or <see cref="Enabled"/> status dynamically.
+    /// </summary>
+    [Parameter]
+    public EventCallback<ItemAppearingEventArgs> OnAppearing { get; set; }
+
+    /// <summary>
+    /// The id of the li element. This is optional.
+    /// </summary>
+    [Parameter]
+    public string Id { get; set; }
+
+    /// <summary>
+    /// Allows you to override the default x position offset of the submenu (i.e. the distance of the submenu from it's parent menu).
+    /// </summary>
+    [Parameter]
+    public int? SubmenuXOffset { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+
+    protected string ClassCalc
+    {
+        get
+        {
+            var template = settings.GetTemplate(Template);
+            string classes = null;
+            if (Enabled)
+            {
+                classes = Helpers.AppendCssClasses((OverrideDefaultCssClass ?? template.DefaultCssOverrides.MenuItemCssClass),
+                                            (CssClass ?? settings.GetTemplate(Template).MenuItemCssClass));
+            }
+            else
+            {
+                classes = Helpers.AppendCssClasses((OverrideDefaultDisabledCssClass ?? template.DefaultCssOverrides.MenuItemDisabledCssClass),
+                                            (DisabledCssClass ?? settings.GetTemplate(Template).MenuItemDisabledCssClass));
+            }
+
+            var hasSubMenu = menuTreeTraverser.HasSubMenu(this);
+            if (hasSubMenu)
+            {
+                classes = Helpers.AppendCssClasses(classes,
+                        (OverrideDefaultCssClassWithSubMenu ?? template.DefaultCssOverrides.MenuItemWithSubMenuCssClass),
+                        (CssClassWithSubMenu ?? settings.GetTemplate(Template).MenuItemWithSubMenuCssClass));
+            }
+
+            return classes;
+        }
+    }
+
+    protected ElementReference MenuItemElement { get; set; }
+    protected string Template { get; set; }
+    protected ContextMenu RootMenu { get; set; }
+    protected ContextMenuBase ParentMenu { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(Id))
+        {
+            Id = Guid.NewGuid().ToString();
+        }
+
+        RootMenu = menuTreeTraverser.GetRootContextMenu(this);
+        if (RootMenu == null)
+        {
+            throw new Exception("Item component must be a child of a ContextMenu component");
+        }
+
+        ParentMenu = menuTreeTraverser.GetClosestContextMenu(this);
+        Template = ParentMenu.GetActiveTemplate();
+        var contextMenuTrigger = RootMenu.GetTrigger();
+        var contextMenuTarget = RootMenu.GetTarget();
+
+        if (OnAppearing.HasDelegate)
+        {
+            //TODO: Remove casting when 'this' is fixed in blazor
+            var appearingArgs = new ItemAppearingEventArgs(RootMenu.Id, contextMenuTarget, contextMenuTrigger ,(Item)(object)this, Visible, Enabled, RootMenu.Data);
+            await OnAppearing.InvokeAsync(appearingArgs);
+            Visible = appearingArgs.IsVisible;
+            Enabled = appearingArgs.IsEnabled;
+        }
+    }
+
+
+    protected async Task OnClickInternal(MouseEventArgs e)
+    {
+        if (!Enabled)
+        {
+            return;
+        }
+
+        if (OnClick.HasDelegate)
+        {
+            var contextMenuTarget = RootMenu.GetTarget();
+            var contextMenuTrigger = RootMenu.GetTrigger();
+            //TODO: Remove casting when 'this' is fixed in blazor
+            var args = new ItemClickEventArgs(e, RootMenu.Id, contextMenuTarget ,contextMenuTrigger ,MenuItemElement,(Item)(object)this, RootMenu.Data);
+            args.IsCanceled = !RootMenu.AutoHide;
+            await OnClick.InvokeAsync(args);
+            if (!args.IsCanceled)
+            {
+                await contextMenuHandler.HideMenu(RootMenu.Id);
+            }
+        }
+    }
+}

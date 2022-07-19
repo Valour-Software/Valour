@@ -1,3 +1,24 @@
+
+.mobile .message p {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+}
+
+.mobile .multi-message p {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+}
+
 .message {
     width: 100%;
     max-width: 100%;
@@ -16,11 +37,13 @@
 .reply {
     border-left: 3px rgba(255, 255, 255, 0.2) solid;
     margin-left: 10px;
-    background-color: rgba(255, 255, 255, 0.01);
+    background-color: rgba(255, 255, 255, 0.04);
     border-bottom-right-radius: 8px;
     border-top-right-radius: 8px;
     margin-top: 5px;
     margin-bottom: 5px;
+    width: fit-content;
+    padding-right: 20px;
 }
 
 .message.mentioned {
@@ -166,63 +189,63 @@
     position: relative;
 }
 
-.multi-message.mentioned {
-    border-left: 2px solid #ffac6c;
-    background: rgba(168, 115, 87, 0.15);
-}
+    .multi-message.mentioned {
+        border-left: 2px solid #ffac6c;
+        background: rgba(168, 115, 87, 0.15);
+    }
 
-.multi-message:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
+    .multi-message:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
 
-.multi-message:hover .time {
-    visibility: visible;
-}
+        .multi-message:hover .time {
+            visibility: visible;
+        }
 
-.multi-message .time {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 11px;
-    line-height: 14px;
-    color: #7A7A7A;
-    margin: 0px;
-    margin-top: 8px;
-    visibility: hidden;
-    text-align: center;
-}
+    .multi-message .time {
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 11px;
+        line-height: 14px;
+        color: #7A7A7A;
+        margin: 0px;
+        margin-top: 8px;
+        visibility: hidden;
+        text-align: center;
+    }
 
-.multi-message .time-container {
-    min-width: 48px;
-    position: absolute;
-    top: 0px;
-}
+    .multi-message .time-container {
+        min-width: 48px;
+        position: absolute;
+        top: 0px;
+    }
 
-.multi-message .message-content {
-    width: 95%;
-    display: inline-block;
-    margin-left: 7px;
-    margin-top: 4px;
-    vertical-align: top;
-    max-width: 100%;
-}
+    .multi-message .message-content {
+        width: 95%;
+        display: inline-block;
+        margin-left: 7px;
+        margin-top: 4px;
+        vertical-align: top;
+        max-width: 100%;
+    }
 
-.multi-message .content {
-    width: 100%;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 300;
-    font-size: 16px;
-    line-height: 23px;
-    color: #FFFFFF;
-    margin: 0px;
-    margin-bottom: 0px;
-    word-break: break-all;
-    user-select: text;
-    padding-left: 48px;
-    width: 100%;
-    overflow: hidden;
-}
+    .multi-message .content {
+        width: 100%;
+        font-family: Ubuntu;
+        font-style: normal;
+        font-weight: 300;
+        font-size: 16px;
+        line-height: 23px;
+        color: #FFFFFF;
+        margin: 0px;
+        margin-bottom: 0px;
+        word-break: break-all;
+        user-select: text;
+        padding-left: 48px;
+        width: 100%;
+        overflow: hidden;
+    }
 
 /* Message content styles */
 
@@ -259,7 +282,6 @@
     object-position: left;
     margin-bottom: 10px;
     display: block;
-
     cursor: pointer;
 }
 
@@ -272,13 +294,13 @@
     font-size: 0px;
 }
 
-::deep .content a:after {
-    font-size: 16px;
-    content: attr(href);
-    visibility: visible;
-    left: 55px;
-    vertical-align: central;
-}
+    ::deep .content a:after {
+        font-size: 16px;
+        content: attr(href);
+        visibility: visible;
+        left: 55px;
+        vertical-align: central;
+    }
 
 ::deep .content .youtube {
     max-width: 90%;
@@ -290,9 +312,9 @@
     display: block;
 }
 
-::deep .content > p > strong{
+::deep .content > p > strong {
     font-weight: bold
- }
+}
 
 .edit {
     background-color: rgba(255, 255, 255, 0.1);
@@ -303,6 +325,12 @@
     width: 25px;
     height: 25px;
     margin-bottom: -5px;
+}
+
+.preview-message .message .reply:hover {
+    padding-right: 50px !important;
+    background-color: rgba(255, 0, 0, 0.1) !important;
+    cursor: pointer;
 }
 
 .message:hover .reply .author-pfp {
@@ -320,5 +348,18 @@
 }
 
 .reply .message-content {
-    padding-left:40px;
+    padding-left: 40px;
+}
+
+.reply-x {
+    display: none;
+    position: absolute;
+    color: red;
+    top: 10px;
+    right: 5%;
+    font-size: 20px;
+}
+
+.preview-message .reply:hover .reply-x {
+    display: block;
 }

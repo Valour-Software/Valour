@@ -133,16 +133,16 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
         }
     }
 
-    public static async ValueTask<PlanetMessage> FindAsync(long id, long channelid, long planetid, bool force_refresh = false)
+    public static async ValueTask<PlanetMessage> FindAsync(long id, long channelId, long planetId, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<PlanetMessage>(id);
             if (cached is not null)
                 return cached;
         }
 
-        var item = (await ValourClient.GetJsonAsync<PlanetMessage>($"api/{nameof(Planet)}/{planetid}/{nameof(PlanetChatChannel)}/{channelid}/message/{id}")).Data;
+        var item = (await ValourClient.GetJsonAsync<PlanetMessage>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{channelId}/message/{id}")).Data;
 
         if (item is not null)
         {

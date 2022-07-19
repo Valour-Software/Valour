@@ -1,13 +1,13 @@
 ﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
 
 window.clipboardCopy = {
-    copyText: function(text) {
+    copyText: function (text) {
         navigator.clipboard.writeText(text).then(function () {
             // alert("Copied to clipboard!");
         })
-        .catch(function (error) {
-            alert(error);
-        });
+            .catch(function (error) {
+                alert(error);
+            });
     }
 };
 
@@ -48,6 +48,8 @@ function FitMobile() {
     console.log("Detected mobile.");
 
     //sidebar1.toggle(false);
+
+    $("body").addClass('mobile')
 
     $(".add-window-button").toggle(false);
 

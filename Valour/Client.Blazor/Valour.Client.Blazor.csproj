@@ -10,7 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blazor.ContextMenu" Version="1.14.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.3.0-preview.1" />
     <PackageReference Include="Blazored.Modal" Version="7.0.0-preiew.2" />
     <PackageReference Include="Markdig" Version="0.30.2" />

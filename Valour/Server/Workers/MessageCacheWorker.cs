@@ -37,7 +37,7 @@ public class MessageCacheWorker : BackgroundService
                             var cutOff = now.AddHours(-24);
 
                             context.PlanetMessages.RemoveRange(
-                                context.PlanetMessages.Where(x => x.TimeSent < cutOff));
+                                context.PlanetMessages.Where(x => x.TimeSent < cutOff).OrderBy(x => x.TimeSent));
 
                             await context.SaveChangesAsync();
                         }
