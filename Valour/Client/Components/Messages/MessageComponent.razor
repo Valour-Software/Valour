@@ -13,7 +13,7 @@
         width = "fit-content";
 }
 
-<div @onpointerup:stopPropagation='true' @onpointerup:preventDefault='true' style="width: @width">
+<div @onpointerup:stopPropagation='true' @onpointerup:preventDefault='true' style="width: @width" onselectstart="return false;">
     <ContextMenuTrigger MenuId="message-context" @onpointerup='async () => { if (!Ghost) { await MessageContextMenuComponent.Initialize(Message, Window.Component, this); } }'>
         <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
 
@@ -25,8 +25,8 @@
                     </p> 
                 </div>
                 <div class="message-content">
-            
-                    <p class="content" @ref="InnerRef">
+
+                    <p class="content" @ref="InnerRef" onselectstart="return false;">
                         @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
                         {
                             <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
@@ -84,7 +84,7 @@
 
                         <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                     }
-                    <p class="content" @ref="InnerRef">
+                    <p class="content" @ref="InnerRef" onselectstart="return false;">
                         @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
                         {
 
