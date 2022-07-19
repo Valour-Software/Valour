@@ -1,0 +1,39 @@
+﻿<div class="embed-row">
+	@foreach(EmbedItem item in Row.Items)
+	{
+		@switch (item.ItemType)
+		{
+			case EmbedItemType.Text:
+				<EmbedTextItemComponent _item="@item" row="@Row"></EmbedTextItemComponent>
+				break;
+		}
+	}
+</div>
+
+@code {
+	[Parameter]
+	public EmbedRow Row { get; set; }
+
+	public string Style {
+		get {
+			if (Row.Align == EmbedAlignType.Left) {
+				return "margin-right:auto;";
+			}
+			if (Row.Align == EmbedAlignType.Center)
+			{
+				return "margin-left: auto;margin-right: auto;";
+			}
+			if (Row.Align == EmbedAlignType.Right)
+			{
+				return "margin-left:auto;";
+			}
+			return "";
+
+		}
+	}
+
+	protected override void OnInitialized()
+	{
+		StateHasChanged();
+	}
+}

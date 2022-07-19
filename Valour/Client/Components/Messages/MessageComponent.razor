@@ -1,6 +1,6 @@
-﻿@inject IJSRuntime JS
+﻿@using Valour.Api.Items.Messages
+@inject IJSRuntime JS
 @implements IDisposable
-@using Valour.Api.Items.Messages;
 
 @if (Message == null)
 {
@@ -20,7 +20,7 @@
                 <div class="message-content">
             
                     <p class="content" @ref="InnerRef">
-                        @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                        @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
                         {
                             <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
                         }
@@ -77,10 +77,10 @@
                         <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Holder="@Holder" Submessage="true" Last_Message="@Message" Reply="true"></MessageComponent>
                     }
                     <p class="content" @ref="InnerRef">
-                        @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                        @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
                         {
 
-                            Console.WriteLine(Message.BaseMessage.Embed.Pages.Length);
+                            Console.WriteLine(Message.BaseMessage.Embed.Pages.Count);
 
                             <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
                         }

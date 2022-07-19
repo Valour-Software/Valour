@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using Valour.Api.Items.Messages.Embeds;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items.Messages.Embeds;
 
 namespace Valour.Server.API;
 public class EmbedAPI : BaseAPI

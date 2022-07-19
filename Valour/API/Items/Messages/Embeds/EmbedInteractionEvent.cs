@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Shared.Items.Messages.Embeds;
+namespace Valour.Api.Items.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -11,16 +11,34 @@ namespace Valour.Shared.Items.Messages.Embeds;
 public enum EmbedIteractionEventType
 {
     ButtonClick = 1,
-    FormSubmitted = 2
+    FormSubmitted = 2,
+    TextClicked = 3
 }
 
+public class NewEmbedInteractionEvent
+{
+    public EmbedIteractionEventType EventType { get; set; }
+
+    public long PlanetId { get; set; }
+
+    public long MessageId { get; set; }
+
+    public long Author_MemberId { get; set; }
+
+    public long MemberId { get; set; }
+
+    public long ChannelId { get; set; }
+
+    public DateTime TimeInteracted { get; set; }
+    public List<EmbedFormData> FormData { get; set; }
+}
 public class EmbedInteractionEvent
 {
     [JsonPropertyName("Event")]
     public string Event { get; set; }
 
     [JsonPropertyName("EmbedIteractionEventType")]
-    public EmbedIteractionEventType EventType { get; set; } 
+    public EmbedIteractionEventType EventType { get; set; }
 
     [JsonPropertyName("Element_Id")]
     public string Element_Id { get; set; }

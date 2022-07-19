@@ -1,0 +1,33 @@
+﻿<div style="@item.GetStyle()" class="embed-item">
+	@if (item.Name != null)
+	{
+		<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
+			@((MarkupString)MarkdownManager.GetHtml(item.Name))
+		</div>
+	}
+	<div style="color:#@item.TextColor;font-size:14px;">
+		@if (item.Link != null)
+		{
+			<a href="@item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
+		}
+		else
+		{
+			@((MarkupString)MarkdownManager.GetHtml(item.Text))
+		}
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public EmbedItem _item { get; set; }
+
+	[Parameter]
+	public EmbedRow? Row { get; set; }
+
+	public EmbedTextItem item { get; set; }
+
+	protected override void OnInitialized()
+	{
+		item = (EmbedTextItem)_item;
+	}
+}
