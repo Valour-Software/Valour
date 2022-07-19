@@ -372,16 +372,14 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
     // Message routes
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/message/{msg_id}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/message/{messageId}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, long msg_id)
+    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, long messageId)
     {
         var db = ctx.GetDb();
-
-        return Results.Json(await db.PlanetMessages.FindAsync(msg_id));
-
+        return Results.Json(await db.PlanetMessages.FindAsync(messageId));
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDb]
