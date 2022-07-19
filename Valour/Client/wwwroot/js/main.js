@@ -1,31 +1,18 @@
 ﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
 
 window.clipboardCopy = {
-    copyText: function(text) {
+    copyText: function (text) {
         navigator.clipboard.writeText(text).then(function () {
             // alert("Copied to clipboard!");
         })
-        .catch(function (error) {
-            alert(error);
-        });
+            .catch(function (error) {
+                alert(error);
+            });
     }
 };
 
-/*
-document.addEventListener('pointerup', function (e) {
-
-    var elem = e.target;
-
-    console.log(elem.id)
-
-    if (typeof elem.onclick == "function") {
-        elem.onclick.apply(elem)
-    }
-}, true); 
-*/
-
 function EventForContextMenu(event) {
-    if (event.target.className.includes("EnableRightClick")) {
+    if (event.target.className.includes("EnableRightCLick")) {
         return;
     }
     else {
@@ -61,6 +48,8 @@ function FitMobile() {
     console.log("Detected mobile.");
 
     //sidebar1.toggle(false);
+
+    $("body").addClass('mobile')
 
     $(".add-window-button").toggle(false);
 
