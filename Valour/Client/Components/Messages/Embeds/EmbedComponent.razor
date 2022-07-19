@@ -13,7 +13,7 @@
 		}
 		foreach (EmbedRow item in embed.Currently_Displayed.Rows)
 		{
-			<EmbedRowComponent Row="@item"></EmbedRowComponent>
+			<EmbedRowComponent Row="@item" Message="@Message" embed="@embed"></EmbedRowComponent>
 		}
 		if (embed.Pages.Count > 1)
 		{

@@ -14,9 +14,14 @@ public class EmbedButtonItem : EmbedItem
     /// The page number that the embed will be set to when a user clicks this button
     /// </summary>
     public int? GoToPage { get; set; }
-    public bool IsSubmitButton { get; set; } = false;
+    public bool? IsSubmitButton { get; set; } = false;
 
-    public EmbedButtonItem(string id = null, string text = null, string textColor = null, string color = null, string link = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int x = 0, int y = 0, bool isSubmitButton = false)
+    public EmbedButtonItem()
+    {
+        ItemType = EmbedItemType.Button;
+    }
+
+    public EmbedButtonItem(string id = null, string text = null, string textColor = null, string color = null, string link = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int? x = null, int? y = null, bool? isSubmitButton = null)
     {
         Id = id;
         Text = text;
@@ -28,5 +33,6 @@ public class EmbedButtonItem : EmbedItem
         X = x;
         Y = y;
         Event = itemEvent;
+        ItemType = EmbedItemType.Button;
     }
 }

@@ -12,7 +12,8 @@
 		}
 		else
 		{
-			@((MarkupString)MarkdownManager.GetHtml(item.Text))
+			if (item.Text is not null)
+				@((MarkupString)MarkdownManager.GetHtml(item.Text))
 		}
 	</div>
 </div>
@@ -20,9 +21,6 @@
 @code {
 	[Parameter]
 	public EmbedItem _item { get; set; }
-
-	[Parameter]
-	public EmbedRow? Row { get; set; }
 
 	public EmbedTextItem item { get; set; }
 

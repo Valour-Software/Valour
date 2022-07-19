@@ -27,7 +27,7 @@
                 <div class="message-content">
 
                     <p class="content" @ref="InnerRef" onselectstart="return false;">
-                        @if (Message.Embed != null && Message.Embed.Pages.Length > 0)
+                        @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
                         {
                             <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
                         }
@@ -85,7 +85,7 @@
                         <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                     }
                     <p class="content" @ref="InnerRef" onselectstart="return false;">
-                        @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Length > 0)
+                        @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
                         {
 
                             Console.WriteLine(Message.BaseMessage.Embed.Pages.Count);

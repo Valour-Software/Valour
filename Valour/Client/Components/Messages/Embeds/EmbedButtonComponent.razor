@@ -13,11 +13,18 @@
 
 @code {
     [Parameter]
-    public EmbedButtonItem Item {get; set;}
+    public EmbedItem _item {get; set;}
     [Parameter]
     public ClientPlanetMessage Message {get; set;}
     [Parameter]
     public Embed embed { get; set;}
+
+    EmbedButtonItem Item;
+
+    protected override void OnInitialized()
+    {
+        Item = (EmbedButtonItem)_item;
+    }
 
     public async Task OnEmbedButtonClick()
     {

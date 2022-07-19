@@ -4,7 +4,10 @@
 		@switch (item.ItemType)
 		{
 			case EmbedItemType.Text:
-				<EmbedTextItemComponent _item="@item" row="@Row"></EmbedTextItemComponent>
+				<EmbedTextItemComponent _item="@item"></EmbedTextItemComponent>
+				break;
+			case EmbedItemType.Button:
+				<EmbedButtonComponent _item="@item" Message="@Message" embed="@embed"></EmbedButtonComponent>
 				break;
 		}
 	}
@@ -13,6 +16,12 @@
 @code {
 	[Parameter]
 	public EmbedRow Row { get; set; }
+
+	[Parameter]
+	public ClientPlanetMessage Message { get; set; }
+
+	[Parameter]
+	public Embed embed { get; set; }
 
 	public string Style {
 		get {

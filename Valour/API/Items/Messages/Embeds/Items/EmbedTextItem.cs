@@ -12,7 +12,12 @@ public class EmbedTextItem : EmbedItem
     /// </summary>
     public int? GoToPage { get; set; }
 
-    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, int x = 0, int y = 0)
+    public EmbedTextItem()
+    {
+        ItemType = EmbedItemType.Text;
+    }
+
+    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, int? x = null, int? y = null)
     {
         Name = name;
         Text = text;
@@ -20,5 +25,6 @@ public class EmbedTextItem : EmbedItem
         Link = link;
         X = x;
         Y = y;
+        ItemType = EmbedItemType.Text;
     }
 }

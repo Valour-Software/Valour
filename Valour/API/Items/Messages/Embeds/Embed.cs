@@ -2,6 +2,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using System.Text.Json.Serialization;
+using System.Xml;
 
 namespace Valour.Api.Items.Messages.Embeds;
 
@@ -44,6 +46,16 @@ public class EmbedRow
     public List<EmbedItem> Items { get; set; }
 
     public EmbedAlignType Align { get; set; }
+
+    public EmbedRow(List<EmbedItem> items = null)
+    {
+        if (items is not null) {
+            Items = items;
+        }
+        else {
+            Items = new();
+        }
+    }
 }
 
 public class EmbedPage
@@ -79,6 +91,8 @@ public class EmbedPage
         Footer = (string)Node["Footer"];
         TitleColor = (string)Node["TitleColor"] ?? "eeeeee";
         FooterColor = (string)Node["FooterColor"] ?? "eeeeee";
+        Rows = new();
+        Items = new();
 
         // now we need to convert each embeditem into the proper types
         if (Node["Items"] is not null)
@@ -91,13 +105,20 @@ public class EmbedPage
 
         if (Node["Rows"] is not null && Node["Items"] is null)
         {
-            JsonArray rownodes = Node["Rows"].AsArray();
-            foreach (JsonArray row in Node["Rows"].AsArray())
+            var options = new JsonSerializerOptions()
+            {
+                WriteIndented = true
+            };
+            Console.WriteLine(Node.ToJsonString(options));
+            foreach (var rownode in Node["Rows"].AsArray())
             {
                 EmbedRow rowobject = new();
+                if (rownode["Align"] is not null)
+                    rowobject.Align = (EmbedAlignType)(int)rownode["Align"];
                 int i = 0;
-                foreach (JsonNode node in row)
+                foreach (JsonNode node in rownode["Items"].AsArray())
                 {
+                    Console.WriteLine(node.ToJsonString(options));
                     rowobject.Items.Add(ConvertNodeToEmbedItem(node));
                 }
                 Rows.Add(rowobject);
@@ -111,7 +132,8 @@ public class EmbedPage
         EmbedItem item = type switch
         {
             EmbedItemType.Text => node.Deserialize<EmbedTextItem>(),
-            EmbedItemType.Form => new EmbedFormItem(node)
+            EmbedItemType.Form => new EmbedFormItem(node),
+            EmbedItemType.Button => node.Deserialize<EmbedButtonItem>()
         };
         return item;
     }
@@ -142,12 +164,20 @@ public class Embed
     {
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
-        
+        EmbedType = (EmbedItemPlacementType)(int)Node["EmbedType"];
+        Pages = new();
+        foreach(var pagenode in Node["Pages"].AsArray())
+        {
+            var page = new EmbedPage();
+            page.BuildFromJson(pagenode);
+            Pages.Add(page);
+        }
     }
 
     /// <summary>
     /// The currently displayed page
     /// </summary>
+    [JsonIgnore]
     public EmbedPage Currently_Displayed
     {
         get

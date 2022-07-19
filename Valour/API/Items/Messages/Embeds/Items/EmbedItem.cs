@@ -1,5 +1,6 @@
 ﻿using Valour.Api.Items.Messages.Embeds;
 using System;
+using System.Text.Json.Serialization;
 
 namespace Valour.Api.Items.Messages.Embeds.Items;
 
@@ -13,7 +14,10 @@ public enum EmbedItemType
     Form = 6
 }
 
-public abstract class EmbedItem
+[JsonDerivedType(typeof(EmbedItem), typeDiscriminator: 1)]
+[JsonDerivedType(typeof(EmbedTextItem), typeDiscriminator: 2)]
+[JsonDerivedType(typeof(EmbedButtonItem), typeDiscriminator: 3)]
+public class EmbedItem
 {
     public EmbedItemType ItemType { get; set; }
 
@@ -38,7 +42,7 @@ public abstract class EmbedItem
         }
         else
         {
-            style += "display: inline-block;";
+            style += "display: inline-block;margin-right:5px;";
         }
 
         return style;
