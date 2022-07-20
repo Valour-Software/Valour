@@ -1,5 +1,5 @@
 ﻿@inject NavigationManager navManager
-@inject ClientWindowManager windowManager
+@inject WindowManager windowManager
 
 
 <div>
@@ -21,7 +21,12 @@
         <PlanetCardComponent Planet='planet' Window='Window'></PlanetCardComponent>
     }
 
-    <div class="home-server m-2" @onclick='() => Modal.Show<CreatePlanetComponent>("Create Planet", new ModalOptions() { Class = "modal-shrink-fit" })' style="cursor: pointer;" id="create-planet-button">
+    @{
+        var param = new ModalParameters();
+        param.Add("Window", Window);
+    }
+
+    <div class="home-server m-2" @onclick='() => Modal.Show<CreatePlanetComponent>("Create Planet", param, new ModalOptions() { Class = "modal-shrink-fit" })' style="cursor: pointer;" id="create-planet-button">
         <h6 class="text-center">Create a planet</h6>
         <svg class="planet-create-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
             <defs>
@@ -68,13 +73,8 @@
         StateHasChanged();
     }
 
-    public async Task OnNewPlanetClick()
+    public async Task CloseWindow()
     {
-        navManager.NavigateTo("createplanet");
-    }
-
-    public void CloseWindow()
-    {
-        windowManager.CloseWindow(Window.Index);
+        await windowManager.CloseWindow(Window);
     }
 }

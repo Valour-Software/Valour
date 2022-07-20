@@ -6,7 +6,7 @@ public class HomeWindow : ClientWindow
 {
     public override Type GetComponentType() =>
         typeof(HomeWindowComponent);
-    public HomeWindow(int index) : base(index)
+    public HomeWindow()
     {
 
     }

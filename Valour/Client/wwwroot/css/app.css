@@ -19,6 +19,16 @@
     --v-cyan: #00faff;
 }
 
+.mobile {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+}
+
 .full-screen {
     width: 100%;
     height: 100%;
@@ -443,12 +453,9 @@ video {
 }
 
 .sidebar {
-    float: left;
     width: 64px;
     padding: 5px;
-    background-color: var(--main-1);
     transition: width ease-in-out .2s;
-    z-index: 1;
 }
 
 .sidebar-menu {
@@ -686,7 +693,14 @@ video {
     }
 
 body {
+    width: 100%;
+    height: 100%;
     background-color: #040D14;
+}
+
+app {
+    width: 100%;
+    height: 100%;
 }
 
 @media screen and (max-width: 992px) {
@@ -773,33 +787,6 @@ body {
     height: 100%;
     transform: translateY(0%);
     background-color: var(--main-2);
-}
-
-.window-grid {
-    display: flex;
-    flex: 2;
-    flex-grow: 1;
-    justify-content: space-between;
-    height: calc(100% - (115px + 16px));
-    padding: 0px;
-}
-
-.main-window {
-    background-color: var(--main-4);
-    width: 100%;
-    height: 50%;
-    overflow-y: auto;
-}
-
-.main-window-full {
-    background-color: var(--main-3);
-    width: 100%;
-    height: 100%;
-    overflow-y: auto;
-}
-
-.window-col {
-    width: 50%;
 }
 
 .add-window-button {
@@ -1598,4 +1585,13 @@ blockquote {
 
 .channel-mention:active::before {
     background-color: rgba(170, 170, 255, 0.3);
+}
+
+/* Window resize gutters */
+.gutter {
+    background-color: var(--main-1);
+    width: 10px;
+    border-right: 3px var(--main-5) inset;
+    border-left: 3px var(--main-5) outset;
+    cursor: e-resize;
 }

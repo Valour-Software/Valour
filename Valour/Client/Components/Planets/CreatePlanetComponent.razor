@@ -1,6 +1,6 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
-@inject ClientWindowManager windowManager
+@inject WindowManager windowManager
 
 <div class="col-md-12">
 	<section>
@@ -47,6 +47,9 @@
 
 	string errorSpan = null;
 
+	[Parameter]
+	public ClientWindow Window { get; set; }
+
 	[CascadingParameter]
 	public BlazoredModalInstance ModalInstance { get; set; }
 
@@ -84,11 +87,15 @@
 
 		PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
 
-		windowManager.ClearWindows();
+		await windowManager.ClearWindows();
 
-		await windowManager.AddWindow(new ChatChannelWindow(0, mainChannel));
+		var newChannel = new ChatChannelWindow(mainChannel);
 
-		await windowManager.SetSelectedWindow(0);
+		// Get the new main window
+		var mainWindow = windowManager.GetWindows()[0];
+
+		await windowManager.ReplaceWindow(mainWindow, newChannel);
+		await windowManager.SetSelectedWindow(newChannel);
 	}
 
 	private async Task OnImageInput()

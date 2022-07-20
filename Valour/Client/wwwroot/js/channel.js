@@ -24,7 +24,7 @@
     console.log("Loaded channel.");
 }
 
-components = [];
+var components = {};
 
 var currentWord = "";
 
@@ -34,7 +34,7 @@ function SetInputComponent(id, comp) {
 
 function OnChatboxKeydown(e, box) {
 
-    var id = box.id.substring(box.id.length - 1, box.id.length);
+    var windowId = box.dataset.window;
 
     GetCurrentWord(0);
 
@@ -45,7 +45,7 @@ function OnChatboxKeydown(e, box) {
         // the mention menu
         if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
-            components[id].invokeMethodAsync('MoveMentionSelect', 1);
+            components[windowId].invokeMethodAsync('MoveMentionSelect', 1);
         }
         else {
             OnCaretMove(box);
@@ -55,7 +55,7 @@ function OnChatboxKeydown(e, box) {
     else if (e.keyCode == 38) {
         if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
-            components[id].invokeMethodAsync('MoveMentionSelect', -1);
+            components[windowId].invokeMethodAsync('MoveMentionSelect', -1);
         }
         else {
             OnCaretMove(box);
@@ -73,7 +73,7 @@ function OnChatboxKeydown(e, box) {
         // than submitting the message!
         if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
-            components[id].invokeMethodAsync('MentionSubmit');
+            components[windowId].invokeMethodAsync('MentionSubmit');
         }
         else {
 
@@ -81,8 +81,8 @@ function OnChatboxKeydown(e, box) {
             e.preventDefault();
             box.innerHTML = "";
             //ResizeTextArea(box);
-            components[id].invokeMethodAsync('OnChatboxSubmit');
-            components[id].invokeMethodAsync('OnCaretUpdate', "");
+            components[windowId].invokeMethodAsync('OnChatboxSubmit');
+            components[windowId].invokeMethodAsync('OnCaretUpdate', "");
         }
     }
     else if (e.keyCode == 9) {
@@ -90,16 +90,16 @@ function OnChatboxKeydown(e, box) {
         // than adding a tab!
         if (currentWord[0] == '@' || currentWord[0] == '#') {
             e.preventDefault();
-            components[id].invokeMethodAsync('MentionSubmit');
+            components[windowId].invokeMethodAsync('MentionSubmit');
         }
     }
 }
 
-function InjectElement(text, covertext, classlist, stylelist, id) {
-    var box = $("#text-input-" + id)[0];
+function InjectElement(text, covertext, classlist, stylelist, windowId) {
+    var box = $("#text-input-" + windowId)[0];
 
     injectElement(text, covertext, classlist, stylelist);
-    components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
+    components[windowId].invokeMethodAsync('OnChatboxUpdate', box.innerText, "");
 }
 
 function OnChatboxKeyup(e, box) {
@@ -108,24 +108,13 @@ function OnChatboxKeyup(e, box) {
 }
 
 function OnCaretMove(box) {
-
-    var id = box.id.substring(box.id.length - 1, box.id.length);
-
-    components[id].invokeMethodAsync('OnCaretUpdate', GetCurrentWord(1));
+    var windowId = box.dataset.window;
+    components[windowId].invokeMethodAsync('OnCaretUpdate', GetCurrentWord(1));
 }
 
 function OnChatboxUpdate(e, box) {
-    var id = box.id.substring(box.id.length - 1, box.id.length);
-
-    var rep = box.innerHTML;
-
-    //console.log(rep);
-    //console.log(box.textContent);
-
-    //rep = rep.replace(/&gt;/g, '>');
-    //rep = rep.replace(/<br>/g, '\n');
-
-    components[id].invokeMethodAsync('OnChatboxUpdate', box.innerText, GetCurrentWord(0));
+    var windowId = box.dataset.window;
+    components[windowId].invokeMethodAsync('OnChatboxUpdate', box.innerText, GetCurrentWord(0));
 }
 
 function OnChatboxPaste(e, box) {

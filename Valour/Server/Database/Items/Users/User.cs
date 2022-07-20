@@ -520,7 +520,7 @@ public class User : Item, ISharedUser
             var oldRecoveries = db.PasswordRecoveries.Where(x => x.UserId == userEmail.UserId);
             if (oldRecoveries.Any())
             {
-                await db.PasswordRecoveries.BulkDeleteAsync(oldRecoveries);
+                db.PasswordRecoveries.RemoveRange(oldRecoveries);
                 await db.SaveChangesAsync();
             }
 

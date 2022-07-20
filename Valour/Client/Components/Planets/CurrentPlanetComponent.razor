@@ -1,5 +1,5 @@
 ﻿@inject NavigationManager navManager
-@inject ClientWindowManager windowManager
+@inject WindowManager windowManager
 
 <div class="current-planet-info">
     @if (Planet != null)
@@ -39,7 +39,6 @@
         };
         ItemObserver<Planet>.OnAnyUpdated += OnPlanetUpdate;
     }
-
 
     public async Task OnPlanetUpdate(Planet planet, bool newItem, int flags)
     {
