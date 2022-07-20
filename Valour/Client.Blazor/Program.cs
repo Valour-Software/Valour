@@ -36,7 +36,7 @@ public class Program
             httpClient
         );
 
-        builder.Services.AddSingleton<ClientWindowManager>();
+        builder.Services.AddSingleton<WindowManager>();
         builder.Services.AddSingleton<ClientCategoryManager>();
         builder.Services.AddSingleton<ChannelListManager>();
 

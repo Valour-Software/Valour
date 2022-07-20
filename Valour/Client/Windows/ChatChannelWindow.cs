@@ -17,19 +17,14 @@ public class ChatChannelWindow : ClientWindow
 
     public override Type GetComponentType() =>
         typeof(ChannelWindowComponent);
-    public ChatChannelWindow(int index, PlanetChatChannel channel) : base(index)
+    public ChatChannelWindow(PlanetChatChannel channel)
     {
         this.Channel = channel;
     }
 
-    public override void OnClosed()
+    public override async Task OnClosedAsync()
     {
-        // Must be after SetChannelWindowClosed
-        base.OnClosed();
-
-        Task.Run(async () =>
-        {
-            await Component.OnWindowClosed();
-        });
+        await base.OnClosedAsync();
+        await Component.OnWindowClosed();
     }
 }

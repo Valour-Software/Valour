@@ -478,7 +478,7 @@ public class User : Item, ISharedUser
 
         await tran.CommitAsync();
 
-        return Results.Ok("Confirmation email has been resent!");
+        return ValourResult.Ok("Confirmation email has been resent!");
     }
 
     private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
@@ -520,7 +520,7 @@ public class User : Item, ISharedUser
             var oldRecoveries = db.PasswordRecoveries.Where(x => x.UserId == userEmail.UserId);
             if (oldRecoveries.Any())
             {
-                await db.PasswordRecoveries.BulkDeleteAsync(oldRecoveries);
+                db.PasswordRecoveries.RemoveRange(oldRecoveries);
                 await db.SaveChangesAsync();
             }
 

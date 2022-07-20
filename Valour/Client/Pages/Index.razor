@@ -6,7 +6,7 @@
 @inject NavigationManager navManager
 @using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JS
-@inject ClientWindowManager windowManager
+@inject WindowManager windowManager
 
 <!-- Check login status -->
 @if (!ValourClient.IsLoggedIn)
@@ -16,46 +16,44 @@
 }
 
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-<body style="height: 100%; position: fixed">
-	<div class="mainrow">
-		<div class="sidebar-menu">
-			<div class="sidebar" id="sidebar1">
+<body class="mainrow">
+	<div class="sidebar-menu">
+		<div class="sidebar" id="sidebar1">
 
-				<div style="width: 250px; height: 64px">
-					<LogoComponent></LogoComponent>					
+			<div style="width: 250px; height: 64px">
+				<LogoComponent></LogoComponent>					
 
-					<div style="display:inline-block; vertical-align: middle">
-						<p class="valour-name">
-							Valour
-						</p>
-						<p class="valour-version">
-							Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
-						</p>
-					</div>
+				<div style="display:inline-block; vertical-align: middle">
+					<p class="valour-name">
+						Valour
+					</p>
+					<p class="valour-version">
+						Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
+					</p>
 				</div>
-
-
-				<MemberListComponent></MemberListComponent>
-
 			</div>
-			<div class="sidebar-2" id="sidebar2">
-				<CurrentPlanetComponent></CurrentPlanetComponent>
 
-				<div class="top-bar">
-				</div>
-				<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
-				<ChannelListComponent></ChannelListComponent>
-			</div>
+
+			<MemberListComponent></MemberListComponent>
+
 		</div>
-		<div class="channel-and-topbar" id="mainwindow">
-			<div class="topbar">
-			</div>
-			<div class="topline">
-			</div>
+		<div class="sidebar-2" id="sidebar2">
+			<CurrentPlanetComponent></CurrentPlanetComponent>
 
-			<!-- It's so nice when it's hidden away, just like my fears -->
-			<WindowHolderComponent @ref='ClientWindowManager.WindowHolder'></WindowHolderComponent>
+			<div class="top-bar">
+			</div>
+			<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
+			<ChannelListComponent></ChannelListComponent>
 		</div>
+	</div>
+	<div class="channel-and-topbar" id="mainwindow">
+		<div class="topbar">
+		</div>
+		<div class="topline">
+		</div>
+
+		<!-- It's so nice when it's hidden away, just like my fears -->
+		<MainWindowsComponent></MainWindowsComponent>
 	</div>
 
 	<ContextMenuHolderComponent></ContextMenuHolderComponent>
@@ -63,12 +61,20 @@
 
 
 @code {
+
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
 
+		Logger.IndexPage = this;
+
 		windowManager.OnPlanetFocused += OnPlanetChange;
 		ValourClient.OnLogin += OnLoginAsync;
+	}
+
+	public async Task LogToConsole(string msg, string color = "white")
+	{
+		await JS.InvokeVoidAsync($"Log", msg, color);
 	}
 
 	public async Task OnLoginAsync()
@@ -84,13 +90,6 @@
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		await base.OnAfterRenderAsync(firstRender);
-
-		await SetupWindows();
-	}
-
-	private async Task SetupWindows()
-	{
-		await JS.InvokeVoidAsync("SizeEnable");
 	}
 
 	public async Task OnPlanetChange(Planet planet)
