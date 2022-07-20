@@ -1,6 +1,6 @@
 ﻿@inject IJSRuntime JS
 
-<div @key='"holder-" + Window.Index' id="innerwindow-@Window.Index" class="chat-holder mt-auto" style="overflow-y: scroll;">
+<div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
     <CascadingValue Value="this">
         @{
             ClientPlanetMessage last = null;    
@@ -11,7 +11,7 @@
 
                 foreach (ClientPlanetMessage msg in Messages)
                 {
-                    string key = $"{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+                    string key = $"{Window.Id}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
                     <MessageComponent Message="msg" Key="@key" @key='msg' Submessage="false" Last_Message="last" Reply="false"></MessageComponent>
 
@@ -29,7 +29,7 @@
 
                 foreach (ClientPlanetMessage msg in QueuedMessages)
                 {
-                    string key = $"Queued-{Window.Index}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+                    string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
                     <MessageComponent Message="msg" Key="@key" @key='msg' Submessage="false" Ghost="true" Last_Message="last" Reply="false"></MessageComponent>
 
@@ -125,7 +125,7 @@
         QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
 
         //Get current window scroll pos
-        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Index);
+        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Id);
 
         // check if theres too many messages
         if (IsAtBottom && Messages.Count > 120)

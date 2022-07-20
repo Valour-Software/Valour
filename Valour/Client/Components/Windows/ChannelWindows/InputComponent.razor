@@ -15,7 +15,7 @@
         <div class="textbox" onclick="this.children[1].focus()" @ref='DropZoneElement'>
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <div class='upload' onclick="document.getElementById('upload-core').click()">+</div>
-            <div @ref='InnerInput_Ref' contenteditable="true" class="textbox-inner" id="text-input-@Window.Index" rows="1" autofocus>
+            <div @ref='InnerInput_Ref' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
         </div>
     </div>
@@ -86,11 +86,11 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
 
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
 
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("SetInputComponent", Window.Index, DotNetObjectReference.Create(this));
+            await JS.InvokeVoidAsync("SetInputComponent", Window.Id, DotNetObjectReference.Create(this));
             await JS.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
         }
     }
