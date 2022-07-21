@@ -401,3 +401,10 @@ window.onresize = function () {
 }
 
 window.onresize(); // called to initially set the height.
+
+function playSound(name) {
+    var sound = new Audio();
+    sound.src = "./_content/Valour.Client/media/sounds/" + name;
+    sound.volume = 0.2;
+    sound.play();
+}
