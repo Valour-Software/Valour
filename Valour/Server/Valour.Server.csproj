@@ -21,7 +21,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.2" />
     <PackageReference Include="System.Net.Http.Json" Version="7.0.0-preview.6.22324.4" />
     <PackageReference Include="WebPush" Version="1.0.12" />
-    <PackageReference Include="Z.EntityFramework.Plus.EFCore" Version="7.0.0-preview.4.22229.2-04" />
     <PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL" Version="6.0.3" />
   </ItemGroup>
 

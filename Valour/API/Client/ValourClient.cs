@@ -266,7 +266,7 @@ public static class ValourClient
     /// <summary>
     /// Closes a SignalR connection to a planet
     /// </summary>
-    public static async Task ClosePlanet(Planet planet)
+    public static async Task ClosePlanetConnection(Planet planet)
     {
         // Already closed
         if (!OpenPlanets.Contains(planet))
@@ -317,7 +317,7 @@ public static class ValourClient
     /// <summary>
     /// Closes a SignalR connection to a channel
     /// </summary>
-    public static async Task CloseChannel(PlanetChatChannel channel)
+    public static async Task CloseChannelConnection(PlanetChatChannel channel)
     {
         // Not opened
         if (!OpenChannels.Contains(channel))
@@ -378,17 +378,16 @@ public static class ValourClient
 
         ValourCache.Remove<T>(item.Id);
 
-        // Invoke specific item deleted
-        await item.InvokeDeletedEventAsync();
-
         if (local is null)
         {
             // Invoke static "any" delete
+            await item.InvokeDeletedEventAsync();
             await ItemObserver<T>.InvokeAnyDeleted(item);
         }
         else
         {
             // Invoke static "any" delete
+            await local.InvokeDeletedEventAsync();
             await ItemObserver<T>.InvokeAnyDeleted(local);
         }
     }
@@ -425,6 +424,15 @@ public static class ValourClient
 
         ItemObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdated;
         ItemObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
+
+        ItemObserver<Planet>.OnAnyDeleted += OnPlanetDeleted;
+    }
+
+    private static async Task OnPlanetDeleted(Planet planet)
+    {
+        _joinedPlanetIds.Remove(planet.Id);
+        JoinedPlanets = JoinedPlanets.Where(x => x.Id != planet.Id).ToList();
+        await ClosePlanetConnection(planet);
     }
 
     private static async Task OnMemberRoleUpdated(PlanetRoleMember rolemember, bool newitem, int flags)

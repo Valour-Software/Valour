@@ -97,7 +97,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
-        await db.BulkDeleteAsync(
+        db.PermissionsNodes.RemoveRange(
             db.PermissionsNodes.Where(x => x.TargetId == Id)
         );
 

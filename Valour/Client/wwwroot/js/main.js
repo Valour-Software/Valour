@@ -159,71 +159,6 @@ function handleTouchMove(evt) {
     yDown = null;
 };
 
-function SizeEnable() {
-
-    var man = $('#window-man');
-
-    if (man.children().length > 1) {
-
-        if (splitStates[0] != null) {
-            splitStates[0].destroy();
-        }
-
-        var split = Split(
-            man.children(),
-            {
-                minSize: [300, 300],
-                gutterAlign: 'center',
-                gutterSize: 3,
-            }
-        );
-
-        splitStates[0] = split;
-
-        var col1 = $('#window-col1');
-
-        if (col1.children().length > 1) {
-
-            if (splitStates[1] != null) {
-                splitStates[1].destroy();
-            }
-
-            split = Split(
-                col1.children(),
-                {
-                    minSize: [300, 300],
-                    direction: 'vertical',
-                    gutterAlign: 'center',
-                    gutterSize: 3,
-                }
-            );
-
-            splitStates[1] = split;
-        }
-
-        var col2 = $('#window-col2');
-
-        if (col2.children().length > 1) {
-
-            if (splitStates[2] != null) {
-                splitStates[2].destroy();
-            }
-
-            split = Split(
-                col2.children(),
-                {
-                    minSize: [300, 300],
-                    direction: 'vertical',
-                    gutterAlign: 'center',
-                    gutterSize: 3,
-                }
-            );
-
-            splitStates[2] = split;
-        }
-    }
-}
-
 // Set the name of the hidden property and the change event for visibility
 var hidden, visibilityChange;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
@@ -258,16 +193,16 @@ if (typeof document.addEventListener === "undefined" || hidden === undefined) {
 
 }
 
-var scrollStates = [1, 1, 1, 1];
-var oldScrollSize = [0, 0, 0, 0];
+var scrollStates = {};
+var oldScrollSize = {};
 
 // Automagically scroll windows down
-function UpdateScrollPosition(index) {
-    var window = $("#innerwindow-" + index);
+function UpdateScrollPosition(id) {
+    var window = $("#innerwindow-" + id);
 
-    oldScrollSize[index] = window.prop("scrollHeight");
+    oldScrollSize[id] = window.prop("scrollHeight");
 
-    console.log("Saving scroll state " + oldScrollSize[index]);
+    console.log("Saving scroll state " + oldScrollSize[id]);
 }
 
 function ScaleScrollPosition(index) {
@@ -276,44 +211,44 @@ function ScaleScrollPosition(index) {
     window.scrollTop(window.prop("scrollHeight") - oldScrollSize[index]);
 }
 
-function IsAtBottom(index) {
-    return (scrollStates[index] === 1);
+function IsAtBottom(id) {
+    return (scrollStates[id] === 1);
 }
 
 // Automagically scroll windows down
-function ScrollWindowBottom(index) {
-    var window = $("#innerwindow-" + index);
-    if (scrollStates[index] === 1) {
+function ScrollWindowBottom(id) {
+    var window = $("#innerwindow-" + id);
+    if (scrollStates[id] === 1) {
         window.scrollTop(window.prop("scrollHeight"));
     }
 }
 
-function ScrollWindowBottomAnim(index) {
-    var window = $("#innerwindow-" + index);
+function ScrollWindowBottomAnim(id) {
+    var window = $("#innerwindow-" + id);
     window.animate({ scrollTop: window.prop("scrollHeight") }, "fast");
 }
 
-function SetupWindow(index) {
-    console.log("Setting up window " + index);
-    var window = $("#innerwindow-" + index);
+function SetupWindow(id) {
+    console.log("Setting up window " + id);
+    var window = $("#innerwindow-" + id);
 
     window.scroll(function () {
         //console.log("Height: " + window.scrollTop());
 
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
-            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', index);
+            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
         }
 
         if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
             Math.abs(window.outerHeight()))
             < 75) {
 
-            scrollStates[index] = 1;
+            scrollStates[id] = 1;
             console.log("Within snap range.");
         }
         else {
-            scrollStates[index] = 0;
+            scrollStates[id] = 0;
         }
     });
 }
@@ -382,6 +317,10 @@ function hexToRGB(hex, alpha) {
 
 pickr = null;
 
+function Log(message, color) {
+    console.log("%c" + message, 'color: ' + color);
+}
+
 function SetupColorPicker() {
 
     console.log("Setting up color picker...");
@@ -442,6 +381,19 @@ function GetChosenColor() {
     return chosenColor;
 }
 
+var splits = {};
+
+function SplitWindows(containerId) {
+
+    if (containerId in splits)
+        splits[containerId].destroy();
+
+    if (document.getElementById(containerId) != null)
+        splits[containerId] = Split(document.getElementById(containerId).children, {
+     
+        });
+}
+
 /* Window resize code */
 
 window.onresize = function () {
@@ -449,3 +401,10 @@ window.onresize = function () {
 }
 
 window.onresize(); // called to initially set the height.
+
+function playSound(name) {
+    var sound = new Audio();
+    sound.src = "./_content/Valour.Client/media/sounds/" + name;
+    sound.volume = 0.2;
+    sound.play();
+}

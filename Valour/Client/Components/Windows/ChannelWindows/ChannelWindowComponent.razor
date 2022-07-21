@@ -1,8 +1,9 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 @inject IJSRuntime JS
-@inject ClientWindowManager windowManager
+@inject WindowManager windowManager
 @implements IDisposable
+@inject SoundManager soundManager
 @using Valour.Api.Items.Messages
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
@@ -38,7 +39,7 @@
                         </div>
 
                         <CascadingValue Value='Channel_Permissions'>
-                            <MessageHolderComponent @ref="MessageHolder" @key='$"mh-{Window.Index}"'></MessageHolderComponent>
+                            <MessageHolderComponent @ref="MessageHolder" @key='$"mh-{Window.Id}"'></MessageHolderComponent>
                         </CascadingValue>
 
                         @{
@@ -89,13 +90,13 @@
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        Window.Component = this;
+
         Console.WriteLine("Initializing channel window component.");
 
         Channel = Window.Channel;
 
         Planet = await Window.Channel.GetPlanetAsync();
-
-        Window.Component = this;
 
         ItemObserver<PlanetMember>.OnAnyUpdated += OnPlanetMemberUpdate;
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
@@ -104,26 +105,15 @@
         ValourClient.OnMessageRecieved += OnRecieveMessage;
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 
-        ValourClient.OnPlanetClose += OnPlanetClosed;
-
         await ValourClient.OpenChannel(Channel);
 
-        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+        await JS.InvokeVoidAsync("SetupWindow", Window.Id);
 
         await JS.InvokeVoidAsync("OnChannelLoad", null);
 
-        await JS.InvokeVoidAsync("SetupWindow", Window.Index);
+        await JS.InvokeVoidAsync("SetupWindow", Window.Id);
 
         await SetupNewChannelAsync();
-    }
-
-    public async Task OnPlanetClosed(Planet planet)
-    {
-        if (planet.Id != Planet.Id)
-            return;
-
-        HomeWindow newWindow = new(Window.Index);
-        await windowManager.SetWindow(Window.Index, newWindow);
     }
 
     public async Task OpenEditMode(MessageComponent message)
@@ -188,14 +178,13 @@
 
     public async Task CloseWindow()
     {
-        await windowManager.CloseWindow(Window.Index);
+        await windowManager.CloseWindow(Window);
     }
 
     public async Task ReturnHome()
     {
-        HomeWindow newWindow = new HomeWindow(Window.Index);
-
-        await windowManager.SetWindow(Window.Index, newWindow);
+        HomeWindow newWindow = new HomeWindow();
+        await windowManager.ReplaceWindow(Window, newWindow);
     }
 
     public async Task SetupNewChannelAsync()
@@ -233,7 +222,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
 
         Should_Render = false;
     }
@@ -241,7 +230,7 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
-        await ValourClient.CloseChannel(Channel);
+        await ValourClient.CloseChannelConnection(Channel);
     }
 
     public async Task OnRecieveMessage(PlanetMessage message)
@@ -252,6 +241,9 @@
 
         // Create client wrapper
         ClientPlanetMessage c_message = new ClientPlanetMessage(message);
+
+        if (c_message.Mentions.Any(x => x.Type == MentionType.Member && x.TargetId == SelfMember.Id))
+            await soundManager.PlaySound("Notification.mp3");
 
         await MessageHolder.AddMessage(c_message);
         InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
@@ -271,12 +263,12 @@
 
     public async Task ScrollToBottom()
     {
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Index);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
     }
 
     public async Task ScrollToBottomAnim()
     {
-        await JS.InvokeVoidAsync("ScrollWindowBottomAnim", Window.Index);
+        await JS.InvokeVoidAsync("ScrollWindowBottomAnim", Window.Id);
     }
 
     public async Task OnClickWindow()
@@ -286,18 +278,18 @@
 
     public async Task UpdateScrollPosition()
     {
-        await JS.InvokeVoidAsync("UpdateScrollPosition", Window.Index);
+        await JS.InvokeVoidAsync("UpdateScrollPosition", Window.Id);
     }
 
     public async Task ScaleScrollPosition()
     {
-        await JS.InvokeVoidAsync("ScaleScrollPosition", Window.Index);
+        await JS.InvokeVoidAsync("ScaleScrollPosition", Window.Id);
     }
 
     [JSInvokable("OnScrollTopInvoke")]
-    public static async Task OnScrollTop(int index)
+    public static async Task OnScrollTop(string id)
     {
-        ChatChannelWindow Window = ClientWindowManager.Instance.GetWindow(index) as ChatChannelWindow;
+        ChatChannelWindow Window = WindowManager.Instance.GetWindow(id) as ChatChannelWindow;
         MessageHolderComponent Holder = Window.Component.MessageHolder;
 
         if (Window == null)
@@ -313,7 +305,7 @@
 
         long firstIndex = Holder.Messages[0].Message_Index;
 
-        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Index}");
+        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
 
         var messages = await Window.Channel.GetMessagesAsync(firstIndex, 32);
 
