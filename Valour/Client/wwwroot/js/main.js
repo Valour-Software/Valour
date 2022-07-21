@@ -416,16 +416,32 @@ document.addEventListener('pointerdown', function () {
     playedDummy = true;
 })
 
+// Literally HAVE to do this so IOS works. Apple literally hates developers.
+const audioSources = [new Audio(), new Audio(), new Audio(), new Audio(), new Audio(),
+                      new Audio(), new Audio(), new Audio(), new Audio(), new Audio()]
+var sourceIndex = 0;
+
+function getAudioSource() {
+    var source = audioSources[sourceIndex];
+    sourceIndex++;
+    if (sourceIndex > 9)
+        sourceIndex = 0;
+    return source;
+}
+
 function dummySound() {
-    var sound = new Audio();
-    sound.src = "./_content/Valour.Client/media/sounds/Dummy.mp3";
-    sound.volume = 0;
-    sound.play();
+
+    for (var i = 0; i < audioSources.length; i++) {
+        var source = getAudioSource();
+        source.src = "./_content/Valour.Client/media/sounds/Dummy.mp3";
+        source.volume = 0;
+        source.play();
+    }
 }
 
 function playSound(name) {
-    var sound = new Audio();
-    sound.src = "./_content/Valour.Client/media/sounds/" + name;
-    sound.volume = 0.2;
-    sound.play();
+    var source = getAudioSource();
+    source.src = "./_content/Valour.Client/media/sounds/" + name;
+    source.volume = 0.4;
+    source.play();
 }
