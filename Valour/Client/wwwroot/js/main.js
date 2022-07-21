@@ -402,6 +402,27 @@ window.onresize = function () {
 
 window.onresize(); // called to initially set the height.
 
+/* Sound Code */
+
+// Hack for IOS stupidity
+
+var playedDummy = false
+
+document.addEventListener('pointerdown', function () {
+    if (playedDummy)
+        return;
+
+    dummySound();
+    playedDummy = true;
+})
+
+function dummySound() {
+    var sound = new Audio();
+    sound.src = "./_content/Valour.Client/media/sounds/dummy.mp3";
+    sound.volume = 0;
+    sound.play();
+}
+
 function playSound(name) {
     var sound = new Audio();
     sound.src = "./_content/Valour.Client/media/sounds/" + name;
