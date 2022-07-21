@@ -6,6 +6,7 @@ using Valour.Api.Client;
 using Valour.Client.Components.ChannelList;
 using Valour.Client.Categories;
 using Valour.Client.Windows;
+using Valour.Client.Sounds;
 
 namespace Valour.Client.Blazor;
 
@@ -39,6 +40,7 @@ public class Program
         builder.Services.AddSingleton<WindowManager>();
         builder.Services.AddSingleton<ClientCategoryManager>();
         builder.Services.AddSingleton<ChannelListManager>();
+        builder.Services.AddSingleton<SoundManager>();
 
         builder.Services.AddBlazoredModal();
         builder.Services.AddBlazorContextMenu(options =>

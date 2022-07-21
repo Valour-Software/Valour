@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject WindowManager windowManager
 @implements IDisposable
+@inject SoundManager soundManager
 @using Valour.Api.Items.Messages
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
@@ -240,6 +241,9 @@
 
         // Create client wrapper
         ClientPlanetMessage c_message = new ClientPlanetMessage(message);
+
+        if (c_message.Mentions.Any(x => x.Type == MentionType.Member && x.TargetId == SelfMember.Id))
+            await soundManager.PlaySound("Notification.mp3");
 
         await MessageHolder.AddMessage(c_message);
         InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
