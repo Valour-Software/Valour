@@ -157,11 +157,6 @@ public class Embed
 
     public void BuildFromJson(JsonNode Node)
     {
-        var options = new JsonSerializerOptions()
-        {
-            WriteIndented = true
-        };
-        Console.WriteLine(Node.ToJsonString(options));
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
         EmbedType = (EmbedItemPlacementType)(int)Node["EmbedType"];
