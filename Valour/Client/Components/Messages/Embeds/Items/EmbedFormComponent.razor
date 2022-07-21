@@ -3,7 +3,7 @@
 	{
 		<EmbedRowComponent Row="@row" Message="@Message" embed="@embed" FormItem="@item"></EmbedRowComponent>
 	}
-	@foreach (EmbedItem item in embed.Currently_Displayed.Items)
+	@foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
 	{
 		<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
 	}

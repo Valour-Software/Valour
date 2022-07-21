@@ -4,18 +4,18 @@
 }
 
 <div class="embed" style="@embed.GetStyle()">
-	@if (embed.Currently_Displayed != null)
+	@if (embed.CurrentlyDisplayed != null)
 	{
-		@if (embed.Currently_Displayed.Title is not null) {
-			<div style="color:#@embed.Currently_Displayed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
-				@((MarkupString)MarkdownManager.GetHtml(embed.Currently_Displayed.Title))
+		@if (embed.CurrentlyDisplayed.Title is not null) {
+			<div style="color:#@embed.CurrentlyDisplayed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
+				@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Title))
 			</div>
 		}
-		foreach (EmbedRow item in embed.Currently_Displayed.Rows)
+		foreach (EmbedRow item in embed.CurrentlyDisplayed.Rows)
 		{
 			<EmbedRowComponent Row="@item" Message="@Message" embed="@embed"></EmbedRowComponent>
 		}
-		foreach (EmbedItem item in embed.Currently_Displayed.Items)
+		foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
 		{
 			<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
 		}
@@ -27,10 +27,10 @@
 				<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
 			</div>
 		}
-		@if (embed.Currently_Displayed.Footer is not null)
+		@if (embed.CurrentlyDisplayed.Footer is not null)
 		{
-			<div style="color:#@embed.Currently_Displayed.FooterColor;font-size:14px;margin-top: 8px;">
-				@((MarkupString)MarkdownManager.GetHtml(embed.Currently_Displayed.Footer))
+			<div style="color:#@embed.CurrentlyDisplayed.FooterColor;font-size:14px;margin-top: 8px;">
+				@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Footer))
 			</div>
 		}
 	}

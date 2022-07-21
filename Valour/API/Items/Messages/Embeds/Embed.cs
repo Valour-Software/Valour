@@ -198,7 +198,7 @@ public class Embed
     /// The currently displayed page
     /// </summary>
     [JsonIgnore]
-    public EmbedPage Currently_Displayed
+    public EmbedPage CurrentlyDisplayed
     {
         get
         {
@@ -238,7 +238,7 @@ public class Embed
 
         List<EmbedFormData> data = new();
 
-        /*foreach (EmbedItem item in Currently_Displayed)
+        /*foreach (EmbedItem item in CurrentlyDisplayed)
         {
             if (item.Type == EmbedItemType.InputBox)
             {
