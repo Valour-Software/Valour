@@ -87,7 +87,8 @@
             {
                 resultSpan = result.Message;
                 await ClientUserManager.StoreToken(localStorage);
-                //navManager.NavigateTo("/", true);
+                if (FromVerified)
+                    navManager.NavigateTo("/", true);
             }
             else {
                 passwordSpan = result.Message;
