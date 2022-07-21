@@ -418,7 +418,7 @@ document.addEventListener('pointerdown', function () {
 
 function dummySound() {
     var sound = new Audio();
-    sound.src = "./_content/Valour.Client/media/sounds/dummy.mp3";
+    sound.src = "./_content/Valour.Client/media/sounds/Dummy.mp3";
     sound.volume = 0;
     sound.play();
 }
