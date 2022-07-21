@@ -1,76 +1,76 @@
-@inject HttpClient Http
-@inject NavigationManager navManager
-@inject ILocalStorageService localStorage
-
-<body class="login-background">
-    <div class="popup-box">
-        <div class="col-md-12">
-            <section>
-                <h2>Log in to Valour</h2>
-                @if(@FromVerified)
-                {
-                    <h4 style="color:var(--v-cyan)">You have registered!</h4>
-                }
-                else
-                {
-                    <h4>Welcome back!</h4>
-                }
-                <hr />
-                <div asp-validation-summary="All" class="text-danger"></div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" class="form-control" @bind-value="@email" />
-                    <span id="email-span" class="text-danger">@emailSpan</span>
-                </div>
-                <div class="form-group mt-2">
-                    <label>Password</label>
-                    <input type="password" class="form-control" @bind-value="@password" />
-                    <span id="password-span" class="text-danger">@passwordSpan</span>
-                </div>
-                <span id="result-span" class="text-info">@resultSpan</span>
-                <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
-                <div class="form-group mt-4" style="display:inline-block">
-                    <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button>
-                    <button class="btn btn-outline-primary mt-2" @onclick="OnClickRegister">Register</button>
-                </div>
-            </section>
-        </div>
-    </div>
-</body>
-
-@code {
-    [Parameter]
-    public bool FromVerified { get; set; } = false;
-
-    public string email;
-    public string password;
-
-    public string emailSpan;
-    public string passwordSpan;
-    public string resultSpan;
-
-    private async Task OnClickLogin(MouseEventArgs e)
-    {
-        if (email == null || string.IsNullOrWhiteSpace(email))
-        {
-            emailSpan = "Please enter your email.";
-            return;
-        }
-
-        // Fix trailing whitespace
-        email = email.Trim();
-
-        if (password == null || string.IsNullOrWhiteSpace(password))
-        {
-            passwordSpan = "Please enter your password.";
-            return;
-        }
-
-        // Clear spans
-        passwordSpan = "";
-        emailSpan = "";
-
-        var tokenResult = await ValourClient.GetToken(email, password);
+@inject HttpClient Http 
+@inject NavigationManager navManager 
+@inject ILocalStorageService localStorage 
+ 
+<body class="login-background"> 
+    <div class="popup-box"> 
+        <div class="col-md-12"> 
+            <section> 
+                <h2>Log in to Valour</h2> 
+                @if(@FromVerified) 
+                { 
+                    <h4 style="color:var(--v-cyan)">You have registered!</h4> 
+                } 
+                else 
+                { 
+                    <h4>Welcome back!</h4> 
+                } 
+                <hr /> 
+                <div asp-validation-summary="All" class="text-danger"></div> 
+                <div class="form-group"> 
+                    <label>Email</label> 
+                    <input type="email" class="form-control" @bind-value="@email" /> 
+                    <span id="email-span" class="text-danger">@emailSpan</span> 
+                </div> 
+                <div class="form-group mt-2"> 
+                    <label>Password</label> 
+                    <input type="password" class="form-control" @bind-value="@password" /> 
+                    <span id="password-span" class="text-danger">@passwordSpan</span> 
+                </div> 
+                <span id="result-span" class="text-info">@resultSpan</span> 
+                <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a> 
+                <div class="form-group mt-4" style="display:inline-block"> 
+                    <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button> 
+                    <button class="btn btn-outline-primary mt-2" @onclick="OnClickRegister">Register</button> 
+                </div> 
+            </section> 
+        </div> 
+    </div> 
+</body> 
+ 
+@code { 
+    [Parameter] 
+    public bool FromVerified { get; set; } = false; 
+ 
+    public string email; 
+    public string password; 
+ 
+    public string emailSpan; 
+    public string passwordSpan; 
+    public string resultSpan; 
+ 
+    private async Task OnClickLogin(MouseEventArgs e) 
+    { 
+        if (email == null || string.IsNullOrWhiteSpace(email)) 
+        { 
+            emailSpan = "Please enter your email."; 
+            return; 
+        } 
+ 
+        // Fix trailing whitespace 
+        email = email.Trim(); 
+ 
+        if (password == null || string.IsNullOrWhiteSpace(password)) 
+        { 
+            passwordSpan = "Please enter your password."; 
+            return; 
+        } 
+ 
+        // Clear spans 
+        passwordSpan = ""; 
+        emailSpan = ""; 
+ 
+        var tokenResult = await ValourClient.GetToken(email, password); 
 
         if (!tokenResult.Success)
         {
@@ -87,7 +87,8 @@
             {
                 resultSpan = result.Message;
                 await ClientUserManager.StoreToken(localStorage);
-                //navManager.NavigateTo("/", true);
+                if (FromVerified)
+                    navManager.NavigateTo("/", true);
             }
             else {
                 passwordSpan = result.Message;
