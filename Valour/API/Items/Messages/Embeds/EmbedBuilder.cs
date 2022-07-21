@@ -10,13 +10,22 @@ public class EmbedBuilder
 
     public EmbedFormItem FormItem;
 
-    public EmbedBuilder(EmbedItemPlacementType embedType)
+    public EmbedBuilder(EmbedItemPlacementType embedType, int? width = null, int? height = null)
     {
         embed = new()
         {
             EmbedType = embedType
         };
         embed.Pages = new();
+        if (embedType == EmbedItemPlacementType.FreelyBased)
+        {
+            if (width is null)
+                throw new ArgumentException("Width cannot be null if the placement type if FreelyBased!");
+            if (height is null)
+                throw new ArgumentException("Height cannot be null if the placement type if FreelyBased!");
+            embed.Width = width;
+            embed.Height = height;
+        }
     }
 
     [JsonIgnore]

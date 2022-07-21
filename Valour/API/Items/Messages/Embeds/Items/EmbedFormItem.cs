@@ -16,6 +16,16 @@ public class EmbedFormItem : EmbedItem
     /// </summary>
     public string Id { get; set; }
 
+    /// <summary>
+    /// Only works in FreelyBased embed/form type
+    /// </summary>
+    public int? Width { get; set; }
+
+    /// <summary>
+    /// Only works in FreelyBased embed/form type
+    /// </summary>
+    public int? Height { get; set; }
+
     public EmbedItemPlacementType ItemPlacementType { get; set; }
 
     public EmbedFormItem()
@@ -23,11 +33,13 @@ public class EmbedFormItem : EmbedItem
         ItemType = EmbedItemType.Form;
     }
 
-    public EmbedFormItem(EmbedItemPlacementType type, string id)
+    public EmbedFormItem(EmbedItemPlacementType type, string id, int? width = null, int? height = null)
     {
         Id = id;
         ItemPlacementType = type;
         ItemType = EmbedItemType.Form;
+        Width = width;
+        Height = height;
     }
 
     public List<EmbedFormData> GetFormData()
@@ -71,6 +83,11 @@ public class EmbedFormItem : EmbedItem
         ItemType = EmbedItemType.Form;
         Id = (string)Node["Id"];
         ItemPlacementType = (EmbedItemPlacementType)(int)Node["ItemPlacementType"];
+        if (ItemPlacementType == EmbedItemPlacementType.FreelyBased)
+        {
+            Width = (int?)Node["Width"];
+            Height = (int?)Node["Height"];
+        }
         switch (ItemPlacementType)
         {
             case EmbedItemPlacementType.FreelyBased:

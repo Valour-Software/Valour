@@ -3,6 +3,10 @@
 	{
 		<EmbedRowComponent Row="@row" Message="@Message" embed="@embed" FormItem="@item"></EmbedRowComponent>
 	}
+	@foreach (EmbedItem item in embed.Currently_Displayed.Items)
+	{
+		<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
+	}
 </div>
 
 @code {

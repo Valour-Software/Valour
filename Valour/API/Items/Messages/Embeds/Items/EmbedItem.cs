@@ -46,8 +46,8 @@ public class EmbedItem
         if (X is not null)
         {
             int x = Math.Min((int)X, 500);
-            int y = Math.Min((int)Y, 800);
-            style += $"position: relative;left: {X}px;top: {Y}px;";
+            int y = Math.Min((int)Y, 600);
+            style += $"position: relative;left: {X}px;top: {Y}px;width: fit-content;";
         }
         else
         {

@@ -3,7 +3,7 @@
 	return;
 }
 
-<div class="embed">
+<div class="embed" style="@embed.GetStyle()">
 	@if (embed.Currently_Displayed != null)
 	{
 		@if (embed.Currently_Displayed.Title is not null) {
@@ -14,6 +14,10 @@
 		foreach (EmbedRow item in embed.Currently_Displayed.Rows)
 		{
 			<EmbedRowComponent Row="@item" Message="@Message" embed="@embed"></EmbedRowComponent>
+		}
+		foreach (EmbedItem item in embed.Currently_Displayed.Items)
+		{
+			<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
 		}
 		if (embed.Pages.Count > 1)
 		{

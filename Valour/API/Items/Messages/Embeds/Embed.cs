@@ -140,6 +140,16 @@ public class Embed
     /// </summary>
     public string? Id { get; set; }
 
+    /// <summary>
+    /// Only works in FreelyBased embed/form type
+    /// </summary>
+    public int? Width { get; set; }
+
+    /// <summary>
+    /// Only works in FreelyBased embed/form type
+    /// </summary>
+    public int? Height { get; set; }
+
     public int currentPage = 0;
 
     internal static EmbedItem ConvertNodeToEmbedItem(JsonNode node)
@@ -155,11 +165,26 @@ public class Embed
         return item;
     }
 
+    public string GetStyle()
+    {
+        string style = "";
+        if (EmbedType == EmbedItemPlacementType.FreelyBased)
+        {
+            style += $"height: {Height}px;width: {Width}px;padding: unset;";
+        }
+        return style;
+    }
+
     public void BuildFromJson(JsonNode Node)
     {
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
         EmbedType = (EmbedItemPlacementType)(int)Node["EmbedType"];
+        if (EmbedType == EmbedItemPlacementType.FreelyBased)
+        {
+            Width = (int?)Node["Width"];
+            Height = (int?)Node["Height"];
+        }
         Pages = new();
         foreach(var pagenode in Node["Pages"].AsArray())
         {
