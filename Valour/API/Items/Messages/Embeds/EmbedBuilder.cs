@@ -91,28 +91,68 @@ public class EmbedBuilder
             Size = size,
         };
 
-        if (embed.EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
-        {
-            item.X = x;
-            item.Y = y;
-            if (FormItem is not null)
-                FormItem.AddItem(item);
-            else
-                embed.Pages.Last().Items.Add(item);
-        }
-        else
-        {
-            if (FormItem is not null)
-                FormItem.AddItem(item);
-            else
-                embed.Pages.Last().Rows.Last().Items.Add(item);
-        }
+        AddItem(item, x, y);
         return this;
     }
 
     /// <summary>
-    /// Adds a text item to the current row of the current page. If FreelyBased, then
-    /// this will add a text item to the current page.
+    /// Tells the builder to stop adding new items to the current form.
+    /// </summary>
+    /// <returns></returns>
+
+    public EmbedBuilder EndForm()
+    {
+        FormItem = null;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a form item; until EndForm() is called, all items will be added to the form instead of the builder.
+    /// </summary>
+    /// <returns></returns>
+    public EmbedBuilder AddForm(EmbedItemPlacementType placementtype, string id)
+    {
+        var item = new EmbedFormItem()
+        {
+            ItemPlacementType = placementtype,
+            Id = id
+        };
+
+        if (placementtype == EmbedItemPlacementType.RowBased)
+            item.Rows = new();
+        else
+            item.Items = new();
+
+        AddItem(item, null, null);
+
+        FormItem = item;
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a inputbox item to the current row of the current form. If FreelyBased, then
+    /// this will add a inputbox item to the current form.
+    /// </summary>
+    /// <returns></returns>
+    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, EmbedItemSize size = EmbedItemSize.Normal, string namecolor = null, string value = null, int? x = null, int? y = null)
+    {
+        var item = new EmbedInputBoxItem()
+        {
+            Value = value,
+            Id = id,
+            Size = size,
+            Placeholder = placeholder,
+            Name = name,
+            NameColor = namecolor
+        };
+
+        AddItem(item, x, y);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a text item to the current row of the current page/form. If FreelyBased, then
+    /// this will add a text item to the current page/form.
     /// </summary>
     /// <returns></returns>
     public EmbedBuilder AddText(string name = null, string text = null, string textColor = null, string link = null, int? x = null, int? y = null)
@@ -125,6 +165,12 @@ public class EmbedBuilder
             Link = link
         };
 
+        AddItem(item, x, y);
+        return this;
+    }
+
+    internal void AddItem(EmbedItem item, int? x, int? y)
+    {
         if (embed.EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
         {
             item.X = x;
@@ -141,6 +187,5 @@ public class EmbedBuilder
             else
                 embed.Pages.Last().Rows.Last().Items.Add(item);
         }
-        return this;
     }
 }

@@ -14,9 +14,18 @@ public enum EmbedItemType
     Form = 6
 }
 
+public interface IEmbedFormItem
+{
+    public string Id { get; set; }
+    public string Value { get; set; }
+    public EmbedItemType ItemType { get; set; }
+}
+
 [JsonDerivedType(typeof(EmbedItem), typeDiscriminator: 1)]
 [JsonDerivedType(typeof(EmbedTextItem), typeDiscriminator: 2)]
 [JsonDerivedType(typeof(EmbedButtonItem), typeDiscriminator: 3)]
+[JsonDerivedType(typeof(EmbedFormItem), typeDiscriminator: 4)]
+[JsonDerivedType(typeof(EmbedInputBoxItem), typeDiscriminator: 5)]
 public class EmbedItem
 {
     public EmbedItemType ItemType { get; set; }

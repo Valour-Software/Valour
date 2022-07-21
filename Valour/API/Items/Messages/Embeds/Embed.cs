@@ -99,17 +99,12 @@ public class EmbedPage
         {
             foreach (JsonNode node in Node["Items"].AsArray())
             {
-                Items.Add(ConvertNodeToEmbedItem(node));
+                Items.Add(Embed.ConvertNodeToEmbedItem(node));
             }
         }
 
         if (Node["Rows"] is not null && Node["Items"] is null)
         {
-            var options = new JsonSerializerOptions()
-            {
-                WriteIndented = true
-            };
-            Console.WriteLine(Node.ToJsonString(options));
             foreach (var rownode in Node["Rows"].AsArray())
             {
                 EmbedRow rowobject = new();
@@ -118,24 +113,11 @@ public class EmbedPage
                 int i = 0;
                 foreach (JsonNode node in rownode["Items"].AsArray())
                 {
-                    Console.WriteLine(node.ToJsonString(options));
-                    rowobject.Items.Add(ConvertNodeToEmbedItem(node));
+                    rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node));
                 }
                 Rows.Add(rowobject);
             }
         }
-    }
-
-    private static EmbedItem ConvertNodeToEmbedItem(JsonNode node)
-    {
-        var type = (EmbedItemType)(int)node["ItemType"];
-        EmbedItem item = type switch
-        {
-            EmbedItemType.Text => node.Deserialize<EmbedTextItem>(),
-            EmbedItemType.Form => new EmbedFormItem(node),
-            EmbedItemType.Button => node.Deserialize<EmbedButtonItem>()
-        };
-        return item;
     }
 }
 
@@ -160,8 +142,26 @@ public class Embed
 
     public int currentPage = 0;
 
+    internal static EmbedItem ConvertNodeToEmbedItem(JsonNode node)
+    {
+        var type = (EmbedItemType)(int)node["ItemType"];
+        EmbedItem item = type switch
+        {
+            EmbedItemType.Text => node.Deserialize<EmbedTextItem>(),
+            EmbedItemType.Form => new EmbedFormItem(node),
+            EmbedItemType.Button => node.Deserialize<EmbedButtonItem>(),
+            EmbedItemType.InputBox => node.Deserialize<EmbedInputBoxItem>()
+        };
+        return item;
+    }
+
     public void BuildFromJson(JsonNode Node)
     {
+        var options = new JsonSerializerOptions()
+        {
+            WriteIndented = true
+        };
+        Console.WriteLine(Node.ToJsonString(options));
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
         EmbedType = (EmbedItemPlacementType)(int)Node["EmbedType"];

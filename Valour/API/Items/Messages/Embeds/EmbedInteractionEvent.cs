@@ -15,39 +15,22 @@ public enum EmbedIteractionEventType
     TextClicked = 3
 }
 
-public class NewEmbedInteractionEvent
-{
-    public EmbedIteractionEventType EventType { get; set; }
-
-    public long PlanetId { get; set; }
-
-    public long MessageId { get; set; }
-
-    public long Author_MemberId { get; set; }
-
-    public long MemberId { get; set; }
-
-    public long ChannelId { get; set; }
-
-    public DateTime TimeInteracted { get; set; }
-    public List<EmbedFormData> FormData { get; set; }
-}
 public class EmbedInteractionEvent
 {
-    [JsonPropertyName("Event")]
-    public string Event { get; set; }
+    [JsonPropertyName("FormId")]
+    public string? FormId { get; set; }
+
+    [JsonPropertyName("ElementId")]
+    public string ElementId { get; set; }
 
     [JsonPropertyName("EmbedIteractionEventType")]
     public EmbedIteractionEventType EventType { get; set; }
 
-    [JsonPropertyName("Element_Id")]
-    public string Element_Id { get; set; }
-
     [JsonPropertyName("PlanetId")]
     public long PlanetId { get; set; }
 
-    [JsonPropertyName("Message_Id")]
-    public long Message_Id { get; set; }
+    [JsonPropertyName("MessageId")]
+    public long MessageId { get; set; }
 
     [JsonPropertyName("Author_MemberId")]
     public long Author_MemberId { get; set; }
@@ -58,10 +41,10 @@ public class EmbedInteractionEvent
     [JsonPropertyName("ChannelId")]
     public long ChannelId { get; set; }
 
-    [JsonPropertyName("Time_Interacted")]
-    public DateTime Time_Interacted { get; set; }
+    [JsonPropertyName("TimeInteracted")]
+    public DateTime TimeInteracted { get; set; }
 
-    [JsonPropertyName("Form_Data")]
-    public List<EmbedFormData> Form_Data { get; set; }
+    [JsonPropertyName("FormData")]
+    public List<EmbedFormData> FormData { get; set; }
 }
 

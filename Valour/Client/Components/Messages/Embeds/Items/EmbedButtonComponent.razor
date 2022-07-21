@@ -18,6 +18,8 @@
     public ClientPlanetMessage Message {get; set;}
     [Parameter]
     public Embed embed { get; set;}
+    [Parameter]
+    public EmbedFormItem? FormItem { get; set; }
 
     EmbedButtonItem Item;
 
@@ -33,20 +35,20 @@
 
         Api.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
         {
-            Event = Item.Event,
             EventType = EmbedIteractionEventType.ButtonClick,
-            Element_Id = Item.Id,
             PlanetId = Message.BaseMessage.PlanetId,
-            Message_Id = Message.BaseMessage.Id,
+            MessageId = Message.BaseMessage.Id,
             Author_MemberId = Message.BaseMessage.AuthorMemberId,
             MemberId = SelfMember.Id,
             ChannelId = Message.BaseMessage.ChannelId,
-            Time_Interacted = DateTime.UtcNow
+            TimeInteracted = DateTime.UtcNow,
+            ElementId = Item.Id
         };
 
-        if (false)
+        if (FormItem is not null && Item.IsSubmitButton.Value)
         {
-            Interaction.Form_Data = embed.GetFormData();
+            Interaction.FormData = FormItem.GetFormData();
+            Interaction.FormId = FormItem.Id;
             Interaction.EventType = EmbedIteractionEventType.FormSubmitted;
         }
 
