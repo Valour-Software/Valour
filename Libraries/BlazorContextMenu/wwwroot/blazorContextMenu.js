@@ -13,13 +13,14 @@ var blazorContextMenu = function (blazorContextMenu) {
     }
 
     blazorContextMenu.DoPointerDown = function DoPointerDown(event, menu, prop) {
-        if (!event.target.hasAttribute('data-dotnetref'))
-            return;
+        //if (!event.target.hasAttribute('data-dotnetref'))
+        //    return;
+        var currentTarget = event.currentTarget;
 
         pressTimer = window.setTimeout(function () {
             navigator.vibrate(30);
-            blazorContextMenu.OnContextMenu(event, menu, prop, true);
-        }, 300);
+            blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
+        }, 500);
     }
 
     var closest = null;
@@ -179,20 +180,21 @@ var blazorContextMenu = function (blazorContextMenu) {
         showMenuCommon(menu, menuId, x, y, null, null);
     }
 
-    blazorContextMenu.OnContextMenu = function (e, menuId, stopPropagation, isTouch = false) {
+    blazorContextMenu.OnContextMenu = function (e, menuId, stopPropagation, touchTarget, isTouch = false) {
         //openingMenu = true;
         var menu = document.getElementById(menuId);
         if (!menu) throw new Error("No context menu with id '" + menuId + "' was found");
         addToOpenMenus(menu, menuId, e.target);
-        var triggerDotnetRef = JSON.parse(e.currentTarget.dataset["dotnetref"]);
 
         if (isTouch) {
             var evt = (typeof e.originalEvent === 'undefined') ? e : e.originalEvent;
             var touch = evt.touches[0] || evt.changedTouches[0];
 
-            showMenuCommon(menu, menuId, touch.pageX, touch.pageY, touch.target, triggerDotnetRef);
+            var triggerDotnetRef = JSON.parse(touchTarget.dataset["dotnetref"]);
+            showMenuCommon(menu, menuId, touch.pageX, touch.pageY, touchTarget, triggerDotnetRef);
         }
         else {
+            var triggerDotnetRef = JSON.parse(e.currentTarget.dataset["dotnetref"]);
             showMenuCommon(menu, menuId, e.x, e.y, e.target, triggerDotnetRef);
         }
 
