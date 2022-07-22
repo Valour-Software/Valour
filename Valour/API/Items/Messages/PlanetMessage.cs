@@ -1,16 +1,19 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Users;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Messages.Embeds.Items;
+using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages;
-using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Messages.Mentions;
 using System.ComponentModel.DataAnnotations.Schema;
+using Valour.Api.Items.Messages.Embeds;
 
 namespace Valour.Api.Items.Messages;
 
@@ -119,7 +122,8 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
             {
                 if (!string.IsNullOrEmpty(EmbedData))
                 {
-                    _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
+                    _embed = new Embed();
+                    _embed.BuildFromJson(JsonNode.Parse(EmbedData));
                 }
 
                 embedParsed = true;

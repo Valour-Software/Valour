@@ -1,60 +1,25 @@
-@using Valour.Api.Items.Messages
-
 @if (embed is null)
 {
 	return;
 }
 
-<div class="embed">
-	@if (embed.Currently_Displayed != null)
+<div class="embed" style="@embed.GetStyle()">
+	@if (embed.CurrentlyDisplayed != null)
 	{
-		@if (embed.Title is not null) {
-			<div style="color:#@embed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
-				@((MarkupString)MarkdownManager.GetHtml(embed.Title))
+		@if (embed.CurrentlyDisplayed.Title is not null) {
+			<div style="color:#@embed.CurrentlyDisplayed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
+				@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Title))
 			</div>
 		}
-		foreach (EmbedItem item in embed.Currently_Displayed)
+		foreach (EmbedRow item in embed.CurrentlyDisplayed.Rows)
 		{
-			switch (item.Type)
-			{
-				case EmbedItemType.Text:
-					<div style="@item.GetInlineStyle" class="embed-item">
-						@if (item.Name != null)
-						{
-							<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
-								@((MarkupString)MarkdownManager.GetHtml(item.Name))
-							</div>
-						}
-						<div style="color:#@item.TextColor;font-size:14px;">
-							@if (item.Link != null)
-							{
-								<a href="@item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
-							}
-							else
-							{
-								@((MarkupString)MarkdownManager.GetHtml(item.Text))
-							}
-						</div>
-					</div>
-					break;
-				case EmbedItemType.Button:
-					@if (item.Center)
-					{
-						<center>
-							<EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
-						</center>
-					}
-					else
-					{
-						<EmbedButtonComponent Item="item" Message="Message" embed="embed"></EmbedButtonComponent>
-					}
-					break;
-				case EmbedItemType.InputBox:
-					<EmbedInputBoxComponent Item="item" embed="embed"></EmbedInputBoxComponent>
-					break;
-			}
+			<EmbedRowComponent Row="@item" Message="@Message" embed="@embed"></EmbedRowComponent>
 		}
-		if (embed.Pages.Length > 1)
+		foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
+		{
+			<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
+		}
+		if (embed.Pages.Count > 1)
 		{
 			<div style="margin-top: 8px;">
 				<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
@@ -62,9 +27,10 @@
 				<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
 			</div>
 		}
-		@if (embed.Footer is not null) {
-			<div style="color:#@embed.FooterColor;font-size:14px;margin-top: 8px;">
-				@((MarkupString)MarkdownManager.GetHtml(embed.Footer))
+		@if (embed.CurrentlyDisplayed.Footer is not null)
+		{
+			<div style="color:#@embed.CurrentlyDisplayed.FooterColor;font-size:14px;margin-top: 8px;">
+				@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Footer))
 			</div>
 		}
 	}

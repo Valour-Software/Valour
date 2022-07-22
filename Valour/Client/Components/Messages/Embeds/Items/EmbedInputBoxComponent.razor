@@ -1,0 +1,23 @@
+@inject HttpClient Http
+
+<div style="@Item.GetStyle()" class="embed-item">
+    @if (Item.Name != null)
+    {
+        <div style="color:#@Item.NameColor;font-weight:bold;font-size:14px;margin-left: 2px;">
+            @((MarkupString)MarkdownManager.GetHtml(Item.Name))
+        </div>
+    }
+    <input type="text" class="form-control" placeholder="@Item.Placeholder" @bind-value="@Item.Value" style="background-color: var(--main-1);color: var(--font-color);margin-top: 0px;">
+</div>
+
+@code {
+    [Parameter]
+    public EmbedItem _item {get; set;}
+
+    public EmbedInputBoxItem Item { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Item = (EmbedInputBoxItem)_item;
+    }
+}

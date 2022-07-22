@@ -1,12 +1,6 @@
 @inject HttpClient Http
-@using Valour.Api.Items.Messages
 
-<div style="@Item.GetInlineStyle" class="embed-item">
-    @if (Item.Name != null) {
-        <div style="color:#@Item.TextColor;font-weight:bold;font-size:14px;">
-            @((MarkupString)MarkdownManager.GetHtml(Item.Name))
-        </div>
-    }
+<div style="@Item.GetStyle()" class="embed-item">
     <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => await OnEmbedButtonClick())">
         @if (Item.Link != "") {
             <a href="@Item.Link" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
@@ -19,33 +13,42 @@
 
 @code {
     [Parameter]
-    public EmbedItem Item {get; set;}
+    public EmbedItem _item {get; set;}
     [Parameter]
     public ClientPlanetMessage Message {get; set;}
     [Parameter]
     public Embed embed { get; set;}
+    [Parameter]
+    public EmbedFormItem? FormItem { get; set; }
+
+    EmbedButtonItem Item;
+
+    protected override void OnInitialized()
+    {
+        Item = (EmbedButtonItem)_item;
+    }
 
     public async Task OnEmbedButtonClick()
     {
 
         PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.BaseMessage.PlanetId);
 
-        Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Shared.Items.Messages.Embeds.EmbedInteractionEvent()
+        Api.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
         {
-            Event = Item.Event,
             EventType = EmbedIteractionEventType.ButtonClick,
-            Element_Id = Item.Id,
             PlanetId = Message.BaseMessage.PlanetId,
-            Message_Id = Message.BaseMessage.Id,
+            MessageId = Message.BaseMessage.Id,
             Author_MemberId = Message.BaseMessage.AuthorMemberId,
             MemberId = SelfMember.Id,
             ChannelId = Message.BaseMessage.ChannelId,
-            Time_Interacted = DateTime.UtcNow
+            TimeInteracted = DateTime.UtcNow,
+            ElementId = Item.Id
         };
 
-        if (Item.SubmitForm)
+        if (FormItem is not null && Item.IsSubmitButton.Value)
         {
-            Interaction.Form_Data = embed.GetFormData();
+            Interaction.FormData = FormItem.GetFormData();
+            Interaction.FormId = FormItem.Id;
             Interaction.EventType = EmbedIteractionEventType.FormSubmitted;
         }
 

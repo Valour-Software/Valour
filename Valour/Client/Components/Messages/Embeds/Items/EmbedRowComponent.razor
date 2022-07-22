@@ -1,0 +1,43 @@
+﻿<div class="embed-row">
+	@foreach(EmbedItem item in Row.Items)
+	{
+		<EmbedItemComponent embed="@embed" Message="@Message" FormItem="@FormItem" item="@item"></EmbedItemComponent>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public EmbedRow Row { get; set; }
+
+	[Parameter]
+	public ClientPlanetMessage Message { get; set; }
+
+	[Parameter]
+	public Embed embed { get; set; }
+
+	[Parameter]
+	public EmbedFormItem? FormItem { get; set; }
+
+	public string Style {
+		get {
+			if (Row.Align == EmbedAlignType.Left) {
+				return "margin-right:auto;";
+			}
+			if (Row.Align == EmbedAlignType.Center)
+			{
+				return "margin-left: auto;margin-right: auto;";
+			}
+			if (Row.Align == EmbedAlignType.Right)
+			{
+				return "margin-left:auto;";
+			}
+			return "";
+
+		}
+	}
+
+	protected override void OnInitialized()
+	{
+		StateHasChanged();
+	}
+}

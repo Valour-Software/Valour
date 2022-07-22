@@ -4,8 +4,9 @@ using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
-using Valour.Shared.Items.Messages.Embeds;
 using Valour.Shared.Authorization;
+using Valour.Api.Items.Messages.Embeds.Items;
+using Valour.Api.Items.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

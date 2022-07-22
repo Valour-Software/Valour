@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
+using Valour.Api.Items.Messages.Embeds.Items;
 
-namespace Valour.Shared.Items.Messages.Embeds;
+namespace Valour.Api.Items.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -10,8 +11,8 @@ namespace Valour.Shared.Items.Messages.Embeds;
 
 public class EmbedFormData
 {
-    [JsonPropertyName("Element_Id")]
-    public string Element_Id { get; set; }
+    [JsonPropertyName("ElementId")]
+    public string ElementId { get; set; }
 
     [JsonPropertyName("Value")]
     public string Value { get; set; }
