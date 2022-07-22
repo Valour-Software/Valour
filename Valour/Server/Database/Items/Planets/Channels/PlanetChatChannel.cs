@@ -103,12 +103,12 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public async Task DeleteAsync(ValourDB db)
     {
         // Remove permission nodes
-        await db.PermissionsNodes.BulkDeleteAsync(
+        db.PermissionsNodes.RemoveRange(
             db.PermissionsNodes.Where(x => x.TargetId == Id)
         );
 
         // Remove messages
-        await db.PlanetMessages.BulkDeleteAsync(
+        db.PlanetMessages.RemoveRange(
             db.PlanetMessages.Where(x => x.ChannelId == Id)
         );
 

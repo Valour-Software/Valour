@@ -13,11 +13,16 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using Valour.Client.Components.Sounds
+
 
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject ILocalStorageService storage
 @inject IJSRuntime JS
+
+<!-- Enable app sounds -->
+<SoundsComponent></SoundsComponent>
 
 @if (triedInitialLogin)
 {

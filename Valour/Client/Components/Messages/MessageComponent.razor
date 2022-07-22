@@ -79,7 +79,7 @@
                         }
                         else
                         {
-                            replykey = $"{Window.Index}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
+                            replykey = $"{Window.Id}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
                         }
 
                         <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
@@ -215,7 +215,7 @@
         if (!Ghost)
         {
             Console.WriteLine("Setting window selection due to click");
-            await ClientWindowManager.Instance.SetSelectedWindow(Window);
+            await WindowManager.Instance.SetSelectedWindow(Window);
         }
         else
         {

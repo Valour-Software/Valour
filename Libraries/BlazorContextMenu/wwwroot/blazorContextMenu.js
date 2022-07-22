@@ -17,7 +17,7 @@ var blazorContextMenu = function (blazorContextMenu) {
         //console.log("Touched")
         pressTimer = window.setTimeout(function () {
             longPress = true;
-        }, 1000);
+        }, 500);
 
         handleAutoHideEvent(event, "mousedown", true);
     }

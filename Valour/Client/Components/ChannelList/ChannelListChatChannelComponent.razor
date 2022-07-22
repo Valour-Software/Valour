@@ -1,6 +1,6 @@
 ﻿@implements IDisposable
 
-@inject ClientWindowManager windowManager
+@inject WindowManager windowManager
 @inject ChannelListManager listManager
 
 <div @onpointerdown:stopPropagation='true'>
@@ -29,7 +29,7 @@
     {
         get
         {
-            if (ValourClient.IsChannelOpen(Channel))
+            if (windowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
             {
                 return "channel open";
             }
@@ -44,8 +44,6 @@
         listManager.OnItemClickInCategory(Channel, ParentCategory);
 
         ClientWindow window = windowManager.GetSelectedWindow();
-
-        Console.WriteLine(window.Index);
 
         if (window is ChatChannelWindow)
         {
@@ -76,7 +74,7 @@
 
     public async Task OnChannelStateChange(PlanetChatChannel channel)
     {
-        if (channel.Id == Channel.Id)
+        //if (channel.Id == Channel.Id)
             StateHasChanged();
     }
 
