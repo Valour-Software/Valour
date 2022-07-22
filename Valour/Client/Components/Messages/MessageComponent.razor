@@ -13,8 +13,8 @@
         width = "fit-content";
 }
 
-<div @onpointerup:stopPropagation='true' @onpointerup:preventDefault='true' style="width: @width" onselectstart="return false;">
-    <ContextMenuTrigger MenuId="message-context" @onpointerup='async () => { if (!Ghost) { await MessageContextMenuComponent.Initialize(Message, Window.Component, this); } }'>
+<div @onpointerdown:stopPropagation='true' @onpointerdown:preventDefault='true' style="width: @width" onselectstart="return false;">
+    <ContextMenuTrigger MenuId="message-context" @onpointerdown='async () => { if (!Ghost) { await MessageContextMenuComponent.Initialize(Message, Window.Component, this); } }'>
         <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
 
             @if (Minimal)
