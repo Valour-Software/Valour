@@ -1,0 +1,31 @@
+﻿@switch (item.ItemType)
+{
+	case EmbedItemType.Text:
+		<EmbedTextItemComponent _item="@item"></EmbedTextItemComponent>
+		break;
+	case EmbedItemType.Button:
+		<EmbedButtonComponent _item="@item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
+		break;
+	case EmbedItemType.InputBox:
+		<EmbedInputBoxComponent _item="@item"></EmbedInputBoxComponent>
+		break;
+	case EmbedItemType.Form:
+		<EmbedFormComponent _item="@item" Message="@Message" embed="@embed"></EmbedFormComponent>
+		break;
+	case EmbedItemType.TextArea:
+		//<EmbedButtonComponent _item="@item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
+		break;
+}
+@code {
+	[Parameter]
+	public EmbedItem item { get; set; }
+
+	[Parameter]
+	public ClientPlanetMessage Message { get; set; }
+
+	[Parameter]
+	public Embed embed { get; set; }
+
+	[Parameter]
+	public EmbedFormItem? FormItem { get; set; }
+}

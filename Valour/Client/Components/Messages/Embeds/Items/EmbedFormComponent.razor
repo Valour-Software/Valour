@@ -1,0 +1,28 @@
+﻿<div style="@item.GetStyle()" class="embed-item embed-form">
+	@foreach (EmbedRow row in item.Rows)
+	{
+		<EmbedRowComponent Row="@row" Message="@Message" embed="@embed" FormItem="@item"></EmbedRowComponent>
+	}
+	@foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
+	{
+		<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public EmbedItem _item { get; set; }
+
+	[Parameter]
+	public ClientPlanetMessage Message { get; set; }
+
+	[Parameter]
+	public Embed embed { get; set; }
+
+	public EmbedFormItem item;
+
+	protected override void OnInitialized()
+	{
+		item = (EmbedFormItem)_item;
+	}
+}
