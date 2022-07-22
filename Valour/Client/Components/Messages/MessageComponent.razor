@@ -13,97 +13,99 @@
         width = "fit-content";
 }
 
-<div @onpointerdown:stopPropagation='true' @onpointerdown:preventDefault='true' style="width: @width" onselectstart="return false;">
-    <ContextMenuTrigger MenuId="message-context" @onpointerdown='async () => { if (!Ghost) { await MessageContextMenuComponent.Initialize(Message, Window.Component, this); } }'>
-        <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
+<div style="width: @width" onselectstart="return false;">
+    <ContextMenuTrigger StopPropagation="true" MenuId="message-context">
+        <div @onpointerdown='SetupContextMenu' @oncontextmenu='SetupContextMenu'>
+            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
 
-            @if (Minimal)
-            {
-                <div class="time-container">
-                    <p class="time">
-                        @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
-                    </p> 
-                </div>
-                <div class="message-content">
-
-                    <p class="content" @ref="InnerRef" onselectstart="return false;">
-                        @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
-                        {
-                            <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
-                        }
-                        else
-                        {
-                            <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                        }
-                    </p>
-                </div>
-
-            }
-            else
-            {
-                <div style="display:inline-block; position: absolute">
-                    <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                @if (Minimal)
+                {
                     <div class="time-container">
                         <p class="time">
-                            @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                            @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                         </p>
                     </div>
-                </div>
-                <div class="message-content">
-                    @if (Author != null)
-                    {
-                        <div style="width: max-content">
-                            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
-                                <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
-                                    @name
-                                </p>
-                            </ContextMenuTrigger>
+                    <div class="message-content">
 
-                            <p class="role-name">
-                                &nbsp;- @roleName
+                        <p class="content" @ref="InnerRef" onselectstart="return false;">
+                            @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
+                            {
+                                <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                            }
+                            else
+                            {
+                                <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                            }
+                        </p>
+                    </div>
+
+                }
+                else
+                {
+                    <div style="display:inline-block; position: absolute">
+                        <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                        <div class="time-container">
+                            <p class="time">
+                                @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                             </p>
                         </div>
-                    }
-                    else
-                    {
-                        <p class="author-name" style="color: @roleColor;">
-                            User not found
+                    </div>
+                    <div class="message-content">
+                        @if (Author != null)
+                        {
+                            <div style="width: max-content">
+                                <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
+                                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
+                                        @name
+                                    </p>
+                                </ContextMenuTrigger>
+
+                                <p class="role-name">
+                                    &nbsp;- @roleName
+                                </p>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="author-name" style="color: @roleColor;">
+                                User not found
+                            </p>
+                        }
+                        @if (ReplyMessage is not null && !Reply)
+                        {
+                            string replykey = "";
+                            if (Holder is null)
+                            {
+                                replykey = $"REPLYMESSAGE-{ReplyMessage.Id}";
+                            }
+                            else
+                            {
+                                replykey = $"{Window.Id}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
+                            }
+
+                            <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
+                        }
+                        <p class="content" @ref="InnerRef" onselectstart="return false;">
+                            @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
+                            {
+
+                                Console.WriteLine(Message.BaseMessage.Embed.Pages.Count);
+
+                                <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                            }
+                            else
+                            {
+                                <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                            }
                         </p>
-                    }
-                    @if (ReplyMessage is not null && !Reply)
+                    </div>
+
+                    @if (Reply)
                     {
-                        string replykey = "";
-                        if (Holder is null)
-                        {
-                            replykey = $"REPLYMESSAGE-{ReplyMessage.Id}";
-                        }
-                        else
-                        {
-                            replykey = $"{Window.Id}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
-                        }
-
-                        <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
+                        <div class="reply-x">x</div>
                     }
-                    <p class="content" @ref="InnerRef" onselectstart="return false;">
-                        @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
-                        {
-
-                            Console.WriteLine(Message.BaseMessage.Embed.Pages.Count);
-
-                            <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
-                        }
-                        else
-                        {
-                            <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
-                        }
-                    </p>
-                </div>
-
-                @if (Reply)
-                {
-                    <div class="reply-x">x</div>
                 }
-            }
+            </div>
         </div>
     </ContextMenuTrigger>
 </div>
@@ -175,7 +177,7 @@
                 _class += " reply";
             }
 
-            if (ReplyMessage is not null) 
+            if (ReplyMessage is not null)
             {
                 _class += " hasreply";
             }
@@ -204,6 +206,15 @@
     public bool Submessage { get; set; }
 
     private PlanetRole primaryRole;
+
+    public async Task SetupContextMenu()
+    {
+        if (Ghost)
+            return;
+
+        // Initialize message
+        await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -291,7 +302,8 @@
             }
         }
 
-        if (Minimal){
+        if (Minimal)
+        {
             return;
         }
 
@@ -351,7 +363,7 @@
 
     public async Task OnAuthorUpdated(int flags)
     {
-        if((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+        if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
             await UpdateForRoleChange();
 
         name = await Author.GetNameAsync();
@@ -372,7 +384,8 @@
     {
         if (Last_Message != null && Message != null)
         {
-            if (ReplyMessage is not null) {
+            if (ReplyMessage is not null)
+            {
                 Minimal = false;
                 return;
             }
@@ -426,7 +439,8 @@
 
     void IDisposable.Dispose()
     {
-        if (Holder !=  null){
+        if (Holder != null)
+        {
             Holder.RemoveRenderedMessage(this);
         }
     }
