@@ -1,5 +1,7 @@
 ﻿"use strict";
 
+const canVibrate = window.navigator.vibrate
+
 var blazorContextMenu = function (blazorContextMenu) {
 
     var pressTimer;
@@ -18,7 +20,8 @@ var blazorContextMenu = function (blazorContextMenu) {
         var currentTarget = event.currentTarget;
 
         pressTimer = window.setTimeout(function () {
-            navigator.vibrate(30);
+            if (canVibrate)
+                window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
         }, 500);
     }
