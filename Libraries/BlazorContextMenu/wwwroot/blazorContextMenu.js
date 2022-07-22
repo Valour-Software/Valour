@@ -3,23 +3,23 @@
 var blazorContextMenu = function (blazorContextMenu) {
 
     var pressTimer;
-    var longPress = false;
 
-    blazorContextMenu.DoPointerUp = function DoPointerUp(event, menu, prop) {
+    document.addEventListener('pointermove', function () {
         clearTimeout(pressTimer);
-        if (longPress) {
-            blazorContextMenu.OnContextMenu(event, menu, prop, true);
-            longPress = false;
-        }
+    })
+
+    blazorContextMenu.DoPointerUp = function DoPointerUp(event) {
+        clearTimeout(pressTimer);
     }
 
-    blazorContextMenu.DoPointerDown = function DoPointerDown(event) {
-        //console.log("Touched")
-        pressTimer = window.setTimeout(function () {
-            longPress = true;
-        }, 500);
+    blazorContextMenu.DoPointerDown = function DoPointerDown(event, menu, prop) {
+        if (!event.target.hasAttribute('data-dotnetref'))
+            return;
 
-        handleAutoHideEvent(event, "mousedown", true);
+        pressTimer = window.setTimeout(function () {
+            navigator.vibrate(30);
+            blazorContextMenu.OnContextMenu(event, menu, prop, true);
+        }, 300);
     }
 
     var closest = null;
@@ -237,11 +237,11 @@ var blazorContextMenu = function (blazorContextMenu) {
     }
 
     blazorContextMenu.Init = function () {
-        document.addEventListener("mouseup", function (e) {
+        document.addEventListener("pointerup", function (e) {
             handleAutoHideEvent(e, "mouseup");
         });
 
-        document.addEventListener("mousedown", function (e) {
+        document.addEventListener("pointerdown", function (e) {
             handleAutoHideEvent(e, "mousedown");
         });
 
