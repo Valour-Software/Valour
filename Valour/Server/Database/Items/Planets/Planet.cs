@@ -263,6 +263,8 @@ public class Planet : Item, ISharedPlanet
         if (doTransaction)
             await trans.CommitAsync();
 
+        PlanetHub.NotifyPlanetItemChange(member);
+
         Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
 
         return new TaskResult<PlanetMember>(true, "Success", member);

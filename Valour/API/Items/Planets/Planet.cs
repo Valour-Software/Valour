@@ -57,6 +57,21 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public long? PrimaryChannelId { get; set; }
 
+    public Planet()
+    {
+        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdateAsync;
+    }
+
+    public async Task OnMemberUpdateAsync(PlanetMember member, bool newItem, int flags)
+    {
+        if (member.PlanetId != Id)
+            return;
+
+        // Ensure that we add new members to the planet cache
+        if (newItem)
+            Members.Add(member);
+    }
+
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
