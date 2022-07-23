@@ -1,5 +1,16 @@
+.title-box {
+    height: 35px;
+}
+
+.inner-window {
+    max-width: 100%;
+    max-height: calc(100% - 35px);
+    overflow-y: auto;
+}
+
 ::deep .home-server {
     /*border: 1px solid rgba(255, 255, 255, 0.2);*/
+    flex: 1;
     border-radius: 5px;
     width: 150px;
     height: 160px;
@@ -9,13 +20,13 @@
 }
 
 ::deep .planet-card-icon {
+    flex: 1 1 auto;
     width: 100px;
     height: 100px;
     display: block;
     margin-left: auto;
     margin-right: auto;
     margin-top: 20px;
-    align-self: end;
     border-radius: 50%;
     -webkit-transition: -webkit-transform .2s ease-in-out;
     transition: transform .2s ease-in-out;
@@ -28,7 +39,6 @@
     margin-left: auto;
     margin-right: auto;
     margin-top: 20px;
-    align-self: end;
     -webkit-transition: -webkit-transform .2s ease-in-out;
     transition: transform .2s ease-in-out;
 }
