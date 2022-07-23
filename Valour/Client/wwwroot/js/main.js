@@ -193,7 +193,6 @@ if (typeof document.addEventListener === "undefined" || hidden === undefined) {
 
 }
 
-var scrollStates = {};
 var oldScrollSize = {};
 
 // Automagically scroll windows down
@@ -207,14 +206,15 @@ function ScaleScrollPosition(id) {
     window.scrollTop = window.scrollHeight - oldScrollSize[id];
 }
 
-function IsAtBottom(id) {
-    return (scrollStates[id] === 1);
-}
-
 // Automagically scroll windows down
-function ScrollWindowBottom(id) {
+function ScrollWindowBottom(id, force) {
     var window = document.getElementById('innerwindow-' + id);
-    window.scrollTop = window.scrollHeight;
+
+    var scrollUp = window.scrollHeight - (window.scrollTop + window.getBoundingClientRect().height);
+
+    if (force || scrollUp < 75) {
+        window.scrollTop = window.scrollHeight;
+    }
 }
 
 function ScrollWindowBottomAnim(id) {
@@ -228,16 +228,6 @@ function SetupWindow(id) {
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
             DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
-        }
-
-        if (Math.abs(Math.abs(window.prop("scrollHeight") - window.scrollTop()) -
-            Math.abs(window.outerHeight()))
-            < 75) {
-
-            scrollStates[id] = 1;
-        }
-        else {
-            scrollStates[id] = 0;
         }
     });
 }
