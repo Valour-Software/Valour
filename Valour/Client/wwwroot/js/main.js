@@ -198,17 +198,13 @@ var oldScrollSize = {};
 
 // Automagically scroll windows down
 function UpdateScrollPosition(id) {
-    var window = $("#innerwindow-" + id);
-
-    oldScrollSize[id] = window.prop("scrollHeight");
-
-    console.log("Saving scroll state " + oldScrollSize[id]);
+    var window = document.getElementById('innerwindow-' + id);
+    oldScrollSize[id] = window.scrollHeight;
 }
 
-function ScaleScrollPosition(index) {
-    var window = $("#innerwindow-" + index);
-
-    window.scrollTop(window.prop("scrollHeight") - oldScrollSize[index]);
+function ScaleScrollPosition(id) {
+    var window = document.getElementById('innerwindow-' + id);
+    window.scrollTop = window.scrollHeight - oldScrollSize[id];
 }
 
 function IsAtBottom(id) {
@@ -217,24 +213,18 @@ function IsAtBottom(id) {
 
 // Automagically scroll windows down
 function ScrollWindowBottom(id) {
-    var window = $("#innerwindow-" + id);
-    if (scrollStates[id] === 1) {
-        window.scrollTop(window.prop("scrollHeight"));
-    }
+    var window = document.getElementById('innerwindow-' + id);
+    window.scrollTop = window.scrollHeight;
 }
 
 function ScrollWindowBottomAnim(id) {
-    var window = $("#innerwindow-" + id);
+    var window = $('#innerwindow-' + id);
     window.animate({ scrollTop: window.prop("scrollHeight") }, "fast");
 }
 
 function SetupWindow(id) {
-    console.log("Setting up window " + id);
     var window = $("#innerwindow-" + id);
-
     window.scroll(function () {
-        //console.log("Height: " + window.scrollTop());
-
         // User has reached top of scroll
         if (window.scrollTop() == 0) {
             DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
@@ -245,7 +235,6 @@ function SetupWindow(id) {
             < 75) {
 
             scrollStates[id] = 1;
-            console.log("Within snap range.");
         }
         else {
             scrollStates[id] = 0;

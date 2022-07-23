@@ -134,7 +134,7 @@ namespace Valour.Server.Database
                 //var t = Task.Run(async () => {
                 //Console.WriteLine(JsonSerializer.Serialize(user));
 
-                await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("UserUpdate", user, flags);
+                await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Update", user, flags);
                 //await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("ChannelUpdate", new PlanetChatChannel(), flags);
                 //});
             }
@@ -146,7 +146,7 @@ namespace Valour.Server.Database
 
             foreach (var m in members)
             {
-                await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("UserDeletion", user);
+                await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Delete", user);
             }
         }
     }

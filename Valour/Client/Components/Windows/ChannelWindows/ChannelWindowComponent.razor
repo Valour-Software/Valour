@@ -205,6 +205,8 @@
             await ValourCache.Put(msg.BaseMessage.Id, msg.BaseMessage);
 
         MessageHolder.AddMessages(msgs);
+
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)
@@ -222,8 +224,6 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
-
         Should_Render = false;
     }
 
