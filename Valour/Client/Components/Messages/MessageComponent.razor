@@ -13,7 +13,7 @@
         width = "fit-content";
 }
 
-<div style="width: @width" onselectstart="return false;">
+<div style="width: @width">
     <ContextMenuTrigger StopPropagation="true" MenuId="message-context">
         <div @onpointerdown='SetupContextMenu' @oncontextmenu='SetupContextMenu'>
             <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
@@ -27,7 +27,7 @@
                     </div>
                     <div class="message-content">
 
-                        <p class="content" @ref="InnerRef" onselectstart="return false;">
+                        <p class="content" @ref="InnerRef">
                             @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
                             {
                                 <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
@@ -85,7 +85,7 @@
 
                             <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                         }
-                        <p class="content" @ref="InnerRef" onselectstart="return false;">
+                        <p class="content" @ref="InnerRef">
                             @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
                             {
 

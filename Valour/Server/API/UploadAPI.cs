@@ -61,13 +61,12 @@ namespace Valour.Server.API
 
             byte[] data = new byte[file.Length];
 
-            await file.OpenReadStream().ReadAsync(data);
-
             var content = new MultipartFormDataContent();
-            var arrContent = new ByteArrayContent(data);
-            arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+            var streamContent = new StreamContent(file.OpenReadStream());
 
-            content.Add(arrContent, "file", file.Name);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+
+            content.Add(streamContent, "file", file.Name);
 
             PlanetMember member = null;
 
