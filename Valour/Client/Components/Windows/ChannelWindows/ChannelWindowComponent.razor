@@ -206,7 +206,7 @@
 
         MessageHolder.AddMessages(msgs);
 
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id, true);
     }
 
     public async Task SwapChannel(PlanetChatChannel newchannel)
