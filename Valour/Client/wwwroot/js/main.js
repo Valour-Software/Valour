@@ -206,13 +206,17 @@ function ScaleScrollPosition(id) {
     window.scrollTop = window.scrollHeight - oldScrollSize[id];
 }
 
+function IsAtBottom(id) {
+    var window = document.getElementById('innerwindow-' + id);
+    var scrollUp = window.scrollHeight - (window.scrollTop + window.getBoundingClientRect().height);
+    return scrollUp < 75;
+}
+
 // Automagically scroll windows down
 function ScrollWindowBottom(id, force) {
     var window = document.getElementById('innerwindow-' + id);
 
-    var scrollUp = window.scrollHeight - (window.scrollTop + window.getBoundingClientRect().height);
-
-    if (force || scrollUp < 75) {
+    if (force || IsAtBottom(id)) {
         window.scrollTop = window.scrollHeight;
     }
 }

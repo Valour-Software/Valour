@@ -263,7 +263,7 @@
 
     public async Task ScrollToBottom()
     {
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
+        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id, false);
     }
 
     public async Task ScrollToBottomAnim()
