@@ -26,3 +26,5 @@ jobs:
       run: dotnet test --no-build --verbosity normal
     - name: Publish NuGet
       uses: brandedoutcast/publish-nuget@v2.5.5
+      env:
+        PROJECT_FILE_PATH: Valour/API/Valour.Api.csproj
