@@ -4,8 +4,9 @@
 <h3>Edit Basic Info</h3>
 
 <div class="mt-4 mb-4">
+    <h6>Your Status Message</h6>
     <div class="input-group" style="max-width: 400px;">
-        <input class="form-control" placeholder="Choose a status..." @bind="User.Status" />
+        <input class="form-control" placeholder="Choose a status..." @bind="Status" />
         <button class="btn v-button" @onclick="OnStatusApply">Apply</button>
     </div>
     @if (statusError)
@@ -15,6 +16,28 @@
     else
     {
         <span class="text-info">@statusResult</span>
+    }
+</div>
+
+<div class="mb-4">
+    <h6>Your Status Code</h6>
+    <div class="input-group" style="max-width: 400px;">
+        <InputSelect class="form-select" @bind-Value="StatusCode">
+            <option value="0">Automatic</option>
+            <option value="1">Online</option>
+            <option value="2">Away</option>
+            <option value="3">Do Not Disturb</option>
+            <option value="4">Offline</option>
+        </InputSelect>
+        <button class="btn v-button" @onclick="OnStatusCodeApply">Apply</button>
+    </div>
+    @if (statusCodeError)
+    {
+        <span class="text-danger">@statusCodeResult</span>
+    }
+    else
+    {
+        <span class="text-info">@statusCodeResult</span>
     }
 </div>
 
@@ -37,8 +60,13 @@
     public string Pfp_Output = "";
     public string Pfp_Error = "";
 
+    public string Status { get; set; }
     public bool statusError;
     public string statusResult;
+
+    public int StatusCode { get; set; }
+    public bool statusCodeError;
+    public string statusCodeResult;
 
     Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
     {
@@ -47,6 +75,7 @@
 
     private async Task OnStatusApply()
     {
+        User.Status = Status;
         var result = await Valour.Api.Items.Item.UpdateAsync(User);
         statusError = !result.Success;
 
@@ -58,9 +87,25 @@
         StateHasChanged();
     }
 
+    private async Task OnStatusCodeApply()
+    {
+        User.UserStateCode = StatusCode;
+        var result = await Valour.Api.Items.Item.UpdateAsync(User);
+        statusCodeError = !result.Success;
+
+        if (statusCodeError)
+            statusCodeResult = result.Message;
+        else
+            statusCodeResult = "Updated successfully.";
+
+        StateHasChanged();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         Pfp_Url = User.PfpUrl;
+        Status = User.Status;
+        StatusCode = User.UserStateCode;
     }
 
     protected async Task OnPfpError()

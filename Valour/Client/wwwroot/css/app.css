@@ -122,6 +122,12 @@ label {
     color: var(--font-color);
 }
 
+.form-select {
+    background-color: var(--main-1);
+    border-color: var(--main-5);
+    color: var(--font-color);
+}
+
 body {
     /* Theming */
     background-color: var(--bg-color);
