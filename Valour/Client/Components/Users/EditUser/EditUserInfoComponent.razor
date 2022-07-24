@@ -3,9 +3,22 @@
 
 <h3>Edit Basic Info</h3>
 
-<br />
+<div class="mt-4 mb-4">
+    <div class="input-group" style="max-width: 400px;">
+        <input class="form-control" placeholder="Choose a status..." @bind="User.Status" />
+        <button class="btn v-button" @onclick="OnStatusApply">Apply</button>
+    </div>
+    @if (statusError)
+    {
+        <span class="text-danger">@statusResult</span>
+    }
+    else
+    {
+        <span class="text-info">@statusResult</span>
+    }
+</div>
 
-<div>
+<div class="mt-2">
     <h5>Profile Image (pfp)</h5>
     <img style="width:128px; border:solid 4px black; margin: 5px; border-radius: 5px;" src="@Pfp_Url" @onerror="OnPfpError" />
     <div style="display:inline-block">
@@ -24,10 +37,26 @@
     public string Pfp_Output = "";
     public string Pfp_Error = "";
 
+    public bool statusError;
+    public string statusResult;
+
     Dictionary<string, object> InputAttributes = new Dictionary<string, object>()
     {
         { "accept", ".png,.jpg,.jpeg,.gif" }
     };
+
+    private async Task OnStatusApply()
+    {
+        var result = await Valour.Api.Items.Item.UpdateAsync(User);
+        statusError = !result.Success;
+
+        if (statusError)
+            statusResult = result.Message;
+        else
+            statusResult = "Updated successfully.";
+
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {

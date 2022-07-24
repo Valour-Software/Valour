@@ -116,6 +116,46 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, [FromBody] User user,
+        ILogger<User> logger)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        // Unlike most other entities, we are just copying over a few fields here and
+        // ignoring the rest. There are so many things that *should not* be touched by
+        // the API it's smarter to just only do what *should*
+
+        if (user.Id != token.UserId)
+            return ValourResult.Forbid("You can only change your own user info.");
+
+        var old = await FindAsync<User>(user.Id, db);
+
+        if (user.Status.Length > 64)
+            return ValourResult.BadRequest("Max status length is 64 characters.");
+
+        old.Status = user.Status;
+
+        if (user.UserStateCode > 4)
+            return ValourResult.BadRequest($"User state {user.UserStateCode} does not exist.");
+
+        old.UserStateCode = user.UserStateCode;
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message);
+            return ValourResult.Problem(e.Message);
+        }
+
+        return Results.Json(user);
+    }
+
     // This HAS to be GET so that we can forward it from the generic valour.gg domain
     [ValourRoute(HttpVerbs.Get, "/verify/{code}"), InjectDb]
     public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
