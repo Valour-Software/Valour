@@ -4,8 +4,8 @@ const canVibrate = window.navigator.vibrate
 
 var blazorContextMenu = function (blazorContextMenu) {
 
-    var pressTimer;
-    var clicks = 0;
+    var lastTap;
+    var lastTargetId;
 
     blazorContextMenu.DoPointerUp = function DoPointerUp(event) {
 
@@ -13,21 +13,20 @@ var blazorContextMenu = function (blazorContextMenu) {
 
     blazorContextMenu.DoPointerDown = function DoPointerDown(event, menu, prop) {
 
-        console.log(clicks)
+        var now = new Date().getTime();
+        var timesince = now - lastTap;
 
-        if (clicks == 1) {
-            var currentTarget = event.currentTarget;
+        var currentTarget = event.currentTarget;
+
+        if ((timesince < 400) && (timesince > 0) && (lastTargetId == currentTarget.id)) {
+            
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
-            clicks = 0;
         }
-        else {
-            clicks++;
-            pressTimer = window.setTimeout(function () {
-                clicks = 0;
-            }, 300);
-        }
+
+        lastTap = new Date().getTime();
+        lastTargetId = currentTarget.id;
     }
 
     var closest = null;

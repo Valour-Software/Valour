@@ -1,6 +1,6 @@
 ﻿@inject IJSRuntime JS
 
-<div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
+<div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;" onscroll="OnScrollChannel('@Window.Id')">
     <CascadingValue Value="this">
         @{
             ClientPlanetMessage last = null;    
