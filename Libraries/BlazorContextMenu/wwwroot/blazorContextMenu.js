@@ -4,14 +4,31 @@ const canVibrate = window.navigator.vibrate
 
 var blazorContextMenu = function (blazorContextMenu) {
 
+    // Handler for long hold
+    var pressTimer;
+
+    blazorContextMenu.DoTouchHoldStart = function DoTouchHoldStart(event, menu, prop) {
+        //if (!event.target.hasAttribute('data-dotnetref'))
+        //    return;
+        var currentTarget = event.currentTarget;
+
+        pressTimer = window.setTimeout(function () {
+            if (canVibrate)
+                window.navigator.vibrate(10);
+            blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
+        }, 500);
+    }
+
+    blazorContextMenu.DoTouchHoldEnd = function DoTouchHoldEnd(event, menu, prop) {
+        clearTimeout(pressTimer);
+    }
+
+
+    // Handler for double tap
     var lastTap;
     var lastTargetId;
 
-    blazorContextMenu.DoPointerUp = function DoPointerUp(event) {
-
-    }
-
-    blazorContextMenu.DoPointerDown = function DoPointerDown(event, menu, prop) {
+    blazorContextMenu.DoubleTapDown = function DoubleTapDown(event, menu, prop) {
 
         var now = new Date().getTime();
         var timesince = now - lastTap;
