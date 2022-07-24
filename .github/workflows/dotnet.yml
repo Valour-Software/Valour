@@ -28,3 +28,6 @@ jobs:
       uses: brandedoutcast/publish-nuget@v2.5.5
       with:
         PROJECT_FILE_PATH: Valour/API/Valour.Api.csproj
+        VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
+        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+        
