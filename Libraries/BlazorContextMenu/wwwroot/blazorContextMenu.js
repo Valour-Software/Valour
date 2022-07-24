@@ -5,25 +5,29 @@ const canVibrate = window.navigator.vibrate
 var blazorContextMenu = function (blazorContextMenu) {
 
     var pressTimer;
-
-    document.addEventListener('pointermove', function () {
-        clearTimeout(pressTimer);
-    })
+    var clicks = 0;
 
     blazorContextMenu.DoPointerUp = function DoPointerUp(event) {
-        clearTimeout(pressTimer);
+
     }
 
     blazorContextMenu.DoPointerDown = function DoPointerDown(event, menu, prop) {
-        //if (!event.target.hasAttribute('data-dotnetref'))
-        //    return;
-        var currentTarget = event.currentTarget;
 
-        pressTimer = window.setTimeout(function () {
+        console.log(clicks)
+
+        if (clicks == 1) {
+            var currentTarget = event.currentTarget;
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
-        }, 500);
+            clicks = 0;
+        }
+        else {
+            clicks++;
+            pressTimer = window.setTimeout(function () {
+                clicks = 0;
+            }, 300);
+        }
     }
 
     var closest = null;
