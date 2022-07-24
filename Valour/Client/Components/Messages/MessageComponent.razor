@@ -15,8 +15,8 @@
 
 <div style="width: @width">
     <ContextMenuTrigger StopPropagation="true" MenuId="message-context">
-        <div @onpointerdown='SetupContextMenu' @oncontextmenu='SetupContextMenu'>
-            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0' @onclick="OnClickAsync">
+        <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
+            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
 
                 @if (Minimal)
                 {
@@ -207,28 +207,9 @@
 
     private PlanetRole primaryRole;
 
-    public async Task SetupContextMenu()
+    public async Task OnPointerDown()
     {
         if (Ghost)
-            return;
-
-        // Initialize message
-        await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
-    }
-
-    public async Task OnClickAsync()
-    {
-        if (!Ghost)
-        {
-            Console.WriteLine("Setting window selection due to click");
-            await WindowManager.Instance.SetSelectedWindow(Window);
-        }
-        else
         {
             if (Reply)
             {
@@ -238,6 +219,18 @@
 
             }
         }
+        else
+        {
+            await WindowManager.Instance.SetSelectedWindow(Window);
+
+            // Initialize message
+            await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
     }
 
     public async Task OpenEditMode()

@@ -194,6 +194,7 @@ if (typeof document.addEventListener === "undefined" || hidden === undefined) {
 }
 
 var oldScrollSize = {};
+var stickyStates = {};
 
 // Automagically scroll windows down
 function UpdateScrollPosition(id) {
@@ -212,12 +213,22 @@ function IsAtBottom(id) {
     return scrollUp < 75;
 }
 
+function OnScrollChannel(id) {
+    if (IsAtBottom(id)) {
+        stickyStates[id] = true;
+    }
+    else {
+        stickyStates[id] = false;
+    }
+}
+
 // Automagically scroll windows down
 function ScrollWindowBottom(id, force) {
     var window = document.getElementById('innerwindow-' + id);
 
-    if (force || IsAtBottom(id)) {
+    if (force || stickyStates[id]) {
         window.scrollTop = window.scrollHeight;
+        stickyStates[id] = true;
     }
 }
 
