@@ -28,9 +28,9 @@ jobs:
     - name: Package Shared for Nuget
       run: dotnet pack -c Release -o . Valour/Shared/Valour.Shared.csproj
     - name: Publish Shared for Nuget
-      run: dotnet nuget push Valour/Shared/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
+      run: dotnet nuget push Valour/Shared/bin/Release/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
       
     - name: Package Api for Nuget
       run: dotnet pack -c Release -o . Valour/API/Valour.Api.csproj
     - name: Publish Api for Nuget
-      run: dotnet nuget push Valour/API/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json    
+      run: dotnet nuget push Valour/API/bin/Release/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json    
