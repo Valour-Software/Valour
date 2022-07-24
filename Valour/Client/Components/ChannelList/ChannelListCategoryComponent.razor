@@ -6,7 +6,7 @@
 
 
 <div @onpointerdown:stopPropagation='true'>
-    <ContextMenuTrigger MenuId='list-context' @onpointerdown='async () => await ChannelListContextMenuComponent.SetSelectedItem(Category)'>
+    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='async () => await ChannelListContextMenuComponent.SetSelectedItem(Category)'>
         <div class="@Chosen_CSS"
             id="@Category.Id">
             <div style="cursor:pointer" id="@Category.Id">

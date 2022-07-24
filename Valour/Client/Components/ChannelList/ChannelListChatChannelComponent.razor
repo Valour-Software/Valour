@@ -4,7 +4,7 @@
 @inject ChannelListManager listManager
 
 <div @onpointerdown:stopPropagation='true'>
-    <ContextMenuTrigger MenuId='list-context' @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
+    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
         <div class="@Chosen_CSS" 
             @onclick="OnClick"
             @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"

@@ -14,7 +14,7 @@
 }
 
 <div style="width: @width">
-    <ContextMenuTrigger StopPropagation="true" MenuId="message-context">
+    <ContextMenuTrigger @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
             <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
 
