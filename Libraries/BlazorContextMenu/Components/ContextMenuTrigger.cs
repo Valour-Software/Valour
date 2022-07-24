@@ -31,31 +31,25 @@ namespace BlazorContextMenu
 
             builder.AddMultipleAttributes(1, Microsoft.AspNetCore.Components.CompilerServices.RuntimeHelpers.TypeCheck<global::System.Collections.Generic.IEnumerable<global::System.Collections.Generic.KeyValuePair<string, object>>>(Attributes));
 
-            if (MouseButtonTrigger == MouseButtonTrigger.Left || MouseButtonTrigger == MouseButtonTrigger.Both)
+            if (MouseButtonTrigger == MouseButtonTrigger.ContextOrDoubleTap)
             {
-                builder.AddAttribute(2, "onclick", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                builder.AddAttribute(2, "oncontextmenu", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                builder.AddAttribute(3, "ontouchstart", $"blazorContextMenu.DoubleTapDown(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");       
             }
-
-            if (MouseButtonTrigger == MouseButtonTrigger.Right || MouseButtonTrigger == MouseButtonTrigger.Both)
+            else if (MouseButtonTrigger == MouseButtonTrigger.ContextOrHold)
             {
-                builder.AddAttribute(3, "oncontextmenu", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
-                builder.AddAttribute(4, "ontouchend", $"blazorContextMenu.DoPointerUp(event);");
-                builder.AddAttribute(5, "ontouchstart", $"blazorContextMenu.DoPointerDown(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
-                            
-            }
-
-            if (MouseButtonTrigger == MouseButtonTrigger.DoubleClick)
-            {
-                builder.AddAttribute(6, "ondblclick", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                builder.AddAttribute(2, "oncontextmenu", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                builder.AddAttribute(3, "ontouchstart", $"blazorContextMenu.DoTouchHoldStart(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                builder.AddAttribute(4, "ontouchend", $"blazorContextMenu.DoTouchHoldEnd(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
             }
 
             if (!string.IsNullOrWhiteSpace(CssClass))
             {
-                builder.AddAttribute(7, "class", CssClass);
+                builder.AddAttribute(5, "class", CssClass);
             }
-            builder.AddAttribute(8, "id", Id);
-            builder.AddContent(9, ChildContent);
-            builder.AddElementReferenceCapture(10, (__value) =>
+            builder.AddAttribute(6, "id", Id);
+            builder.AddContent(7, ChildContent);
+            builder.AddElementReferenceCapture(8, (__value) =>
             {
                 contextMenuTriggerElementRef = __value;
             });

@@ -10,11 +10,15 @@
     <Description>The Valour API contains the tools needed to run a client or bot on the Valour platform.</Description>
     <PackageTags>Valour, API, Messaging, Bots</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageIcon>valour-logo.png</PackageIcon>
+    <PackageIcon>logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <EnablePreviewFeatures>True</EnablePreviewFeatures> 
     <DebugType>portable</DebugType>
     <Version>0.1.1.0</Version>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -28,13 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\valour-logo.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
-
-  <ItemGroup>
+    <None Include="logo.png" Pack="true" PackagePath=""/>
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 

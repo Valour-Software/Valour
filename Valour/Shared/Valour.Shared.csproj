@@ -9,21 +9,19 @@
     <Description>The Valour Shared Library contains shared resources for Valour and related projects, including object definitions and more.</Description>
     <PackageTags>Valour, API, Messaging, Bots</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <PackageIcon>valour-logo.png</PackageIcon>
+    <PackageIcon>logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
 
     <Version>0.1.3.2</Version>
   </PropertyGroup>
 
-  <ItemGroup>
-    <SupportedPlatform Include="browser" />
-  </ItemGroup>
+  <PropertyGroup>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+  </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\valour-logo.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
+    <None Include="logo.png" Pack="true" PackagePath=""/>
+    <SupportedPlatform Include="browser" />
   </ItemGroup>
 </Project> 
