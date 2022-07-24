@@ -24,13 +24,17 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
-      
-    - name: Package Shared for Nuget
-      run: dotnet pack -c Release -o . Valour/Shared/Valour.Shared.csproj
-    - name: Publish Shared for Nuget
-      run: dotnet nuget push Valour/Shared/bin/Release/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json
-      
-    - name: Package Api for Nuget
-      run: dotnet pack -c Release -o . Valour/API/Valour.Api.csproj
-    - name: Publish Api for Nuget
-      run: dotnet nuget push Valour/API/bin/Release/*.nupkg -k ${{ secrets.NUGET_KEY }} -s https://api.nuget.org/v3/index.json    
+  
+    - name: Publish Shared Nuget Package
+      uses: alirezanet/publish-nuget@v3.0.4
+      with:
+        PROJECT_FILE_PATH: Valour/Shared/Valour.Shared.csproj
+        VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
+        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+
+    - name: Publish API Nuget Package
+      uses: alirezanet/publish-nuget@v3.0.4
+      with:
+        PROJECT_FILE_PATH: Valour/API/Valour.Api.csproj
+        VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
+        NUGET_KEY: ${{secrets.NUGET_API_KEY}}
