@@ -160,6 +160,14 @@ public class ClientPlanetMessage
         "br"
     };
 
+    public void Clear()
+    {
+        _markdownContent = null;
+        _elementFragments = null;
+        generated = false;
+        markdownParsed = false;
+    }
+
     public void GenerateForPost()
     {
         BaseMessage.ClearMentions();
