@@ -166,6 +166,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
         }
         else
         {
+            MentionsData = null;
             _mentions.Clear();
         }
     }
