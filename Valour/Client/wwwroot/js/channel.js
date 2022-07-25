@@ -212,6 +212,8 @@ function OnMessageLoad(innerContent) {
                 });
             }
         }
+
+        twemoji.parse(innerContent)
     }
 
     //innerContent.getElementsByTagName('code').forEach(el => 
