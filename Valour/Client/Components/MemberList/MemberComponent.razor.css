@@ -1,0 +1,149 @@
+﻿.member-card {
+    width: 240px;
+    background-color: var(--main-2);
+    margin-right: auto;
+}
+
+.member-card:first-child {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.member-card:last-child {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.user-info {
+    display: inline-block;
+    vertical-align: top;
+    width: 180px;
+}
+
+.status-text {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 14px;
+    color: #7A7A7A;
+    vertical-align: middle;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    text-overflow: ellipsis;
+}
+
+.status-text:hover {
+    white-space: pre-wrap;
+}
+
+.staff-tag {
+    display: inline-block;
+    width: 24px;
+    height: 9px;
+    background: #00FAFF;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.staff-tag p {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 7px;
+    line-height: 10px;
+    margin: 0px;
+    margin-left: 1px;
+    /* identical to box height */
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #000000;
+}
+
+.bot-tag {
+    display: inline-block;
+    width: 17px;
+    height: 9px;
+    background: #FF00E9;
+    border-radius: 2px;
+    vertical-align: middle;
+}
+
+.bot-tag p {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 7px;
+    line-height: 10px;
+    margin: 0px;
+    margin-left: 1px;
+    /* identical to box height */
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #FFFFFF;
+}
+
+.state-circle {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    margin: 0px;
+    margin-bottom: 7px;
+    margin-left: 4px;
+    margin-top: 6px;
+    vertical-align: top;
+}
+
+.status-holder {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+}
+
+.state-circle.online {
+    background: #05FF00;
+}
+
+.state-circle.away {
+    background: #F0E62E;
+}
+
+.state-circle.do-not-disturb {
+    background: #F21F1F;
+}
+
+.state-circle.offline {
+    background: #B3B3B3;
+}
+
+.name-line {
+    align-items: center;
+}
+
+.username {
+    display: inline-block;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 15px;
+    line-height: 15px;
+    vertical-align: top;
+    margin: 0px;
+    margin: 5px;
+}
+
+.pfp {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    margin-left: 6px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    vertical-align: unset;
+    display: inline-block;
+}

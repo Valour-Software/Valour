@@ -1,23 +1,22 @@
 ﻿
 @if (Role != null)
 {
-<p class="rolename" style="color: @Role.GetColorHex()">
+<p class="role-name" style="color: @Role.GetColorHex()">
     @Role.Name
 </p>
 }
 else
 {
-<p class="rolename">
+<p class="role-name">
     @DummyName
 </p>
 }
 
-<div class="UserList keep-scrolling">
-    @foreach (var member in Members)
-    {
-        <MemberComponent Only="true" Member="@member" @key="@member.Id"></MemberComponent>
-    }
-</div>
+@foreach (var member in Members)
+{
+    <MemberComponent Only="true" Member="@member" @key="@member.Id"></MemberComponent>
+}
+
 @code {
 
     [Parameter]

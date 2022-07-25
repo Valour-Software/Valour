@@ -1,26 +1,44 @@
-﻿<div class="@Chosen_CSS">
+﻿<div class="member-card">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@style">
     <div class="user-info">
-        <p class="username" style="color: @roleColor">
-            @if (Member.Nickname.Length > 16)
+
+        <div class="name-line">
+
+            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Member)' style='display:inline'>
+                <p class="username" style="color: @roleColor">
+                    @if (Member.Nickname.Length > 16)
+                    {
+                        @Member.Nickname.Substring(0, 15)
+                    }
+                    else
+                    {
+                        @Member.Nickname
+                    }
+                </p>
+            </ContextMenuTrigger>
+
+            @if (User.Bot)
             {
-                @Member.Nickname.Substring(0, 15)
+                <div class="bot-tag">
+                    <p>BOT</p>
+                </div>
             }
-            else
+
+            @if (User.ValourStaff)
             {
-                @Member.Nickname
+                <div class="staff-tag">
+                    <p>STAFF</p>
+                </div>
             }
-        </p>
-        @((MarkupString)StaffString)
-        @((MarkupString)BotString)
-        <br>
-        <div class="user-status-state">
+        </div>
+
+        <div class="status-holder">
 
             <!-- State bubble -->
-            <div class="state-circle @state.ClassName">
+            <div class="state-circle @User.UserState.CssClassName">
             </div>
 
-            <p class="status">
+            <p class="status-text">
                 @status
             </p>
         </div>
@@ -40,6 +58,8 @@
     [Parameter]
     public bool Only { get; set; }
 
+    public User User { get; set; }
+
     public string roleColor = "#ffffff";
 
     public string status = "";
@@ -50,31 +70,6 @@
 
     public string name = "";
 
-    public UserState state = UserState.Offline;
-
-    public string Chosen_CSS
-    {
-        get
-        {
-            if (Only)
-            {
-                return "sidebar-user only";
-            }
-            else if (First)
-            {
-                return "sidebar-user first";
-            }
-            else if (Last)
-            {
-                return "sidebar-user last";
-            }
-            else
-            {
-                return "sidebar-user";
-            }
-        }
-    }
-
     public string pfpurl = "_content/Valour.Client/icon-512.png";
     public string style = "";
 
@@ -82,17 +77,7 @@
     {
         await base.OnInitializedAsync();
 
-        var user = (await Member.GetUserAsync());
-
-        if (user.Bot)
-        {
-            BotString = "<div class='bot-tag'><p>BOT</p></div>";
-        }
-
-        if ((await Member.GetUserAsync()).ValourStaff)
-        {
-            StaffString = "<div class='staff-tag'><p>STAFF</p></div>";
-        }
+        User = await Member.GetUserAsync();
 
         name = await Member.GetNameAsync();
 
@@ -100,9 +85,7 @@
 
         status = await Member.GetStatusAsync();
 
-        state = user.UserState;
-
-        user.OnUpdated += async d =>
+        User.OnUpdated += async d =>
         {
             await SetPfpValue();
             StateHasChanged();

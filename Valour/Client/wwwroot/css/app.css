@@ -537,166 +537,6 @@ video {
     display: inline-block;
 }
 
-.rolename {
-    margin: 0px;
-    margin-left: 5px;
-    margin-top: 12px;
-    margin-bottom: 5px;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 10px;
-    text-decoration-line: underline;
-    color: #7A7A7A;
-    text-wrap: none;
-    white-space: nowrap;
-    text-align: center;
-    width: 250px;
-}
-
-.sidebar-user {
-    width: 240px;
-    height: 56px;
-    background-color: var(--main-2);
-    margin-right: auto;
-}
-
-    .sidebar-user:first-child {
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
-    }
-
-    .sidebar-user:last-child {
-        border-bottom-left-radius: 6px;
-        border-bottom-right-radius: 6px;
-    }
-
-    .sidebar-user .user-status-state {
-        display: inline-block;
-        position: relative;
-    }
-
-    .sidebar-user .user-info {
-        display: inline-block;
-        vertical-align: top;
-        margin-top: 6px;
-    }
-
-    .sidebar-user .status {
-        display: inline-block;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 14px;
-        line-height: 11px;
-        color: #7A7A7A;
-        margin: 0px;
-        position: absolute;
-        top: 0;
-        left: 15px;
-        width: 165px;
-        height: 12px;
-    }
-
-    .sidebar-user .staff-tag {
-        display: inline-block;
-        width: 24px;
-        height: 9px;
-        background: #00FAFF;
-        border-radius: 2px;
-        margin-top: 9px;
-    }
-
-    .sidebar-user .staff-tag p {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: bold;
-        font-size: 7px;
-        line-height: 8px;
-        margin: 0px;
-        margin-left: 1px;
-        margin-bottom: 1px;
-        /* identical to box height */
-        display: flex;
-        align-items: center;
-        text-align: center;
-        color: #000000;
-    }
-
-    .sidebar-user .bot-tag {
-        display: inline-block;
-        width: 17px;
-        height: 9px;
-        background: #FF00E9;
-        border-radius: 2px;
-        margin-top: 9px;
-    }
-
-    .sidebar-user .bot-tag p {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: bold;
-        font-size: 7px;
-        line-height: 8px;
-        margin: 0px;
-        margin-left: 1px;
-        margin-bottom: 1px;
-        /* identical to box height */
-        display: flex;
-        align-items: center;
-        text-align: center;
-        color: #FFFFFF;
-    }
-
-    .sidebar-user .state-circle {
-        display: inline-block;
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        margin: 0px;
-        margin-bottom: 7px;
-        margin-left: 4px;
-    }
-
-    .sidebar-user .state-circle.online {
-        background: #05FF00;
-    }
-
-    .sidebar-user .state-circle.away {
-        background: #F0E62E;
-    }
-
-    .sidebar-user .state-circle.do-not-disturb {
-        background: #F21F1F;
-    }
-
-    .sidebar-user .state-circle.offline {
-        background: #B3B3B3;
-    }
-
-    .sidebar-user .username {
-        display: inline-block;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 15px;
-        line-height: 15px;
-        vertical-align: top;
-        margin: 0px;
-        margin: 5px;
-    }
-
-    .sidebar-user .pfp {
-        width: 45px;
-        height: 45px;
-        border-radius: 50%;
-        margin-left: 6px;
-        margin-top: 4px;
-        margin-bottom: 4px;
-        vertical-align: unset;
-        display: inline-block;
-    }
 
 body {
     width: 100%;
@@ -1235,24 +1075,14 @@ app {
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
-.keep-scrolling::-webkit-scrollbar {
+.hide-scrollbar::-webkit-scrollbar {
     display: none;
 }
 
 /* Hide scrollbar for IE, Edge and Firefox */
-.keep-scrolling {
+.hide-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
-}
-
-.RoleList {
-    overflow-y: scroll;
-    overflow-x: hidden;
-    height: 100%;
-}
-
-.UserList {
-    overflow-x: hidden;
 }
 
 .category-list {
