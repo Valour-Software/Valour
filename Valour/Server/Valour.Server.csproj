@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>preview</LangVersion>
+    <EnablePreviewFeatures>True</EnablePreviewFeatures>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
