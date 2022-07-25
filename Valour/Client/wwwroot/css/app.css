@@ -1433,13 +1433,13 @@ blockquote {
 }
 
 img.emoji {
-    height: 1.4em !important;
-    width: 1.4em !important;
+    height: 1.25em !important;
+    width: 1.25em !important;
     margin: 0 .05em .1em .1em !important;
     vertical-align: -0.1em !important;
     cursor: default !important;
     user-select: all;
     display: inline-block !important;
-    transform: translateY(20%) !important;
+    transform: translateY(15%) !important;
     margin-top: -100% !important;
 }
