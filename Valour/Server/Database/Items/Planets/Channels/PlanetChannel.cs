@@ -1,4 +1,5 @@
-﻿using Valour.Server.Database.Items.Planets.Members;
+﻿using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
@@ -9,8 +10,24 @@ namespace Valour.Server.Database.Items.Planets.Channels;
 [Table("planet_channels")]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
-public abstract class PlanetChannel : PlanetItem, ISharedPlanetChannel, ISharedPermissionsTarget
+public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel, ISharedPermissionsTarget
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    [ForeignKey("PlanetId")]
+    public Planet Planet { get; set; }
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+        IPlanetItem.GetPlanetAsync(this, db);
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetChannel)}";
+
+    #endregion
 
     [JsonIgnore]
     [ForeignKey("ParentId")]

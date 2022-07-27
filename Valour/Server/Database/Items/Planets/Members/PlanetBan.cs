@@ -14,8 +14,25 @@ namespace Valour.Server.Database.Items.Planets.Members;
 /// This represents a user within a planet and is used to represent membership
 /// </summary>
 [Table("planet_bans")]
-public class PlanetBan : PlanetItem, ISharedPlanetBan
+public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    [ForeignKey("PlanetId")]
+    public Planet Planet { get; set; }
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+        IPlanetItem.GetPlanetAsync(this, db);
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetBan)}";
+
+    #endregion
+
     /// <summary>
     /// The member that banned the user
     /// </summary>

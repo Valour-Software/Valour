@@ -11,8 +11,25 @@ using Valour.Shared.Items.Planets.Members;
 namespace Valour.Server.Database.Items.Planets.Members;
 
 [Table("planet_role_members")]
-public class PlanetRoleMember : PlanetItem, ISharedPlanetRoleMember
+public class PlanetRoleMember : Item, IPlanetItem, ISharedPlanetRoleMember
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    [ForeignKey("PlanetId")]
+    public Planet Planet { get; set; }
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+        IPlanetItem.GetPlanetAsync(this, db);
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetRoleMember)}";
+
+    #endregion
+
     [ForeignKey("MemberId")]
     [JsonIgnore]
     public virtual PlanetMember Member { get; set; }

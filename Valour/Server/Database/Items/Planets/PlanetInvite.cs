@@ -9,8 +9,25 @@ using Valour.Shared.Items.Planets;
 namespace Valour.Server.Database.Items.Planets;
 
 [Table("planet_invites")]
-public class PlanetInvite : PlanetItem, ISharedPlanetInvite
+public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    [ForeignKey("PlanetId")]
+    public Planet Planet { get; set; }
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+        IPlanetItem.GetPlanetAsync(this, db);
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetInvite)}";
+
+    #endregion
+
     /// <summary>
     /// The invite code
     /// </summary>
