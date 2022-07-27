@@ -13,8 +13,26 @@ namespace Valour.Server.Database.Items.Messages;
  */
 
 [Table("planet_messages")]
-public class PlanetMessage : PlanetItem, ISharedPlanetMessage
+public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    [ForeignKey("PlanetId")]
+    public Planet Planet { get; set; }
+
+    [Column("planet_id")]
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+        IPlanetItem.GetPlanetAsync(this, db);
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetMessage)}";
+
+    #endregion
+
     [ForeignKey("AuthorUserId")]
     [JsonIgnore]
     public User Author { get; set; }

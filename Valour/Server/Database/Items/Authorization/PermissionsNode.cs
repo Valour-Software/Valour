@@ -15,8 +15,24 @@ namespace Valour.Server.Database.Items.Authorization;
  */
 
 [Table("permissions_nodes")]
-public class PermissionsNode : PlanetItem, ISharedPermissionsNode
+public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    [ForeignKey("PlanetId")]
+    public Planet Planet { get; set; }
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
+        IPlanetItem.GetPlanetAsync(this, db);
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PermissionsNode)}";
+
+    #endregion
 
     [ForeignKey("RoleId")]
     [JsonIgnore]

@@ -16,8 +16,15 @@ namespace Valour.Server.Database.Items.Planets.Channels;
  */
 
 [Table("planet_category_channels")]
-public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
+public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCategoryChannel
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetCategoryChannel)}";
+
+    #endregion
 
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");

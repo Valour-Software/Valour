@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
+using Valour.Api.Items.Messages;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
 
@@ -11,8 +12,17 @@ namespace Valour.Api.Items.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetInvite : PlanetItem, ISharedPlanetInvite
+public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
 {
+    #region IPlanetItem implementation
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
+        IPlanetItem.GetPlanetAsync(this, refresh);
+
+    #endregion
+
     /// <summary>
     /// the invite code
     /// </summary>
