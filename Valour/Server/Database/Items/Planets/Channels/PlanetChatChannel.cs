@@ -567,8 +567,16 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
                 return new TaskResult(false, "Parent ID is not valid");
         }
 
-        if (!await HasUniquePosition(db, channel))
-            return new TaskResult(false, "The position is already taken.");
+        // Auto determine position
+        if (channel.Position < 0)
+        {
+            channel.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.ParentId == channel.ParentId));
+        }
+        else
+        {
+            if (!await HasUniquePosition(db, channel))
+                return new TaskResult(false, "The position is already taken.");
+        }
 
         return new TaskResult(true, "Valid");
     }
