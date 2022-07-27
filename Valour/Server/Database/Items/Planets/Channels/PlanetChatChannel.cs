@@ -19,8 +19,16 @@ using Valour.Shared.MPS;
 namespace Valour.Server.Database.Items.Planets.Channels;
 
 [Table("planet_chat_channels")]
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatChannel
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetChatChannel)}";
+
+    #endregion
+
     [Column("message_count")]
     public long MessageCount { get; set; }
 

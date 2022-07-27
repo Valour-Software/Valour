@@ -103,10 +103,10 @@ namespace Valour.Server.Database
             await Groups.AddToGroupAsync(Context.ConnectionId, $"i-{planetId}");
         }
 
-        public static async void NotifyPlanetItemChange(PlanetItem item, int flags = 0) =>
+        public static async void NotifyPlanetItemChange(IPlanetItem item, int flags = 0) =>
             await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Update", item, flags);
 
-        public static async void NotifyPlanetItemDelete(PlanetItem item) =>
+        public static async void NotifyPlanetItemDelete(IPlanetItem item) =>
             await Current.Clients.Group($"p-{item.PlanetId}").SendAsync($"{item.GetType().Name}-Delete", item);
 
         public static async void NotifyPlanetChange(Planet item, int flags = 0) =>

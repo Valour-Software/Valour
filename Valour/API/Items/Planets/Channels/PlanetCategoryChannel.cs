@@ -17,6 +17,13 @@ namespace Valour.Api.Items.Planets.Channels;
 
 public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetCategoryChannel)}";
+
+    #endregion
+
     /// <summary>
     /// True if this category inherits permissions from its parent
     /// </summary>

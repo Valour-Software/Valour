@@ -1,5 +1,6 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
 using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
@@ -83,6 +84,11 @@ public class ValourDB : DbContext
     /// Table for all planet membership
     /// </summary>
     public DbSet<PlanetMember> PlanetMembers { get; set; }
+
+    /// <summary>
+    /// Table for all channels
+    /// </summary>
+    public DbSet<Channel> Channels { get; set; }
 
     /// <summary>
     /// Table for all planet channels
