@@ -36,5 +36,5 @@ jobs:
       uses: alirezanet/publish-nuget@v3.0.4
       with:
         PROJECT_FILE_PATH: Valour/API/Valour.Api.csproj
-        VERSION_FILE_PATH: Valour/Shared/Valour.Api.csproj
+        VERSION_FILE_PATH: Valour/API/Valour.Api.csproj
         NUGET_KEY: ${{secrets.NUGET_API_KEY}}
