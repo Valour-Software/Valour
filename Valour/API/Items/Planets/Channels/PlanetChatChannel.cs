@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Api.Items.Messages;
@@ -21,6 +22,13 @@ namespace Valour.Api.Items.Planets.Channels;
 
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetChatChannel)}";
+
+    #endregion
+
     /// <summary>
     /// The total number of messages sent in this channel
     /// </summary>

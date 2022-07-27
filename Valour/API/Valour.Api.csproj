@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="logo.png" Pack="true" PackagePath=""/>
+    <None Include="logo.png" Pack="true" PackagePath="" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
 
