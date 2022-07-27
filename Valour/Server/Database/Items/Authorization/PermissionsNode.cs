@@ -23,6 +23,7 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
 
+    [Column("planet_id")]
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
