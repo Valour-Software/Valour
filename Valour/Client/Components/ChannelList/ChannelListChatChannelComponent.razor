@@ -57,9 +57,13 @@
         long channelIndex = long.Parse(channelStateTrim);
 
         var localState = ValourClient.ChannelStates[Channel.Id].LastViewedState;
+        long localIndex = -1;
 
-        var localTrim = localState.Substring(13, localState.Length - 13);
-        long localIndex = long.Parse(localTrim);
+        if (!string.IsNullOrEmpty(localState))
+        {
+            var localTrim = localState.Substring(13, localState.Length - 13);
+            localIndex = long.Parse(localTrim);
+        }
 
         return !(localIndex >= channelIndex);
     }
