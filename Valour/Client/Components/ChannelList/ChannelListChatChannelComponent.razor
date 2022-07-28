@@ -42,6 +42,9 @@
 
     public bool DetermineUnread()
     {
+        if (ValourClient.OpenChannels.Any(x => x.Id == Channel.Id))
+            return false;
+
         if (!ValourClient.ChannelStates.ContainsKey(Channel.Id))
             return true;
 
