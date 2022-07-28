@@ -216,14 +216,28 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadMemberDataAsync()
     {
-        var result = (await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo")).Data;
-
         if (Members is null)
             Members = new List<PlanetMember>();
         else
             Members.Clear();
 
-        foreach (var info in result.Members)
+        var totalCount = 1;
+
+        PlanetMemberInfo currentResult = null;
+        List<PlanetMemberData> allResults = new();
+
+        var page = 0;
+
+        while (page == 0  || page * 100 < totalCount)
+        {
+            currentResult = (await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page={page}")).Data;
+            totalCount = currentResult.TotalCount;
+            allResults.AddRange(currentResult.Members);
+
+            page++;
+        }
+
+        foreach (var info in allResults)
         {
             // Set role id data manually
             await info.Member.SetLocalRoleIds(info.RoleIds);
@@ -235,7 +249,7 @@ public class Planet : Item, ISharedPlanet
             await ValourCache.Put(info.Member.UserId, info.User, true);
         }
 
-        foreach (var info in result.Members)
+        foreach (var info in allResults)
         {
             var member = ValourCache.Get<PlanetMember>(info.Member.Id);
 
