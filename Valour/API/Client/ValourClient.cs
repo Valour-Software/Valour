@@ -372,6 +372,7 @@ public static class ValourClient
         // Because they can see the channel.
         // That makes sense, right?
         // Right?
+        /*
         if (OpenChannels.Any(x => x.Id == channel.Id))
         {
             ChannelStates.TryGetValue(channel.Id, out UserChannelState state);
@@ -390,6 +391,7 @@ public static class ValourClient
                 });
             }
         }
+        */
 
         await channel.OnUpdate(0x01);
         await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
