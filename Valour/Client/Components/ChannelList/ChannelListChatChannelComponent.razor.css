@@ -1,0 +1,39 @@
+﻿.channel.open {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.channel.open:hover {
+    background: rgba(255, 255, 255, 0.125);
+}
+
+.channel:nth-child(1) {
+    margin-top: 2px;
+}
+
+.channel {
+    width: 95%;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.channel:hover {
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.channel .channel-name {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 21px;
+    color: #FFFFFF;
+    margin-top: 2px;
+    margin-left: 8px;
+    vertical-align: top;
+    display: inline-block;
+}
+
+.channel .chat-icon {
+    margin-left: 8px;
+    display: inline-block;
+}

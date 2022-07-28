@@ -162,52 +162,52 @@ video {
     width: 100%;
 }
 
-    .window .welcome-channel-description {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: 500;
-        font-size: 30px;
-        line-height: 34px;
-        color: #9E9E9E;
-        margin: 0px;
-        margin-left: 34px;
-    }
+.window .welcome-channel-description {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 30px;
+    line-height: 34px;
+    color: #9E9E9E;
+    margin: 0px;
+    margin-left: 34px;
+}
 
-    .window .welcome-divider {
-        border: 2px solid #FFFFFF;
-        margin: 0px;
-        margin-top: 24px;
-        margin-left: 34px;
-    }
+.window .welcome-divider {
+    border: 2px solid #FFFFFF;
+    margin: 0px;
+    margin-top: 24px;
+    margin-left: 34px;
+}
 
-    .window .welcome-channel-name {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 50px;
-        line-height: 57px;
-        color: #FFFFFF;
-        margin: 0px;
-        margin-left: 34px;
-    }
+.window .welcome-channel-name {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 50px;
+    line-height: 57px;
+    color: #FFFFFF;
+    margin: 0px;
+    margin-left: 34px;
+}
 
-    .window .welcome-text {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: 500;
-        font-size: 20px;
-        line-height: 23px;
-        color: #9E9E9E;
-        margin: 0px;
-        margin-top: 11px;
-        margin-left: 34px;
-    }
+.window .welcome-text {
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 20px;
+    line-height: 23px;
+    color: #9E9E9E;
+    margin: 0px;
+    margin-top: 11px;
+    margin-left: 34px;
+}
 
-    .window .start-chat-icon {
-        margin: 0px;
-        margin-left: 34px;
-        margin-top: 32px;
-    }
+.window .start-chat-icon {
+    margin: 0px;
+    margin-left: 34px;
+    margin-top: 32px;
+}
 
 .sidebar-2 .user-info {
     width: 269px;
@@ -230,114 +230,7 @@ video {
     margin-left: 8.18px;
 }
 
-.sidebar-2 .category .arrow {
-    border-radius: 1px;
-    margin-top: 9px;
-    margin-bottom: 9px;
-    margin-left: 6px;
-    cursor: pointer;
-}
 
-.sidebar-2 .category .name {
-    margin: 0px;
-    margin-top: 6px;
-    margin-bottom: 7px;
-    margin-left: 12px;
-    vertical-align: top;
-    display: inline-block;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 18px;
-    line-height: 21px;
-    color: #FFFFFF;
-}
-
-.sidebar-2 .category .channel.open {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-2 .category .channel.open:hover {
-    background: rgba(255, 255, 255, 0.125);
-}
-
-.sidebar-2 .category .channel:nth-child(1) {
-    margin-top: 2px;
-}
-
-.sidebar-2 .category .channel {
-    width: 95%;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.sidebar-2 .category .channel:hover {
-    background: rgba(255, 255, 255, 0.075);
-}
-
-.sidebar-2 .category .channel .channel-name {
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 16px;
-    line-height: 21px;
-    color: #FFFFFF;
-    margin-left: 8px;
-    margin-top: 5px;
-    vertical-align: top;
-    display: inline-block;
-}
-
-.sidebar-2 .category .channel .chat-icon {
-    margin-top: 10px;
-    margin-bottom: 9px;
-    margin-left: 8px
-}
-
-.top-level-category .is-open{
-    /*padding-bottom:12px;*/
-}
-
-.top-level-category {
-    /*margin-bottom: 16px;*/
-}
-
-.planet-list {
-    margin-bottom: 5px;
-    padding-left: 0px;
-}
-
-
-.sidebar-2 .category .channel-list {
-    margin: 0px;
-    margin-top: -1px;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    overflow: hidden;
-}
-
-.sidebar-2 .category .name-open {
-    margin: 0px;
-    margin-top: 6px;
-    margin-bottom: 7px;
-    margin-left: 11px;
-    vertical-align: top;
-    display: inline-block;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 18px;
-    line-height: 21px;
-    color: #FFFFFF;
-}
-
-.sidebar-2 .category {
-    max-width: 269px;
-    background: rgb(41, 49, 56);
-    border-radius: 5px;
-    margin-right: auto;
-    margin-left: auto;
-}
 
 .sidebar-2 .user-info .settings {
     display: inline-block;
@@ -438,12 +331,12 @@ video {
     margin-left: 15px;
 }
 
-    .sidebar-2 .viewing-current-channel .pfp {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        margin-left: -15px;
-    }
+.sidebar-2 .viewing-current-channel .pfp {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    margin-left: -15px;
+}
 
 .sidebar-2 .current-channel-info {
     padding-top: 16px;
