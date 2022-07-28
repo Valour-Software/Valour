@@ -54,9 +54,7 @@
         var localState = ValourClient.ChannelStates[Channel.Id].LastViewedState;
 
         var localTrim = localState.Substring(13, localState.Length - 13);
-        long localIndex = long.Parse(channelStateTrim);
-
-        Console.WriteLine(localIndex);
+        long localIndex = long.Parse(localTrim);
 
         return !(localIndex >= channelIndex);
     }
