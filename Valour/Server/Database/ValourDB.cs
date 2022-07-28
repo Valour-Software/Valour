@@ -30,8 +30,10 @@ public class ValourDB : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-        //modelBuilder.HasCharSet(CharSet.Utf8Mb4);
+        // Composite key
+        modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
+
+        //base.OnModelCreating(modelBuilder);
     }
 
     // These are the database sets we can access
@@ -148,6 +150,8 @@ public class ValourDB : DbContext
     public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
     public DbSet<PlanetRole> PlanetRoles { get; set; }
+
+    public DbSet<UserChannelState> UserChannelStates { get; set; }
 
     public ValourDB(DbContextOptions options)
     {

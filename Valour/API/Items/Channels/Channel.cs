@@ -13,4 +13,5 @@ namespace Valour.Api.Items.Channels;
 public class Channel : Item
 {
     public DateTime TimeLastActive { get; set; }
+    public string State { get; set; }
 }

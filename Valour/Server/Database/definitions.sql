@@ -245,6 +245,17 @@ CREATE TABLE IF NOT EXISTS stats (
     message_day_count BIGINT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS user_channel_states (
+    user_id BIGINT NOT NULL,
+    channel_id BIGINT NOT NULL,
+    last_viewed_state TEXT,
+
+    PRIMARY KEY(user_id, channel_id),
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id)
+);
+
 ALTER TABLE planets
     ADD CONSTRAINT fk_default_role
         FOREIGN KEY(default_role_id)
