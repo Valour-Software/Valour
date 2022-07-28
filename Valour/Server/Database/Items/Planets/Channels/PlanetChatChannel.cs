@@ -41,6 +41,18 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
+    public string GetCurrentState()
+    {
+        if (PlanetMessageWorker.ChannelMessageIndices.ContainsKey(Id))
+        {
+            return "MessageIndex-" + PlanetMessageWorker.ChannelMessageIndices[Id];
+        }
+        else
+        {
+            return "MessageIndex-" + MessageCount;
+        }
+    }
+
     /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
