@@ -238,7 +238,7 @@ namespace Valour.Server.Database
             var channelState = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
             if (channelState != null)
             {
-                channelState.LastViewedState = channel.State;
+                channelState.LastViewedState = channel.GetCurrentState();
                 NotifyUserChannelStateUpdate(authToken.UserId, channelState);
                 await db.SaveChangesAsync();
             }
