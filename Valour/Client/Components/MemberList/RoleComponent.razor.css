@@ -6,11 +6,8 @@
     font-style: normal;
     font-weight: 500;
     font-size: 14px;
-    line-height: 10px;
     text-decoration-line: underline;
     color: #7A7A7A;
-    text-wrap: none;
-    white-space: nowrap;
     text-align: center;
     width: 100%;
 }

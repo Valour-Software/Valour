@@ -212,6 +212,11 @@ function OnMessageLoad(innerContent) {
                 });
             }
         }
+
+        twemoji.parse(innerContent, {
+            folder: 'svg',
+            ext: '.svg'
+        })
     }
 
     //innerContent.getElementsByTagName('code').forEach(el => 

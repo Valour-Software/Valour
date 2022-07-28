@@ -103,15 +103,21 @@ CREATE TABLE IF NOT EXISTS planet_bans (
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
 );
 
+CREATE TABLE IF NOT EXISTS channels (
+    id BIGINT NOT NULL PRIMARY KEY,
+    time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+);
+
 CREATE TABLE IF NOT EXISTS planet_channels (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,
-    position INT NOT NULL,
     description TEXT NOT NULL,
+    position INT NOT NULL,
     planet_id BIGINT NOT NULL,
     parent_id BIGINT,
     inherits_perms BOOLEAN NOT NULL DEFAULT true,
 
+    CONSTRAINT fk_inherit FOREIGN KEY(id) REFERENCES channels(id),
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
     CONSTRAINT fk_parent FOREIGN KEY(parent_id) REFERENCES planet_channels(id)
 );
@@ -237,6 +243,17 @@ CREATE TABLE IF NOT EXISTS stats (
     channel_count BIGINT NOT NULL,
     category_count BIGINT NOT NULL,
     message_day_count BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_channel_states (
+    user_id BIGINT NOT NULL,
+    channel_id BIGINT NOT NULL,
+    last_viewed_state TEXT,
+
+    PRIMARY KEY(user_id, channel_id),
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id)
 );
 
 ALTER TABLE planets

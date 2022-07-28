@@ -23,8 +23,20 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : PlanetItem, ISharedPlanetMessage
+public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
 {
+    #region IPlanetItem implementation
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
+        IPlanetItem.GetPlanetAsync(this, refresh);
+
+    public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMessage)}";
+
+    #endregion
+
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
@@ -166,6 +178,7 @@ public class PlanetMessage : PlanetItem, ISharedPlanetMessage
         }
         else
         {
+            MentionsData = null;
             _mentions.Clear();
         }
     }

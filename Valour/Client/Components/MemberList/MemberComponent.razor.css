@@ -41,7 +41,7 @@
 
 .staff-tag {
     display: inline-block;
-    width: 24px;
+    width: 25px;
     height: 9px;
     background: #00FAFF;
     border-radius: 2px;
@@ -55,7 +55,7 @@
     font-size: 7px;
     line-height: 10px;
     margin: 0px;
-    margin-left: 1px;
+    margin-left: 2px;
     /* identical to box height */
     display: flex;
     align-items: center;

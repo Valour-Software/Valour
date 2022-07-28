@@ -3,13 +3,26 @@ using Valour.Api.Items.Authorization;
 using Valour.Shared.Authorization;
 using Valour.Api.Items.Planets.Members;
 using Valour.Shared.Items;
+using Valour.Api.Items.Channels;
 
 namespace Valour.Api.Items.Planets.Channels;
 
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
-public abstract class PlanetChannel : PlanetItem
+public abstract class PlanetChannel : Channel, IPlanetItem
 {
+    #region IPlanetItem implementation
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
+        IPlanetItem.GetPlanetAsync(this, refresh);
+
+    public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetChannel)}";
+
+    #endregion
+
     public int Position { get; set; }
     public long? ParentId { get; set; }
     public string Name { get; set; }

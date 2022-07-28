@@ -19,8 +19,16 @@ using Valour.Shared.MPS;
 namespace Valour.Server.Database.Items.Planets.Channels;
 
 [Table("planet_chat_channels")]
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatChannel
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetChatChannel)}";
+
+    #endregion
+
     [Column("message_count")]
     public long MessageCount { get; set; }
 
@@ -391,6 +399,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
 
+        var token = ctx.GetToken();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
         var db = ctx.GetDb();
 
@@ -408,10 +417,32 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
 
             messages.AddRange(staged);
 
+            // If the user is getting the *last* message in the channel,
+            // Mark channel state as read.
+            if (index == long.MaxValue)
+            {
+                var channelState = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == id);
+                if (channelState != null)
+                {
+                    channelState.LastViewedState = channel.State;
+                    PlanetHub.NotifyUserChannelStateUpdate(token.UserId, channelState);
+                    await db.SaveChangesAsync();
+                }
+            } 
+
             return Results.Json(messages);
         }
         else
         {
+            // These are always the last messages so we always update user state for these
+            var channelState = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == id);
+            if (channelState != null)
+            {
+                channelState.LastViewedState = channel.State;
+                PlanetHub.NotifyUserChannelStateUpdate(token.UserId, channelState);
+                await db.SaveChangesAsync();
+            }
+
             return Results.Json(staged);
         }
     }
@@ -559,8 +590,16 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
                 return new TaskResult(false, "Parent ID is not valid");
         }
 
-        if (!await HasUniquePosition(db, channel))
-            return new TaskResult(false, "The position is already taken.");
+        // Auto determine position
+        if (channel.Position < 0)
+        {
+            channel.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.ParentId == channel.ParentId));
+        }
+        else
+        {
+            if (!await HasUniquePosition(db, channel))
+                return new TaskResult(false, "The position is already taken.");
+        }
 
         return new TaskResult(true, "Valid");
     }

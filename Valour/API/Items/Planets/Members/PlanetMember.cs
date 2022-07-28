@@ -1,4 +1,5 @@
 ﻿using Valour.Api.Client;
+using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Users;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
@@ -11,8 +12,20 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : PlanetItem, ISharedPlanetMember
+public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
 {
+    #region IPlanetItem implementation
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
+        IPlanetItem.GetPlanetAsync(this, refresh);
+
+    public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMember)}";
+
+    #endregion
+
     public const int FLAG_UPDATE_ROLES = 0x01;
 
     /// <summary>

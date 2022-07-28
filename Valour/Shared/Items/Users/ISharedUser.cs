@@ -68,6 +68,7 @@ public interface ISharedUser : ISharedItem
     /// <summary>
     /// The current activity state of the user
     /// </summary>
+    [NotMapped]
     UserState UserState
     {
         get => GetUserState(this);

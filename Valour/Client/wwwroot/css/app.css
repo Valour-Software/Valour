@@ -1431,3 +1431,14 @@ blockquote {
     border-left: 3px var(--main-5) outset;
     cursor: e-resize;
 }
+
+img.emoji {
+    height: 1em !important;
+    width: 1em !important;
+    margin: 0 .2em 0em .2em !important;
+    cursor: default !important;
+    user-select: all;
+    display: inline-block !important;
+    transform: scale(1.3);
+    margin-top: -4px !important;
+}
