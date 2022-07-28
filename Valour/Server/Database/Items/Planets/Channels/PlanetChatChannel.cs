@@ -399,6 +399,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
 
+        var token = ctx.GetToken();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
         var db = ctx.GetDb();
 
@@ -416,10 +417,32 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
             messages.AddRange(staged);
 
+            // If the user is getting the *last* message in the channel,
+            // Mark channel state as read.
+            if (index == long.MaxValue)
+            {
+                var channelState = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == id);
+                if (channelState != null)
+                {
+                    channelState.LastViewedState = channel.State;
+                    PlanetHub.NotifyUserChannelStateUpdate(token.UserId, channelState);
+                    await db.SaveChangesAsync();
+                }
+            } 
+
             return Results.Json(messages);
         }
         else
         {
+            // These are always the last messages so we always update user state for these
+            var channelState = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == id);
+            if (channelState != null)
+            {
+                channelState.LastViewedState = channel.State;
+                PlanetHub.NotifyUserChannelStateUpdate(token.UserId, channelState);
+                await db.SaveChangesAsync();
+            }
+
             return Results.Json(staged);
         }
     }
