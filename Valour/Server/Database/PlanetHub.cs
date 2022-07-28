@@ -155,7 +155,7 @@ namespace Valour.Server.Database
                 return;
 
             // Clear each group
-            foreach (var group in groups)
+            foreach (var group in groups.ToArray())
                 UntrackGroupMembership(group);
 
             // Remove connection key from groups
