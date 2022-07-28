@@ -10,6 +10,8 @@ using Valour.Api.Items.Messages.Embeds;
 using System.Collections.Concurrent;
 using Valour.Shared;
 using Valour.Server.Database.Items.Planets.Channels;
+using IdGen;
+using Newtonsoft.Json.Linq;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -231,6 +233,15 @@ namespace Valour.Server.Database
 
             TrackGroupMembership(groupId);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+
+            // These are always the last messages so we always update user state for these
+            var channelState = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
+            if (channelState != null)
+            {
+                channelState.LastViewedState = channel.State;
+                NotifyUserChannelStateUpdate(authToken.UserId, channelState);
+                await db.SaveChangesAsync();
+            }
 
             return new TaskResult(true, "Connected to channel " + channelId);
         }
