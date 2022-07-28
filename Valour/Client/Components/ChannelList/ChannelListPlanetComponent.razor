@@ -5,14 +5,16 @@
     <div style="cursor:pointer" id="list-inner-@Planet.Id" @oncontextmenu="OnContextMenu">
         <div @onclick='@OnClick'
              @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
-             style="width:85%; display:inline-block" ondragover="event.preventDefault();">
+             class="header" ondragover="event.preventDefault();">
             <img class="arrow" src="_content/Valour.Client/media/Category-Icon.svg" style="@GetArrowStyle()">
             <p class="name">
                 @Planet.Name
             </p>
+
+            <img src="@Planet.IconUrl" class="icon" />
         </div>
     </div>
-    <div style="padding-left: 25px">
+    <div class="channel-list">
         <!-- The Modal -->
         @if (Open)
         {
@@ -69,11 +71,11 @@
     {
         if (Open)
         {
-            return "category is-open top-level-category planet-list";
+            return "planet is-open";
         }
         else
         {
-            return "category top-level-category planet-list";
+            return "planet";
         }
     }
 
