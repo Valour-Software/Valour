@@ -10,7 +10,7 @@
         <div class="@Chosen_CSS"
             id="@Category.Id">
             <div style="cursor:pointer" id="@Category.Id">
-                <div draggable="true" ondragover="event.preventDefault();" style="width:85%; display:inline-block"
+                <div draggable="true" ondragover="event.preventDefault();" class="header"
                 @onclick="OnClick"
                 @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
                 @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)">
@@ -25,7 +25,7 @@
             <!-- The Modal -->
             @if (IsOpen)
             {
-                <div class="channel-list" ondragover="event.preventDefault();" style="padding-left: 25px">
+                <div class="channel-list" ondragover="event.preventDefault();">
                     @foreach (var item in ItemList)
                     {
                         PlanetChatChannel channel = item as PlanetChatChannel;
@@ -45,7 +45,6 @@
                             }
                         }
                     }
-                    <div style="padding-bottom: 20px;"></div>
                 </div>
             }
         </div>
