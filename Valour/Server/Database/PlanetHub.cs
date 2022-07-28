@@ -31,7 +31,7 @@ namespace Valour.Server.Database
         public static ConcurrentDictionary<string, AuthToken> ConnectionIdentities = new ConcurrentDictionary<string, AuthToken>();
 
         // Map of groups to joined identities 
-        public static ConcurrentDictionary<string, List<string>> GroupMemberships = new ConcurrentDictionary<string, List<string>>();
+        public static ConcurrentDictionary<string, List<string>> GroupConnections = new ConcurrentDictionary<string, List<string>>();
 
         // Map of groups to user ids
         public static ConcurrentDictionary<string, List<long>> GroupUserIds = new ConcurrentDictionary<string, List<long>>();
@@ -79,80 +79,90 @@ namespace Valour.Server.Database
 
         public void TrackGroupMembership(string groupId)
         {
+            // Create connection group list if it doesn't exist
             if (!ConnectionGroups.ContainsKey(Context.ConnectionId))
-            {
                 ConnectionGroups[Context.ConnectionId] = new();
-            }
 
+            // Add group to connection
             ConnectionGroups[Context.ConnectionId].Add(groupId);
 
-            if (!GroupMemberships.ContainsKey(groupId))
-            {
-                GroupMemberships[groupId] = new();
-            }
+            // Create group connection list if it doesn't exist
+            if (!GroupConnections.ContainsKey(groupId))
+                GroupConnections[groupId] = new();
 
-            GroupMemberships[groupId].Add(Context.ConnectionId);
+            // Add connection to group
+            GroupConnections[groupId].Add(Context.ConnectionId);
 
             // User part
 
-            if (ConnectionIdentities.ContainsKey(Context.ConnectionId)) {
-                var userId = ConnectionIdentities[Context.ConnectionId].UserId;
+            // Get identity of the connection
+            ConnectionIdentities.TryGetValue(Context.ConnectionId, out var token);
+            if (token is null)
+                return;
 
-                if (!UserIdGroups.ContainsKey(userId))
-                {
-                    UserIdGroups[userId] = new();
-                }
+            var userId = token.UserId;
 
-                UserIdGroups[userId].Add(groupId);
+            // Create user group list if it doesn't exist
+            if (!UserIdGroups.ContainsKey(userId))
+                UserIdGroups[userId] = new();
 
-                if (!GroupUserIds.ContainsKey(groupId))
-                {
-                    GroupUserIds[groupId] = new();
-                }
+            // Add group to user
+            UserIdGroups[userId].Add(groupId);
 
-                GroupUserIds[groupId].Add(userId);
-            }
+            // Create group user list if it doesn't exist
+            if (!GroupUserIds.ContainsKey(groupId))
+                GroupUserIds[groupId] = new();
+
+            // Add user to group
+            GroupUserIds[groupId].Add(userId);
         }
 
         public void UntrackGroupMembership(string groupId)
         {
-            GroupMemberships[groupId].Remove(Context.ConnectionId);
-            ConnectionGroups[Context.ConnectionId].Remove(groupId);
+            // Remove connection from group
+            GroupConnections.TryGetValue(groupId, out var connections);
+            if (connections is not null)
+                connections.Remove(Context.ConnectionId);
 
-            if (ConnectionIdentities.ContainsKey(Context.ConnectionId))
-            {
-                var userId = ConnectionIdentities[Context.ConnectionId].UserId;
+            // Remove group from connection
+            ConnectionGroups.TryGetValue(Context.ConnectionId, out var groups);
+            if (groups is not null)
+                groups.Remove(groupId);
 
-                GroupUserIds[groupId].Remove(userId);
-                UserIdGroups[userId].Remove(groupId);
-            }
+            // Get connection identity
+            ConnectionIdentities.TryGetValue(Context.ConnectionId, out var authToken);
+            if (authToken is null)
+                return;
+
+            var userId = authToken.UserId;
+
+            // Remove userid from group
+            GroupUserIds.TryGetValue(groupId, out var userIds);
+            if (userIds is not null)
+                userIds.Remove(userId);
+
+            // Remove group id from user
+            UserIdGroups.TryGetValue(userId, out var groupIds);
+            if (groupIds is not null)
+                groupIds.Remove(groupId);
         }
 
         public void RemoveAllMemberships()
         {
-            if (ConnectionGroups.ContainsKey(Context.ConnectionId))
-            {
-                var groups = ConnectionGroups[Context.ConnectionId];
-                foreach (var group in groups)
-                {
-                    GroupMemberships[group].Remove(Context.ConnectionId);
-                }
+            // Get all groups for connection
+            ConnectionGroups.TryGetValue(Context.ConnectionId, out var groups);
+            if (groups is null)
+                return;
 
-                ConnectionGroups.Remove(Context.ConnectionId, out _);
-            }
+            // Clear each group
+            foreach (var group in groups)
+                UntrackGroupMembership(group);
 
-            if (ConnectionIdentities.ContainsKey(Context.ConnectionId))
-            {
-                var userId = ConnectionIdentities[Context.ConnectionId].UserId;
+            // Remove connection key from groups
+            ConnectionGroups.Remove(Context.ConnectionId, out _);
 
-                var groups = UserIdGroups[userId];
-                foreach (var group in groups)
-                {
-                    GroupUserIds[group].Remove(userId);
-                }
-
-                UserIdGroups.Remove(userId, out _);
-            }
+            // Remove connection identity
+            ConnectionIdentities.Remove(Context.ConnectionId, out _);
         }
 
         public async Task<TaskResult> JoinUser()
@@ -282,7 +292,7 @@ namespace Valour.Server.Database
             // Group we are sending messages to
             var group = Current.Clients.Group(groupId);
 
-            if (GroupMemberships.ContainsKey(groupId)) {
+            if (GroupConnections.ContainsKey(groupId)) {
                 // All of the connections to this group
                 var viewingIds = GroupUserIds[groupId];
 

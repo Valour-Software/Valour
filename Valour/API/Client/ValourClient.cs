@@ -960,6 +960,10 @@ public static class ValourClient
             await HubConnection.SendAsync("JoinChannel", channel.Id);
             Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
         }
+
+        // Authenticate and connect to personal channel
+        await AuthenticateSignalR();
+        await ConnectToUserSignalRChannel();
     }
 
     #endregion
