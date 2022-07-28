@@ -3,12 +3,13 @@ using Valour.Api.Items.Authorization;
 using Valour.Shared.Authorization;
 using Valour.Api.Items.Planets.Members;
 using Valour.Shared.Items;
+using Valour.Api.Items.Channels;
 
 namespace Valour.Api.Items.Planets.Channels;
 
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
-public abstract class PlanetChannel : Item, IPlanetItem
+public abstract class PlanetChannel : Channel, IPlanetItem
 {
     #region IPlanetItem implementation
 

@@ -8,8 +8,6 @@ namespace Valour.Shared.Items.Planets.Channels;
 
 public interface ISharedChannel : ISharedItem
 {
-    string Name { get; set; }
-    int Position { get; set; }
-    string Description { get; set; }
-    bool InheritsPerms { get; set; }
+    DateTime TimeLastActive { get; set; }
+    string State { get; set; }
 }

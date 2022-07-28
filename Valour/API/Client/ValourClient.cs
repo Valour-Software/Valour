@@ -15,6 +15,8 @@ using System.Diagnostics;
 using Valour.Api.Items.Authorization;
 using Valour.Shared.Items.Users;
 using System.Reflection;
+using Valour.Shared.Items.Channels;
+using Valour.Api.Items.Channels;
 
 namespace Valour.Api.Client;
 
@@ -87,6 +89,11 @@ public static class ValourClient
     public static List<PlanetChatChannel> OpenChannels { get; private set; }
 
     /// <summary>
+    /// The state of channels this user has access to
+    /// </summary>
+    public static Dictionary<long, UserChannelState> ChannelStates { get; private set; } = new();
+
+    /// <summary>
     /// The primary node this client is connected to
     /// </summary>
     public static string PrimaryNode { get; set; }
@@ -107,6 +114,11 @@ public static class ValourClient
     /// Run when SignalR closes a planet
     /// </summary>
     public static event Func<Planet, Task> OnPlanetClose;
+
+    /// <summary>
+    /// Run when a UserChannelState is updated
+    /// </summary>
+    public static event Func<UserChannelState, Task> OnUserChannelStateUpdate;
 
     /// <summary>
     /// Run when SignalR opens a channel
@@ -189,7 +201,7 @@ public static class ValourClient
     {
         var response = await PostAsync($"api/planet/{message.PlanetId}/{nameof(PlanetChatChannel)}/{message.ChannelId}/messages", message);
 
-        Console.WriteLine("Message post: " + response.Message);
+        // Console.WriteLine("Message post: " + response.Message);
 
         return response;
     }
@@ -232,14 +244,18 @@ public static class ValourClient
 
         List<Task> tasks = new();
 
+        // Joins SignalR group
+        var result = await HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
+        Console.WriteLine(result.Message);
+
+        if (!result.Success)
+            return;
+
         // Load roles early for cached speed
         await planet.LoadRolesAsync();
 
         // Load member data early for the same reason (speed)
         tasks.Add(planet.LoadMemberDataAsync());
-
-        // Joins SignalR group
-        tasks.Add(HubConnection.SendAsync("JoinPlanet", planet.Id, Token));
 
         // Load channels and categories
         tasks.Add(planet.LoadChannelsAsync());
@@ -303,7 +319,11 @@ public static class ValourClient
         await OpenPlanet(planet);
 
         // Join channel SignalR group
-        await HubConnection.SendAsync("JoinChannel", channel.Id, Token); 
+        var result = await HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
+        Console.WriteLine(result.Message);
+
+        if (!result.Success)
+            return;
 
         // Add to open set
         OpenChannels.Add(channel);
@@ -338,6 +358,42 @@ public static class ValourClient
     #endregion
 
     #region SignalR Events
+
+    public static async Task UpdateChannelState(ChannelStateUpdate update)
+    {
+        // Right now only planet chat channels have state updates
+        var channel = ValourCache.Get<PlanetChatChannel>(update.ChannelId);
+        if (channel is null)
+            return;
+
+        channel.State = update.State;
+
+        // If the channel is currently open, we also update the user's channel state.
+        // Because they can see the channel.
+        // That makes sense, right?
+        // Right?
+        if (OpenChannels.Any(x => x.Id == channel.Id))
+        {
+            ChannelStates.TryGetValue(channel.Id, out UserChannelState state);
+
+            if (state != null)
+            {
+                state.LastViewedState = channel.State;
+            }
+            else
+            {
+                ChannelStates.Add(channel.Id, new UserChannelState()
+                {
+                    LastViewedState = channel.State,
+                    UserId = Self.Id,
+                    ChannelId = channel.Id
+                });
+            }
+        }
+
+        await channel.OnUpdate(0x01);
+        await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
+    }
 
     /// <summary>
     /// Updates an item's properties
@@ -397,7 +453,7 @@ public static class ValourClient
     /// </summary>
     private static async Task MessageRecieved(PlanetMessage message)
     {
-        Console.WriteLine("Received message " + message.Id);
+        // Console.WriteLine("Received message " + message.Id);
         await ValourCache.Put(message.Id, message);
         await OnMessageRecieved?.Invoke(message);
     }
@@ -583,12 +639,33 @@ public static class ValourClient
 
         Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
+        // Authenticate with SignalR
+        await AuthenticateSignalR();
+
+        // Join user channel
+        var userResult = await ConnectToUserSignalRChannel();
+        if (!userResult.Success) {
+            Console.WriteLine("** Error connecting to user channel for SignalR. **");
+            Console.WriteLine(userResult.Message);
+        }
+        else
+        {
+            Console.WriteLine("Connected to user channel for SignalR.");
+        }
+
+        await LoadChannelStatesAsync();
+
         if (OnLogin != null)
             await OnLogin?.Invoke();
 
         await LoadJoinedPlanetsAsync();
 
         return new TaskResult<User>(true, "Success", Self);
+    }
+
+    public static async Task<TaskResult> ConnectToUserSignalRChannel()
+    {
+        return await HubConnection.InvokeAsync<TaskResult>("JoinUser");
     }
 
     /// <summary>
@@ -620,6 +697,8 @@ public static class ValourClient
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
         Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
+
+        await AuthenticateSignalR();
 
         if (OnLogin != null)
             await OnLogin?.Invoke();
@@ -654,6 +733,37 @@ public static class ValourClient
 
         if (OnJoinedPlanetsUpdate != null)
             await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task UpdateUserChannelState(UserChannelState channelState)
+    {
+
+        if (ChannelStates.ContainsKey(channelState.ChannelId))
+            ChannelStates[channelState.ChannelId].LastViewedState = channelState.LastViewedState;
+        else
+            ChannelStates.Add(channelState.ChannelId, channelState);
+
+        // Access dict again to maintain references (do not try to optimize and break everything)
+        await OnUserChannelStateUpdate.Invoke(ChannelStates[channelState.ChannelId]);
+    }
+    
+    public static async Task LoadChannelStatesAsync()
+    {
+        var response = await GetJsonAsync<List<UserChannelState>>($"api/user/self/channelstates");
+        if (!response.Success)
+        {
+            Console.WriteLine("** Failed to load channel states **");
+            Console.WriteLine(response.Message);
+
+            return;
+        }
+
+        foreach (var state in response.Data)
+        {
+            ChannelStates[state.ChannelId] = state;
+        }
+
+        Console.WriteLine("Loaded " + ChannelStates.Count + " channel states.");
     }
 
     /// <summary>
@@ -730,6 +840,29 @@ public static class ValourClient
         HookSignalREvents();
     }
 
+    public static async Task AuthenticateSignalR()
+    {
+        Console.WriteLine("Authenticating with SignalR hub...");
+
+        TaskResult response = new TaskResult(false, "Failed to authorize. This is a critical SignalR error.");
+
+        bool authorized = false;
+        int tries = 0;
+        while (!authorized && tries < 5)
+        {
+            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Token);
+            authorized = response.Success;
+            tries++;
+        }
+
+        if (!authorized)
+        {
+            Console.WriteLine("** FATAL: Failed to authorize with SignalR after 5 attempts. **");
+        }
+
+        Console.WriteLine(response.Message);
+    }
+
     private static void HookSignalREvents()
     {
         // For every single item...
@@ -746,6 +879,8 @@ public static class ValourClient
 
         HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
         HubConnection.On<PlanetMessage>("DeleteMessage", MessageDeleted);
+        HubConnection.On<ChannelStateUpdate>("Channel-State", UpdateChannelState);
+        HubConnection.On<UserChannelState>("UserChannelState-Update", UpdateUserChannelState);
     }
 
     /// <summary>
@@ -814,13 +949,13 @@ public static class ValourClient
     {
         foreach (var planet in OpenPlanets)
         {
-            await HubConnection.SendAsync("JoinPlanet", planet.Id, Token);
+            await HubConnection.SendAsync("JoinPlanet", planet.Id);
             Console.WriteLine($"Rejoined SignalR group for planet {planet.Id}");
         }
 
         foreach (var channel in OpenChannels)
         {
-            await HubConnection.SendAsync("JoinChannel", channel.Id, Token);
+            await HubConnection.SendAsync("JoinChannel", channel.Id);
             Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
         }
     }
