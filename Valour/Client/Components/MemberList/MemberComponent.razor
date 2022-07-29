@@ -48,6 +48,9 @@
 @code {
     // Demonstrates how a parent component can supply parameters
 
+    [CascadingParameter]
+    public MemberListComponent Parent { get; set; }
+
     [Parameter]
     public PlanetMember Member { get; set; }
 
@@ -88,6 +91,7 @@
         User.OnUpdated += async d =>
         {
             await RefreshAsync();
+            await Parent.OnMemberUserUpdate(Member);
         };
 
         Member.OnUpdated += async f =>
