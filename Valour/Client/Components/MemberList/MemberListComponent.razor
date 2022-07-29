@@ -3,196 +3,382 @@
 <div class="role-list hide-scrollbar">
     @if (MemberList != null && Planet != null)
     {
-        foreach (KeyValuePair<PlanetRole, List<PlanetMember>> roleMemberList in RoleMemberLists)
+        foreach (var role in DisplayedRoles)
         {
-            <RoleComponent Role="@roleMemberList.Key" Members="@roleMemberList.Value"></RoleComponent>
+            var members = DisplayedRoleMembers[role.Id];
+
+            if (members.Count > 0) {
+                <p class="role-name" style="color: @role.GetColorHex()">
+                    @role.Name
+                </p>
+
+                <Virtualize Items="members">
+                    <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
+                </Virtualize>
+            }
         }
 
-        // online group
-        // this group is for members whose roles lack DisplayRole permission
-        @if (OnlineList.Count() > 0)
+        var online = DisplayedRoleMembers[0];
+
+        if (online.Count > 0)
         {
-            <RoleComponent DummyName="Online" Members="@OnlineList"></RoleComponent>
+            <p class="role-name">
+                Online
+            </p>
+
+            <Virtualize Items="online">
+                    <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
+            </Virtualize>
         }
 
-        // offline group
-        @if (OfflineList.Count() > 0)
-        {
-            <RoleComponent DummyName="Offline" Members="@OfflineList"></RoleComponent>
-        }
+        var offline = DisplayedRoleMembers[1];
 
+        if (offline.Count > 0) {
+
+            <p class="role-name">
+                Offline
+            </p>
+
+            <Virtualize Items="offline">
+                <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
+            </Virtualize>
+
+        }
     }
 </div>
 
 @code {
 
     public List<PlanetMember> MemberList { get; set; }
-    public List<PlanetMember> OrderedList { get; set; }
 
-    public List<PlanetRole> Roles { get; set; }
+    public Dictionary<long, User> UserCache { get; set; }
 
-    public Dictionary<PlanetRole, List<PlanetMember>> RoleMemberLists { get; set; }
-    public List<PlanetMember> OnlineList { get; set; }
-    public List<PlanetMember> OfflineList { get; set; }
+    public List<PlanetRole> DisplayedRoles { get; set; }
+
+    public Dictionary<long, List<PlanetMember>> DisplayedRoleMembers { get; set; } = new();
+
+
+    // MemberId, RoleId
+    public Dictionary<long, long> LastMemberRoles { get; set; } = new();
 
     public Planet Planet { get; set; }
 
+    public ActivityComparer comparer;
+
     protected override async Task OnInitializedAsync()
     {
-        RoleMemberLists = new Dictionary<PlanetRole, List<PlanetMember>>();
-        OnlineList = new List<PlanetMember>();
-        OfflineList = new List<PlanetMember>();
+        UserCache = new();
 
+        comparer = new ActivityComparer(UserCache);
+
+        DisplayedRoleMembers.Add(0, new());
+        DisplayedRoleMembers.Add(1, new());
+
+        // Events
         windowManager.OnPlanetFocused += OnPlanetChange;
-
         ValourClient.OnPlanetClose += OnPlanetClose;
-
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
         ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
         ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
     }
 
+    public async Task OnMemberDelete(PlanetMember member)
+    {
+        var lastRole = LastMemberRoles[member.Id];
+        DisplayedRoleMembers[lastRole].Remove(member);
+        StateHasChanged();
+    }
+
     public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
     {
-        // not awaited on purpose
-        if (member.PlanetId == windowManager.FocusedPlanet.Id)
+        if (member.PlanetId != windowManager.FocusedPlanet.Id)
+            return;
+
+        if (!UserCache.ContainsKey(member.Id))
+            UserCache.Add(member.Id, await member.GetUserAsync());
+
+        if (newItem)
         {
-            await RefreshOnRoleChange();
+            // Member is new - calculate their value and insert accordingly
+            var roleId = await DetermineDisplayRoleId(member);
+            var roleList = DisplayedRoleMembers[roleId];
+
+            LastMemberRoles[member.Id] = roleId;
+
+            roleList.Add(member);
+            roleList.Sort(comparer);
+
+        }
+        else
+        {
+            // Check if roles changed
+            if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+            {
+                var lastRole = LastMemberRoles[member.Id];
+                var newRole = await DetermineDisplayRoleId(member);
+
+                if (lastRole != newRole)
+                {
+                    DisplayedRoleMembers[lastRole].Remove(member);
+
+                    var newRoleMembers = DisplayedRoleMembers[newRole];
+                    newRoleMembers.Add(member);
+                    newRoleMembers.Sort(comparer);
+
+                    LastMemberRoles[member.Id] = newRole;
+
+                    StateHasChanged();
+                }
+            }
         }
 
     }
 
     public async Task OnRoleDeletion(PlanetRole role)
     {
-        // not awaited on purpose
-        if (role.PlanetId == windowManager.FocusedPlanet.Id)
+        if (role.PlanetId != windowManager.FocusedPlanet.Id)
+            return;
+
+        if (!DisplayedRoleMembers.ContainsKey(role.Id))
+            return;
+
+        // Recalculate all members with role and
+        // remove it from display
+        var members = DisplayedRoleMembers[role.Id];
+
+        foreach (var member in members)
         {
-            await RefreshOnRoleChange();
+            var newRoleId = await DetermineDisplayRoleId(member, exclude: role.Id);
+            var newRoleList = DisplayedRoleMembers[newRoleId];
+            newRoleList.Add(member);
+            newRoleList.Sort(comparer);
+            LastMemberRoles[member.Id] = newRoleId;
         }
+
+        DisplayedRoleMembers.Remove(role.Id);
+        DisplayedRoles.Remove(role);
+
+        StateHasChanged();
     }
 
     public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
     {
-        // not awaited on purpose
-        if (role.PlanetId == windowManager.FocusedPlanet.Id)
-        {
-            await RefreshOnRoleChange();
-        }
-    }
+        if (role.PlanetId != windowManager.FocusedPlanet.Id)
+            return;
 
-    public async Task RefreshOnRoleChange()
-    {
-        RoleMemberLists.Clear();
-        OnlineList.Clear();
-        OfflineList.Clear();
-        StateHasChanged();
-        await BuildRoleLists();
-        StateHasChanged();
+        // Role is brand new
+        if (newItem)
+        {
+            if (role.HasPermission(PlanetPermissions.DisplayRole))
+            {
+                // Add as new displayed role
+                DisplayedRoleMembers[role.Id] = new();
+                DisplayedRoles.Add(role);
+
+                // Unfortunately for this change we need to recalculate 
+                // everything (since any number of people could have the role)
+                // (this can probably be optimized further)
+                await BuildRoleLists();
+            }
+        }
+        else
+        {
+            // Check if it's a displayed role
+            if (DisplayedRoleMembers.ContainsKey(role.Id))
+            {
+                // Role should no longer be displayed
+                if (!role.HasPermission(PlanetPermissions.DisplayRole))
+                {
+                    // Recalculate all in that role
+                    foreach (var member in DisplayedRoleMembers[role.Id])
+                    {
+                        var newRoleId = await DetermineDisplayRoleId(member);
+                        var newRoleList = DisplayedRoleMembers[newRoleId];
+                        newRoleList.Add(member);
+                        newRoleList.Sort(comparer);
+                        LastMemberRoles[member.Id] = newRoleId;
+                    }
+
+                    // Remove role from displayed
+                    DisplayedRoles.Remove(role);
+                    DisplayedRoleMembers.Remove(role.Id);
+                }
+
+                // Only re-render if we're displaying the updated role
+                StateHasChanged();
+            }
+            else
+            {
+                // Role is now being displayed - we need to recalculate this 
+                // (this can probably be optimized further)
+                if (role.HasPermission(PlanetPermissions.DisplayRole))
+                {
+                    // Add as new displayed role
+                    DisplayedRoleMembers[role.Id] = new();
+                    DisplayedRoles.Add(role);
+                    DisplayedRoles.Sort((a, b) => a.Position.CompareTo(b.Position));
+
+                    // Unfortunately for this change we need to recalculate 
+                    // everything (since any number of people could have the role)
+                    await BuildRoleLists();
+                }
+            }
+        }
     }
 
     public async Task BuildRoleLists()
     {
-        OrderedList = MemberList.OrderByDescending(GetComparator).ToList();
-
-        Console.WriteLine($"Sorted {OrderedList.Count} members by activity.");
-
-        RoleMemberLists.Clear();
-        OnlineList.Clear();
-        OfflineList.Clear();
-
-        foreach (var member in OrderedList)
+        foreach (var member in MemberList)
         {
-            var user = await member.GetUserAsync();
-            if (user is null)
+            if (!UserCache.ContainsKey(member.Id))
+                UserCache.Add(member.Id, await member.GetUserAsync());
+
+            var roleId = await DetermineDisplayRoleId(member);
+            if (roleId != -1)
+            {
+                LastMemberRoles[member.Id] = roleId;
+
+                var roleMembers = DisplayedRoleMembers[roleId];
+                if (!roleMembers.Contains(member))
+                    roleMembers.Add(member);
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Given a member, determines the id of the role they should be
+    /// displayed in.
+    /// </summary>
+    public async Task<long> DetermineDisplayRoleId(PlanetMember member, long exclude = long.MaxValue)
+    {
+        var user = await member.GetUserAsync();
+        if (user is null)
+            return -1;
+
+        // Don't list at all if this is true
+        if (user.LastActiveSpan.TotalDays > 7)
+            return -1;
+
+        // Throw directly into offline group
+        if (user.UserState.Value == UserState.Offline.Value)
+        {
+            return 1;
+        }
+
+        // Get role ids
+        var member_roles = await member.GetRolesAsync();
+
+        // Try for a role
+        foreach (PlanetRole role in DisplayedRoles)
+        {
+            if (role.Id == exclude)
                 continue;
 
-            // Don't list at all if this is true
-            if (user.LastActiveSpan.TotalDays > 7)
+            // Ensure role should be listed
+            if (!role.HasPermission(PlanetPermissions.DisplayRole))
                 continue;
 
-            // Throw directly into offline group
-            if (user.UserState.Value == UserState.Offline.Value)
+            // Member has role
+            if (member_roles.Contains(role))
             {
-                OfflineList.Add(member);
-                continue;
+                return role.Id;
             }
+        }
 
-            // Get role ids
-            var member_roles = await member.GetRolesAsync();
+        // Online without display role
+        return 0;
+    }
 
-            bool hadRole = false;
+    public void ClearForNewPlanet()
+    {
+        UserCache.Clear();
+        LastMemberRoles?.Clear();
+        DisplayedRoleMembers.Clear();
+        DisplayedRoleMembers.Add(0, new());
+        DisplayedRoleMembers.Add(1, new());
 
-            // Try for a role
-            foreach (PlanetRole role in Roles)
-            {
-                // Ensure role should be listed
-                if (!role.HasPermission(PlanetPermissions.DisplayRole))
-                    continue;
-
-                // Member has role
-                if (member_roles.Contains(role))
-                {
-                    // Ensure there is a list
-                    if (!RoleMemberLists.ContainsKey(role))
-                    {
-                        RoleMemberLists.Add(role, new List<PlanetMember>());
-                    }
-
-                    RoleMemberLists[role].Add(member);
-
-                    // Break from loop since we have already succeeded
-                    hadRole = true;
-                    break;
-                }
-            }
-
-            // Online pass
-            if (!hadRole)
-            {
-                OnlineList.Add(member);
-            }
+        foreach (var role in DisplayedRoles)
+        {
+            DisplayedRoleMembers.Add(role.Id, new());
         }
     }
 
     public async Task OnPlanetClose(Planet planet)
     {
-        if (Planet.Id == planet.Id)
-        {
-            Planet = null;
-            StateHasChanged();
-        }
+        if (Planet.Id != planet.Id)
+            return;
+
+        ClearForNewPlanet();
+        Planet = null;
+        StateHasChanged();
     }
 
     public async Task OnPlanetChange(Planet planet)
     {
-        Planet = planet;
+        //var t = Task.Run(async () =>
+        //{
 
-        var t = Task.Run(async () =>
+        try
         {
+
+            Planet = planet;
+
             if (planet != null)
             {
                 Console.WriteLine($"Member list is updating to {planet.Name}");
                 MemberList = await planet.GetMembersAsync();
-                Roles = await planet.GetRolesAsync();
-                MemberList = MemberList.OrderByDescending(GetComparator).ToList();
+
+                DisplayedRoles = (await planet.GetRolesAsync()).Where(x => x.HasPermission(PlanetPermissions.DisplayRole)).ToList();
+                ClearForNewPlanet();
+
+                foreach (var member in MemberList)
+                {
+                    UserCache.Add(member.Id, await member.GetUserAsync());
+                }
+
+                MemberList.Sort(comparer);
             }
             else
             {
                 MemberList = new List<PlanetMember>();
+                ClearForNewPlanet();
             }
 
             await BuildRoleLists();
 
             Console.WriteLine($"Starting with {MemberList.Count()} members.");
             StateHasChanged();
-        });
+
+        }
+        catch(System.Exception e)
+        {
+            string bad = e.Message;
+            string stack = e.StackTrace;
+        }
+
+        //});
     }
 
-    public long GetComparator(PlanetMember m)
+    public class ActivityComparer : IComparer<PlanetMember>
     {
-        var task = m.GetUserAsync().AsTask();
-        task.Wait();
+        private Dictionary<long, User> _userLookup;
 
-        return task.Result.TimeLastActive.Ticks;
+        public ActivityComparer(Dictionary<long, User> userLookup)
+        {
+            this._userLookup = userLookup;
+        }
+
+        public int Compare(PlanetMember a, PlanetMember b)
+        {
+            bool greater = _userLookup[a.Id].TimeLastActive.Ticks >
+                           _userLookup[b.Id].TimeLastActive.Ticks;
+
+            if (greater)
+                return 1;
+            else
+                return -1;
+        }
     }
 }

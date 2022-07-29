@@ -60,6 +60,8 @@
 
     public User User { get; set; }
 
+    public PlanetRole Role { get; set; }
+
     public string roleColor = "#ffffff";
 
     public string status = "";
@@ -81,17 +83,40 @@
 
         name = await Member.GetNameAsync();
 
-        roleColor = await Member.GetRoleColorAsync();
-
-        status = await Member.GetStatusAsync();
+        Role = await Member.GetPrimaryRoleAsync();
 
         User.OnUpdated += async d =>
         {
-            await SetPfpValue();
-            StateHasChanged();
+            await RefreshAsync();
         };
 
+        Member.OnUpdated += async f =>
+        {
+            if ((f & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+            {
+                Role = await Member.GetPrimaryRoleAsync();
+                await RefreshAsync();
+            }
+        };
+
+        Role.OnDeleted += async () =>
+        {
+            var userRoles = await Member.GetRolesAsync();
+
+            Role = userRoles.Where(x => x.Id != Role.Id).OrderBy(x => x.Position).FirstOrDefault();
+
+            await RefreshAsync();
+        };
+
+        await RefreshAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        roleColor = Role.GetColorHex();
+        status = await Member.GetStatusAsync();
         await SetPfpValue();
+        StateHasChanged();
     }
 
     public async Task SetPfpValue()
