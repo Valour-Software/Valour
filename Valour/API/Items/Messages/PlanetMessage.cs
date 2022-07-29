@@ -217,26 +217,26 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     /// <summary> 
     /// Returns the author member of the message 
     /// </summary> 
-    public async Task<PlanetMember> GetAuthorMemberAsync() =>
-        await PlanetMember.FindAsync(AuthorMemberId, PlanetId);
+    public ValueTask<PlanetMember> GetAuthorMemberAsync() =>
+        PlanetMember.FindAsync(AuthorMemberId, PlanetId);
 
     /// <summary> 
     /// Returns the author user of the message 
     /// </summary> 
-    public async Task<User> GetAuthorUserAsync() =>
+    public async ValueTask<User> GetAuthorUserAsync() =>
         await (await this.GetAuthorMemberAsync()).GetUserAsync();
 
     /// <summary>
     /// Returns the channel the message was sent in
     /// </summary>
-    public async Task<PlanetChatChannel> GetChannelAsync() =>
-        await PlanetChatChannel.FindAsync(ChannelId, PlanetId);
+    public ValueTask<PlanetChatChannel> GetChannelAsync() =>
+        PlanetChatChannel.FindAsync(ChannelId, PlanetId);
 
     /// <summary>
     /// Attempts to delete this message
     /// </summary>
-    public async Task<TaskResult> DeleteAsync() =>
-        await ValourClient.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
+    public Task<TaskResult> DeleteAsync() =>
+        ValourClient.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in
