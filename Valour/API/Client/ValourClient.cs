@@ -31,17 +31,12 @@ public static class ValourClient
     /// <summary>
     /// The user for this client instance
     /// </summary>
-    public static User Self { get; set; }
+    public static User Self { get; private set; }
 
     /// <summary>
     /// The token for this client instance
     /// </summary>
-    public static string Token => _token;
-
-    /// <summary>
-    /// The internal token for this client
-    /// </summary>
-    private static string _token;
+    public static string Token { get; private set; }
 
     /// <summary>
     /// The planets this client has joined
@@ -56,12 +51,7 @@ public static class ValourClient
     /// <summary>
     /// The HttpClient to be used for connections
     /// </summary>
-    public static HttpClient Http => _httpClient;
-
-    /// <summary>
-    /// The internal HttpClient
-    /// </summary>
-    private static HttpClient _httpClient;
+    public static HttpClient Http { get; private set; }
 
     /// <summary>
     /// True if the client is logged in
@@ -180,7 +170,16 @@ public static class ValourClient
     /// <summary>
     /// Sets the HTTP client
     /// </summary>
-    public static void SetHttpClient(HttpClient client) => _httpClient = client;
+    public static void SetHttpClient(HttpClient client) => Http = client;
+
+    /// <summary>
+    /// Sets the default HTTP client
+    /// </summary>
+    public static void SetHttpClient(string uri = "https://app.valour.gg") => 
+        Http = new HttpClient()
+        {
+            BaseAddress = new Uri(uri)
+        };
 
     /// <summary>
     /// Returns the member for this client's user given a planet
@@ -197,14 +196,8 @@ public static class ValourClient
     /// <summary>
     /// Sends a message
     /// </summary>
-    public static async Task<TaskResult> SendMessage(PlanetMessage message)
-    {
-        var response = await PostAsync($"api/planet/{message.PlanetId}/{nameof(PlanetChatChannel)}/{message.ChannelId}/messages", message);
-
-        // Console.WriteLine("Message post: " + response.Message);
-
-        return response;
-    }
+    public static Task<TaskResult> SendMessage(PlanetMessage message) => 
+        PostAsync($"api/planet/{message.PlanetId}/{nameof(PlanetChatChannel)}/{message.ChannelId}/messages", message);
 
     #region SignalR Groups
 
@@ -584,9 +577,25 @@ public static class ValourClient
     /// <summary>
     /// Connects to SignalR hub
     /// </summary>
-    public static async Task InitializeSignalR(string hub_uri = "https://valour.gg/planethub")
+    public static async Task InitializeSignalR(string? hub_uri = null, IRetryPolicy retryPolicy = null)
     {
-        await ConnectSignalRHub(hub_uri);
+        hub_uri ??= Http.BaseAddress.ToString();
+
+        Console.WriteLine("Connecting to Planet Hub");
+        Console.WriteLine(hub_uri);
+
+        HubConnection = 
+            new HubConnectionBuilder()
+                .WithUrl(hub_uri)
+                .WithAutomaticReconnect(retryPolicy ?? new SignalrRetryPolicy())
+                .Build();
+
+        HubConnection.Closed += OnClosed;
+        HubConnection.Reconnected += OnReconnect;
+
+        await HubConnection.StartAsync();
+
+        HookSignalREvents();
     }
 
     /// <summary>
@@ -606,14 +615,27 @@ public static class ValourClient
         {
             Console.WriteLine("Failed to request user token.");
             Console.WriteLine(response.Message);
-            return new TaskResult<string>(false, $"Incorrect email or password. (Are you using your email?)", response.Message);
+            return TaskResult<string>.FromError(response);
         }
 
         var token = response.Data.Id;
 
-        _token = token;
+        Token = token;
 
-        return new TaskResult<string>(true, "Success", token);
+        return new TaskResult<string>(true, response.Message, token);
+    }
+
+    /// <summary>
+    /// Gets Self
+    /// </summary>
+    public static async Task<TaskResult<User>> GetSelf()
+    {
+        var response = await GetJsonAsync<User>($"api/user/self");
+
+        // Set reference to self user
+        Self = response.Data;
+
+        return response;
     }
 
     /// <summary>
@@ -622,7 +644,7 @@ public static class ValourClient
     public static async Task<TaskResult<User>> InitializeUser(string token)
     {
         // Store token 
-        _token = token;
+        Token = token;
 
         if (Http.DefaultRequestHeaders.Contains("authorization"))
         {
@@ -631,13 +653,10 @@ public static class ValourClient
 
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
-        var response = await GetJsonAsync<User>($"api/user/self");
+        var selfResult = await GetSelf();
 
-        if (!response.Success)
-            return response;
-
-        // Set reference to self user
-        Self = response.Data;
+        if (!selfResult.Success)
+            return selfResult;
 
         Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
 
@@ -662,43 +681,55 @@ public static class ValourClient
 
         await LoadJoinedPlanetsAsync();
 
-        return new TaskResult<User>(true, "Success", Self);
+        return selfResult;
     }
 
-    public static async Task<TaskResult> ConnectToUserSignalRChannel()
-    {
-        return await HubConnection.InvokeAsync<TaskResult>("JoinUser");
-    }
+    public static Task<TaskResult> ConnectToUserSignalRChannel() 
+        => HubConnection.InvokeAsync<TaskResult>("JoinUser");
 
     /// <summary>
     /// Logs in and prepares the bot's client for use
     /// </summary>
-    public static async Task<TaskResult<User>> InitializeBot(string email, string password, HttpClient http = null)
+    public static async Task<TaskResult<User>> InitializeBot(string email, string password)
     {
-        SetHttpClient(http is not null ? http : new HttpClient()
-        {
-            BaseAddress = new Uri("https://valour.gg/")
-        });
+        SetHttpClient();
 
         var tokenResult = await GetToken(email, password);
 
         if (!tokenResult.Success) 
             return new TaskResult<User>(false, tokenResult.Message);
 
-        var response = await PostAsyncWithResponse<User>($"api/user/withtoken", Token);
+        return await FinalBotInitialization();
+    }
 
-        if (!response.Success)
-            return response;
+    /// <summary>
+    /// Logs in and prepares the bot's client for use
+    /// </summary>
+    public static Task<TaskResult<User>> InitializeBot(string token)
+    {
+        SetHttpClient();
 
-        await InitializeSignalR("https://valour.gg" + "/planethub");
+        Token = token;
 
-        // Set reference to self user
-        Self = response.Data;
+        return FinalBotInitialization();
+    }
+
+    /// <summary>
+    /// Logs in and prepares the bot's client for use
+    /// </summary>
+    private static async Task<TaskResult<User>> FinalBotInitialization()
+    {
+        var selfResult = await GetSelf();
+
+        if (!selfResult.Success)
+            return selfResult;
+
+        await InitializeSignalR();
 
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
-        Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
+        Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
 
         await AuthenticateSignalR();
 
@@ -707,7 +738,7 @@ public static class ValourClient
 
         await JoinAllChannelsAsync();
 
-        return new TaskResult<User>(true, "Success", Self);
+        return selfResult;
     }
 
     /// <summary>
@@ -718,16 +749,21 @@ public static class ValourClient
         var planets = (await GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
 
         // Add to cache
+        List<Task> tasks = new();
+
         foreach (var planet in planets)
         {
             await ValourCache.Put(planet.Id, planet);
 
-            OpenPlanet(planet);
+            // No need to open planet as OpenChannel already will check for it
 
             var channels = await planet.GetChannelsAsync();
 
-            channels.ForEach(async x => await OpenChannel(x));
+            foreach (PlanetChatChannel channel in channels)
+                tasks.Add(OpenChannel(channel));
         }
+
+        await Task.WhenAll(tasks);
 
         JoinedPlanets = planets;
 
@@ -739,9 +775,8 @@ public static class ValourClient
 
     public static async Task UpdateUserChannelState(UserChannelState channelState)
     {
-
-        if (ChannelStates.ContainsKey(channelState.ChannelId))
-            ChannelStates[channelState.ChannelId].LastViewedState = channelState.LastViewedState;
+        if (ChannelStates.TryGetValue(channelState.ChannelId, out UserChannelState value))
+            value.LastViewedState = channelState.LastViewedState;
         else
             ChannelStates.Add(channelState.ChannelId, channelState);
 
@@ -818,46 +853,19 @@ public static class ValourClient
 
     #region SignalR
 
-    private static async Task ConnectSignalRHub(string hub_url)
-    {
-        Console.WriteLine("Connecting to Planet Hub");
-        Console.WriteLine(hub_url);
-
-        HubConnection = new HubConnectionBuilder()
-            .WithUrl(hub_url)
-            .WithAutomaticReconnect()
-            .ConfigureLogging(logging =>
-            {
-                //logging.AddConsole();
-                //logging.SetMinimumLevel(LogLevel.Trace);
-            })
-            .Build();
-
-        //hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);
-        HubConnection.Closed += OnClosed;
-        HubConnection.Reconnected += OnReconnect;
-
-        await HubConnection.StartAsync();
-
-        HookSignalREvents();
-    }
-
     public static async Task AuthenticateSignalR()
     {
         Console.WriteLine("Authenticating with SignalR hub...");
 
-        TaskResult response = new TaskResult(false, "Failed to authorize. This is a critical SignalR error.");
+        TaskResult response = new(false, "Failed to authorize. This is a critical SignalR error.");
 
-        bool authorized = false;
-        int tries = 0;
-        while (!authorized && tries < 5)
+        for (int i = 0; !response.Success && i < 5; i++)
         {
             response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Token);
-            authorized = response.Success;
-            tries++;
+            await Task.Delay(1000);
         }
 
-        if (!authorized)
+        if (!response.Success)
         {
             Console.WriteLine("** FATAL: Failed to authorize with SignalR after 5 attempts. **");
         }
@@ -912,25 +920,14 @@ public static class ValourClient
     }
 
     /// <summary>
-    /// Attempt to recover the connection if it is lost
+    /// Report on closing Signalr
     /// </summary>
-    public static async Task OnClosed(Exception e)
+    public static Task OnClosed(Exception e)
     {
-        // Ensure disconnect was not on purpose
-        if (e != null)
-        {
-            Console.WriteLine("## A Breaking SignalR Error Has Occured");
-            Console.WriteLine("Exception: " + e.Message);
-            Console.WriteLine("Stacktrace: " + e.StackTrace);
-
-            await Reconnect();
-        }
-        else
-        {
-            Console.WriteLine("SignalR has closed without error.");
-
-            await Reconnect();
-        }
+        Console.WriteLine("## A SignalR Error Has Occured");
+        Console.WriteLine("Exception: " + e.Message);
+        Console.WriteLine("Stacktrace: " + e.StackTrace);
+        return Task.CompletedTask;
     }
 
     /// <summary>

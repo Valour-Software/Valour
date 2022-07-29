@@ -13,9 +13,9 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared
 {
-    public struct TaskResult
+    public struct TaskResult : ITaskResult
     {
-        public static readonly TaskResult SuccessResult = new TaskResult(true, "Success");
+        public static readonly TaskResult SuccessResult = new(true, "Success");
 
         [JsonInclude]
         [JsonPropertyName("Message")]
@@ -24,12 +24,14 @@ namespace Valour.Shared
         [JsonInclude]
         [JsonPropertyName("Success")]
         public bool Success { get; set; }
-        
+
         public TaskResult(bool success, string message)
         {
             Success = success;
             Message = message;
         }
+
+        public static TaskResult FromError(ITaskResult error) => new(false, error.Message);
 
         public override string ToString()
         {
@@ -42,7 +44,7 @@ namespace Valour.Shared
         }
 
     }
-    public struct TaskResult<T>
+    public struct TaskResult<T> : ITaskResult
     {
         [JsonInclude]
         [JsonPropertyName("Message")]
@@ -60,7 +62,7 @@ namespace Valour.Shared
         {
             Success = success;
             Message = message;
-            Data = default(T);
+            Data = default;
         }
 
         public TaskResult(bool success, string message, T data)
@@ -68,6 +70,14 @@ namespace Valour.Shared
             Success = success;
             Message = message;
             Data = data;
+        }
+
+        public static TaskResult<T> FromError(ITaskResult error) => new(false, error.Message);
+
+        public bool IsSuccessful(out T value)
+        {
+            value = Data;
+            return Success;
         }
 
         public override string ToString()
@@ -79,6 +89,13 @@ namespace Valour.Shared
 
             return $"[FAIL] {Message}";
         }
+    }
+
+    public interface ITaskResult
+    {
+        string Message { get; set; }
+
+        bool Success { get; set; }
     }
 
     public struct HttpResult
