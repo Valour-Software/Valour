@@ -11,6 +11,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Components\ChannelList\ChannelListChatChannelComponent.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Components\ChannelList\ChannelListChatChannelComponent.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.3.0-preview.1" />
     <PackageReference Include="Blazored.Modal" Version="7.0.0-preiew.2" />
     <PackageReference Include="Markdig" Version="0.30.2" />

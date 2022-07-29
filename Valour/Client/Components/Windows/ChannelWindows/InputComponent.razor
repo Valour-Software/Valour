@@ -5,7 +5,7 @@
 
 <div>
     <div style="opacity: 0.7; width: 95%" class="preview-message">
-        <MessageComponent @ref="PreviewMessageComponent" Message="PreviewMessage" Submessage ="true" Ghost="true" Last_Message="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
+        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" Message="PreviewMessage" Submessage ="true" Ghost="true" Last_Message="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
     <div class="textbox-holder" @onclick="WindowComponent.ScrollToBottomAnim">
@@ -179,7 +179,7 @@
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
-        Console.WriteLine(CurrentInput);
+        // Console.WriteLine(CurrentInput);
 
         if (CurrentInput == null)
         {
@@ -288,17 +288,27 @@
     }
 
     public async Task UpdatePreviewMessage(string input) {
-        var innerMessage = new PlanetMessage()
-        {
-            AuthorUserId = SelfMember.UserId,
-            Content = input,
-            ChannelId = Window.Channel.Id,
-            AuthorMemberId = SelfMember.Id,
-            TimeSent = DateTime.UtcNow,
-            ReplyToId = ReplyingTo?.Id
-        };
 
-        PreviewMessage = new ClientPlanetMessage(innerMessage);
+        if (PreviewMessage is null)
+        {
+            var innerMessage = new PlanetMessage()
+                {
+                    AuthorUserId = SelfMember.UserId,
+                    Content = input,
+                    ChannelId = Window.Channel.Id,
+                    AuthorMemberId = SelfMember.Id,
+                    TimeSent = DateTime.UtcNow,
+                    ReplyToId = ReplyingTo?.Id
+                };
+
+            PreviewMessage = new ClientPlanetMessage(innerMessage);
+        }
+        else
+        {
+            PreviewMessage.Clear();
+            PreviewMessage.BaseMessage.Content = input;
+            PreviewMessage.BaseMessage.TimeSent = DateTime.UtcNow;
+        }
 
         PreviewMessage.GenerateForPost();
 

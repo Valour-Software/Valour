@@ -1,5 +1,6 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
 using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
@@ -29,8 +30,10 @@ public class ValourDB : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(modelBuilder);
-        //modelBuilder.HasCharSet(CharSet.Utf8Mb4);
+        // Composite key
+        modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
+
+        //base.OnModelCreating(modelBuilder);
     }
 
     // These are the database sets we can access
@@ -83,6 +86,11 @@ public class ValourDB : DbContext
     /// Table for all planet membership
     /// </summary>
     public DbSet<PlanetMember> PlanetMembers { get; set; }
+
+    /// <summary>
+    /// Table for all channels
+    /// </summary>
+    public DbSet<Channel> Channels { get; set; }
 
     /// <summary>
     /// Table for all planet channels
@@ -142,6 +150,8 @@ public class ValourDB : DbContext
     public DbSet<PermissionsNode> PermissionsNodes { get; set; }
 
     public DbSet<PlanetRole> PlanetRoles { get; set; }
+
+    public DbSet<UserChannelState> UserChannelStates { get; set; }
 
     public ValourDB(DbContextOptions options)
     {

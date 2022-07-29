@@ -1,6 +1,6 @@
 ﻿@inject WindowManager windowManager
 
-<div class="category-list keep-scrolling" style="padding-bottom:80px">
+<div class="category-list hide-scrollbar" style="padding-bottom:80px">
     @foreach (Planet planet in ValourClient.OpenPlanets)
     {
         <ChannelListPlanetComponent Planet="planet" @key='planet.Id'></ChannelListPlanetComponent>

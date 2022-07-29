@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using Valour.Api.Client;
+using Valour.Api.Items.Planets.Channels;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
@@ -11,8 +12,20 @@ namespace Valour.Api.Items.Planets.Members;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : PlanetItem, ISharedPlanetRole
+public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
 {
+    #region IPlanetItem implementation
+
+    public long PlanetId { get; set; }
+
+    public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
+        IPlanetItem.GetPlanetAsync(this, refresh);
+
+    public override string BaseRoute =>
+            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetRole)}";
+
+    #endregion
+
     // Coolest role on this damn platform.
     // Fight me.
     public static PlanetRole VictorRole = new PlanetRole()
@@ -93,4 +106,6 @@ public class PlanetRole : PlanetItem, ISharedPlanetRole
 
         return item;
     }
+
+    
 }

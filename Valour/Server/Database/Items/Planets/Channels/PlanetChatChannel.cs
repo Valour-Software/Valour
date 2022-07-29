@@ -19,8 +19,16 @@ using Valour.Shared.MPS;
 namespace Valour.Server.Database.Items.Planets.Channels;
 
 [Table("planet_chat_channels")]
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatChannel
 {
+    #region IPlanetItem Implementation
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"/api/planet/{{planetId}}/{nameof(PlanetChatChannel)}";
+
+    #endregion
+
     [Column("message_count")]
     public long MessageCount { get; set; }
 
@@ -32,6 +40,18 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// </summary>
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+
+    public string GetCurrentState()
+    {
+        if (PlanetMessageWorker.ChannelMessageIndices.ContainsKey(Id))
+        {
+            return "MessageIndex-" + PlanetMessageWorker.ChannelMessageIndices[Id];
+        }
+        else
+        {
+            return "MessageIndex-" + MessageCount;
+        }
+    }
 
     /// <summary>
     /// Returns if a given member has a channel permission
@@ -559,8 +579,16 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
                 return new TaskResult(false, "Parent ID is not valid");
         }
 
-        if (!await HasUniquePosition(db, channel))
-            return new TaskResult(false, "The position is already taken.");
+        // Auto determine position
+        if (channel.Position < 0)
+        {
+            channel.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.ParentId == channel.ParentId));
+        }
+        else
+        {
+            if (!await HasUniquePosition(db, channel))
+                return new TaskResult(false, "The position is already taken.");
+        }
 
         return new TaskResult(true, "Valid");
     }

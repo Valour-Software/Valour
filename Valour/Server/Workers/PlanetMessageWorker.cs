@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using Valour.Server.Database;
+using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Shared.Items.Channels;
 
 namespace Valour.Server.Workers
 {
@@ -78,16 +80,22 @@ namespace Valour.Server.Workers
 
                         PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channelId);
 
-                        // Get index for message
-                        long index = channel.MessageCount;
-
                         // Update message count. May have to queue this in the future to prevent concurrency issues (done).
                         channel.MessageCount += 1;
+
+                        // Get index for message
+                        long index = channel.MessageCount;
+                        channel.State = $"MessageIndex-{channel.MessageCount}";
+                        channel.TimeLastActive = DateTime.UtcNow;
+
                         Message.MessageIndex = index;
                         Message.TimeSent = DateTime.UtcNow;
 
                         // This is not awaited on purpose
-                        PlanetHub.Current.Clients.Group($"c-{channelId}").SendAsync("Relay", Message);
+#pragma warning disable CS4014
+                        PlanetHub.Current.Clients.Group($"p-{Message.PlanetId}").SendAsync("Channel-State", new ChannelStateUpdate(channel.Id, channel.State));
+                        PlanetHub.RelayMessage(Message);
+#pragma warning restore CS4014
 
                         StagedMessages.TryAdd(Message.Id, Message);
                     }

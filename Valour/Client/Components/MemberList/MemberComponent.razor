@@ -1,0 +1,142 @@
+﻿<div class="member-card">
+    <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@style">
+    <div class="user-info">
+
+        <div class="name-line">
+
+            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Member)' style='display:inline'>
+                <p class="username" style="color: @roleColor">
+                    @if (Member.Nickname.Length > 16)
+                    {
+                        @Member.Nickname.Substring(0, 15)
+                    }
+                    else
+                    {
+                        @Member.Nickname
+                    }
+                </p>
+            </ContextMenuTrigger>
+
+            @if (User.Bot)
+            {
+                <div class="bot-tag">
+                    <p>BOT</p>
+                </div>
+            }
+
+            @if (User.ValourStaff)
+            {
+                <div class="staff-tag">
+                    <p>STAFF</p>
+                </div>
+            }
+        </div>
+
+        <div class="status-holder">
+
+            <!-- State bubble -->
+            <div class="state-circle @User.UserState.CssClassName">
+            </div>
+
+            <p class="status-text">
+                @status
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+
+    [Parameter]
+    public PlanetMember Member { get; set; }
+
+    [Parameter]
+    public bool First { get; set; }
+    [Parameter]
+    public bool Last { get; set; }
+    [Parameter]
+    public bool Only { get; set; }
+
+    public User User { get; set; }
+
+    public PlanetRole Role { get; set; }
+
+    public string roleColor = "#ffffff";
+
+    public string status = "";
+
+    public string BotString = "";
+
+    public string StaffString = "";
+
+    public string name = "";
+
+    public string pfpurl = "_content/Valour.Client/icon-512.png";
+    public string style = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        User = await Member.GetUserAsync();
+
+        name = await Member.GetNameAsync();
+
+        Role = await Member.GetPrimaryRoleAsync();
+
+        User.OnUpdated += async d =>
+        {
+            await RefreshAsync();
+        };
+
+        Member.OnUpdated += async f =>
+        {
+            if ((f & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+            {
+                Role = await Member.GetPrimaryRoleAsync();
+                await RefreshAsync();
+            }
+        };
+
+        Role.OnDeleted += async () =>
+        {
+            var userRoles = await Member.GetRolesAsync();
+
+            Role = userRoles.Where(x => x.Id != Role.Id).OrderBy(x => x.Position).FirstOrDefault();
+
+            await RefreshAsync();
+        };
+
+        await RefreshAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        roleColor = Role.GetColorHex();
+        status = await Member.GetStatusAsync();
+        await SetPfpValue();
+        StateHasChanged();
+    }
+
+    public async Task SetPfpValue()
+    {
+        string pfp = await Member.GetPfpUrlAsync();
+
+        if (!string.IsNullOrWhiteSpace(pfp))
+        {
+            pfpurl = pfp;
+        }
+    }
+
+    protected async Task OnPfpError()
+    {
+        pfpurl = "_content/Valour.Client/icon-512.png";
+
+        int r = Random.Shared.Next(24) * 15;
+
+        style = $"filter: hue-rotate({r}deg) saturate(2)";
+
+        StateHasChanged();
+    }
+}

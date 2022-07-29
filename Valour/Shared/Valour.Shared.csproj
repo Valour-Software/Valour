@@ -13,7 +13,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
 
-    <Version>0.1.3.3</Version>
+    <Version>0.1.3.4</Version>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -21,7 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="logo.png" Pack="true" PackagePath=""/>
+    <None Include="logo.png" Pack="true" PackagePath="" />
     <SupportedPlatform Include="browser" />
   </ItemGroup>
 </Project> 

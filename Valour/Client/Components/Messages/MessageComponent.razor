@@ -34,7 +34,18 @@
                             }
                             else
                             {
-                                <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                                string key = "";
+
+                                if (Ghost)
+                                {
+                                    key = $"ghost-{Window.Id}";
+                                }
+                                else
+                                {
+                                    key = $"content-{Message.Message_Index}-{Message.TimeSent}-{Window.Id}";
+                                }
+
+                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="Message"></MessageContentComponent>
                             }
                         </p>
                     </div>
@@ -73,17 +84,9 @@
                         }
                         @if (ReplyMessage is not null && !Reply)
                         {
-                            string replykey = "";
-                            if (Holder is null)
-                            {
-                                replykey = $"REPLYMESSAGE-{ReplyMessage.Id}";
-                            }
-                            else
-                            {
-                                replykey = $"{Window.Id}-{Window.Channel.Id}-{ReplyMessage.ChannelId}-{ReplyMessage.TimeSent}";
-                            }
+                            string replykey = $"reply-{Window.Id}";
 
-                            <MessageComponent Message="ReplyMessage" Key="@replykey" @key="ReplyMessage" Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
+                            <MessageComponent Message="ReplyMessage" Key="@replykey"  Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                         }
                         <p class="content" @ref="InnerRef">
                             @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
@@ -95,7 +98,18 @@
                             }
                             else
                             {
-                                <MessageContentComponent @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                                string key = "";
+
+                                if (Ghost)
+                                {
+                                    key = $"ghost-{Window.Id}";
+                                }
+                                else
+                                {
+                                    key = $"content-{Message.Message_Index}-{Message.TimeSent}-{Window.Id}";
+                                }
+
+                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="Message"></MessageContentComponent>
                             }
                         </p>
                     </div>
@@ -402,6 +416,8 @@
 
     public void ReRender()
     {
+        if (Ghost && Reply) return;
+
         ShouldRenderValue = true;
         StateHasChanged();
 
@@ -452,6 +468,8 @@
     /// </summary>
     protected override bool ShouldRender()
     {
+        if (Ghost && Reply) return false;
+
         return ShouldRenderValue;
     }
 

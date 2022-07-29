@@ -153,6 +153,8 @@ public class User : Item, ISharedUser
             return ValourResult.Problem(e.Message);
         }
 
+        PlanetHub.NotifyUserChange(old, db);
+
         return Results.Json(user);
     }
 
@@ -226,6 +228,17 @@ public class User : Item, ISharedUser
                                                   // Sometimes things do be wrong
 
         return Results.Json(user);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/self/channelstates"), TokenRequired, InjectDb]
+    public static IResult ChannelStatesRouteAsync(HttpContext ctx)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        var channelStates = db.UserChannelStates.Where(x => x.UserId == token.UserId).AsAsyncEnumerable();
+
+        return Results.Json(channelStates);
     }
 
     [ValourRoute(HttpVerbs.Post, "/token"), InjectDb]
