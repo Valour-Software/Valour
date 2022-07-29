@@ -13,6 +13,10 @@ public class AuthToken : ISharedAuthToken
     [JsonIgnore]
     public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
 
+    [NotMapped]
+    [JsonIgnore]
+    public static ConcurrentDictionary<long, DateTime?> UserTimeCache = new ConcurrentDictionary<long, DateTime?>();
+
     [Key]
     [Column("id")]
     public string Id { get; set; }
@@ -66,7 +70,7 @@ public class AuthToken : ISharedAuthToken
     {
         if (token == null) return null;
 
-        AuthToken authToken = null;
+        AuthToken authToken;
 
         if (QuickCache.ContainsKey(token))
         {
@@ -79,26 +83,29 @@ public class AuthToken : ISharedAuthToken
             QuickCache.TryAdd(token, authToken);
         }
 
-        // Spin off a task to do things we don't want to wait on
-        var t = Task.Run(async () =>
+        // Now using a time cache to significantly improve performance here.
+        // This is a really hot path (literally almost every API path uses this)
+        // So any further optimization would be great
+        if (authToken != null)
         {
-            using (ValourDB tdb = new ValourDB(ValourDB.DBOptions))
+            UserTimeCache.TryGetValue(authToken.UserId, out DateTime? lastActiveCached);
+
+            DateTime lastActive = lastActiveCached ?? DateTime.MinValue;
+
+            // Only bother updating if it's been at least 30 seconds
+            // since the last activity update
+            if (lastActive.AddSeconds(30) < DateTime.UtcNow)
             {
-                if (authToken == null)
-                {
-                    authToken = await tdb.AuthTokens.FindAsync(token);
-                }
+                User user = await db.Users.FindAsync(authToken.UserId);
+                user.TimeLastActive = DateTime.UtcNow;
+                UserTimeCache[user.Id] = user.TimeLastActive;
 
-                if (authToken != null)
-                {
-                    User user = await tdb.Users.FindAsync(authToken.UserId);
-                    user.TimeLastActive = DateTime.UtcNow;
+                await db.SaveChangesAsync();
 
-                    await tdb.SaveChangesAsync();
-                }
+                // Notify of user activity change
+                PlanetHub.NotifyUserChange(user, db);
             }
-        });
-
+        }
 
         return authToken;
     }

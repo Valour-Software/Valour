@@ -153,6 +153,8 @@ public class User : Item, ISharedUser
             return ValourResult.Problem(e.Message);
         }
 
+        PlanetHub.NotifyUserChange(old, db);
+
         return Results.Json(user);
     }
 

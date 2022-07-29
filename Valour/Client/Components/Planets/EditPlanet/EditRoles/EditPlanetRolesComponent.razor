@@ -162,7 +162,7 @@
 
         var ids = Roles.Select(x => x.Id);
 
-        var result = await ValourClient.PostAsync($"api/planet/{dropped_on.PlanetId}/roles/order", ids);
+        var result = await ValourClient.PostAsync($"api/planet/{dropped_on.PlanetId}/roleorder", ids);
 
         Console.WriteLine(result.Message);
 
@@ -251,7 +251,7 @@
             "Confirm",
             "Cancel",
             async () => {
-                var response = await ValourClient.DeleteAsync($"api/role/{role.Id.ToString()}");
+                var response = await ValourClient.DeleteAsync($"api/planet/{Planet.Id}/planetrole/{role.Id.ToString()}");
 
                 if (!response.Success)
                 {
