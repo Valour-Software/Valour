@@ -1,51 +1,53 @@
 ﻿@inject WindowManager windowManager
 
-<div class="role-list hide-scrollbar">
-    @if (MemberList != null && Planet != null)
-    {
-        foreach (var role in DisplayedRoles)
+<CascadingValue Value="this">
+    <div class="role-list hide-scrollbar">
+        @if (MemberList != null && Planet != null)
         {
-            var members = DisplayedRoleMembers[role.Id];
+            foreach (var role in DisplayedRoles)
+            {
+                var members = DisplayedRoleMembers[role.Id];
 
-            if (members.Count > 0) {
-                <p class="role-name" style="color: @role.GetColorHex()">
-                    @role.Name
+                if (members.Count > 0) {
+                    <p class="role-name" style="color: @role.GetColorHex()">
+                        @role.Name
+                    </p>
+
+                    <Virtualize Items="members">
+                        <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
+                    </Virtualize>
+                }
+            }
+
+            var online = DisplayedRoleMembers[0];
+
+            if (online.Count > 0)
+            {
+                <p class="role-name">
+                    Online
                 </p>
 
-                <Virtualize Items="members">
-                    <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
+                <Virtualize Items="online">
+                        <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
                 </Virtualize>
             }
-        }
 
-        var online = DisplayedRoleMembers[0];
+            var offline = DisplayedRoleMembers[1];
 
-        if (online.Count > 0)
-        {
-            <p class="role-name">
-                Online
-            </p>
+            if (offline.Count > 0) {
 
-            <Virtualize Items="online">
+                <p class="role-name">
+                    Offline
+                </p>
+
+                <Virtualize Items="offline">
                     <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
-            </Virtualize>
+                </Virtualize>
+
+            }
         }
-
-        var offline = DisplayedRoleMembers[1];
-
-        if (offline.Count > 0) {
-
-            <p class="role-name">
-                Offline
-            </p>
-
-            <Virtualize Items="offline">
-                <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
-            </Virtualize>
-
-        }
-    }
-</div>
+    </div>
+</CascadingValue>
 
 @code {
 
@@ -65,6 +67,8 @@
 
     public ActivityComparer comparer;
 
+    public CancellationToken ReloadToken { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         UserCache = new();
@@ -80,12 +84,40 @@
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
         ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
         ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
+        ItemObserver<PlanetMember>.OnAnyDeleted += OnMemberDelete;
+
+        var reloadTask = Task.Run(async () =>
+        {
+            while (!ReloadToken.IsCancellationRequested)
+            {
+                if (Planet != null)
+                {
+                    await BuildRoleLists();
+                }
+
+                foreach (var list in DisplayedRoleMembers.Values)
+                {
+                    list.Clear();
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(30), ReloadToken);
+            }
+        });
+    }
+
+    public async Task OnMemberUserUpdate(PlanetMember member)
+    {
+        await OnMemberUpdate(member, false, 0);
     }
 
     public async Task OnMemberDelete(PlanetMember member)
     {
+        if (member.PlanetId != windowManager.FocusedPlanet.Id)
+            return;
+
         var lastRole = LastMemberRoles[member.Id];
         DisplayedRoleMembers[lastRole].Remove(member);
+        UserCache.Remove(member.Id);
         StateHasChanged();
     }
 
@@ -376,9 +408,9 @@
                            _userLookup[b.Id].TimeLastActive.Ticks;
 
             if (greater)
-                return 1;
-            else
                 return -1;
+            else
+                return 1;
         }
     }
 }
