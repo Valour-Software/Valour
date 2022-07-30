@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS planet_messages (
     author_member_id BIGINT NOT NULL,
     planet_id BIGINT NOT NULL,
     channel_id BIGINT NOT NULL,
+    edited BOOLEAN NOT NULL DEFAULT false
 
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
     CONSTRAINT fk_member FOREIGN KEY(author_member_id) REFERENCES planet_members(id),
