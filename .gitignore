@@ -1,7 +1,8 @@
 # DB Credentials
+*Config.json
 DBConfig.json
 EmailConfig.json
-MPSConfig.json
+CDNConfig.json
 VapidConfig.json
 NodeConfig.json
 

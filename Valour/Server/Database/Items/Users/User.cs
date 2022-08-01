@@ -102,6 +102,12 @@ public class User : Item, ISharedUser
         set => ISharedUser.SetUserState(this, value);
     }
 
+    /// <summary>
+    /// Retrieves a user for the given id
+    /// </summary>
+    public static async Task<User> FindAsync(long id, ValourDB db) =>
+        await FindAsync<User>(id, db);
+
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]

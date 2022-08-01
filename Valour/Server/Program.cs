@@ -1,10 +1,14 @@
 ﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
 using System.Web;
 using Valour.Server.API;
+using Valour.Server.Cdn;
+using Valour.Server.Cdn.Api;
+using Valour.Server.Cdn.Extensions;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
@@ -26,7 +30,7 @@ namespace Valour.Server
         public const string CONF_LOC = "ValourConfig/";
         public const string DBCONF_FILE = "DBConfig.json";
         public const string EMCONF_FILE = "EmailConfig.json";
-        public const string MPSCONF_FILE = "MPSConfig.json";
+        public const string CDNCONFIG_FILE = "CDNConfig.json";
         public const string VAPIDCONF_FILE = "VapidConfig.json";
         public const string NODECONF_FILE = "NodeConfig.json";
 
@@ -61,9 +65,13 @@ namespace Valour.Server
 
             app.MapGet("/api/ping", () => "pong");
 
+            // Add Cdn routes
+            ProxyApi.AddRoutes(app);
+            ContentApi.AddRoutes(app);
+            UploadApi.AddRoutes(app);
+
             // Add API routes
             BaseAPI.AddRoutes(app);
-            UploadAPI.AddRoutes(app);
             EmbedAPI.AddRoutes(app);
             OauthAPI.AddRoutes(app);
 
@@ -211,6 +219,17 @@ namespace Valour.Server
 
             services.AddHttpClient();
 
+            services.Configure<FormOptions>(options =>
+            {
+                options.MemoryBufferThreshold = 10240000;
+                options.MultipartBodyLengthLimit = 10240000;
+            });
+
+            services.AddDbContextPool<CdnDb>(options =>
+            {
+                options.UseNpgsql(CdnDb.ConnectionString);
+            });
+
             services.AddDbContextPool<ValourDB>(options =>
             {
                 options.UseNpgsql(ValourDB.ConnectionString);
@@ -247,6 +266,7 @@ namespace Valour.Server
                     Type = SecuritySchemeType.ApiKey,
                     Scheme = "Token"
                 });
+                c.OperationFilter<FileUploadOperation>();
             });
         }
 
@@ -304,25 +324,29 @@ namespace Valour.Server
             // Initialize Email Manager
             EmailManager.SetupClient();
 
-            MPSConfig vmpsconfig;
-            if (File.Exists(CONF_LOC + MPSCONF_FILE))
+            CdnConfig cdnConfig;
+            if (File.Exists(CONF_LOC + CDNCONFIG_FILE))
             {
                 // If there is a config, read it
-                vmpsconfig = await JsonSerializer.DeserializeAsync<MPSConfig>(File.OpenRead(CONF_LOC + MPSCONF_FILE));
+                cdnConfig = await JsonSerializer.DeserializeAsync<CdnConfig>(File.OpenRead(CONF_LOC + CDNCONFIG_FILE));
             }
             else
             {
                 // Otherwise create a config with default values and write it to the location
-                vmpsconfig = new MPSConfig()
+                cdnConfig = new CdnConfig()
                 {
-                    Api_Key = "api_key_goes_here"
+                    AuthKey = "key",
+                    DbAddr = "localhost",
+                    DbUser = "dbuser",
+                    DbPass = "dbpass",
+                    S3Access = "s3access",
+                    S3Secret = "s3secret",
+                    R2Endpoint = "r2endpoint"
                 };
 
-                File.WriteAllText(CONF_LOC + MPSCONF_FILE, JsonSerializer.Serialize(vmpsconfig));
-                Console.WriteLine("Error: No MSP config was found. Creating file...");
+                File.WriteAllText(CONF_LOC + CDNCONFIG_FILE, JsonSerializer.Serialize(cdnConfig));
+                Console.WriteLine("Error: No CDN config was found. Creating file...");
             }
-
-            vmpsconfig.Api_Key_Encoded = HttpUtility.UrlEncode(vmpsconfig.Api_Key);
 
             VapidConfig vapidconfig;
             if (File.Exists(CONF_LOC + VAPIDCONF_FILE))
