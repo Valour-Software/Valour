@@ -20,7 +20,7 @@ using Valour.Server.Email;
 using Valour.Server.Nodes;
 using Valour.Server.Notifications;
 using Valour.Server.Workers;
-using Valour.Shared.MPS;
+using Valour.Shared.Cdn;
 using WebPush;
 
 namespace Valour.Server
@@ -66,9 +66,9 @@ namespace Valour.Server
             app.MapGet("/api/ping", () => "pong");
 
             // Add Cdn routes
-            ProxyApi.AddRoutes(app);
             ContentApi.AddRoutes(app);
             UploadApi.AddRoutes(app);
+            ProxyApi.AddRoutes(app);
 
             // Add API routes
             BaseAPI.AddRoutes(app);
