@@ -83,6 +83,11 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     public string MentionsData { get; set; }
 
     /// <summary>
+    /// True if the message was edited
+    /// </summary>
+    public bool Edited { get; set; }
+
+    /// <summary>
     /// Used to identify a message returned from the server 
     /// </summary>
     public string Fingerprint { get; set; }
