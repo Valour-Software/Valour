@@ -8,7 +8,8 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
-using Valour.Shared.MPS;
+using Valour.Shared.Cdn;
+using Valour.Server.Cdn;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -441,7 +442,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
                               ChatChannelPermissionsEnum.PostMessages)]
-    public static async Task<IResult> PostMessageRouteAsync(HttpContext ctx, [FromBody] PlanetMessage message)
+    public static async Task<IResult> PostMessageRouteAsync(HttpContext ctx, HttpClient client, CdnDb db, [FromBody] PlanetMessage message)
     {
         var member = ctx.GetMember();
 
@@ -468,7 +469,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             return Results.BadRequest("EmbedData must be under 65535 chars");
 
         // Handle URL content
-        message.Content = await MPSUtils.HandleUrls(message.Content);
+        message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
         message.Id = IdManager.Generate();
 
         PlanetMessageWorker.AddToQueue(message);

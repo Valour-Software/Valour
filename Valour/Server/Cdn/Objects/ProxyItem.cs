@@ -34,6 +34,6 @@ public class ProxyItem
     /// The url for the proxied item
     /// </summary>
     [JsonIgnore]
-    public string Url => $"https://vmps.valour.gg/Proxy/{Id}";
+    public string Url => $"https://cdn.valour.gg/proxy/{Id}";
 }
 
