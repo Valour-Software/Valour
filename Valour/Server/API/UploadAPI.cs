@@ -22,40 +22,28 @@ namespace Valour.Server.API
     {
         public static void AddRoutes(WebApplication app)
         {
-            app.MapPost("/upload/{type}", UploadRoute);
+            app.MapPost("/upload/{category}", UploadRoute);
         }
 
-        private static async Task UploadRoute(HttpContext context, HttpClient http, ValourDB db,
-            string type, [FromHeader] string authorization, long item_id = 0)
+        private static async Task<IResult> UploadRoute(HttpContext context, HttpClient http, ValourDB db,
+            string category, [FromHeader] string authorization, long itemId = 0)
         {
             var authToken = await AuthToken.TryAuthorize(authorization, db);
-            if (authToken == null) { await TokenInvalid(context); return; }
+            if (authToken == null) return ValourResult.NoToken();
 
-            if (string.IsNullOrWhiteSpace(type))
-                Console.WriteLine("Include a valid upload type");
+            if (string.IsNullOrWhiteSpace(category))
+                return Results.BadRequest("Include content category.");
 
             if (context.Request.ContentLength < 512)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Must be greater than 512 bytes");
-                return;
-            }
+                return Results.BadRequest("Must be greater than 512 bytes");
 
             // Max file size is 10mb
             if (context.Request.ContentLength > 10240000)
-            {
-                context.Response.StatusCode = 413;
-                await context.Response.WriteAsync("Max file size is 10mb");
-                return;
-            }
+                return Results.BadRequest("Max file size is 10mb");
 
             if (context.Request.Form.Files == null ||
                 context.Request.Form.Files.Count == 0)
-            {
-                context.Response.StatusCode = 404;
-                await context.Response.WriteAsync("Include file");
-                return;
-            }
+                return Results.BadRequest("Include file");
 
             var file = context.Request.Form.Files.FirstOrDefault();
 
@@ -72,51 +60,40 @@ namespace Valour.Server.API
 
             // Authorization
 
-            if (type == "planet")
+            if (category == "Planet")
             {
                 member = await db.PlanetMembers.Include(x => x.Planet)
                                                .FirstOrDefaultAsync(x => x.UserId == authToken.UserId &&
-                                                                         x.PlanetId == item_id);
+                                                                         x.PlanetId == itemId);
 
                 if (member is null)
-                {
-                    await NotFound("Could not find member", context);
-                    return;
-                }
+                    return Results.NotFound("Could not find member");
+
 
                 if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db))
-                {
-                    await Unauthorized("Member lacks PlanetPermissions.Manage", context);
-                    return;
-                }
+                    return Results.Unauthorized();
             }
 
             OauthApp app = null;
 
-            if (type == "app")
+            if (category == "App")
             {
-                app = await db.OauthApps.FindAsync(item_id);
+                app = await db.OauthApps.FindAsync(itemId);
 
                 if (app is null)
-                {
-                    await NotFound("Could not find app", context);
-                    return;
-                }
+                    return Results.NotFound("Could not find app.");
 
                 if (app.OwnerId != authToken.UserId)
-                {
-                    await Unauthorized("You do not own the app!", context);
-                    return;
-                }
+                    return Results.Unauthorized();
             }
 
-            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{authToken.UserId}/{type}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
+            var response = await http.PostAsync($"https://vmps.valour.gg/Upload/{authToken.UserId}/{category}?auth={MPSConfig.Current.Api_Key_Encoded}", content);
 
             if (response.IsSuccessStatusCode)
             {
-                switch (type)
+                switch (category)
                 {
-                    case "profile":
+                    case "Profile":
                         {
                             var user = await db.Users.FindAsync(authToken.UserId);
                             var url = await response.Content.ReadAsStringAsync();
@@ -125,7 +102,7 @@ namespace Valour.Server.API
                             PlanetHub.NotifyUserChange(user, db);
                             break;
                         }
-                    case "planet":
+                    case "Planet":
                         {
                             var url = await response.Content.ReadAsStringAsync();
                             member.Planet.IconUrl = url;
@@ -133,7 +110,7 @@ namespace Valour.Server.API
                             PlanetHub.NotifyPlanetChange(member.Planet);
                             break;
                         }
-                    case "app":
+                    case "App":
                         {
                             var url = await response.Content.ReadAsStringAsync();
                             app.ImageUrl = url;
@@ -146,9 +123,7 @@ namespace Valour.Server.API
                 }
             }
 
-
-            context.Response.StatusCode = (int)response.StatusCode;
-            await response.Content.CopyToAsync(context.Response.BodyWriter.AsStream());
+            return ValourResult.Ok(await response.Content.ReadAsStringAsync());
         }
     }
 }

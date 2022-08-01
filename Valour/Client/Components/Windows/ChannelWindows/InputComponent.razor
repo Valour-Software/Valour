@@ -49,6 +49,11 @@
     public MentionSelectComponent MentionSelector { get; set; }
 
     /// <summary>
+    /// True if this input is currently editing a message
+    /// </summary>
+    public bool IsEditing { get; set; }
+
+    /// <summary>
     /// The input currently within the chatbox, this is bound and any changes will
     /// be reflected within the box.
     /// </summary>
@@ -117,6 +122,14 @@
         "image/svg+xml"
     };
 
+    public async Task OnBeginEdit(ClientPlanetMessage message)
+    {
+        PreviewMessage = message;
+        CurrentInput = message.Content;
+        await PreviewMessageComponent.SetMessage(PreviewMessage);
+        StateHasChanged();
+    }
+
     private async Task LoadFiles(InputFileChangeEventArgs e)
     {
         //var file = await e.File.RequestImageFileAsync("jpeg", 256, 256);
@@ -143,10 +156,10 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        string type = "file";
+        string type = "File";
 
         if (ImageContent.Contains(file.ContentType)){
-            type = "image";
+            type = "Image";
         }
 
         ModalParameters modalParams = new();
