@@ -21,7 +21,7 @@ namespace Valour.Shared.Cdn
             "https://tenor.com/",
             "https://i.imgur.com/",
             "https://youtu.be/",
-            "https://vmps.valour.gg",
+            "https://cdn.valour.gg",
             "https://valour.gg",
             "https://pbs.twimg.com",
              
@@ -31,7 +31,7 @@ namespace Valour.Shared.Cdn
             "http://tenor.com/",
             "http://i.imgur.com/",
             "http://youtu.be/",
-            "http://vmps.valour.gg",
+            "http://cdn.valour.gg",
             "http://valour.gg",
             "http://pbs.twimg.com",
         };
