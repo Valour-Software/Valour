@@ -167,7 +167,7 @@
         modalParams.Add("Data", data);
         modalParams.Add("OnConfirm", 
             async () => {
-                var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/{type}", content);
+                var result = await ValourClient.PostAsyncWithResponse<string>($"upload/{type}", content);
 
                 if (result.Success)
                 {

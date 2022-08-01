@@ -150,7 +150,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Retrieves a planet for the given id
     /// </summary>
-    public static async Task<Planet> FindAsync(ulong id, ValourDB db) =>
+    public static async Task<Planet> FindAsync(long id, ValourDB db) =>
         await FindAsync<Planet>(id, db);
 
     /// <summary>

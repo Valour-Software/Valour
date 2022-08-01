@@ -103,7 +103,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"Upload/App?itemId={App.Id}", content);
+        var result = await ValourClient.PostAsyncWithResponse<string>($"upload/app?appId={App.Id}", content);
 
         if (result.Success)
         {
