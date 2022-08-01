@@ -133,7 +133,7 @@ namespace Valour.Server.Cdn.Api
             {
                 var user = await valourDb.Users.FindAsync(authToken.UserId);
                 user.PfpUrl = bucketResult.Message;
-                await db.SaveChangesAsync();
+                await valourDb.SaveChangesAsync();
 
                 PlanetHub.NotifyUserChange(user, valourDb);
 
@@ -177,7 +177,7 @@ namespace Valour.Server.Cdn.Api
             {
                 var planet = await Planet.FindAsync(planetId, valourDb);
                 planet.IconUrl = bucketResult.Message;
-                await db.SaveChangesAsync();
+                await valourDb.SaveChangesAsync();
 
                 PlanetHub.NotifyPlanetChange(planet);
 
@@ -220,7 +220,7 @@ namespace Valour.Server.Cdn.Api
             if (bucketResult.Success)
             {
                 app.ImageUrl = bucketResult.Message;
-                await db.SaveChangesAsync();
+                await valourDb.SaveChangesAsync();
 
                 return ValourResult.Ok(bucketResult.Message);
             }

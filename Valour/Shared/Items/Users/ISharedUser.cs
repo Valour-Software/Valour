@@ -11,6 +11,8 @@ namespace Valour.Shared.Items.Users;
 
 public interface ISharedUser : ISharedItem
 {
+    const int FLAGS_TIME_UPDATE = 0x01;
+
     /// <summary>
     /// The url for the user's profile picture
     /// </summary>
