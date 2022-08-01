@@ -68,6 +68,8 @@ public class ClientPlanetMessage
 
     public long ChannelId => BaseMessage.ChannelId;
 
+    public bool Edited => BaseMessage.Edited;
+
     public long Message_Index => BaseMessage.MessageIndex;
 
     public string Embed_Data => BaseMessage.EmbedData;

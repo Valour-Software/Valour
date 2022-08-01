@@ -103,7 +103,7 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     /// True if the message was edited
     /// </summary>
     [Column("edited")]
-    public string Edited { get; set; }
+    public bool Edited { get; set; }
 
     /// <summary>
     /// Used to identify a message returned from the server 

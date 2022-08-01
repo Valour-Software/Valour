@@ -118,7 +118,7 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-
+        await InputComponent.OnBeginEdit(message.Message);
     }
 
     protected override bool ShouldRender()
