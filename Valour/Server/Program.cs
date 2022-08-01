@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Amazon.Runtime;
+using Amazon.S3;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
@@ -74,6 +76,16 @@ namespace Valour.Server
             BaseAPI.AddRoutes(app);
             EmbedAPI.AddRoutes(app);
             OauthAPI.AddRoutes(app);
+
+            // s3 (r2) setup
+            BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
+            AmazonS3Config config = new AmazonS3Config()
+            {
+                ServiceURL = CdnConfig.Current.R2Endpoint
+            };
+
+            AmazonS3Client client = new(cred, config);
+            BucketManager.Client = client;
 
             ItemApis = new() {
                 new ItemAPI<User>()                     .RegisterRoutes(app),
