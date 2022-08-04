@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Planets;
+using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Items;
 
@@ -10,21 +11,13 @@ namespace Valour.Api.Items
     {
         public long Id { get; set; }
         
-        public string Node { get; set; }
+        public string NodeName { get; set; }
 
-        // The *static* field _ItemType on the server is serialized into itemType,
-        // Which is then deserialized into this *non-static* property, allowing us
-        // to determine item type
-        [JsonPropertyName("itemType")]
-        public string ItemType { get; set; }
+        public Node Node => NodeManager.NameToNode[NodeName];
 
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
 
-#if (NODES)
-        public virtual string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{GetType().Name}";
-#else
         public virtual string BaseRoute => $"/api/{GetType().Name}";
-#endif
 
         /// <summary>
         /// Ran when this item is updated
@@ -77,7 +70,14 @@ namespace Valour.Api.Items
         /// <returns>The result, with the created item (if successful)</returns>
         public static async Task<TaskResult<T>> CreateAsync<T>(T item) where T : Item
         {
-            return await ValourClient.PostAsyncWithResponse<T>(item.BaseRoute, item);
+            Node node;
+
+            if (item is IPlanetItem)
+                node = await NodeManager.GetNodeForPlanetAsync(((IPlanetItem)item).PlanetId);
+            else
+                node = ValourClient.PrimaryNode;
+
+            return await node.PostAsyncWithResponse<T>(item.BaseRoute, item);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace Valour.Api.Items
         /// <returns>The result, with the updated item (if successful)</returns>
         public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : Item
         {
-            return await ValourClient.PutAsyncWithResponse<T>(item.IdRoute, item);
+            return await item.Node.PutAsyncWithResponse<T>(item.IdRoute, item);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace Valour.Api.Items
         /// <returns>The result</returns>
         public static async Task<TaskResult> DeleteAsync<T>(T item) where T : Item
         {
-            return await ValourClient.DeleteAsync(item.IdRoute);
+            return await item.Node.DeleteAsync(item.IdRoute);
         }
     }
 }

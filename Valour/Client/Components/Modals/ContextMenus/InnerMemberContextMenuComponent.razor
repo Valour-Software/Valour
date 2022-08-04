@@ -118,10 +118,10 @@
 	{
         if (value)
             // Add role
-            await ValourClient.PostAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}", null);
+            await Member.Node.PostAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}", null);
         else
             // Remove role
-			await ValourClient.DeleteAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}");
+			await Member.Node.DeleteAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}");
 
 
 		StateHasChanged();
@@ -136,7 +136,7 @@
              "Cancel", 
              async () =>
              {
-                 var result = ValourClient.GetJsonAsync<string>($"/Planet/KickUser?planetId={Member.PlanetId}" +
+					var result = Member.Node.GetJsonAsync<string>($"/Planet/KickUser?planetId={Member.PlanetId}" +
                                                                                $"&targetId={Member.Id}");
                  Console.WriteLine(result);
 

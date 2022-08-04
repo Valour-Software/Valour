@@ -9,43 +9,51 @@ namespace Valour.Api.Nodes
 {
     public static class NodeManager
     {
-        public static Dictionary<long, string> PlanetToNode { get; } = new Dictionary<long, string>();
-        public static Dictionary<long, string> PlanetToNodeLocation { get; } = new Dictionary<long, string>();
+        public static List<Node> Nodes { get; set; } = new List<Node>();
+        public static Dictionary<long, Node> PlanetToNode { get; } = new Dictionary<long, Node>();
+        public static Dictionary<string, Node> NameToNode { get; } = new Dictionary<string, Node>();
 
         const string CoreLocation = "https://core.valour.gg";
 
-
-        public static async Task<string> GetLocation(long planetId)
+        public static void AddNode(Node node)
         {
-            if (PlanetToNodeLocation.ContainsKey(planetId))
-                return PlanetToNodeLocation[planetId];
+            NameToNode[node.Name] = node;
+            Nodes.Add(node);
+        }
 
-            string node = await GetNode(planetId);
-            string location = null;
+        public static async ValueTask<Node> GetNodeForPlanetAsync(long planetId)
+        {
 
-            if (node is not null) {
-                location = $"https://{node}.nodes.valour.gg";
-                PlanetToNodeLocation[planetId] = location;
+#if (!DEBUG)
+            PlanetToNode.TryGetValue(planetId, out Node node);
+
+            // Do we already have the node?
+            if (node is null)
+            {
+                //If not, ask core node where the planet is located
+                var coreResponse = await ValourClient.GetAsync(CoreLocation + $"/locate/{planetId}");
+
+                // We failed to find the planet in a node
+                if (!coreResponse.Success)
+                    return null;
+
+                // If we succeeded, wrap the response in a node object
+                var nodeName = coreResponse.Message;
+                node = new Node();
+
+                await node.InitializeAsync(nodeName, ValourClient.Token);
+
+                // Put the node into the node list, and as a node for the planet
+                Nodes.Add(node);
+                PlanetToNode[planetId] = node;
+                NameToNode[node.Name] = node;
             }
 
-            return location;
-        }
-            
-#if (NODES)
-        public static async Task<string> GetNode(long planetId)
-        {
-            if (PlanetToNode.ContainsKey(planetId))
-                return PlanetToNode[planetId];
-
-            string location = await ValourClient.GetAsync(CoreLocation + $"/locate/{planetId}");
-
-            if (location is not null)
-                PlanetToNode.Add(planetId, location);
-
-            return location;
-        }
+            return node;
 #else
-            public static async Task<string> GetNode(long planetId) => "null";
+            // In debug, we only have one node (local)
+            return Nodes[0];
 #endif
+        }
     }
 }

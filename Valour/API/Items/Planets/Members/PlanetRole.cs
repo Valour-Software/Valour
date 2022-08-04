@@ -1,6 +1,7 @@
 ﻿using System.Drawing;
 using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
@@ -99,7 +100,8 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
                 return cached;
         }
 
-        var item = (await ValourClient.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}")).Data;
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var item = (await node.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();

@@ -55,7 +55,7 @@
             Uses = 0
 		};
 
-		var response = await ValourClient.PostAsyncWithResponse<ulong>($"api/oauth/app", new_app);
+		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<ulong>($"api/oauth/app", new_app);
         
         if (!response.Success){
             nameSpan = response.Message;

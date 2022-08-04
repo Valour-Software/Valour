@@ -27,11 +27,11 @@ public class Program
 
         var httpClient = new HttpClient
         {
-            BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+            BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
         };
 
+        
         ValourClient.SetHttpClient(httpClient);
-        await ValourClient.InitializeSignalR(builder.HostEnvironment.BaseAddress.TrimEnd('/') + "/planethub");
 
         builder.Services.AddScoped(sp =>
             httpClient

@@ -2,6 +2,7 @@
 using Valour.Api.Client;
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
+using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Planets;
@@ -84,7 +85,8 @@ public class Planet : Item, ISharedPlanet
                 return cached;
         }
 
-        var item = (await ValourClient.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}")).Data;
+        var node = await NodeManager.GetNodeForPlanetAsync(id);
+        var item = (await node.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();
@@ -119,7 +121,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadCategoriesAsync()
     {
-        var categories = (await ValourClient.GetJsonAsync<List<PlanetCategoryChannel>>($"{IdRoute}/categories")).Data;
+        var categories = (await Node.GetJsonAsync<List<PlanetCategoryChannel>>($"{IdRoute}/categories")).Data;
 
         if (categories is null)
             return;
@@ -168,7 +170,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = (await ValourClient.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels")).Data;
+        var channels = (await Node.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels")).Data;
 
         if (channels is null)
             return;
@@ -230,7 +232,7 @@ public class Planet : Item, ISharedPlanet
 
         while (page == 0  || page * 100 < totalCount)
         {
-            currentResult = (await ValourClient.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page={page}")).Data;
+            currentResult = (await Node.GetJsonAsync<PlanetMemberInfo>($"{IdRoute}/memberinfo?page={page}")).Data;
             totalCount = currentResult.TotalCount;
             allResults.AddRange(currentResult.Members);
 
@@ -274,7 +276,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadInvitesAsync()
     {
-        var invites = (await ValourClient.GetJsonAsync<List<PlanetInvite>>($"api/Planet/{Id}/invites")).Data;
+        var invites = (await Node.GetJsonAsync<List<PlanetInvite>>($"api/Planet/{Id}/invites")).Data;
 
         if (invites is null)
             return;
@@ -318,7 +320,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadRolesAsync()
     {
-        var roles = (await ValourClient.GetJsonAsync<List<PlanetRole>>($"{IdRoute}/roles")).Data;
+        var roles = (await Node.GetJsonAsync<List<PlanetRole>>($"{IdRoute}/roles")).Data;
 
         if (roles is null)
             return;

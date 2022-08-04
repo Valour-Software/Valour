@@ -76,7 +76,7 @@ public class User : Item, ISharedUser
     }
 
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
-        (await ValourClient.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps")).Data;
+        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps")).Data;
 
     public static async ValueTask<User> FindAsync(long id, bool force_refresh = false)
     {
@@ -87,7 +87,7 @@ public class User : Item, ISharedUser
                 return cached;
         }
 
-        var item = (await ValourClient.GetJsonAsync<User>($"api/{nameof(User)}/{id}")).Data;
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"api/{nameof(User)}/{id}")).Data;
 
         if (item is not null)
         {

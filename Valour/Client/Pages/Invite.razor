@@ -68,6 +68,8 @@
 
     bool loading = true;
 
+    public PlanetInvite CurrentInvite { get; set; }
+
 
     protected async override Task OnInitializedAsync()
     {
@@ -75,11 +77,12 @@
             navManager.NavigateTo("/");
         }
 
-        var invite = await PlanetInvite.FindAsync(code);
+        CurrentInvite = await PlanetInvite.FindAsync(code);
 
         // TODO: tell user if the invite has expired
 
-        if (invite is null) {
+        if (CurrentInvite is null)
+        {
             errorSpan = "Failed to find invite.";
             Clicked = true;
             PlanetSpan = "";
@@ -87,17 +90,17 @@
             return;
         }
 
-        PlanetName = await invite.GetPlanetNameAsync();
+        PlanetName = await CurrentInvite.GetPlanetNameAsync();
 
         // TODO: somehow check if the planet pfp points to nothing, and then use default planet pfp
 
-        PlanetImage = await invite.GetPlanetIconUrl();
+        PlanetImage = await CurrentInvite.GetPlanetIconUrl();
 
         PlanetSpan = $"Do you want to join {PlanetName}?";
 
         Console.WriteLine(PlanetName);
 
-        InviteCode = invite.Code;
+        InviteCode = CurrentInvite.Code;
 
         loading = false;
 
@@ -113,7 +116,7 @@
 
     public async Task Joined()
     {
-        var response = await ValourClient.PostAsyncWithResponse<PlanetMember>($"api/planetinvite/{InviteCode}/join");
+        var response = await CurrentInvite.Node.PostAsyncWithResponse<PlanetMember>($"api/planetinvite/{InviteCode}/join");
 
         if (!response.Success)
         {

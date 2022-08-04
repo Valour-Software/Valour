@@ -17,6 +17,7 @@ using Valour.Shared.Items.Users;
 using System.Reflection;
 using Valour.Shared.Items.Channels;
 using Valour.Api.Items.Channels;
+using Valour.Api.Nodes;
 
 namespace Valour.Api.Client;
 
@@ -54,7 +55,7 @@ public static class ValourClient
     private static List<long> _joinedPlanetIds;
 
     /// <summary>
-    /// The HttpClient to be used for connections
+    /// The HttpClient to be used for general request (no node!)
     /// </summary>
     public static HttpClient Http => _httpClient;
 
@@ -67,16 +68,6 @@ public static class ValourClient
     /// True if the client is logged in
     /// </summary>
     public static bool IsLoggedIn => Self != null;
-
-    /// <summary>
-    /// True if SignalR has hooked events
-    /// </summary>
-    public static bool SignalREventsHooked { get; private set; }
-
-    /// <summary>
-    /// Hub connection for SignalR client
-    /// </summary>
-    public static HubConnection HubConnection { get; private set; }
 
     /// <summary>
     /// Currently opened planets
@@ -96,12 +87,7 @@ public static class ValourClient
     /// <summary>
     /// The primary node this client is connected to
     /// </summary>
-    public static string PrimaryNode { get; set; }
-
-    /// <summary>
-    /// The address of the primary node
-    /// </summary>
-    public static string PrimaryNodeAddress { get; set; }
+    public static Node PrimaryNode { get; set; }
 
     #region Event Fields
 
@@ -147,6 +133,8 @@ public static class ValourClient
 
     public static event Func<Task> OnJoinedPlanetsUpdate;
 
+    public static event Func<Node, Task> OnNodeReconnect;
+
     public static readonly JsonSerializerOptions DefaultJsonOptions = new JsonSerializerOptions()
     {
         PropertyNameCaseInsensitive = true
@@ -156,8 +144,6 @@ public static class ValourClient
 
     static ValourClient()
     {
-        
-
 
         // Add victor dummy member
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -198,13 +184,7 @@ public static class ValourClient
     /// Sends a message
     /// </summary>
     public static async Task<TaskResult> SendMessage(PlanetMessage message)
-    {
-        var response = await PostAsync($"api/planet/{message.PlanetId}/{nameof(PlanetChatChannel)}/{message.ChannelId}/messages", message);
-
-        // Console.WriteLine("Message post: " + response.Message);
-
-        return response;
-    }
+        => await message.PostMessageAsync();
 
     #region SignalR Groups
 
@@ -221,7 +201,7 @@ public static class ValourClient
         OpenChannels.Any(x => x.Id == channel.Id);
 
     /// <summary>
-    /// Opens a SignalR connection to a planet
+    /// Opens a planet and prepares it for use
     /// </summary>
     public static async Task OpenPlanet(Planet planet)
     {
@@ -242,10 +222,13 @@ public static class ValourClient
 
         sw.Start();
 
+        // Get node for planet
+        var node = await NodeManager.GetNodeForPlanetAsync(planet.Id);
+
         List<Task> tasks = new();
 
         // Joins SignalR group
-        var result = await HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
+        var result = await node.HubConnection.InvokeAsync<TaskResult>("JoinPlanet", planet.Id);
         Console.WriteLine(result.Message);
 
         if (!result.Success)
@@ -289,7 +272,7 @@ public static class ValourClient
             return;
 
         // Close connection
-        await HubConnection.SendAsync("LeavePlanet", planet.Id);
+        await planet.Node.HubConnection.SendAsync("LeavePlanet", planet.Id);
 
         // Remove from list
         OpenPlanets.Remove(planet);
@@ -319,7 +302,7 @@ public static class ValourClient
         await OpenPlanet(planet);
 
         // Join channel SignalR group
-        var result = await HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
+        var result = await channel.Node.HubConnection.InvokeAsync<TaskResult>("JoinChannel", channel.Id);
         Console.WriteLine(result.Message);
 
         if (!result.Success)
@@ -344,7 +327,7 @@ public static class ValourClient
             return;
 
         // Leaves channel SignalR group
-        await HubConnection.SendAsync("LeaveChannel", channel.Id);
+        await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
 
         // Remove from open set
         OpenChannels.Remove(channel);
@@ -358,6 +341,19 @@ public static class ValourClient
     #endregion
 
     #region SignalR Events
+
+    public static async Task RefreshNodes()
+    {
+        foreach (var node in NodeManager.Nodes)
+        {
+            await node.ForceRefresh();
+        }
+    }
+
+    public static async Task NotifyNodeReconnect(Node node)
+    {
+        await OnNodeReconnect?.Invoke(node);
+    }
 
     public static async Task UpdateChannelState(ChannelStateUpdate update)
     {
@@ -431,7 +427,7 @@ public static class ValourClient
     /// </summary>
     public static async Task DeleteItem<T>(T item) where T : Item
     {
-        Console.WriteLine($"Deletion for {item.Id}, type {item.GetType()}");
+        // Console.WriteLine($"Deletion for {item.Id}, type {item.GetType()}");
         var local = ValourCache.Get<T>(item.Id);
 
         ValourCache.Remove<T>(item.Id);
@@ -453,14 +449,14 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    private static async Task MessageRecieved(PlanetMessage message)
+    public static async Task MessageRecieved(PlanetMessage message)
     {
         // Console.WriteLine("Received message " + message.Id);
         await ValourCache.Put(message.Id, message);
         await OnMessageRecieved?.Invoke(message);
     }
 
-    private static async Task MessageDeleted(PlanetMessage message)
+    public static async Task MessageDeleted(PlanetMessage message)
     {
         await OnMessageDeleted?.Invoke(message);
     }
@@ -582,14 +578,6 @@ public static class ValourClient
     #region Initialization
 
     /// <summary>
-    /// Connects to SignalR hub
-    /// </summary>
-    public static async Task InitializeSignalR(string hub_uri = "https://valour.gg/planethub")
-    {
-        await ConnectSignalRHub(hub_uri);
-    }
-
-    /// <summary>
     /// Gets the Token for the client
     /// </summary>
     public static async Task<TaskResult<string>> GetToken(string email, string password)
@@ -613,7 +601,7 @@ public static class ValourClient
 
         _token = token;
 
-        return new TaskResult<string>(true, "Success", token);
+        return new TaskResult<string>(true, "Success", _token);
     }
 
     /// <summary>
@@ -629,7 +617,10 @@ public static class ValourClient
             Http.DefaultRequestHeaders.Remove("authorization");
         }
 
+        // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
+
+        // Get user
 
         var response = await GetJsonAsync<User>($"api/user/self");
 
@@ -639,21 +630,13 @@ public static class ValourClient
         // Set reference to self user
         Self = response.Data;
 
-        Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
+        // Now that we have our user, it should have node data we can use to set up our first node
+        // Initialize primary node
+        PrimaryNode = new Node();
+        await PrimaryNode.InitializeAsync(Self.NodeName, _token);
 
-        // Authenticate with SignalR
-        await AuthenticateSignalR();
-
-        // Join user channel
-        var userResult = await ConnectToUserSignalRChannel();
-        if (!userResult.Success) {
-            Console.WriteLine("** Error connecting to user channel for SignalR. **");
-            Console.WriteLine(userResult.Message);
-        }
-        else
-        {
-            Console.WriteLine("Connected to user channel for SignalR.");
-        }
+        // Set node to primary node for main http client
+        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
 
         await LoadChannelStatesAsync();
 
@@ -663,11 +646,6 @@ public static class ValourClient
         await LoadJoinedPlanetsAsync();
 
         return new TaskResult<User>(true, "Success", Self);
-    }
-
-    public static async Task<TaskResult> ConnectToUserSignalRChannel()
-    {
-        return await HubConnection.InvokeAsync<TaskResult>("JoinUser");
     }
 
     /// <summary>
@@ -685,22 +663,27 @@ public static class ValourClient
         if (!tokenResult.Success) 
             return new TaskResult<User>(false, tokenResult.Message);
 
-        var response = await PostAsyncWithResponse<User>($"api/user/withtoken", Token);
+        // Get user
+
+        var response = await GetJsonAsync<User>($"api/user/self");
 
         if (!response.Success)
             return response;
 
-        await InitializeSignalR("https://valour.gg" + "/planethub");
-
         // Set reference to self user
         Self = response.Data;
 
+        // Now that we have our user, it should have node data we can use to set up our first node
+        // Initialize primary node
+        PrimaryNode = new Node();
+        await PrimaryNode.InitializeAsync(Self.NodeName, _token);
+
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
+        // Set node to primary node for main http client
+        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
 
-        Console.WriteLine($"Initialized user {Self.Name} ({Self.Id})");
-
-        await AuthenticateSignalR();
+        Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
 
         if (OnLogin != null)
             await OnLogin?.Invoke();
@@ -715,7 +698,8 @@ public static class ValourClient
     /// </summary>
     public static async Task JoinAllChannelsAsync()
     {
-        var planets = (await GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
+        // Get all joined planets
+        var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
 
         // Add to cache
         foreach (var planet in planets)
@@ -751,7 +735,7 @@ public static class ValourClient
     
     public static async Task LoadChannelStatesAsync()
     {
-        var response = await GetJsonAsync<List<UserChannelState>>($"api/user/self/channelstates");
+        var response = await PrimaryNode.GetJsonAsync<List<UserChannelState>>($"api/user/self/channelstates");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load channel states **");
@@ -773,7 +757,7 @@ public static class ValourClient
     /// </summary>
     public static async Task LoadJoinedPlanetsAsync()
     {
-        var response = await GetJsonAsync<List<Planet>>($"api/user/self/planets");
+        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/user/self/planets");
 
         if (!response.Success)
             return;
@@ -797,7 +781,7 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var response = await GetJsonAsync<List<long>>($"api/user/self/planetIds");
+        var response = await PrimaryNode.GetJsonAsync<List<long>>($"api/user/self/planetIds");
 
         if (!response.Success)
             return;
@@ -816,166 +800,17 @@ public static class ValourClient
 
     #endregion
 
-    #region SignalR
-
-    private static async Task ConnectSignalRHub(string hub_url)
-    {
-        Console.WriteLine("Connecting to Planet Hub");
-        Console.WriteLine(hub_url);
-
-        HubConnection = new HubConnectionBuilder()
-            .WithUrl(hub_url)
-            .WithAutomaticReconnect()
-            .ConfigureLogging(logging =>
-            {
-                //logging.AddConsole();
-                //logging.SetMinimumLevel(LogLevel.Trace);
-            })
-            .Build();
-
-        //hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);
-        HubConnection.Closed += OnClosed;
-        HubConnection.Reconnected += OnReconnect;
-
-        await HubConnection.StartAsync();
-
-        HookSignalREvents();
-    }
-
-    public static async Task AuthenticateSignalR()
-    {
-        Console.WriteLine("Authenticating with SignalR hub...");
-
-        TaskResult response = new TaskResult(false, "Failed to authorize. This is a critical SignalR error.");
-
-        bool authorized = false;
-        int tries = 0;
-        while (!authorized && tries < 5)
-        {
-            response = await HubConnection.InvokeAsync<TaskResult>("Authorize", Token);
-            authorized = response.Success;
-            tries++;
-        }
-
-        if (!authorized)
-        {
-            Console.WriteLine("** FATAL: Failed to authorize with SignalR after 5 attempts. **");
-        }
-
-        Console.WriteLine(response.Message);
-    }
-
-    private static void HookSignalREvents()
-    {
-        // For every single item...
-        foreach (var type in Assembly.GetAssembly(typeof(Item)).GetTypes()
-            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(Item))))
-        {
-            Console.WriteLine(type.Name);
-
-            // Register events
-
-            HubConnection.On($"{type.Name}-Update", new Type[] { type, typeof(int) }, i => UpdateItem((dynamic)i[0], (int)i[1]));
-            HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => DeleteItem((dynamic)i[0]));
-        }
-
-        HubConnection.On<PlanetMessage>("Relay", MessageRecieved);
-        HubConnection.On<PlanetMessage>("DeleteMessage", MessageDeleted);
-        HubConnection.On<ChannelStateUpdate>("Channel-State", UpdateChannelState);
-        HubConnection.On<UserChannelState>("UserChannelState-Update", UpdateUserChannelState);
-    }
-
-    /// <summary>
-    /// Forces SignalR to refresh the underlying connection
-    /// </summary>
-    public static async Task ForceRefresh()
-    {
-        Console.WriteLine("Forcing SignalR refresh.");
-
-        if (HubConnection.State == HubConnectionState.Disconnected)
-        {
-            Console.WriteLine("Disconnected.");
-            await Reconnect();
-        }
-    }
-
-    /// <summary>
-    /// Reconnects the SignalR connection
-    /// </summary>
-    public static async Task Reconnect()
-    {
-        // Reconnect
-        await HubConnection.StartAsync();
-        Console.WriteLine("Reconnecting to Planet Hub");
-
-        await OnReconnect("");
-    }
-
-    /// <summary>
-    /// Attempt to recover the connection if it is lost
-    /// </summary>
-    public static async Task OnClosed(Exception e)
-    {
-        // Ensure disconnect was not on purpose
-        if (e != null)
-        {
-            Console.WriteLine("## A Breaking SignalR Error Has Occured");
-            Console.WriteLine("Exception: " + e.Message);
-            Console.WriteLine("Stacktrace: " + e.StackTrace);
-
-            await Reconnect();
-        }
-        else
-        {
-            Console.WriteLine("SignalR has closed without error.");
-
-            await Reconnect();
-        }
-    }
-
-    /// <summary>
-    /// Run when SignalR reconnects
-    /// </summary>
-    public static async Task OnReconnect(string data)
-    {
-        Console.WriteLine("SignalR has reconnected: ");
-        Console.WriteLine(data);
-
-        await HandleReconnect();
-    }
-
-    /// <summary>
-    /// Reconnects to SignalR systems when reconnected
-    /// </summary>
-    public static async Task HandleReconnect()
-    {
-        foreach (var planet in OpenPlanets)
-        {
-            await HubConnection.SendAsync("JoinPlanet", planet.Id);
-            Console.WriteLine($"Rejoined SignalR group for planet {planet.Id}");
-        }
-
-        foreach (var channel in OpenChannels)
-        {
-            await HubConnection.SendAsync("JoinChannel", channel.Id);
-            Console.WriteLine($"Rejoined SignalR group for channel {channel.Id}");
-        }
-
-        // Authenticate and connect to personal channel
-        await AuthenticateSignalR();
-        await ConnectToUserSignalRChannel();
-    }
-
-    #endregion
-
     #region HTTP Helpers
 
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public static async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allowNull = false)
+    public static async Task<TaskResult<T>> GetJsonAsync<T>(string uri, bool allowNull = false, HttpClient http = null)
     {
-        var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+        if (http is null)
+            http = Http;
+
+        var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
 
         TaskResult<T> result = new()
         {
@@ -1012,9 +847,12 @@ public static class ValourClient
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
     /// </summary>
-    public static async Task<TaskResult<string>> GetAsync(string uri)
+    public static async Task<TaskResult<string>> GetAsync(string uri, HttpClient http = null)
     {
-        var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+        if (http is null)
+            http = Http;
+
+        var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult<string> result = new()
@@ -1048,11 +886,14 @@ public static class ValourClient
     /// <summary>
     /// Puts a string resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult> PutAsync(string uri, string content)
+    public static async Task<TaskResult> PutAsync(string uri, string content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         StringContent stringContent = new StringContent(content);
 
-        var response = await Http.PutAsync(uri, stringContent);
+        var response = await http.PutAsync(uri, stringContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1079,11 +920,14 @@ public static class ValourClient
     /// <summary>
     /// Puts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult> PutAsync(string uri, object content)
+    public static async Task<TaskResult> PutAsync(string uri, object content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await Http.PutAsync(uri, jsonContent);
+        var response = await http.PutAsync(uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1110,11 +954,14 @@ public static class ValourClient
     /// <summary>
     /// Puts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, object content)
+    public static async Task<TaskResult<T>> PutAsyncWithResponse<T>(string uri, T content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await Http.PutAsync(uri, jsonContent);
+        var response = await http.PutAsync(uri, jsonContent);
 
         TaskResult<T> result = new()
         {
@@ -1148,14 +995,17 @@ public static class ValourClient
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult> PostAsync(string uri, string content)
+    public static async Task<TaskResult> PostAsync(string uri, string content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         StringContent stringContent = null;
 
         if (content != null)
             stringContent = new StringContent(content);
 
-        var response = await Http.PostAsync(uri, stringContent);
+        var response = await http.PostAsync(uri, stringContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1182,11 +1032,14 @@ public static class ValourClient
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult> PostAsync(string uri, object content)
+    public static async Task<TaskResult> PostAsync(string uri, object content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await Http.PostAsync(uri, jsonContent);
+        var response = await http.PostAsync(uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1213,11 +1066,14 @@ public static class ValourClient
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content)
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, string content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         StringContent jsonContent = new StringContent((string)content);
 
-        var response = await Http.PostAsync(uri, jsonContent);
+        var response = await http.PostAsync(uri, jsonContent);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1253,9 +1109,12 @@ public static class ValourClient
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri)
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, HttpClient http = null)
     {
-        var response = await Http.PostAsync(uri, null);
+        if (http is null)
+            http = Http;
+
+        var response = await http.PostAsync(uri, null);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1291,9 +1150,12 @@ public static class ValourClient
     /// <summary>
     /// Posts a multipart resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, MultipartFormDataContent content)
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, MultipartFormDataContent content, HttpClient http = null)
     {
-        var response = await Http.PostAsync(uri, content);
+        if (http is null)
+            http = Http;
+
+        var response = await http.PostAsync(uri, content);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1330,11 +1192,14 @@ public static class ValourClient
     /// <summary>
     /// Posts a json resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content)
+    public static async Task<TaskResult<T>> PostAsyncWithResponse<T>(string uri, object content, HttpClient http = null)
     {
+        if (http is null)
+            http = Http;
+
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await Http.PostAsync(uri, jsonContent);
+        var response = await http.PostAsync(uri, jsonContent);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1372,9 +1237,12 @@ public static class ValourClient
     /// <summary>
     /// Deletes a resource in the specified uri and returns the response message
     /// </summary>
-    public static async Task<TaskResult> DeleteAsync(string uri)
+    public static async Task<TaskResult> DeleteAsync(string uri, HttpClient http = null)
     {
-        var response = await Http.DeleteAsync(uri);
+        if (http is null)
+            http = Http;
+
+        var response = await http.DeleteAsync(uri);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()

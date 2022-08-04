@@ -81,6 +81,9 @@ else
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        ColorLogger.App = this;
+        ColorLogger.Setup();
+
         // Attempt to re-login the user from local token
         TaskResult<User> tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage, navManager);
 
@@ -93,6 +96,11 @@ else
 
         await JS.InvokeVoidAsync("SetVapidKey", VapidConfig.PublicKey);
         await JS.InvokeVoidAsync("enableNotifications");
+    }
+
+    public async Task LogToConsole(string msg, string color = "white")
+    {
+        await JS.InvokeVoidAsync($"Log", msg, color);
     }
 
     [JSInvokable("NotifyPushSub")]
