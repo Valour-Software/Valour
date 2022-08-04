@@ -33,14 +33,14 @@ namespace Valour.Api.Nodes
             if (node is null)
             {
                 //If not, ask core node where the planet is located
-                var coreResponse = await ValourClient.GetAsync(CoreLocation + $"/nodes/planet/{planetId}/name");
+                var coreResponse = await ValourClient.Http.GetAsync(CoreLocation + $"/nodes/planet/{planetId}/name");
 
                 // We failed to find the planet in a node
-                if (!coreResponse.Success)
+                if (!coreResponse.IsSuccessStatusCode)
                     return null;
 
                 // If we succeeded, wrap the response in a node object
-                var nodeName = coreResponse.Data.Trim();
+                var nodeName = await coreResponse.Content.ReadAsStringAsync();
                 node = new Node();
 
                 await node.InitializeAsync(nodeName, ValourClient.Token);
