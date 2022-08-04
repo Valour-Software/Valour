@@ -143,7 +143,7 @@ public class Node
 
     public async Task HookSignalREvents()
     {
-        await Logger.Log("[Item Events]: Hooking events.", "red");
+        await Logger.Log("[Item Events]: Hooking events.", "yellow");
 
         // For every single item...
         foreach (var type in Assembly.GetAssembly(typeof(Item)).GetTypes()
@@ -162,7 +162,7 @@ public class Node
         HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
         HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);
 
-        await Logger.Log("[Item Events]: Events hooked.", "red");
+        await Logger.Log("[Item Events]: Events hooked.", "yellow");
     }
 
     /// <summary>
