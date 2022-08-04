@@ -1,4 +1,13 @@
-﻿<div class="member-card">
+﻿@if (TitleOnly)
+{
+    <p class="role-name" style="color: @TitleColor">
+        @TitleName
+    </p>
+
+    return;
+}
+
+<div class="member-card @PositionClass">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@style">
     <div class="user-info">
 
@@ -63,7 +72,20 @@
 
     public User User { get; set; }
 
+    [Parameter]
     public PlanetRole Role { get; set; }
+
+    [Parameter]
+    public bool TitleOnly { get; set; }
+
+    [Parameter]
+    public string TitleColor { get; set; }
+
+    [Parameter]
+    public string TitleName { get; set; }
+
+    [Parameter]
+    public string PositionClass { get; set; }
 
     public string roleColor = "#ffffff";
 
@@ -80,6 +102,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (TitleOnly)
+            return;
+
         await base.OnInitializedAsync();
 
         User = await Member.GetUserAsync();

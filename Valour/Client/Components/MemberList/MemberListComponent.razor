@@ -2,6 +2,11 @@
 
 <CascadingValue Value="this">
     <div class="role-list hide-scrollbar">
+
+        @{
+            MainDisplay.Clear();
+        }
+
         @if (MemberList != null && Planet != null)
         {
             foreach (var role in DisplayedRoles)
@@ -9,13 +14,34 @@
                 var members = DisplayedRoleMembers[role.Id];
 
                 if (members.Count > 0) {
-                    <p class="role-name" style="color: @role.GetColorHex()">
-                        @role.Name
-                    </p>
 
-                    <Virtualize Items="members">
-                        <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
-                    </Virtualize>
+                    MainDisplay.Add(new()
+                    {
+                        TitleName = role.Name,
+                        TitleColor = role.GetColorHex(),
+                        IsTitle = true,
+                        Key = role.Id
+                    });
+
+                    var c = 0;
+                    foreach (var member in members)
+                    {
+                        string positionClass = "";
+                        if (c == 0)
+                            positionClass = "top";
+                        if (c == members.Count - 1)
+                            positionClass += " bottom";
+
+                        MainDisplay.Add(new DisplayItem()
+                        {
+                            Member = member,
+                            IsTitle = false,
+                            Key = member.Id,
+                            PositionClass =  positionClass
+                        });
+
+                        c++;
+                    }
                 }
             }
 
@@ -23,33 +49,87 @@
 
             if (online.Count > 0)
             {
-                <p class="role-name">
-                    Online
-                </p>
+                MainDisplay.Add(new()
+                {
+                    TitleName = "Online",
+                    IsTitle = true,
+                    Key = "online"
+                });
 
-                <Virtualize Items="online">
-                        <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
-                </Virtualize>
+                var c = 0;
+                foreach (var member in online)
+                {
+                    string positionClass = "";
+                    if (c == 0)
+                        positionClass = "top";
+                    if (c == online.Count - 1)
+                        positionClass += " bottom";
+
+
+                    MainDisplay.Add(new DisplayItem()
+                    {
+                        Member = member,
+                        IsTitle = false,
+                        Key = member.Id,
+                        PositionClass = positionClass
+                    });
+
+                    c++;
+                }
             }
 
             var offline = DisplayedRoleMembers[1];
 
             if (offline.Count > 0) {
 
-                <p class="role-name">
-                    Offline
-                </p>
+                MainDisplay.Add(new()
+                {
+                    TitleName = "Offline",
+                    IsTitle = true,
+                    Key = "offline"
+                });
 
-                <Virtualize Items="offline">
-                    <MemberComponent Only="true" Member="@context" @key="@context.Id"></MemberComponent>
-                </Virtualize>
+                var c = 0;
+                foreach (var member in offline)
+                {
+                    string positionClass = "";
+                    if (c == 0)
+                        positionClass = "top";
+                    if (c == offline.Count - 1)
+                        positionClass += " bottom";
 
+                    MainDisplay.Add(new DisplayItem()
+                    {
+                        Member = member,
+                        IsTitle = false,
+                        Key = member.Id,
+                        PositionClass = positionClass
+                    });
+
+                    c++;
+                }
             }
+
+            <Virtualize Items="MainDisplay">
+                <MemberComponent Only="true" Member="@context.Member" PositionClass="@context.PositionClass" TitleOnly="@context.IsTitle" TitleColor="@context.TitleColor" TitleName="@context.TitleName" @key="context.Key"></MemberComponent>
+            </Virtualize>
         }
     </div>
 </CascadingValue>
 
 @code {
+
+    public class DisplayItem
+    {
+        public object Key { get; set; }
+        public bool IsTitle { get; set; }
+        public string TitleColor { get; set; }
+        public string TitleName { get; set; }
+        public string PositionClass { get; set; }
+        public PlanetMember Member { get; set; }
+    }
+
+    public List<DisplayItem> MainDisplay { get; set; } = new();
 
     public List<PlanetMember> MemberList { get; set; }
 
