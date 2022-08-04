@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using Valour.Api.Client;
@@ -33,7 +34,15 @@ namespace Valour.Api.Nodes
             if (node is null)
             {
                 //If not, ask core node where the planet is located
-                var coreResponse = await ValourClient.Http.GetAsync(CoreLocation + $"/nodes/planet/{planetId}/name");
+                HttpRequestMessage request = new()
+                {
+                    RequestUri = new Uri(CoreLocation + $"/nodes/planet/{planetId}/name"),
+                    Method = HttpMethod.Get
+                };
+
+                WebAssemblyHttpRequestMessageExtensions.SetBrowserRequestMode(httpRequestMessage, BrowserRequestMode.NoCors);
+
+                var coreResponse = await ValourClient.Http.GetAsync();
 
                 // We failed to find the planet in a node
                 if (!coreResponse.IsSuccessStatusCode)
