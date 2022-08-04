@@ -353,5 +353,7 @@ namespace Valour.Server.Database
                 await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Delete", user);
             }
         }
+
+        public string Ping() => "Pong";
     }
 }
