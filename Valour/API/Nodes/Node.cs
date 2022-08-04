@@ -1,20 +1,12 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using System.Reflection;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using Valour.Api.Client;
 using Valour.Api.Items;
 using Valour.Api.Items.Channels;
 using Valour.Api.Items.Messages;
 using Valour.Shared;
 using Valour.Shared.Items.Channels;
-using static System.Net.WebRequestMethods;
 
 namespace Valour.Api.Nodes;
 
@@ -92,20 +84,14 @@ public class Node
         await Logger.Log("Connecting to Planethub at " + address);
 
         HubConnection = new HubConnectionBuilder()
-            
-            .WithUrl(address, options =>
-            {
-                options.Headers.Add("X-Server-Select", Name);
-            })
-            .WithAutomaticReconnect()
-            .ConfigureLogging(logging =>
-            {
-                //logging.AddConsole();
-                //logging.SetMinimumLevel(LogLevel.Trace);
-            })
-            .Build();
+        .WithUrl(address, options =>
+        {
+            options.Headers.Add("X-Server-Select", Name);
+        })
+        .Build();
 
-        //hubConnection.KeepAliveInterval = TimeSpan.FromSeconds(30);
+        HubConnection.ServerTimeout = TimeSpan.FromSeconds(20);
+
         HubConnection.Closed += OnSignalRClosed;
         HubConnection.Reconnected += OnSignalRReconnect;
 
@@ -171,6 +157,9 @@ public class Node
     {
         await Log("Refresh has been requested.");
 
+        // Send test ping
+        await Log("SignalR state is " + HubConnection.State);
+
         if (HubConnection.State == HubConnectionState.Disconnected)
         {
             await Log("Disconnect has been detected. Reconnecting...");
@@ -184,10 +173,33 @@ public class Node
     public async Task Reconnect()
     {
         // Reconnect
-        await Log("Reconnecting to Planet Hub...");
-        await HubConnection.StartAsync();
+        int tries = 0;
 
-        await OnSignalRReconnect("");
+        // Test connection if it thinks it's safe
+        if (HubConnection.State == HubConnectionState.Connected)
+        {
+            var ping = await HubConnection.InvokeAsync<string>("ping");
+        }
+
+        while (HubConnection.State == HubConnectionState.Disconnected)
+        {
+            Thread.Sleep(3000);
+
+            await Log("Reconnecting to Planet Hub...");
+
+            try
+            {
+                await HubConnection.StartAsync();
+            }
+            catch (System.Exception)
+            {
+                await Log("Failed to reconnect... waiting three seconds to continue.", "red");
+            }
+
+            tries++;
+        }
+
+        await OnSignalRReconnect("Success");
     }
 
     /// <summary>
@@ -217,7 +229,7 @@ public class Node
     /// </summary>
     public  async Task OnSignalRReconnect(string data)
     {
-        await Log("SignalR has reconnected. " + data);
+        await Log("SignalR has reconnected. " + data, "lime");
         await HandleReconnect();
 
         await ValourClient.NotifyNodeReconnect(this);
@@ -228,6 +240,10 @@ public class Node
     /// </summary>
     public async Task HandleReconnect()
     {
+        // Authenticate and connect to personal channel
+        await AuthenticateSignalR();
+        await ConnectToUserSignalRChannel();
+
         foreach (var planet in ValourClient.OpenPlanets.Where(x => x.NodeName == Name))
         {
             await HubConnection.SendAsync("JoinPlanet", planet.Id);
@@ -239,10 +255,6 @@ public class Node
             await HubConnection.SendAsync("JoinChannel", channel.Id);
             await Log($"Rejoined SignalR group for channel {channel.Id}", "lime");
         }
-
-        // Authenticate and connect to personal channel
-        await AuthenticateSignalR();
-        await ConnectToUserSignalRChannel();
     }
 
     public async Task<TaskResult> ConnectToUserSignalRChannel()
