@@ -27,9 +27,8 @@ public class Program
 
         var httpClient = new HttpClient
         {
-            BaseAddress = new Uri(builder.HostEnvironment.BaseAddress),
+            BaseAddress = new Uri(ValourClient.BaseAddress),
         };
-
         
         ValourClient.SetHttpClient(httpClient);
 
