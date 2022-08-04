@@ -370,19 +370,19 @@
 
         /*
         message.SetMentions(new List<Mention>()
-        {
-            new Mention()
             {
+            new Mention()
+                {
                 TargetId = 1050746125287424,
                 Position = 5,
                 Type = MentionType.Member
-            }
+        }
         });
         */
 
         MessageHolder.AddQueuedMessage(message);
 
-        var result = await ValourClient.SendMessage(innerMessage);
+        var result = await innerMessage.PostMessageAsync();
 
         if (!result.Success)
         {
@@ -399,6 +399,10 @@
 
             MessageHolder.RemoveErrorMessage();
             await MessageHolder.AddMessage(new ClientPlanetMessage(errorMsg));
+        }
+        else
+        {
+            MessageHolder.RemoveErrorMessage();
         }
     }
 }

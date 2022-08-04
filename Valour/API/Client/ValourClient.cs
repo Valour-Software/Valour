@@ -1045,7 +1045,17 @@ public static class ValourClient
 
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await http.PostAsync(BaseAddress + uri, jsonContent);
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.PostAsync(BaseAddress + uri, jsonContent);
+        }
+        catch (System.Exception)
+        {
+            return new TaskResult(false, "Unable to reach server.");
+        }
+
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()

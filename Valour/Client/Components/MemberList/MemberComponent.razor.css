@@ -4,12 +4,12 @@
     margin-right: auto;
 }
 
-.member-card:first-child {
+.member-card.top {
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
 }
 
-.member-card:last-child {
+.member-card.bottom {
     border-bottom-left-radius: 6px;
     border-bottom-right-radius: 6px;
 }
@@ -146,4 +146,18 @@
     margin-bottom: 4px;
     vertical-align: unset;
     display: inline-block;
+}
+
+.role-name {
+    margin: 0px;
+    margin-top: 12px;
+    margin-bottom: 5px;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    text-decoration-line: underline;
+    color: #7A7A7A;
+    text-align: center;
+    width: 100%;
 }
