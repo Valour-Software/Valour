@@ -2,13 +2,13 @@
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(
-                      builder => builder.WithOrigins("https://app.valour.gg")
-                                        .AllowAnyMethod()
-                                        .AllowAnyHeader());
-});
+//builder.Services.AddCors(options =>
+//{
+//    options.AddDefaultPolicy(
+//                      builder => builder.WithOrigins("https://app.valour.gg")
+//                                        .AllowAnyMethod()
+//                                        .AllowAnyHeader());
+//});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -24,7 +24,7 @@ builder.WebHost.ConfigureKestrel((context, options) =>
 
 var app = builder.Build();
 
-app.UseCors();
+//app.UseCors();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
