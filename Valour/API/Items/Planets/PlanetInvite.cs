@@ -58,7 +58,7 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
                 return cached; 
         }
 
-        var invResult = (await ValourClient.GetJsonAsync<PlanetInvite>($"api/{nameof(PlanetInvite)}/{code}")).Data;
+        var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>($"api/{nameof(PlanetInvite)}/{code}")).Data;
 
         if (invResult is not null)
             await invResult.AddToCache();
@@ -72,23 +72,18 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";
-
-#if (NODES)
-    public override string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{nameof(PlanetInvite)}";
-#else
-    public override string BaseRoute => $"/api/{nameof(PlanetInvite)}";
-#endif
+    public override string BaseRoute => $"api/{nameof(PlanetInvite)}";
 
     /// <summary>
     /// Returns the name of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetNameAsync() =>
-        (await ValourClient.GetJsonAsync<string>($"{IdRoute}/planetname")).Data ?? "<Not found>";
+        (await Node.GetJsonAsync<string>($"{IdRoute}/planetname")).Data ?? "<Not found>";
     
     /// <summary>
     /// Returns the icon of the invite's planet
     /// </summary>
     public async Task<string> GetPlanetIconUrl() =>
-        (await ValourClient.GetJsonAsync<string>($"{IdRoute}/planeticon")).Data ?? "";
+        (await Node.GetJsonAsync<string>($"{IdRoute}/planeticon")).Data ?? "";
 }
 

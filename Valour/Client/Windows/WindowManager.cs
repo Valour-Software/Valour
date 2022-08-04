@@ -2,8 +2,9 @@
 using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets;
 using Valour.Client.Components.Windows;
-using Valour.Client.Utility;
 using Valour.Api.Items;
+using Valour.Shared;
+using Valour.Api.Nodes;
 
 namespace Valour.Client.Windows;
 
@@ -56,7 +57,7 @@ public class WindowManager
     public WindowManager()
     {
         Instance = this;
-        ValourClient.HubConnection.Reconnected += OnSignalRReconnect;
+        ValourClient.OnNodeReconnect += OnNodeReconnect;
         ItemObserver<Planet>.OnAnyDeleted += OnPlanetDelete;
     }
 
@@ -122,12 +123,9 @@ public class WindowManager
         await OnPlanetFocused?.Invoke(planet);
     }
 
-    public async Task OnSignalRReconnect(string data)
+    public async Task OnNodeReconnect(Node node)
     {
-        foreach (var window in Windows.OfType<ChatChannelWindow>())
-        {
-            await window.Component.SetupNewChannelAsync();
-        }
+        ForceChatRefresh();
     }
 
     /// <summary>

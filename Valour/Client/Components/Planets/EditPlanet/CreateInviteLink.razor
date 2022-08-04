@@ -55,7 +55,7 @@
             invite.TimeExpires = null;
         }
 
-        var response = await ValourClient.PostAsyncWithResponse<PlanetInvite>($"api/planet/{Planet.Id}/planetinvite", invite);
+        var response = await Planet.Node.PostAsyncWithResponse<PlanetInvite>($"api/planet/{Planet.Id}/planetinvite", invite);
 
         if (!response.Success)
         {
