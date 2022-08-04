@@ -34,15 +34,7 @@ namespace Valour.Api.Nodes
             if (node is null)
             {
                 //If not, ask core node where the planet is located
-                HttpRequestMessage request = new()
-                {
-                    RequestUri = new Uri(CoreLocation + $"/nodes/planet/{planetId}/name"),
-                    Method = HttpMethod.Get
-                };
-
-                WebAssemblyHttpRequestMessageExtensions.SetBrowserRequestMode(httpRequestMessage, BrowserRequestMode.NoCors);
-
-                var coreResponse = await ValourClient.Http.GetAsync();
+                var coreResponse = await ValourClient.Http.GetAsync(CoreLocation + $"/nodes/planet/{planetId}/name");
 
                 // We failed to find the planet in a node
                 if (!coreResponse.IsSuccessStatusCode)
