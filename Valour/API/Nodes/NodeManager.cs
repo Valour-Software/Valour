@@ -40,7 +40,7 @@ namespace Valour.Api.Nodes
                     return null;
 
                 // If we succeeded, wrap the response in a node object
-                var nodeName = coreResponse.Message;
+                var nodeName = coreResponse.Data;
                 node = new Node();
 
                 await node.InitializeAsync(nodeName, ValourClient.Token);
