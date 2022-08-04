@@ -45,11 +45,6 @@ public class Node
     /// </summary>
     public string Token { get; set; }
 
-#if (!DEBUG)
-    public string BaseAddress => "https://app.valour.gg";
-#else
-    public string BaseAddress => "https://localhost:44331";
-#endif
 
     public async Task InitializeAsync(string name, string token)
     {
@@ -60,7 +55,7 @@ public class Node
 
         HttpClient = new HttpClient();
 
-        HttpClient.BaseAddress = new Uri(BaseAddress);
+        HttpClient.BaseAddress = new Uri(ValourClient.BaseAddress);
 
         // Set header for node
         HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
@@ -92,12 +87,16 @@ public class Node
 
     private async Task ConnectSignalRHub()
     {
-        string address = BaseAddress + "/planethub";
+        string address = ValourClient.BaseAddress + "planethub";
 
         await Logger.Log("Connecting to Planethub at " + address);
 
         HubConnection = new HubConnectionBuilder()
-            .WithUrl(address)
+            
+            .WithUrl(address, options =>
+            {
+                options.Headers.Add("X-Server-Select", Name);
+            })
             .WithAutomaticReconnect()
             .ConfigureLogging(logging =>
             {

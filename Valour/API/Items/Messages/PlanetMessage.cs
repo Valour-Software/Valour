@@ -34,7 +34,7 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMessage)}";
+            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMessage)}";
 
     #endregion
 
@@ -174,7 +174,8 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
 
     public async Task<TaskResult> PostMessageAsync()
     {
-        return await Node.PostAsync($"api/planet/{PlanetId}/{nameof(PlanetChatChannel)}/{ChannelId}/messages", this);
+        var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
+        return await node.PostAsync($"api/planet/{PlanetId}/{nameof(PlanetChatChannel)}/{ChannelId}/messages", this);
     }
 
     public void SetMentions(IEnumerable<Mention> mentions)

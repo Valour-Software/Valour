@@ -29,7 +29,7 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
 
     [JsonIgnore]
     public override string BaseRoute =>
-        $"/api/planet/{{planetId}}/{nameof(PlanetMessage)}";
+        $"api/planet/{{planetId}}/{nameof(PlanetMessage)}";
 
     #endregion
 

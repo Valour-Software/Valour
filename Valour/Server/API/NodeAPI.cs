@@ -44,7 +44,7 @@ namespace Valour.Server.API
         /// </summary>
         public static void AddRoutes(WebApplication app)
         {
-            app.MapGet("/api/node/handshake", () => new NodeHandshakeResponse()
+            app.MapGet("api/node/handshake", () => new NodeHandshakeResponse()
             {
                 Version = Node.Version,
                 PlanetIds = Node.Planets.Keys

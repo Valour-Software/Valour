@@ -33,7 +33,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
 
     [JsonIgnore]
     public override string BaseRoute =>
-        $"/api/planet/{{planetId}}/{nameof(PlanetRole)}";
+        $"api/planet/{{planetId}}/{nameof(PlanetRole)}";
 
     #endregion
 

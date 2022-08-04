@@ -31,7 +31,7 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
 
     [JsonIgnore]
     public override string BaseRoute =>
-        $"/api/planet/{{planetId}}/{nameof(PermissionsNode)}";
+        $"api/planet/{{planetId}}/{nameof(PermissionsNode)}";
 
     #endregion
 

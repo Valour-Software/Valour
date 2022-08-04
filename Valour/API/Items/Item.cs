@@ -13,11 +13,12 @@ namespace Valour.Api.Items
         
         public string NodeName { get; set; }
 
+        [JsonIgnore]
         public Node Node => NodeManager.NameToNode[NodeName];
 
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
 
-        public virtual string BaseRoute => $"/api/{GetType().Name}";
+        public virtual string BaseRoute => $"api/{GetType().Name}";
 
         /// <summary>
         /// Ran when this item is updated

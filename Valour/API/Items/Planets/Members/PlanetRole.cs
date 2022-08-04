@@ -23,7 +23,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetRole)}";
+            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetRole)}";
 
     #endregion
 

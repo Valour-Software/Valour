@@ -49,7 +49,7 @@ public abstract class Item : ISharedItem
 
     [JsonIgnore]
     public virtual string BaseRoute =>
-        $"/api/{GetType().Name}";
+        $"api/{GetType().Name}";
 
     /// <summary>
     /// Returns the uri to a specific resource

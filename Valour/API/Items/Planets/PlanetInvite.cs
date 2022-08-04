@@ -72,7 +72,7 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";
-    public override string BaseRoute => $"/api/{nameof(PlanetInvite)}";
+    public override string BaseRoute => $"api/{nameof(PlanetInvite)}";
 
     /// <summary>
     /// Returns the name of the invite's planet

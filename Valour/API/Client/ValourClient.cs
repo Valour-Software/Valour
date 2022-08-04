@@ -126,6 +126,12 @@ public static class ValourClient
     /// </summary>
     public static event Func<PlanetMessage, Task> OnMessageDeleted;
 
+#if (!DEBUG)
+    public static string BaseAddress => "https://app.valour.gg/";
+#else
+    public static string BaseAddress => "https://localhost:44331/";
+#endif
+
     /// <summary>
     /// Run when the user logs in
     /// </summary>
@@ -140,7 +146,7 @@ public static class ValourClient
         PropertyNameCaseInsensitive = true
     };
 
-    #endregion
+#endregion
 
     static ValourClient()
     {
@@ -186,7 +192,7 @@ public static class ValourClient
     public static async Task<TaskResult> SendMessage(PlanetMessage message)
         => await message.PostMessageAsync();
 
-    #region SignalR Groups
+#region SignalR Groups
 
     /// <summary>
     /// Returns if the given planet is open
@@ -338,9 +344,9 @@ public static class ValourClient
             await OnChannelClose.Invoke(channel);
     }
 
-    #endregion
+#endregion
 
-    #region SignalR Events
+#region SignalR Events
 
     public static async Task RefreshNodes()
     {
@@ -461,9 +467,9 @@ public static class ValourClient
         await OnMessageDeleted?.Invoke(message);
     }
 
-    #endregion
+#endregion
 
-    #region Planet Event Handling
+#region Planet Event Handling
 
     private static void HookPlanetEvents()
     {
@@ -573,9 +579,9 @@ public static class ValourClient
             await planet.NotifyDeleteRole(role);
     }
 
-    #endregion
+#endregion
 
-    #region Initialization
+#region Initialization
 
     /// <summary>
     /// Gets the Token for the client
@@ -655,7 +661,7 @@ public static class ValourClient
     {
         SetHttpClient(http is not null ? http : new HttpClient()
         {
-            BaseAddress = new Uri("https://valour.gg/")
+            BaseAddress = new Uri(BaseAddress)
         });
 
         var tokenResult = await GetToken(email, password);
@@ -798,9 +804,9 @@ public static class ValourClient
         await OnJoinedPlanetsUpdate?.Invoke();
     }
 
-    #endregion
+#endregion
 
-    #region HTTP Helpers
+#region HTTP Helpers
 
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it
@@ -810,7 +816,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+        var response = await http.GetAsync(BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
 
         TaskResult<T> result = new()
         {
@@ -852,7 +858,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        var response = await http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead);
+        var response = await http.GetAsync(BaseAddress + uri, HttpCompletionOption.ResponseHeadersRead);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult<string> result = new()
@@ -893,7 +899,7 @@ public static class ValourClient
 
         StringContent stringContent = new StringContent(content);
 
-        var response = await http.PutAsync(uri, stringContent);
+        var response = await http.PutAsync(BaseAddress + uri, stringContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -927,7 +933,7 @@ public static class ValourClient
 
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await http.PutAsync(uri, jsonContent);
+        var response = await http.PutAsync(BaseAddress + uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -961,7 +967,7 @@ public static class ValourClient
 
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await http.PutAsync(uri, jsonContent);
+        var response = await http.PutAsync(BaseAddress + uri, jsonContent);
 
         TaskResult<T> result = new()
         {
@@ -1005,7 +1011,7 @@ public static class ValourClient
         if (content != null)
             stringContent = new StringContent(content);
 
-        var response = await http.PostAsync(uri, stringContent);
+        var response = await http.PostAsync(BaseAddress + uri, stringContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1039,7 +1045,7 @@ public static class ValourClient
 
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await http.PostAsync(uri, jsonContent);
+        var response = await http.PostAsync(BaseAddress + uri, jsonContent);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1073,7 +1079,7 @@ public static class ValourClient
 
         StringContent jsonContent = new StringContent((string)content);
 
-        var response = await http.PostAsync(uri, jsonContent);
+        var response = await http.PostAsync(BaseAddress + uri, jsonContent);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1114,7 +1120,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        var response = await http.PostAsync(uri, null);
+        var response = await http.PostAsync(BaseAddress + uri, null);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1155,7 +1161,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        var response = await http.PostAsync(uri, content);
+        var response = await http.PostAsync(BaseAddress + uri, content);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1199,7 +1205,7 @@ public static class ValourClient
 
         JsonContent jsonContent = JsonContent.Create(content);
 
-        var response = await http.PostAsync(uri, jsonContent);
+        var response = await http.PostAsync(BaseAddress + uri, jsonContent);
 
         TaskResult<T> result = new TaskResult<T>()
         {
@@ -1242,7 +1248,7 @@ public static class ValourClient
         if (http is null)
             http = Http;
 
-        var response = await http.DeleteAsync(uri);
+        var response = await http.DeleteAsync(BaseAddress + uri);
         var msg = await response.Content.ReadAsStringAsync();
 
         TaskResult result = new()
@@ -1268,5 +1274,5 @@ public static class ValourClient
         return result;
     }
 
-    #endregion
+#endregion
 }
