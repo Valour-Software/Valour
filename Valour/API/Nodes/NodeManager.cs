@@ -18,7 +18,9 @@ namespace Valour.Api.Nodes
         public static void AddNode(Node node)
         {
             NameToNode[node.Name] = node;
-            Nodes.Add(node);
+
+            if (!Nodes.Any(x => x.Name == node.Name))
+                Nodes.Add(node);
         }
 
         public static async ValueTask<Node> GetNodeForPlanetAsync(long planetId)
@@ -31,7 +33,7 @@ namespace Valour.Api.Nodes
             if (node is null)
             {
                 //If not, ask core node where the planet is located
-                var coreResponse = await ValourClient.GetAsync(CoreLocation + $"/locate/{planetId}");
+                var coreResponse = await ValourClient.GetAsync(CoreLocation + $"/nodes/planet/{planetId}/name");
 
                 // We failed to find the planet in a node
                 if (!coreResponse.Success)
