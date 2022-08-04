@@ -27,7 +27,7 @@ public abstract class Item : ISharedItem
     /// </summary>
     [NotMapped]
     [JsonInclude]
-    public string Node => NodeAPI.Node.Name;
+    public string NodeName => NodeAPI.Node.Name;
 
     /// <summary>
     /// Returns the item with the given id
@@ -49,7 +49,7 @@ public abstract class Item : ISharedItem
 
     [JsonIgnore]
     public virtual string BaseRoute =>
-        $"/api/{GetType().Name}";
+        $"api/{GetType().Name}";
 
     /// <summary>
     /// Returns the uri to a specific resource

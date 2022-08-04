@@ -45,7 +45,7 @@
             StateHasChanged();
         }
         
-        responseResult = await ValourClient.PostAsync("api/user/resendemail", RegisterRequest);
+        responseResult = await ValourClient.PrimaryNode.PostAsync("api/user/resendemail", RegisterRequest);
 
         time = DateTime.Now;
 

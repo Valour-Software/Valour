@@ -96,7 +96,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"upload/planet?planetId={Planet.Id}", content);
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/planet/{Planet.Id}", content);
 
         if (result.Success)
         {

@@ -74,11 +74,8 @@ public class PermissionsNode : Item, ISharedPermissionsNode
 
     public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
 
-#if (Nodes)
-    public override string BaseRoute => $"https://{Node}.nodes.valour.gg/api/{nameof(PermissionsNode)}";
-#else
-    public override string BaseRoute => $"/api/{nameof(PermissionsNode)}";
-#endif
+    public override string BaseRoute => $"api/{nameof(PermissionsNode)}";
+
 
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
@@ -92,12 +89,12 @@ public class PermissionsNode : Item, ISharedPermissionsNode
                 return cached;
         }
 
-        var node = (await ValourClient.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}")).Data;
+        var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}")).Data;
 
-        if (node is not null)
-            await node.AddToCache();
+        if (permNode is not null)
+            await permNode.AddToCache();
 
-        return node;
+        return permNode;
     }
 
     public override async Task AddToCache()

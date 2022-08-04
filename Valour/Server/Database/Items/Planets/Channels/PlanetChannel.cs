@@ -26,7 +26,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
 
     [JsonIgnore]
     public override string BaseRoute =>
-        $"/api/planet/{{planetId}}/{nameof(PlanetChannel)}";
+        $"api/planet/{{planetId}}/{nameof(PlanetChannel)}";
 
     #endregion
 

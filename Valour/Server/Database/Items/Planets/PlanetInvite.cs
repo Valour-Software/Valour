@@ -25,7 +25,7 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
 
     [JsonIgnore]
     public override string BaseRoute =>
-        $"/api/planet/{{planetId}}/{nameof(PlanetInvite)}";
+        $"api/planet/{{planetId}}/{nameof(PlanetInvite)}";
 
     #endregion
 

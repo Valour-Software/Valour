@@ -13,7 +13,7 @@ public class OauthAPI : BaseAPI
     /// </summary>
     public static void AddRoutes(WebApplication app)
     {
-        app.MapPost("/api/oauth/app", CreateApp);
+        app.MapPost("api/oauth/app", CreateApp);
         app.MapGet("api/oauth/app/{app_id}", GetApp);
         app.MapDelete("api/oauth/app/{app_id}", DeleteApp);
 

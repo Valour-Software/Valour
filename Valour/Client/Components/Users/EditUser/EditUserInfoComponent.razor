@@ -144,7 +144,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"upload/profile", content);
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/profile", content);
 
         if (result.Success)
         {

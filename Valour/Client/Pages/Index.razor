@@ -65,16 +65,8 @@
 	protected override async Task OnInitializedAsync()
 	{
 		await base.OnInitializedAsync();
-
-		Logger.IndexPage = this;
-
 		windowManager.OnPlanetFocused += OnPlanetChange;
 		ValourClient.OnLogin += OnLoginAsync;
-	}
-
-	public async Task LogToConsole(string msg, string color = "white")
-	{
-		await JS.InvokeVoidAsync($"Log", msg, color);
 	}
 
 	public async Task OnLoginAsync()
@@ -117,7 +109,7 @@
 	public static async Task OnRefocus()
 	{
 		Console.WriteLine("Detected refocus event.");
-		await ValourClient.ForceRefresh();
+		await ValourClient.RefreshNodes();
 	}
 
 	public void ForceRefresh()

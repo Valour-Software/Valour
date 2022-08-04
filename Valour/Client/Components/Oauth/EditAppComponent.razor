@@ -52,7 +52,7 @@
             "Confirm",
             "Cancel",
             async () => {
-                var res = await ValourClient.DeleteAsync($"api/oauth/app/{App.Id}");
+                var res = await Api.Items.Item.DeleteAsync(App);
 
                 if (res.Success)
                     Icon_Output = "Deleted.";
@@ -103,7 +103,7 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        var result = await ValourClient.PostAsyncWithResponse<string>($"upload/app?appId={App.Id}", content);
+        var result = await App.Node.PostAsyncWithResponse<string>($"upload/app/{App.Id}", content);
 
         if (result.Success)
         {

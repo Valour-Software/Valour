@@ -22,7 +22,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
     [JsonIgnore]
     public override string BaseRoute =>
-        $"/api/planet/{{planetId}}/{nameof(PlanetCategoryChannel)}";
+        $"api/planet/{{planetId}}/{nameof(PlanetCategoryChannel)}";
 
     #endregion
 

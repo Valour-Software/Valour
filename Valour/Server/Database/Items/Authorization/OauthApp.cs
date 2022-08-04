@@ -11,15 +11,11 @@ using Valour.Shared.Items.Authorization;
 namespace Valour.Server.Database.Items.Authorization;
 
 [Table("oauth_apps")]
-public class OauthApp : ISharedOauthApp
+public class OauthApp : Item, ISharedOauthApp
 {
     [ForeignKey("OwnerId")]
     [JsonIgnore]
     public virtual User Owner { get; set; }
-
-    [Key]
-    [Column("id")]
-    public long Id {get; set; }
 
     /// <summary>
     /// The secret key for the app

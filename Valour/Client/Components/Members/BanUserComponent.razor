@@ -57,7 +57,7 @@
 
         var planet = await Member.GetPlanetAsync();
 
-        var response = await ValourClient.PostAsync($"api/planet/{planet.Id}/members/{Member.Id}/ban" +
+        var response = await Member.Node.PostAsync($"api/planet/{planet.Id}/members/{Member.Id}/ban" +
                                                                    $"?reason={encodedreason}" +
                                                                    $"&time={(uint)timeinminutes}", null);
         

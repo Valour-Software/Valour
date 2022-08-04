@@ -14,6 +14,7 @@ using Valour.Shared.Items;
 using Valour.Shared.Items.Messages.Mentions;
 using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Nodes;
 
 namespace Valour.Api.Items.Messages;
 
@@ -33,7 +34,7 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMessage)}";
+            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMessage)}";
 
     #endregion
 
@@ -159,7 +160,9 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
                 return cached;
         }
 
-        var item = (await ValourClient.GetJsonAsync<PlanetMessage>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{channelId}/message/{id}")).Data;
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var response = await node.GetJsonAsync<PlanetMessage>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{channelId}/message/{id}");
+        var item = response.Data;
 
         if (item is not null)
         {
@@ -167,6 +170,12 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
         }
 
         return item;
+    }
+
+    public async Task<TaskResult> PostMessageAsync()
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
+        return await node.PostAsync($"api/planet/{PlanetId}/{nameof(PlanetChatChannel)}/{ChannelId}/messages", this);
     }
 
     public void SetMentions(IEnumerable<Mention> mentions)
@@ -241,7 +250,7 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     /// Attempts to delete this message
     /// </summary>
     public Task<TaskResult> DeleteAsync() =>
-        ValourClient.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
+        Node.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in

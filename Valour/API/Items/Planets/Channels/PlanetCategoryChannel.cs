@@ -6,6 +6,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
+using Valour.Api.Nodes;
 
 namespace Valour.Api.Items.Planets.Channels;
 
@@ -20,7 +21,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     #region IPlanetItem implementation
 
     public override string BaseRoute =>
-            $"/api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetCategoryChannel)}";
+            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetCategoryChannel)}";
 
     #endregion
 
@@ -45,7 +46,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
                 return cached;
         }
 
-        var item = (await ValourClient.GetJsonAsync<PlanetCategoryChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetCategoryChannel)}/{id}")).Data;
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var item = (await node.GetJsonAsync<PlanetCategoryChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetCategoryChannel)}/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();
@@ -63,7 +65,7 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     /// <summary>
     /// Returns the category permissions node for the given role id
     /// </summary>
-    public  async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
+    public async Task<PermissionsNode> GetCategoryPermissionsNodeAsync(long roleId, bool force_refresh = false) =>
         await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetCategoryChannel, force_refresh);
 
     /// <summary>
@@ -73,10 +75,13 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetChatChannel, force_refresh);
 
     public async Task<TaskResult> SetChildOrderAsync(List<long> childIds) =>
-        await ValourClient.PostAsync($"{IdRoute}/children/order", childIds);
+        await Node.PostAsync($"{IdRoute}/children/order", childIds);
 
-    public static async Task<TaskResult<PlanetCategoryChannel>> CreateWithDetails(CreatePlanetCategoryChannelRequest request) =>
-        await ValourClient.PostAsyncWithResponse<PlanetCategoryChannel>($"{request.Category.BaseRoute}/detailed", request);
+    public static async Task<TaskResult<PlanetCategoryChannel>> CreateWithDetails(CreatePlanetCategoryChannelRequest request) 
+    { 
+        var node = await NodeManager.GetNodeForPlanetAsync(request.Category.PlanetId);
+        return await node.PostAsyncWithResponse<PlanetCategoryChannel>($"{request.Category.BaseRoute}/detailed", request);
+    }
 
     /// <summary>
     /// Returns if the member has the given permission in this category
