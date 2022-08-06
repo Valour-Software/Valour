@@ -103,7 +103,6 @@
         ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         ValourClient.OnMessageRecieved += OnRecieveMessage;
-        ValourClient.OnMessageDeleted += OnDeleteMessage;
 
         await ValourClient.OpenChannel(Channel);
 
@@ -133,7 +132,6 @@
         ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
         ValourClient.OnMessageRecieved -= OnRecieveMessage;
-        ValourClient.OnMessageDeleted -= OnDeleteMessage;
     }
 
     public async Task OnChatChannelUpdate(PlanetChatChannel channel, bool newItem, int flags)
@@ -251,15 +249,7 @@
         InputComponent.PreviewMessageComponent.ReRender();
     }
 
-    public async Task OnDeleteMessage(PlanetMessage message)
-    {
-        if (message.ChannelId != Channel.Id)
-            return;
-
-        MessageHolder.Messages.RemoveAll(x => x.Id == message.Id);
-        MessageHolder.QueuedMessages.RemoveAll(x => x.Id == message.Id);
-        MessageHolder.ForceRefresh();
-    }
+    
 
     public async Task ScrollToBottom()
     {

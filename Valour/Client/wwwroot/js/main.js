@@ -193,18 +193,20 @@ if (typeof document.addEventListener === "undefined" || hidden === undefined) {
 
 }
 
-var oldScrollSize = {};
+var oldScrollHeight = {};
+var oldScrollTop = {};
 var stickyStates = {};
 
 // Automagically scroll windows down
 function UpdateScrollPosition(id) {
     var window = document.getElementById('innerwindow-' + id);
-    oldScrollSize[id] = window.scrollHeight;
+    oldScrollHeight[id] = window.scrollHeight;
+    oldScrollTop[id] = window.scrollTop;
 }
 
 function ScaleScrollPosition(id) {
     var window = document.getElementById('innerwindow-' + id);
-    window.scrollTop = window.scrollHeight - oldScrollSize[id];
+    window.scrollTop = oldScrollTop[id] + (window.scrollHeight - oldScrollHeight[id]);
 }
 
 function IsAtBottom(id) {
