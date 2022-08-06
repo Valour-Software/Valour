@@ -53,7 +53,7 @@ namespace Valour.Server.Workers
 
         public static List<PlanetMessage> GetStagedMessages(long channelId, int max)
         {
-            return StagedMessages.Values.Where(x => x.ChannelId == channelId).TakeLast(max).Reverse().ToList();
+            return StagedMessages.Values.Where(x => x.ChannelId == channelId).TakeLast(max).ToList();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

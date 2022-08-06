@@ -1,4 +1,6 @@
 ﻿@inject IJSRuntime JS
+@implements IDisposable
+@using Valour.Api.Items.Messages
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;" onscroll="OnScrollChannel('@Window.Id')">
     <CascadingValue Value="this">
@@ -166,13 +168,44 @@
 
     //}
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         RenderedMessages = new List<MessageComponent>();
         Messages = new List<ClientPlanetMessage>();
         QueuedMessages = new List<ClientPlanetMessage>();
+
+        ValourClient.OnMessageDeleted += OnDeleteMessage;
+
         StateHasChanged();
     }
+
+    void IDisposable.Dispose()
+    {
+        ValourClient.OnMessageDeleted -= OnDeleteMessage;
+    }
+
+    public async Task OnDeleteMessage(PlanetMessage message)
+    {
+        if (message.ChannelId != Window.Channel.Id)
+            return;
+
+        Messages.RemoveAll(x => x.Id == message.Id);
+        QueuedMessages.RemoveAll(x => x.Id == message.Id);
+
+        var nextMessage = RenderedMessages.Where(x => x.Message.Message_Index > message.MessageIndex).FirstOrDefault();
+        if (nextMessage != null){
+            var lastMessage = RenderedMessages.OrderByDescending(x => x.Message.Message_Index)
+                                              .Where(x => x.Message.Message_Index < message.MessageIndex)
+                                              .FirstOrDefault();
+            nextMessage.SetLast(lastMessage.Message);
+            await nextMessage.RefreshMessage();
+            nextMessage.ReRender();
+        }
+
+        ForceRefresh();
+    }
+
+    
 
     protected override void OnAfterRender(bool firstRender)
     {

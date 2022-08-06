@@ -37,6 +37,11 @@ public class Node
     /// </summary>
     public string Token { get; set; }
 
+    /// <summary>
+    /// True if this node is currently reconnecting
+    /// </summary>
+    public bool IsReconnecting { get; set; }
+
 
     public async Task InitializeAsync(string name, string token)
     {
@@ -172,6 +177,11 @@ public class Node
     /// </summary>
     public async Task Reconnect()
     {
+        if (IsReconnecting)
+            return;
+
+        IsReconnecting = true;
+
         // Reconnect
         int tries = 0;
 
@@ -183,7 +193,7 @@ public class Node
 
         while (HubConnection.State == HubConnectionState.Disconnected)
         {
-            Thread.Sleep(3000);
+            await Task.Delay(3000);
 
             await Log("Reconnecting to Planet Hub...");
 
@@ -200,6 +210,8 @@ public class Node
         }
 
         await OnSignalRReconnect("Success");
+
+        IsReconnecting = false;
     }
 
     /// <summary>
