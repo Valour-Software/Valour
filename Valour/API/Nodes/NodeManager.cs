@@ -42,14 +42,20 @@ namespace Valour.Api.Nodes
 
                 // If we succeeded, wrap the response in a node object
                 var nodeName = await coreResponse.Content.ReadAsStringAsync();
-                node = new Node();
 
-                await node.InitializeAsync(nodeName, ValourClient.Token);
+                NameToNode.TryGetValue(nodeName, out node);
 
-                // Put the node into the node list, and as a node for the planet
-                Nodes.Add(node);
+                // If we don't already know about this node, create it and link it
+                if (node is null) {
+
+                    node = new Node();
+                    await node.InitializeAsync(nodeName, ValourClient.Token);
+                    Nodes.Add(node);
+                    NameToNode[node.Name] = node;
+                }
+                
+                // Set planet to node
                 PlanetToNode[planetId] = node;
-                NameToNode[node.Name] = node;
             }
 
             return node;
