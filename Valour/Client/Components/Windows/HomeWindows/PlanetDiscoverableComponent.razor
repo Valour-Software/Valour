@@ -1,0 +1,78 @@
+@inject WindowManager windowManager
+
+<div class="home-server m-2" style="cursor: pointer" @onclick="OnClick">
+    <h6 class="text-center">@Planet.Name</h6>
+    <img style='@image_style' class="planet-card-icon" src="@iconUrl" @onerror='OnIconError' />
+</div>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    [Parameter]
+    public HomeWindow Window { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public string iconUrl = "/media/logo/logo-512.png";
+
+    public string image_style = "";
+
+    protected override async Task OnInitializedAsync(){
+        iconUrl = Planet.IconUrl;
+    }
+
+    public async Task OnClick()
+    {
+        // Attempt to join planet
+        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planet/{Planet.Id}/discover");
+
+        InfoModalData imodalData;
+
+        if (!result.Success)
+        {
+            imodalData =
+            new($"Failed to join.",
+                "Reason: " + result.Message,
+                "Okay",
+                async () =>
+                {
+                    Console.WriteLine("User Clicked Ok");
+                }
+            );
+        }
+        else
+        {
+            imodalData =
+            new($"Joined planet!",
+                "Have a nice stay!",
+                "Okay",
+                async () =>
+                {
+                    Console.WriteLine("User Clicked Ok");
+                }
+            );
+
+            ValourClient.JoinedPlanets.Add(Planet);
+        }
+
+        ModalParameters imodParams = new();
+        imodParams.Add("Data", imodalData);
+
+        Modal.Show<InfoModalComponent>("Info", imodParams, new ModalOptions() { Class = "modal-shrink-fit" });
+
+        StateHasChanged();
+    }
+
+    protected void OnIconError()
+    {
+        iconUrl = "_content/Valour.Client/media/logo/logo-512.png";
+
+        int r = Random.Shared.Next(24) * 15;
+
+        image_style = $"filter: hue-rotate({r}deg)";
+
+        StateHasChanged();
+    }
+}

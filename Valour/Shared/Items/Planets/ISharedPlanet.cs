@@ -37,6 +37,11 @@ public interface ISharedPlanet : ISharedItem
     bool Public { get; set; }
 
     /// <summary>
+    /// If this and public are true, a planet will appear on the discovery tab
+    /// </summary>
+    bool Discoverable { get; set; }
+
+    /// <summary>
     /// The default role for the planet
     /// </summary>
     long? DefaultRoleId { get; set; }

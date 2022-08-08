@@ -1,22 +1,15 @@
 <!-- This modal exists to allow parts of the app to give the user info -->
 
-<div class="modal info-modal" id="info-modal">
-    <!-- Modal content -->
-    <div class="modal-info-content">
-        <div class="popup-box">
-            <div class="col-md-12">
-                <section>
-                    <center>
-                        <h2>@Data.title_text</h2>
-                        <h4>@Data.desc_text</h4>
-                        <br />
-                        <br />
-                        <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
-                    </center>
-                </section>
-            </div>
-        </div>
-    </div>
+<div class="col-md-12">
+    <section>
+        <center>
+            <h2>@Data.title_text</h2>
+            <h4>@Data.desc_text</h4>
+            <br />
+            <br />
+            <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
+        </center>
+    </section>
 </div>
 
 @code { 

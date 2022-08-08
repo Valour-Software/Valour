@@ -49,6 +49,11 @@ public class Planet : Item, ISharedPlanet
     public bool Public { get; set; }
 
     /// <summary>
+    /// If this and public are true, a planet will appear on the discovery tab
+    /// </summary>
+    public bool Discoverable { get; set; }
+
+    /// <summary>
     /// The default role for the planet
     /// </summary>
     public long? DefaultRoleId { get; set; }

@@ -19,6 +19,20 @@
         <span class="text-info mb-4">@publicInfoSpan</span>
     }
 
+    <p>Discoverable</p>
+    <p>
+        <input type="checkbox" @oninput="OnCheckDiscoverable" checked="@discoverableValue" /> &nbsp; If this and public are true, this server will 
+        appear in the server discovery tab.
+    </p>
+    @if (!string.IsNullOrWhiteSpace(discoverableErrorSpan))
+    {
+        <span class="text-danger mb-4">@discoverableErrorSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(discoverableInfoSpan))
+    {
+        <span class="text-info mb-4">@discoverableInfoSpan</span>
+    }
+
     <div class="invite-tab-holder mt-4">
         <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
         <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
@@ -52,6 +66,11 @@
 
     public string publicInfoSpan;
     public string publicErrorSpan;
+
+    public bool discoverableValue;
+
+    public string discoverableInfoSpan;
+    public string discoverableErrorSpan;
 
     public bool linksChosen = true;
 
@@ -123,6 +142,26 @@
         {
             publicValue = !Planet.Public;
             publicErrorSpan = "Failed to update. Try again?";
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnCheckDiscoverable()
+    {
+        discoverableValue = !discoverableValue;
+
+        Planet.Discoverable = discoverableValue;
+        var result = await Planet.UpdateAsync(Planet);
+
+        if (result.Success)
+        {
+            discoverableInfoSpan = "Updated successfully.";
+        }
+        else
+        {
+            discoverableValue = !Planet.Discoverable;
+            discoverableErrorSpan = "Failed to update. Try again?";
         }
 
         StateHasChanged();
