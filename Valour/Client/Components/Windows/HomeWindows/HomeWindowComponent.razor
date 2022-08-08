@@ -22,7 +22,6 @@
         {
             <PlanetCardComponent Planet='planet' Window='Window'></PlanetCardComponent>
         }
-
         @{
             var param = new ModalParameters();
             param.Add("Window", Window);
@@ -54,6 +53,17 @@
             </svg>
         </div>
     </div>
+
+    <br />
+
+    <h6 class="m-2">Discover a New Planet!</h6>
+
+    <div class="flex-row flex-wrap align-items-stretch m-2">
+        @foreach (Planet planet in Discoverables)
+        {
+            <PlanetDiscoverableComponent Planet="planet" Window="Window"></PlanetDiscoverableComponent>
+        }
+    </div>
 </div>
 
 
@@ -66,9 +76,13 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
+    public List<Planet> Discoverables { get; set; } = new List<Planet>();
+
     protected async override Task OnInitializedAsync()
     {
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
+
+        Discoverables = await ValourClient.GetDiscoverablePlanetsAsync();
     }
 
     public async Task OnJoinedPlanetsUpdate()

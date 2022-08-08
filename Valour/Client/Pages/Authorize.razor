@@ -132,7 +132,7 @@
             return;
         }
 
-        bool suc = ulong.TryParse(client_id, out ulong u_client_id);
+        bool suc = long.TryParse(client_id, out long u_client_id);
 
         if (!suc){
             isError = true;

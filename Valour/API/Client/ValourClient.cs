@@ -18,6 +18,7 @@ using System.Reflection;
 using Valour.Shared.Items.Channels;
 using Valour.Api.Items.Channels;
 using Valour.Api.Nodes;
+using System.Numerics;
 
 namespace Valour.Api.Client;
 
@@ -780,6 +781,20 @@ public static class ValourClient
 
         if (OnJoinedPlanetsUpdate != null)
             await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task<List<Planet>> GetDiscoverablePlanetsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/planet/discoverable");
+        if (!response.Success)
+            return new List<Planet>();
+
+        var planets = response.Data;
+
+        foreach (var planet in planets)
+            await ValourCache.Put(planet.Id, planet, true);
+
+        return planets;
     }
 
     /// <summary>
