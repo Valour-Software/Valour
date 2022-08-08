@@ -35,6 +35,6 @@ public class OauthApp : Item, ISharedOauthApp {
     /// </summary>
     public string Name { get; set; }
 
-    public static async Task<OauthApp> FindAsync(ulong id) => 
+    public static async Task<OauthApp> FindAsync(long id) => 
         (await NodeManager.Nodes[0].GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
 }

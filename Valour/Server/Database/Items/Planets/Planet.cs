@@ -97,6 +97,12 @@ public class Planet : Item, ISharedPlanet
     public bool Public { get; set; }
 
     /// <summary>
+    /// If the server should show up on the discovery tab
+    /// </summary>
+    [Column("discoverable")]
+    public bool Discoverable { get; set; }
+
+    /// <summary>
     /// The default role for the planet
     /// </summary>
     [Column("default_role_id")]
@@ -275,7 +281,7 @@ public class Planet : Item, ISharedPlanet
     [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, ulong id)
+    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
     {
         var db = ctx.GetDb();
         var planet = await FindAsync<Planet>(id, db);
@@ -826,6 +832,47 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(invites);
     }
 
+    [ValourRoute(HttpVerbs.Get, "/discoverable"), TokenRequired, InjectDb]
+    public static async Task<IResult> GetDiscoverables(HttpContext ctx)
+    {
+        var db = ctx.GetDb();
+
+        var planets = await db.Planets.Include(x => x.Members)
+                                      .Where(x => x.Public && x.Discoverable)
+                                      .OrderByDescending(x => x.Members.Count())
+                                      .ToListAsync();
+
+        return Results.Json(planets);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/{id}/discover"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Invites)]
+    public static async Task<IResult> JoinDiscoverable(HttpContext ctx, long id)
+    {
+        var db = ctx.GetDb();
+        long userId = ctx.GetToken().UserId;
+
+        if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == id))
+            return Results.BadRequest("User is banned from the planet");
+
+        if (await db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == id))
+            return Results.BadRequest("User is already a member");
+
+        var planet = await FindAsync(id, db);
+
+        if (!planet.Public)
+            return Results.BadRequest("Planet is set to private");
+
+        if (!planet.Discoverable)
+            return Results.BadRequest("Planet is not discoverable");
+
+        TaskResult<PlanetMember> result = await planet.AddMemberAsync(await FindAsync<User>(userId, db), db);
+
+        if (result.Success)
+            return Results.Created(result.Data.GetUri(), result.Data);
+        else
+            return ValourResult.Problem(result.Message);
+    }
 
     #endregion
 }

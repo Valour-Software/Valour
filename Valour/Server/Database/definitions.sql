@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS planets (
     icon_url TEXT NOT NULL,
     description TEXT NOT NULL,
     public BOOLEAN NOT NULL DEFAULT true,
+    discoverable BOOLEAN NOT NULL DEFAULT true,
     default_role_id BIGINT,
     primary_channel_id BIGINT
 );
