@@ -42,7 +42,7 @@
 
     public async Task OnPlanetUpdate(Planet planet, bool newItem, int flags)
     {
-        if (planet.Id == Planet.Id)
+        if (Planet == null || planet.Id == Planet.Id)
         {
             StateHasChanged();
         }
