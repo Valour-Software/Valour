@@ -100,6 +100,12 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     public string MentionsData { get; set; }
 
     /// <summary>
+    /// Data for representing attachments in a message
+    /// </summary>
+    [Column("attachments_data")]
+    public string AttachmentsData { get; set; }
+
+    /// <summary>
     /// True if the message was edited
     /// </summary>
     [Column("edited")]

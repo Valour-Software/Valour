@@ -189,9 +189,7 @@
     {
         SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Channel.PlanetId);
 
-        InputComponent.SelfMember = SelfMember;
-
-        InputComponent.MessageHolder = MessageHolder;
+        await InputComponent.InitializeAsync(SelfMember, MessageHolder);
 
         Channel_Permissions = await Channel.GetMemberPermissionsAsync(SelfMember.Id, Channel.PlanetId);
 

@@ -1,0 +1,7 @@
+﻿<video controls preload="auto" playsinline src="@Attachment.Location" type="@Attachment.MimeType"></video>
+
+@code {
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+}
+

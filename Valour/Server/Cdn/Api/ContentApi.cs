@@ -52,7 +52,7 @@ namespace Valour.Server.Cdn.Api
             if (!IsSuccessStatusCode(response.HttpStatusCode))
                 return Results.BadRequest("Failed to get object from bucket.");
 
-            return Results.Stream(response.ResponseStream, bucketItemRecord.MimeType, hash, enableRangeProcessing: true);
+            return Results.Stream(response.ResponseStream, bucketItemRecord.MimeType, bucketItemRecord.FileName, enableRangeProcessing: true);
         }
 
         public static bool IsSuccessStatusCode(HttpStatusCode statusCode)

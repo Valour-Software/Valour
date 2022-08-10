@@ -2,7 +2,7 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-@if (Message == null)
+@if (Message == null || Message.IsEmpty)
 {
     return;
 }
@@ -13,10 +13,10 @@
         width = "fit-content";
 }
 
-<div style="width: @width">
+<div style="width: @width" class="message-outer">
     <ContextMenuTrigger @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
-            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
+            <div id="@Id" class="@Class message-base" @ref='this_ref' tabindex='0'>
 
                 @if (Minimal)
                 {
@@ -28,6 +28,32 @@
                     <div class="message-content">
 
                         <p class="content" @ref="InnerRef">
+
+                            @if (Message.Attachments != null && Message.Attachments.Count > 0)
+                            {
+                                var i = 0;
+
+                                @foreach (var attachment in Message.Attachments)
+                                {
+                                    var par = new Dictionary<string, object>()
+                                    {
+                                        { "Attachment", attachment }
+                                    };
+
+                                    var id = i;
+
+                                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                                        @if (Ghost)
+                                        {
+                                            <div class="attachment-x">x</div>
+                                        }
+                                        <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+                                    </div>
+
+                                    i++;
+                                }
+                            }
+
                             @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
                             {
                                 <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
@@ -89,6 +115,32 @@
                             <MessageComponent Message="ReplyMessage" Key="@replykey"  Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                         }
                         <p class="content" @ref="InnerRef">
+
+                            @if (Message.Attachments != null && Message.Attachments.Count > 0)
+                            {
+                                var i = 0;
+
+                                @foreach (var attachment in Message.Attachments)
+                                {
+                                    var par = new Dictionary<string, object>()
+                                    {
+                                        { "Attachment", attachment }
+                                    };
+
+                                    var id = i;
+
+                                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                                        @if (Ghost)
+                                        {
+                                            <div class="attachment-x">x</div>
+                                        }
+                                        <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+                                    </div>
+
+                                    i++;
+                                }
+                            }
+
                             @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
                             {
 
@@ -239,6 +291,15 @@
 
             // Initialize message
             await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
+        }
+    }
+
+    public async Task OnClickAttachment(int id)
+    {
+        if (Ghost)
+        {
+            var input = Window.Component.InputComponent;
+            await input.RemoveAttachment(id);
         }
     }
 

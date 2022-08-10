@@ -4,8 +4,6 @@ using System.Text.RegularExpressions;
 using Markdig.Extensions.MediaLinks;
 using Valour.Client.Messages;
 
-#nullable enable
-
 namespace Valour.Client.Messages;
 
 /*  Valour - A free and secure chat client
@@ -56,6 +54,9 @@ public static class MarkdownManager
 
     public static string GetHtml(string content)
     {
+        if (content is null)
+            return "";
+
         string markdown = "Error: Message could not be parsed.";
 
         try
