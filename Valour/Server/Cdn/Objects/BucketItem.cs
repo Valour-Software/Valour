@@ -27,6 +27,9 @@ public class BucketItem
     [Column("mime_type")]
     public string MimeType { get; set; }
 
+    [Column("file_name")]
+    public string FileName { get; set; }
+
     [Column("category")]
     public ContentCategory Category { get; set; }
 

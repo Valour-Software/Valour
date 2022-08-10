@@ -1,0 +1,22 @@
+﻿<img class="@GetCssClass()" src="@Attachment.Location" @onclick="OnClick" />
+
+@code {
+    private bool enlarged = false;
+
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+
+    public string GetCssClass()
+    {
+        if (enlarged)
+            return "enlarged";
+        else
+            return "";
+    }
+
+    public void OnClick()
+    {
+        enlarged = !enlarged;
+        StateHasChanged();
+    }
+}

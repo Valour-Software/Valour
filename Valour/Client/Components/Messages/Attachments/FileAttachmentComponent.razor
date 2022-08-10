@@ -1,0 +1,28 @@
+﻿<div class="container">
+    <div class="file-icon">
+        <h4 class="extension">@extension</h4>
+    </div>
+    <a class="nohide" href="@Attachment.Location">@Attachment.FileName</a>
+</div>
+
+
+
+@code {
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+
+    private string extension = "?";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Attachment is null)
+            return;
+
+        var split = Attachment.Location.Split('.');
+        if (split is null || split.Length < 2)
+            return;
+
+        extension = split[split.Length - 1].ToUpper();
+        extension = extension.Substring(0, Math.Min(extension.Length, 11));
+    }
+}

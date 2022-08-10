@@ -96,7 +96,7 @@ namespace Valour.Server.Cdn.Api
                 return Results.BadRequest("Unable to process image. Check format and size.");
 
             using MemoryStream ms = imageData.Value.stream;
-            var bucketResult = await BucketManager.Upload(ms, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Image, db);
+            var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Image, db);
 
             if (bucketResult.Success)
             {
@@ -127,7 +127,7 @@ namespace Valour.Server.Cdn.Api
                 return Results.BadRequest("Unable to process image. Check format and size.");
 
             using MemoryStream ms = imageData.Value.stream;
-            var bucketResult = await BucketManager.Upload(ms, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Profile, db);
+            var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Profile, db);
 
             if (bucketResult.Success)
             {
@@ -171,7 +171,7 @@ namespace Valour.Server.Cdn.Api
                 return Results.BadRequest("Unable to process image. Check format and size.");
 
             using MemoryStream ms = imageData.Value.stream;
-            var bucketResult = await BucketManager.Upload(ms, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Planet, db);
+            var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.Planet, db);
 
             if (bucketResult.Success)
             {
@@ -215,7 +215,7 @@ namespace Valour.Server.Cdn.Api
                 return Results.BadRequest("Unable to process image. Check format and size.");
 
             using MemoryStream ms = imageData.Value.stream;
-            var bucketResult = await BucketManager.Upload(ms, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.App, db);
+            var bucketResult = await BucketManager.Upload(ms, file.FileName, imageData.Value.extension, authToken.UserId, imageData.Value.mime, ContentCategory.App, db);
 
             if (bucketResult.Success)
             {
@@ -248,7 +248,7 @@ namespace Valour.Server.Cdn.Api
             using MemoryStream ms = new();
             await file.CopyToAsync(ms);
 
-            var bucketResult = await BucketManager.Upload(ms, ext, authToken.UserId, file.ContentType, ContentCategory.Image, db);
+            var bucketResult = await BucketManager.Upload(ms, file.FileName, ext, authToken.UserId, file.ContentType, ContentCategory.File, db);
 
             if (bucketResult.Success)
             {

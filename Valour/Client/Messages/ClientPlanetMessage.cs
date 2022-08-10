@@ -7,6 +7,8 @@ using Valour.Api.Items.Messages.Embeds;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Users;
 using Valour.Shared.Items.Messages.Mentions;
+using Valour.Shared.Items.Messages;
+using Valour.Api.Items.Messages.Attachments;
 
 namespace Valour.Client.Messages;
 
@@ -76,9 +78,13 @@ public class ClientPlanetMessage
 
     public string Mentions_Data => BaseMessage.MentionsData;
 
+    public string Attachments_Data => BaseMessage.AttachmentsData;
+
     public string Fingerprint => BaseMessage.Fingerprint;
 
     public List<Mention> Mentions => BaseMessage.Mentions;
+
+    public List<MessageAttachment> Attachments => BaseMessage.Attachments;
 
     public Embed Embed => BaseMessage.Embed;
 
@@ -86,6 +92,9 @@ public class ClientPlanetMessage
     
     public void SetMentions(IEnumerable<Mention> mentions) =>
         BaseMessage.SetMentions(mentions);
+
+    public void SetAttachments(List<MessageAttachment> attachments) =>
+        BaseMessage.SetAttachments(attachments);
 
     public bool IsEmbed() => BaseMessage.IsEmbed();
 
@@ -161,6 +170,9 @@ public class ClientPlanetMessage
     {
         "br"
     };
+
+    public bool IsEmpty =>
+        string.IsNullOrWhiteSpace(Content) && ReplyToId is null && (BaseMessage.Attachments is null || BaseMessage.Attachments.Count == 0);
 
     public void Clear()
     {
@@ -307,6 +319,8 @@ public class ClientPlanetMessage
         }
 
         BaseMessage.MentionsData = JsonSerializer.Serialize(BaseMessage.Mentions);
+
+        BaseMessage.AttachmentsData = JsonSerializer.Serialize(BaseMessage.Attachments);
     }
 
     /// <summary>
