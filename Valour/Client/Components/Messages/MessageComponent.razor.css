@@ -122,7 +122,8 @@
     width: 95%;
     display: inline-block;
     margin-left: 3px;
-    margin-top: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
     vertical-align: top;
     padding-left: 52px;
     max-width: 100%;
@@ -221,14 +222,15 @@
     .multi-message .time-container {
         min-width: 48px;
         position: absolute;
-        top: 0px;
+        top: -2px;
     }
 
     .multi-message .message-content {
         width: 95%;
         display: inline-block;
         margin-left: 7px;
-        margin-top: 4px;
+        margin-top: 2px;
+        margin-bottom: 2px;
         vertical-align: top;
         max-width: 100%;
     }

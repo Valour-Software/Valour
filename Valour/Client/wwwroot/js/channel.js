@@ -204,14 +204,16 @@ function OnMessageLoad(innerContent) {
             }
         }
 
-        //var images = innerContent.getElementsByTagName('img');
-        //if (images != null) {
-        //    for (let image of images) {
-        //        image.addEventListener('click', function () {
-        //            image.classList.toggle('enlarged');
-        //        });
-        //    }
-        //}
+        var images = innerContent.getElementsByTagName('img');
+        if (images != null) {
+            for (let image of images) {
+                if (!image.classList.contains('attached-image')) { 
+                    image.addEventListener('click', function () {
+                        image.classList.toggle('enlarged');
+                    });
+                }
+            }
+        }
 
         twemoji.parse(innerContent, {
             folder: 'svg',
