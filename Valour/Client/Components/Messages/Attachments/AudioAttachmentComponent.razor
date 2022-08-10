@@ -1,0 +1,9 @@
+﻿<audio controls preload="auto" playsinline>
+    <source src="@Attachment.Location" type="@Attachment.MimeType" />
+</audio>
+
+@code {
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+}
+

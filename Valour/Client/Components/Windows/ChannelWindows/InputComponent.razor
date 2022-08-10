@@ -1,10 +1,11 @@
 ﻿@inject IJSRuntime JS
 @using System.Net.Http.Headers
 @using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
-@using Valour.Api.Items.Messages
+@using Valour.Api.Items.Messages;
+@using Valour.Api.Items.Messages.Attachments
 
 <div>
-    <div style="opacity: 0.7; width: 95%" class="preview-message">
+    <div class="preview-message">
         <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" Message="PreviewMessage" Submessage ="true" Ghost="true" Last_Message="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
@@ -14,7 +15,8 @@
 
         <div class="textbox" onclick="this.children[1].focus()" @ref='DropZoneElement'>
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            <div class='upload' onclick="document.getElementById('upload-core').click()">+</div>
+            <img class='upload' src="_content/Valour.Client/media/Plus-Icon.svg" onclick="document.getElementById('upload-core').click()" />
+
             <div @ref='InnerInput_Ref' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
         </div>
@@ -54,12 +56,6 @@
     public bool IsEditing { get; set; }
 
     /// <summary>
-    /// The input currently within the chatbox, this is bound and any changes will
-    /// be reflected within the box.
-    /// </summary>
-    public string CurrentInput { get; set; }
-
-    /// <summary>
     /// True if the mention selection system list visible
     /// </summary>
     private bool mentionSelect;
@@ -83,9 +79,24 @@
     /// Run when the component is initialized
     /// </summary>
     /// <returns></returns>
-    protected override async Task OnInitializedAsync()
+    public async Task InitializeAsync(PlanetMember selfMember, MessageHolderComponent messageHolder)
     {
+        SelfMember = selfMember;
+        MessageHolder = messageHolder;
 
+        var innerMessage = new PlanetMessage()
+        {
+            AuthorUserId = SelfMember.UserId,
+            Content = null,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = SelfMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            PlanetId = selfMember.PlanetId,
+            Fingerprint = Guid.NewGuid().ToString()
+        };
+
+        PreviewMessage = new(innerMessage);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -125,7 +136,6 @@
     public async Task OnBeginEdit(ClientPlanetMessage message)
     {
         PreviewMessage = message;
-        CurrentInput = message.Content;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
         StateHasChanged();
     }
@@ -172,8 +182,23 @@
                 if (result.Success)
                 {
                     string url = result.Data;
+                    MessageAttachment attachment = new()
+                    {
+                        Location = url,
+                        MimeType = file.ContentType,
+                        FileName = file.Name
+                    };
 
-                    await PostMessage(url);
+                    var attachments = PreviewMessage.Attachments;
+                    if (attachments is null)
+                        attachments = new();
+
+                    attachments.Add(attachment);
+
+                    PreviewMessage.SetAttachments(attachments);
+
+                    await RefreshPreviewMessage();
+                    Refresh();
                 }
                 else
                 {
@@ -187,36 +212,64 @@
         StateHasChanged();
     }
 
+    public async Task RemoveAttachment(int id)
+    {
+        var attachments = PreviewMessage.Attachments;
+        if (attachments is null)
+            return;
+
+        if (id > attachments.Count - 1)
+            return;
+
+        attachments.RemoveAt(id);
+
+        PreviewMessage.SetAttachments(attachments);
+
+        await RefreshPreviewMessage();
+        Refresh();
+    }
+
     #endregion
 
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
-        // Console.WriteLine(CurrentInput);
+        if (PreviewMessage.BaseMessage.Content is not null){
+            PreviewMessage.BaseMessage.Content =
+                PreviewMessage.BaseMessage.Content.TrimEnd('\n');
 
-        if (CurrentInput == null)
+            PreviewMessage.BaseMessage.Content =
+                PreviewMessage.BaseMessage.Content.Trim();
+        }
+
+        if (PreviewMessage.IsEmpty)
         {
             return;
         }
 
-        string temp = CurrentInput.TrimEnd('\n');
-        temp = temp.Trim();
+        var postMessage = new ClientPlanetMessage(PreviewMessage.BaseMessage);
 
-        if (string.IsNullOrWhiteSpace(temp))
+        // New message for preview
+        var innerMessage = new PlanetMessage()
         {
-            return;
-        }
+            AuthorUserId = SelfMember.UserId,
+            Content = null,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = SelfMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            PlanetId = SelfMember.PlanetId,
+            Fingerprint = Guid.NewGuid().ToString()
+        };
 
-        if (temp != "")
-        {
-            CurrentInput = "";
-            await OnChatboxUpdate(null, "");
+        PreviewMessage = new(innerMessage);
+        await PreviewMessageComponent.SetMessage(PreviewMessage);
 
-            // Post message to server
-            //StateHasChanged();
-            await PostMessage(temp);
+        await OnChatboxUpdate(null, "");
 
-        }
+        // Post message to server
+        //StateHasChanged();
+        await PostMessage(postMessage);
     }
 
     public async Task UpdateMentionMenu(string text)
@@ -278,19 +331,8 @@
             input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
         }
 
-        CurrentInput = input;
-
-        // Console.WriteLine(input);
-
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            PreviewMessage = null;
-            await PreviewMessageComponent.SetMessage(null);
-        }
-        else
-        {
-            await UpdatePreviewMessage(input);
-        }
+        PreviewMessage.BaseMessage.Content = input;
+        await RefreshPreviewMessage();
 
         StateHasChanged();
     }
@@ -300,31 +342,15 @@
         StateHasChanged();
     }
 
-    public async Task UpdatePreviewMessage(string input) {
+    public async Task AddMessageAttachment()
+    {
 
-        if (PreviewMessage is null)
-        {
-            var innerMessage = new PlanetMessage()
-                {
-                    AuthorUserId = SelfMember.UserId,
-                    Content = input,
-                    ChannelId = Window.Channel.Id,
-                    AuthorMemberId = SelfMember.Id,
-                    TimeSent = DateTime.UtcNow,
-                    ReplyToId = ReplyingTo?.Id
-                };
+    }
 
-            PreviewMessage = new ClientPlanetMessage(innerMessage);
-        }
-        else
-        {
-            PreviewMessage.Clear();
-            PreviewMessage.BaseMessage.Content = input;
-            PreviewMessage.BaseMessage.TimeSent = DateTime.UtcNow;
-        }
-
+    public async Task RefreshPreviewMessage() {
+        PreviewMessage.Clear();
+        PreviewMessage.BaseMessage.TimeSent = DateTime.UtcNow;
         PreviewMessage.GenerateForPost();
-
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
@@ -332,7 +358,9 @@
     {
         PreviewMessageComponent.ReplyMessage = message;
         ReplyingTo = message;
-        await UpdatePreviewMessage(PreviewMessage?.Content ?? "");
+        PreviewMessage.BaseMessage.ReplyToId = ReplyingTo?.Id;
+
+        await RefreshPreviewMessage();
         Refresh();
 
         await InnerInput_Ref.FocusAsync();
@@ -344,45 +372,14 @@
         PreviewMessage.BaseMessage.ReplyToId = null;
         PreviewMessageComponent.ReplyMessage = null;
         PreviewMessageComponent.ReRender();
-
-        if (string.IsNullOrWhiteSpace(CurrentInput))
-        {
-            PreviewMessage = null;
-            await PreviewMessageComponent.SetMessage(null);
-        }
     }
 
-    public async Task PostMessage(string msg)
+    public async Task PostMessage(ClientPlanetMessage message)
     {
-        PlanetMessage innerMessage = new PlanetMessage(msg, SelfMember.Id, Window.Channel.Id, Window.Channel.PlanetId);
-
-        innerMessage.ReplyToId = ReplyingTo?.Id;
-
-        ReplyingTo = null;
-
-        PreviewMessageComponent.ReplyMessage = null;
-        PreviewMessageComponent.ReRender();
-
-
-        ClientPlanetMessage message = new ClientPlanetMessage(innerMessage);
-
         message.GenerateForPost();
-
-        /*
-        message.SetMentions(new List<Mention>()
-            {
-            new Mention()
-                {
-                TargetId = 1050746125287424,
-                Position = 5,
-                Type = MentionType.Member
-        }
-        });
-        */
-
         MessageHolder.AddQueuedMessage(message);
 
-        var result = await innerMessage.PostMessageAsync();
+        var result = await message.BaseMessage.PostMessageAsync();
 
         if (!result.Success)
         {
@@ -404,5 +401,10 @@
         {
             MessageHolder.RemoveErrorMessage();
         }
+
+        ReplyingTo = null;
+        PreviewMessageComponent.ReplyMessage = null;
+        PreviewMessage.Clear();
+        PreviewMessageComponent.ReRender();
     }
 }

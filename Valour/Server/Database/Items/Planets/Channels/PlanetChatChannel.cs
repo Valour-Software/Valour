@@ -10,6 +10,8 @@ using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Channels;
 using Valour.Shared.Cdn;
 using Valour.Server.Cdn;
+using System.Text.Json;
+using Valour.Shared.Items.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -437,6 +439,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         }
     }
 
+    public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
+
     [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
@@ -471,6 +475,26 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         // Handle URL content
         message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
         message.Id = IdManager.Generate();
+
+        // Handle attachments
+        if (message.AttachmentsData != null)
+        {
+            var attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(message.AttachmentsData);
+            if (attachments != null)
+            {
+                foreach (var at in attachments)
+                {
+                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
+                    {
+                        return Results.BadRequest("Attachments must be from https://cdn.valour.gg...");
+                    }
+                    if (_attachmentRejectRegex.IsMatch(at.Location))
+                    {
+                        return Results.BadRequest("Attachment location contains invalid characters");
+                    }
+                }
+            }
+        }
 
         PlanetMessageWorker.AddToQueue(message);
 

@@ -12,7 +12,7 @@ public static class BucketManager
     public static AmazonS3Client Client { get; set; }
     static SHA256 SHA256 = SHA256.Create();
 
-    public static async Task<TaskResult> Upload(MemoryStream data, string extension, long userId, string mime, 
+    public static async Task<TaskResult> Upload(MemoryStream data, string fileName, string extension, long userId, string mime, 
         ContentCategory category, CdnDb db)
     {
         // Get hash from image
@@ -36,7 +36,8 @@ public static class BucketManager
             Category = category,
             Hash = hash,
             MimeType = mime,
-            UserId = userId
+            UserId = userId,
+            FileName = fileName
         };
 
         // Now we check if anyone else has already posted this file.

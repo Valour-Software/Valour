@@ -1,0 +1,23 @@
+﻿.container {
+    padding: 20px;
+    background-color: var(--main-2);
+    border-radius: 20px;
+    text-align: center;
+    border: 2px solid var(--main-5);
+    width: 200px;
+    margin-left: 0;
+}
+
+.file-icon {
+    width: 80px;
+    height: 100px;
+    margin: 5px;
+    border: 5px grey solid;
+    border-radius: 0px 20px 0px 0px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.extension {
+    font-size: 1.2rem;
+}

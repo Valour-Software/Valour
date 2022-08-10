@@ -15,6 +15,7 @@ using Valour.Shared.Items.Messages.Mentions;
 using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Api.Items.Messages.Embeds;
 using Valour.Api.Nodes;
+using Valour.Api.Items.Messages.Attachments;
 
 namespace Valour.Api.Items.Messages;
 
@@ -84,6 +85,11 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     public string MentionsData { get; set; }
 
     /// <summary>
+    /// Data for representing attachments in a message
+    /// </summary>
+    public string AttachmentsData { get; set; }
+
+    /// <summary>
     /// True if the message was edited
     /// </summary>
     public bool Edited { get; set; }
@@ -112,6 +118,16 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     /// True if the embed data has been parsed
     /// </summary>
     private bool embedParsed = false;
+
+    /// <summary>
+    /// True if attachments data has been parsed
+    /// </summary>
+    private bool attachmentsParsed = false;
+
+    /// <summary>
+    /// The inner attachments data
+    /// </summary>
+    private List<MessageAttachment> _attachments;
 
     /// <summary>
     /// The mentions for members within this message
@@ -151,6 +167,22 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
         }
     }
 
+    public List<MessageAttachment> Attachments
+    {
+        get
+        {
+            if (!mentionsParsed)
+            {
+                if (!string.IsNullOrEmpty(AttachmentsData))
+                {
+                    _attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(AttachmentsData);
+                }
+            }
+
+            return _attachments;
+        }
+    }
+
     public static async ValueTask<PlanetMessage> FindAsync(long id, long channelId, long planetId, bool refresh = false)
     {
         if (!refresh)
@@ -182,6 +214,12 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     {
         _mentions = mentions.ToList();
         MentionsData = JsonSerializer.Serialize(mentions);
+    }
+
+    public void SetAttachments(List<MessageAttachment> attachments)
+    {
+        _attachments = attachments;
+        AttachmentsData = JsonSerializer.Serialize(attachments);
     }
 
     public void ClearMentions()

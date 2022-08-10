@@ -63,6 +63,11 @@ namespace Valour.Shared.Items.Messages
         string MentionsData { get; set; }
 
         /// <summary>
+        /// Data for representing attachments in a message
+        /// </summary>
+        string AttachmentsData { get; set; }
+
+        /// <summary>
         /// Used to identify a message returned from the server 
         /// </summary>
         string Fingerprint { get; set; }
