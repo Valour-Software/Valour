@@ -51,6 +51,7 @@
     width: 100%;
     background-color: var(--main-5);
     border-top: 2px dashed rgba(255, 255, 255, 0.2);
+    margin-top: -2px;
 }
 
 ::deep .preview-message .message.reply {
@@ -64,6 +65,7 @@
     width: 100%;
     background-color: var(--main-5);
     border-top: 2px dashed rgba(255, 255, 255, 0.2);
+    margin-top: -2px;
 }
 
 ::deep .preview-message .multi-message.reply {

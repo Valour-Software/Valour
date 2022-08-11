@@ -125,7 +125,7 @@ public class WindowManager
 
     public async Task OnNodeReconnect(Node node)
     {
-        ForceChatRefresh();
+        await ForceChatRefresh();
     }
 
     /// <summary>
@@ -263,7 +263,7 @@ public class WindowManager
         // Don't refresh! We're doing that ourselves
         await CloseWindow(old, false);
 
-        ForceChatRefresh();
+        await ForceChatRefresh();
     }
 
     /// <summary>
@@ -291,14 +291,14 @@ public class WindowManager
         }
     }
 
-    public void ForceChatRefresh()
+    public async Task ForceChatRefresh()
     {
         foreach (var chat in Windows.OfType<ChatChannelWindow>())
         {
             if (chat != null && chat.Component != null && chat.Component.MessageHolder != null)
             {
-                // Force window refresh
-                chat.Component.MessageHolder.ForceRefresh();
+                // Force full window refresh
+                await chat.Component.SetupNewChannelAsync();
             }
         }
     }
