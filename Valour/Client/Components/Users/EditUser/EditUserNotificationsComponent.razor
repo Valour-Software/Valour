@@ -17,7 +17,7 @@
     </div>
 </div>
 
-@code { 
+@code {
 
     public string notif_state = "null";
     public bool notif_enabled = false;
@@ -27,7 +27,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        //notif_enabled = await JS.InvokeAsync<bool>("blazorPushNotifications.hasNotifications");
+
+        Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription", false);
 
         if (Subscription != null)
         {
@@ -41,12 +43,22 @@
 
     public async Task OnNotifClick()
     {
-
-        Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
-
-        if (Subscription != null)
+        if (notif_enabled)
         {
-            notif_enabled = true;
+            var sub = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.removeSubscription");
+            notif_enabled = false;
+
+            await ValourClient.PrimaryNode.PostAsync("api/notification/unsubscribe", sub);
+        }
+        else
+        {
+            Subscription = await JS.InvokeAsync<Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
+
+            if (Subscription != null)
+            {
+                notif_enabled = true;
+                await ValourClient.PrimaryNode.PostAsync($"api/notification/subscribe", Subscription);
+            }
         }
 
         StateHasChanged();

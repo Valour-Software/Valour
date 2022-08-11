@@ -30,8 +30,8 @@ public class NotificationSubscription : ISharedNotificationSubscription
     [Column("endpoint")]
     public string Endpoint { get; set; }
 
-    [Column("not_key")]
-    public string Not_Key { get; set; }
+    [Column("key")]
+    public string Key { get; set; }
 
     [Column("auth")]
     public string Auth { get; set; }

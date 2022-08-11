@@ -4,7 +4,7 @@
   "start_url": "./",
   "display": "standalone",
   "background_color": "#040d14",
-  "theme_color": "#00faff",
+  "theme_color": "#192630",
   "icons": [
     {
       "src": "_content/Valour.Client/media/logo/logo-512.png",
