@@ -71,3 +71,20 @@ async function onFetch(event) {
 
     return cachedResponse || fetch(event.request);
 }
+
+self.addEventListener('push', event => {
+    const payload = event.data.json();
+    event.waitUntil(
+        self.registration.showNotification(payload.title, {
+            body: payload.message,
+            icon: payload.iconUrl,
+            vibrate: [100, 50, 100],
+            //data: { url: payload.url }
+        })
+    );
+});
+
+self.addEventListener('notificationclick', event => {
+    event.notification.close();
+});
+
