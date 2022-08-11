@@ -24,7 +24,7 @@ async function onInstall(event) {
         .map(asset => new Request(asset.url, { integrity: asset.hash, cache: 'no-cache' }));
 
     // Also cache authentication configuration
-    assetsRequests.push(new Request('_configuration/Valour.Client.Blazor'));
+    //assetsRequests.push(new Request('_configuration/Valour.Client.Blazor'));
 
     await caches.open(cacheName).then(cache => cache.addAll(assetsRequests));
 }
