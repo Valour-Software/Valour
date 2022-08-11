@@ -94,8 +94,24 @@ else
           DotNetObjectReference.Create(this)
         );
 
-        await JS.InvokeVoidAsync("SetVapidKey", VapidConfig.PublicKey);
-        await JS.InvokeVoidAsync("enableNotifications");
+        // Request notifications in background
+        _ = RequestNotificationSubscriptionAsync();
+    }
+
+    public async Task RequestNotificationSubscriptionAsync()
+    {
+        var subscription = await JS.InvokeAsync<NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        if (subscription != null)
+        {
+            try
+            {
+                await ValourClient.PrimaryNode.PostAsync($"api/notification/subscribe", subscription);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+        }
     }
 
     public async Task LogToConsole(string msg, string color = "white")
@@ -114,7 +130,7 @@ else
         {
             Endpoint = endpoint,
             Auth = auth,
-            Not_Key = key,
+            Key = key,
             UserId = ValourClient.Self.Id
         };
 

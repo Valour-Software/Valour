@@ -2,13 +2,19 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Valour.Shared.Items.Notifications;
 
-namespace Valour.Client.Notifications
+namespace Valour.Client.Notifications;
+
+public class NotificationSubscription : ISharedNotificationSubscription
 {
-    public class NotificationSubscription
-    {
-        public string url { get; set; }
-        public string p256dh { get; set; }
-        public string auth { get; set; }
-    }
+    public long Id { get; set; }
+
+    /// <summary>
+    /// The Id of the user this subscription is for
+    /// </summary>
+    public long UserId { get; set; }
+    public string Endpoint { get; set; }
+    public string Key { get; set; }
+    public string Auth { get; set; }
 }

@@ -77,7 +77,7 @@ public class ItemAPI<T> where T : Item
 
                     if (attributes.Any(x => x is InjectDbAttribute))
                     {
-                        builder.AddRouteHandlerFilter(async (ctx, next) =>
+                        builder.AddEndpointFilter(async (ctx, next) =>
                         {
                             var db = ctx.HttpContext.RequestServices.GetService<ValourDB>();
                             ctx.HttpContext.Items.Add("db", db);
@@ -88,7 +88,7 @@ public class ItemAPI<T> where T : Item
                     // Add token validation
                     if (attributes.Any(x => x is TokenRequiredAttribute))
                     {
-                        builder.AddRouteHandlerFilter(async (ctx, next) =>
+                        builder.AddEndpointFilter(async (ctx, next) =>
                         {
                             var hasAuth = ctx.HttpContext.Request.Headers.ContainsKey("authorization");
 
@@ -118,7 +118,7 @@ public class ItemAPI<T> where T : Item
                     {
                         var userPermAttr = (UserPermissionsRequiredAttribute)attr;
 
-                        builder.AddRouteHandlerFilter(async (ctx, next) =>
+                        builder.AddEndpointFilter(async (ctx, next) =>
                         {
                             var token = ctx.HttpContext.GetToken();
                             if (token is null)
@@ -138,7 +138,7 @@ public class ItemAPI<T> where T : Item
                     var memberAttr = (PlanetMembershipRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
                     if (memberAttr is not null)
                     {
-                        builder.AddRouteHandlerFilter(async (ctx, next) =>
+                        builder.AddEndpointFilter(async (ctx, next) =>
                         {
                             var token = ctx.HttpContext.GetToken();
                             if (token is null)
@@ -179,7 +179,7 @@ public class ItemAPI<T> where T : Item
                     {
                         var catPermAttr = (CategoryChannelPermsRequiredAttribute)attr;
 
-                        builder.AddRouteHandlerFilter(async (ctx, next) =>
+                        builder.AddEndpointFilter(async (ctx, next) =>
                         {
                             var member = ctx.HttpContext.GetMember();
                             if (member is null)
@@ -219,7 +219,7 @@ public class ItemAPI<T> where T : Item
                     {
                         var chanPermAttr = (ChatChannelPermsRequiredAttribute)attr;
 
-                        builder.AddRouteHandlerFilter(async (ctx, next) =>
+                        builder.AddEndpointFilter(async (ctx, next) =>
                         {
                             var member = ctx.HttpContext.GetMember();
                             if (member is null)

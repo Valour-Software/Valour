@@ -1,4 +1,11 @@
-﻿namespace Valour.Server.API;
+﻿using Microsoft.AspNetCore.Mvc;
+using Valour.Server.Database;
+using Valour.Server.Database.Items;
+using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Notifications;
+using Valour.Server.Database.Items.Users;
+
+namespace Valour.Server.API;
 
 public class NotificationsAPI : BaseAPI
 {
@@ -7,66 +14,77 @@ public class NotificationsAPI : BaseAPI
     /// </summary>
     public static void AddRoutes(WebApplication app)
     {
+        app.MapPost("api/notification/subscribe", Subscribe);
+        app.MapPost("api/notification/unsubscribe", Unsubscribe);
     }
 
-    // Bother with this later
+    public static async Task<IResult> Subscribe(ValourDB db, [FromBody] NotificationSubscription subscription, [FromHeader] string authorization)
+    {
+        if (string.IsNullOrWhiteSpace(authorization))
+            return ValourResult.NoToken();
 
-    /*
-     public async Task<TaskResult> SubmitSubscription([FromBody] NotificationSubscription subscription, string token)
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+
+        if (auth is null)
+            return ValourResult.InvalidToken();
+
+        // Force subscription to use auth token's user id
+        subscription.UserId = auth.UserId;
+
+        // Ensure subscription data is there
+        if (string.IsNullOrWhiteSpace(subscription.Endpoint)
+            || string.IsNullOrWhiteSpace(subscription.Auth)
+            || string.IsNullOrWhiteSpace(subscription.Key))
         {
-            var auth = await ServerAuthToken.TryAuthorize(token, Context);
+            return ValourResult.BadRequest("Subscription data is incomplete.");
+        }
 
-            if (auth == null)
-            {
-                return new TaskResult(false, "Could not authorize user.");
-            }
+        // Look for old subscription
+        var old = await db.NotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
 
-            var user = await Context.Users.FindAsync(subscription.UserId);
+        if (old != null)
+        {
+            if (old.Auth == subscription.Auth && old.Key == subscription.Key)
+                return Results.Ok("There is already a subscription for this endpoint.");
 
-            if (auth.UserId != user.Id)
-            {
-                return new TaskResult(false, "Mismatch between auth and requested user notification hook.");
-            }
+            // Update old subscription
+            old.Auth = subscription.Auth;
+            old.Key = subscription.Key;
 
-            if (user == null)
-            {
-                return new TaskResult(false, $"Could not find user with Id {subscription.UserId}");
-            }
+            db.NotificationSubscriptions.Update(old);
+            await db.SaveChangesAsync();
 
-            if (string.IsNullOrWhiteSpace(subscription.Endpoint)
-                || string.IsNullOrWhiteSpace(subscription.Auth)
-                || string.IsNullOrWhiteSpace(subscription.Not_Key))
-            {
-                return new TaskResult(false, "Subscription data is incomplete.");
-            }
+            return Results.Ok("Updated subscription.");
+        }
 
-            var old_sub = await Context.NotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
+        subscription.Id = IdManager.Generate();
 
-            if (old_sub != null)
-            {
-                if (old_sub.Auth == subscription.Auth && old_sub.Not_Key == subscription.Not_Key)
-                {
-                    return new TaskResult(false, "There is already a subscription for this endpoint.");
-                }
+        await db.NotificationSubscriptions.AddAsync(subscription);
+        await db.SaveChangesAsync();
 
-
-                // Update old subscription
-                old_sub.Auth = subscription.Auth;
-                old_sub.Not_Key = subscription.Not_Key;
-
-                Context.Update(old_sub);
-                await Context.SaveChangesAsync();
-
-                return new TaskResult(true, "Updated subscription.");
-            }
-
-            subscription.Id = IdManager.Generate();
-
-            await Context.NotificationSubscriptions.AddAsync(subscription);
-            await Context.SaveChangesAsync();
-
-            return new TaskResult(true, "Subscription was accepted.");
-        } 
+        return Results.Ok("Subscription was accepted.");
     }
-     */
+
+    public static async Task<IResult> Unsubscribe(ValourDB db, [FromBody] NotificationSubscription subscription, [FromHeader] string authorization)
+    {
+        if (string.IsNullOrWhiteSpace(authorization))
+            return ValourResult.NoToken();
+
+        var auth = await AuthToken.TryAuthorize(authorization, db);
+
+        if (auth is null)
+            return ValourResult.InvalidToken();
+
+        // Look for old subscription
+        var old = await db.NotificationSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == subscription.Endpoint);
+
+        if (old is null)
+            return Results.Ok("Subscription already removed.");
+
+
+        db.NotificationSubscriptions.Remove(old);
+        await db.SaveChangesAsync();
+
+        return Results.Ok("Removed subscription.");
+    }
 }
