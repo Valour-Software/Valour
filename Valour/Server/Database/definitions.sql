@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS notification_subscriptions (
     id BIGINT NOT NULL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     endpoint TEXT NOT NULL,
-    not_key  VARCHAR(128) NOT NULL,
+    key  VARCHAR(128) NOT NULL,
     auth VARCHAR(32) NOT NULL,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)

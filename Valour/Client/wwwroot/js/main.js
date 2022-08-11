@@ -174,24 +174,32 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 
 var videoElement = document.getElementById("videoElement");
 
-// If the page is hidden, pause the video;
-// if the page is shown, play the video
-function handleVisibilityChange() {
-    if (document[hidden]) {
-        // Nothing yet
-    } else {
-        DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
-    }
+// Visbility change handler
+if (document.addEventListener) {
+    document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState == 'hidden') {
+            // page is hidden
+        } else {
+            DotNet.invokeMethodAsync('Valour.Client', 'OnRefocus');
+        }
+    });
 }
 
-// Warn if the browser doesn't support addEventListener or the Page Visibility API
-if (typeof document.addEventListener === "undefined" || hidden === undefined) {
-    console.log("This demo requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.");
-} else {
-    // Handle page visibility change
-    document.addEventListener(visibilityChange, handleVisibilityChange, false);
+// Web lock
+// The idea here is to *force* the tab to stay active
 
-}
+// Capture promise control functions:
+let resolve, reject;
+const p = new Promise((res, rej) => { resolve = res; reject = rej; });
+
+// Request the lock:
+navigator.locks.request('valour_lock', lock => {
+    // Lock is acquired.
+
+    return p;
+    // Now lock will be held until either resolve() or reject() is called.
+});
+
 
 var oldScrollHeight = {};
 var oldScrollTop = {};

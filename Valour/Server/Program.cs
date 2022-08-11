@@ -77,6 +77,9 @@ namespace Valour.Server
             EmbedAPI.AddRoutes(app);
             OauthAPI.AddRoutes(app);
 
+            // Notification routes
+            NotificationsAPI.AddRoutes(app);
+
             // s3 (r2) setup
             BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
             AmazonS3Config config = new AmazonS3Config()

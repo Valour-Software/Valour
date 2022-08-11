@@ -12,6 +12,9 @@ using Valour.Shared.Cdn;
 using Valour.Server.Cdn;
 using System.Text.Json;
 using Valour.Shared.Items.Messages;
+using Valour.Shared.Items.Messages.Mentions;
+using Valour.Server.Notifications;
+using Valour.Server.Database.Items.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -446,7 +449,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
                               ChatChannelPermissionsEnum.PostMessages)]
-    public static async Task<IResult> PostMessageRouteAsync(HttpContext ctx, HttpClient client, CdnDb db, [FromBody] PlanetMessage message)
+    public static async Task<IResult> PostMessageRouteAsync(HttpContext ctx, HttpClient client, ValourDB valourDb, CdnDb db, [FromBody] PlanetMessage message)
     {
         var member = ctx.GetMember();
 
@@ -477,10 +480,10 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         message.Id = IdManager.Generate();
 
         // Handle attachments
-        if (message.AttachmentsData != null)
+        if (message.AttachmentsData is not null)
         {
             var attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(message.AttachmentsData);
-            if (attachments != null)
+            if (attachments is not null)
             {
                 foreach (var at in attachments)
                 {
@@ -491,6 +494,27 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
                     if (_attachmentRejectRegex.IsMatch(at.Location))
                     {
                         return Results.BadRequest("Attachment location contains invalid characters");
+                    }
+                }
+            }
+        }
+
+        if (message.MentionsData is not null)
+        {
+            var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
+            if (mentions is not null)
+            {
+                foreach (var mention in mentions)
+                {
+                    if (mention.Type == MentionType.Member)
+                    {
+                        var targetMember = await Item.FindAsync<PlanetMember>(mention.TargetId, valourDb);
+                        var sendingUser = await Item.FindAsync<User>(member.UserId, valourDb);
+                        var planet = await Item.FindAsync<Planet>(message.PlanetId, valourDb);
+
+                        var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
+
+                        await NotificationManager.SendNotificationAsync(valourDb, targetMember.UserId, sendingUser.PfpUrl, member.Nickname + " in " + planet.Name, content);
                     }
                 }
             }
