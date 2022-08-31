@@ -1,4 +1,4 @@
-using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Channels;
 using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows;
@@ -8,7 +8,7 @@ public class ChatChannelWindow : ClientWindow
     /// <summary>
     /// The channel this window represents
     /// </summary>
-    public PlanetChatChannel Channel { get; set; }
+    public IChatChannel Channel { get; set; }
 
     /// <summary>
     /// The component that belongs to this window
@@ -17,7 +17,7 @@ public class ChatChannelWindow : ClientWindow
 
     public override Type GetComponentType() =>
         typeof(ChannelWindowComponent);
-    public ChatChannelWindow(PlanetChatChannel channel)
+    public ChatChannelWindow(IChatChannel channel)
     {
         this.Channel = channel;
     }

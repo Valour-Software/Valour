@@ -1,24 +1,20 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Valour.Api.Extensions;
 using Valour.Api.Items;
+using Valour.Api.Items.Authorization;
+using Valour.Api.Items.Channels;
+using Valour.Api.Items.Channels.Planets;
+using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Users;
-using Valour.Api.Items.Messages;
-using Valour.Shared;
-using Valour.Shared.Items;
-using Microsoft.Extensions.Logging;
-using System.Diagnostics;
-using Valour.Api.Items.Authorization;
-using Valour.Shared.Items.Users;
-using System.Reflection;
-using Valour.Shared.Items.Channels;
-using Valour.Api.Items.Channels;
 using Valour.Api.Nodes;
-using System.Numerics;
+using Valour.Shared;
+using Valour.Shared.Items.Channels;
+using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Client;
 

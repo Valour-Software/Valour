@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Channels.Planets;
 
 namespace Valour.Api.Items.Channels;
 

@@ -5,7 +5,6 @@ using Valour.Api.Client;
 using Valour.Api.Items.Users;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Messages.Embeds.Items;
 using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages;
@@ -16,6 +15,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Api.Items.Messages.Embeds;
 using Valour.Api.Nodes;
 using Valour.Api.Items.Messages.Attachments;
+using Valour.Api.Items.Channels.Planets;
 
 namespace Valour.Api.Items.Messages;
 

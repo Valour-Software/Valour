@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Valour.Shared.Items.Planets.Channels;
+namespace Valour.Shared.Items.Channels;
 
 public interface ISharedChannel : ISharedItem
 {

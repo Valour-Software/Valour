@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;

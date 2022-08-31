@@ -183,6 +183,24 @@ CREATE TABLE IF NOT EXISTS planet_messages (
     CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES planet_messages(id)
 );
 
+CREATE TABLE IF NOT EXISTS direct_messages (
+    id BIGINT NOT NULL PRIMARY KEY,
+    reply_to_id BIGINT,
+    author_user_id BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    time_sent TIMESTAMP NOT NULL,
+    message_index BIGINT NOT NULL,
+    embed_data TEXT,
+    mentions_data TEXT,
+    attachments_data TEXT,
+    channel_id BIGINT NOT NULL,
+    edited BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES planet_chat_channels(id),
+    CONSTRAINT fk_author FOREIGN KEY(author_user_id) REFERENCES users(id),
+    CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES planet_messages(id)
+);
+
 CREATE TABLE IF NOT EXISTS planet_roles (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,

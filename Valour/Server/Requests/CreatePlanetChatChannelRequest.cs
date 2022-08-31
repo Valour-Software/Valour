@@ -1,5 +1,5 @@
 ﻿using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 
 namespace Valour.Server.Requests;
 

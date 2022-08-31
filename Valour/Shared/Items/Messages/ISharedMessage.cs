@@ -28,11 +28,6 @@ namespace Valour.Shared.Items.Messages
         long AuthorUserId { get; set; }
 
         /// <summary>
-        /// The author's member ID
-        /// </summary>
-        long AuthorMemberId { get; set; }
-
-        /// <summary>
         /// String representation of message
         /// </summary>
         string Content { get; set; }

@@ -2,7 +2,9 @@
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
+using Valour.Api.Items.Channels.Planets;
 using Valour.Api.Items.Messages;
+using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Nodes;
 using Valour.Api.Requests;
@@ -10,9 +12,9 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Planets.Channels;
+using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Api.Items.Planets.Channels;
+namespace Valour.Api.Items.Channels.Planets;
 
 
 /*  Valour - A free and secure chat client
@@ -206,7 +208,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId);
         return await node.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
-    } 
+    }
 
     public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
         (await Node.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}")).Data;

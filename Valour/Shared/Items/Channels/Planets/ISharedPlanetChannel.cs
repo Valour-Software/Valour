@@ -1,7 +1,6 @@
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
+using Valour.Shared.Items.Planets;
 
-namespace Valour.Shared.Items.Planets.Channels;
+namespace Valour.Shared.Items.Channels.Planets;
 
 public interface ISharedPlanetChannel : ISharedChannel, ISharedPlanetItem
 {

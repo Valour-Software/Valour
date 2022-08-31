@@ -1,10 +1,10 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets;
 using Valour.Client.Components.Windows;
 using Valour.Api.Items;
 using Valour.Shared;
 using Valour.Api.Nodes;
+using Valour.Api.Items.Channels.Planets;
 
 namespace Valour.Client.Windows;
 

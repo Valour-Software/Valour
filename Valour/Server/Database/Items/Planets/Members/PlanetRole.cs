@@ -2,7 +2,7 @@
 using System.Drawing;
 using System.Security.Cryptography;
 using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
