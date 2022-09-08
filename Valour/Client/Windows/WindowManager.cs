@@ -5,6 +5,7 @@ using Valour.Api.Items;
 using Valour.Shared;
 using Valour.Api.Nodes;
 using Valour.Api.Items.Channels.Planets;
+using Valour.Client.Windows.ChatWindows;
 
 namespace Valour.Client.Windows;
 
@@ -58,24 +59,11 @@ public class WindowManager
     {
         Instance = this;
         ValourClient.OnNodeReconnect += OnNodeReconnect;
-        ItemObserver<Planet>.OnAnyDeleted += OnPlanetDelete;
     }
 
     public async Task Log(string msg)
     {
         await Logger.Log(msg, "purple");
-    }
-
-    /// <summary>
-    /// Handles planet delete events (spooky!)
-    /// </summary
-    public async Task OnPlanetDelete(Planet planet)
-    {
-        var chatWindows = Windows.OfType<ChatChannelWindow>();
-
-        // Close all channels belonging to the planet
-        foreach (var chat in chatWindows.Where(x => x.Channel.PlanetId == planet.Id))
-            await CloseWindow(chat);
     }
 
     /// <summary>

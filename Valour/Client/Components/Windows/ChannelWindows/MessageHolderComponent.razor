@@ -1,17 +1,17 @@
 ﻿@inject IJSRuntime JS
 @implements IDisposable
-@using Valour.Api.Items.Messages
+@    using Valour.Api.Items.Messages
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;" onscroll="OnScrollChannel('@Window.Id')">
     <CascadingValue Value="this">
         @{
-            ClientPlanetMessage last = null;    
+            MessageRenderData last = null;    
 
             if (Messages != null && Messages.Count > 0)
             {
                 last = null;
 
-                foreach (ClientPlanetMessage msg in Messages)
+                foreach (MessageRenderData msg in Messages)
                 {
                     string key = $"{Window.Id}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
@@ -29,7 +29,7 @@
                     last = Messages.Last();
                 }
 
-                foreach (ClientPlanetMessage msg in QueuedMessages)
+                foreach (MessageRenderData msg in QueuedMessages)
                 {
                     string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
 
@@ -47,9 +47,9 @@
     public ChatChannelWindow Window { get; set; }
 
     [Parameter]
-    public List<ClientPlanetMessage> Messages { get; set; }
+    public List<MessageRenderData> Messages { get; set; }
 
-    public List<ClientPlanetMessage> QueuedMessages { get; set; }
+    public List<MessageRenderData> QueuedMessages { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
 
@@ -57,7 +57,7 @@
 
     //public HashSet<string> Keys = new HashSet<string>();
 
-    public void AddQueuedMessage(ClientPlanetMessage message)
+    public void AddQueuedMessage(MessageRenderData message)
     {
         QueuedMessages.Add(message);
         StateHasChanged();
@@ -85,7 +85,7 @@
         Messages.Clear();
     }
 
-    public ClientPlanetMessage GetLastMessage()
+    public MessageRenderData GetLastMessage()
     {
         if (QueuedMessages != null && QueuedMessages.Count > 0){
             return QueuedMessages.Last();
@@ -98,7 +98,7 @@
         return null;
     }
 
-    public void AddMessages(List<ClientPlanetMessage> messages, bool refresh = true)
+    public void AddMessages(List<MessageRenderData> messages, bool refresh = true)
     {
         Messages.AddRange(messages);
 
@@ -108,7 +108,7 @@
         }
     }
 
-    public void InsertMessages(int position, List<ClientPlanetMessage> messages, bool refresh = true)
+    public void InsertMessages(int position, List<MessageRenderData> messages, bool refresh = true)
     {
         //foreach(var m in messages)
         //{
@@ -123,7 +123,7 @@
         }
     }
 
-    public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
+    public async Task AddMessage(MessageRenderData message, bool refresh = true)
     {
         QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
 
@@ -171,8 +171,8 @@
     protected override void OnInitialized()
     {
         RenderedMessages = new List<MessageComponent>();
-        Messages = new List<ClientPlanetMessage>();
-        QueuedMessages = new List<ClientPlanetMessage>();
+        Messages = new List<MessageRenderData>();
+        QueuedMessages = new List<MessageRenderData>();
 
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 

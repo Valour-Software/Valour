@@ -1,4 +1,4 @@
-﻿@using Valour.Api.Items.Messages
+﻿@    using Valour.Api.Items.Messages
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -83,7 +83,7 @@
                         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
                         <div class="time-container">
                             <p class="time">
-                                @Message.BaseMessage.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                                @Message.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                             </p>
                         </div>
                     </div>
@@ -92,7 +92,7 @@
                         {
                             <div style="width: max-content">
                                 <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
-                                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.BaseMessage.ChannelId">
+                                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.Message.ChannelId">
                                         @name
                                     </p>
                                 </ContextMenuTrigger>
@@ -141,12 +141,12 @@
                                 }
                             }
 
-                            @if (Message.BaseMessage.Embed != null && Message.BaseMessage.Embed.Pages.Count > 0)
+                            @if (Message.Message.Embed != null && Message.Message.Embed.Pages.Count > 0)
                             {
 
-                                Console.WriteLine(Message.BaseMessage.Embed.Pages.Count);
+                                Console.WriteLine(Message.Message.Embed.Pages.Count);
 
-                                <EmbedComponent embed="@Message.BaseMessage.Embed" Message="Message"></EmbedComponent>
+                                <EmbedComponent embed="@Message.Message.Embed" Message="Message"></EmbedComponent>
                             }
                             else
                             {
@@ -179,10 +179,10 @@
 @code {
     // Demonstrates how a parent component can supply parameters
     [Parameter]
-    public ClientPlanetMessage Message { get; set; }
+    public MessageRenderData Message { get; set; }
 
     [Parameter]
-    public ClientPlanetMessage Last_Message { get; set; }
+    public MessageRenderData Last_Message { get; set; }
 
     [CascadingParameter]
     public MessageHolderComponent Holder { get; set; }
@@ -209,7 +209,7 @@
     [Parameter]
     public bool Reply { get; set; }
 
-    public ClientPlanetMessage ReplyMessage;
+    public MessageRenderData ReplyMessage;
 
     public ElementReference this_ref;
 
@@ -330,7 +330,7 @@
         ReRender();
     }
 
-    public async Task SetMessage(ClientPlanetMessage message)
+    public async Task SetMessage(MessageRenderData message)
     {
         this.Message = message;
         await BuildMessage();
@@ -344,7 +344,7 @@
         StateHasChanged();
     }
 
-    public void SetLast(ClientPlanetMessage msg)
+    public void SetLast(MessageRenderData msg)
     {
         Last_Message = msg;
     }
@@ -358,7 +358,7 @@
 
         if (Message.ReplyToId is not null)
         {
-            ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.BaseMessage.ReplyToId, Message.BaseMessage.ChannelId, Message.BaseMessage.PlanetId));
+            ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.Message.ReplyToId, Message.Message.ChannelId, Message.Message.PlanetId));
         }
 
         CheckMinimal();
@@ -367,9 +367,9 @@
         {
             var selfId = Window.Component.SelfMember.Id;
 
-            if (Message.BaseMessage.MentionsData != null)
+            if (Message.Message.MentionsData != null)
             {
-                mentioned = Message.BaseMessage.MentionsData.Contains(selfId.ToString());
+                mentioned = Message.Message.MentionsData.Contains(selfId.ToString());
             }
         }
 
@@ -378,7 +378,7 @@
             return;
         }
 
-        Author = await Message.BaseMessage.GetAuthorMemberAsync();
+        Author = await Message.Message.GetAuthorMemberAsync();
 
         name = await Author.GetNameAsync();
 
@@ -460,7 +460,7 @@
                 Minimal = false;
                 return;
             }
-            if (Last_Message.BaseMessage.AuthorUserId == Message.BaseMessage.AuthorUserId)
+            if (Last_Message.Message.AuthorUserId == Message.Message.AuthorUserId)
             {
                 Minimal = true;
                 return;

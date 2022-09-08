@@ -25,7 +25,7 @@ namespace Valour.Api.Items.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
+public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
 {
     #region IPlanetItem implementation
 
@@ -40,148 +40,26 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     #endregion
 
     /// <summary>
-    /// The message (if any) this is a reply to
-    /// </summary>
-    public long? ReplyToId { get; set; }
-
-    /// <summary>
-    /// The user's ID
-    /// </summary>
-    public long AuthorUserId { get; set; }
-
-    /// <summary>
     /// The member's ID
     /// </summary>
     public long AuthorMemberId { get; set; }
 
-    /// <summary>
-    /// String representation of message
-    /// </summary>
-    public string Content { get; set; }
-
-    /// <summary>
-    /// The time the message was sent (in UTC)
-    /// </summary>
-    public DateTime TimeSent { get; set; }
-
-    /// <summary>
-    /// Id of the channel this message belonged to
-    /// </summary>
-    public long ChannelId { get; set; }
-
-    /// <summary>
-    /// Index of the message
-    /// </summary>
-    public long MessageIndex { get; set; }
-
-    /// <summary>
-    /// Data for representing an embed
-    /// </summary>
-    public string EmbedData { get; set; }
-
-    /// <summary>
-    /// Data for representing mentions in a message
-    /// </summary>
-    public string MentionsData { get; set; }
-
-    /// <summary>
-    /// Data for representing attachments in a message
-    /// </summary>
-    public string AttachmentsData { get; set; }
-
-    /// <summary>
-    /// True if the message was edited
-    /// </summary>
-    public bool Edited { get; set; }
-
-    /// <summary>
-    /// Used to identify a message returned from the server 
-    /// </summary>
-    public string Fingerprint { get; set; }
-
-    /// <summary>
-    /// The mentions contained within this message
-    /// </summary>
-    private List<Mention> _mentions;
-
-    /// <summary>
-    /// True if the mentions data has been parsed
-    /// </summary>
-    private bool mentionsParsed = false;
-
-    /// <summary>
-    /// The inner embed data
-    /// </summary>
-    private Embed _embed;
-
-    /// <summary>
-    /// True if the embed data has been parsed
-    /// </summary>
-    private bool embedParsed = false;
-
-    /// <summary>
-    /// True if attachments data has been parsed
-    /// </summary>
-    private bool attachmentsParsed = false;
-
-    /// <summary>
-    /// The inner attachments data
-    /// </summary>
-    private List<MessageAttachment> _attachments;
-
-    /// <summary>
-    /// The mentions for members within this message
-    /// </summary>
-    public List<Mention> Mentions
+    public PlanetMessage()
     {
-        get
-        {
-            if (!mentionsParsed)
-            {
-                if (!string.IsNullOrEmpty(MentionsData))
-                {
-                    _mentions = JsonSerializer.Deserialize<List<Mention>>(MentionsData);
-                }
-            }
-
-            return _mentions;
-        }
     }
 
-    public Embed Embed
+    // Makes PlanetMessage meant to be sent to valour from the client
+    public PlanetMessage(string text, long self_memberId, long channelId, long planetId)
     {
-        get
-        {
-            if (!embedParsed)
-            {
-                if (!string.IsNullOrEmpty(EmbedData))
-                {
-                    _embed = new Embed();
-                    _embed.BuildFromJson(JsonNode.Parse(EmbedData));
-                }
-
-                embedParsed = true;
-            }
-
-            return _embed;
-        }
+        ChannelId = channelId;
+        Content = text;
+        TimeSent = DateTime.UtcNow;
+        AuthorUserId = ValourClient.Self.Id;
+        PlanetId = planetId;
+        AuthorMemberId = self_memberId;
+        Fingerprint = Guid.NewGuid().ToString();
     }
 
-    public List<MessageAttachment> Attachments
-    {
-        get
-        {
-            if (!mentionsParsed)
-            {
-                if (!string.IsNullOrEmpty(AttachmentsData))
-                {
-                    _attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(AttachmentsData);
-                }
-            }
-
-            return _attachments;
-        }
-    }
 
     public static async ValueTask<PlanetMessage> FindAsync(long id, long channelId, long planetId, bool refresh = false)
     {
@@ -210,73 +88,11 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
         return await node.PostAsync($"api/planet/{PlanetId}/{nameof(PlanetChatChannel)}/{ChannelId}/messages", this);
     }
 
-    public void SetMentions(IEnumerable<Mention> mentions)
-    {
-        _mentions = mentions.ToList();
-        MentionsData = JsonSerializer.Serialize(mentions);
-    }
-
-    public void SetAttachments(List<MessageAttachment> attachments)
-    {
-        _attachments = attachments;
-        AttachmentsData = JsonSerializer.Serialize(attachments);
-    }
-
-    public void ClearMentions()
-    {
-        if (_mentions == null)
-        {
-            _mentions = new List<Mention>();
-        }
-        else
-        {
-            MentionsData = null;
-            _mentions.Clear();
-        }
-    }
-
-    /// <summary>
-    /// Returns true if the message is a embed
-    /// </summary>
-    public bool IsEmbed()
-    {
-        if (EmbedData != null)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    // Makes PlanetMessage meant to be sent to valour from the client
-    public PlanetMessage(string text, long self_memberId, long channelId, long planetId)
-    {
-        ChannelId = channelId;
-        Content = text;
-        TimeSent = DateTime.UtcNow;
-        AuthorUserId = ValourClient.Self.Id;
-        PlanetId = planetId;
-        AuthorMemberId = self_memberId;
-        Fingerprint = Guid.NewGuid().ToString();
-    }
-
-    public PlanetMessage()
-    {
-    }
-
     /// <summary> 
     /// Returns the author member of the message 
     /// </summary> 
     public ValueTask<PlanetMember> GetAuthorMemberAsync() =>
         PlanetMember.FindAsync(AuthorMemberId, PlanetId);
-
-    /// <summary> 
-    /// Returns the author user of the message 
-    /// </summary> 
-    public async ValueTask<User> GetAuthorUserAsync() =>
-        await (await this.GetAuthorMemberAsync()).GetUserAsync();
 
     /// <summary>
     /// Returns the channel the message was sent in

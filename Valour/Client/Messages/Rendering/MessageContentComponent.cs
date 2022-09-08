@@ -12,7 +12,7 @@ namespace Valour.Client.Messages;
 public class MessageContentComponent : ComponentBase
 {
     [Parameter]
-    public ClientPlanetMessage Message { get; set; }
+    public MessageRenderData Message { get; set; }
 
     public void ReRender()
     {

@@ -15,7 +15,7 @@
     [Parameter]
     public EmbedItem _item {get; set;}
     [Parameter]
-    public ClientPlanetMessage Message {get; set;}
+    public MessageRenderData Message {get; set;}
     [Parameter]
     public Embed embed { get; set;}
     [Parameter]
@@ -31,16 +31,16 @@
     public async Task OnEmbedButtonClick()
     {
 
-        PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.BaseMessage.PlanetId);
+        PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.Message.PlanetId);
 
         Api.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
         {
             EventType = EmbedIteractionEventType.ButtonClick,
-            PlanetId = Message.BaseMessage.PlanetId,
-            MessageId = Message.BaseMessage.Id,
-            Author_MemberId = Message.BaseMessage.AuthorMemberId,
+            PlanetId = Message.Message.PlanetId,
+            MessageId = Message.Message.Id,
+            Author_MemberId = Message.Message.AuthorMemberId,
             MemberId = SelfMember.Id,
-            ChannelId = Message.BaseMessage.ChannelId,
+            ChannelId = Message.Message.ChannelId,
             TimeInteracted = DateTime.UtcNow,
             ElementId = Item.Id
         };

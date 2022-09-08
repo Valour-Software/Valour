@@ -23,7 +23,7 @@ namespace Valour.Api.Items.Channels.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatChannel<PlanetMessage>
 {
     #region IPlanetItem implementation
 

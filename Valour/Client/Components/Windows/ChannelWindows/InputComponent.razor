@@ -1,8 +1,8 @@
 ﻿@inject IJSRuntime JS
-@using System.Net.Http.Headers
-@using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
-@using Valour.Api.Items.Messages;
-@using Valour.Api.Items.Messages.Attachments
+@    using System.Net.Http.Headers
+@    using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
+@    using Valour.Api.Items.Messages;
+@    using Valour.Api.Items.Messages.Attachments
 
 <div>
     <div class="preview-message">
@@ -63,7 +63,7 @@
     /// <summary>
     /// The message that we are replying to if we are
     /// </summary>
-    public ClientPlanetMessage ReplyingTo { get; set; }
+    public MessageRenderData ReplyingTo { get; set; }
 
     /// <summary>
     /// The message component for the preview message
@@ -73,7 +73,7 @@
     /// <summary>
     /// The preview message
     /// </summary>
-    public ClientPlanetMessage PreviewMessage { get; set; }
+    public MessageRenderData PreviewMessage { get; set; }
 
     /// <summary>
     /// Run when the component is initialized
@@ -133,7 +133,7 @@
         "image/svg+xml"
     };
 
-    public async Task OnBeginEdit(ClientPlanetMessage message)
+    public async Task OnBeginEdit(MessageRenderData message)
     {
         PreviewMessage = message;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
@@ -234,12 +234,12 @@
     [JSInvokable]
     public async Task OnChatboxSubmit()
     {
-        if (PreviewMessage.BaseMessage.Content is not null){
-            PreviewMessage.BaseMessage.Content =
-                PreviewMessage.BaseMessage.Content.TrimEnd('\n');
+        if (PreviewMessage.Message.Content is not null){
+            PreviewMessage.Message.Content =
+                PreviewMessage.Message.Content.TrimEnd('\n');
 
-            PreviewMessage.BaseMessage.Content =
-                PreviewMessage.BaseMessage.Content.Trim();
+            PreviewMessage.Message.Content =
+                PreviewMessage.Message.Content.Trim();
         }
 
         if (PreviewMessage.IsEmpty)
@@ -247,7 +247,7 @@
             return;
         }
 
-        var postMessage = new ClientPlanetMessage(PreviewMessage.BaseMessage);
+        var postMessage = new ClientPlanetMessage(PreviewMessage.Message);
 
         // New message for preview
         var innerMessage = new PlanetMessage()
@@ -331,7 +331,7 @@
             input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
         }
 
-        PreviewMessage.BaseMessage.Content = input;
+        PreviewMessage.Message.Content = input;
         await RefreshPreviewMessage();
 
         StateHasChanged();
@@ -349,16 +349,16 @@
 
     public async Task RefreshPreviewMessage() {
         PreviewMessage.Clear();
-        PreviewMessage.BaseMessage.TimeSent = DateTime.UtcNow;
+        PreviewMessage.Message.TimeSent = DateTime.UtcNow;
         PreviewMessage.GenerateForPost();
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
-    public async Task SetReplyMessage(ClientPlanetMessage message)
+    public async Task SetReplyMessage(MessageRenderData message)
     {
         PreviewMessageComponent.ReplyMessage = message;
         ReplyingTo = message;
-        PreviewMessage.BaseMessage.ReplyToId = ReplyingTo?.Id;
+        PreviewMessage.Message.ReplyToId = ReplyingTo?.Id;
 
         await RefreshPreviewMessage();
         Refresh();
@@ -369,17 +369,17 @@
     public async Task RemoveReply()
     {
         ReplyingTo = null;
-        PreviewMessage.BaseMessage.ReplyToId = null;
+        PreviewMessage.Message.ReplyToId = null;
         PreviewMessageComponent.ReplyMessage = null;
         PreviewMessageComponent.ReRender();
     }
 
-    public async Task PostMessage(ClientPlanetMessage message)
+    public async Task PostMessage(MessageRenderData message)
     {
         message.GenerateForPost();
         MessageHolder.AddQueuedMessage(message);
 
-        var result = await message.BaseMessage.PostMessageAsync();
+        var result = await message.Message.PostMessageAsync();
 
         if (!result.Success)
         {

@@ -68,6 +68,11 @@ namespace Valour.Shared.Items.Messages
         string Fingerprint { get; set; }
 
         /// <summary>
+        /// True if the message was edited
+        /// </summary>
+        bool Edited { get; set; }
+
+        /// <summary>
         /// Returns the hash for a message.
         /// </summary>
         public byte[] GetHash()

@@ -45,11 +45,11 @@
 
     public static MessageComponent MessageComponent { get; set; }
 
-    public static ClientPlanetMessage Message { get; set; }
+    public static MessageRenderData Message { get; set; }
 
     public static PermissionState Can_Delete = PermissionState.False;
 
-    public static async Task Initialize(ClientPlanetMessage message, ChannelWindowComponent window, MessageComponent component)
+    public static async Task Initialize(MessageRenderData message, ChannelWindowComponent window, MessageComponent component)
     {
         MessageComponent = component;
         Message = message;
@@ -79,7 +79,7 @@
         ConfirmModalData confirm = new("Delete message?", Message.Content, "Delete", "Cancel",
             async () =>
             {
-                await Message.BaseMessage.DeleteAsync();
+                await Message.Message.DeleteAsync();
             },
             async () =>
             {
