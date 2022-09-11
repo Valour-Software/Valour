@@ -172,7 +172,7 @@ public class ClientPlanetMessage
     };
 
     public bool IsEmpty =>
-        string.IsNullOrWhiteSpace(Content) && ReplyToId is null && (BaseMessage.Attachments is null || BaseMessage.Attachments.Count == 0);
+        string.IsNullOrWhiteSpace(Content) && ReplyToId is null && (BaseMessage.Attachments is null || BaseMessage.Attachments.Count == 0) && BaseMessage.EmbedData is null;
 
     public void Clear()
     {
