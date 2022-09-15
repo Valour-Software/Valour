@@ -1,8 +1,8 @@
-﻿@    using Valour.Api.Items.Messages
+﻿@using Valour.Api.Items.Messages
 @inject IJSRuntime JS
 @implements IDisposable
 
-@if (Message == null || Message.IsEmpty)
+@if (MessageData == null || MessageData.IsEmpty)
 {
     return;
 }
@@ -22,18 +22,18 @@
                 {
                     <div class="time-container">
                         <p class="time">
-                            @Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                            @MessageData.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                         </p>
                     </div>
                     <div class="message-content">
 
                         <p class="content" @ref="InnerRef">
 
-                            @if (Message.Attachments != null && Message.Attachments.Count > 0)
+                            @if (MessageData.Message.Attachments != null && MessageData.Message.Attachments.Count > 0)
                             {
                                 var i = 0;
 
-                                @foreach (var attachment in Message.Attachments)
+                                @foreach (var attachment in MessageData.Message.Attachments)
                                 {
                                     var par = new Dictionary<string, object>()
                                     {
@@ -54,9 +54,9 @@
                                 }
                             }
 
-                            @if (Message.Embed != null && Message.Embed.Pages.Count > 0)
+                            @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
                             {
-                                <EmbedComponent embed="@Message.Embed" Message="Message"></EmbedComponent>
+                                <EmbedComponent embed="@MessageData.Message.Embed" Message="MessageData"></EmbedComponent>
                             }
                             else
                             {
@@ -68,10 +68,10 @@
                                 }
                                 else
                                 {
-                                    key = $"content-{Message.Message_Index}-{Message.TimeSent}-{Window.Id}";
+                                    key = $"content-{MessageData.Message.MessageIndex}-{MessageData.Message.TimeSent}-{Window.Id}";
                                 }
 
-                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
                             }
                         </p>
                     </div>
@@ -83,31 +83,25 @@
                         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
                         <div class="time-container">
                             <p class="time">
-                                @Message.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                                @MessageData.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                             </p>
                         </div>
                     </div>
                     <div class="message-content">
-                        @if (Author != null)
-                        {
-                            <div style="width: max-content">
-                                <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Author)' style='display:inline'>
-                                    <p class="author-name" style="color: @roleColor;" id="@Author.Id,@Message.Message.ChannelId">
-                                        @name
-                                    </p>
-                                </ContextMenuTrigger>
 
-                                <p class="role-name">
-                                    &nbsp;- @roleName
+                        <div style="width: max-content">
+                            <ContextMenuTrigger MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
+                                <p class="author-name" style="color: @nameColor;">
+                                    @name
                                 </p>
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="author-name" style="color: @roleColor;">
-                                User not found
+                            </ContextMenuTrigger>
+
+                            <p class="role-name">
+                                &nbsp;- @nameTag
                             </p>
-                        }
+                        </div>
+
+
                         @if (ReplyMessage is not null && !Reply)
                         {
                             string replykey = $"reply-{Window.Id}";
@@ -116,11 +110,12 @@
                         }
                         <p class="content" @ref="InnerRef">
 
-                            @if (Message.Attachments != null && Message.Attachments.Count > 0)
+                            @if (MessageData.Message.Attachments != null && 
+                                 MessageData.Message.Attachments.Count > 0)
                             {
                                 var i = 0;
 
-                                @foreach (var attachment in Message.Attachments)
+                                @foreach (var attachment in MessageData.Message.Attachments)
                                 {
                                     var par = new Dictionary<string, object>()
                                     {
@@ -141,12 +136,12 @@
                                 }
                             }
 
-                            @if (Message.Message.Embed != null && Message.Message.Embed.Pages.Count > 0)
+                            @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
                             {
 
-                                Console.WriteLine(Message.Message.Embed.Pages.Count);
+                                Console.WriteLine(MessageData.Message.Embed.Pages.Count);
 
-                                <EmbedComponent embed="@Message.Message.Embed" Message="Message"></EmbedComponent>
+                                <EmbedComponent embed="@MessageData.Message.Embed" Message="MessageData"></EmbedComponent>
                             }
                             else
                             {
@@ -158,10 +153,10 @@
                                 }
                                 else
                                 {
-                                    key = $"content-{Message.Message_Index}-{Message.TimeSent}-{Window.Id}";
+                                    key = $"content-{MessageData.Message.MessageIndex}-{MessageData.Message.TimeSent}-{Window.Id}";
                                 }
 
-                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="Message"></MessageContentComponent>
+                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
                             }
                         </p>
                     </div>
@@ -177,22 +172,17 @@
 </div>
 
 @code {
-    // Demonstrates how a parent component can supply parameters
-    [Parameter]
-    public MessageRenderData Message { get; set; }
-
-    [Parameter]
-    public MessageRenderData Last_Message { get; set; }
-
     [CascadingParameter]
     public MessageHolderComponent Holder { get; set; }
 
     [CascadingParameter]
     public ChatChannelWindow Window { get; set; }
 
-    public MessageContentComponent ContentComponent;
+    [Parameter]
+    public MessageRenderData MessageData { get; set; }
 
-    public ElementReference InnerRef;
+    [Parameter]
+    public MessageRenderData LastMessage { get; set; }
 
     [Parameter]
     public string Key { get; set; }
@@ -200,18 +190,41 @@
     [Parameter]
     public bool Ghost { get; set; }
 
-    public PlanetMember Author;
+    [Parameter]
+    public bool Reply { get; set; }
+
+    [Parameter]
+    public bool Submessage { get; set; }
+
+    public User User { get; set; }
+
+    public virtual string ContextMenuId => "general-message-context";
+
+    public MessageContentComponent ContentComponent;
+
+    public ElementReference InnerRef;
 
     public bool ShouldRenderValue = false;
 
     public bool Minimal = false;
 
-    [Parameter]
-    public bool Reply { get; set; }
-
     public MessageRenderData ReplyMessage;
 
     public ElementReference this_ref;
+
+    public string Id = "";
+
+    public string nameColor = "#ffffff";
+
+    public string nameTag = "Default";
+
+    public string pfpurl = "_content/Valour.Client/icon-512.png";
+
+    public string name = "";
+
+    public bool Edit = false;
+
+    bool mentioned = false;
 
     public string Class
     {
@@ -252,26 +265,12 @@
         }
     }
 
-    string Id = "";
+    // This is handled here because we don't want to go from
+    // Valour.Client -> Valour.Api
+    public virtual async Task InitializeContextMenu()
+    {
 
-    string roleColor = "#ffffff";
-
-    string roleName = "Default";
-
-    string pfpurl = "_content/Valour.Client/icon-512.png";
-
-    string name = "";
-
-    public bool Edit = false;
-
-    public long roleId;
-
-    bool mentioned = false;
-
-    [Parameter]
-    public bool Submessage { get; set; }
-
-    private PlanetRole primaryRole;
+    }
 
     public async Task OnPointerDown()
     {
@@ -290,7 +289,7 @@
             await WindowManager.Instance.SetSelectedWindow(Window);
 
             // Initialize message
-            await MessageContextMenuComponent.Initialize(Message, Window.Component, this);
+            await MessageContextMenuComponent.Initialize(MessageData, Window.Component, this);
         }
     }
 
@@ -332,7 +331,7 @@
 
     public async Task SetMessage(MessageRenderData message)
     {
-        this.Message = message;
+        this.MessageData = message;
         await BuildMessage();
 
         ReRender();
@@ -346,30 +345,28 @@
 
     public void SetLast(MessageRenderData msg)
     {
-        Last_Message = msg;
+        LastMessage = msg;
     }
 
     public async Task BuildMessage()
     {
-        if (Message == null)
-        {
+        if (MessageData == null)
             return;
-        }
 
-        if (Message.ReplyToId is not null)
-        {
-            ReplyMessage = new ClientPlanetMessage(await PlanetMessage.FindAsync((long)Message.Message.ReplyToId, Message.Message.ChannelId, Message.Message.PlanetId));
-        }
+        // Get reference to reply message if we have a reply
+        if (MessageData.Message.ReplyToId is not null)
+            ReplyMessage = new MessageRenderData(await MessageData.Message.GetReplyMessageAsync());
 
+        // Check if we are a minimal message
         CheckMinimal();
 
         if (!Submessage)
         {
             var selfId = Window.Component.SelfMember.Id;
 
-            if (Message.Message.MentionsData != null)
+            if (MessageData.Message.MentionsData != null)
             {
-                mentioned = Message.Message.MentionsData.Contains(selfId.ToString());
+                mentioned = MessageData.Message.MentionsData.Contains(selfId.ToString());
             }
         }
 
@@ -378,89 +375,52 @@
             return;
         }
 
-        Author = await Message.Message.GetAuthorMemberAsync();
-
-        name = await Author.GetNameAsync();
-
-        roleColor = await Author.GetRoleColorAsync();
-
-        primaryRole = await Author.GetPrimaryRoleAsync();
-
-        if (primaryRole != null)
-        {
-            roleName = primaryRole.Name;
-            roleId = primaryRole.Id;
-        }
-
-        string pfp = await Author.GetPfpUrlAsync();
-
-        //Console.WriteLine(Submessage);
-        //Console.WriteLine(Message.Mentions_Data);
-
-        if (Author != null && !string.IsNullOrWhiteSpace(pfp))
-        {
-            pfpurl = pfp;
-        }
+        name = await MessageData.Message.GetAuthorNameAsync();
+        nameColor = await MessageData.Message.GetAuthorColorAsync();
+        nameTag = await MessageData.Message.GetAuthorTagAsync();
+        pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
     }
 
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
 
-        if (Message is null)
+        if (MessageData is null)
             return;
 
-        Id = $"m-{Message.ChannelId}-{Message.Message_Index}";
+        Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.MessageIndex}";
 
         if (!Submessage)
         {
             Holder.AddRenderedMessage(this);
         }
 
-        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
-        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+        User = await MessageData.Message.GetAuthorUserAsync();
 
         await BuildMessage();
 
-        if (Author != null)
-        {
-            Author.OnUpdated += OnAuthorUpdated;
-            var user = await Author.GetUserAsync();
-
-            if (user != null)
-                user.OnUpdated += OnUserUpdated;
-        }
-    }
-
-    public async Task OnAuthorUpdated(int flags)
-    {
-        if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
-            await UpdateForRoleChange();
-
-        name = await Author.GetNameAsync();
-        pfpurl = await Author.GetPfpUrlAsync();
-
-        ReRender();
+        if (User != null)
+            User.OnUpdated += OnUserUpdated;
     }
 
     public async Task OnUserUpdated(int flags)
     {
-        name = await Author.GetNameAsync();
-        pfpurl = await Author.GetPfpUrlAsync();
+        name = await MessageData.Message.GetAuthorNameAsync();
+        pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
 
         ReRender();
     }
 
     public void CheckMinimal()
     {
-        if (Last_Message != null && Message != null)
+        if (LastMessage != null && MessageData != null)
         {
             if (ReplyMessage is not null)
             {
                 Minimal = false;
                 return;
             }
-            if (Last_Message.Message.AuthorUserId == Message.Message.AuthorUserId)
+            if (LastMessage.Message.AuthorUserId == MessageData.Message.AuthorUserId)
             {
                 Minimal = true;
                 return;
@@ -468,14 +428,6 @@
         }
 
         Minimal = false;
-    }
-
-    public async Task UpdateForRoleChange()
-    {
-        roleColor = await Author.GetRoleColorAsync();
-        var primRole = await Author.GetPrimaryRoleAsync();
-        roleName = primRole.Name;
-        roleId = primRole.Id;
     }
 
     public void ReRender()
@@ -488,26 +440,6 @@
         ContentComponent?.ReRender();
 
         ShouldRenderValue = false;
-    }
-
-    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
-    {
-        if (role != null && primaryRole != null && role.Id == primaryRole.Id)
-        {
-            primaryRole = role;
-            await UpdateForRoleChange();
-            ReRender();
-        }
-    }
-
-    public async Task OnRoleDeletion(PlanetRole role)
-    {
-        if (role.Id == primaryRole.Id)
-        {
-            primaryRole = await Author.GetPrimaryRoleAsync();
-            await UpdateForRoleChange();
-            ReRender();
-        }
     }
 
     void IDisposable.Dispose()

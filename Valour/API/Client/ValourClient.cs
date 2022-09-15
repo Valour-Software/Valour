@@ -74,7 +74,7 @@ public static class ValourClient
     /// <summary>
     /// Currently opened channels
     /// </summary>
-    public static List<PlanetChatChannel> OpenChannels { get; private set; }
+    public static List<PlanetChatChannel> OpenPlanetChannels { get; private set; }
 
     /// <summary>
     /// The state of channels this user has access to
@@ -159,7 +159,7 @@ public static class ValourClient
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
         OpenPlanets = new List<Planet>();
-        OpenChannels = new List<PlanetChatChannel>();
+        OpenPlanetChannels = new List<PlanetChatChannel>();
         JoinedPlanets = new List<Planet>();
 
         // Hook top level events
@@ -201,7 +201,7 @@ public static class ValourClient
     /// Returns if the channel is open
     /// </summary>
     public static bool IsChannelOpen(PlanetChatChannel channel) =>
-        OpenChannels.Any(x => x.Id == channel.Id);
+        OpenPlanetChannels.Any(x => x.Id == channel.Id);
 
     /// <summary>
     /// Opens a planet and prepares it for use
@@ -293,10 +293,10 @@ public static class ValourClient
     /// <summary>
     /// Opens a SignalR connection to a channel
     /// </summary>
-    public static async Task OpenChannel(PlanetChatChannel channel)
+    public static async Task OpenPlanetChannel(PlanetChatChannel channel)
     {
         // Already opened
-        if (OpenChannels.Contains(channel))
+        if (OpenPlanetChannels.Contains(channel))
             return;
 
         var planet = await channel.GetPlanetAsync();
@@ -312,7 +312,7 @@ public static class ValourClient
             return;
 
         // Add to open set
-        OpenChannels.Add(channel);
+        OpenPlanetChannels.Add(channel);
 
         Console.WriteLine($"Joined SignalR group for channel {channel.Name} ({channel.Id})");
 
@@ -326,14 +326,14 @@ public static class ValourClient
     public static async Task CloseChannelConnection(PlanetChatChannel channel)
     {
         // Not opened
-        if (!OpenChannels.Contains(channel))
+        if (!OpenPlanetChannels.Contains(channel))
             return;
 
         // Leaves channel SignalR group
         await channel.Node.HubConnection.SendAsync("LeaveChannel", channel.Id);
 
         // Remove from open set
-        OpenChannels.Remove(channel);
+        OpenPlanetChannels.Remove(channel);
 
         Console.WriteLine($"Left SignalR group for channel {channel.Name} ({channel.Id})");
 
@@ -713,7 +713,7 @@ public static class ValourClient
 
             var channels = await planet.GetChannelsAsync();
 
-            channels.ForEach(async x => await OpenChannel(x));
+            channels.ForEach(async x => await OpenPlanetChannel(x));
         }
 
         JoinedPlanets = planets;

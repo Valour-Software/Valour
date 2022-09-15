@@ -49,6 +49,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
     public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
 
+    public override async Task Open()
+    {
+        await ValourClient.OpenPlanetChannel(this);
+    }
+
     /// <summary>
     /// Returns the permissions node for the given role id
     /// </summary>

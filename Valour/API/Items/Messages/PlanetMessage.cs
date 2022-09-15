@@ -127,5 +127,26 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
 
         await ValourClient.SendMessage(message);
     }
+
+    public override async ValueTask<string> GetAuthorNameAsync()
+        => await (await GetAuthorMemberAsync()).GetNameAsync();
+
+    public override async ValueTask<string> GetAuthorTagAsync()
+    => (await (await GetAuthorMemberAsync()).GetPrimaryRoleAsync()).Name;
+
+    public override async ValueTask<string> GetAuthorColorAsync()
+        => await (await GetAuthorMemberAsync()).GetRoleColorAsync();
+
+    public override async ValueTask<string> GetAuthorImageUrlAsync()
+        => await (await GetAuthorMemberAsync()).GetPfpUrlAsync();
+
+    public override async ValueTask<Message> GetReplyMessageAsync()
+    {
+        if (ReplyToId is null)
+            return null; 
+
+        return await PlanetMessage.FindAsync(ReplyToId.Value, ChannelId, PlanetId);
+    }
+        
 }
 

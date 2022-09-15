@@ -146,7 +146,7 @@ public class WindowManager
         }
 
         // Open connection to channel
-        await ValourClient.OpenChannel(newChannel);
+        await ValourClient.OpenPlanetChannel(newChannel);
     }
 
     /// <summary>

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
+using Valour.Api.Items.Messages;
 
 namespace Valour.Client.Messages;
 

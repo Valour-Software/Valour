@@ -26,8 +26,6 @@ public abstract class PlanetChannel : Channel, IPlanetItem
 
     public int Position { get; set; }
     public long? ParentId { get; set; }
-    public string Name { get; set; }
-    public string Description { get; set; }
 
     public abstract string GetHumanReadableName();
     public abstract Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool force_refresh = false);

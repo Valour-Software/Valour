@@ -149,5 +149,9 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         // No roles ever defined behavior: resort to false.
         return false;
     }
+
+    // Categories can't really be opened...
+    public override Task Open()
+        => Task.CompletedTask;
 }
 

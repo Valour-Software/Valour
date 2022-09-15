@@ -7,7 +7,7 @@ using Valour.Shared.Items.Messages.Mentions;
 using Valour.Api.Items.Users;
 
 namespace Valour.Api.Items.Messages;
-public class Message : Item, ISharedMessage
+public abstract class Message : Item, ISharedMessage
 {
     /// <summary>
     /// The message (if any) this is a reply to
@@ -89,14 +89,16 @@ public class Message : Item, ISharedMessage
     private bool embedParsed = false;
 
     /// <summary>
-    /// True if attachments data has been parsed
-    /// </summary>
-    private bool attachmentsParsed = false;
-
-    /// <summary>
     /// The inner attachments data
     /// </summary>
     private List<MessageAttachment> _attachments;
+
+    // Abstract methods
+    public abstract ValueTask<Message> GetReplyMessageAsync();
+    public abstract ValueTask<string> GetAuthorNameAsync();
+    public abstract ValueTask<string> GetAuthorTagAsync();
+    public abstract ValueTask<string> GetAuthorColorAsync();
+    public abstract ValueTask<string> GetAuthorImageUrlAsync();
 
     /// <summary>
     /// The mentions for members within this message

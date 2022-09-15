@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Valour.Api.Items.Messages;
+using Valour.Client.Components.Messages;
 using Valour.Shared.Items.Messages.Mentions;
 
 namespace Valour.Client.Messages;
@@ -12,7 +13,7 @@ namespace Valour.Client.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class MessageRenderData<TMessage> where TMessage : Message
+public class MessageRenderData
 {
     /// <summary>
     /// True if this message's content has been fully built
@@ -35,24 +36,37 @@ public class MessageRenderData<TMessage> where TMessage : Message
     private string _markdownContent;
 
     /// <summary>
-    /// The internal planet message
+    /// The internal message
     /// </summary>
-    public TMessage Message { get; set; }
+    public Message Message { get; set; }
 
-    public static List<MessageRenderData<TMessage>> FromList(List<TMessage> messages)
+    /// <summary>
+    /// Returns the component type to be used when rendering the message
+    /// Don't forget to add to this when new Message types are added (ahem, Jacob)
+    /// </summary>
+    public Type GetComponentType()
     {
-        List<MessageRenderData<TMessage>> result = new();
+        switch (Message) {
+            case PlanetMessage: return typeof(PlanetMessageComponent);
+        }
+
+        return typeof(MessageComponent);
+    }
+
+    public static List<MessageRenderData> FromList(List<Message> messages)
+    {
+        List<MessageRenderData> result = new();
 
         if (messages is null)
             return result;
 
-        foreach (TMessage message in messages)
-            result.Add(new MessageRenderData<TMessage>(message));
+        foreach (Message message in messages)
+            result.Add(new MessageRenderData(message));
 
         return result;
     }
 
-    public MessageRenderData(TMessage message)
+    public MessageRenderData(Message message)
     {
         Message = message;
     }

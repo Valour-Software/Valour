@@ -6,8 +6,6 @@
 @inject SoundManager soundManager
 @using Valour.Api.Items.Messages
 
-@typeparam T where T : IChatChannel
-
 <!-- Cascade a bunch of values that messages and subcomponents need -->
 <CascadingValue Value='Channel'>
     <CascadingValue Value='Window'>
@@ -64,12 +62,12 @@
     private bool channelConnected;
 
     [Parameter]
-    public ChatChannelWindow<T> Window { get; set; }
+    public ChatChannelWindow Window { get; set; }
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public T Channel;
+    public IChatChannel Channel;
 
     public Func<Task> ForceRefreshMessages;
 
@@ -102,7 +100,7 @@
 
         ValourClient.OnMessageRecieved += OnRecieveMessage;
 
-        await ValourClient.OpenChannel(Channel);
+        await Channel.Open();
 
         await JS.InvokeVoidAsync("SetupWindow", Window.Id);
 
@@ -309,12 +307,12 @@
             return;
         }
 
-        if (Holder.Messages == null || Holder.Messages.Count == 0)
+        if (Holder.DisplayedMessageData == null || Holder.DisplayedMessageData.Count == 0)
         {
             return;
         }
 
-        long firstIndex = Holder.Messages[0].Message_Index;
+        long firstIndex = Holder.DisplayedMessageData[0].Message_Index;
 
         Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
 

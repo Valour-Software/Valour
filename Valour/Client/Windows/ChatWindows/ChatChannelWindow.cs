@@ -1,39 +1,36 @@
 using Valour.Api.Items.Channels;
-using Valour.Api.Items.Channels.Planets;
 using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows.ChatWindows;
 
-// Generics format is <ChannelType, ChannelComponentType>
-public abstract class ChatChannelWindow<T> : ClientWindow 
-    where T : IChatChannel 
+public abstract class ChatChannelWindow : ClientWindow 
 {
 
     /// <summary>
     /// The channel for this chat window
     /// </summary>
-    public T Channel { get; }
+    public IChatChannel Channel { get; }
 
     /// <summary>
     /// The component that belongs to this window
     /// </summary>
-    public ChannelWindowComponent<T> Component { get; private set; }
+    public ChannelWindowComponent Component { get; private set; }
 
     /// <summary>
     /// Returns the type for the component of this window
     /// </summary>
     public override Type GetComponentType() =>
-        typeof(ChannelWindowComponent<T>);
+        typeof(ChannelWindowComponent);
 
     /// <summary>
     /// Sets the component of this window
     /// </summary>
-    public void SetComponent(ChannelWindowComponent<T> newComponent)
+    public void SetComponent(ChannelWindowComponent newComponent)
     {
         Component = newComponent;
     }
 
-    public ChatChannelWindow(T channel, ChannelWindowComponent<T> component)
+    public ChatChannelWindow(IChatChannel channel, ChannelWindowComponent component)
     {
         Channel = channel;
         Component = component;

@@ -262,7 +262,7 @@ public class Node
             await Log($"Rejoined SignalR group for planet {planet.Id}", "lime");
         }
 
-        foreach (var channel in ValourClient.OpenChannels.Where(x => x.NodeName == Name))
+        foreach (var channel in ValourClient.OpenPlanetChannels.Where(x => x.NodeName == Name))
         {
             await HubConnection.SendAsync("JoinChannel", channel.Id);
             await Log($"Rejoined SignalR group for channel {channel.Id}", "lime");
