@@ -13,7 +13,7 @@ namespace Valour.Client.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class MessageRenderData
+public class ClientMessageWrapper
 {
     /// <summary>
     /// True if this message's content has been fully built
@@ -53,20 +53,20 @@ public class MessageRenderData
         return typeof(MessageComponent);
     }
 
-    public static List<MessageRenderData> FromList(List<Message> messages)
+    public static List<ClientMessageWrapper> FromList(List<Message> messages)
     {
-        List<MessageRenderData> result = new();
+        List<ClientMessageWrapper> result = new();
 
         if (messages is null)
             return result;
 
         foreach (Message message in messages)
-            result.Add(new MessageRenderData(message));
+            result.Add(new ClientMessageWrapper(message));
 
         return result;
     }
 
-    public MessageRenderData(Message message)
+    public ClientMessageWrapper(Message message)
     {
         Message = message;
     }

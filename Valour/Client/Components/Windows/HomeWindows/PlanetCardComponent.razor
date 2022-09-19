@@ -30,7 +30,7 @@
 
         Console.WriteLine($"Switching window {Window.Id} to {channel.Name}");
 
-        var newWindow = new ChatChannelWindow(channel);
+        var newWindow = new PlanetChatChannelWindow(channel);
 
         await windowManager.ReplaceWindow(Window, newWindow);
         await windowManager.SetSelectedWindow(newWindow);

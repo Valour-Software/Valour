@@ -153,5 +153,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     // Categories can't really be opened...
     public override Task Open()
         => Task.CompletedTask;
+
+    public override Task Close()
+        => Task.CompletedTask;
 }
 

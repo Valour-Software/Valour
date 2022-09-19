@@ -9,31 +9,30 @@ public abstract class ChatChannelWindow : ClientWindow
     /// <summary>
     /// The channel for this chat window
     /// </summary>
-    public IChatChannel Channel { get; }
+    public IChatChannel Channel { get; set; }
 
     /// <summary>
     /// The component that belongs to this window
     /// </summary>
-    public ChannelWindowComponent Component { get; private set; }
+    public ChatChannelWindowComponent Component { get; private set; }
 
     /// <summary>
     /// Returns the type for the component of this window
     /// </summary>
     public override Type GetComponentType() =>
-        typeof(ChannelWindowComponent);
+        typeof(ChatChannelWindowComponent);
 
     /// <summary>
     /// Sets the component of this window
     /// </summary>
-    public void SetComponent(ChannelWindowComponent newComponent)
+    public void SetComponent(ChatChannelWindowComponent newComponent)
     {
         Component = newComponent;
     }
 
-    public ChatChannelWindow(IChatChannel channel, ChannelWindowComponent component)
+    public ChatChannelWindow(IChatChannel channel)
     {
         Channel = channel;
-        Component = component;
     }
 
     public override async Task OnClosedAsync()

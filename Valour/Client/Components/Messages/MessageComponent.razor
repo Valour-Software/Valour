@@ -106,7 +106,19 @@
                         {
                             string replykey = $"reply-{Window.Id}";
 
-                            <MessageComponent Message="ReplyMessage" Key="@replykey"  Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
+                            Dictionary<string, object> replyParams = new()
+                            {
+                                { "MessageData", ReplyMessage },
+                                { "Key", replykey },
+                                { "Submessage", true },
+                                { "LastMessage", null },
+                                { "Reply", true },
+                                { "Ghost", Ghost }
+                            };
+                            
+                            <DynamicComponent Type="ReplyMessage.GetComponentType()" Parameters="replyParams"></DynamicComponent>
+
+                            <MessageComponent MessageData="ReplyMessage" Key="@replykey"  Submessage="true" Ghost="Ghost" Last_Message="null" Reply="true"></MessageComponent>
                         }
                         <p class="content" @ref="InnerRef">
 
@@ -179,10 +191,10 @@
     public ChatChannelWindow Window { get; set; }
 
     [Parameter]
-    public MessageRenderData MessageData { get; set; }
+    public ClientMessageWrapper MessageData { get; set; }
 
     [Parameter]
-    public MessageRenderData LastMessage { get; set; }
+    public ClientMessageWrapper LastMessage { get; set; }
 
     [Parameter]
     public string Key { get; set; }
@@ -208,7 +220,7 @@
 
     public bool Minimal = false;
 
-    public MessageRenderData ReplyMessage;
+    public ClientMessageWrapper ReplyMessage;
 
     public ElementReference this_ref;
 
@@ -254,6 +266,11 @@
             if (Reply)
             {
                 _class += " reply";
+            }
+
+            if (Ghost)
+            {
+                _class += " ghost";
             }
 
             if (ReplyMessage is not null)
@@ -329,7 +346,7 @@
         ReRender();
     }
 
-    public async Task SetMessage(MessageRenderData message)
+    public async Task SetMessage(ClientMessageWrapper message)
     {
         this.MessageData = message;
         await BuildMessage();
@@ -343,7 +360,7 @@
         StateHasChanged();
     }
 
-    public void SetLast(MessageRenderData msg)
+    public void SetLast(ClientMessageWrapper msg)
     {
         LastMessage = msg;
     }
@@ -355,20 +372,13 @@
 
         // Get reference to reply message if we have a reply
         if (MessageData.Message.ReplyToId is not null)
-            ReplyMessage = new MessageRenderData(await MessageData.Message.GetReplyMessageAsync());
+            ReplyMessage = new ClientMessageWrapper(await MessageData.Message.GetReplyMessageAsync());
 
         // Check if we are a minimal message
         CheckMinimal();
 
         if (!Submessage)
-        {
-            var selfId = Window.Component.SelfMember.Id;
-
-            if (MessageData.Message.MentionsData != null)
-            {
-                mentioned = MessageData.Message.MentionsData.Contains(selfId.ToString());
-            }
-        }
+            mentioned = await MessageData.Message.CheckIfMentioned();
 
         if (Minimal)
         {

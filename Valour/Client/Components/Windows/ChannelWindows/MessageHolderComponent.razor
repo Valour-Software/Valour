@@ -5,13 +5,13 @@
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;" onscroll="OnScrollChannel('@Window.Id')">
     <CascadingValue Value="this">
         @{
-            MessageRenderData last;    
+            ClientMessageWrapper last;    
 
             if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
             {
                 last = null;
 
-                foreach (MessageRenderData messageData in DisplayedMessageData)
+                foreach (ClientMessageWrapper messageData in DisplayedMessageData)
                 {
                     string key = $"{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
 
@@ -39,7 +39,7 @@
                     last = DisplayedMessageData.Last();
                 }
 
-                foreach (MessageRenderData messageData in QueuedMessageData)
+                foreach (ClientMessageWrapper messageData in QueuedMessageData)
                 {
                     string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
 
@@ -67,9 +67,9 @@
     public ChatChannelWindow Window { get; set; }
 
     [Parameter]
-    public List<MessageRenderData> DisplayedMessageData { get; set; }
+    public List<ClientMessageWrapper> DisplayedMessageData { get; set; }
 
-    public List<MessageRenderData> QueuedMessageData { get; set; }
+    public List<ClientMessageWrapper> QueuedMessageData { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
 
@@ -77,7 +77,7 @@
 
     //public HashSet<string> Keys = new HashSet<string>();
 
-    public void AddQueuedMessage(MessageRenderData message)
+    public void AddQueuedMessage(ClientMessageWrapper message)
     {
         QueuedMessageData.Add(message);
         StateHasChanged();
@@ -105,7 +105,7 @@
         DisplayedMessageData.Clear();
     }
 
-    public MessageRenderData GetLastMessage()
+    public ClientMessageWrapper GetLastMessage()
     {
         if (QueuedMessageData != null && QueuedMessageData.Count > 0){
             return QueuedMessageData.Last();
@@ -118,7 +118,7 @@
         return null;
     }
 
-    public void AddMessages(List<MessageRenderData> messages, bool refresh = true)
+    public void AddMessages(List<ClientMessageWrapper> messages, bool refresh = true)
     {
         DisplayedMessageData.AddRange(messages);
 
@@ -128,7 +128,7 @@
         }
     }
 
-    public void InsertMessages(int position, List<MessageRenderData> messages, bool refresh = true)
+    public void InsertMessages(int position, List<ClientMessageWrapper> messages, bool refresh = true)
     {
         //foreach(var m in messages)
         //{
@@ -143,7 +143,7 @@
         }
     }
 
-    public async Task AddMessage(MessageRenderData renderData, bool refresh = true)
+    public async Task AddMessage(ClientMessageWrapper renderData, bool refresh = true)
     {
         QueuedMessageData.RemoveAll(x => x.Message.Fingerprint == renderData.Message.Fingerprint);
 
@@ -191,8 +191,8 @@
     protected override void OnInitialized()
     {
         RenderedMessages = new List<MessageComponent>();
-        DisplayedMessageData = new List<MessageRenderData>();
-        QueuedMessageData = new List<MessageRenderData>();
+        DisplayedMessageData = new List<ClientMessageWrapper>();
+        QueuedMessageData = new List<ClientMessageWrapper>();
 
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 

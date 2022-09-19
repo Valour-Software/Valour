@@ -19,4 +19,5 @@ public abstract class Channel : Item, IChannel, ISharedChannel
     public string State { get; set; }
 
     public abstract Task Open();
+    public abstract Task Close();
 }

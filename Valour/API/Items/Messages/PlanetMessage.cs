@@ -82,7 +82,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
         return item;
     }
 
-    public async Task<TaskResult> PostMessageAsync()
+    public override async Task<TaskResult> PostMessageAsync()
     {
         var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
         return await node.PostAsync($"api/planet/{PlanetId}/{nameof(PlanetChatChannel)}/{ChannelId}/messages", this);
@@ -103,7 +103,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
     /// <summary>
     /// Attempts to delete this message
     /// </summary>
-    public Task<TaskResult> DeleteAsync() =>
+    public override Task<TaskResult> DeleteAsync() =>
         Node.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
 
     /// <summary>
@@ -145,8 +145,18 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
         if (ReplyToId is null)
             return null; 
 
-        return await PlanetMessage.FindAsync(ReplyToId.Value, ChannelId, PlanetId);
+        return await FindAsync(ReplyToId.Value, ChannelId, PlanetId);
     }
-        
+
+    public override async Task<bool> CheckIfMentioned()
+    {
+        var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetId);
+
+        if (MentionsData is null)
+            return false;
+
+        return MentionsData.Contains(selfMember.Id.ToString());
+    }
+
 }
 

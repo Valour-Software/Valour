@@ -23,7 +23,7 @@ namespace Valour.Api.Items.Channels.Planets;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatChannel<PlanetMessage>
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatChannel
 {
     #region IPlanetItem implementation
 
@@ -50,8 +50,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
 
     public override async Task Open()
+        => await ValourClient.OpenPlanetChannel(this);
+
+    public override async Task Close()
     {
-        await ValourClient.OpenPlanetChannel(this);
+        await ValourClient.ClosePlanetChannel(this);
     }
 
     /// <summary>
@@ -229,5 +232,17 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     /// </summary>
     public async Task<List<PlanetMessage>> GetLastMessagesAsync(int count = 10) =>
         (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data;
+
+    /// <summary>
+    /// Returns the last (count) generic messages
+    /// </summary>
+    public async Task<List<Message>> GetLastMessagesGenericAsync(int count = 10) =>
+        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data.Cast<Message>().ToList();
+
+    /// <summary>
+    /// Returns the last (count) generic messages starting at (index)
+    /// </summary>
+    public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
+        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
 }
 

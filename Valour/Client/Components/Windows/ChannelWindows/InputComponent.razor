@@ -1,12 +1,12 @@
 ﻿@inject IJSRuntime JS
-@    using System.Net.Http.Headers
-@    using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
-@    using Valour.Api.Items.Messages;
-@    using Valour.Api.Items.Messages.Attachments
+@using System.Net.Http.Headers
+@using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
+@using Valour.Api.Items.Messages;
+@using Valour.Api.Items.Messages.Attachments
 
 <div>
     <div class="preview-message">
-        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" Message="PreviewMessage" Submessage ="true" Ghost="true" Last_Message="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
+        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Submessage ="true" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
     <div class="textbox-holder" @onclick="WindowComponent.ScrollToBottomAnim">
@@ -17,7 +17,7 @@
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <img class='upload' src="_content/Valour.Client/media/Plus-Icon.svg" onclick="document.getElementById('upload-core').click()" />
 
-            <div @ref='InnerInput_Ref' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
+            <div @ref='InnerInputRef' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
 @code {
 
     [CascadingParameter]
-    public ChannelWindowComponent WindowComponent { get; set; }
+    public ChatChannelWindowComponent WindowComponent { get; set; }
 
     [CascadingParameter]
     public ChatChannelWindow Window { get; set; }
@@ -38,12 +38,10 @@
 
     public MessageHolderComponent MessageHolder { get; set; }
 
-    public PlanetMember SelfMember { get; set; }
-
     /// <summary>
     /// A reference to the inner input component
     /// </summary>
-    public ElementReference InnerInput_Ref { get; set; }
+    public ElementReference InnerInputRef { get; set; }
 
     /// <summary>
     /// The component that displays the mention selection
@@ -63,7 +61,7 @@
     /// <summary>
     /// The message that we are replying to if we are
     /// </summary>
-    public MessageRenderData ReplyingTo { get; set; }
+    public ClientMessageWrapper ReplyingTo { get; set; }
 
     /// <summary>
     /// The message component for the preview message
@@ -73,35 +71,34 @@
     /// <summary>
     /// The preview message
     /// </summary>
-    public MessageRenderData PreviewMessage { get; set; }
+    public ClientMessageWrapper PreviewMessage { get; set; }
 
     /// <summary>
     /// Run when the component is initialized
     /// </summary>
-    /// <returns></returns>
-    public async Task InitializeAsync(PlanetMember selfMember, MessageHolderComponent messageHolder)
+    protected override async Task OnInitializedAsync()
     {
-        SelfMember = selfMember;
-        MessageHolder = messageHolder;
+        await base.OnInitializedAsync();
 
-        var innerMessage = new PlanetMessage()
-        {
-            AuthorUserId = SelfMember.UserId,
-            Content = null,
-            ChannelId = Window.Channel.Id,
-            AuthorMemberId = SelfMember.Id,
-            TimeSent = DateTime.UtcNow,
-            ReplyToId = null,
-            PlanetId = selfMember.PlanetId,
-            Fingerprint = Guid.NewGuid().ToString()
-        };
+        await SetupNewChannelAsync();
+    }
 
-        PreviewMessage = new(innerMessage);
+    public virtual async Task SetupNewChannelAsync()
+    {
+        WindowComponent.InputComponent = this;
+        MessageHolder = WindowComponent.MessageHolder;
+
+        PreviewMessage = new(BuildNewMessage());
+    }
+
+    public virtual Message BuildNewMessage()
+    {
+        // Other message building
+        return null;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-
         await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
 
         if (firstRender)
@@ -133,7 +130,7 @@
         "image/svg+xml"
     };
 
-    public async Task OnBeginEdit(MessageRenderData message)
+    public async Task OnBeginEdit(ClientMessageWrapper message)
     {
         PreviewMessage = message;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
@@ -189,13 +186,13 @@
                         FileName = file.Name
                     };
 
-                    var attachments = PreviewMessage.Attachments;
+                    var attachments = PreviewMessage.Message.Attachments;
                     if (attachments is null)
                         attachments = new();
 
                     attachments.Add(attachment);
 
-                    PreviewMessage.SetAttachments(attachments);
+                    PreviewMessage.Message.SetAttachments(attachments);
 
                     await RefreshPreviewMessage();
                     Refresh();
@@ -214,7 +211,7 @@
 
     public async Task RemoveAttachment(int id)
     {
-        var attachments = PreviewMessage.Attachments;
+        var attachments = PreviewMessage.Message.Attachments;
         if (attachments is null)
             return;
 
@@ -223,7 +220,7 @@
 
         attachments.RemoveAt(id);
 
-        PreviewMessage.SetAttachments(attachments);
+        PreviewMessage.Message.SetAttachments(attachments);
 
         await RefreshPreviewMessage();
         Refresh();
@@ -247,22 +244,10 @@
             return;
         }
 
-        var postMessage = new ClientPlanetMessage(PreviewMessage.Message);
+        var postMessage = new ClientMessageWrapper(PreviewMessage.Message);
 
         // New message for preview
-        var innerMessage = new PlanetMessage()
-        {
-            AuthorUserId = SelfMember.UserId,
-            Content = null,
-            ChannelId = Window.Channel.Id,
-            AuthorMemberId = SelfMember.Id,
-            TimeSent = DateTime.UtcNow,
-            ReplyToId = null,
-            PlanetId = SelfMember.PlanetId,
-            Fingerprint = Guid.NewGuid().ToString()
-        };
-
-        PreviewMessage = new(innerMessage);
+        PreviewMessage = new(BuildNewMessage());
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
         await OnChatboxUpdate(null, "");
@@ -354,16 +339,16 @@
         await PreviewMessageComponent.SetMessage(PreviewMessage);
     }
 
-    public async Task SetReplyMessage(MessageRenderData message)
+    public async Task SetReplyMessage(ClientMessageWrapper message)
     {
         PreviewMessageComponent.ReplyMessage = message;
         ReplyingTo = message;
-        PreviewMessage.Message.ReplyToId = ReplyingTo?.Id;
+        PreviewMessage.Message.ReplyToId = ReplyingTo?.Message.Id;
 
         await RefreshPreviewMessage();
         Refresh();
 
-        await InnerInput_Ref.FocusAsync();
+        await InnerInputRef.FocusAsync();
     }
 
     public async Task RemoveReply()
@@ -374,16 +359,16 @@
         PreviewMessageComponent.ReRender();
     }
 
-    public async Task PostMessage(MessageRenderData message)
+    public async Task PostMessage(ClientMessageWrapper messageWrapper)
     {
-        message.GenerateForPost();
-        MessageHolder.AddQueuedMessage(message);
+        messageWrapper.GenerateForPost();
+        MessageHolder.AddQueuedMessage(messageWrapper);
 
-        var result = await message.Message.PostMessageAsync();
+        var result = await messageWrapper.Message.PostMessageAsync();
 
         if (!result.Success)
         {
-            MessageHolder.RemoveQueuedMessage(message.Fingerprint);
+            MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
 
             PlanetMessage errorMsg = new()
             {
@@ -395,7 +380,7 @@
             };
 
             MessageHolder.RemoveErrorMessage();
-            await MessageHolder.AddMessage(new ClientPlanetMessage(errorMsg));
+            await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
         }
         else
         {

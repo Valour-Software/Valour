@@ -5,6 +5,8 @@ using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared.Items.Messages;
 using Valour.Shared.Items.Messages.Mentions;
 using Valour.Api.Items.Users;
+using Valour.Shared;
+using Valour.Api.Client;
 
 namespace Valour.Api.Items.Messages;
 public abstract class Message : Item, ISharedMessage
@@ -99,6 +101,12 @@ public abstract class Message : Item, ISharedMessage
     public abstract ValueTask<string> GetAuthorTagAsync();
     public abstract ValueTask<string> GetAuthorColorAsync();
     public abstract ValueTask<string> GetAuthorImageUrlAsync();
+
+    public abstract Task<TaskResult> PostMessageAsync();
+    public abstract Task<TaskResult> DeleteAsync();
+
+    public virtual Task<bool> CheckIfMentioned() =>
+            Task.FromResult(MentionsData.Contains(ValourClient.Self.Id.ToString()));
 
     /// <summary>
     /// The mentions for members within this message
