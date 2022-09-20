@@ -1,9 +1,33 @@
 @inject WindowManager windowManager
+@inject IJSRuntime JS
 
-<div class="home-server m-2" style="cursor: pointer" @onclick="OnClick">
-    <h6 class="text-center">@Planet.Name</h6>
-    <img style='@image_style' class="planet-card-icon" src="@iconUrl" @onerror='OnIconError' />
+<div @onclick="OnClick" style='display: inline-block; margin: 5px; width: 140px; height: 140px; background-color: var(--main-2); border-radius: 50%; position: relative;'>
+
+    <img src='@iconUrl' @onerror='OnIconError' style='border-radius: 50%; position: absolute; width: 100px; height: 100px; left: 20px; top: 20px; @image_style' />
+
+    <svg style='position: absolute; left: -10px; top: -10px' width='160px' height='160px' id="shape" xmlns="http://www.w3.org/2000/svg"
+         xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+            <path id="path"
+                  fill="none" stroke="black" stroke-width="10"
+                  d="
+                    M 80, 80
+                    m -60, 0
+                    a 60,60 0 1,0 120,0
+                    a 60,60 0 1,0 -120,0
+                    "
+                  transform="rotate(90 80 80)">
+
+            </path>
+        </defs>
+        <text id="text-@Planet.Id">
+            <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
+                <tspan style='font-family: Ubuntu, sans-serif; font-size: 16px; letter-spacing: 0px' fill='white' dy="0.3em">Hello There</tspan>
+            </textPath>
+        </text>
+    </svg>
 </div>
+
 
 @code {
     [Parameter]
@@ -18,6 +42,11 @@
 
     protected override async Task OnInitializedAsync(){
         iconUrl = Planet.IconUrl;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync($"SetPlanetCardTitle", Planet.Id, Planet.Name);
     }
 
     public async Task OnClick()

@@ -454,3 +454,7 @@ function playSound(name) {
     source.volume = 0.4;
     source.play();
 }
+
+function SetPlanetCardTitle(id, name) {
+    document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
+}
