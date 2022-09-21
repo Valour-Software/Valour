@@ -455,7 +455,9 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         if (message is null)
             return Results.BadRequest("Include message in body.");
 
-        if (string.IsNullOrEmpty(message.Content) && string.IsNullOrEmpty(message.EmbedData))
+        if (string.IsNullOrEmpty(message.Content) &&
+            string.IsNullOrEmpty(message.EmbedData) &&
+            string.IsNullOrEmpty(message.AttachmentsData))
             return Results.BadRequest("Message content cannot be null");
 
         if (message.Fingerprint is null)
