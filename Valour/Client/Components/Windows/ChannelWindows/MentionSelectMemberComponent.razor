@@ -1,4 +1,4 @@
-﻿<div class="@("select-member " + Selected_Class)">
+﻿<div class="@("select-member " + Selected_Class)" @onclick="OnClickAsync">
     <img class="pfp" style="@Pfp_Style" src="@Pfp_Url" @onerror="OnPfpError" />
     <p class="title noselect" style="color:@Role_Color">@Member.Nickname</p>
 </div>
@@ -9,6 +9,9 @@
     public string Pfp_Style = "";
 
     public string Role_Color = "#ffffff";
+
+    [Parameter]
+    public int Index { get; set; }
 
     [Parameter]
     public MentionSelectComponent Parent { get; set; }
@@ -28,6 +31,12 @@
 
             return "";
         }
+    }
+
+    public async Task OnClickAsync()
+    {
+        Parent.Selected = Index;
+        await Parent.Submit();
     }
 
     protected override async Task OnInitializedAsync()
