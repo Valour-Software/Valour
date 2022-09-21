@@ -1,8 +1,6 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Users;
 using Valour.Api.Nodes;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Planets.Members;
 
 namespace Valour.Api.Items.Planets.Members;

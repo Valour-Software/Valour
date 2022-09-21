@@ -1,6 +1,5 @@
 ﻿using System.Drawing;
 using Valour.Api.Client;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;

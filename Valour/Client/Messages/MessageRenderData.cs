@@ -2,13 +2,8 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Valour.Api.Items.Messages;
-using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds;
-using Valour.Api.Items.Planets.Members;
-using Valour.Api.Items.Users;
+using Valour.Client.Components.Messages;
 using Valour.Shared.Items.Messages.Mentions;
-using Valour.Shared.Items.Messages;
-using Valour.Api.Items.Messages.Attachments;
 
 namespace Valour.Client.Messages;
 
@@ -18,7 +13,7 @@ namespace Valour.Client.Messages;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class ClientPlanetMessage
+public class ClientMessageWrapper
 {
     /// <summary>
     /// True if this message's content has been fully built
@@ -41,81 +36,39 @@ public class ClientPlanetMessage
     private string _markdownContent;
 
     /// <summary>
-    /// The internal planet message
+    /// The internal message
     /// </summary>
-    public PlanetMessage BaseMessage { get; set; }
+    public Message Message { get; set; }
 
-    // Forward a bunch of stuff for my own sake
-    #region Forwarding
-
-    public async Task<PlanetMember> GetAuthorMemberAsync() =>
-        await BaseMessage.GetAuthorMemberAsync();
-
-    public async Task<User> GetAuthorUserAsync() =>
-        await BaseMessage.GetAuthorUserAsync();
-
-    public long Id => BaseMessage.Id;
-
-    public long AuthorUserId => BaseMessage.AuthorUserId;
-
-    public long PlanetId => BaseMessage.PlanetId;
-
-    public long AuthorMemberId => BaseMessage.AuthorMemberId;
-
-    public long? ReplyToId => BaseMessage.ReplyToId;
-
-    public string Content => BaseMessage.Content;
-
-    public DateTime TimeSent => BaseMessage.TimeSent;
-
-    public long ChannelId => BaseMessage.ChannelId;
-
-    public bool Edited => BaseMessage.Edited;
-
-    public long Message_Index => BaseMessage.MessageIndex;
-
-    public string Embed_Data => BaseMessage.EmbedData;
-
-    public string Mentions_Data => BaseMessage.MentionsData;
-
-    public string Attachments_Data => BaseMessage.AttachmentsData;
-
-    public string Fingerprint => BaseMessage.Fingerprint;
-
-    public List<Mention> Mentions => BaseMessage.Mentions;
-
-    public List<MessageAttachment> Attachments => BaseMessage.Attachments;
-
-    public Embed Embed => BaseMessage.Embed;
-
-    public void ClearMentions() => BaseMessage.ClearMentions();
-    
-    public void SetMentions(IEnumerable<Mention> mentions) =>
-        BaseMessage.SetMentions(mentions);
-
-    public void SetAttachments(List<MessageAttachment> attachments) =>
-        BaseMessage.SetAttachments(attachments);
-
-    public bool IsEmbed() => BaseMessage.IsEmbed();
-
-    #endregion
-
-    public static List<ClientPlanetMessage> FromList(List<PlanetMessage> messages)
+    /// <summary>
+    /// Returns the component type to be used when rendering the message
+    /// Don't forget to add to this when new Message types are added (ahem, Jacob)
+    /// </summary>
+    public Type GetComponentType()
     {
-        List<ClientPlanetMessage> result = new();
+        switch (Message) {
+            case PlanetMessage: return typeof(PlanetMessageComponent);
+        }
+
+        return typeof(MessageComponent);
+    }
+
+    public static List<ClientMessageWrapper> FromList(List<Message> messages)
+    {
+        List<ClientMessageWrapper> result = new();
 
         if (messages is null)
             return result;
 
-        foreach (PlanetMessage message in messages)
-            result.Add(new ClientPlanetMessage(message));
+        foreach (Message message in messages)
+            result.Add(new ClientMessageWrapper(message));
 
         return result;
     }
 
-    public ClientPlanetMessage(PlanetMessage message)
+    public ClientMessageWrapper(Message message)
     {
-        this.BaseMessage = message;
+        Message = message;
     }
 
     public string MarkdownContent
@@ -133,7 +86,7 @@ public class ClientPlanetMessage
 
     private void ParseMarkdown()
     {
-        _markdownContent = MarkdownManager.GetHtml(BaseMessage.Content);
+        _markdownContent = MarkdownManager.GetHtml(Message.Content);
         markdownParsed = true;
     }
 
@@ -172,7 +125,9 @@ public class ClientPlanetMessage
     };
 
     public bool IsEmpty =>
-        string.IsNullOrWhiteSpace(Content) && ReplyToId is null && (BaseMessage.Attachments is null || BaseMessage.Attachments.Count == 0) && BaseMessage.EmbedData is null;
+        string.IsNullOrWhiteSpace(Message.Content) && 
+        Message.ReplyToId is null && 
+        (Message.Attachments is null || Message.Attachments.Count == 0);
 
     public void Clear()
     {
@@ -184,11 +139,13 @@ public class ClientPlanetMessage
 
     public void GenerateForPost()
     {
-        BaseMessage.ClearMentions();
+        Message.ClearMentions();
 
         int pos = 0;
 
         string text = MarkdownContent;
+
+        PlanetMessage planetMessage = Message as PlanetMessage;
 
         while (pos < text.Length)
         {
@@ -206,7 +163,7 @@ public class ClientPlanetMessage
                     text[pos + 3] == '-')
                 {
                     // Member mention (<@m-)
-                    if (text[pos + 2] == 'm')
+                    if (planetMessage is not null && text[pos + 2] == 'm')
                     {
                         // Extract id
                         char c = ' ';
@@ -242,10 +199,10 @@ public class ClientPlanetMessage
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Member,
-                            PlanetId = PlanetId                     
+                            PlanetId = planetMessage.PlanetId                     
                         };
 
-                        BaseMessage.Mentions.Add(memberMention);
+                        Message.Mentions.Add(memberMention);
                     }
                     // Other mentions go here
                     else
@@ -259,7 +216,7 @@ public class ClientPlanetMessage
                     text[pos + 3] == '-')
                 {
                     // Chat Channel mention (<#c-)
-                    if (text[pos + 2] == 'c')
+                    if (planetMessage is not null && text[pos + 2] == 'c')
                     {
                         // Extract id
                         char c = ' ';
@@ -295,10 +252,10 @@ public class ClientPlanetMessage
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Channel,
-                            PlanetId = PlanetId
+                            PlanetId = planetMessage.PlanetId
                         };
 
-                        BaseMessage.Mentions.Add(channelMention);
+                        Message.Mentions.Add(channelMention);
                     }
                     else
                     {
@@ -318,9 +275,9 @@ public class ClientPlanetMessage
             pos++;
         }
 
-        BaseMessage.MentionsData = JsonSerializer.Serialize(BaseMessage.Mentions);
+        Message.MentionsData = JsonSerializer.Serialize(Message.Mentions);
 
-        BaseMessage.AttachmentsData = JsonSerializer.Serialize(BaseMessage.Attachments);
+        Message.AttachmentsData = JsonSerializer.Serialize(Message.Attachments);
     }
 
     /// <summary>
@@ -435,15 +392,15 @@ public class ClientPlanetMessage
         List<MessageFragment> fragments = new();
 
         // Empty message catch
-        if (string.IsNullOrWhiteSpace(BaseMessage.Content))
+        if (string.IsNullOrWhiteSpace(Message.Content))
         {
             return fragments;
         }
 
         // First insert rich components into list and sort by position
-        if (BaseMessage.Mentions != null && BaseMessage.Mentions.Count > 0)
+        if (Message.Mentions != null && Message.Mentions.Count > 0)
         {
-            foreach (var mention in BaseMessage.Mentions)
+            foreach (var mention in Message.Mentions)
             {
                 MessageFragment fragment = null;
 

@@ -5,37 +5,57 @@
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;" onscroll="OnScrollChannel('@Window.Id')">
     <CascadingValue Value="this">
         @{
-            ClientPlanetMessage last = null;    
+            ClientMessageWrapper last;    
 
-            if (Messages != null && Messages.Count > 0)
+            if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
             {
                 last = null;
 
-                foreach (ClientPlanetMessage msg in Messages)
+                foreach (ClientMessageWrapper messageData in DisplayedMessageData)
                 {
-                    string key = $"{Window.Id}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+                    string key = $"{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
 
-                    <MessageComponent Message="msg" Key="@key" @key='msg' Submessage="false" Last_Message="last" Reply="false"></MessageComponent>
+                    Dictionary<string, object> messageParams = new()
+                    {
+                        { "MessageData", messageData },
+                        { "Key", key },
+                        { "Submessage", false },
+                        { "LastMessage", last },
+                        { "Reply", false }
+                    };
 
-                    last = msg;
+                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
+
+                    last = messageData;
                 }
             }
 
-            if (QueuedMessages != null && QueuedMessages.Count > 0){
+            if (QueuedMessageData != null && QueuedMessageData.Count > 0){
+
                 last = null;
 
-                if (Messages != null)
+                if (DisplayedMessageData != null)
                 {
-                    last = Messages.Last();
+                    last = DisplayedMessageData.Last();
                 }
 
-                foreach (ClientPlanetMessage msg in QueuedMessages)
+                foreach (ClientMessageWrapper messageData in QueuedMessageData)
                 {
-                    string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{msg.Message_Index}-{msg.TimeSent}";
+                    string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
 
-                    <MessageComponent Message="msg" Key="@key" @key='msg' Submessage="false" Ghost="true" Last_Message="last" Reply="false"></MessageComponent>
+                    Dictionary<string, object> messageParams = new()
+                    {
+                        { "MessageData", messageData },
+                        { "Key", key },
+                        { "Submessage", false },
+                        { "LastMessage", last },
+                        { "Reply", false },
+                        { "Ghost", true }
+                    };
 
-                    last = msg;
+                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
+
+                    last = messageData;
                 }
             }
         }
@@ -47,9 +67,9 @@
     public ChatChannelWindow Window { get; set; }
 
     [Parameter]
-    public List<ClientPlanetMessage> Messages { get; set; }
+    public List<ClientMessageWrapper> DisplayedMessageData { get; set; }
 
-    public List<ClientPlanetMessage> QueuedMessages { get; set; }
+    public List<ClientMessageWrapper> QueuedMessageData { get; set; }
 
     public List<MessageComponent> RenderedMessages { get; set; }
 
@@ -57,50 +77,50 @@
 
     //public HashSet<string> Keys = new HashSet<string>();
 
-    public void AddQueuedMessage(ClientPlanetMessage message)
+    public void AddQueuedMessage(ClientMessageWrapper message)
     {
-        QueuedMessages.Add(message);
+        QueuedMessageData.Add(message);
         StateHasChanged();
     }
 
     public void RemoveQueuedMessage(string fingerprint)
     {
-        var queued = QueuedMessages.FirstOrDefault(x => x.Fingerprint == fingerprint);
-        if (queued != null) { QueuedMessages.Remove(queued); }
+        var queued = QueuedMessageData.FirstOrDefault(x => x.Message.Fingerprint == fingerprint);
+        if (queued != null) { QueuedMessageData.Remove(queued); }
 
         StateHasChanged();
     }
 
     public void RemoveErrorMessage()
     {
-        var error = Messages.FirstOrDefault(x => x.Message_Index == long.MaxValue);
+        var error = DisplayedMessageData.FirstOrDefault(x => x.Message.MessageIndex == long.MaxValue);
         if (error != null) { 
-            QueuedMessages.Remove(error); 
+            QueuedMessageData.Remove(error); 
             StateHasChanged();
         }
     }
 
     public void Clear()
     {
-        Messages.Clear();
+        DisplayedMessageData.Clear();
     }
 
-    public ClientPlanetMessage GetLastMessage()
+    public ClientMessageWrapper GetLastMessage()
     {
-        if (QueuedMessages != null && QueuedMessages.Count > 0){
-            return QueuedMessages.Last();
+        if (QueuedMessageData != null && QueuedMessageData.Count > 0){
+            return QueuedMessageData.Last();
         }
-        else if (Messages != null && Messages.Count > 0)
+        else if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
         {
-            return Messages.Last();
+            return DisplayedMessageData.Last();
         }
 
         return null;
     }
 
-    public void AddMessages(List<ClientPlanetMessage> messages, bool refresh = true)
+    public void AddMessages(List<ClientMessageWrapper> messages, bool refresh = true)
     {
-        Messages.AddRange(messages);
+        DisplayedMessageData.AddRange(messages);
 
         if (refresh)
         {
@@ -108,14 +128,14 @@
         }
     }
 
-    public void InsertMessages(int position, List<ClientPlanetMessage> messages, bool refresh = true)
+    public void InsertMessages(int position, List<ClientMessageWrapper> messages, bool refresh = true)
     {
         //foreach(var m in messages)
         //{
         //    Console.WriteLine(m.Content);
         //}
 
-        Messages.InsertRange(position, messages);
+        DisplayedMessageData.InsertRange(position, messages);
 
         if (refresh)
         {
@@ -123,20 +143,20 @@
         }
     }
 
-    public async Task AddMessage(ClientPlanetMessage message, bool refresh = true)
+    public async Task AddMessage(ClientMessageWrapper renderData, bool refresh = true)
     {
-        QueuedMessages.RemoveAll(x => x.Fingerprint == message.Fingerprint);
+        QueuedMessageData.RemoveAll(x => x.Message.Fingerprint == renderData.Message.Fingerprint);
 
         //Get current window scroll pos
         bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Id);
 
         // check if theres too many messages
-        if (IsAtBottom && Messages.Count > 120)
+        if (IsAtBottom && DisplayedMessageData.Count > 120)
         {
-            Messages.RemoveRange(0, Messages.Count - 120);
+            DisplayedMessageData.RemoveRange(0, DisplayedMessageData.Count - 120);
         }
 
-        Messages.Add(message);
+        DisplayedMessageData.Add(renderData);
 
         // Flag for UI refresh
         if (refresh)
@@ -171,8 +191,8 @@
     protected override void OnInitialized()
     {
         RenderedMessages = new List<MessageComponent>();
-        Messages = new List<ClientPlanetMessage>();
-        QueuedMessages = new List<ClientPlanetMessage>();
+        DisplayedMessageData = new List<ClientMessageWrapper>();
+        QueuedMessageData = new List<ClientMessageWrapper>();
 
         ValourClient.OnMessageDeleted += OnDeleteMessage;
 
@@ -189,15 +209,15 @@
         if (message.ChannelId != Window.Channel.Id)
             return;
 
-        Messages.RemoveAll(x => x.Id == message.Id);
-        QueuedMessages.RemoveAll(x => x.Id == message.Id);
+        DisplayedMessageData.RemoveAll(x => x.Message.Id == message.Id);
+        QueuedMessageData.RemoveAll(x => x.Message.Id == message.Id);
 
-        var nextMessage = RenderedMessages.Where(x => x.Message.Message_Index > message.MessageIndex).FirstOrDefault();
+        var nextMessage = RenderedMessages.Where(x => x.MessageData.Message.MessageIndex > message.MessageIndex).FirstOrDefault();
         if (nextMessage != null){
-            var lastMessage = RenderedMessages.OrderByDescending(x => x.Message.Message_Index)
-                                              .Where(x => x.Message.Message_Index < message.MessageIndex)
+            var lastMessage = RenderedMessages.OrderByDescending(x => x.MessageData.Message.MessageIndex)
+                                              .Where(x => x.MessageData.Message.MessageIndex < message.MessageIndex)
                                               .FirstOrDefault();
-            nextMessage.SetLast(lastMessage.Message);
+            nextMessage.SetLast(lastMessage.MessageData);
             await nextMessage.RefreshMessage();
             nextMessage.ReRender();
         }
@@ -215,13 +235,13 @@
 
     public string GetState()
     {
-        if (Messages == null || Messages.Count == 0)
+        if (DisplayedMessageData == null || DisplayedMessageData.Count == 0)
         {
             return "none";
         }
         else
         {
-            return $"{Messages.First().Message_Index}-{Messages.Last().Message_Index}-{QueuedMessages.Count}";
+            return $"{DisplayedMessageData.First().Message.MessageIndex}-{DisplayedMessageData.Last().Message.MessageIndex}-{QueuedMessageData.Count}";
         }
     }
 

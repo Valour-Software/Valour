@@ -1,8 +1,8 @@
 ﻿using Valour.Shared;
 using Valour.Shared.Categories;
 using Valour.Api.Client;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items;
+using Valour.Api.Items.Channels.Planets;
 
 namespace Valour.Client.Components.ChannelList
 {

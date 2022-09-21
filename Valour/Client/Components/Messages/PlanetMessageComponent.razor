@@ -1,0 +1,98 @@
+﻿@using Valour.Api.Items.Messages
+@inherits MessageComponent
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    PlanetMessage message;
+    PlanetMember author;
+    PlanetRole primaryRole;
+
+    public override string ContextMenuId => "member-context";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Do base init
+        await base.OnInitializedAsync();
+
+        // Cast message
+        message = ((PlanetMessage)MessageData.Message);
+
+        // Get member and hook event
+        author = await message.GetAuthorMemberAsync();
+        author.OnUpdated += OnAuthorUpdated;
+
+        // Get initial role
+        primaryRole = await author.GetPrimaryRoleAsync();
+
+        // Hook initial events
+        primaryRole.OnUpdated += OnRoleUpdate;
+        primaryRole.OnDeleted += OnRoleDeletion;
+    }
+
+    public override async Task InitializeContextMenu()
+    {
+        await InnerMemberContextMenuComponent.Initialize(author);
+    }
+
+    public async Task OnAuthorUpdated(int flags)
+    {
+        // Member role membership was changed
+        if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+            await UpdateForRoleChange();
+
+        name = await MessageData.Message.GetAuthorNameAsync();
+        pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
+
+        ReRender();
+    }
+
+    // Role was changed
+    public async Task OnRoleUpdate(int flags)
+    {
+        await UpdateForRoleChange();
+        ReRender();
+    }
+
+    // Role was deleted
+    public async Task OnRoleDeletion()
+    {
+        // Unhook role events
+        primaryRole.OnUpdated -= OnRoleUpdate;
+        primaryRole.OnDeleted -= OnRoleDeletion;
+
+        // Update
+        await UpdateForRoleChange();
+        ReRender();
+    }
+
+    // Update for any role changes
+    public async Task UpdateForRoleChange()
+    {
+        var newPrimaryRole = await author.GetPrimaryRoleAsync();
+
+        // Cosmetic changes
+        nameTag = newPrimaryRole.Name;
+        nameColor = newPrimaryRole.GetColorHex();
+
+        // If the primary role has changed to a new role
+        if (primaryRole.Id != newPrimaryRole.Id)
+        {
+            // Unhook old role
+            primaryRole.OnUpdated -= OnRoleUpdate;
+            primaryRole.OnDeleted -= OnRoleDeletion;
+
+            // Hook new role
+            newPrimaryRole.OnUpdated += OnRoleUpdate;
+            newPrimaryRole.OnDeleted += OnRoleDeletion;
+
+            // Set new role
+            primaryRole = newPrimaryRole;
+        }
+    }
+
+}
+

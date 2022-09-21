@@ -1,9 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Storage;
-using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Api.Items.Planets;
+using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
-using Valour.Server.Http;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets;

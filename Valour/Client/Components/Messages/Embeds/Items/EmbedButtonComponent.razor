@@ -1,4 +1,5 @@
 @inject HttpClient Http
+@using Valour.Api.Items.Messages
 @implements IDisposable
 
 <div style="@Item.GetStyle()" class="embed-item">
@@ -17,13 +18,12 @@
     public EmbedItem _item {get; set;}
 
     [Parameter]
-    public ClientPlanetMessage Message {get; set;}
-
+    public ClientMessageWrapper Message {get; set;}
     [Parameter]
     public Embed embed { get; set;}
 
     [Parameter]
-    public EmbedFormItem? FormItem { get; set; }
+    public EmbedFormItem FormItem { get; set; }
 
     [CascadingParameter]
     public EmbedComponent embedComponent { get; set; }
@@ -68,28 +68,33 @@
             return;
         }
 
-        PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Message.BaseMessage.PlanetId);
-
-        Api.Items.Messages.Embeds.EmbedInteractionEvent Interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
+        Api.Items.Messages.Embeds.EmbedInteractionEvent interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
         {
             EventType = EmbedIteractionEventType.ButtonClick,
-            PlanetId = Message.BaseMessage.PlanetId,
-            MessageId = Message.BaseMessage.Id,
-            Author_MemberId = Message.BaseMessage.AuthorMemberId,
-            MemberId = SelfMember.Id,
-            ChannelId = Message.BaseMessage.ChannelId,
+            MessageId = Message.Message.Id,
+            ChannelId = Message.Message.ChannelId,
             TimeInteracted = DateTime.UtcNow,
             ElementId = Item.Id
         };
 
-        if (FormItem is not null && Item.IsSubmitButton.Value)
+        if (Message.Message is PlanetMessage)
         {
-            Interaction.FormData = FormItem.GetFormData();
-            Interaction.FormId = FormItem.Id;
-            Interaction.EventType = EmbedIteractionEventType.FormSubmitted;
+            var planetMessage = Message.Message as PlanetMessage;
+            PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, planetMessage.PlanetId);
+
+            interaction.PlanetId = SelfMember.PlanetId;
+            interaction.Author_MemberId = planetMessage.AuthorMemberId;
+            interaction.MemberId = SelfMember.Id;
         }
 
-        var response = await Http.PostAsJsonAsync($"api/embed/interact", Interaction);
+        if (FormItem is not null && Item.IsSubmitButton.Value)
+        {
+            interaction.FormData = FormItem.GetFormData();
+            interaction.FormId = FormItem.Id;
+            interaction.EventType = EmbedIteractionEventType.FormSubmitted;
+        }
+
+        var response = await Http.PostAsJsonAsync($"api/embed/interact", interaction);
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }

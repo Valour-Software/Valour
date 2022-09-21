@@ -392,3 +392,8 @@
 .preview-message .attachment-wrapper:hover .attachment-x {
     display: block;
 }
+
+/* Ensure loading messages are greyed out */
+.message-outer .ghost {
+    opacity: 0.7 !important;
+}

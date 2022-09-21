@@ -1,5 +1,5 @@
 ﻿using Valour.Api.Items.Authorization;
-using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Channels.Planets;
 
 namespace Valour.Api.Requests;
 

@@ -39,29 +39,34 @@
 
     public char Mode { get; set; }
 
-    public List<PlanetChatChannel> ChannelMatches;
+    public List<IChatChannel> ChannelMatches;
 
     public List<PlanetMember> MemberMatches;
 
     [CascadingParameter]
-    public PlanetChatChannel Channel { get; set; }
+    public IChatChannel Channel { get; set; }
 
     [CascadingParameter]
-    public ChannelWindowComponent ChannelComponent { get; set; }
+    public ChatChannelWindowComponent ChannelComponent { get; set; }
 
     public Planet Planet { get; set; }
 
-    public List<PlanetChatChannel> Channels;
+    public List<IChatChannel> Channels;
 
     public List<PlanetMember> Members;
 
     protected override async Task OnInitializedAsync()
     {
-        Planet = await Channel.GetPlanetAsync();
         MemberMatches = new();
         ChannelMatches = new();
-        Members = await Planet.GetMembersAsync();
-        Channels = await Planet.GetChannelsAsync();
+
+        if (Channel is PlanetChatChannel)
+        {
+            Planet = await ((PlanetChatChannel)Channel).GetPlanetAsync();
+            Members = await Planet.GetMembersAsync();
+            Channels = (await Planet.GetChannelsAsync())
+                .Cast<IChatChannel>().ToList();
+        }
     }
 
     public void SetVisible(bool value, char mode = ' ')

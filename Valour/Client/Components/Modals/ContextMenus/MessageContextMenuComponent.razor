@@ -15,26 +15,29 @@
         Reply
     </BlazorContextMenu.Item>
 
-    @if (Message.AuthorUserId == ValourClient.Self.Id)
+    @if (MessageWrapper.Message.AuthorUserId == ValourClient.Self.Id)
     {
         <BlazorContextMenu.Item OnClick='OnClickEdit' CssClass='context-item'>
             Edit
         </BlazorContextMenu.Item>
     }
 
-    @if (Can_Delete == PermissionState.True)
+    @if (DeletePermission == PermissionState.True)
     {
         <BlazorContextMenu.Item OnClick='OnClickDelete' CssClass='context-item'>
             Delete
         </BlazorContextMenu.Item>
     }
 
-    <BlazorContextMenu.Item CssClass='context-item'>
-        Member
-        <SubMenu CssClass='context-sub'>
-            <InnerMemberContextMenuComponent></InnerMemberContextMenuComponent>
-        </SubMenu>
-    </BlazorContextMenu.Item>
+    @if (AuthorMember is not null)
+    {
+        <BlazorContextMenu.Item CssClass='context-item'>
+            Member
+            <SubMenu CssClass='context-sub'>
+                <InnerMemberContextMenuComponent></InnerMemberContextMenuComponent>
+            </SubMenu>
+        </BlazorContextMenu.Item>
+    }
 </ContextMenu>
 
 
@@ -45,24 +48,35 @@
 
     public static MessageComponent MessageComponent { get; set; }
 
-    public static ClientPlanetMessage Message { get; set; }
+    public static ClientMessageWrapper MessageWrapper { get; set; }
 
-    public static PermissionState Can_Delete = PermissionState.False;
+    public static PlanetMember AuthorMember { get; set; }
 
-    public static async Task Initialize(ClientPlanetMessage message, ChannelWindowComponent window, MessageComponent component)
+    public static PermissionState DeletePermission = PermissionState.False;
+
+    public static async Task Initialize(ClientMessageWrapper messageWrapper, ChatChannelWindowComponent window, MessageComponent component)
     {
         MessageComponent = component;
-        Message = message;
-        await InnerMemberContextMenuComponent.Initialize(await message.GetAuthorMemberAsync());
+        MessageWrapper = messageWrapper;
+
+        if (messageWrapper.Message is PlanetMessage)
+        {
+            AuthorMember = await ((PlanetMessage)messageWrapper.Message).GetAuthorMemberAsync();
+            await InnerMemberContextMenuComponent.Initialize(AuthorMember);
+        }
+        else
+        {
+            AuthorMember = null;
+        }
 
         // Console.WriteLine(window.Channel_Permissions.Code + " | " + window.Channel_Permissions.Mask);
 
-        if (message.AuthorUserId == ValourClient.Self.Id)
+        if (messageWrapper.Message.AuthorUserId == ValourClient.Self.Id)
         {
-            Can_Delete = PermissionState.True;
+            DeletePermission = PermissionState.True;
         }
         else {
-            Can_Delete = window.Channel_Permissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+            DeletePermission = window.ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
         }
 
         // Console.WriteLine(Can_Delete);
@@ -71,15 +85,15 @@
     public async Task OnClickReply()
     {
         var input = MessageComponent.Holder.Window.Component.InputComponent;
-        await input.SetReplyMessage(Message);
+        await input.SetReplyMessage(MessageWrapper);
     }
 
     public async Task OnClickDelete()
     {
-        ConfirmModalData confirm = new("Delete message?", Message.Content, "Delete", "Cancel",
+        ConfirmModalData confirm = new("Delete message?", MessageWrapper.Message.Content, "Delete", "Cancel",
             async () =>
             {
-                await Message.BaseMessage.DeleteAsync();
+                await MessageWrapper.Message.DeleteAsync();
             },
             async () =>
             {
@@ -99,10 +113,10 @@
     }
 
 	public async Task OnClickCopyText(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", Message.Content);
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", MessageWrapper.Message.Content);
 	}
 
 	public async Task OnClickCopyId(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", Message.Id);
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", MessageWrapper.Message.Id);
 	}
 }

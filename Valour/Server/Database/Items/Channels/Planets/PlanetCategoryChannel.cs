@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Planets.Channels;
+using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Server.Database.Items.Planets.Channels;
+namespace Valour.Server.Database.Items.Channels.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -164,7 +165,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             db.PlanetCategoryChannels.Update(category);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -216,7 +217,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             await db.PlanetCategoryChannels.AddAsync(category);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
@@ -292,7 +293,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             await db.PermissionsNodes.AddRangeAsync(nodes);
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
@@ -334,7 +335,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             logger.LogError(e.Message);
             await transaction.RollbackAsync();
@@ -411,7 +412,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
             await db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await tran.RollbackAsync();
             logger.LogError(e.Message);
@@ -507,7 +508,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             // Automatically determine position in this case
             if (category.Position < 0)
             {
-                category.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.ParentId == category.ParentId));
+                category.Position = (ushort)await db.PlanetChannels.CountAsync(x => x.ParentId == category.ParentId);
             }
             else
             {
@@ -533,7 +534,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         {
             if (category.Position < 0)
             {
-                category.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.PlanetId == category.PlanetId && x.ParentId == null));
+                category.Position = (ushort)await db.PlanetChannels.CountAsync(x => x.PlanetId == category.PlanetId && x.ParentId == null);
             }
             else
             {

@@ -1,45 +1,18 @@
-﻿using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
-using Valour.Shared.Items;
+﻿using Valour.Api.Items.Users;
 using Valour.Shared.Items.Messages;
 
 namespace Valour.Server.Database.Items.Messages;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
-
-[Table("planet_messages")]
-public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
+[Table("direct_messages")]
+public class DirectMessage  : Item, ISharedMessage
 {
-    #region IPlanetItem Implementation
-
-    [JsonIgnore]
-    [ForeignKey("PlanetId")]
-    public Planet Planet { get; set; }
-
-    [Column("planet_id")]
-    public long PlanetId { get; set; }
-
-    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
-        IPlanetItem.GetPlanetAsync(this, db);
-
     [JsonIgnore]
     public override string BaseRoute =>
-        $"api/planet/{{planetId}}/{nameof(PlanetMessage)}";
-
-    #endregion
+        $"api/{nameof(DirectMessage)}";
 
     [ForeignKey("AuthorUserId")]
     [JsonIgnore]
     public User AuthorUser { get; set; }
-
-    [ForeignKey("AuthorMemberId")]
-    [JsonIgnore]
-    public PlanetMember AuthorMember { get; set; }
 
     [ForeignKey("ReplyToId")]
     [JsonIgnore]
@@ -56,12 +29,6 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     /// </summary>
     [Column("author_user_id")]
     public long AuthorUserId { get; set; }
-
-    /// <summary>
-    /// The author's member ID
-    /// </summary>
-    [Column("author_member_id")]
-    public long AuthorMemberId { get; set; }
 
     /// <summary>
     /// String representation of message
@@ -117,4 +84,3 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     [NotMapped]
     public string Fingerprint { get; set; }
 }
-

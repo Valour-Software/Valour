@@ -28,11 +28,6 @@ namespace Valour.Shared.Items.Messages
         long AuthorUserId { get; set; }
 
         /// <summary>
-        /// The author's member ID
-        /// </summary>
-        long AuthorMemberId { get; set; }
-
-        /// <summary>
         /// String representation of message
         /// </summary>
         string Content { get; set; }
@@ -71,6 +66,11 @@ namespace Valour.Shared.Items.Messages
         /// Used to identify a message returned from the server 
         /// </summary>
         string Fingerprint { get; set; }
+
+        /// <summary>
+        /// True if the message was edited
+        /// </summary>
+        bool Edited { get; set; }
 
         /// <summary>
         /// Returns the hash for a message.
