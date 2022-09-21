@@ -1,8 +1,9 @@
 @inject HttpClient Http
 @using Valour.Api.Items.Messages
+@implements IDisposable
 
 <div style="@Item.GetStyle()" class="embed-item">
-    <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => await OnEmbedButtonClick())">
+    <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => {await OnEmbedButtonClick();})">
         @if (Item.Link != "") {
             <a href="@Item.Link" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
         }
@@ -15,23 +16,59 @@
 @code {
     [Parameter]
     public EmbedItem _item {get; set;}
+
     [Parameter]
     public ClientMessageWrapper Message {get; set;}
     [Parameter]
     public Embed embed { get; set;}
+
     [Parameter]
     public EmbedFormItem FormItem { get; set; }
 
+    [CascadingParameter]
+    public EmbedComponent embedComponent { get; set; }
+
     EmbedButtonItem Item;
+
+    private bool ProcessClick = false;
 
     protected override void OnInitialized()
     {
         Item = (EmbedButtonItem)_item;
+        embedComponent.RefreshItemComponents += Refresh;
+    }
+
+    public void Refresh()
+    {
+        Item = (EmbedButtonItem)_item;
+        Console.WriteLine($"Button: {Item.Text}");
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (ProcessClick)
+        {
+            ProcessClick = false;
+            Task.Run((async () => await EmbedGoToClickHandler.HandleClick(Item, embedComponent)));
+        }
+        return base.OnAfterRenderAsync(firstRender);
     }
 
     public async Task OnEmbedButtonClick()
     {
-        EmbedInteractionEvent interaction = new EmbedInteractionEvent()
+        if (Item.HasGoTo)
+        {
+            ProcessClick = true;
+            return;
+        }
+
+        Api.Items.Messages.Embeds.EmbedInteractionEvent interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
         {
             EventType = EmbedIteractionEventType.ButtonClick,
             MessageId = Message.Message.Id,
@@ -61,5 +98,4 @@
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }
-
 }

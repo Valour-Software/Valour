@@ -7,11 +7,6 @@ public class EmbedTextItem : EmbedItem
     public string? Link { get; set; }
     public string? Text { get; set; }
 
-    /// <summary>
-    /// The page number that the embed will be set to when a user clicks this text
-    /// </summary>
-    public int? GoToPage { get; set; }
-
     public EmbedTextItem()
     {
         ItemType = EmbedItemType.Text;

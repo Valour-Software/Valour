@@ -49,16 +49,18 @@ public class EmbedRow
 
     public EmbedRow(List<EmbedItem> items = null)
     {
-        if (items is not null) {
+        if (items is not null)
+        {
             Items = items;
         }
-        else {
+        else
+        {
             Items = new();
         }
     }
 }
 
-public class EmbedPage
+public class EmbedPage 
 {
     /// <summary>
     /// Items in this page. This should be null if embed is not FreelyBased
@@ -85,7 +87,7 @@ public class EmbedPage
     /// Takes in JsonNode and builds the EmbedPage from it
     /// </summary>
     /// <param name="Node">JsonNode of embedpage</param>
-    public void BuildFromJson(JsonNode Node)
+    public void BuildFromJson(JsonNode Node, Embed embed)
     {
         Title = (string)Node["Title"];
         Footer = (string)Node["Footer"];
@@ -99,7 +101,7 @@ public class EmbedPage
         {
             foreach (JsonNode node in Node["Items"].AsArray())
             {
-                Items.Add(Embed.ConvertNodeToEmbedItem(node));
+                Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
             }
         }
 
@@ -113,7 +115,7 @@ public class EmbedPage
                 int i = 0;
                 foreach (JsonNode node in rownode["Items"].AsArray())
                 {
-                    rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node));
+                    rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
                 }
                 Rows.Add(rowobject);
             }
@@ -152,16 +154,28 @@ public class Embed
 
     public int currentPage = 0;
 
-    internal static EmbedItem ConvertNodeToEmbedItem(JsonNode node)
+    /// <summary>
+    /// The Version of the embed system
+    /// </summary>
+    public string EmbedVersion
+    {
+        get
+        {
+            return "1.0.0";
+        }
+    }
+
+    internal static EmbedItem ConvertNodeToEmbedItem(JsonNode node, Embed embed)
     {
         var type = (EmbedItemType)(int)node["ItemType"];
         EmbedItem item = type switch
         {
             EmbedItemType.Text => node.Deserialize<EmbedTextItem>(),
-            EmbedItemType.Form => new EmbedFormItem(node),
+            EmbedItemType.Form => new EmbedFormItem(node, embed),
             EmbedItemType.Button => node.Deserialize<EmbedButtonItem>(),
             EmbedItemType.InputBox => node.Deserialize<EmbedInputBoxItem>()
         };
+        item.Embed = embed;
         return item;
     }
 
@@ -189,7 +203,7 @@ public class Embed
         foreach(var pagenode in Node["Pages"].AsArray())
         {
             var page = new EmbedPage();
-            page.BuildFromJson(pagenode);
+            page.BuildFromJson(pagenode, this);
             Pages.Add(page);
         }
     }

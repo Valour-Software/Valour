@@ -11,7 +11,8 @@ public enum EmbedItemType
     InputBox = 3,
     TextArea = 4,
     ProgressBar = 5,
-    Form = 6
+    Form = 6,
+    GoTo = 7
 }
 
 public interface IEmbedFormItem
@@ -39,6 +40,21 @@ public class EmbedItem
     /// Should be null if the embed is not FreelyBased
     /// </summary>
     public int? Y { get; set; }
+
+    public string? Href { get; set; }
+
+    public int? Page { get; set; }
+
+    [JsonIgnore]
+    public Embed Embed { get; set; }
+
+    public bool HasGoTo
+    {
+        get
+        {
+            return Href is not null || Page is not null;
+        }
+    }
 
     public string GetStyle()
     {

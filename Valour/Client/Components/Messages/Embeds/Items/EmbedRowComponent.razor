@@ -1,4 +1,6 @@
-﻿<div class="embed-row">
+﻿@implements IDisposable
+
+<div class="embed-row">
 	@foreach(EmbedItem item in Row.Items)
 	{
 		<EmbedItemComponent embed="@embed" Message="@Message" FormItem="@FormItem" item="@item"></EmbedItemComponent>
@@ -18,6 +20,9 @@
 	[Parameter]
 	public EmbedFormItem? FormItem { get; set; }
 
+	[CascadingParameter]
+	public EmbedComponent embedComponent { get; set; }
+
 	public string Style {
 		get {
 			if (Row.Align == EmbedAlignType.Left) {
@@ -36,8 +41,19 @@
 		}
 	}
 
+	public void Refresh()
+	{
+		StateHasChanged();
+	}
+
+	public void Dispose()
+	{
+		embedComponent.RefreshRowComponents -= Refresh;
+	}
+
 	protected override void OnInitialized()
 	{
+		embedComponent.RefreshRowComponents += Refresh;
 		StateHasChanged();
 	}
 }

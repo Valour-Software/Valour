@@ -1,4 +1,6 @@
-﻿<div style="@item.GetStyle()" class="embed-item embed-form">
+﻿@implements IDisposable
+
+<div style="@item.GetStyle()" class="embed-item embed-form">
 	@foreach (EmbedRow row in item.Rows)
 	{
 		<EmbedRowComponent Row="@row" Message="@Message" embed="@embed" FormItem="@item"></EmbedRowComponent>
@@ -19,10 +21,25 @@
 	[Parameter]
 	public Embed embed { get; set; }
 
+	[CascadingParameter]
+    public EmbedComponent embedComponent { get; set; }
+
 	public EmbedFormItem item;
 
 	protected override void OnInitialized()
 	{
 		item = (EmbedFormItem)_item;
+		embedComponent.RefreshItemComponents += Refresh;
 	}
+
+	public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+    }
+
+	public void Refresh()
+    {
+		item = (EmbedFormItem)_item;
+        StateHasChanged();
+    }
 }
