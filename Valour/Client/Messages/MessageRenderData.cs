@@ -125,7 +125,7 @@ public class ClientMessageWrapper
     };
 
     public bool IsEmpty =>
-        string.IsNullOrWhiteSpace(Message.Content) && 
+        string.IsNullOrWhiteSpace(Message.EmbedData) && string.IsNullOrWhiteSpace(Message.Content) && 
         Message.ReplyToId is null && 
         (Message.Attachments is null || Message.Attachments.Count == 0);
 
