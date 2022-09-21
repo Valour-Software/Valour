@@ -1,10 +1,10 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 

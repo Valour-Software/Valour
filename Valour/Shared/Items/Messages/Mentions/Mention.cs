@@ -13,7 +13,8 @@ public enum MentionType
     Member,
     Channel,
     Category,
-    Role
+    Role,
+    User
 }
 
 /// <summary>

@@ -4,11 +4,12 @@ using Valour.Api.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Planets.Channels;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Nodes;
+using Valour.Shared.Items.Channels.Planets;
+using Valour.Api.Items.Planets;
 
-namespace Valour.Api.Items.Planets.Channels;
+namespace Valour.Api.Items.Channels.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -77,8 +78,8 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
     public async Task<TaskResult> SetChildOrderAsync(List<long> childIds) =>
         await Node.PostAsync($"{IdRoute}/children/order", childIds);
 
-    public static async Task<TaskResult<PlanetCategoryChannel>> CreateWithDetails(CreatePlanetCategoryChannelRequest request) 
-    { 
+    public static async Task<TaskResult<PlanetCategoryChannel>> CreateWithDetails(CreatePlanetCategoryChannelRequest request)
+    {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Category.PlanetId);
         return await node.PostAsyncWithResponse<PlanetCategoryChannel>($"{request.Category.BaseRoute}/detailed", request);
     }
@@ -148,5 +149,12 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
         // No roles ever defined behavior: resort to false.
         return false;
     }
+
+    // Categories can't really be opened...
+    public override Task Open()
+        => Task.CompletedTask;
+
+    public override Task Close()
+        => Task.CompletedTask;
 }
 

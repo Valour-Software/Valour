@@ -1,9 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Messages;
-using Valour.Server.Database.Items.Planets.Channels;
 using Valour.Shared.Items.Channels;
 
 namespace Valour.Server.Workers

@@ -1,0 +1,38 @@
+﻿@inherits InputComponent
+@using Valour.Api.Items.Messages;
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    public PlanetMember SelfMember { get; set; }
+    public PlanetChatChannel PlanetChannel { get; set; }
+
+    public override async Task SetupNewChannelAsync()
+    {
+        WindowComponent.InputComponent = this;
+        MessageHolder = WindowComponent.MessageHolder;
+
+        PlanetChannel = (PlanetChatChannel)MessageHolder.Window.Channel;
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetChannel.PlanetId);
+
+        PreviewMessage = new(BuildNewMessage());
+    }
+
+    public override Message BuildNewMessage()
+    { 
+        return new PlanetMessage()
+        {
+            AuthorUserId = ValourClient.Self.Id,
+            Content = null,
+            ChannelId = Window.Channel.Id,
+            AuthorMemberId = SelfMember.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            PlanetId = SelfMember.PlanetId,
+            Fingerprint = Guid.NewGuid().ToString()
+        };
+    }
+}

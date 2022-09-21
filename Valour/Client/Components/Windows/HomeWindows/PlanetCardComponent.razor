@@ -1,9 +1,32 @@
 @inject WindowManager windowManager
+@inject IJSRuntime JS
 
-<div class="home-server m-2" style="cursor: pointer" @onclick="OnClick">
-    <h6 class="text-center">@Planet.Name</h6>
-    <img style='@image_style' class="planet-card-icon" src="@iconUrl" @onerror='OnIconError' />
+<div @onclick="OnClick" class="home-icon-outer">
+
+    <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style' />
+
+    <svg style='position: absolute; left: -10px; top: -10px' width='160px' height='160px' id="shape" xmlns="http://www.w3.org/2000/svg"
+         xmlns:xlink="http://www.w3.org/1999/xlink">
+        <defs>
+            <path id="path"
+                  fill="none" stroke="black" stroke-width="10"
+                  d="
+                    M 80, 80
+                    m -60, 0
+                    a 60,60 0 1,0 120,0
+                    a 60,60 0 1,0 -120,0
+                    "
+                  transform="rotate(90 80 80)">
+            </path>
+        </defs>
+        <text id="text-@Planet.Id">
+            <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
+                <tspan class="title" fill='white' dy="0.3em">Loading...</tspan>
+            </textPath>
+        </text>
+    </svg>
 </div>
+
 
 @code {
     [Parameter]
@@ -20,6 +43,11 @@
         iconUrl = Planet.IconUrl;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync($"SetPlanetCardTitle", Planet.Id, Planet.Name);
+    }
+
     public async Task OnClick()
     {
         // Load planet first for personal reasons (let me keep the kids thanks)
@@ -30,7 +58,7 @@
 
         Console.WriteLine($"Switching window {Window.Id} to {channel.Name}");
 
-        var newWindow = new ChatChannelWindow(channel);
+        var newWindow = new PlanetChatChannelWindow(channel);
 
         await windowManager.ReplaceWindow(Window, newWindow);
         await windowManager.SetSelectedWindow(newWindow);

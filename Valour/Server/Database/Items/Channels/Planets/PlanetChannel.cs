@@ -1,11 +1,12 @@
 ﻿using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Planets.Channels;
+using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Server.Database.Items.Planets.Channels;
+namespace Valour.Server.Database.Items.Channels.Planets;
 
 [Table("planet_channels")]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
@@ -64,8 +65,8 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
 
     public static async Task<bool> HasUniquePosition(ValourDB db, PlanetChannel channel) =>
         // Ensure position is not already taken
-        !(await db.PlanetChannels.AnyAsync(x => x.ParentId == channel.ParentId && // Same parent
+        !await db.PlanetChannels.AnyAsync(x => x.ParentId == channel.ParentId && // Same parent
                                                 x.Position == channel.Position && // Same position
-                                                x.Id != channel.Id)); // Not self
+                                                x.Id != channel.Id); // Not self
 }
 

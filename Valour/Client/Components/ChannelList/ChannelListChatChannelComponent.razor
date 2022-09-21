@@ -44,7 +44,7 @@
 
     public bool DetermineUnread()
     {
-        if (ValourClient.OpenChannels.Any(x => x.Id == Channel.Id))
+        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == Channel.Id))
             return false;
 
         if (!ValourClient.ChannelStates.ContainsKey(Channel.Id))

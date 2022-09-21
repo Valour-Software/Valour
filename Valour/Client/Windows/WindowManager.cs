@@ -1,10 +1,12 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Items.Planets.Channels;
 using Valour.Api.Items.Planets;
 using Valour.Client.Components.Windows;
 using Valour.Api.Items;
 using Valour.Shared;
 using Valour.Api.Nodes;
+using Valour.Api.Items.Channels.Planets;
+using Valour.Client.Windows.ChatWindows;
+using Valour.Api.Items.Channels;
 
 namespace Valour.Client.Windows;
 
@@ -58,7 +60,7 @@ public class WindowManager
     {
         Instance = this;
         ValourClient.OnNodeReconnect += OnNodeReconnect;
-        ItemObserver<Planet>.OnAnyDeleted += OnPlanetDelete;
+        ValourClient.OnPlanetClose += OnPlanetClose;
     }
 
     public async Task Log(string msg)
@@ -66,16 +68,10 @@ public class WindowManager
         await Logger.Log(msg, "purple");
     }
 
-    /// <summary>
-    /// Handles planet delete events (spooky!)
-    /// </summary
-    public async Task OnPlanetDelete(Planet planet)
+    public async Task OnPlanetClose(Planet planet)
     {
-        var chatWindows = Windows.OfType<ChatChannelWindow>();
-
-        // Close all channels belonging to the planet
-        foreach (var chat in chatWindows.Where(x => x.Channel.PlanetId == planet.Id))
-            await CloseWindow(chat);
+        if (FocusedPlanet.Id == planet.Id)
+            await SetFocusedPlanet(null);
     }
 
     /// <summary>
@@ -131,7 +127,7 @@ public class WindowManager
     /// <summary>
     /// Swaps the channel a chat channel window is showing
     /// </summary>
-    public async Task SwapWindowChannel(ChatChannelWindow window, PlanetChatChannel newChannel)
+    public async Task SwapWindowChannel(ChatChannelWindow window, IChatChannel newChannel)
     {
         // Already that channel
         if (window.Channel.Id == newChannel.Id)
@@ -146,40 +142,13 @@ public class WindowManager
         // Set window's new channel
         window.Channel = newChannel;
 
+        // Open connection to channel
+        await newChannel.Open();
+
         if (!(chatWindows.Any(x => x.Id != window.Id && x.Channel.Id == oldChannel.Id)))
         {
             // Close the channel connection if this is the only open window for it
-            await ValourClient.CloseChannelConnection(oldChannel);
-
-            // We may have to close the planet if the new channel is not
-            // from the same planet
-            if (newChannel.PlanetId != oldChannel.PlanetId)
-                await ClosePlanetConnectionIfNeeded(await oldChannel.GetPlanetAsync());
-        }
-
-        // Open connection to channel
-        await ValourClient.OpenChannel(newChannel);
-    }
-
-    /// <summary>
-    /// Closes planet connection if no chat channels are opened for it
-    /// </summary>
-    public async Task ClosePlanetConnectionIfNeeded(Planet planet)
-    {
-        if (planet == null)
-            return;
-
-        var chatWindows = Windows.OfType<ChatChannelWindow>();
-
-        // Check if any open chat windows are for the planet
-        if (!chatWindows.Any(x => x.Channel.PlanetId == planet.Id))
-        {
-            // Close the planet connection
-            await ValourClient.ClosePlanetConnection(planet);
-
-            // Remove focus if it's the focused planet
-            if (FocusedPlanet == planet)
-                await SetFocusedPlanet(null);
+            await oldChannel.Close();
         }
     }
 
@@ -197,10 +166,10 @@ public class WindowManager
         await Log($"[WindowManager]: Set active window to {window.Id}");
 
         // If Chat Channel, set focused planet to the channel's planet
-        if (window is ChatChannelWindow)
+        if (window is PlanetChatChannelWindow)
         {
-            var chatW = window as ChatChannelWindow;
-            await SetFocusedPlanet(await chatW.Channel.GetPlanetAsync());
+            var chatW = window as PlanetChatChannelWindow;
+            await SetFocusedPlanet(await chatW.PlanetChannel.GetPlanetAsync());
         }
 
 
@@ -284,10 +253,8 @@ public class WindowManager
             {
 
                 // Close the channel connection if this is the only open window for it
-                await ValourClient.CloseChannelConnection(chatWindow.Channel);
+                await chatWindow.Channel.Close();
             }
-
-            await ClosePlanetConnectionIfNeeded(await chatWindow.Channel.GetPlanetAsync());
         }
     }
 

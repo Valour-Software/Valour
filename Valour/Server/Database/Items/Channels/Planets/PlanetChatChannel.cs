@@ -1,20 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using Valour.Server.Cdn;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Messages;
+using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Database.Items.Users;
+using Valour.Server.Notifications;
 using Valour.Server.Requests;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Planets.Channels;
-using Valour.Shared.Cdn;
-using Valour.Server.Cdn;
-using System.Text.Json;
-using Valour.Shared.Items.Messages;
+using Valour.Shared.Items.Channels.Planets;
 using Valour.Shared.Items.Messages.Mentions;
-using Valour.Server.Notifications;
-using Valour.Server.Database.Items.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -22,7 +21,7 @@ using Valour.Server.Database.Items.Users;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database.Items.Planets.Channels;
+namespace Valour.Server.Database.Items.Channels.Planets;
 
 [Table("planet_chat_channels")]
 public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatChannel

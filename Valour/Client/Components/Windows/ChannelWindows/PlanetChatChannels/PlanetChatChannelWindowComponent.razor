@@ -1,0 +1,63 @@
+﻿@inherits ChatChannelWindowComponent
+@implements IDisposable
+@inject SoundManager soundManager
+@inject WindowManager windowManager
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    public Planet Planet { get; set; }
+    public PlanetMember SelfMember { get; set; }
+    public PlanetChatChannel PlanetChannel { get; set; }
+
+    public override Type GetInputComponentType()
+        => typeof(PlanetChatChannelInputComponent);
+
+    public override async Task SetupNewChannelAsync()
+    {
+        // Build up planet-channel specific variables
+        PlanetChannel = Channel as PlanetChatChannel;
+        Planet = await PlanetChannel.GetPlanetAsync();
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Planet.Id);
+
+        // Hook events
+        Planet.OnDeleted += OnPlanetDeleted;
+
+        // Get permissions
+        ChannelPermissions = await PlanetChannel.GetMemberPermissionsAsync(SelfMember.Id, PlanetChannel.PlanetId);
+
+        // Hook events
+        PlanetChannel.OnUpdated += OnChatChannelUpdate;
+
+        // Do normal channel setup
+        await base.SetupNewChannelAsync();
+    }
+
+    public override async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)
+    {
+        if (messageWrapper.Message.Mentions.Any(x => x.Type == MentionType.Member && x.TargetId == SelfMember.Id))
+            await soundManager.PlaySound("Notification.mp3");
+    }
+
+    public override async Task OnClickWindow()
+    {
+        await windowManager.SetFocusedPlanet(await PlanetChannel.GetPlanetAsync());
+    }
+
+    #region Event Handling
+
+    public async Task OnPlanetDeleted() 
+    => await CloseWindow();
+
+    #endregion
+
+    // Clean up events and others during disposal
+    void IDisposable.Dispose()
+    {
+        Planet.OnDeleted -= OnPlanetDeleted;
+        PlanetChannel.OnUpdated -= OnChatChannelUpdate;
+    }
+}

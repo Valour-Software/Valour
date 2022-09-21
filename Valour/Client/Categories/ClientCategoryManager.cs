@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Api.Items.Planets.Channels;
+using Valour.Api.Items.Channels.Planets;
 
 namespace Valour.Client.Categories
 {

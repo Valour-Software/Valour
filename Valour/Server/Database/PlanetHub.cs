@@ -9,9 +9,9 @@ using Valour.Api.Items.Messages.Embeds.Items;
 using Valour.Api.Items.Messages.Embeds;
 using System.Collections.Concurrent;
 using Valour.Shared;
-using Valour.Server.Database.Items.Planets.Channels;
 using IdGen;
 using Newtonsoft.Json.Linq;
+using Valour.Server.Database.Items.Channels;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

@@ -250,9 +250,14 @@ function ScrollWindowBottomAnim(id) {
 function SetupWindow(id) {
     var window = $("#innerwindow-" + id);
     window.scroll(function () {
-        // User has reached top of scroll
-        if (window.scrollTop() == 0) {
-            DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
+
+        // Scrollbar is actually visible
+        if (window.prop('scrollHeight') > window.height()) {
+
+            // User has reached top of scroll
+            if (window.scrollTop() == 0) {
+                DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
+            }
         }
     });
 }
@@ -448,4 +453,8 @@ function playSound(name) {
     source.src = "./_content/Valour.Client/media/sounds/" + name;
     source.volume = 0.4;
     source.play();
+}
+
+function SetPlanetCardTitle(id, name) {
+    document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
 }
