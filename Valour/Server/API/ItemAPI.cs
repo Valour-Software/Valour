@@ -2,7 +2,7 @@
 using Valour.Server.Database;
 using Valour.Server.Database.Items;
 using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets.Channels;
+using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.API;

@@ -2,7 +2,9 @@
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
+using Valour.Api.Items.Channels.Planets;
 using Valour.Api.Items.Messages;
+using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Nodes;
 using Valour.Api.Requests;
@@ -10,9 +12,9 @@ using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Planets.Channels;
+using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Api.Items.Planets.Channels;
+namespace Valour.Api.Items.Channels.Planets;
 
 
 /*  Valour - A free and secure chat client
@@ -21,7 +23,7 @@ namespace Valour.Api.Items.Planets.Channels;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
+public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatChannel
 {
     #region IPlanetItem implementation
 
@@ -46,6 +48,14 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     public override string GetHumanReadableName() => "Chat Channel";
 
     public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+
+    public override async Task Open()
+        => await ValourClient.OpenPlanetChannel(this);
+
+    public override async Task Close()
+    {
+        await ValourClient.ClosePlanetChannel(this);
+    }
 
     /// <summary>
     /// Returns the permissions node for the given role id
@@ -206,7 +216,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId);
         return await node.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
-    } 
+    }
 
     public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
         (await Node.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}")).Data;
@@ -222,5 +232,17 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     /// </summary>
     public async Task<List<PlanetMessage>> GetLastMessagesAsync(int count = 10) =>
         (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data;
+
+    /// <summary>
+    /// Returns the last (count) generic messages
+    /// </summary>
+    public async Task<List<Message>> GetLastMessagesGenericAsync(int count = 10) =>
+        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data.Cast<Message>().ToList();
+
+    /// <summary>
+    /// Returns the last (count) generic messages starting at (index)
+    /// </summary>
+    public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
+        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
 }
 

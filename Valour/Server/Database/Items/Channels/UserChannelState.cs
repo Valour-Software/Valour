@@ -1,8 +1,6 @@
-﻿using Valour.Api.Items.Users;
-using Valour.Server.Database.Items.Channels;
-using Valour.Shared.Channels;
+﻿using Valour.Shared.Channels;
 
-namespace Valour.Server.Database.Items.Planets.Channels;
+namespace Valour.Server.Database.Items.Channels;
 
 [Table("user_channel_states")]
 public class UserChannelState : ISharedUserChannelState

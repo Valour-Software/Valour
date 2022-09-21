@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
+using Valour.Api.Items.Messages;
 
 namespace Valour.Client.Messages;
 
@@ -12,7 +13,7 @@ namespace Valour.Client.Messages;
 public class MessageContentComponent : ComponentBase
 {
     [Parameter]
-    public ClientPlanetMessage Message { get; set; }
+    public ClientMessageWrapper Message { get; set; }
 
     public void ReRender()
     {
