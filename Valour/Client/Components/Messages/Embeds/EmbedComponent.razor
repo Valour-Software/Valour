@@ -2,63 +2,90 @@
 {
 	return;
 }
-
-<div class="embed" style="@embed.GetStyle()">
-	@if (embed.CurrentlyDisplayed != null)
-	{
-		@if (embed.CurrentlyDisplayed.Title is not null) {
-			<div style="color:#@embed.CurrentlyDisplayed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
-				@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Title))
-			</div>
-		}
-		foreach (EmbedRow item in embed.CurrentlyDisplayed.Rows)
+<CascadingValue Value="@this">
+	<div class="embed" style="@embed.GetStyle()">
+		@if (embed.CurrentlyDisplayed != null)
 		{
-			<EmbedRowComponent Row="@item" Message="@Message" embed="@embed"></EmbedRowComponent>
+			@if (embed.CurrentlyDisplayed.Title is not null) {
+				<div style="color:#@embed.CurrentlyDisplayed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
+					@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Title))
+				</div>
+			}
+			foreach (EmbedRow item in embed.CurrentlyDisplayed.Rows)
+			{
+				<EmbedRowComponent Row="@item" Message="@Message" embed="@embed"></EmbedRowComponent>
+			}
+			foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
+			{
+				<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
+			}
+			if (embed.Pages.Count > 1)
+			{
+				<div style="margin-top: 8px;">
+					<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
+					<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
+					<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+				</div>
+			}
+			@if (embed.CurrentlyDisplayed.Footer is not null)
+			{
+				<div style="color:#@embed.CurrentlyDisplayed.FooterColor;font-size:14px;margin-top: 8px;">
+					@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Footer))
+				</div>
+			}
 		}
-		foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
-		{
-			<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
-		}
-		if (embed.Pages.Count > 1)
-		{
-			<div style="margin-top: 8px;">
-				<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
-				<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
-				<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
-			</div>
-		}
-		@if (embed.CurrentlyDisplayed.Footer is not null)
-		{
-			<div style="color:#@embed.CurrentlyDisplayed.FooterColor;font-size:14px;margin-top: 8px;">
-				@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Footer))
-			</div>
-		}
-	}
-</div>
+	</div>
+</CascadingValue>
 
 
 @code {
 
 	[Parameter]
 	public Embed embed { get; set; }
+
 	[Parameter]
 	public ClientPlanetMessage Message { get; set; }
+
+	public event Action RefreshRowComponents;
+	public event Action RefreshRootItemComponents;
+	public event Action RefreshItemComponents;
+
+	private bool ProcessPageChange = false;
+
+	public EmbedPage page { get; set; }
 
 	protected override void OnInitialized()
 	{
 		StateHasChanged();
 	}
 
+	protected override Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (ProcessPageChange)
+		{
+			ProcessPageChange = false;
+			UpdateItems();
+		}
+		return base.OnAfterRenderAsync(firstRender);
+	}
+
+	public void UpdateItems()
+	{
+		StateHasChanged();
+		RefreshRowComponents?.Invoke();
+		RefreshRootItemComponents?.Invoke();
+		RefreshItemComponents?.Invoke();
+	}
+
 	public void NextPage()
 	{
 		embed.NextPage();
-		StateHasChanged();
+		ProcessPageChange = true;
 	}
 
 	public void PrevPage()
 	{
 		embed.PrevPage();
-		StateHasChanged();
+		ProcessPageChange = true;
 	}
-
 }

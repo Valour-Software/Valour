@@ -1,4 +1,6 @@
-﻿@switch (item.ItemType)
+﻿@implements IDisposable
+
+@switch (item.ItemType)
 {
 	case EmbedItemType.Text:
 		<EmbedTextItemComponent _item="@item"></EmbedTextItemComponent>
@@ -28,4 +30,22 @@
 
 	[Parameter]
 	public EmbedFormItem? FormItem { get; set; }
+
+	[CascadingParameter]
+	public EmbedComponent embedComponent { get; set; }
+
+	protected override void OnInitialized()
+	{
+		embedComponent.RefreshRootItemComponents += Refresh;
+	}
+
+	public void Dispose()
+    {
+        embedComponent.RefreshRootItemComponents -= Refresh;
+    }
+
+	public void Refresh()
+	{
+		StateHasChanged();
+	}
 }
