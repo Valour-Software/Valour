@@ -290,7 +290,7 @@ video {
 .channel-and-topbar-mobile {
     transform: translateX(-358px);
     flex: 0;
-    max-width: 100%;
+    max-width: 100vw;
 }
 
 .sidebar-2 .channel-name {
