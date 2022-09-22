@@ -1,0 +1,25 @@
+﻿.open-tab {
+    position: absolute;
+    width: 10px;
+    height: 90px;
+    top: calc(50% - 45px);
+    color: black;
+    font-size: 0px;
+    line-height: 90px;
+    background-color: white;
+    left: calc(64px + 294px);
+    border-radius: 0 10px 10px 0;
+    opacity: 0.1;
+    cursor: pointer;
+    transition: left 0.5s ease-in-out, width 0.2s ease-in-out, font-size 0.2s ease-in-out;
+}
+
+.open-tab:hover {
+    opacity: 0.4;
+    width: 30px;
+    font-size: 30px;
+}
+
+.sidebar-mobile:hover + .open-tab {
+    left: calc(250px + 294px);
+}
