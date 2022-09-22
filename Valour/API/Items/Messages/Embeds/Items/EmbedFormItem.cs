@@ -78,7 +78,7 @@ public class EmbedFormItem : EmbedItem
         return data;
     }
 
-    public EmbedFormItem(JsonNode Node)
+    public EmbedFormItem(JsonNode Node, Embed embed)
     {
         ItemType = EmbedItemType.Form;
         Id = (string)Node["Id"];
@@ -96,7 +96,7 @@ public class EmbedFormItem : EmbedItem
                     Items = new();
                     foreach (JsonNode node in Node["Items"].AsArray())
                     {
-                        Items.Add(Embed.ConvertNodeToEmbedItem(node));
+                        Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
                     }
                 }
                 break;
@@ -112,7 +112,7 @@ public class EmbedFormItem : EmbedItem
                         int i = 0;
                         foreach (JsonNode node in rownode["Items"].AsArray())
                         {
-                            rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node));
+                            rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
                         }
                         Rows.Add(rowobject);
                     }

@@ -9,11 +9,6 @@ public class EmbedButtonItem : EmbedItem
     public string Text { get; set; }
     public string? Link { get; set; }
     public string Event { get; set; }
-
-    /// <summary>
-    /// The page number that the embed will be set to when a user clicks this button
-    /// </summary>
-    public int? GoToPage { get; set; }
     public bool? IsSubmitButton { get; set; } = false;
 
     public EmbedButtonItem()

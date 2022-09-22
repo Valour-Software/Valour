@@ -1,4 +1,5 @@
 @inject HttpClient Http
+@implements IDisposable
 
 <div style="@Item.GetStyle()" class="embed-item">
     @if (Item.Name != null)
@@ -16,8 +17,23 @@
 
     public EmbedInputBoxItem Item { get; set; }
 
+    [CascadingParameter]
+    public EmbedComponent embedComponent { get; set; }
+
     protected override void OnInitialized()
     {
         Item = (EmbedInputBoxItem)_item;
+        embedComponent.RefreshItemComponents += Refresh;
+    }
+
+    public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+    }
+
+    public void Refresh()
+    {
+        Item = (EmbedInputBoxItem)_item;
+        StateHasChanged();
     }
 }

@@ -4,11 +4,19 @@ using Valour.Api.Items.Messages.Embeds.Items;
 
 namespace Valour.Api.Items.Messages.Embeds;
 
+public class EmbedGoTo
+{
+    public string? Href { get; set; }
+    public int? Page { get; set; }
+}
+
 public class EmbedBuilder
 {
     public Embed embed;
 
     public EmbedFormItem FormItem;
+
+    public EmbedGoTo GoTo = new();
 
     public EmbedBuilder(EmbedItemPlacementType embedType, int? width = null, int? height = null)
     {
@@ -48,7 +56,7 @@ public class EmbedBuilder
         };
         if (embed.EmbedType == EmbedItemPlacementType.RowBased)
             page.Rows = new();
-        else 
+        else
             page.Items = new();
         embed.Pages.Add(page);
         return this;
@@ -64,6 +72,55 @@ public class EmbedBuilder
             FormItem.Rows.Add(row);
         else
             embed.Pages.Last().Rows.Add(row);
+        return this;
+    }
+
+    internal void AddItem(EmbedItem item, int? x, int? y)
+    {
+
+        if (GoTo.Href is not null)
+            item.Href = GoTo.Href;
+        if (GoTo.Page is not null)
+            item.Page = GoTo.Page;
+
+        if (embed.EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
+        {
+            item.X = x;
+            item.Y = y;
+            if (FormItem is not null)
+                FormItem.AddItem(item);
+            else
+                embed.Pages.Last().Items.Add(item);
+        }
+        else
+        {
+            if (FormItem is not null)
+                FormItem.AddItem(item);
+            else
+                embed.Pages.Last().Rows.Last().Items.Add(item);
+        }
+    }
+
+    public EmbedBuilder AddGoToLink(string href)
+    {
+        if (GoTo.Page is not null || GoTo.Href is not null)
+            throw new ArgumentException("You can not call GoToLink more than once without calling EndGoTo()!");
+        GoTo.Href = href;
+        return this;
+    }
+
+    public EmbedBuilder AddGoToPage(int PageNumber)
+    {
+        if (GoTo.Page is not null || GoTo.Href is not null)
+            throw new ArgumentException("You can not call GoToLink more than once without calling EndGoTo()!");
+        GoTo.Page = PageNumber;
+        return this;
+    }
+
+    public EmbedBuilder EndGoTo()
+    {
+        GoTo.Href = null;
+        GoTo.Page = null;
         return this;
     }
 
@@ -176,25 +233,5 @@ public class EmbedBuilder
 
         AddItem(item, x, y);
         return this;
-    }
-
-    internal void AddItem(EmbedItem item, int? x, int? y)
-    {
-        if (embed.EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
-        {
-            item.X = x;
-            item.Y = y;
-            if (FormItem is not null)
-                FormItem.AddItem(item);
-            else
-                embed.Pages.Last().Items.Add(item);
-        }
-        else
-        {
-            if (FormItem is not null)
-                FormItem.AddItem(item);
-            else
-                embed.Pages.Last().Rows.Last().Items.Add(item);
-        }
     }
 }

@@ -1,11 +1,13 @@
-﻿<div style="@item.GetStyle()" class="embed-item">
+﻿@implements IDisposable
+
+<div style="@item.GetStyle()" class="embed-item">
 	@if (item.Name != null)
 	{
 		<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
 			@((MarkupString)MarkdownManager.GetHtml(item.Name))
 		</div>
 	}
-	<div style="color:#@item.TextColor;font-size:14px;">
+	<div style="color:#@item.TextColor;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
 		@if (item.Link != null)
 		{
 			<a href="@item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
@@ -13,7 +15,15 @@
 		else
 		{
 			if (item.Text is not null)
-				@((MarkupString)MarkdownManager.GetHtml(item.Text))
+			{
+				if (item.HasGoTo)
+				{
+					<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
+				}
+				else {
+					@((MarkupString)MarkdownManager.GetHtml(item.Text))
+				}
+			}
 		}
 	</div>
 </div>
@@ -24,8 +34,44 @@
 
 	public EmbedTextItem item { get; set; }
 
+	[CascadingParameter]
+	public EmbedComponent embedComponent { get; set; }
+
+	private bool ProcessClick = false;
+
+	protected override Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (ProcessClick)
+		{
+			ProcessClick = false;
+			Task.Run((async () => await EmbedGoToClickHandler.HandleClick(item, embedComponent)));
+		}
+		return base.OnAfterRenderAsync(firstRender);
+	}
+
+	public async Task OnEmbedButtonClick()
+	{
+		if (item.HasGoTo)
+		{
+			ProcessClick = true;
+			return;
+		}
+	}
+
 	protected override void OnInitialized()
 	{
 		item = (EmbedTextItem)_item;
+		embedComponent.RefreshItemComponents += Refresh;
+	}
+
+	public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+    }
+
+	public void Refresh()
+	{
+		item = (EmbedTextItem)_item;
+		StateHasChanged();
 	}
 }
