@@ -241,7 +241,7 @@
 
         Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
 
-        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 32);
+        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 64);
 
         if (messages == null || messages.Count() == 0)
         {
