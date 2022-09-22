@@ -2,7 +2,7 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-@if (MessageData == null || MessageData.IsEmpty)
+@if (MessageData == null || MessageData.IsEmpty || !IsBuilt)
 {
     return;
 }
@@ -230,11 +230,13 @@
 
     public string pfpurl = "_content/Valour.Client/icon-512.png";
 
-    public string name = "";
+    public string name = "User not Found";
 
     public bool Edit = false;
 
     bool mentioned = false;
+
+    bool IsBuilt = false;
 
     public string Class
     {
@@ -387,6 +389,9 @@
         nameColor = await MessageData.Message.GetAuthorColorAsync();
         nameTag = await MessageData.Message.GetAuthorTagAsync();
         pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
+
+        IsBuilt = true;
+        ReRender();
     }
 
     protected override async Task OnInitializedAsync()

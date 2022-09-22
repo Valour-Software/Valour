@@ -204,6 +204,7 @@ navigator.locks.request('valour_lock', lock => {
 var oldScrollHeight = {};
 var oldScrollTop = {};
 var stickyStates = {};
+var lastTopLoadPos = {};
 
 // Automagically scroll windows down
 function UpdateScrollPosition(id) {
@@ -247,15 +248,19 @@ function ScrollWindowBottomAnim(id) {
     window.animate({ scrollTop: window.prop("scrollHeight") }, "fast");
 }
 
+var scrollUpTimer = Date.now();
+
 function SetupWindow(id) {
-    var window = $("#innerwindow-" + id);
+    var window = $("#innerwindow-" + id); 
     window.scroll(function () {
 
         // Scrollbar is actually visible
         if (window.prop('scrollHeight') > window.height()) {
 
             // User has reached top of scroll
-            if (window.scrollTop() == 0) {
+            if (window.scrollTop() == 0 && scrollUpTimer < (Date.now() - 50)) {
+                console.log("hello");
+                scrollUpTimer = new Date();
                 DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
             }
         }
