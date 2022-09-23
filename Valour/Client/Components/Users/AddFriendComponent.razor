@@ -1,0 +1,99 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject WindowManager windowManager
+
+<div class="col-md-12">
+	<section>
+		<h2>Add a new friend</h2>
+
+		<h4>The beginning of a friendship!</h4>
+
+		<p class="mt-2">Remember, they have to add you back as well!</p>
+
+		<hr />
+
+		<div asp-validation-summary="All" class="text-info"></div>
+
+		<div class="form-group mt-4">
+			<label>Friend's Username</label>
+			<input class="form-control" @bind-value="@name" type='' />
+			<span id="name-span" style="color:#888888">@nameSpan</span>
+		</div>
+
+
+		@if (!string.IsNullOrEmpty(errorSpan))
+		{
+			<br />
+			<span class="text-danger mt-4 mb-4">@errorSpan</span>
+		}
+
+		<div class="d-flex form-group mt-4" style="align-items: center">
+			<button class="btn v-button mt-2" @onclick="OnClickSubmit">Add Friend</button>
+			@if (!string.IsNullOrWhiteSpace(successSpan))
+			{
+				<span class="text-info" style="display: inline-block; margin-left: 15px;">@successSpan</span>
+			}
+		</div>
+	</section>
+</div>
+
+@code {
+	// Input fields
+	string name;
+
+	// Spans
+	string nameSpan = "The username of your friend";
+
+	string errorSpan = null;
+	string successSpan = null;
+
+	[Parameter]
+	public ClientWindow Window { get; set; }
+
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
+
+	private async Task OnClickSubmit(MouseEventArgs e)
+	{
+		// Require a name
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			errorSpan = "Please input a username.";
+			return;
+		}
+
+		/*
+		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planet", new_planet);
+
+		if (!response.Success)
+		{
+			errorSpan = response.Message;
+			StateHasChanged();
+			return;
+		}
+
+		await ModalInstance.CloseAsync();
+
+		var planet = response.Data;
+
+		await ValourCache.Put(planet.Id, planet);
+
+		PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
+
+		await windowManager.ClearWindows();
+
+		var newChannel = new PlanetChatChannelWindow(mainChannel);
+
+		// Get the new main window
+		var mainWindow = windowManager.GetWindows()[0];
+
+		await windowManager.ReplaceWindow(mainWindow, newChannel);
+		await windowManager.SetSelectedWindow(newChannel);
+		*/
+	}
+
+	private async Task OnImageInput()
+	{
+	}
+
+}

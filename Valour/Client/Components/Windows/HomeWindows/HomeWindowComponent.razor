@@ -185,6 +185,8 @@
 
     public async Task OnClickAddFriend()
     {
-        
+        var param = new ModalParameters();
+        param.Add("Window", Window);
+        Modal.Show<AddFriendComponent>("Add Friend", param, new ModalOptions() { Class = "modal-shrink-fit" });
     }
 }
