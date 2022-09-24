@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS primary_node_connections (
     connection_id VARCHAR(22) NOT NULL PRIMARY KEY,
     user_id BIGINT NOT NULL,
     open_time TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    node_id VARCHAR(10) NOT NULL,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );

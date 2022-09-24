@@ -13,6 +13,7 @@ using IdGen;
 using Newtonsoft.Json.Linq;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Nodes;
+using Valour.Server.API;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -183,6 +184,7 @@ namespace Valour.Server.Database
                 ConnectionId = connectionId,
                 UserId = userId,
                 OpenTime = DateTime.UtcNow,
+                NodeId = NodeAPI.Node.Name
             };
 
             // Add to collection

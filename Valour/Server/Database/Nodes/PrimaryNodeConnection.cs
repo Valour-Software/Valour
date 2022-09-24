@@ -16,6 +16,12 @@ public class PrimaryNodeConnection
     public string ConnectionId { get; set; }
 
     /// <summary>
+    /// The node the connection is connected to
+    /// </summary>
+    [Column("node_id")]
+    public string NodeId { get; set; }
+
+    /// <summary>
     /// The Id of the user who opened this connection
     /// </summary>
     [Column("user_id")]
