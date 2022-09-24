@@ -1,4 +1,4 @@
-@inject WindowManager windowManager
+﻿@inject WindowManager windowManager
 @inject IJSRuntime JS
 
 <div @onclick="OnClick" class="home-icon-outer">
@@ -19,7 +19,7 @@
                   transform="rotate(90 80 80)">
             </path>
         </defs>
-        <text id="text-@Planet.Id">
+        <text id="text-@Friend.Id">
             <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
                 <tspan class="title" fill='white' dy="0.3em">Loading...</tspan>
             </textPath>
@@ -30,7 +30,7 @@
 
 @code {
     [Parameter]
-    public Planet Planet { get; set; }
+    public User Friend { get; set; }
 
     [Parameter]
     public HomeWindow Window { get; set; }
@@ -40,17 +40,17 @@
     public string image_style = "";
 
     protected override async Task OnInitializedAsync(){
-        iconUrl = Planet.IconUrl;
+        iconUrl = Friend.PfpUrl;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync($"SetCardTitle", Planet.Id, Planet.Name);
+        await JS.InvokeVoidAsync($"SetCardTitle", Friend.Id, Friend.Name);
     }
 
     public async Task OnClick()
     {
-        // Load planet first for personal reasons (let me keep the kids thanks)
+        /*
         await ValourClient.OpenPlanet(Planet);
         await windowManager.SetFocusedPlanet(Planet);
 
@@ -62,6 +62,7 @@
 
         await windowManager.ReplaceWindow(Window, newWindow);
         await windowManager.SetSelectedWindow(newWindow);
+        */
 
         StateHasChanged();
     }

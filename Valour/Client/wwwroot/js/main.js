@@ -478,6 +478,6 @@ function playSound(name) {
     source.play();
 }
 
-function SetPlanetCardTitle(id, name) {
+function SetCardTitle(id, name) {
     document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
 }

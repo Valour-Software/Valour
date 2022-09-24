@@ -198,8 +198,35 @@ public static class ValourClient
     /// <summary>
     /// Adds a friend
     /// </summary>
-    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username) =>
-        await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/{nameof(UserFriend)}/add/{username}");
+    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username)
+    {
+        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/{nameof(UserFriend)}/add/{username}");
+
+        if (result.Success)
+        {
+            var newFriendUser = await User.FindAsync(result.Data.FriendId);
+            Friends.Add(newFriendUser);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Removes a friend
+    /// </summary>
+    public static async Task<TaskResult> RemoveFriendAsync(string username)
+    {
+        var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/remove/{username}", null);
+
+        if (result.Success)
+        {
+            var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            if (friend is not null)
+                Friends.Remove(friend);
+        }
+
+        return result;
+    }
 
     #region SignalR Groups
 

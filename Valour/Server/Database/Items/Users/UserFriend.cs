@@ -69,6 +69,30 @@ public class UserFriend : Item, ISharedUserFriend
         return Results.Json(friend);
     }
 
+    [ValourRoute(HttpVerbs.Post, "/remove/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    public static async Task<IResult> RemoveFriendRouteAsync(HttpContext ctx, [FromRoute] string friendUsername)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        /* TODO: Eventually ensure user is not blocked */
+
+        var friendUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == friendUsername.ToLower());
+        if (friendUser is null)
+            return ValourResult.NotFound($"User {friendUsername} was not found.");
+
+        var friend = await db.UserFriends.FirstOrDefaultAsync(x => x.UserId == token.UserId &&
+                                                                   x.FriendId == friendUser.Id);
+        if (friend is null)
+            return ValourResult.BadRequest("User is already not a friend.");
+
+        db.UserFriends.Remove(friend);
+        await db.SaveChangesAsync();
+
+        return ValourResult.Ok("Friendship removed successfully.");
+    }
+
     [ValourRoute(HttpVerbs.Post, "/add/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Friends)]
     public static async Task<IResult> AddFriendRouteAsync(HttpContext ctx, [FromRoute] string friendUsername)
