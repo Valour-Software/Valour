@@ -46,8 +46,6 @@ namespace Valour.Server.Database
 
         public override Task OnDisconnectedAsync(Exception exception)
         {
-            ConnectionIdentities.Remove(Context.ConnectionId, out _);
-
             RemoveAllMemberships();
 
             return base.OnDisconnectedAsync(exception);
@@ -162,7 +160,7 @@ namespace Valour.Server.Database
             ConnectionGroups.Remove(Context.ConnectionId, out _);
 
             // Remove connection identity
-            ConnectionIdentities.Remove(Context.ConnectionId, out _);
+            //ConnectionIdentities.Remove(Context.ConnectionId, out _);
         }
 
         public async Task<TaskResult> JoinUser()
@@ -171,6 +169,8 @@ namespace Valour.Server.Database
             if (authToken == null) return new TaskResult(false, "Failed to connect to User: SignalR was not authenticated.");
 
             var groupId = $"u-{authToken.UserId}";
+
+            TrackGroupMembership(groupId);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
 
             return new TaskResult(true, "Connected to user " + groupId);
@@ -182,6 +182,8 @@ namespace Valour.Server.Database
             if (authToken == null) return;
 
             var groupId = $"u-{authToken.UserId}";
+
+            UntrackGroupMembership(groupId);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
         }
 

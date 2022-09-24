@@ -1,5 +1,13 @@
 ﻿BEGIN;
 
+CREATE TABLE IF NOT EXISTS node_stats (
+    name text NOT NULL PRIMARY KEY,
+    connection_count INT NOT NULL DEFAULT 0,
+    connection_group_count INT NOT NULL DEFAULT 0,
+    planet_count INT NOT NULL DEFAULT 0,
+    active_member_count INT NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,

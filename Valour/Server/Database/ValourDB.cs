@@ -7,6 +7,7 @@ using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.Database.Nodes;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -157,6 +158,8 @@ public class ValourDB : DbContext
     public DbSet<PlanetRole> PlanetRoles { get; set; }
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
+
+    public DbSet<NodeStats> NodeStats { get; set; }
 
     public ValourDB(DbContextOptions options)
     {
