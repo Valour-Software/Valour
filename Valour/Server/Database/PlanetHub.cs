@@ -12,6 +12,7 @@ using Valour.Shared;
 using IdGen;
 using Newtonsoft.Json.Linq;
 using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Nodes;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -24,6 +25,15 @@ namespace Valour.Server.Database
     public class PlanetHub : Hub
     {
         public const string HubUrl = "/planethub";
+
+        private readonly ValourDB _db;
+
+        public PlanetHub(ValourDB db)
+        {
+            this._db = db;
+        }
+
+
 
         /// <summary>
         /// We can store the authentication tokens for clients after they connect to the hub, and use them as long as the connection lasts
@@ -42,13 +52,19 @@ namespace Valour.Server.Database
         // Map of user id to joined groups
         public static ConcurrentDictionary<long, List<string>> UserIdGroups = new ConcurrentDictionary<long, List<string>>();
 
+        // Map of connection id to user id
+        // This specifically stores primary user connections
+        public static ConcurrentDictionary<string, PrimaryNodeConnection> PrimaryConnections = new ConcurrentDictionary<string, PrimaryNodeConnection>();
+
         public static IHubContext<PlanetHub> Current;
 
-        public override Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
+            await RemovePrimaryConnection(Context.ConnectionId);
+
             RemoveAllMemberships();
 
-            return base.OnDisconnectedAsync(exception);
+            await base.OnDisconnectedAsync(exception);
         }
 
         public AuthToken GetToken(string connectionId)
@@ -61,18 +77,15 @@ namespace Valour.Server.Database
 
         public async Task<TaskResult> Authorize(string token)
         {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                // Authenticate user
-                AuthToken authToken = await AuthToken.TryAuthorize(token, db);
+            // Authenticate user
+            AuthToken authToken = await AuthToken.TryAuthorize(token, _db);
 
-                if (authToken is null)
-                    return new TaskResult(false, "Failed to authenticate connection.");
+            if (authToken is null)
+                return new TaskResult(false, "Failed to authenticate connection.");
 
-                ConnectionIdentities[Context.ConnectionId] = authToken;
+            ConnectionIdentities[Context.ConnectionId] = authToken;
 
-                return new TaskResult(true, "Authenticated with SignalR hub successfully.");
-            }
+            return new TaskResult(true, "Authenticated with SignalR hub successfully.");
         }
 
         public void TrackGroupMembership(string groupId)
@@ -163,6 +176,43 @@ namespace Valour.Server.Database
             //ConnectionIdentities.Remove(Context.ConnectionId, out _);
         }
 
+        public async Task AddPrimaryConnection(string connectionId, long userId)
+        {
+            var conn = new PrimaryNodeConnection()
+            {
+                ConnectionId = connectionId,
+                UserId = userId,
+                OpenTime = DateTime.UtcNow,
+            };
+
+            // Add to collection
+            var added = PrimaryConnections.TryAdd(connectionId, conn);
+
+            if (added)
+            {
+                // Add to database
+                await _db.PrimaryNodeConnections.AddAsync(conn);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task RemovePrimaryConnection(string connectionId)
+        {
+            // Remove any existing connection from collection
+            var removed = PrimaryConnections.Remove(connectionId, out var conn);
+
+            if (removed)
+            {
+                // Remove from database
+                _db.PrimaryNodeConnections.Remove(conn);
+
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        /// <summary>
+        /// Primary node connection for user-wide events
+        /// </summary>
         public async Task<TaskResult> JoinUser()
         {
             var authToken = GetToken(Context.ConnectionId);
@@ -171,7 +221,12 @@ namespace Valour.Server.Database
             var groupId = $"u-{authToken.UserId}";
 
             TrackGroupMembership(groupId);
+
+            await AddPrimaryConnection(Context.ConnectionId, authToken.UserId);
+
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+
+            using ValourDB db = new ValourDB(ValourDB.DBOptions);
 
             return new TaskResult(true, "Connected to user " + groupId);
         }
@@ -184,6 +239,9 @@ namespace Valour.Server.Database
             var groupId = $"u-{authToken.UserId}";
 
             UntrackGroupMembership(groupId);
+
+            await RemovePrimaryConnection(Context.ConnectionId);
+
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
         }
 

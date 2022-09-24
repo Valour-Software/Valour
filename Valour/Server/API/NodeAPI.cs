@@ -63,7 +63,7 @@ namespace Valour.Server.API
                 {
                     Name = NodeConfig.Instance.Name,
                     ConnectionCount = PlanetHub.ConnectionIdentities.Count,
-                    ConnectionGroupCount = PlanetHub.GroupConnections.Count,
+                    ConnectionGroupCount = PlanetHub.ConnectionGroups.Count,
                     PlanetCount = Node.Planets.Count,
 
                     GroupConnections = PlanetHub.GroupConnections,

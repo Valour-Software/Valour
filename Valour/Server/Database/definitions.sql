@@ -8,6 +8,14 @@ CREATE TABLE IF NOT EXISTS node_stats (
     active_member_count INT NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS primary_node_connections (
+    connection_id VARCHAR(22) NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    open_time TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,
