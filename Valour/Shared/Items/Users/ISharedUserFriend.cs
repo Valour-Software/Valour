@@ -12,13 +12,8 @@
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public interface ISharedUserFriend
+public interface ISharedUserFriend : ISharedItem
 {
-    /// <summary>
-    /// The id of this friendship item
-    /// </summary>
-    long Id { get; set; }
-
     /// <summary>
     /// The user who added the friend
     /// </summary>

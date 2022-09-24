@@ -14,13 +14,8 @@ namespace Valour.Api.Items.Users;
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public class UserFriend : ISharedUserFriend
+public class UserFriend : Item, ISharedUserFriend
 {
-    /// <summary>
-    /// The id of this friendship item
-    /// </summary>
-    public long Id { get; set; }
-
     /// <summary>
     /// The id of the user who added the friend
     /// </summary>

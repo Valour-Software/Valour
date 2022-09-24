@@ -1,4 +1,6 @@
-﻿using Valour.Shared.Items.Users;
+﻿using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Authorization;
+using Valour.Shared.Items.Users;
 
 namespace Valour.Server.Database.Items.Users;
 
@@ -14,7 +16,8 @@ namespace Valour.Server.Database.Items.Users;
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public class UserFriend : ISharedUserFriend
+[Table("user_friends")]
+public class UserFriend : Item, ISharedUserFriend
 {
     /// <summary>
     /// The user who added the friend
@@ -30,18 +33,69 @@ public class UserFriend : ISharedUserFriend
     public virtual User Friend { get; set; }
 
     /// <summary>
-    /// The id of this friendship item
-    /// </summary>
-    public long Id { get; set; }
-
-    /// <summary>
     /// The id of the user who added the friend
     /// </summary>
+    [Column("user_id")]
     public long UserId { get; set; }
 
     /// <summary>
     /// The id of the user being added as a friend
     /// (friendzoned)
     /// </summary>
+    [Column("friend_id")]
     public long FriendId { get; set; }
+
+    [JsonIgnore]
+    public override string BaseRoute =>
+        $"api/{nameof(UserFriend)}/{UserId}/{FriendId}";
+
+    [ValourRoute(HttpVerbs.Get, "/{userId}/{friendId}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    public static async Task<IResult> GetFriendRouteAsync(HttpContext ctx, long userId, long friendId)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        /* TODO: In the future, allow users to enable other users seeing their friends */
+        if (token.UserId != userId)
+            return ValourResult.Forbid("You cannot currently view another user's friends.");
+
+        var friend = await db.UserFriends.FirstOrDefaultAsync(x => x.UserId == userId &&
+                                                                   x.FriendId == friendId);
+
+        if (friend is null)
+            return ValourResult.NotFound("Friend not found.");
+
+        return Results.Json(friend);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/add/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    public static async Task<IResult> AddFriendRouteAsync(HttpContext ctx, [FromRoute] string friendUsername)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        /* TODO: Eventually ensure user is not blocked */
+
+        var friendUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == friendUsername.ToLower());
+        if (friendUser is null)
+            return ValourResult.NotFound($"User {friendUsername} was not found.");
+
+        if (await db.UserFriends.AnyAsync(x => x.UserId == token.UserId &&
+                                               x.FriendId == friendUser.Id))
+            return ValourResult.BadRequest("Friend already added.");
+
+        UserFriend newFriend = new()
+        {
+            Id = IdManager.Generate(),
+            UserId = token.UserId,
+            FriendId = friendUser.Id,
+        };
+
+        await db.UserFriends.AddAsync(newFriend);
+        await db.SaveChangesAsync();
+
+        return Results.Created(newFriend.GetUri(), newFriend);
+    }
 }

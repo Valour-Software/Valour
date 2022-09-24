@@ -1,8 +1,4 @@
-﻿@inject HttpClient Http
-@inject NavigationManager navManager
-@inject WindowManager windowManager
-
-<div class="col-md-12">
+﻿<div class="col-md-12">
 	<section>
 		<h2>Add a new friend</h2>
 
@@ -62,8 +58,7 @@
 			return;
 		}
 
-		/*
-		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planet", new_planet);
+		var response = await ValourClient.AddFriendAsync(name);
 
 		if (!response.Success)
 		{
@@ -72,28 +67,6 @@
 			return;
 		}
 
-		await ModalInstance.CloseAsync();
-
-		var planet = response.Data;
-
-		await ValourCache.Put(planet.Id, planet);
-
-		PlanetChatChannel mainChannel = await planet.GetPrimaryChannelAsync();
-
-		await windowManager.ClearWindows();
-
-		var newChannel = new PlanetChatChannelWindow(mainChannel);
-
-		// Get the new main window
-		var mainWindow = windowManager.GetWindows()[0];
-
-		await windowManager.ReplaceWindow(mainWindow, newChannel);
-		await windowManager.SetSelectedWindow(newChannel);
-		*/
+		successSpan = "Added friend successfully.";
 	}
-
-	private async Task OnImageInput()
-	{
-	}
-
 }
