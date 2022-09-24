@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Xml.Linq;
 using Valour.Api.Extensions;
 using Valour.Api.Items;
 using Valour.Api.Items.Authorization;
@@ -85,6 +86,11 @@ public static class ValourClient
     /// The primary node this client is connected to
     /// </summary>
     public static Node PrimaryNode { get; set; }
+
+    /// <summary>
+    /// The friends of this client
+    /// </summary>
+    public static List<User> Friends { get; set; }
 
     #region Event Fields
 
@@ -189,7 +195,40 @@ public static class ValourClient
     public static async Task<TaskResult> SendMessage(PlanetMessage message)
         => await message.PostMessageAsync();
 
-#region SignalR Groups
+    /// <summary>
+    /// Adds a friend
+    /// </summary>
+    public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username)
+    {
+        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/{nameof(UserFriend)}/add/{username}");
+
+        if (result.Success)
+        {
+            var newFriendUser = await User.FindAsync(result.Data.FriendId);
+            Friends.Add(newFriendUser);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Removes a friend
+    /// </summary>
+    public static async Task<TaskResult> RemoveFriendAsync(string username)
+    {
+        var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/remove/{username}", null);
+
+        if (result.Success)
+        {
+            var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            if (friend is not null)
+                Friends.Remove(friend);
+        }
+
+        return result;
+    }
+
+    #region SignalR Groups
 
     /// <summary>
     /// Returns if the given planet is open
@@ -598,244 +637,269 @@ public static class ValourClient
 
     #region Initialization
 
-        /// <summary>
-        /// Gets the Token for the client
-        /// </summary>
-        public static async Task<TaskResult<string>> GetToken(string email, string password)
+    /// <summary>
+    /// Gets the Token for the client
+    /// </summary>
+    public static async Task<TaskResult<string>> GetToken(string email, string password)
+    {
+        TokenRequest request = new()
         {
-            TokenRequest request = new()
-            {
-                Email = email,
-                Password = password
-            };
+            Email = email,
+            Password = password
+        };
 
-            var response = await PostAsyncWithResponse<AuthToken>($"api/user/token", request);
+        var response = await PostAsyncWithResponse<AuthToken>($"api/user/token", request);
 
-            if (!response.Success)
-            {
-                Console.WriteLine("Failed to request user token.");
-                Console.WriteLine(response.Message);
-                return new TaskResult<string>(false, $"Incorrect email or password. (Are you using your email?)", response.Message);
-            }
-
-            var token = response.Data.Id;
-
-            _token = token;
-
-            return new TaskResult<string>(true, "Success", _token);
+        if (!response.Success)
+        {
+            Console.WriteLine("Failed to request user token.");
+            Console.WriteLine(response.Message);
+            return new TaskResult<string>(false, $"Incorrect email or password. (Are you using your email?)", response.Message);
         }
 
-        /// <summary>
-        /// Logs in and prepares the client for use
-        /// </summary>
-        public static async Task<TaskResult<User>> InitializeUser(string token)
+        var token = response.Data.Id;
+
+        _token = token;
+
+        return new TaskResult<string>(true, "Success", _token);
+    }
+
+    /// <summary>
+    /// Logs in and prepares the client for use
+    /// </summary>
+    public static async Task<TaskResult<User>> InitializeUser(string token)
+    {
+        // Store token 
+        _token = token;
+
+        if (Http.DefaultRequestHeaders.Contains("authorization"))
         {
-            // Store token 
-            _token = token;
-
-            if (Http.DefaultRequestHeaders.Contains("authorization"))
-            {
-                Http.DefaultRequestHeaders.Remove("authorization");
-            }
-
-            // Add auth header so we never have to do that again
-            Http.DefaultRequestHeaders.Add("authorization", Token);
-
-            // Get user
-
-            var response = await GetJsonAsync<User>($"api/user/self");
-
-            if (!response.Success)
-                return response;
-
-            // Set reference to self user
-            Self = response.Data;
-
-            // Now that we have our user, it should have node data we can use to set up our first node
-            // Initialize primary node
-            PrimaryNode = new Node();
-            await PrimaryNode.InitializeAsync(Self.NodeName, _token);
-
-            // Set node to primary node for main http client
-            Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
-
-            await LoadChannelStatesAsync();
-
-            if (OnLogin != null)
-                await OnLogin?.Invoke();
-
-            await LoadJoinedPlanetsAsync();
-
-            return new TaskResult<User>(true, "Success", Self);
+            Http.DefaultRequestHeaders.Remove("authorization");
         }
 
-        /// <summary>
-        /// Logs in and prepares the bot's client for use
-        /// </summary>
-        public static async Task<TaskResult<User>> InitializeBot(string email, string password, HttpClient http = null)
+        // Add auth header so we never have to do that again
+        Http.DefaultRequestHeaders.Add("authorization", Token);
+
+        // Get user
+
+        var response = await GetJsonAsync<User>($"api/user/self");
+
+        if (!response.Success)
+            return response;
+
+        // Set reference to self user
+        Self = response.Data;
+
+        // Now that we have our user, it should have node data we can use to set up our first node
+        // Initialize primary node
+        PrimaryNode = new Node();
+        await PrimaryNode.InitializeAsync(Self.NodeName, _token);
+
+        // Set node to primary node for main http client
+        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
+
+        var loadTasks = new List<Task>()
         {
-            SetHttpClient(http is not null ? http : new HttpClient()
-            {
-                BaseAddress = new Uri(BaseAddress)
-            });
+            LoadChannelStatesAsync(),
+            LoadFriendsAsync(),
+            LoadJoinedPlanetsAsync()
+        };
 
-            var tokenResult = await GetToken(email, password);
+        // Load user data concurrently
+        await Task.WhenAll(loadTasks);
 
-            if (!tokenResult.Success) 
-                return new TaskResult<User>(false, tokenResult.Message);
+        if (OnLogin != null)
+            await OnLogin?.Invoke();
 
-            // Get user
+        return new TaskResult<User>(true, "Success", Self);
+    }
 
-            var response = await GetJsonAsync<User>($"api/user/self");
+    /// <summary>
+    /// Logs in and prepares the bot's client for use
+    /// </summary>
+    public static async Task<TaskResult<User>> InitializeBot(string email, string password, HttpClient http = null)
+    {
+        SetHttpClient(http is not null ? http : new HttpClient()
+        {
+            BaseAddress = new Uri(BaseAddress)
+        });
 
-            if (!response.Success)
-                return response;
+        var tokenResult = await GetToken(email, password);
 
-            // Set reference to self user
-            Self = response.Data;
+        if (!tokenResult.Success) 
+            return new TaskResult<User>(false, tokenResult.Message);
 
-            // Now that we have our user, it should have node data we can use to set up our first node
-            // Initialize primary node
-            PrimaryNode = new Node();
-            await PrimaryNode.InitializeAsync(Self.NodeName, _token);
+        // Get user
 
-            // Add auth header so we never have to do that again
-            Http.DefaultRequestHeaders.Add("authorization", Token);
-            // Set node to primary node for main http client
-            Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
+        var response = await GetJsonAsync<User>($"api/user/self");
 
-            Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
+        if (!response.Success)
+            return response;
 
-            if (OnLogin != null)
-                await OnLogin?.Invoke();
+        // Set reference to self user
+        Self = response.Data;
 
-            await JoinAllChannelsAsync();
+        // Now that we have our user, it should have node data we can use to set up our first node
+        // Initialize primary node
+        PrimaryNode = new Node();
+        await PrimaryNode.InitializeAsync(Self.NodeName, _token);
 
-            return new TaskResult<User>(true, "Success", Self);
+        // Add auth header so we never have to do that again
+        Http.DefaultRequestHeaders.Add("authorization", Token);
+        // Set node to primary node for main http client
+        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
+
+        Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
+
+        if (OnLogin != null)
+            await OnLogin?.Invoke();
+
+        await JoinAllChannelsAsync();
+
+        return new TaskResult<User>(true, "Success", Self);
+    }
+
+    /// <summary>
+    /// Should only be run during initialization of bots!
+    /// </summary>
+    public static async Task JoinAllChannelsAsync()
+    {
+        // Get all joined planets
+        var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
+
+        // Add to cache
+        foreach (var planet in planets)
+        {
+            await ValourCache.Put(planet.Id, planet);
+
+            OpenPlanet(planet);
+
+            var channels = await planet.GetChannelsAsync();
+
+            channels.ForEach(async x => await OpenPlanetChannel(x));
         }
 
-        /// <summary>
-        /// Should only be run during initialization of bots!
-        /// </summary>
-        public static async Task JoinAllChannelsAsync()
-        {
-            // Get all joined planets
-            var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
+        JoinedPlanets = planets;
 
-            // Add to cache
-            foreach (var planet in planets)
-            {
-                await ValourCache.Put(planet.Id, planet);
+        _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
 
-                OpenPlanet(planet);
-
-                var channels = await planet.GetChannelsAsync();
-
-                channels.ForEach(async x => await OpenPlanetChannel(x));
-            }
-
-            JoinedPlanets = planets;
-
-            _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
-
-            if (OnJoinedPlanetsUpdate != null)
-                await OnJoinedPlanetsUpdate?.Invoke();
-        }
-
-        public static async Task UpdateUserChannelState(UserChannelState channelState)
-        {
-
-            if (ChannelStates.ContainsKey(channelState.ChannelId))
-                ChannelStates[channelState.ChannelId].LastViewedState = channelState.LastViewedState;
-            else
-                ChannelStates.Add(channelState.ChannelId, channelState);
-
-            // Access dict again to maintain references (do not try to optimize and break everything)
-            await OnUserChannelStateUpdate.Invoke(ChannelStates[channelState.ChannelId]);
-        }
-    
-        public static async Task LoadChannelStatesAsync()
-        {
-            var response = await PrimaryNode.GetJsonAsync<List<UserChannelState>>($"api/user/self/channelstates");
-            if (!response.Success)
-            {
-                Console.WriteLine("** Failed to load channel states **");
-                Console.WriteLine(response.Message);
-
-                return;
-            }
-
-            foreach (var state in response.Data)
-            {
-                ChannelStates[state.ChannelId] = state;
-            }
-
-            Console.WriteLine("Loaded " + ChannelStates.Count + " channel states.");
-        }
-
-        /// <summary>
-        /// Should only be run during initialization!
-        /// </summary>
-        public static async Task LoadJoinedPlanetsAsync()
-        {
-            var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/user/self/planets");
-
-            if (!response.Success)
-                return;
-
-            var planets = response.Data;
-
-            // Add to cache
-            foreach (var planet in planets)
-                await ValourCache.Put(planet.Id, planet);
-
-            JoinedPlanets = planets;
-
-            _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
-
-            if (OnJoinedPlanetsUpdate != null)
-                await OnJoinedPlanetsUpdate?.Invoke();
-        }
-
-        public static async Task<List<Planet>> GetDiscoverablePlanetsAsync()
-        {
-            var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/planet/discoverable");
-            if (!response.Success)
-                return new List<Planet>();
-
-            var planets = response.Data;
-
-            foreach (var planet in planets)
-                await ValourCache.Put(planet.Id, planet, true);
-
-            return planets;
-        }
-
-        /// <summary>
-        /// Refreshes the user's joined planet list from the server
-        /// </summary>
-        public static async Task RefreshJoinedPlanetsAsync()
-        {
-            var response = await PrimaryNode.GetJsonAsync<List<long>>($"api/user/self/planetIds");
-
-            if (!response.Success)
-                return;
-
-            var planetIds = response.Data;
-
-            JoinedPlanets.Clear();
-
-            foreach (var id in planetIds)
-            {
-                JoinedPlanets.Add(await Planet.FindAsync(id));
-            }
-
+        if (OnJoinedPlanetsUpdate != null)
             await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task UpdateUserChannelState(UserChannelState channelState)
+    {
+
+        if (ChannelStates.ContainsKey(channelState.ChannelId))
+            ChannelStates[channelState.ChannelId].LastViewedState = channelState.LastViewedState;
+        else
+            ChannelStates.Add(channelState.ChannelId, channelState);
+
+        // Access dict again to maintain references (do not try to optimize and break everything)
+        await OnUserChannelStateUpdate.Invoke(ChannelStates[channelState.ChannelId]);
+    }
+    
+    public static async Task LoadChannelStatesAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<UserChannelState>>($"api/user/self/channelstates");
+        if (!response.Success)
+        {
+            Console.WriteLine("** Failed to load channel states **");
+            Console.WriteLine(response.Message);
+
+            return;
         }
+
+        foreach (var state in response.Data)
+        {
+            ChannelStates[state.ChannelId] = state;
+        }
+
+        Console.WriteLine("Loaded " + ChannelStates.Count + " channel states.");
+    }
+
+    /// <summary>
+    /// Should only be run during initialization!
+    /// </summary>
+    public static async Task LoadJoinedPlanetsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/user/self/planets");
+
+        if (!response.Success)
+            return;
+
+        var planets = response.Data;
+
+        // Add to cache
+        foreach (var planet in planets)
+            await ValourCache.Put(planet.Id, planet);
+
+        JoinedPlanets = planets;
+
+        _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
+
+        if (OnJoinedPlanetsUpdate != null)
+            await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task LoadFriendsAsync()
+    {
+        var friendResult = await Self.GetFriendsAsync();
+
+        if (!friendResult.Success)
+        {
+            await Logger.Log("Error loading friends.", "red");
+            await Logger.Log(friendResult.Message, "red");
+            return;
+        }
+
+        Friends = friendResult.Data;
+
+        foreach (var friend in Friends)
+            await ValourCache.Put(friend.Id, friend);
+
+        await Logger.Log($"Loaded {friendResult.Data.Count} friends.", "cyan");
+    }
+
+    public static async Task<List<Planet>> GetDiscoverablePlanetsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/planet/discoverable");
+        if (!response.Success)
+            return new List<Planet>();
+
+        var planets = response.Data;
+
+        foreach (var planet in planets)
+            await ValourCache.Put(planet.Id, planet, true);
+
+        return planets;
+    }
+
+    /// <summary>
+    /// Refreshes the user's joined planet list from the server
+    /// </summary>
+    public static async Task RefreshJoinedPlanetsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<long>>($"api/user/self/planetIds");
+
+        if (!response.Success)
+            return;
+
+        var planetIds = response.Data;
+
+        JoinedPlanets.Clear();
+
+        foreach (var id in planetIds)
+        {
+            JoinedPlanets.Add(await Planet.FindAsync(id));
+        }
+
+        await OnJoinedPlanetsUpdate?.Invoke();
+    }
 
     #endregion
 
-#region HTTP Helpers
+    #region HTTP Helpers
 
     /// <summary>
     /// Gets a json resource from the given uri and deserializes it

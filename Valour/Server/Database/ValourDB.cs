@@ -55,6 +55,11 @@ public class ValourDB : DbContext
     /// </summary>
     public DbSet<User> Users { get; set; }
 
+    /// <summary>
+    /// Table for Valour user friends
+    /// </summary>
+    public DbSet<UserFriend> UserFriends { get; set; }
+
     // USER LOGIN AND PERMISSION STUFF //
 
     /// <summary>

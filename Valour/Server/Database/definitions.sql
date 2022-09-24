@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
 );
 
+CREATE TABLE IF NOT EXISTS user_friends (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    friend_id BIGINT NOT NULL,
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_friend FOREIGN KEY(friend_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS user_emails (
     email TEXT NOT NULL PRIMARY KEY,
     verified BOOLEAN NOT NULL DEFAULT false,

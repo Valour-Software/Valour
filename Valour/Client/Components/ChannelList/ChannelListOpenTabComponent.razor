@@ -1,0 +1,39 @@
+﻿@inject IJSRuntime JS
+
+@if (!show)
+{
+    return;
+}
+
+<div class="open-tab" @onclick="OnClickAsync">
+    @GetText()
+</div>
+
+
+@code {
+    bool show = false;
+
+    string openText = "🡄";
+    string closedText = "🡆";
+
+    bool open = false;
+
+    string GetText() => open ? openText : closedText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        show = await JS.InvokeAsync<bool>("GetIsEmbedded");
+        StateHasChanged();
+    }
+
+    public async Task OnClickAsync()
+    {
+        open = !open;
+        StateHasChanged();
+
+        if (open)
+            await JS.InvokeVoidAsync("OpenSidebar");
+        else
+            await JS.InvokeVoidAsync("CloseSidebar");
+    }
+}

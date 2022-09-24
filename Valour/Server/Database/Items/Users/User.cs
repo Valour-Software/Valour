@@ -662,6 +662,30 @@ public class User : Item, ISharedUser
         return Results.Json(planets);
     }
 
-#endregion
+    [ValourRoute(HttpVerbs.Get, "/{id}/friends"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    public static async Task<IResult> GetFriendsRouteAsync(HttpContext ctx, long id)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        if (id != token.UserId)
+            return ValourResult.Forbid("You cannot currently view another user's friends.");
+
+        // Users added by this user as a friend (user -> other)
+        var added = db.UserFriends.Where(x => x.UserId == id);
+
+        // Users who added this user as a friend (other -> user)
+        var addedBy = db.UserFriends.Where(x => x.FriendId == id);
+
+        // Mutual friendships
+        var mutual = added.Select(x => x.FriendId).Intersect(addedBy.Select(x => x.UserId));
+
+        var friends = await db.Users.Where(x => mutual.Contains(x.Id)).ToListAsync();
+
+        return Results.Json(friends);
+    }
+
+    #endregion
 }
 
