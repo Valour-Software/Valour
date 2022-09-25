@@ -1,5 +1,22 @@
-﻿<h3>DirectChatChannelWindowComponent</h3>
+﻿@inherits ChatChannelWindowComponent
+@implements IDisposable
+@inject SoundManager soundManager
+@inject WindowManager windowManager
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
 
 @code {
+    public override async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)
+    {
+        if (messageWrapper.Message.Mentions.Any(x => x.Type == MentionType.User && x.TargetId == ValourClient.Self.Id))
+            await soundManager.PlaySound("Notification.mp3");
+    }
 
+    public override async Task OnClickWindow()
+    {
+        await windowManager.SetFocusedPlanet(null);
+    }
 }

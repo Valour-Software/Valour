@@ -68,8 +68,6 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         // id is the id of the channel
 
         var db = ctx.GetDb();
-        var token = ctx.GetToken();
-
         var channel = await FindAsync(id, db);
 
         if (channel is null)

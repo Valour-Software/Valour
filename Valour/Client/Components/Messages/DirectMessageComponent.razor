@@ -1,0 +1,17 @@
+﻿@using Valour.Api.Items.Messages
+@inherits MessageComponent
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
+
+
+@code {
+    public override string ContextMenuId => "user-context";
+
+    public override async Task InitializeContextMenu()
+    {
+        
+    }
+}
