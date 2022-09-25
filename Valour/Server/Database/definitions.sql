@@ -162,6 +162,17 @@ CREATE TABLE IF NOT EXISTS planet_chat_channels (
     CONSTRAINT fk_inherit FOREIGN KEY(id) REFERENCES planet_channels(id)
 );
 
+CREATE TABLE IF NOT EXISTS direct_chat_channels (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_one_id BIGINT NOT NULL,
+    user_two_id BIGINT NOT NULL,
+    message_count BIGINT NOT NULL DEFAULT 0,
+
+    CONSTRAINT fk_user_one FOREIGN KEY(user_one_id) REFERENCES users(id),
+    CONSTRAINT fk_user_two FOREIGN KEY(user_two_id) REFERENCES users(id),
+    CONSTRAINT fk_inherit FOREIGN KEY(id) REFERENCES channels(id)
+);
+
 CREATE TABLE IF NOT EXISTS planet_invites (
     id BIGINT NOT NULL PRIMARY KEY,
     code VARCHAR(8) NOT NULL,
