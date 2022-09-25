@@ -2,6 +2,7 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.Database.Items.Channels.Users;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
@@ -97,6 +98,11 @@ public class ValourDB : DbContext
     /// Table for all channels
     /// </summary>
     public DbSet<Channel> Channels { get; set; }
+
+    /// <summary>
+    /// Table for all direct chat channels
+    /// </summary>
+    public DbSet<DirectChatChannel> DirectChatChannels { get; set; }
 
     /// <summary>
     /// Table for all planet channels
