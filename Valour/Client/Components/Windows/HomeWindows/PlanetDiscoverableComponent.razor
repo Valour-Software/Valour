@@ -19,7 +19,7 @@
                   transform="rotate(90 80 80)">
             </path>
         </defs>
-        <text id="text-discover-@Planet.Id">
+        <text id="text-discover-@Window.Id-@Planet.Id">
             <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
                 <tspan class="title" fill='white' dy="0.3em">Loading...</tspan>
             </textPath>
@@ -46,7 +46,7 @@
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync($"SetCardTitle", "discover-" + Planet.Id, Planet.Name);
+        await JS.InvokeVoidAsync($"SetCardTitle", $"discover-{Window.Id}-{Planet.Id}", Planet.Name);
     }
 
     public async Task OnClick()
