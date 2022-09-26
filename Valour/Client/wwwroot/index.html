@@ -51,36 +51,30 @@
 
 </html>
 
-<script src="_framework/blazor.webassembly.js?version=5"></script>
 <script src="_content/Valour.Client/js/bootstrap.min.js"></script>
 <script src="_content/Valour.Client/js/jquery-min.js"></script>
 <script src="_content/Valour.Client/js/jquery-ui.min.js"></script>
 <script src="_content/Valour.Client/js/channel.js?version=5"></script>
-<script src="_content/Valour.Client/js/main.js?version=6"></script>
+<script src="_content/Valour.Client/js/main.js?version=7"></script>
 <script src="_content/Valour.Client/js/pushNotifications.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.0/split.min.js"></script>
 <script src="_content/Blazored.Modal/blazored.modal.js"></script>
 <script src="_content/Blazor.ContextMenu/blazorContextMenu.js?version=3"></script>
+<script src="_framework/blazor.webassembly.js?version=6"></script>
+<script>
+    var registerRes = navigator.serviceWorker.register('/service-worker.js');
 
-<script>window.updateAvailable = new Promise(function (resolve, reject) {
+    window.updateAvailable = new Promise(function (resolve, reject) {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(function (registration) {
-                    console.log('Registration successful, scope is:', registration.scope);
+            registerRes.then(function (registration) {
+                console.log('Registration successful, scope is:', registration.scope);
                     registration.onupdatefound = () => {
                         const installingWorker = registration.installing;
                         installingWorker.onstatechange = () => {
-                            switch (installingWorker.state) {
-                                case 'installed':
-                                    if (navigator.serviceWorker.controller) {
-                                        resolve(true);
-                                    } else {
-                                        resolve(false);
-                                    }
-                                    break;
-                                default:
+                            if (installingServiceWorker.state === 'installed') {
+                                resolve(!!navigator.serviceWorker.controller);
                             }
                         };
                     };
@@ -88,4 +82,5 @@
                 .catch(error =>
                     console.log('Service worker registration failed, error:', error));
         }
-    });</script>
+    });
+</script>
