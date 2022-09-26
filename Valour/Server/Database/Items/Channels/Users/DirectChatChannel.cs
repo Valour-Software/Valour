@@ -166,6 +166,17 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
                                               .Take(count)
                                               .Reverse()
                                               .ToListAsync();
+        var state = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
+        if (state is null) {
+            db.UserChannelStates.Add(new UserChannelState()
+            {
+                UserId = token.UserId,
+                ChannelId = channel.Id,
+                LastViewedState = channel.State
+            });
+
+            await db.SaveChangesAsync();
+        }
 
         return Results.Json(messages);
     }
@@ -274,6 +285,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
 
         // Add message to database
         channel.MessageCount += 1;
+        channel.State = $"MessageIndex-{channel.MessageCount}";
         message.MessageIndex = channel.MessageCount;
 
         await valourDb.DirectMessages.AddAsync(message);

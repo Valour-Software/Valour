@@ -25,6 +25,11 @@
             </textPath>
         </text>
     </svg>
+    @if (IsUnread)
+    {
+        <div class="unread">
+        </div>
+    }
 </div>
 
 
@@ -38,9 +43,38 @@
     public string iconUrl = "/media/logo/logo-512.png";
 
     public string image_style = "";
+    public bool IsUnread = false;
 
     protected override async Task OnInitializedAsync(){
         iconUrl = Friend.PfpUrl;
+        var channel = await DirectChatChannel.FindAsyncByUser(Friend.Id);
+        IsUnread = DetermineUnread(channel);
+    }
+
+    public bool DetermineUnread(DirectChatChannel chatChannel)
+    {
+        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == chatChannel.Id))
+            return false;
+
+        if (!ValourClient.ChannelStates.ContainsKey(chatChannel.Id))
+            return true;
+
+        if (string.IsNullOrEmpty(chatChannel.State))
+            return false;
+
+        var channelStateTrim = chatChannel.State.Substring(13, chatChannel.State.Length - 13);
+        long channelIndex = long.Parse(channelStateTrim);
+
+        var localState = ValourClient.ChannelStates[chatChannel.Id].LastViewedState;
+        long localIndex = -1;
+
+        if (!string.IsNullOrEmpty(localState))
+        {
+            var localTrim = localState.Substring(13, localState.Length - 13);
+            localIndex = long.Parse(localTrim);
+        }
+
+        return !(localIndex >= channelIndex);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
