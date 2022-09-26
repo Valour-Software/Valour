@@ -12,6 +12,8 @@ using Valour.Shared;
 using IdGen;
 using Newtonsoft.Json.Linq;
 using Valour.Server.Database.Items.Channels;
+using Valour.Server.Database.Nodes;
+using Valour.Server.API;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -24,6 +26,15 @@ namespace Valour.Server.Database
     public class PlanetHub : Hub
     {
         public const string HubUrl = "/planethub";
+
+        private readonly ValourDB _db;
+
+        public PlanetHub(ValourDB db)
+        {
+            this._db = db;
+        }
+
+
 
         /// <summary>
         /// We can store the authentication tokens for clients after they connect to the hub, and use them as long as the connection lasts
@@ -42,15 +53,20 @@ namespace Valour.Server.Database
         // Map of user id to joined groups
         public static ConcurrentDictionary<long, List<string>> UserIdGroups = new ConcurrentDictionary<long, List<string>>();
 
+        // Map of connection id to user id
+        // This specifically stores primary user connections
+        public static ConcurrentDictionary<string, PrimaryNodeConnection> PrimaryConnections = new ConcurrentDictionary<string, PrimaryNodeConnection>();
+
         public static IHubContext<PlanetHub> Current;
 
-        public override Task OnDisconnectedAsync(Exception exception)
+
+        public override async Task OnDisconnectedAsync(Exception exception)
         {
-            ConnectionIdentities.Remove(Context.ConnectionId, out _);
+            await RemovePrimaryConnection(Context.ConnectionId);
 
             RemoveAllMemberships();
 
-            return base.OnDisconnectedAsync(exception);
+            await base.OnDisconnectedAsync(exception);
         }
 
         public AuthToken GetToken(string connectionId)
@@ -63,18 +79,15 @@ namespace Valour.Server.Database
 
         public async Task<TaskResult> Authorize(string token)
         {
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions))
-            {
-                // Authenticate user
-                AuthToken authToken = await AuthToken.TryAuthorize(token, db);
+            // Authenticate user
+            AuthToken authToken = await AuthToken.TryAuthorize(token, _db);
 
-                if (authToken is null)
-                    return new TaskResult(false, "Failed to authenticate connection.");
+            if (authToken is null)
+                return new TaskResult(false, "Failed to authenticate connection.");
 
-                ConnectionIdentities[Context.ConnectionId] = authToken;
+            ConnectionIdentities[Context.ConnectionId] = authToken;
 
-                return new TaskResult(true, "Authenticated with SignalR hub successfully.");
-            }
+            return new TaskResult(true, "Authenticated with SignalR hub successfully.");
         }
 
         public void TrackGroupMembership(string groupId)
@@ -162,16 +175,61 @@ namespace Valour.Server.Database
             ConnectionGroups.Remove(Context.ConnectionId, out _);
 
             // Remove connection identity
-            ConnectionIdentities.Remove(Context.ConnectionId, out _);
+            //ConnectionIdentities.Remove(Context.ConnectionId, out _);
         }
 
+        public async Task AddPrimaryConnection(string connectionId, long userId)
+        {
+            var conn = new PrimaryNodeConnection()
+            {
+                ConnectionId = connectionId,
+                UserId = userId,
+                OpenTime = DateTime.UtcNow,
+                NodeId = NodeAPI.Node.Name
+            };
+
+            // Add to collection
+            var added = PrimaryConnections.TryAdd(connectionId, conn);
+
+            if (added)
+            {
+                // Add to database
+                await _db.PrimaryNodeConnections.AddAsync(conn);
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        public async Task RemovePrimaryConnection(string connectionId)
+        {
+            // Remove any existing connection from collection
+            var removed = PrimaryConnections.Remove(connectionId, out var conn);
+
+            if (removed)
+            {
+                // Remove from database
+                _db.PrimaryNodeConnections.Remove(conn);
+
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        /// <summary>
+        /// Primary node connection for user-wide events
+        /// </summary>
         public async Task<TaskResult> JoinUser()
         {
             var authToken = GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to User: SignalR was not authenticated.");
 
             var groupId = $"u-{authToken.UserId}";
+
+            TrackGroupMembership(groupId);
+
+            await AddPrimaryConnection(Context.ConnectionId, authToken.UserId);
+
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+
+            using ValourDB db = new ValourDB(ValourDB.DBOptions);
 
             return new TaskResult(true, "Connected to user " + groupId);
         }
@@ -182,6 +240,11 @@ namespace Valour.Server.Database
             if (authToken == null) return;
 
             var groupId = $"u-{authToken.UserId}";
+
+            UntrackGroupMembership(groupId);
+
+            await RemovePrimaryConnection(Context.ConnectionId);
+
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
         }
 
@@ -304,6 +367,16 @@ namespace Valour.Server.Database
             await group.SendAsync("Relay", message);
         }
 
+        public static async void RelayDirectMessage(DirectMessage message, long targetUserId)
+        {
+            var groupId = $"u-{targetUserId}";
+
+            // Group we are sending messages to
+            var group = Current.Clients.Group(groupId);
+
+            await group.SendAsync("RelayDirect", message);
+        }
+
         public static async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
             await Current.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
 
@@ -327,6 +400,9 @@ namespace Valour.Server.Database
 
         public static async void NotifyMessageDeletion(PlanetMessage message) =>
             await Current.Clients.Group($"c-{message.ChannelId}").SendAsync("DeleteMessage", message);
+
+        public static async void NotifyDirectMessageDeletion(DirectMessage message, long targetUserId) =>
+            await Current.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
 
         public static async void NotifyUserChange(User user, ValourDB db, int flags = 0)
         {

@@ -175,7 +175,7 @@
         await windowManager.ReplaceWindow(Window, newWindow);
     }
 
-    public async Task OnRecieveMessage(PlanetMessage message)
+    public async Task OnRecieveMessage(Message message)
     {
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)

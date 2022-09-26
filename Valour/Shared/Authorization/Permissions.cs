@@ -145,7 +145,8 @@ public enum UserPermissionsEnum
     Invites,
     PlanetManagement,
     Messages,
-    Friends
+    Friends,
+    DirectMessages
 }
 
 /// <summary>
@@ -170,7 +171,8 @@ public static class UserPermissions
                 Invites,
                 PlanetManagement,
                 Messages,
-                Friends
+                Friends,
+                DirectMessages
         };
     }
 
@@ -187,6 +189,7 @@ public static class UserPermissions
     public static readonly UserPermission PlanetManagement = new UserPermission(0x10, "Planet Management", "Allows this app to manage your planets.");
     public static readonly UserPermission Messages = new UserPermission(0x20, "Messages", "Allows this app to send and receive messages.");
     public static readonly UserPermission Friends = new UserPermission(0x40, "Friends", "Allows this app to view and manage your friends.");
+    public static readonly UserPermission DirectMessages = new UserPermission(0x80, "Direct Messages", "Allows this app to view your direct messages.");
 }
 
 public enum ChatChannelPermissionsEnum

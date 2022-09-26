@@ -1,5 +1,22 @@
 ﻿BEGIN;
 
+CREATE TABLE IF NOT EXISTS node_stats (
+    name text NOT NULL PRIMARY KEY,
+    connection_count INT NOT NULL DEFAULT 0,
+    connection_group_count INT NOT NULL DEFAULT 0,
+    planet_count INT NOT NULL DEFAULT 0,
+    active_member_count INT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS primary_node_connections (
+    connection_id VARCHAR(22) NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    open_time TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    node_id VARCHAR(10) NOT NULL,
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,
@@ -145,6 +162,17 @@ CREATE TABLE IF NOT EXISTS planet_chat_channels (
     CONSTRAINT fk_inherit FOREIGN KEY(id) REFERENCES planet_channels(id)
 );
 
+CREATE TABLE IF NOT EXISTS direct_chat_channels (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_one_id BIGINT NOT NULL,
+    user_two_id BIGINT NOT NULL,
+    message_count BIGINT NOT NULL DEFAULT 0,
+
+    CONSTRAINT fk_user_one FOREIGN KEY(user_one_id) REFERENCES users(id),
+    CONSTRAINT fk_user_two FOREIGN KEY(user_two_id) REFERENCES users(id),
+    CONSTRAINT fk_inherit FOREIGN KEY(id) REFERENCES channels(id)
+);
+
 CREATE TABLE IF NOT EXISTS planet_invites (
     id BIGINT NOT NULL PRIMARY KEY,
     code VARCHAR(8) NOT NULL,
@@ -205,9 +233,9 @@ CREATE TABLE IF NOT EXISTS direct_messages (
     channel_id BIGINT NOT NULL,
     edited BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES planet_chat_channels(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES direct_chat_channels(id),
     CONSTRAINT fk_author FOREIGN KEY(author_user_id) REFERENCES users(id),
-    CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES planet_messages(id)
+    CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES direct_messages(id)
 );
 
 CREATE TABLE IF NOT EXISTS planet_roles (

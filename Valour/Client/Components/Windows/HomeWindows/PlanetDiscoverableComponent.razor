@@ -46,7 +46,7 @@
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync($"SetPlanetCardTitle", "discover-" + Planet.Id, Planet.Name);
+        await JS.InvokeVoidAsync($"SetCardTitle", "discover-" + Planet.Id, Planet.Name);
     }
 
     public async Task OnClick()

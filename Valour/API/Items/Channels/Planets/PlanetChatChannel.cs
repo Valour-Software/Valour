@@ -1,8 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Valour.Api.Client;
+﻿using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
-using Valour.Api.Items.Channels.Planets;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
@@ -10,7 +7,6 @@ using Valour.Api.Nodes;
 using Valour.Api.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
 
@@ -49,13 +45,12 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
     public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
 
-    public override async Task Open()
-        => await ValourClient.OpenPlanetChannel(this);
+    public override async Task Open() =>
+        await ValourClient.OpenPlanetChannel(this);
 
-    public override async Task Close()
-    {
+    public override async Task Close() =>
         await ValourClient.ClosePlanetChannel(this);
-    }
+    
 
     /// <summary>
     /// Returns the permissions node for the given role id

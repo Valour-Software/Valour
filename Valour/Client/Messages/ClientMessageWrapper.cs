@@ -48,6 +48,7 @@ public class ClientMessageWrapper
     {
         switch (Message) {
             case PlanetMessage: return typeof(PlanetMessageComponent);
+            case DirectMessage: return typeof(DirectMessageComponent);
         }
 
         return typeof(MessageComponent);
@@ -146,6 +147,7 @@ public class ClientMessageWrapper
         string text = MarkdownContent;
 
         PlanetMessage planetMessage = Message as PlanetMessage;
+        DirectMessage directMessage = Message as DirectMessage;
 
         while (pos < text.Length)
         {
@@ -205,6 +207,46 @@ public class ClientMessageWrapper
                         Message.Mentions.Add(memberMention);
                     }
                     // Other mentions go here
+                    else if (directMessage is not null && text[pos + 2] == 'u')
+                    {
+                        // Extract id
+                        char c = ' ';
+                        int offset = 4;
+                        string id_chars = "";
+                        while (offset < s_len &&
+                               (c = text[pos + offset]).IsDigit())
+                        {
+                            id_chars += c;
+                            offset++;
+                        }
+                        // Make sure ending tag is '>'
+                        if (c != '»')
+                        {
+                            pos++;
+                            continue;
+                        }
+                        if (string.IsNullOrWhiteSpace(id_chars))
+                        {
+                            pos++;
+                            continue;
+                        }
+                        bool parsed = long.TryParse(id_chars, out long id);
+                        if (!parsed)
+                        {
+                            pos++;
+                            continue;
+                        }
+                        // Create object
+                        Mention userMention = new()
+                        {
+                            TargetId = id,
+                            Position = (ushort)pos,
+                            Length = (ushort)(6 + id_chars.Length),
+                            Type = MentionType.User,
+                        };
+
+                        Message.Mentions.Add(userMention);
+                    }
                     else
                     {
                         pos++;
@@ -407,6 +449,15 @@ public class ClientMessageWrapper
                 if (mention.Type == MentionType.Member)
                 {
                     fragment = new MemberMentionFragment()
+                    {
+                        Mention = mention,
+                        Position = mention.Position,
+                        Length = mention.Length
+                    };
+                }
+                else if (mention.Type == MentionType.User)
+                {
+                    fragment = new UserMentionFragment()
                     {
                         Mention = mention,
                         Position = mention.Position,

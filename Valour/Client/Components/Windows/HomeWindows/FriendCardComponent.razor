@@ -50,19 +50,15 @@
 
     public async Task OnClick()
     {
-        /*
-        await ValourClient.OpenPlanet(Planet);
-        await windowManager.SetFocusedPlanet(Planet);
+        // Get dm channel
+        var channel = await DirectChatChannel.FindAsyncByUser(Friend.Id);
+        var newWindow = new DirectChatChannelWindow(channel);
 
-        PlanetChatChannel channel = await Planet.GetPrimaryChannelAsync();
-
-        Console.WriteLine($"Switching window {Window.Id} to {channel.Name}");
-
-        var newWindow = new PlanetChatChannelWindow(channel);
+        Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
 
         await windowManager.ReplaceWindow(Window, newWindow);
         await windowManager.SetSelectedWindow(newWindow);
-        */
+        await windowManager.SetFocusedPlanet(null);
 
         StateHasChanged();
     }
