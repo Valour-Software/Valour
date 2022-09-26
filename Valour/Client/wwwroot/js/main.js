@@ -65,8 +65,14 @@ function FitMobile() {
 
     sidebarMenu.removeClass("sidebar-menu");
     sidebarMenu.addClass("sidebar-menu-mobile");
+
     sidebar1.removeClass("sidebar");
     sidebar1.addClass("sidebar-mobile");
+
+    if (embedded) {
+        sidebar1.addClass("sidebar-embedded");
+    }
+
     channel.addClass("channel-and-topbar-mobile");
 
     //sidebar2.toggle(false);

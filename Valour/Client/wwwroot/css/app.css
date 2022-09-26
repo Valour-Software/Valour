@@ -385,7 +385,11 @@ video {
     transition: width 0.5s ease-in-out;
 }
 
-.sidebar-mobile:hover {
+.sidebar-embedded {
+    transition: width 0.5s ease-in-out;
+}
+
+.sidebar-embedded:hover {
     width: 250px;
 }
 
