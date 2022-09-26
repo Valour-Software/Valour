@@ -14,14 +14,12 @@
 
                 <div class="channel-info">
                     <h3 class="title">
-                        @Channel.Name
+                        @Title
                     </h3>
-                    @if (!string.IsNullOrWhiteSpace(Channel.Description))
-                    {
-                        <p class="description">
-                            @Channel.Description
-                        </p>
-                    }
+
+                    <p class="description">
+                        @Description
+                    </p>
 
                     <div class="channel-buttons">
                         <div class="channel-home" @onclick="ReturnHome">
@@ -81,6 +79,10 @@
 
     public bool CanRenderFlag { get; set; }
 
+    public string Title { get; set; }
+
+    public string Description { get; set; }
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
@@ -101,11 +103,23 @@
         await JS.InvokeVoidAsync("SetupWindow", Window.Id);
     }
 
-    public virtual Type GetInputComponentType()
-        => typeof(InputComponent);
+    public virtual Type GetInputComponentType() => 
+        typeof(InputComponent);
+
+    public virtual async Task<string> GetChannelDisplayTitleAsync() =>
+        Channel.Name;
+
+    public virtual async Task<string> GetChannelDisplayDescriptionAsync() =>
+        Channel.Description;
 
     public async virtual Task SetupNewChannelAsync()
     {
+        Title = await GetChannelDisplayTitleAsync();
+        Description = await GetChannelDisplayDescriptionAsync();
+
+        CanRenderFlag = true;
+        StateHasChanged();
+
         MessageHolder.Clear();
 
         var msgs = ClientMessageWrapper.FromList(await Channel.GetLastMessagesGenericAsync(64));
@@ -175,7 +189,7 @@
         await windowManager.ReplaceWindow(Window, newWindow);
     }
 
-    public async Task OnRecieveMessage(PlanetMessage message)
+    public async Task OnRecieveMessage(Message message)
     {
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
@@ -241,7 +255,7 @@
 
         Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
 
-        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 32);
+        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 64);
 
         if (messages == null || messages.Count() == 0)
         {

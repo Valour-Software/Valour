@@ -106,7 +106,7 @@ public abstract class Message : Item, ISharedMessage
     public abstract Task<TaskResult> DeleteAsync();
 
     public virtual Task<bool> CheckIfMentioned() =>
-            Task.FromResult(MentionsData.Contains(ValourClient.Self.Id.ToString()));
+        Task.FromResult(MentionsData?.Contains(ValourClient.Self.Id.ToString()) ?? false);
 
     /// <summary>
     /// The mentions for members within this message

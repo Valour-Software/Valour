@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
-using System.Web;
 using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
@@ -14,15 +13,14 @@ using Valour.Server.Cdn.Extensions;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.Database.Items.Channels.Users;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
-using Valour.Server.Database.Users.Identity;
 using Valour.Server.Email;
 using Valour.Server.Nodes;
 using Valour.Server.Notifications;
 using Valour.Server.Workers;
-using Valour.Shared.Cdn;
 using WebPush;
 
 namespace Valour.Server
@@ -98,7 +96,9 @@ namespace Valour.Server
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
                 new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
-                new ItemAPI<PermissionsNode>()          .RegisterRoutes(app)
+                new ItemAPI<PermissionsNode>()          .RegisterRoutes(app),
+                new ItemAPI<UserFriend>()               .RegisterRoutes(app),
+                new ItemAPI<DirectChatChannel>()        .RegisterRoutes(app)
             };
 
             NodeAPI = new NodeAPI(NodeConfig.Instance);

@@ -1,0 +1,31 @@
+﻿@inherits InputComponent
+@using Valour.Api.Items.Messages;
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+
+    public override async Task SetupNewChannelAsync()
+    {
+        WindowComponent.InputComponent = this;
+        MessageHolder = WindowComponent.MessageHolder;
+
+        PreviewMessage = new(BuildNewMessage());
+    }
+
+    public override Message BuildNewMessage()
+    {
+        return new DirectMessage()
+        {
+            AuthorUserId = ValourClient.Self.Id,
+            Content = null,
+            ChannelId = Window.Channel.Id,
+            TimeSent = DateTime.UtcNow,
+            ReplyToId = null,
+            Fingerprint = Guid.NewGuid().ToString()
+        };
+    }
+}

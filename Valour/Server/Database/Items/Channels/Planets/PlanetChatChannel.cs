@@ -455,7 +455,9 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         if (message is null)
             return Results.BadRequest("Include message in body.");
 
-        if (string.IsNullOrEmpty(message.Content) && string.IsNullOrEmpty(message.EmbedData))
+        if (string.IsNullOrEmpty(message.Content) &&
+            string.IsNullOrEmpty(message.EmbedData) &&
+            string.IsNullOrEmpty(message.AttachmentsData))
             return Results.BadRequest("Message content cannot be null");
 
         if (message.Fingerprint is null)
@@ -474,8 +476,13 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         if (message.EmbedData != null && message.EmbedData.Length > 65535)
             return Results.BadRequest("EmbedData must be under 65535 chars");
 
+        if (message.Content is null)
+            message.Content = "";
+
         // Handle URL content
-        message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
+        if (!string.IsNullOrWhiteSpace(message.Content))
+            message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
+
         message.Id = IdManager.Generate();
 
         // Handle attachments

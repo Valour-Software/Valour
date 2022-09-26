@@ -1,8 +1,11 @@
-<div class="@("select-channel " + Selected_Class)">
+<div class="@("select-channel " + Selected_Class)" @onclick="OnClickAsync">
      <h5 class='title noselect'>#@Channel.Name</h5>
 </div>
 
 @code {
+
+    [Parameter]
+    public int Index { get; set; }
 
     [Parameter]
     public MentionSelectComponent Parent { get; set; }
@@ -22,6 +25,12 @@
 
             return "";
         }
+    }
+
+    public async Task OnClickAsync()
+    {
+        Parent.Selected = Index;
+        await Parent.Submit();
     }
 
     protected override async Task OnInitializedAsync()

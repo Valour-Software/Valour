@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Xml.Linq;
+using Valour.Api.Nodes;
+using Valour.Server.Database;
 using Valour.Server.Database.Items.Planets;
+using Valour.Server.Database.Nodes;
 using Valour.Server.Nodes;
 using Valour.Shared.Items.Users;
 
@@ -48,6 +51,28 @@ namespace Valour.Server.API
             {
                 Version = Node.Version,
                 PlanetIds = Node.Planets.Keys
+            });
+
+            app.MapGet("api/nodestats", (ValourDB db) => {
+                return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);
+            });
+
+            app.MapGet("api/nodestats/detailed", (ValourDB db) => {
+
+                DetailedNodeStats stats = new()
+                {
+                    Name = NodeConfig.Instance.Name,
+                    ConnectionCount = PlanetHub.ConnectionIdentities.Count,
+                    ConnectionGroupCount = PlanetHub.ConnectionGroups.Count,
+                    PlanetCount = Node.Planets.Count,
+
+                    GroupConnections = PlanetHub.GroupConnections,
+                    GroupUserIds = PlanetHub.GroupUserIds,
+                    ConnectionGroups = PlanetHub.ConnectionGroups,
+                    UserIdGroups = PlanetHub.UserIdGroups
+                };
+
+                return stats;
             });
         }
     }

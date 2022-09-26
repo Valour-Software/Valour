@@ -1,6 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
+using Valour.Shared;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Items.Users;
@@ -96,5 +97,8 @@ public class User : Item, ISharedUser
 
         return item;
     }
+
+    public async Task<TaskResult<List<User>>> GetFriendsAsync()
+        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/{nameof(User)}/{Id}/friends");
 }
 
