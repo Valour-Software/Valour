@@ -1,4 +1,10 @@
 @inject IJSRuntime JS
+@inject WindowManager windowManager
+
+@if (Window is not null)
+{
+	<BlazorContextMenu.Item OnClick='OnClickMessage' CssClass='context-item'>Message</BlazorContextMenu.Item>
+}
 
 @if (IsFriend)
 {
@@ -56,13 +62,12 @@ else
 	public static bool CanBan { get; set; }
 	public static bool IsFriend { get; set; }
 
+	public static ClientWindow Window { get; set; }
+
 	protected override async Task OnInitializedAsync()
 	{
 		ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
 		ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
-
-		User = await Member.GetUserAsync();
-		IsFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
 	}
 
 	public async Task OnClickAddFriend()
@@ -93,9 +98,14 @@ else
 		StateHasChanged();
 	}
 
-	public static async Task Initialize(PlanetMember member)
+	public static async Task Initialize(PlanetMember member, ClientWindow window)
 	{
 		Member = member;
+		Window = window;
+
+		User = await member.GetUserAsync();
+		IsFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
+
 		Roles = await (await member.GetPlanetAsync()).GetRolesAsync();
 		MemberRoles = await member.GetRolesAsync();
 		if ((await member.GetPlanetAsync()).OwnerId == ValourClient.Self.Id)
@@ -109,9 +119,22 @@ else
 			CanKick = primaryrole.HasPermission(PlanetPermissions.Kick);
 			CanBan = primaryrole.HasPermission(PlanetPermissions.Kick);
 		}
-		
+
 	}
-        
+
+	public async Task OnClickMessage()
+	{
+		var channel = await DirectChatChannel.FindAsyncByUser(User.Id);
+
+		var newWindow = new DirectChatChannelWindow(channel);
+
+		Console.WriteLine($"Switching window {Window.Id} to direct chat channel {channel.Id}");
+
+		await windowManager.ReplaceWindow(Window, newWindow);
+		await windowManager.SetSelectedWindow(newWindow);
+		await windowManager.SetFocusedPlanet(null);
+	}
+
 	public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
 	{
 		if (member.Id == Member.Id)

@@ -59,6 +59,7 @@ namespace Valour.Server.Database
 
         public static IHubContext<PlanetHub> Current;
 
+
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             await RemovePrimaryConnection(Context.ConnectionId);
@@ -399,6 +400,9 @@ namespace Valour.Server.Database
 
         public static async void NotifyMessageDeletion(PlanetMessage message) =>
             await Current.Clients.Group($"c-{message.ChannelId}").SendAsync("DeleteMessage", message);
+
+        public static async void NotifyDirectMessageDeletion(DirectMessage message, long targetUserId) =>
+            await Current.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
 
         public static async void NotifyUserChange(User user, ValourDB db, int flags = 0)
         {

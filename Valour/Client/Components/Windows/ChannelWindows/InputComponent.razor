@@ -370,11 +370,10 @@
         {
             MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
 
-            PlanetMessage errorMsg = new()
+            DirectMessage errorMsg = new()
             {
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                 AuthorUserId = long.MaxValue,
-                AuthorMemberId = long.MaxValue,
                 ChannelId = Window.Channel.Id,
                 MessageIndex = long.MaxValue
             };

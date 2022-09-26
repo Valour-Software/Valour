@@ -122,7 +122,7 @@ public static class ValourClient
     /// <summary>
     /// Run when a message is recieved
     /// </summary>
-    public static event Func<PlanetMessage, Task> OnMessageRecieved;
+    public static event Func<Message, Task> OnMessageRecieved;
 
     /// <summary>
     /// Run when a planet is deleted
@@ -509,7 +509,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task MessageRecieved(PlanetMessage message)
+    public static async Task MessageRecieved(Message message)
     {
         // Console.WriteLine("Received message " + message.Id);
         await ValourCache.Put(message.Id, message);
@@ -521,11 +521,11 @@ public static class ValourClient
         await OnMessageDeleted?.Invoke(message);
     }
 
-#endregion
+    #endregion
 
     #region Planet Event Handling
 
-        private static void HookPlanetEvents()
+    private static void HookPlanetEvents()
         {
             ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChannelUpdated;
             ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDeleted;

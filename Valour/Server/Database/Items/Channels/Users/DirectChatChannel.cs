@@ -63,7 +63,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         // Doesn't matter which user is which
         return await db.DirectChatChannels.FirstOrDefaultAsync(x =>
             (x.UserOneId == userOneId && x.UserTwoId == userTwoId) ||
-            (x.UserOneId == userTwoId && x.UserOneId == userOneId)
+            (x.UserOneId == userTwoId && x.UserTwoId == userOneId)
         );
     }
 
@@ -208,8 +208,13 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             (channel.UserTwoId != token.UserId))
             return ValourResult.Forbid("You do not have access to this direct chat channel");
 
+        if (message.Content is null)
+            message.Content = "";
+
         // Handle URL content
-        message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
+        if (!string.IsNullOrWhiteSpace(message.Content))
+            message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
+
         message.Id = IdManager.Generate();
 
         // Handle attachments
@@ -268,29 +273,98 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             return ValourResult.NotFound("Target user not found.");
 
         // Add message to database
+        channel.MessageCount += 1;
+        message.MessageIndex = channel.MessageCount;
+
         await valourDb.DirectMessages.AddAsync(message);
         await valourDb.SaveChangesAsync();
 
-        // Relay to nodes where target user is connected
-        var targetConnections = await valourDb.PrimaryNodeConnections.Where(x => x.UserId == targetUser.Id).ToListAsync();
+        // Relay to nodes where sending user or target user is connected
+        var targetConnections = await valourDb.PrimaryNodeConnections
+            .Where(x => x.UserId == targetUser.Id || 
+                        x.UserId == token.UserId)
+            .GroupBy(x => new { x.NodeId, x.UserId })
+            .Select(x => x.FirstOrDefault())
+            .ToListAsync();
         foreach (var conn in targetConnections)
         {
             // Case for same name
             if (conn.NodeId == NodeAPI.Node.Name)
             {
                 // Just fire event in this node
-                PlanetHub.RelayDirectMessage(message, targetUser.Id);
+                PlanetHub.RelayDirectMessage(message, conn.UserId);
             }
             else
             {
                 // Inter-node communications
-                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={targetUser.Id}&auth={NodeConfig.Instance.ApiKey}", message);
+                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={conn.UserId}&auth={NodeConfig.Instance.ApiKey}", message);
             }
         }
 
         StatWorker.IncreaseMessageCount();
 
         return Results.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, HttpClient client, long id, long message_id,
+        ILogger<DirectChatChannel> logger)
+    {
+        var db = ctx.GetDb();
+        var token = ctx.GetToken();
+
+        var channel = await DirectChatChannel.FindAsync(id, db);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
+
+        var message = await FindAsync<DirectMessage>(message_id, db);
+
+        if (message.ChannelId != id)
+            return ValourResult.NotFound<PlanetMessage>();
+
+        if (token.UserId != message.AuthorUserId)
+        {
+            return ValourResult.Forbid("You cannot delete another user's direct messages");
+        }
+
+        try
+        {
+            db.DirectMessages.Remove(message);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        // Relay to nodes where sending user or target user is connected
+        var targetConnections = await db.PrimaryNodeConnections
+            .Where(x => x.UserId == channel.UserOneId ||
+                        x.UserId == channel.UserTwoId)
+            .GroupBy(x => new { x.NodeId, x.UserId })
+            .Select(x => x.FirstOrDefault())
+            .ToListAsync();
+
+        foreach (var conn in targetConnections)
+        {
+            // Case for same name
+            if (conn.NodeId == NodeAPI.Node.Name)
+            {
+                // Just fire event in this node
+                PlanetHub.NotifyDirectMessageDeletion(message, conn.UserId);
+            }
+            else
+            {
+                // Inter-node communications
+                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={conn.UserId}&auth={NodeConfig.Instance.ApiKey}", message);
+            }
+        }
+
+        
+
+        return Results.NoContent();
     }
 
     [ValourRoute(HttpVerbs.Post, "/relay", $"api/{nameof(DirectChatChannel)}")]
@@ -300,6 +374,17 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             return ValourResult.Forbid("Invalid inter-node key.");
 
         PlanetHub.RelayDirectMessage(message, targetId);
+
+        return Results.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/relaydelete", $"api/{nameof(DirectChatChannel)}")]
+    public static async Task<IResult> RelayDeleteDirectMessageAsync([FromBody] DirectMessage message, [FromQuery] string auth, [FromQuery] long targetId)
+    {
+        if (auth != NodeConfig.Instance.ApiKey)
+            return ValourResult.Forbid("Invalid inter-node key.");
+
+        PlanetHub.NotifyDirectMessageDeletion(message, targetId);
 
         return Results.Ok();
     }

@@ -8,15 +8,15 @@ namespace Valour.Api.Items.Messages;
 
 public class DirectMessage : Message, ISharedDirectMessage
 {
-    public static async ValueTask<PlanetMessage> FindAsync(long id, long channelId, bool refresh = false)
+    public static async ValueTask<DirectMessage> FindAsync(long id, long channelId, bool refresh = false)
     {
         if (!refresh)
         {
-            var cached = ValourCache.Get<PlanetMessage>(id);
+            var cached = ValourCache.Get<DirectMessage>(id);
             if (cached is not null)
                 return cached;
         }
-        var response = await ValourClient.PrimaryNode.GetJsonAsync<PlanetMessage>($"api/{nameof(DirectChatChannel)}/{channelId}/message/{id}");
+        var response = await ValourClient.PrimaryNode.GetJsonAsync<DirectMessage>($"api/{nameof(DirectChatChannel)}/{channelId}/message/{id}");
         var item = response.Data;
 
         if (item is not null)
@@ -47,7 +47,7 @@ public class DirectMessage : Message, ISharedDirectMessage
         if (ReplyToId is null)
             return null;
 
-        return await FindAsync(Id, ChannelId);
+        return await FindAsync(ReplyToId.Value, ChannelId);
     }
 
     public override Task<TaskResult> PostMessageAsync() =>

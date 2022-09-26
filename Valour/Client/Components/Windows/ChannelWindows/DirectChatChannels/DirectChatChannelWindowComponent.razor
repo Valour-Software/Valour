@@ -9,6 +9,18 @@
 }
 
 @code {
+
+    public override Type GetInputComponentType()
+        => typeof(DirectChatChannelInputComponent);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await SetupNewChannelAsync();
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     public override async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)
     {
         if (messageWrapper.Message.Mentions.Any(x => x.Type == MentionType.User && x.TargetId == ValourClient.Self.Id))

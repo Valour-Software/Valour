@@ -1,4 +1,4 @@
-﻿using Valour.Api.Items.Users;
+﻿using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Messages;
 
 namespace Valour.Server.Database.Items.Messages;
