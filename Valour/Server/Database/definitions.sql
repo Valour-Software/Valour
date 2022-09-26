@@ -233,9 +233,9 @@ CREATE TABLE IF NOT EXISTS direct_messages (
     channel_id BIGINT NOT NULL,
     edited BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES planet_chat_channels(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES direct_chat_channels(id),
     CONSTRAINT fk_author FOREIGN KEY(author_user_id) REFERENCES users(id),
-    CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES planet_messages(id)
+    CONSTRAINT fk_replyto FOREIGN KEY(reply_to_id) REFERENCES direct_messages(id)
 );
 
 CREATE TABLE IF NOT EXISTS planet_roles (

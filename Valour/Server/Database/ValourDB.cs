@@ -53,6 +53,11 @@ public class ValourDB : DbContext
     public DbSet<PlanetMessage> PlanetMessages { get; set; }
 
     /// <summary>
+    /// Table for direct messages
+    /// </summary>
+    public DbSet<DirectMessage> DirectMessages { get; set; }
+
+    /// <summary>
     /// Table for Valour users
     /// </summary>
     public DbSet<User> Users { get; set; }

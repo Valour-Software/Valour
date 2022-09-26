@@ -16,7 +16,7 @@ public class DirectMessage  : Item, ISharedMessage
 
     [ForeignKey("ReplyToId")]
     [JsonIgnore]
-    public PlanetMessage ReplyToMessage { get; set; }
+    public DirectMessage ReplyToMessage { get; set; }
 
     /// <summary>
     /// The message (if any) this is a reply to

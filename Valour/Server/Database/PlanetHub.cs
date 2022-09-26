@@ -366,6 +366,16 @@ namespace Valour.Server.Database
             await group.SendAsync("Relay", message);
         }
 
+        public static async void RelayDirectMessage(DirectMessage message, long targetUserId)
+        {
+            var groupId = $"u-{targetUserId}";
+
+            // Group we are sending messages to
+            var group = Current.Clients.Group(groupId);
+
+            await group.SendAsync("RelayDirect", message);
+        }
+
         public static async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
             await Current.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
 
