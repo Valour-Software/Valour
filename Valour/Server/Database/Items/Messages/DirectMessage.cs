@@ -1,4 +1,4 @@
-﻿using Valour.Api.Items.Users;
+﻿using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Messages;
 
 namespace Valour.Server.Database.Items.Messages;
@@ -16,7 +16,7 @@ public class DirectMessage  : Item, ISharedMessage
 
     [ForeignKey("ReplyToId")]
     [JsonIgnore]
-    public PlanetMessage ReplyToMessage { get; set; }
+    public DirectMessage ReplyToMessage { get; set; }
 
     /// <summary>
     /// The message (if any) this is a reply to

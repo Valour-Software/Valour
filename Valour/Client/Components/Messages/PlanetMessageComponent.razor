@@ -35,7 +35,7 @@
 
     public override async Task InitializeContextMenu()
     {
-        await InnerMemberContextMenuComponent.Initialize(author);
+        await InnerMemberContextMenuComponent.Initialize(author, Window);
     }
 
     public async Task OnAuthorUpdated(int flags)

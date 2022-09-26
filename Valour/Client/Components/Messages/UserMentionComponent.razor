@@ -1,0 +1,64 @@
+﻿@using Valour.Shared.Items.Messages
+@using Valour.Api.Client
+
+<div class="@Class" style="color: white">
+    @if (User == null)
+    {
+        <div>@@NotFound</div>
+    }
+    else
+    {
+        <div>@@@User.Name</div>
+    }
+</div>
+
+@code {
+
+    public string Class
+    {
+        get
+        {
+            if (User == null || User.Id != ValourClient.Self.Id)
+            {
+                return "mention";
+            }
+            else
+            {
+                return "mention target";
+            }
+        }
+    }
+
+
+    [Parameter]
+    public Mention Mention { get; set; }
+
+    public User User { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        await Build();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (User != null)
+        {
+            if (Mention.TargetId != User.Id)
+            {
+                await Build();
+            }
+        }
+        else
+        {
+            await Build();
+        }
+    }
+
+    public async Task Build()
+    {
+        User = await User.FindAsync(Mention.TargetId);
+
+        StateHasChanged();
+    }
+}

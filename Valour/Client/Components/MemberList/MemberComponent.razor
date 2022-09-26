@@ -13,7 +13,7 @@
 
         <div class="name-line">
 
-            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Member)' style='display:inline'>
+            <ContextMenuTrigger MenuId="member-context" @onpointerdown='async () => await InnerMemberContextMenuComponent.Initialize(Member, null)' style='display:inline'>
                 <p class="username" style="color: @roleColor">
                     @if (Member.Nickname.Length > 16)
                     {

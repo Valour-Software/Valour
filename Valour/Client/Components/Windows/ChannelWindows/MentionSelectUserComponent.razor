@@ -1,0 +1,66 @@
+﻿<div class="@("select-user " + Selected_Class)" @onclick="OnClickAsync">
+    <img class="pfp" style="@Pfp_Style" src="@Pfp_Url" @onerror="OnPfpError" />
+    <p class="title noselect" style="color:@Role_Color">@User.Name</p>
+</div>
+
+@code {
+    public string Pfp_Url = "_content/Valour.Client/icon-512.png";
+
+    public string Pfp_Style = "";
+
+    public string Role_Color = "#ffffff";
+
+    [Parameter]
+    public int Index { get; set; }
+
+    [Parameter]
+    public MentionSelectComponent Parent { get; set; }
+
+    [Parameter]
+    public User User { get; set; }
+
+    [Parameter]
+    public bool Selected { get; set; }
+
+    public string Selected_Class
+    {
+        get
+        {
+            if (Selected)
+                return "selected";
+
+            return "";
+        }
+    }
+
+    public async Task OnClickAsync()
+    {
+        Parent.Selected = Index;
+        await Parent.Submit();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        string pfp = User.PfpUrl;
+
+        if (!string.IsNullOrWhiteSpace(pfp))
+        {
+            Pfp_Url = pfp;
+        }
+
+        Role_Color = "#ffffff";
+
+        StateHasChanged();
+    }
+
+    protected async Task OnPfpError()
+    {
+        Pfp_Url = "_content/Valour.Client/icon-512.png";
+
+        int r = Random.Shared.Next(24) * 15;
+
+        Pfp_Style = $"filter: hue-rotate({r}deg) saturate(2);";
+
+        StateHasChanged();
+    }
+}

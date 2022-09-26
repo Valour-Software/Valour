@@ -2,11 +2,13 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.Database.Items.Channels.Users;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Notifications;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.Database.Nodes;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -51,9 +53,19 @@ public class ValourDB : DbContext
     public DbSet<PlanetMessage> PlanetMessages { get; set; }
 
     /// <summary>
+    /// Table for direct messages
+    /// </summary>
+    public DbSet<DirectMessage> DirectMessages { get; set; }
+
+    /// <summary>
     /// Table for Valour users
     /// </summary>
     public DbSet<User> Users { get; set; }
+
+    /// <summary>
+    /// Table for Valour user friends
+    /// </summary>
+    public DbSet<UserFriend> UserFriends { get; set; }
 
     // USER LOGIN AND PERMISSION STUFF //
 
@@ -91,6 +103,11 @@ public class ValourDB : DbContext
     /// Table for all channels
     /// </summary>
     public DbSet<Channel> Channels { get; set; }
+
+    /// <summary>
+    /// Table for all direct chat channels
+    /// </summary>
+    public DbSet<DirectChatChannel> DirectChatChannels { get; set; }
 
     /// <summary>
     /// Table for all planet channels
@@ -152,6 +169,10 @@ public class ValourDB : DbContext
     public DbSet<PlanetRole> PlanetRoles { get; set; }
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
+
+    public DbSet<NodeStats> NodeStats { get; set; }
+
+    public DbSet<PrimaryNodeConnection> PrimaryNodeConnections { get; set; }
 
     public ValourDB(DbContextOptions options)
     {

@@ -62,7 +62,7 @@
         if (messageWrapper.Message is PlanetMessage)
         {
             AuthorMember = await ((PlanetMessage)messageWrapper.Message).GetAuthorMemberAsync();
-            await InnerMemberContextMenuComponent.Initialize(AuthorMember);
+            await InnerMemberContextMenuComponent.Initialize(AuthorMember, window.Window);
         }
         else
         {
@@ -76,7 +76,14 @@
             DeletePermission = PermissionState.True;
         }
         else {
-            DeletePermission = window.ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+            if (AuthorMember is not null)
+            {
+                DeletePermission = window.ChannelPermissions.GetPermissionState(ChatChannelPermissions.ManageMessages);
+            }
+            else
+            {
+                DeletePermission = PermissionState.False;
+            }
         }
 
         // Console.WriteLine(Can_Delete);
