@@ -48,6 +48,7 @@
 
 	public event Action RefreshRowComponents;
 	public event Action RefreshRootItemComponents;
+	public event Action RefreshFormComponents;
 	public event Action RefreshItemComponents;
 
 	private bool ProcessPageChange = false;
@@ -74,6 +75,7 @@
 		StateHasChanged();
 		RefreshRowComponents?.Invoke();
 		RefreshRootItemComponents?.Invoke();
+		RefreshFormComponents?.Invoke();
 		RefreshItemComponents?.Invoke();
 	}
 
