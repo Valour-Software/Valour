@@ -10,8 +10,29 @@
 
 @code {
 
-    public override Type GetInputComponentType()
-        => typeof(DirectChatChannelInputComponent);
+    public DirectChatChannel DirectChannel { get; set; }
+    public User OtherUser { get; set; }
+
+    public override async Task SetupNewChannelAsync()
+    {
+        DirectChannel = Channel as DirectChatChannel;
+
+        if (DirectChannel.UserOneId == ValourClient.Self.Id)
+            OtherUser = await User.FindAsync(DirectChannel.UserTwoId);
+        else
+            OtherUser = await User.FindAsync(DirectChannel.UserOneId);
+
+        await base.SetupNewChannelAsync();
+    }
+
+    public override Type GetInputComponentType() => 
+    typeof(DirectChatChannelInputComponent);
+
+    public override async Task<string> GetChannelDisplayTitleAsync() =>
+        OtherUser?.Name ?? "User Not Found";
+
+    public override async Task<string> GetChannelDisplayDescriptionAsync() =>
+        "Private conversation";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
