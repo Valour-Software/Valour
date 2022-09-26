@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -91,6 +92,9 @@ public static class ValourClient
     /// The friends of this client
     /// </summary>
     public static List<User> Friends { get; set; }
+    public static List<User> FriendRequests { get; set; }
+    public static List<User> FriendsRequested { get; set; }
+
 
     #region Event Fields
 
@@ -844,7 +848,7 @@ public static class ValourClient
 
     public static async Task LoadFriendsAsync()
     {
-        var friendResult = await Self.GetFriendsAsync();
+        var friendResult = await Self.GetFriendDataAsync();
 
         if (!friendResult.Success)
         {
@@ -853,12 +857,33 @@ public static class ValourClient
             return;
         }
 
-        Friends = friendResult.Data;
+        var data = friendResult.Data;
+
+        foreach (var added in data.Added)
+            await ValourCache.Put(added.Id, added);
+
+        foreach (var addedBy in data.AddedBy)
+            await ValourCache.Put(addedBy.Id, addedBy);
+
+        Friends = new();
+        FriendRequests = data.AddedBy;
+        FriendsRequested = data.Added;
+
+        foreach (var req in FriendRequests)
+        {
+            if (FriendsRequested.Any(x => x.Id == req.Id))
+            {
+                Friends.Add(req);
+            }
+        }
 
         foreach (var friend in Friends)
-            await ValourCache.Put(friend.Id, friend);
+        {
+            FriendRequests.RemoveAll(x => x.Id == friend.Id);
+            FriendsRequested.RemoveAll(x => x.Id == friend.Id);
+        }
 
-        await Logger.Log($"Loaded {friendResult.Data.Count} friends.", "cyan");
+        await Logger.Log($"Loaded {Friends.Count} friends.", "cyan");
     }
 
     public static async Task<List<Planet>> GetDiscoverablePlanetsAsync()
