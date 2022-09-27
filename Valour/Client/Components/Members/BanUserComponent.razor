@@ -53,13 +53,24 @@
         // Encode non-friendly characters
         string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
 
-        ulong timeinminutes = time*24*60;
+        var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Member.PlanetId);
 
-        var planet = await Member.GetPlanetAsync();
+        var ban = new PlanetBan()
+        {
+            IssuerId = selfMember.Id,
+            TargetId = Member.Id,
+            Reason = reason,
+            PlanetId = Member.PlanetId,
+            TimeCreated = DateTime.UtcNow,
+            TimeExpires = null,
+        };
 
-        var response = await Member.Node.PostAsync($"api/planet/{planet.Id}/members/{Member.Id}/ban" +
-                                                                   $"?reason={encodedreason}" +
-                                                                   $"&time={(uint)timeinminutes}", null);
+        if (time != 0)
+        {
+            ban.TimeExpires = DateTime.UtcNow.AddDays(time);
+        }
+
+        var response = await Member.Node.PostAsync($"api/planet/{ban.PlanetId}/{nameof(PlanetBan)}", ban);
         
         infoSpan = response.Message;
     }
