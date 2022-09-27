@@ -103,7 +103,7 @@ public class AuthToken : ISharedAuthToken
                 await db.SaveChangesAsync();
 
                 // Notify of user activity change
-                PlanetHub.NotifyUserChange(user, db);
+                await PlanetHub.NotifyUserChange(user, db);
             }
         }
 
