@@ -36,10 +36,10 @@ public class MessageCacheWorker : BackgroundService
                             DateTime now = DateTime.UtcNow;
                             var cutOff = now.AddHours(-24);
 
-                            context.PlanetMessages.RemoveRange(
-                                context.PlanetMessages.Where(x => x.TimeSent < cutOff).OrderBy(x => x.TimeSent));
+                            //context.PlanetMessages.RemoveRange(
+                            //    context.PlanetMessages.Where(x => x.TimeSent < cutOff).OrderBy(x => x.TimeSent));
 
-                            await context.SaveChangesAsync();
+                            //await context.SaveChangesAsync();
                         }
                         Console.WriteLine("Checked Message Cache");
 

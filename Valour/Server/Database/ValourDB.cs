@@ -35,6 +35,9 @@ public class ValourDB : DbContext
         // Composite key
         modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
 
+        // Soft delete
+        modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
+
         //base.OnModelCreating(modelBuilder);
     }
 
