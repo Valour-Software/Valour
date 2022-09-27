@@ -422,14 +422,14 @@ public class ClientMessageWrapper
     /// </summary>
     public List<MessageFragment> GetMessageFragments()
     {
-        Stopwatch sw = new();
+        // Stopwatch sw = new();
 
         if (!generated)
         {
             GenerateMessage();
         }
 
-        sw.Start();
+        // sw.Start();
 
         List<MessageFragment> fragments = new();
 
@@ -540,9 +540,9 @@ public class ClientMessageWrapper
 
         finFragments.Add(end);
 
-        sw.Stop();
+        // sw.Stop();
 
-        Console.WriteLine("Elapsed: " + sw.Elapsed.Milliseconds);
+        // Console.WriteLine("Elapsed: " + sw.Elapsed.Milliseconds);
 
         return finFragments;
     }
