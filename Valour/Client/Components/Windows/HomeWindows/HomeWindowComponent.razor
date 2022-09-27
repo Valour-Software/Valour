@@ -171,6 +171,8 @@
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
 
         Discoverables = await ValourClient.GetDiscoverablePlanetsAsync();
+
+        await ValourClient.LoadChannelStatesAsync();
     }
 
     public async Task OnJoinedPlanetsUpdate()
