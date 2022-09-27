@@ -398,7 +398,7 @@ public struct PermissionNodeCode
     public PermissionState GetState(Permission permission)
     {
         // If the lowest, or view, permission is false, all other permissions are automatically false
-        if ((Mask & 0x01) == 0 || (Code & 0x01) == 0)
+        if ((Mask & 0x01) == 0x01 && (Code & 0x01) == 0)
         {
             return PermissionState.False;
         }
