@@ -6,7 +6,7 @@ namespace Valour.Api.Items.Planets.Members;
 public class PlanetBan : Item, ISharedPlanetBan
 {
     /// <summary>
-    /// The member that banned the user
+    /// The user that banned the user
     /// </summary>
     public long IssuerId { get; set; }
 

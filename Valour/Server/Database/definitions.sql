@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS planet_members (
     planet_id BIGINT NOT NULL,
     nickname VARCHAR(32),
     member_pfp TEXT,
+    is_deleted BOOLEAN DEFAULT false,
 
     UNIQUE (user_id, planet_id),
 

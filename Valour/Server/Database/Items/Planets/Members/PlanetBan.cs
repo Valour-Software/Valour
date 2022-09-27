@@ -109,8 +109,8 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
         if (ban.PlanetId != planetId)
             return Results.BadRequest("PlanetId mismatch.");
 
-        if (ban.IssuerId != member.Id)
-            return Results.BadRequest("IssuerId should match member Id.");
+        if (ban.IssuerId != member.UserId)
+            return Results.BadRequest("IssuerId should match user Id.");
 
         if (ban.TargetId == member.Id)
             return Results.BadRequest("You cannot ban yourself.");
@@ -120,7 +120,7 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
             return Results.BadRequest("Ban already exists for user.");
 
         // Ensure user has more authority than the user being banned
-        var target = await PlanetMember.FindAsync(ban.TargetId, planetId, db);
+        var target = await PlanetMember.FindAsyncByUser(ban.TargetId, ban.PlanetId, db);
 
         if (target is null)
             return ValourResult.NotFound<PlanetMember>();
@@ -132,6 +132,8 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
 
         try
         {
+            ban.Id = IdManager.Generate();
+
             // Add ban
             await db.PlanetBans.AddAsync(ban);
 
@@ -140,6 +142,9 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
 
             // Delete target member
             await target.DeleteAsync(db);
+
+            // Save changes
+            await db.SaveChangesAsync();
         }
         catch (System.Exception e)
         {

@@ -18,7 +18,16 @@
         <input class="form-control" @bind-value="@time" />
         <span id="name-span" style="color:#888888">@TimeSpan</span>
     </div>
-    <span id="image-span" style="color:#888888">@infoSpan</span> 
+
+    @if (!string.IsNullOrWhiteSpace(infoSpan))
+    {
+        <span id="info-span" class="text-info mt-4">@infoSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(errorSpan))
+    {
+        <span id="error-span" class="text-danger mt-4">@errorSpan</span>
+    }
+
     <div class="form-group mt-4">
         <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Ban</button>
     </div>
@@ -38,9 +47,12 @@
 
     string TimeSpan = "Time in days, put any number under 0 to ban permanently";
     string infoSpan = "";
+    string errorSpan = "";
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
+        infoSpan = "";
+        errorSpan = "";
 
         // Require a name
         if (string.IsNullOrWhiteSpace(reason))
@@ -49,7 +61,6 @@
             return;
         }
 
-
         // Encode non-friendly characters
         string encodedreason = System.Web.HttpUtility.UrlEncode(reason);
 
@@ -57,8 +68,8 @@
 
         var ban = new PlanetBan()
         {
-            IssuerId = selfMember.Id,
-            TargetId = Member.Id,
+            IssuerId = selfMember.UserId,
+            TargetId = Member.UserId,
             Reason = reason,
             PlanetId = Member.PlanetId,
             TimeCreated = DateTime.UtcNow,
@@ -71,7 +82,16 @@
         }
 
         var response = await Member.Node.PostAsync($"api/planet/{ban.PlanetId}/{nameof(PlanetBan)}", ban);
-        
-        infoSpan = response.Message;
+
+        if (response.Success)
+        {
+            infoSpan = "User banned successfully.";
+        }
+        else
+        {
+            errorSpan = response.Message;
+        }
+
+        StateHasChanged();
     }
 }
