@@ -17,6 +17,8 @@
     --v-purple: #bf06fd;
     --v-blue: #0c06fd;
     --v-cyan: #00faff;
+    --v2-danger-dark: #361515;
+    --v2-danger-bright: #4f1e1e;
 }
 
 .mobile {
@@ -58,6 +60,26 @@
 .v-button.danger:hover {
     color: white;
     border-color: white;
+}
+
+.v2-button {
+    background-color: var(--main-4);
+    color: white;
+}
+
+.v2-button:hover {
+    background-color: var(--main-5);
+    color: white;
+}
+
+.v2-button-danger {
+    background-color: var(--v2-danger-dark);
+    color: white;
+}
+
+.v2-button-danger:hover {
+    background-color: var(--v2-danger-bright);
+    color: white;
 }
 
 a {

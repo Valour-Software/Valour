@@ -1,0 +1,62 @@
+﻿@inject WindowManager windowManager
+
+@if (Show)
+{
+    <div>
+        <p class="friend-title">Friends</p>
+        <div>
+
+            @{
+                var friends = ValourClient.Friends.OrderByDescending(x => x.TimeLastActive).ToList();
+                int count = 0;
+            }
+
+            <Virtualize Items="@friends">
+
+                @{
+                    string classList = "";
+
+                    if (count == 0)
+                        classList += " top";
+
+                    if (count == friends.Count() - 1)
+                        classList += " bottom";
+
+                    count++;
+                }
+
+                <FriendComponent User="@context" Class="@classList" @key="context.Id"></FriendComponent>  
+            </Virtualize>
+        </div>
+    </div>
+}
+
+@code {
+    public bool Show { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Show = true;
+
+        windowManager.OnPlanetFocused += OnPlanetFocus;
+
+        ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
+
+        await base.OnInitializedAsync();
+    }
+
+    public async Task OnPlanetFocus(Planet planet)
+    {
+        var oldShow = Show;
+        Show = (planet is null);
+
+        if (oldShow != Show)
+            StateHasChanged();
+    }
+
+    public async Task OnFriendsListUpdate()
+    {
+        if (Show)
+            StateHasChanged();
+    }
+}
