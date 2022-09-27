@@ -225,19 +225,42 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db, bool doTransaction = true)
     {
-        // Already a member
-        if (await db.PlanetMembers.AnyAsync(x => x.UserId == user.Id && x.PlanetId == Id))
+        if (await db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == Id &&
+            (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
         {
-            return new TaskResult<PlanetMember>(false, "Already a member.", null);
+            return new TaskResult<PlanetMember>(false, "You are banned from this planet.");
         }
 
-        PlanetMember member = new PlanetMember()
+        var oldMember = await db.PlanetMembers
+            .IgnoreQueryFilters() // Allow soft-deleted members
+            .FirstOrDefaultAsync(x => x.UserId == user.Id && x.PlanetId == Id);
+
+        PlanetMember member;
+        bool rejoin = false;
+
+        // Already a member
+        if (oldMember is not null)
         {
-            Id = IdManager.Generate(),
-            Nickname = user.Name,
-            PlanetId = Id,
-            UserId = user.Id
-        };
+            if (!oldMember.IsDeleted)
+            {
+                return new TaskResult<PlanetMember>(false, "Already a member.", null);
+            }
+            else
+            {
+                member = oldMember;
+                rejoin = true;
+            }
+        }
+        else 
+        {
+            member = new PlanetMember()
+            {
+                Id = IdManager.Generate(),
+                Nickname = user.Name,
+                PlanetId = Id,
+                UserId = user.Id
+            };
+        }
 
         // Add to default planet role
         PlanetRoleMember rolemember = new PlanetRoleMember()
@@ -257,7 +280,16 @@ public class Planet : Item, ISharedPlanet
 
         try
         {
-            await db.PlanetMembers.AddAsync(member);
+            if (rejoin)
+            {
+                member.IsDeleted = false;
+                db.PlanetMembers.Update(member);
+            }
+            else
+            {
+                await db.PlanetMembers.AddAsync(member);
+            }
+            
             await db.PlanetRoleMembers.AddAsync(rolemember);
             await db.SaveChangesAsync();
         }

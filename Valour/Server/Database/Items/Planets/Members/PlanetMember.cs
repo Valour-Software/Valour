@@ -68,7 +68,18 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     [Column("member_pfp")]
     public string MemberPfp { get; set; }
 
-    public static async Task<PlanetMember> FindAsync(long userId, long planetId, ValourDB db)
+    /// <summary>
+    /// Soft-delete flag
+    /// </summary>
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    public static async Task<PlanetMember> FindAsync(long memberId, ValourDB db)
+    {
+        return await db.PlanetMembers.FindAsync(memberId);
+    }
+
+    public static async Task<PlanetMember> FindAsyncByUser(long userId, long planetId, ValourDB db)
     {
         return await db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId &&
                                                                   x.UserId == userId);
@@ -111,7 +122,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
             await LoadRoleMembershipAsync(db);
         }
 
-        return RoleMembership.FirstOrDefault().Role;
+        return RoleMembership.FirstOrDefault()?.Role;
     }
 
     /// <summary>
@@ -193,14 +204,19 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         else
         {
             var primaryRole = await GetPrimaryRoleAsync(db);
-            return primaryRole.GetAuthority();
+            return primaryRole?.GetAuthority() ?? int.MinValue;
         }
     }
 
     public async Task DeleteAsync(ValourDB db)
     {
-        db.RemoveRange(db.PlanetRoleMembers.Where(x => x.MemberId == Id));
-        db.PlanetMembers.Remove(this);
+        // Remove roles
+        var roles = db.PlanetRoleMembers.Where(x => x.MemberId == Id);
+        db.PlanetRoleMembers.RemoveRange(roles);
+
+        // Soft delete member
+        IsDeleted = true;
+        db.PlanetMembers.Update(this);
     }
 
     // Helpful route to return the member for the authorizing user
@@ -240,7 +256,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     public static async Task<IResult> GetRoute(HttpContext ctx, long planetId, long userId)
     {
         var db = ctx.GetDb();
-        var member = await FindAsync(userId, planetId, db);
+        var member = await FindAsyncByUser(userId, planetId, db);
 
         if (member is null)
             return ValourResult.NotFound<PlanetMember>();

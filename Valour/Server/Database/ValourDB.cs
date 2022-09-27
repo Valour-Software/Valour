@@ -35,6 +35,14 @@ public class ValourDB : DbContext
         // Composite key
         modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
 
+        // Soft delete
+        modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
+
+        // Time fixes
+        modelBuilder.Entity<PlanetCategoryChannel>()
+            .Property(x => x.TimeLastActive)
+            .HasConversion(x => x, x => new DateTime(x.Ticks, DateTimeKind.Utc));
+
         //base.OnModelCreating(modelBuilder);
     }
 

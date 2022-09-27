@@ -54,6 +54,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
         var do_channel = permission is ChatChannelPermission;
 
+        int pos = 0;
+
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
         foreach (var role in roles.OrderBy(x => x.Position))
@@ -65,34 +67,37 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             else
                 node = await role.GetCategoryNodeAsync(this, db);
 
-            // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
-            if (node == null)
+
+            PermissionState state = PermissionState.Undefined;
+
+            if (node is not null)
             {
-                if (role.Id == planet.DefaultRoleId)
+                state = node.GetPermissionState(permission);
+            }
+
+            if (state == PermissionState.Undefined)
+            {
+                // Last role
+                if (pos == roles.Count - 1)
                 {
+                    // If the bottom role is undefined, fallback to defaults
                     if (do_channel)
                         return Permission.HasPermission(ChatChannelPermissions.Default, permission);
                     else
                         return Permission.HasPermission(CategoryPermissions.Default, permission);
                 }
 
-                continue;
-            }
-
-            PermissionState state = PermissionState.Undefined;
-
-            state = node.GetPermissionState(permission);
-
-            if (state == PermissionState.Undefined)
-            {
+                pos++;
                 continue;
             }
             else if (state == PermissionState.True)
             {
+                pos++;
                 return true;
             }
             else
             {
+                pos++;
                 return false;
             }
 
@@ -402,6 +407,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
                     return Results.BadRequest($"Category {child_id} is not a child of {category.Id}.");
 
                 child.Position = pos;
+
+                // child.TimeLastActive = DateTime.SpecifyKind(child.TimeLastActive, DateTimeKind.Utc);
 
                 db.PlanetChannels.Update(child);
 
