@@ -142,7 +142,7 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
         if (planet is null)
             return ValourResult.NotFound<Planet>();
 
-        var member = await PlanetMember.FindAsync(token.UserId, planet.Id, db);
+        var member = await PlanetMember.FindAsyncByUser(token.UserId, planet.Id, db);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
@@ -202,7 +202,7 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
         if (planet is null)
             return ValourResult.NotFound<Planet>();
 
-        var member = await PlanetMember.FindAsync(token.UserId, planet.Id, db);
+        var member = await PlanetMember.FindAsyncByUser(token.UserId, planet.Id, db);
         if (member is null)
             return ValourResult.NotPlanetMember();
 

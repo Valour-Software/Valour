@@ -686,6 +686,32 @@ public class User : Item, ISharedUser
         return Results.Json(friends);
     }
 
+    [ValourRoute(HttpVerbs.Get, "/{id}/frienddata"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    public static async Task<IResult> GetFriendDataRouteAsync(HttpContext ctx, long id)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        if (id != token.UserId)
+            return ValourResult.Forbid("You cannot currently view another user's friend data.");
+
+        // Users added by this user as a friend (user -> other)
+        var added = await db.UserFriends.Include(x => x.Friend).Where(x => x.UserId == id).Select(x => x.Friend).ToListAsync();
+
+        // Users who added this user as a friend (other -> user)
+        var addedBy = await db.UserFriends.Include(x => x.User).Where(x => x.FriendId == id).Select(x => x.User).ToListAsync();
+
+        List<User> usersAdded = new();
+        List<User> usersAddedBy = new();
+
+        return Results.Json(new
+        {
+            added = added,
+            addedBy = addedBy
+        });
+    }
+
     #endregion
 }
 

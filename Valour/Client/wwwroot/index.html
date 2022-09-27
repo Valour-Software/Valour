@@ -73,7 +73,7 @@
                     registration.onupdatefound = () => {
                         const installingWorker = registration.installing;
                         installingWorker.onstatechange = () => {
-                            if (installingServiceWorker.state === 'installed') {
+                            if (installingWorker.state === 'installed') {
                                 resolve(!!navigator.serviceWorker.controller);
                             }
                         };

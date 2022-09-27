@@ -23,6 +23,8 @@
         Planet = await PlanetChannel.GetPlanetAsync();
         SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Planet.Id);
 
+        SelfMember.OnDeleted += OnSelfMemberDeleted;
+
         // Hook events
         Planet.OnDeleted += OnPlanetDeleted;
 
@@ -52,6 +54,15 @@
     public async Task OnPlanetDeleted() 
     => await CloseWindow();
 
+    public async Task OnSelfMemberDeleted()
+    {
+        var newWindow = new HomeWindow();
+        await windowManager.ReplaceWindow(Window, newWindow);
+
+        CanRenderFlag = true;
+        StateHasChanged();
+    }
+
     #endregion
 
     // Clean up events and others during disposal
@@ -59,5 +70,6 @@
     {
         Planet.OnDeleted -= OnPlanetDeleted;
         PlanetChannel.OnUpdated -= OnChatChannelUpdate;
+        SelfMember.OnDeleted -= OnSelfMemberDeleted;
     }
 }

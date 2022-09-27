@@ -23,6 +23,7 @@ public class UserFriend : Item, ISharedUserFriend
     /// The user who added the friend
     /// </summary>
     [ForeignKey("UserId")]
+    [JsonIgnore]
     public virtual User User { get; set; }
 
     /// <summary>
@@ -30,6 +31,7 @@ public class UserFriend : Item, ISharedUserFriend
     /// (friendzoned)
     /// </summary>
     [ForeignKey("FriendId")]
+    [JsonIgnore]
     public virtual User Friend { get; set; }
 
     /// <summary>

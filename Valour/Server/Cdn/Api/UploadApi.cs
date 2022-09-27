@@ -152,7 +152,7 @@ namespace Valour.Server.Cdn.Api
             var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
             if (authToken is null) return ValourResult.InvalidToken();
 
-            var member = await PlanetMember.FindAsync(authToken.UserId, planetId, valourDb);
+            var member = await PlanetMember.FindAsyncByUser(authToken.UserId, planetId, valourDb);
             if (member is null)
                 return ValourResult.NotPlanetMember();
 

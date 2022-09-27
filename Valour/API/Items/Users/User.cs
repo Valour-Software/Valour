@@ -100,5 +100,8 @@ public class User : Item, ISharedUser
 
     public async Task<TaskResult<List<User>>> GetFriendsAsync()
         => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/{nameof(User)}/{Id}/friends");
+
+    public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
+        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/{nameof(User)}/{Id}/frienddata");
 }
 
