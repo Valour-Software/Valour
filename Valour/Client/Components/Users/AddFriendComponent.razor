@@ -1,12 +1,46 @@
 ﻿<div class="col-md-12">
 	<section>
-		<h2>Add a new friend</h2>
-
-		<h4>The beginning of a friendship!</h4>
-
-		<p class="mt-2">Remember, they have to add you back as well!</p>
+		<h2>Your Friends</h2>
 
 		<hr />
+
+		<h5>Added you</h5>
+		<div class="inner-scroll-box">
+			@foreach (var addedMe in ValourClient.FriendRequests)
+			{
+				<div>
+					<div class="user-info">
+						<img class="pfp" src="@addedMe.PfpUrl" />
+						<p class="name">@addedMe.Name</p>
+					</div>
+
+					<div class="btn-group options" role="group" aria-label="Friend Accept or Deny">
+						<button @onclick="async () => await OnAcceptRequest(addedMe)" type="button" class="btn v2-button">Accept</button>
+						<button @onclick="async () => await OnDeclineRequest(addedMe)" type="button" class="btn v2-button-danger">Decline</button>
+					</div>
+				</div>
+			}
+		</div>
+		<span class="text-danger mb-2">@addedYouError</span>
+
+		<h5 style="margin-top: 20px">You added</h5>
+		<div class="inner-scroll-box">
+			@foreach (var added in ValourClient.FriendsRequested)
+			{
+				<div>
+					<div class="user-info">
+						<img class="pfp" src="@added.PfpUrl" />
+						<p class="name">@added.Name</p>
+					</div>
+
+					<div class="btn-group options" role="group" aria-label="Friend Accept or Deny">
+						<button @onclick="async () => await OnCancelRequest(added)" type="button" class="btn v2-button-danger">Cancel</button>
+					</div>
+				</div>
+			}
+		</div>
+		<span class="text-danger mb-2">@addedError</span>
+
 
 		<div asp-validation-summary="All" class="text-info"></div>
 
@@ -43,6 +77,9 @@
 	string errorSpan = null;
 	string successSpan = null;
 
+	string addedYouError = null;
+	string addedError = null;
+
 	[Parameter]
 	public ClientWindow Window { get; set; }
 
@@ -68,5 +105,43 @@
 		}
 
 		successSpan = "Added friend successfully.";
+	}
+
+	public async Task OnAcceptRequest(User user)
+	{
+		addedYouError = "";
+
+		var result = await ValourClient.AddFriendAsync(user.Name);
+		if (!result.Success){
+			addedYouError = result.Message;
+		}
+
+		StateHasChanged();
+	}
+
+	public async Task OnDeclineRequest(User user)
+	{
+		addedYouError = "";
+
+		var result = await ValourClient.DeclineFriendAsync(user.Name);
+		if (!result.Success)
+		{
+			addedYouError = result.Message;
+		}
+
+		StateHasChanged();
+	}
+
+	public async Task OnCancelRequest(User user)
+	{
+		addedError = "";
+
+		var result = await ValourClient.CancelFriendAsync(user.Name);
+		if (!result.Success)
+		{
+			addedError = result.Message;
+		}
+
+		StateHasChanged();
 	}
 }

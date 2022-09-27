@@ -99,6 +99,11 @@ public static class ValourClient
     #region Event Fields
 
     /// <summary>
+    /// Run when the friends list updates
+    /// </summary>
+    public static event Func<Task> OnFriendsUpdate;
+
+    /// <summary>
     /// Run when SignalR opens a planet
     /// </summary>
     public static event Func<Planet, Task> OnPlanetOpen;
@@ -208,17 +213,50 @@ public static class ValourClient
 
         if (result.Success)
         {
-            var newFriendUser = await User.FindAsync(result.Data.FriendId);
-            Friends.Add(newFriendUser);
-        }
+            var addedUser = await User.FindAsync(result.Data.FriendId);
+
+			// If we already had a friend request from them,
+			// add them to the friends list
+			var request = FriendRequests.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            if (request is not null)
+            {
+                FriendRequests.Remove(request);
+				Friends.Add(addedUser);
+
+                if (OnFriendsUpdate is not null)
+                    await OnFriendsUpdate.Invoke();
+			}
+			// Otherwise, add this request to our request list
+			else
+			{
+                FriendsRequested.Add(addedUser);
+            }
+		}
 
         return result;
     }
 
-    /// <summary>
-    /// Removes a friend
-    /// </summary>
-    public static async Task<TaskResult> RemoveFriendAsync(string username)
+	/// <summary>
+	/// Declines a friend request
+	/// </summary>
+	public static async Task<TaskResult> DeclineFriendAsync(string username)
+	{
+		var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/decline/{username}", null);
+
+        if (result.Success)
+        {
+            var declined = FriendRequests.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+            if (declined is not null)
+                FriendRequests.Remove(declined);
+        }
+
+		return result;
+	}
+
+	/// <summary>
+	/// Removes a friend
+	/// </summary>
+	public static async Task<TaskResult> RemoveFriendAsync(string username)
     {
         var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/remove/{username}", null);
 
@@ -226,18 +264,44 @@ public static class ValourClient
         {
             var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
             if (friend is not null)
+            {
                 Friends.Remove(friend);
-        }
+
+                FriendRequests.Add(friend);
+
+				if (OnFriendsUpdate is not null)
+					await OnFriendsUpdate.Invoke();
+			}
+
+
+		}
 
         return result;
     }
 
-    #region SignalR Groups
+	/// <summary>
+	/// Cancels a friend request
+	/// </summary>
+	public static async Task<TaskResult> CancelFriendAsync(string username)
+	{
+		var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/cancel/{username}", null);
 
-    /// <summary>
-    /// Returns if the given planet is open
-    /// </summary>
-    public static bool IsPlanetOpen(Planet planet) =>
+		if (result.Success)
+		{
+			var canceled = FriendsRequested.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
+			if (canceled is not null)
+				FriendsRequested.Remove(canceled);
+		}
+
+		return result;
+	}
+
+	#region SignalR Groups
+
+	/// <summary>
+	/// Returns if the given planet is open
+	/// </summary>
+	public static bool IsPlanetOpen(Planet planet) =>
         OpenPlanets.Any(x => x.Id == planet.Id);
 
     /// <summary>

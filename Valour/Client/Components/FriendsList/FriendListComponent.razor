@@ -25,7 +25,7 @@
                     count++;
                 }
 
-                <FriendComponent User="@context" Class="@classList"></FriendComponent>  
+                <FriendComponent User="@context" Class="@classList" @key="context.Id"></FriendComponent>  
             </Virtualize>
         </div>
     </div>
@@ -40,6 +40,8 @@
 
         windowManager.OnPlanetFocused += OnPlanetFocus;
 
+        ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
+
         await base.OnInitializedAsync();
     }
 
@@ -49,6 +51,12 @@
         Show = (planet is null);
 
         if (oldShow != Show)
+            StateHasChanged();
+    }
+
+    public async Task OnFriendsListUpdate()
+    {
+        if (Show)
             StateHasChanged();
     }
 }

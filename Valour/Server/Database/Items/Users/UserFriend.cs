@@ -124,4 +124,52 @@ public class UserFriend : Item, ISharedUserFriend
 
         return Results.Created(newFriend.GetUri(), newFriend);
     }
+
+	[ValourRoute(HttpVerbs.Post, "/decline/{username}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+	[UserPermissionsRequired(UserPermissionsEnum.Friends)]
+	public static async Task<IResult> DeclineFriendRouteAsync(HttpContext ctx, [FromRoute] string username)
+	{
+		var token = ctx.GetToken();
+		var db = ctx.GetDb();
+
+		var requestUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower());
+		if (requestUser is null)
+			return ValourResult.NotFound($"User {username} was not found.");
+
+		var request = await db.UserFriends
+			.FirstOrDefaultAsync(x => x.UserId == requestUser.Id &&
+									  x.FriendId == token.UserId);
+
+		if (request is null)
+			return ValourResult.NotFound($"Friend request was not found.");
+
+		db.UserFriends.Remove(request);
+		await db.SaveChangesAsync();
+
+		return ValourResult.Ok("Declined request");
+	}
+
+	[ValourRoute(HttpVerbs.Post, "/cancel/{username}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+	[UserPermissionsRequired(UserPermissionsEnum.Friends)]
+	public static async Task<IResult> CancelFriendRouteAsync(HttpContext ctx, [FromRoute] string username)
+	{
+		var token = ctx.GetToken();
+		var db = ctx.GetDb();
+
+		var targetUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower());
+		if (targetUser is null)
+			return ValourResult.NotFound($"User {username} was not found.");
+
+		var request = await db.UserFriends
+			.FirstOrDefaultAsync(x => x.UserId == token.UserId &&
+									  x.FriendId == targetUser.Id);
+
+		if (request is null)
+			return ValourResult.NotFound($"Friend request was not found.");
+
+		db.UserFriends.Remove(request);
+		await db.SaveChangesAsync();
+
+		return ValourResult.Ok("Cancelled request");
+	}
 }

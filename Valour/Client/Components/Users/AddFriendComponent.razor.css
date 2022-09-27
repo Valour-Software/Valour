@@ -1,0 +1,39 @@
+﻿.inner-scroll-box {
+    border: solid 2px var(--main-4);
+    border-radius: 5px;
+    height: 120px;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.pfp {
+    height: 25px;
+    width: 25px;
+    border-radius: 50%;
+    vertical-align: top;
+}
+
+.name {
+    display: inline-block;
+    margin-left: 10px;
+    margin-right: 10px;
+    word-break:break-all;
+}
+
+.user-info {
+    margin-top: 2px;
+    min-width: 200px;
+    display: inline-block;
+}
+
+.options {
+    display: inline-block;
+    float: right;
+}
+
+.options .btn {
+    padding: 0px;
+    width: 65px;
+    height: 25px;
+    line-height: 10px;
+}
