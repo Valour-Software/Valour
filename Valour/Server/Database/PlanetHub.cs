@@ -404,19 +404,14 @@ namespace Valour.Server.Database
         public static async void NotifyDirectMessageDeletion(DirectMessage message, long targetUserId) =>
             await Current.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
 
-        public static async void NotifyUserChange(User user, ValourDB db, int flags = 0)
+        public static async Task NotifyUserChange(User user, ValourDB db, int flags = 0)
         {
-            var members = db.PlanetMembers.Where(x => x.UserId == user.Id);
+            var members = await db.PlanetMembers.Where(x => x.UserId == user.Id).ToListAsync();
 
             foreach (var m in members)
             {
-                // Not awaited on purpose
-                //var t = Task.Run(async () => {
-                //Console.WriteLine(JsonSerializer.Serialize(user));
-
+                // TODO: This will not work with node scaling
                 await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("User-Update", user, flags);
-                //await Current.Clients.Group($"p-{m.PlanetId}").SendAsync("ChannelUpdate", new PlanetChatChannel(), flags);
-                //});
             }
         }
 

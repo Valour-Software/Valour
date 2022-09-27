@@ -47,7 +47,7 @@ public interface ISharedPlanetRole : ISharedPlanetItem
         ISharedPlanetRole.HasPermission(this, perm);
 
     public static int GetAuthority(ISharedPlanetRole role) =>
-        int.MaxValue - role.Position;
+        int.MaxValue - role.Position - 1; // Subtract one so owner can have higher
 
     public static Color GetColor(ISharedPlanetRole role) =>
         Color.FromArgb(role.Red, role.Green, role.Blue);

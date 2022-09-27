@@ -162,7 +162,7 @@
 
         var ids = Roles.Select(x => x.Id);
 
-        var result = await Selected.Node.PostAsync($"api/planet/{dropped_on.PlanetId}/roleorder", ids);
+        var result = await dropped_on.Node.PostAsync($"api/planet/{dropped_on.PlanetId}/roleorder", ids);
 
         Console.WriteLine(result.Message);
 
