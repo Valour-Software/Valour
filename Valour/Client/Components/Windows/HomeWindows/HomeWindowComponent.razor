@@ -133,6 +133,13 @@
                     </textPath>
                 </text>
             </svg>
+
+            @if (ValourClient.FriendRequests.Count > 0)
+            {
+                <div class="noti friends">
+                    @ValourClient.FriendRequests.Count
+                </div>
+            }
         </div>
     </div>
 
@@ -169,6 +176,7 @@
     protected async override Task OnInitializedAsync()
     {
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
+        ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
 
         Discoverables = await ValourClient.GetDiscoverablePlanetsAsync();
 
@@ -197,5 +205,10 @@
         var param = new ModalParameters();
         param.Add("Window", Window);
         Modal.Show<AddFriendComponent>("Add Friend", param, new ModalOptions() { Class = "modal-shrink-fit" });
+    }
+
+    public async Task OnFriendsListUpdate()
+    {
+        StateHasChanged();
     }
 }

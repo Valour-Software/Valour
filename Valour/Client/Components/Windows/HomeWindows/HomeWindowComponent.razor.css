@@ -71,3 +71,19 @@
     -webkit-transform: scale(1.05);
     transform: scale(1.05);
 }
+
+::deep .noti {
+    border-radius: 50%;
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(255, 255, 255, 1);
+    left: 85px;
+    top: 25px;
+    border: solid 5px #040d14;
+    text-align: center;
+}
+
+::deep .noti.friends {
+    background-color: red;
+}

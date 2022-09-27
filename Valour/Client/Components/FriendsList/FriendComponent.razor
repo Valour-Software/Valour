@@ -1,0 +1,100 @@
+﻿<div class="friend-card @Class">
+    <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@pfpStyle">
+    <div class="user-info">
+
+        <div class="name-line">
+
+            <ContextMenuTrigger MenuId="user-context" @onpointerdown='async () => await UserContextMenuComponent.Initialize(User)' style='display:inline'>
+                <p class="username" style="color: @nameColor">
+                    @if (User.Name.Length > 20)
+                    {
+                        @User.Name.Substring(0, 19)
+                    }
+                    else
+                    {
+                        @User.Name
+                    }
+                </p>
+            </ContextMenuTrigger>
+
+            @if (User.Bot)
+            {
+                <div class="bot-tag">
+                    <p>BOT</p>
+                </div>
+            }
+
+            @if (User.ValourStaff)
+            {
+                <div class="staff-tag">
+                    <p>STAFF</p>
+                </div>
+            }
+        </div>
+
+        <div class="status-holder">
+
+            <!-- State bubble -->
+            <div class="state-circle @User.UserState.CssClassName">
+            </div>
+
+            <p class="status-text">
+                @User.Status
+            </p>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Demonstrates how a parent component can supply parameters
+
+    [Parameter]
+    public User User { get; set; }
+
+    [Parameter]
+    public string Class { get; set; }
+
+    public string nameColor = "#ffffff";
+
+    public string status = "";
+
+    public string BotString = "";
+
+    public string StaffString = "";
+
+    public string name = "";
+
+    public string pfpurl = "_content/Valour.Client/icon-512.png";
+    public string pfpStyle = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        User.OnUpdated += async d =>
+        {
+            await RefreshAsync();
+        };
+
+        await RefreshAsync();
+    }
+
+    public async Task RefreshAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(User.PfpUrl))
+            pfpurl = User.PfpUrl;
+
+        StateHasChanged();
+    }
+
+    protected async Task OnPfpError()
+    {
+        pfpurl = "_content/Valour.Client/icon-512.png";
+
+        int r = Random.Shared.Next(24) * 15;
+
+        pfpStyle = $"filter: hue-rotate({r}deg) saturate(2)";
+
+        StateHasChanged();
+    }
+}
