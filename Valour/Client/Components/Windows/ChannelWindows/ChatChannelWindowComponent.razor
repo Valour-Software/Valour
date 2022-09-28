@@ -23,12 +23,12 @@
 
                     <div class="channel-buttons">
                         <div class="channel-home" @onclick="ReturnHome">
-                            Home
+                            <HomeIconComponent></HomeIconComponent>
                         </div>
                         @if (windowManager.GetWindowCount() > 1)
                         {
-                            <div class="channel-close" @onclick="CloseWindow">
-                                X
+                            <div class="channel-exit" @onclick="CloseWindow">
+                                <ExitIconComponent></ExitIconComponent>
                             </div>
                         }
                     </div>

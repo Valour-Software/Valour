@@ -26,3 +26,18 @@
     display: inline-block;
     font-size: 20px;
 }
+
+.channel-home {
+    width: 32px;
+    height: 32px;
+    opacity: 0.75;
+    cursor: pointer;
+}
+
+.channel-exit {
+    width: 32px;
+    height: 32px;
+    opacity: 0.75;
+    cursor: pointer;
+    display: inline-block;
+}
