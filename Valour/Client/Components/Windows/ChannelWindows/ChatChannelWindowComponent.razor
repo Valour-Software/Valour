@@ -21,17 +21,7 @@
                         @Description
                     </p>
 
-                    <div class="channel-buttons">
-                        <div class="channel-home" @onclick="ReturnHome">
-                            <HomeIconComponent></HomeIconComponent>
-                        </div>
-                        @if (windowManager.GetWindowCount() > 1)
-                        {
-                            <div class="channel-exit" @onclick="CloseWindow">
-                                <ExitIconComponent></ExitIconComponent>
-                            </div>
-                        }
-                    </div>
+                    <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
 
                 </div>
 
@@ -187,6 +177,7 @@
     {
         HomeWindow newWindow = new HomeWindow();
         await windowManager.ReplaceWindow(Window, newWindow);
+        await windowManager.SetFocusedPlanet(null);
     }
 
     public async Task OnRecieveMessage(Message message)

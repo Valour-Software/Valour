@@ -52,6 +52,16 @@ public class WindowManager
     public event Func<Planet, Task> OnPlanetFocused;
 
     /// <summary>
+    /// Event for when a window is opened
+    /// </summary>
+    public event Func<ClientWindow, Task> OnWindowOpened;
+
+    /// <summary>
+    /// Event for when a window is closed
+    /// </summary>
+    public event Func<ClientWindow, Task> OnWindowClosed;
+
+    /// <summary>
     /// The component for the main windows
     /// </summary>
     public MainWindowsComponent MainWindowsComponent { get; set; }
@@ -86,6 +96,9 @@ public class WindowManager
 
         // Add window to the specified target
         await target.OpenWindow(window);
+
+        if (OnWindowOpened is not null)
+            await OnWindowOpened.Invoke(window);
 
         await Log($"[WindowManager]: Added window {window.Id}");
     }
@@ -256,6 +269,9 @@ public class WindowManager
                 await chatWindow.Channel.Close();
             }
         }
+
+        if (OnWindowClosed is not null)
+            await OnWindowClosed.Invoke(window);
     }
 
     public async Task ForceChatRefresh()

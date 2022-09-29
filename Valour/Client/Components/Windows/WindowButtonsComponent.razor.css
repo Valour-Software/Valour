@@ -1,0 +1,34 @@
+﻿.channel-buttons {
+    float: right;
+}
+
+.channel-home {
+    width: 32px;
+    height: 32px;
+    opacity: 0.75;
+    cursor: pointer;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.channel-exit {
+    width: 32px;
+    height: 32px;
+    opacity: 0.75;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.add-window-button {
+    width: 32px;
+    height: 32px;
+    margin-left: 10px;
+    cursor: pointer;
+    opacity: 0.75;
+    display: inline-block;
+    margin-bottom: -4px;
+}
+
+.mobile .add-window-button {
+    display: none !important;
+}
