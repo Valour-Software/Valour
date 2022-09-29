@@ -39,7 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="wwwroot\media\Exit-icon.svg" />
+    <None Include="wwwroot\media\exit-icon.svg" />
   </ItemGroup>
 
 </Project>
