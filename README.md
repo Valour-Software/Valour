@@ -1,4 +1,4 @@
-![Valour logo](Valour/Client/wwwroot/media/logo/logo-128.png)
+![Valour logo](Valour/Web/wwwroot/media/logo/wide/logo_wide_blue_black_trans.png)
 
 # Valour
 
