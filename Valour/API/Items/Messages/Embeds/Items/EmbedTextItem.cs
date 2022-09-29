@@ -6,13 +6,14 @@ public class EmbedTextItem : EmbedItem
     public string? TextColor { get; set; } = "eeeeee";
     public string? Link { get; set; }
     public string? Text { get; set; }
+    public bool? IsNameClickable { get; set; }
 
     public EmbedTextItem()
     {
         ItemType = EmbedItemType.Text;
     }
 
-    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, int? x = null, int? y = null)
+    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, int? x = null, int? y = null)
     {
         Name = name;
         Text = text;
@@ -21,5 +22,6 @@ public class EmbedTextItem : EmbedItem
         X = x;
         Y = y;
         ItemType = EmbedItemType.Text;
+        IsNameClickable = isnameclickable;
     }
 }
