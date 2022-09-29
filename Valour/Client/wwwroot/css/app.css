@@ -558,17 +558,6 @@ app {
     background-color: var(--main-2);
 }
 
-.add-window-button {
-    width: 64px;
-    height: 64px;
-    padding: 8px;
-    position: absolute;
-    left: calc(100% - 98px);
-    top: 200px;
-    cursor: pointer;
-    z-index: 6;
-}
-
 /* Scrollbar */
 *::-webkit-scrollbar {
     width: 12px;
@@ -697,32 +686,9 @@ app {
     align-items: center;
     mix-blend-mode: normal;
 }
-
-.channel-info .channel-buttons {
-    float: right;
-}
-
 .home-buttons {
     float: right;
     margin-top: 15px;
-}
-
-.channel-buttons .channel-home {
-    display: inline-block;
-    margin-right: 10px;
-    cursor: pointer;
-}
-
-.channel-buttons .channel-close {
-    display: inline-block;
-    margin-right: 10px;
-    cursor: pointer;
-}
-
-.home-buttons .home-close {
-    display: inline-block;
-    margin-right: 10px;
-    cursor: pointer;
 }
 
 .modal-content-EditUser .popup-box {

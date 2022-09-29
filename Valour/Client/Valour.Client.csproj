@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\media\Exit-icon.svg" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Components\ChannelList\ChannelListChatChannelComponent.razor.css" />
   </ItemGroup>
 
@@ -32,6 +36,10 @@
     <ProjectReference Include="..\..\Libraries\BlazorContextMenu\BlazorContextMenu.csproj" />
     <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\media\Exit-icon.svg" />
   </ItemGroup>
 
 </Project>
