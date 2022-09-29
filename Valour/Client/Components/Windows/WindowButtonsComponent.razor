@@ -4,17 +4,17 @@
 <div class="channel-buttons">
     @if (ShowHomeIcon)
     {
-        <img src="_content/Valour.Client/media/Home-icon.svg" class="channel-home" @onclick="OnClickHome">
+        <img title="Go Home" src="_content/Valour.Client/media/Home-icon.svg" class="channel-home" @onclick="OnClickHome">
     }
     @if (ShowExitIcon && windowManager.GetWindowCount() > 1)
     {
-        <img src="_content/Valour.Client/media/exit-icon.svg" class="channel-exit" @onclick="OnClickExit">
+        <img title="Close Window" src="_content/Valour.Client/media/close-window-icon.svg" class="channel-exit" @onclick="OnClickExit">
     }
 
     <!-- This will need to be determined per-container in the future -->
     @if (windowManager.WindowCount < 6)
     {
-        <img src="_content/Valour.Client/media/new-window-icon.svg" class="add-window-button" @onclick="OnClickAddWindow" />
+        <img title="Add Window" src="_content/Valour.Client/media/new-window-icon.svg" class="add-window-button" @onclick="OnClickAddWindow" />
     }
 </div>
 
