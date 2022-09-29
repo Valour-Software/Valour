@@ -4,7 +4,13 @@
 	@if (item.Name != null)
 	{
 		<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
-			@((MarkupString)MarkdownManager.GetHtml(item.Name))
+			if (item.HasGoTo)
+			{
+				<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Name))</div>
+			}
+			else {
+				@((MarkupString)MarkdownManager.GetHtml(item.Name))
+			}
 		</div>
 	}
 	<div style="color:#@item.TextColor;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
