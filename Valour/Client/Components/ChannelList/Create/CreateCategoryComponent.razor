@@ -7,6 +7,10 @@
     <div class="top-section">
         <h2 class="title">Create a Category</h2>
 
+        <center>
+            <span id="image-span" style="color:white">@imageSpan</span>
+        </center>
+
         <div asp-validation-summary="All" class="text-info"></div>
         <div class="form-group mt-2 new-input-style">
             <label>Category Name</label>
@@ -49,8 +53,6 @@
             </div>
         </div>
     }
-
-    <span id="image-span" style="color:#888888">@imageSpan</span>
     
     @if (isprivate)
     {
@@ -123,7 +125,7 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
-            name = "Please input a category name.";
+            imageSpan = "Please input a category name!";
             return;
         }
 
