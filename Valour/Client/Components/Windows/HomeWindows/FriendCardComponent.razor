@@ -52,15 +52,13 @@
     protected override async Task OnInitializedAsync(){
         iconUrl = Friend.PfpUrl;
 
-        // in the future, we might want a route that grabs all the direct chat channels' states
-        var channel = await DirectChatChannel.FindAsyncByUser(Friend.Id, true);
-        IsUnread = DetermineUnread(channel);
         homeWindowComponent.RerenderFriendCards += Refresh;
     }
 
     public async Task Refresh()
     {
-        IsUnread = DetermineUnread(await DirectChatChannel.FindAsyncByUser(Friend.Id));
+        // in the future, we might want a route that grabs all the direct chat channels' states
+        IsUnread = DetermineUnread(await DirectChatChannel.FindAsyncByUser(Friend.Id, true));
         StateHasChanged();
     }
 
