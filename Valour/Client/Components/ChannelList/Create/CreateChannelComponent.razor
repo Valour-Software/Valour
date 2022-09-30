@@ -4,7 +4,7 @@
 @using Valour.Shared.Categories
 
 <section>
-    <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg">
+    <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
     <div class="top-section">
         <h2 class="title">Create a Channel</h2>
 
@@ -92,6 +92,11 @@
 
     List<PlanetRole> Roles = new List<PlanetRole>();
     bool isprivate = false;
+
+    public async Task ClickEscape(MouseEventArgs e)
+    {
+        await ModalInstance.CloseAsync();
+    }
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
