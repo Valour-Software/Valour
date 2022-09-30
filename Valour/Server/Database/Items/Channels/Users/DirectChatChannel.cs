@@ -167,13 +167,22 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
                                               .Reverse()
                                               .ToListAsync();
         var state = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
-        if (state is null) {
+        if (state is null)
+        {
             db.UserChannelStates.Add(new UserChannelState()
             {
                 UserId = token.UserId,
                 ChannelId = channel.Id,
                 LastViewedState = channel.State
             });
+
+            await db.SaveChangesAsync();
+        }
+
+        else
+        {
+
+            state.LastViewedState = channel.State;
 
             await db.SaveChangesAsync();
         }
