@@ -75,7 +75,7 @@
             modalParams.Add("Parent", null);
         }
 
-        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+        Modal.Show<CreateChannelComponent>("Create Channel", modalParams, new ModalOptions() { Class = "modal-shrink-fit-no-padding" });
     }
     
     public async Task OpenCreateCategory(){
@@ -90,7 +90,7 @@
             modalParams.Add("Parent", null);
         }
 
-        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
+        Modal.Show<CreateCategoryComponent>("Create Category", modalParams, new ModalOptions() { Class = "modal-shrink-fit-no-padding" });
     }
 
     public async Task DeleteChannelListItem(){
