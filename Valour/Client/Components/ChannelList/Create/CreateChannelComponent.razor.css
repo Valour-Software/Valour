@@ -32,13 +32,13 @@ section {
     max-height: 760px;
 }
 
-.top {
+.top-section {
     margin-left: 45px;
     margin-right: 45px;
     margin-top: 26px;
 }
 
-    .top .tittle {
+    .top-section .title {
         font-size: 30px;
         font-weight: 700;
         line-height: 34px;

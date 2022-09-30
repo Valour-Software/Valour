@@ -1358,3 +1358,11 @@ img.emoji {
         color: #94A5B3;
         padding: 5px 9px;
     }
+
+        .new-input-style input:focus {
+            color: white;
+            background-color: var(--main-4);
+            border: 1px solid #030B11;
+            outline: 0;
+            box-shadow: unset;
+        }
