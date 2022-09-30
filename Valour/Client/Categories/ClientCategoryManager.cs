@@ -16,7 +16,7 @@ namespace Valour.Client.Categories
         {
             if (!CategoryOpenStates.ContainsKey(categoryId))
             {
-                return false;
+                return true;
             }
 
             return CategoryOpenStates[categoryId];

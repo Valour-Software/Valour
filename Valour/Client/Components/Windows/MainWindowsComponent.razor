@@ -3,17 +3,6 @@
 @inject WindowManager windowManager
 @inject IJSRuntime JS
 
-<!--
-	Add dummy window so Jacob doesn't cry
--->
-
-@if (Windows.Count < 6)
-{
-	<div class="add-window-button" @onclick="OnClickAddWindow">
-		<NewWindowComponent></NewWindowComponent>
-	</div>
-}
-
 <!-- Pass WindowManager this down to all children -->
 <CascadingValue Value="this">
 	@{
@@ -124,18 +113,6 @@
 			// Add a new window with self as the target
 			await windowManager.AddWindowAsync(new HomeWindow(), this);
 		}
-
-		await RefreshAsync();
-	}
-
-	private async Task OnClickAddWindow()
-	{
-		if (windowManager.GetWindowCount() == 6)
-		{
-			return;
-		}
-
-		await windowManager.AddWindowAsync(new HomeWindow(), this);
 
 		await RefreshAsync();
 	}
