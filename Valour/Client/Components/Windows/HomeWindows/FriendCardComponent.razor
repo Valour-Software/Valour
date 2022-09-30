@@ -1,5 +1,6 @@
 ﻿@inject WindowManager windowManager
 @inject IJSRuntime JS
+@implements IDisposable
 
 <div @onclick="OnClick" class="home-icon-outer">
 
@@ -40,6 +41,9 @@
     [Parameter]
     public HomeWindow Window { get; set; }
 
+    [Parameter]
+    public HomeWindowComponent homeWindowComponent { get; set; }
+
     public string iconUrl = "/media/logo/logo-512.png";
 
     public string image_style = "";
@@ -47,8 +51,22 @@
 
     protected override async Task OnInitializedAsync(){
         iconUrl = Friend.PfpUrl;
-        var channel = await DirectChatChannel.FindAsyncByUser(Friend.Id);
+
+        // in the future, we might want a route that grabs all the direct chat channels' states
+        var channel = await DirectChatChannel.FindAsyncByUser(Friend.Id, true);
         IsUnread = DetermineUnread(channel);
+        homeWindowComponent.RerenderFriendCards += Refresh;
+    }
+
+    public async Task Refresh()
+    {
+        IsUnread = DetermineUnread(await DirectChatChannel.FindAsyncByUser(Friend.Id));
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        homeWindowComponent.RerenderFriendCards -= Refresh;
     }
 
     public bool DetermineUnread(DirectChatChannel chatChannel)

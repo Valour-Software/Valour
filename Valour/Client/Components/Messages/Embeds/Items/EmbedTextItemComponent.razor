@@ -1,11 +1,22 @@
 ﻿@implements IDisposable
 
 <div style="@item.GetStyle()" class="embed-item">
-	@if (item.Name != null)
+	@if (item.IsNameClickable is not null && (bool)item.IsNameClickable)
 	{
-		<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
-			@((MarkupString)MarkdownManager.GetHtml(item.Name))
-		</div>
+		@if (item.Name != null)
+		{
+			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
+				@((MarkupString)MarkdownManager.GetHtml(item.Name))
+			</div>
+		}
+	}
+	else {
+		@if (item.Name != null)
+		{
+			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
+				@((MarkupString)MarkdownManager.GetHtml(item.Name))
+			</div>
+		}
 	}
 	<div style="color:#@item.TextColor;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
 		@if (item.Link != null)
@@ -14,9 +25,9 @@
 		}
 		else
 		{
-			if (item.Text is not null)
+			@if (item.Text is not null)
 			{
-				if (item.HasGoTo)
+				@if (item.HasGoTo)
 				{
 					<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
 				}
