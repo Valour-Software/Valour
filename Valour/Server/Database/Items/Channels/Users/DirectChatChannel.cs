@@ -297,6 +297,22 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         channel.State = $"MessageIndex-{channel.MessageCount}";
         message.MessageIndex = channel.MessageCount;
 
+        var state = await valourDb.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
+        if (state is null)
+        {
+            valourDb.UserChannelStates.Add(new UserChannelState()
+            {
+                UserId = token.UserId,
+                ChannelId = channel.Id,
+                LastViewedState = channel.State
+            });
+        }
+
+        else
+        {
+            state.LastViewedState = channel.State;
+        }
+
         await valourDb.DirectMessages.AddAsync(message);
         await valourDb.SaveChangesAsync();
 

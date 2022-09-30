@@ -27,8 +27,12 @@
     padding-bottom: 6px;
 }
 
+@media only screen and (min-width: 800px) {
+    section {
+        width: 512px;
+    }
+}
 section {
-    width: 512px;
     max-height: 760px;
 }
 
@@ -47,9 +51,10 @@ section {
 .escape-button {
     position: relative;
     top: 20px;
-    left: 476px;
+    left: 93%;
     width: 16px;
     height: 16px;
+    cursor: pointer;
 }
 
 .bottom {
