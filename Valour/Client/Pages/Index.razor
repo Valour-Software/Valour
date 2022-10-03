@@ -61,6 +61,9 @@
 	<ContextMenuHolderComponent></ContextMenuHolderComponent>
 </body>
 
+<!-- Mobile context menu components -->
+<MobileRolesMenuComponent></MobileRolesMenuComponent>
+
 
 @code {
 
@@ -101,10 +104,16 @@
 		//StateHasChanged();
 	}
 
-	protected override void OnAfterRender(bool firstRender)
+	protected override async Task OnAfterRender(bool firstRender)
 	{
-		JS.InvokeVoidAsync("FixClip");
-		JS.InvokeVoidAsync("FitMobile");
+		await JS.InvokeVoidAsync("FixClip");
+		await JS.InvokeVoidAsync("FitMobile");
+
+		var isMobile = await JS.InvokeAsync("IsMobile");
+		var isEmbedded = await JS.InvokeAsync("IsEmbedded");
+
+		DeviceInfo.IsMobile = isMobile;
+		DeviceInfo.IsEmbedded = isEmbedded;
 	}
 
 	[JSInvokable("OnRefocus")]

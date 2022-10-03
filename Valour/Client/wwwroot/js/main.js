@@ -79,6 +79,14 @@ function FitMobile() {
     topbar.toggle(false);
 }
 
+function IsMobile() {
+    return mobile;
+}
+
+function IsEmbedded() {
+    return embedded;
+}
+
 function OpenSidebar() {
     swipeState = 1;
     HandleSwipeState();

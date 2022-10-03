@@ -1344,25 +1344,43 @@ img.emoji {
 .new-input-style {
 }
 
-    .new-input-style label {
-        font-weight: 400;
-        font-size: 15px;
-        line-height: 14px;
-        color: rgba(255, 255, 255, 0.75);
-    }
+.new-input-style label {
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 14px;
+    color: rgba(255, 255, 255, 0.75);
+}
 
-    .new-input-style input {
-        background: var(--main-4);
-        border: 1px solid #030B11;
-        border-radius: 8px;
-        color: #94A5B3;
-        padding: 5px 9px;
-    }
+.new-input-style input {
+    background: var(--main-4);
+    border: 1px solid #030B11;
+    border-radius: 8px;
+    color: #94A5B3;
+    padding: 5px 9px;
+}
 
-        .new-input-style input:focus {
-            color: white;
-            background-color: var(--main-4);
-            border: 1px solid #030B11;
-            outline: 0;
-            box-shadow: unset;
-        }
+.new-input-style input:focus {
+    color: white;
+    background-color: var(--main-4);
+    border: 1px solid #030B11;
+    outline: 0;
+    box-shadow: unset;
+}
+
+.context-menu-mobile-wrapper {
+    position:absolute;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 50;
+}
+
+.context-menu-mobile {
+    position: absolute;
+    background-color: var(--main-1);
+    width: 100vw;
+    z-index: 100;
+    bottom: 0;
+    border-radius: 10px 10px 0 0;
+    padding: 10px;
+}
