@@ -11,15 +11,6 @@ window.clipboardCopy = {
     }
 };
 
-function EventForContextMenu(event) {
-    if (event.target.className.includes("EnableRightCLick")) {
-        return;
-    }
-    else {
-        event.preventDefault()
-    }
-}
-
 var splitStates = [null, null, null];
 
 var mobile = false;

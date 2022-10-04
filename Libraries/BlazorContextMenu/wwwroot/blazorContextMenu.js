@@ -16,7 +16,7 @@ var blazorContextMenu = function (blazorContextMenu) {
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
-        }, 500);
+        }, 1000);
     }
 
     blazorContextMenu.DoTouchHoldEnd = function DoTouchHoldEnd(event, menu, prop) {

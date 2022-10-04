@@ -38,7 +38,7 @@ namespace BlazorContextMenu
             }
             else if (MouseButtonTrigger == MouseButtonTrigger.ContextOrHold)
             {
-                builder.AddAttribute(2, "oncontextmenu", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                //builder.AddAttribute(2, "oncontextmenu", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
                 builder.AddAttribute(3, "ontouchstart", $"blazorContextMenu.DoTouchHoldStart(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
                 builder.AddAttribute(4, "ontouchend", $"blazorContextMenu.DoTouchHoldEnd(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
             }
