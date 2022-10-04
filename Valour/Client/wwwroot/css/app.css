@@ -1367,13 +1367,37 @@ img.emoji {
     box-shadow: unset;
 }
 
+/* Mobile context menu CSS */
+
+@keyframes slideInFromBottom {
+    0% {
+        transform: translateY(100%);
+    }
+
+    100% {
+        transform: translateY(0%);
+    }
+}
+
+@keyframes slideInFromRight {
+    0% {
+        transform: translateX(100%);
+    }
+
+    100% {
+        transform: translateX(0%);
+    }
+}
+
 .mobile .blazor-context-menu {
+    opacity: 1;
     position: fixed !important;
     bottom: 0 !important;
-    height: auto !important;
+    height: auto;
     left: 0 !important;
     top: auto !important;
     min-width: 100vw !important;
+    animation: 0.3s ease-in-out 0s 1 slideInFromBottom;
 }
 
 .mobile .blazor-context-submenu {
@@ -1383,6 +1407,16 @@ img.emoji {
     left: 0 !important;
     top: auto !important;
     min-width: 100vw !important;
+    animation: 0.3s ease-in-out 0s 1 slideInFromRight;
+}
+
+/* These two HIDE the parent if a child menu is opened */
+.mobile .blazor-context-menu:has(.blazor-context-submenu:not(.blazor-context-menu--hidden)) {
+    height: 0 !important;
+}
+
+.mobile .blazor-context-submenu:has(.blazor-context-submenu:not(.blazor-context-menu--hidden)) {
+    height: 0 !important;
 }
 
 .mobile .context-item {
