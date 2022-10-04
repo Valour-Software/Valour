@@ -250,6 +250,12 @@ var blazorContextMenu = function (blazorContextMenu) {
             showMenuCommon(menu, menuId, e.x, e.y, e.target, triggerDotnetRef);
         }
 
+        // Disable inner input on mobile
+        if (mobile) {
+            var input = document.querySelector('.textbox-inner');
+            input.classList.add('block-input');
+        }
+
         e.preventDefault();
         if (stopPropagation) {
             e.stopPropagation();
@@ -332,6 +338,13 @@ var blazorContextMenu = function (blazorContextMenu) {
         var instanceId = menuElement.dataset["instanceId"];
         return menuHandlerReference.invokeMethodAsync('HideMenu', menuId).then(function (hideSuccessful) {
             if (menuElement.classList.contains("blazor-context-menu") && hideSuccessful) {
+
+                // Enable inner input on mobile
+                if (mobile) {
+                    var input = document.querySelector('.textbox-inner');
+                    input.classList.remove('block-input');
+                }
+
                 //this is a root menu. Remove from openMenus list
                 var openMenu = openMenus.find(function (item) {
                     return item.instanceId == instanceId;
