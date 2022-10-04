@@ -61,9 +61,6 @@
 	<ContextMenuHolderComponent></ContextMenuHolderComponent>
 </body>
 
-<!-- Mobile context menu components -->
-<MobileRolesMenuComponent></MobileRolesMenuComponent>
-
 
 @code {
 
@@ -86,7 +83,17 @@
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
-		await base.OnAfterRenderAsync(firstRender);
+		if (firstRender)
+		{
+			await JS.InvokeVoidAsync("FixClip");
+			await JS.InvokeVoidAsync("FitMobile");
+
+			var isMobile = await JS.InvokeAsync<bool>("IsMobile");
+			var isEmbedded = await JS.InvokeAsync<bool>("IsEmbedded");
+
+			DeviceInfo.IsMobile = isMobile;
+			DeviceInfo.IsEmbedded = isEmbedded;
+		}
 	}
 
 	public async Task OnPlanetChange(Planet planet)
@@ -99,21 +106,6 @@
 		{
 			Console.WriteLine("Index planet change: null");
 		}
-
-		// This is unnecessary and breaks things
-		//StateHasChanged();
-	}
-
-	protected override async Task OnAfterRender(bool firstRender)
-	{
-		await JS.InvokeVoidAsync("FixClip");
-		await JS.InvokeVoidAsync("FitMobile");
-
-		var isMobile = await JS.InvokeAsync("IsMobile");
-		var isEmbedded = await JS.InvokeAsync("IsEmbedded");
-
-		DeviceInfo.IsMobile = isMobile;
-		DeviceInfo.IsEmbedded = isEmbedded;
 	}
 
 	[JSInvokable("OnRefocus")]
