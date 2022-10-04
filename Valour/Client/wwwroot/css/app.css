@@ -1424,3 +1424,7 @@ img.emoji {
 .mobile .context-item {
     font-size: 20px;
 }
+
+.block-input {
+    pointer-events: none;
+}
