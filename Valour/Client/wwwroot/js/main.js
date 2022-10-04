@@ -1,4 +1,4 @@
-﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
+﻿document.addEventListener('contextmenu', event => event.preventDefault());
 
 window.clipboardCopy = {
     copyText: function (text) {

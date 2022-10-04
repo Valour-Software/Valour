@@ -7,19 +7,48 @@ var blazorContextMenu = function (blazorContextMenu) {
     // Handler for long hold
     var pressTimer;
 
+    // base position
+    var basePosX;
+    var basePosY;
+
+    var cancel = false;
+
     blazorContextMenu.DoTouchHoldStart = function DoTouchHoldStart(event, menu, prop) {
         //if (!event.target.hasAttribute('data-dotnetref'))
         //    return;
+
+        cancel = false;
+
         var currentTarget = event.currentTarget;
 
+        basePosX = event.targetTouches[0].clientX;
+        basePosY = event.targetTouches[0].clientY;
+
         pressTimer = window.setTimeout(function () {
+
+            if (cancel)
+                return;
+
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
         }, 1000);
     }
 
+    blazorContextMenu.DoTouchMove = function DoTouchMove(event, menu, prop) {
+
+        var newX = event.targetTouches[0].clientX;
+        var newY = event.targetTouches[0].clientY;
+
+        if (Math.abs(basePosX - newX) > 20 ||
+            Math.abs(basePosY - newY > 20)) {
+            clearTimeout(pressTimer);
+            cancel = true;
+        }
+    }
+
     blazorContextMenu.DoTouchHoldEnd = function DoTouchHoldEnd(event, menu, prop) {
+        cancel = true;
         clearTimeout(pressTimer);
     }
 
