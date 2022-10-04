@@ -5,9 +5,9 @@ window.clipboardCopy = {
         navigator.clipboard.writeText(text).then(function () {
             // alert("Copied to clipboard!");
         })
-            .catch(function (error) {
-                alert(error);
-            });
+        .catch(function (error) {
+            alert(error);
+        });
     }
 };
 
