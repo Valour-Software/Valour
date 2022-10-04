@@ -159,7 +159,10 @@
 
         var content = new MultipartFormDataContent();
         var arrContent = new ByteArrayContent(data);
-        arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        if (!string.IsNullOrWhiteSpace(file.ContentType))
+        {
+            arrContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        }
 
         content.Add(arrContent, file.Name, file.Name);
 

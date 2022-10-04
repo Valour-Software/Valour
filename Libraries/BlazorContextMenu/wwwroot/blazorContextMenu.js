@@ -32,7 +32,7 @@ var blazorContextMenu = function (blazorContextMenu) {
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
-        }, 1000);
+        }, 250);
     }
 
     blazorContextMenu.DoTouchMove = function DoTouchMove(event, menu, prop) {
