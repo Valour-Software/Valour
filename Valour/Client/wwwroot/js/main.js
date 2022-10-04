@@ -1,4 +1,4 @@
-﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
+﻿document.addEventListener('contextmenu', event => event.preventDefault());
 
 window.clipboardCopy = {
     copyText: function (text) {
@@ -10,15 +10,6 @@ window.clipboardCopy = {
             });
     }
 };
-
-function EventForContextMenu(event) {
-    if (event.target.className.includes("EnableRightCLick")) {
-        return;
-    }
-    else {
-        event.preventDefault()
-    }
-}
 
 var splitStates = [null, null, null];
 
@@ -77,6 +68,14 @@ function FitMobile() {
 
     //sidebar2.toggle(false);
     topbar.toggle(false);
+}
+
+function IsMobile() {
+    return mobile;
+}
+
+function IsEmbedded() {
+    return embedded;
 }
 
 function OpenSidebar() {

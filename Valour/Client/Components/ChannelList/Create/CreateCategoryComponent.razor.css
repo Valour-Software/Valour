@@ -26,3 +26,74 @@
     padding-top: 6px;
     padding-bottom: 6px;
 }
+
+@media only screen and (min-width: 800px) {
+    section {
+        width: 512px;
+    }
+}
+
+section {
+    max-height: 760px;
+}
+
+.top-section {
+    margin-left: 45px;
+    margin-right: 45px;
+    margin-top: 26px;
+}
+
+    .top-section .title {
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 34px;
+    }
+
+.escape-button {
+    position: relative;
+    top: 20px;
+    left: 93%;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.bottom {
+    height: 95px;
+    width: 100%;
+    background-color: var(--main-4);
+    border-radius: 0px 0px 12px 12px;
+}
+
+    .bottom button {
+        width: 135px;
+        height: 50px;
+        font-size: 12.5px;
+        margin-top: 27px !important;
+        margin-bottom: 18px;
+        background-color: var(--main-5);
+        border: none;
+        font-size: 15px;
+        border-radius: 8px;
+    }
+
+.lock-icon {
+    width: 10.875px;
+    height: 16.125px;
+    position: relative;
+    vertical-align: unset;
+    top: 2px;
+    opacity: 0.75;
+}
+
+.private {
+    background-color: var(--main-3);
+    margin-top: 8px;
+}
+
+.inner-private {
+    margin-left: 45px;
+    margin-right: 45px;
+    padding-bottom: 18px;
+    padding-top: 4px;
+}

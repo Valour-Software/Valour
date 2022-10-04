@@ -14,7 +14,7 @@
 }
 
 <div style="width: @width" class="message-outer">
-    <ContextMenuTrigger @onpointerdown:stopPropagation="true" MenuId="message-context">
+    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
             <div id="@Id" class="@Class message-base" @ref='this_ref' tabindex='0'>
 
@@ -90,7 +90,7 @@
                     <div class="message-content">
 
                         <div style="width: max-content">
-                            <ContextMenuTrigger MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
+                            <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
                                 <p class="author-name" style="color: @nameColor;">
                                     @name
                                 </p>

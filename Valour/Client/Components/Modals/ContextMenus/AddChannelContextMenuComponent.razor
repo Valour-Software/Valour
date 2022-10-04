@@ -25,13 +25,13 @@
         var modalParams = new ModalParameters();
         modalParams.Add("Planet", Planet);
         modalParams.Add("Parent", Category);
-        Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+        Modal.Show<CreateChannelComponent>("Create Channel", modalParams, new ModalOptions() { Class = "modal-shrink-fit-no-padding" });
     }
 
     public void OnCategoryClick(){
         var modalParams = new ModalParameters();
         modalParams.Add("Planet", Planet);
         modalParams.Add("Parent", Category);
-        Modal.Show<CreateCategoryComponent>("Create Category", modalParams);
+        Modal.Show<CreateCategoryComponent>("Create Category", modalParams, new ModalOptions() { Class = "modal-shrink-fit-no-padding" });
     }
 }

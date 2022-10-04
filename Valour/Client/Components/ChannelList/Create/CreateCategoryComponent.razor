@@ -3,53 +3,73 @@
 @inject IJSRuntime JS
 
 <section>
-    <h2 class="title">Create a Category</h2>
+    <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
+    <div class="top-section">
+        <h2 class="title">Create a Category</h2>
 
-    <div asp-validation-summary="All" class="text-info"></div>
-    <div class="form-group mt-2"> 
-        <label>Category Name</label>
-        <input class="form-control" @bind-value="@name" />
-    </div>
-    <div style="margin-top:20px;">
-        <div class="perm-list-name mb-1">
-            Private Category
+        <center>
+            <span id="image-span" style="color:white">@imageSpan</span>
+        </center>
+
+        <div asp-validation-summary="All" class="text-info"></div>
+        <div class="form-group mt-2 new-input-style">
+            <label>Category Name</label>
+            <input class="form-control" placeholder="New Category" @bind-value="@name" />
         </div>
-        <div type="button" style="float: right">
-            <label class="switch">
-                <input type="checkbox" @onclick="PrivateSwitch" checked="@isprivate">
-                <span class="slider round"></span>
-            </label>
+        <div style="margin-top:20px;">
+            <img class="lock-icon" src="_content/Valour.Client/media/lock-icon.svg">
+            <div class="perm-list-name mb-1">
+                Private Category
+            </div>
+            <div type="button" style="float: right">
+                <label class="switch">
+                    <input type="checkbox" @onclick="PrivateSwitch" checked="@isprivate">
+                    <span class="slider round"></span>
+                </label>
+            </div>
         </div>
     </div>
 
     @if (isprivate) {
-        <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
-        <div class="roles-box">
-            @foreach (PlanetRole role in Roles)
-            {
-                <div class="role">
-                   <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
-                        @role.Name
-                    </div>
-                    <div type="button" style="float: right">
-                        <label class="switch">
-                            <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
-                            <span class="slider round"></span>
-                        </label>
-                    </div> 
+        <div class="private">
+            <div class="inner-private">
+                <label style="margin-top: 12px;">Who can see and send messages in this Category?</label>
+                <div class="roles-box">
+                    @foreach (PlanetRole role in Roles)
+                    {
+                        <div class="role">
+                           <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
+                                @role.Name
+                            </div>
+                            <div type="button" style="float: right">
+                                <label class="switch">
+                                    <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div> 
+                        </div>
+                    }
                 </div>
-
-            }
+            </div>
         </div>
     }
-
-    <span id="image-span" style="color:#888888">@imageSpan</span>
     
-    <div class="form-group mt-4">
-        <center>
-            <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create</button>
-        </center>
-    </div>
+    @if (isprivate)
+    {
+        <div class="form-group mt-4 bottom" style="margin-top: 0px !important;">
+            <center>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Category</button>
+            </center>
+        </div>
+    }
+    else
+    {
+        <div class="form-group mt-4 bottom">
+            <center>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Category</button>
+            </center>
+        </div>
+    }
 </section>
 
 @code {
@@ -72,6 +92,11 @@
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
+
+    public async Task ClickEscape(MouseEventArgs e)
+    {
+        await ModalInstance.CloseAsync();
+    }
 
     protected override async Task OnInitializedAsync() {
         Roles.Clear();
@@ -105,7 +130,7 @@
         // Require a name
         if (string.IsNullOrWhiteSpace(name))
         {
-            name = "Please input a category name.";
+            imageSpan = "Please input a category name!";
             return;
         }
 

@@ -73,7 +73,7 @@
 
             @foreach (var friend in ValourClient.Friends)
             {
-                <FriendCardComponent Friend="friend" Window="Window"></FriendCardComponent>
+                <FriendCardComponent Friend="friend" Window="Window" homeWindowComponent="this"></FriendCardComponent>
             }
 
             <div @onclick="OnClickAddFriend" class="home-icon-outer">
@@ -170,6 +170,8 @@
 
     public List<Planet> Discoverables { get; set; } = new List<Planet>();
 
+    public event Func<Task> RerenderFriendCards;
+
     protected async override Task OnInitializedAsync()
     {
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
@@ -178,6 +180,11 @@
         Discoverables = await ValourClient.GetDiscoverablePlanetsAsync();
 
         await ValourClient.LoadChannelStatesAsync();
+
+        if (RerenderFriendCards is not null)
+            await RerenderFriendCards?.Invoke();
+
+        StateHasChanged();
     }
 
     public async Task OnJoinedPlanetsUpdate()
