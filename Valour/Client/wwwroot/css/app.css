@@ -609,6 +609,10 @@ app {
     max-width: 90vw;
 }
 
+.mobile .modal-shrink-fit {
+
+}
+
 .modal-shrink-fit-no-padding {
     background-color: var(--main-2);
     z-index: 200;
@@ -841,18 +845,11 @@ app {
 /* This controls how modals act on small screens */
 @media (max-width: 767px) {
 
-    .modal-main {
-        margin-top: 40px;
-        margin-bottom:  40px;
-    }
-
-    .modal-shrink-fit {
-        transform: translate(0, 30vh);
-    }
-
     .blazored-modal-container {
         align-items: start !important;
         overflow-y: auto !important;
+        padding-top: 40px;
+        padding-bottom: 40px;
     }
 }
 
@@ -1397,7 +1394,7 @@ img.emoji {
     left: 0 !important;
     top: auto !important;
     min-width: 100vw !important;
-    animation: 0.3s ease-in-out 0s 1 slideInFromBottom;
+    animation: 0.15s ease-in-out 0s 1 slideInFromBottom;
     padding-bottom: 30px;
 }
 
@@ -1408,7 +1405,7 @@ img.emoji {
     left: 0 !important;
     top: auto !important;
     min-width: 100vw !important;
-    animation: 0.3s ease-in-out 0s 1 slideInFromRight;
+    animation: 0.15s ease-in-out 0s 1 slideInFromRight;
     padding-bottom: 30px;
 }
 
