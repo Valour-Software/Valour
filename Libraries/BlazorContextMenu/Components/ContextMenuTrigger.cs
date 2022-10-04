@@ -41,15 +41,16 @@ namespace BlazorContextMenu
                 builder.AddAttribute(2, "oncontextmenu", $"blazorContextMenu.OnContextMenu(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
                 builder.AddAttribute(3, "ontouchstart", $"blazorContextMenu.DoTouchHoldStart(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
                 builder.AddAttribute(4, "ontouchend", $"blazorContextMenu.DoTouchHoldEnd(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
+                builder.AddAttribute(5, "ontouchmove", $"blazorContextMenu.DoTouchMove(event, '{MenuId.Replace("'", "\\'")}', {StopPropagation.ToString().ToLower()});");
             }
 
             if (!string.IsNullOrWhiteSpace(CssClass))
             {
-                builder.AddAttribute(5, "class", CssClass);
+                builder.AddAttribute(6, "class", CssClass);
             }
-            builder.AddAttribute(6, "id", Id);
-            builder.AddContent(7, ChildContent);
-            builder.AddElementReferenceCapture(8, (__value) =>
+            builder.AddAttribute(7, "id", Id);
+            builder.AddContent(8, ChildContent);
+            builder.AddElementReferenceCapture(9, (__value) =>
             {
                 contextMenuTriggerElementRef = __value;
             });

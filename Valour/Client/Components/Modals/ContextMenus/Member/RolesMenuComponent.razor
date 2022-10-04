@@ -1,0 +1,76 @@
+﻿@implements IDisposable
+
+@foreach (var role in Roles)
+{
+	var cRole = role;
+	var hasRole = MemberRoles.Any(x => x.Id == role.Id);
+
+	<BlazorContextMenu.Item CssClass='context-item'>
+		<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
+			<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
+			<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
+			   checked="@hasRole" disabled />
+		</div>
+	</BlazorContextMenu.Item>
+}
+
+@code {
+	[Parameter]
+	public PlanetMember Member { get; set; }
+
+	public List<PlanetRole> Roles { get; set; }
+	public List<PlanetRole> MemberRoles { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		Roles = await (await Member.GetPlanetAsync()).GetRolesAsync();
+		MemberRoles = await Member.GetRolesAsync();
+
+		ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+		Member.OnUpdated += OnMemberUpdate;
+	}
+
+	void IDisposable.Dispose()
+	{
+		ItemObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
+		Member.OnUpdated -= OnMemberUpdate;
+	}
+
+	public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+			StateHasChanged();
+	}
+
+	public async Task OnRoleDeleted(PlanetRole role)
+	{
+		if (Roles.Any(x => x.Id == role.Id))
+		{
+			Roles.RemoveAll(x => x.Id == role.Id);
+			MemberRoles.RemoveAll(x => x.Id == role.Id);
+			StateHasChanged();
+		}
+	}
+
+	public async Task OnRoleClick(PlanetRole role, bool value)
+	{
+		if (value)
+			// Add role
+			await Member.Node.PostAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}", null);
+		else
+			// Remove role
+			await Member.Node.DeleteAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}");
+
+
+		StateHasChanged();
+	}
+
+	public async Task OnMemberUpdate(int flags)
+	{
+		if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
+		{
+			MemberRoles = await Member.GetRolesAsync();
+			StateHasChanged();
+		}
+	}
+}
