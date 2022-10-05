@@ -39,9 +39,21 @@ public class DirectMessage : Message, ISharedDirectMessage
     public override async ValueTask<string> GetAuthorNameAsync() =>
         (await GetAuthorUserAsync()).Name;
 
-    public override async ValueTask<string> GetAuthorTagAsync() =>
-        (await GetAuthorUserAsync()).Bot ? "Bot" : "User";
+    public override async ValueTask<string> GetAuthorTagAsync()
+    {
+        var user = await GetAuthorUserAsync();
 
+        if (user.Id == ValourClient.Self.Id)
+            return "You";
+
+        if (user.Bot)
+            return "Bot";
+
+        if (ValourClient.FriendFastLookup.Contains(user.Id))
+            return "Friend";
+
+        return "User";
+    }
     public override async ValueTask<Message> GetReplyMessageAsync()
     {
         if (ReplyToId is null)

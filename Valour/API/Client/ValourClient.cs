@@ -92,6 +92,11 @@ public static class ValourClient
     /// The friends of this client
     /// </summary>
     public static List<User> Friends { get; set; }
+
+    /// <summary>
+    /// The fast lookup set for friends
+    /// </summary>
+    public static HashSet<long> FriendFastLookup { get; set; }
     public static List<User> FriendRequests { get; set; }
     public static List<User> FriendsRequested { get; set; }
 
@@ -222,6 +227,7 @@ public static class ValourClient
             {
                 FriendRequests.Remove(request);
 				Friends.Add(addedUser);
+                FriendFastLookup.Add(addedUser.Id);
 
                 if (OnFriendsUpdate is not null)
                     await OnFriendsUpdate.Invoke();
@@ -266,6 +272,7 @@ public static class ValourClient
             if (friend is not null)
             {
                 Friends.Remove(friend);
+                FriendFastLookup.Remove(friend.Id);
 
                 FriendRequests.Add(friend);
 
@@ -930,6 +937,7 @@ public static class ValourClient
             await ValourCache.Put(addedBy.Id, addedBy);
 
         Friends = new();
+        FriendFastLookup = new();
         FriendRequests = data.AddedBy;
         FriendsRequested = data.Added;
 
@@ -938,6 +946,7 @@ public static class ValourClient
             if (FriendsRequested.Any(x => x.Id == req.Id))
             {
                 Friends.Add(req);
+                FriendFastLookup.Add(req.Id);
             }
         }
 
