@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject SoundManager soundManager
 @inject WindowManager windowManager
+@using Valour.Api.Items.Messages
 
 @{
     // Renders the base component
@@ -47,6 +48,24 @@
     public override async Task OnClickWindow()
     {
         await windowManager.SetFocusedPlanet(await PlanetChannel.GetPlanetAsync());
+    }
+
+    public async Task<List<PlanetMember>> GetLastChatters(int count)
+    {
+        var lastMessages = MessageHolder.DisplayedMessageData.TakeLast(20).Reverse();
+
+        List<PlanetMember> chatters = new();
+
+        foreach (var wrapper in lastMessages)
+        {
+            var planetMessage = wrapper.Message as PlanetMessage;
+            var member = await planetMessage.GetAuthorMemberAsync();
+
+            if (!chatters.Contains(member))
+                chatters.Add(member);
+        }
+
+        return chatters;
     }
 
     #region Event Handling
