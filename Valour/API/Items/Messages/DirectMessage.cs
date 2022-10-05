@@ -30,9 +30,15 @@ public class DirectMessage : Message, ISharedDirectMessage
     public override Task<TaskResult> DeleteAsync() =>
         Node.DeleteAsync($"api/{nameof(DirectChatChannel)}/{ChannelId}/messages/{Id}");
 
-    public override ValueTask<string> GetAuthorColorAsync() =>
-        ValueTask.FromResult("#ffffff");
+    public override async ValueTask<string> GetAuthorColorAsync()
+    {
+        var user = await GetAuthorUserAsync();
 
+        if (ValourClient.FriendFastLookup.Contains(user.Id))
+            return "#9ffff1";
+
+        return "#ffffff";
+    }
     public override async ValueTask<string> GetAuthorImageUrlAsync() =>
         (await GetAuthorUserAsync()).PfpUrl;
 
