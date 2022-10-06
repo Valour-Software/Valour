@@ -127,8 +127,9 @@ namespace Valour.Server.Database
             if (!GroupUserIds.ContainsKey(groupId))
                 GroupUserIds[groupId] = new();
 
-            // Add user to group
-            GroupUserIds[groupId].Add(userId);
+            // Add user to group if not already
+            if (!GroupUserIds[groupId].Contains(userId))
+                GroupUserIds[groupId].Add(userId);
         }
 
         public void UntrackGroupMembership(string groupId)
