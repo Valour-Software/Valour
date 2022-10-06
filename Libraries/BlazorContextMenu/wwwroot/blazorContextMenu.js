@@ -32,7 +32,7 @@ var blazorContextMenu = function (blazorContextMenu) {
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
-        }, 250);
+        }, 350);
     }
 
     blazorContextMenu.DoTouchMove = function DoTouchMove(event, menu, prop) {
@@ -40,8 +40,8 @@ var blazorContextMenu = function (blazorContextMenu) {
         var newX = event.targetTouches[0].clientX;
         var newY = event.targetTouches[0].clientY;
 
-        if (Math.abs(basePosX - newX) > 20 ||
-            Math.abs(basePosY - newY > 20)) {
+        if (Math.abs(basePosX - newX) > 2 ||
+            Math.abs(basePosY - newY > 2)) {
             clearTimeout(pressTimer);
             cancel = true;
         }
