@@ -388,6 +388,17 @@ public class User : Item, ISharedUser
         if (!emailValid.Success)
             return ValourResult.BadRequest(emailValid.Message);
 
+        // Check for whole blocked emails
+        if (await db.BlockedUserEmails.AnyAsync(x => x.Email.ToLower() == request.Email.ToLower()))
+            return ValourResult.BadRequest("Include request in body"); // Vague on purpose
+
+        var host = request.Email.Split('@')[1];
+
+        // Check for blocked host
+        if (await db.BlockedUserEmails.AnyAsync(x => x.Email.ToLower() == host.ToLower()))
+            return ValourResult.BadRequest("Include request in body"); // Vague on purpose
+
+
         var usernameValid = UserUtils.TestUsername(request.Username);
         if (!usernameValid.Success)
             return ValourResult.BadRequest(usernameValid.Message);
