@@ -748,6 +748,7 @@ public class Planet : Item, ISharedPlanet
             user = x.User,
             roleIds = x.RoleMembership.Select(x => x.RoleId)
         })
+            .Where(x => !x.user.Disabled)
             .Skip(page * 100)
             .Take(100)
             .ToListAsync();

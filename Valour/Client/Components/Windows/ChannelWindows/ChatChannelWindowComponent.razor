@@ -13,6 +13,7 @@
             <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
 
                 <div class="channel-info">
+
                     <h3 class="title">
                         @Title
                     </h3>
@@ -21,8 +22,11 @@
                         @Description
                     </p>
 
-                    <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
+                    <div class="button-watching-bar">
+                        <ChannelWatchingComponent Channel="Channel"></ChannelWatchingComponent>
 
+                        <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
+                    </div>
                 </div>
 
                 <CascadingValue Value='ChannelPermissions'>
