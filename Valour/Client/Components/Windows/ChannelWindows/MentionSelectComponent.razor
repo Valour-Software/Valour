@@ -58,8 +58,12 @@
     [CascadingParameter]
     public IChatChannel Channel { get; set; }
 
+    public PlanetChatChannel PlanetChannel { get; set; }
+
     [CascadingParameter]
     public ChatChannelWindowComponent ChannelComponent { get; set; }
+
+    public PlanetChatChannelWindowComponent PlanetChannelWindow { get; set; }
 
     public Planet Planet { get; set; }
 
@@ -77,6 +81,8 @@
 
         if (Channel is PlanetChatChannel)
         {
+            PlanetChannel = Channel as PlanetChatChannel;
+            PlanetChannelWindow = ChannelComponent as PlanetChatChannelWindowComponent;
             Planet = await ((PlanetChatChannel)Channel).GetPlanetAsync();
             Members = await Planet.GetMembersAsync();
             Channels = (await Planet.GetChannelsAsync())
@@ -159,12 +165,19 @@
         {
             if (Channel is PlanetChatChannel)
             {
-                // Get members which may match
-                MemberMatches = Members.Where(x => x.Nickname.ToLower().Contains(Text))
-                                 .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
-                                 .ThenBy(x => x.Nickname.Length)
-                                 .Take(10)
-                                 .ToList();
+                if (string.IsNullOrEmpty(Text))
+                {
+                    MemberMatches = await PlanetChannelWindow.GetLastChatters(10);
+                }
+                else
+                {
+                    // Get members which may match
+                    MemberMatches = Members.Where(x => x.Nickname.ToLower().Contains(Text))
+                                     .OrderByDescending(x => x.Nickname.ToLower().StartsWith(Text))
+                                     .ThenBy(x => x.Nickname.Length)
+                                     .Take(10)
+                                     .ToList();
+                }
             }
             else
             {

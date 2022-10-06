@@ -180,7 +180,7 @@
         await windowManager.SetFocusedPlanet(null);
     }
 
-    public async Task OnRecieveMessage(Message message)
+    public virtual async Task OnRecieveMessage(Message message)
     {
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)

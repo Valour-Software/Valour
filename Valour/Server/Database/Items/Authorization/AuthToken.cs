@@ -56,6 +56,12 @@ public class AuthToken : ISharedAuthToken
     public DateTime TimeExpires { get; set; }
 
     /// <summary>
+    /// The IP address this token was issued to originally
+    /// </summary>
+    [Column("issued_address")]
+    public string IssuedAddress { get; set; }
+
+    /// <summary>
     /// Returns whether the auth token has the given scope
     /// </summary>
     public bool HasScope(Permission permission) =>
