@@ -88,6 +88,11 @@ public class ValourDB : DbContext
     public DbSet<UserEmail> UserEmails { get; set; }
 
     /// <summary>
+    /// Table for blocked email addresses and hosts
+    /// </summary>
+    public DbSet<BlockedUserEmail> BlockedUserEmails { get; set; }
+
+    /// <summary>
     /// Table for authentication tokens
     /// </summary>
     public DbSet<AuthToken> AuthTokens { get; set; }
