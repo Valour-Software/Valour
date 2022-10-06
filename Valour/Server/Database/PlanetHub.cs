@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Nodes;
 using Valour.Server.API;
+using Valour.Shared.Channels;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -59,7 +60,7 @@ namespace Valour.Server.Database
 
         public static IHubContext<PlanetHub> Current;
 
-
+        #region Connection Tracking
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             await RemovePrimaryConnection(Context.ConnectionId);
@@ -212,6 +213,8 @@ namespace Valour.Server.Database
                 await _db.SaveChangesAsync();
             }
         }
+
+        #endregion
 
         /// <summary>
         /// Primary node connection for user-wide events
@@ -426,5 +429,22 @@ namespace Valour.Server.Database
         }
 
         public string Ping() => "Pong";
+
+        public static async Task UpdateChannelsWatching()
+        {
+            foreach (var pair in GroupUserIds)
+            {
+                // Channel connections only
+                if (!pair.Key.StartsWith('c'))
+                    continue;
+                
+                // Send current active channel connection user ids
+                await Current.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate()
+                {
+                    ChannelId = long.Parse(pair.Key.Substring(2)),
+                    UserIds = pair.Value
+                });
+            }
+        }
     }
 }

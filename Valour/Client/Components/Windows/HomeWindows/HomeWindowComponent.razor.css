@@ -2,29 +2,35 @@
     padding: 10px;
     padding-bottom: 5px;
     border-bottom: 1px solid var(--main-5);
+    position: relative;
+}
+
+.channel-info .button-watching-bar {
+    min-width: 200px;
 }
 
 .channel-info .description {
     display: inline-block;
-    width: 50%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: bottom;
-    margin-left: 16px;
     margin-bottom: 8px;
+    max-width: 200px;
+    margin-right: 150px;
 }
 
-.channel-info:hover .description {
+/*.channel-info:hover .description {
     white-space: pre-wrap;
     overflow: visible;
     margin-bottom: 8px;
-}
+}*/
 
 .channel-info .title {
     vertical-align: top;
     display: inline-block;
     font-size: 20px;
+    margin-right: 150px;
 }
 
 

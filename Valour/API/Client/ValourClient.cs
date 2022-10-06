@@ -15,6 +15,7 @@ using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Users;
 using Valour.Api.Nodes;
 using Valour.Shared;
+using Valour.Shared.Channels;
 using Valour.Shared.Items.Channels;
 using Valour.Shared.Items.Users;
 
@@ -142,6 +143,11 @@ public static class ValourClient
     /// Run when a planet is deleted
     /// </summary>
     public static event Func<PlanetMessage, Task> OnMessageDeleted;
+
+    /// <summary>
+    /// Run when a channel sends a watching update
+    /// </summary>
+    public static event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
 
 #if (!DEBUG)
     public static string BaseAddress => "https://app.valour.gg/";
@@ -594,6 +600,18 @@ public static class ValourClient
     public static async Task MessageDeleted(PlanetMessage message)
     {
         await OnMessageDeleted?.Invoke(message);
+    }
+
+    public static async Task ChannelWatchingUpdateRecieved(ChannelWatchingUpdate update)
+    {
+        //Console.WriteLine("Watching: " + update.ChannelId);
+        //foreach (var watcher in update.UserIds)
+        //{
+        //    Console.WriteLine("- " + watcher);
+        //}
+
+        if (OnChannelWatchingUpdate is not null)
+            await OnChannelWatchingUpdate.Invoke(update);
     }
 
     #endregion
