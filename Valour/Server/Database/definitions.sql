@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
     scope BIGINT NOT NULL,
     time_created TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     time_expires TIMESTAMP NOT NULL DEFAULT ((NOW() AT TIME ZONE 'utc') + interval '7 days'),
+    issued_address TEXT not null,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES Users(id)
 );

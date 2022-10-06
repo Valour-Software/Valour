@@ -30,18 +30,36 @@ public class DirectMessage : Message, ISharedDirectMessage
     public override Task<TaskResult> DeleteAsync() =>
         Node.DeleteAsync($"api/{nameof(DirectChatChannel)}/{ChannelId}/messages/{Id}");
 
-    public override ValueTask<string> GetAuthorColorAsync() =>
-        ValueTask.FromResult("#ffffff");
+    public override async ValueTask<string> GetAuthorColorAsync()
+    {
+        var user = await GetAuthorUserAsync();
 
+        if (ValourClient.FriendFastLookup.Contains(user.Id))
+            return "#9ffff1";
+
+        return "#ffffff";
+    }
     public override async ValueTask<string> GetAuthorImageUrlAsync() =>
         (await GetAuthorUserAsync()).PfpUrl;
 
     public override async ValueTask<string> GetAuthorNameAsync() =>
         (await GetAuthorUserAsync()).Name;
 
-    public override async ValueTask<string> GetAuthorTagAsync() =>
-        (await GetAuthorUserAsync()).Bot ? "Bot" : "User";
+    public override async ValueTask<string> GetAuthorTagAsync()
+    {
+        var user = await GetAuthorUserAsync();
 
+        if (user.Id == ValourClient.Self.Id)
+            return "You";
+
+        if (user.Bot)
+            return "Bot";
+
+        if (ValourClient.FriendFastLookup.Contains(user.Id))
+            return "Friend";
+
+        return "User";
+    }
     public override async ValueTask<Message> GetReplyMessageAsync()
     {
         if (ReplyToId is null)
