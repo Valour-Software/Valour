@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS user_emails (
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS blocked_user_emails (
+    email TEXT NOT NULL PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS auth_tokens (
     id VARCHAR(40) NOT NULL PRIMARY KEY,
     app_id VARCHAR(36) NOT NULL,
