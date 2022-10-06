@@ -291,7 +291,8 @@ public class User : Item, ISharedUser
                     TimeCreated = DateTime.UtcNow,
                     TimeExpires = DateTime.UtcNow.AddDays(7),
                     Scope = UserPermissions.FullControl.Value,
-                    UserId = userEmail.UserId
+                    UserId = userEmail.UserId,
+                    IssuedAddress = ctx.Connection.RemoteIpAddress.ToString()
                 };
 
                 await db.AuthTokens.AddAsync(token);
