@@ -128,7 +128,7 @@ namespace Valour.Server.Database
                 GroupUserIds[groupId] = new();
 
             // Add user to group if not already
-            if (!GroupUserIds[groupId].Contains(userId))
+            //if (!GroupUserIds[groupId].Contains(userId)) This is actually bad
                 GroupUserIds[groupId].Add(userId);
         }
 
@@ -443,7 +443,7 @@ namespace Valour.Server.Database
                 await Current.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate()
                 {
                     ChannelId = long.Parse(pair.Key.Substring(2)),
-                    UserIds = pair.Value
+                    UserIds = pair.Value.Distinct().ToList()
                 });
             }
         }
