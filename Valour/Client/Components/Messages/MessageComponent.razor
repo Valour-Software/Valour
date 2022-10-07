@@ -7,13 +7,7 @@
     return;
 }
 
-@{
-    var width = "";
-    if (IsInnerReply)
-        width = "fit-content";
-}
-
-<div style="width: @width" class="message-outer">
+<div class="message-outer">
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
             <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
@@ -29,18 +23,13 @@
 
                         <p class="content" @ref="InnerRef">
 
-                            @if (MessageData.Message.Attachments != null && MessageData.Message.Attachments.Count > 0)
+                            @if (MessageData.Message.Attachments != null)
                             {
-                                var i = 0;
-
-                                @foreach (var attachment in MessageData.Message.Attachments)
+                                @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
                                 {
-                                    var par = new Dictionary<string, object>()
-                                    {
-                                        { "Attachment", attachment }
-                                    };
-
                                     var id = i;
+                                    var attachment = MessageData.Message.Attachments[id];
+                                    var par = new Dictionary<string, object>(){ { "Attachment", attachment } };
 
                                     <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
                                         @if (Ghost)
@@ -49,8 +38,6 @@
                                         }
                                         <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
                                     </div>
-
-                                    i++;
                                 }
                             }
 
