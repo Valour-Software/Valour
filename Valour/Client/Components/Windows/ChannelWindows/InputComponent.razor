@@ -6,7 +6,7 @@
 
 <div>
     <div class="preview-message">
-        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Submessage ="true" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
+        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
     <div class="textbox-holder" @onclick="WindowComponent.ScrollToBottomAnim">
@@ -57,11 +57,6 @@
     /// True if the mention selection system list visible
     /// </summary>
     private bool mentionSelect;
-
-    /// <summary>
-    /// The message that we are replying to if we are
-    /// </summary>
-    public ClientMessageWrapper ReplyingTo { get; set; }
 
     /// <summary>
     /// The message component for the preview message
@@ -345,8 +340,7 @@
     public async Task SetReplyMessage(ClientMessageWrapper message)
     {
         PreviewMessageComponent.ReplyMessage = message;
-        ReplyingTo = message;
-        PreviewMessage.Message.ReplyToId = ReplyingTo?.Message.Id;
+        PreviewMessage.Message.ReplyToId = message?.Message?.Id;
 
         await RefreshPreviewMessage();
         Refresh();
@@ -356,7 +350,6 @@
 
     public async Task RemoveReply()
     {
-        ReplyingTo = null;
         PreviewMessage.Message.ReplyToId = null;
         PreviewMessageComponent.ReplyMessage = null;
         PreviewMessageComponent.ReRender();
@@ -389,7 +382,6 @@
             MessageHolder.RemoveErrorMessage();
         }
 
-        ReplyingTo = null;
         PreviewMessageComponent.ReplyMessage = null;
         PreviewMessage.Clear();
         PreviewMessageComponent.ReRender();

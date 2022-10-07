@@ -486,3 +486,7 @@ function playSound(name) {
 function SetCardTitle(id, name) {
    document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
 }
+
+function enableTooltip(id) {
+    $('#' + id).tooltip()
+}
