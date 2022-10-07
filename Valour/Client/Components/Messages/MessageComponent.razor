@@ -9,7 +9,7 @@
 
 @{
     var width = "";
-    if (Reply)
+    if (IsInnerReply)
         width = "fit-content";
 }
 
@@ -102,7 +102,7 @@
                         </div>
 
 
-                        @if (ReplyMessage is not null && !Reply)
+                        @if (ReplyMessage is not null && !IsInnerReply)
                         {
                             string replykey = $"reply-{Window.Id}";
 
@@ -110,9 +110,8 @@
                             {
                                 { "MessageData", ReplyMessage },
                                 { "Key", replykey },
-                                { "Submessage", true },
+                                { "IsInnerReply", true },
                                 { "LastMessage", null },
-                                { "Reply", true },
                                 { "Ghost", Ghost }
                             };
                             
@@ -171,7 +170,7 @@
                         </p>
                     </div>
 
-                    @if (Reply)
+                    @if (IsInnerReply)
                     {
                         <div class="reply-x">x</div>
                     }
@@ -201,10 +200,7 @@
     public bool Ghost { get; set; }
 
     [Parameter]
-    public bool Reply { get; set; }
-
-    [Parameter]
-    public bool Submessage { get; set; }
+    public bool IsInnerReply { get; set; }
 
     public User User { get; set; }
 
@@ -263,7 +259,7 @@
                 _class += " edit";
             }
 
-            if (Reply)
+            if (IsInnerReply)
             {
                 _class += " reply";
             }
@@ -293,7 +289,7 @@
     {
         if (Ghost)
         {
-            if (Reply)
+            if (IsInnerReply)
             {
                 Console.WriteLine("Removing replyto");
                 var input = Window.Component.InputComponent;
@@ -377,7 +373,7 @@
         // Check if we are a minimal message
         CheckMinimal();
 
-        if (!Submessage)
+        if (!IsInnerReply)
             mentioned = await MessageData.Message.CheckIfMentioned();
 
         if (Minimal)
@@ -404,7 +400,7 @@
 
         Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.MessageIndex}";
 
-        if (!Submessage)
+        if (!IsInnerReply)
         {
             Holder.AddRenderedMessage(this);
         }
@@ -446,7 +442,7 @@
 
     public void ReRender()
     {
-        if (Ghost && Reply) return;
+        if (Ghost && IsInnerReply) return;
 
         ShouldRenderValue = true;
         StateHasChanged();
@@ -478,7 +474,7 @@
     /// </summary>
     protected override bool ShouldRender()
     {
-        if (Ghost && Reply) return false;
+        if (Ghost && IsInnerReply) return false;
 
         return ShouldRenderValue;
     }

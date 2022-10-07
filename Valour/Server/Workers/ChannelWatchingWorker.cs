@@ -14,11 +14,18 @@ public class ChannelWatchingWorker : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            Task task = Task.Run(PlanetHub.UpdateChannelsWatching);
+            Task task = Task.Run(async () => {
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    await Task.Delay(5000);
+                    await PlanetHub.UpdateChannelsWatching();
+                }
+            });
+
             while (!task.IsCompleted)
             {
                 _logger.LogInformation($"Channel Watching Worker running at: {DateTimeOffset.Now.ToString()}");
-                await Task.Delay(5000, stoppingToken);
+                await Task.Delay(30000, stoppingToken);
             }
 
             _logger.LogInformation("Channel Watching task stopped at: {time}", DateTimeOffset.Now.ToString());

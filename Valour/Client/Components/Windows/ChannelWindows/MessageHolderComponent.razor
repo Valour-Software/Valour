@@ -19,9 +19,8 @@
                     {
                         { "MessageData", messageData },
                         { "Key", key },
-                        { "Submessage", false },
+                        { "IsInnerReply", false },
                         { "LastMessage", last },
-                        { "Reply", false }
                     };
 
                     <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
@@ -47,9 +46,8 @@
                     {
                         { "MessageData", messageData },
                         { "Key", key },
-                        { "Submessage", false },
+                        { "IsInnerReply", false },
                         { "LastMessage", last },
-                        { "Reply", false },
                         { "Ghost", true }
                     };
 
