@@ -9,16 +9,6 @@
     -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
 }
 
-.mobile .multi-message p {
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    -khtml-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-}
-
 .message {
     width: 100%;
     max-width: 100%;
@@ -28,13 +18,53 @@
     min-height: 51.333px;
 }
 
-.hasreply {
+.message.minimal {
+    margin-bottom: 0px;
+    min-height: auto;
+}
+
+.message .content-holder {
+    width: 95%;
+    display: inline-block;
+    margin-left: 3px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    vertical-align: top;
+    padding-left: 52px;
+    max-width: 100%;
+}
+
+.message.minimal .content-holder {
+    margin-left: 7px;
+    padding-left: 0px;
+}
+
+.message .content {
+    width: 100%;
+    font-family: Ubuntu;
+    font-style: normal;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 23px;
+    color: #FFFFFF;
+    margin: 0px;
+    word-break: break-all;
+    user-select: text;
+    overflow: hidden;
+}
+
+.message.minimal .content {
+    margin-bottom: 0px;
+    padding-left: 48px;
+}
+
+.message .hasreply {
     width: initial;
     overflow-y: hidden;
     overflow-x: hidden;
 }
 
-.reply {
+.message .reply {
     border-top: 0;
     border-left: 3px rgba(255, 255, 255, 0.2) solid;
     background-color: rgba(255, 255, 255, 0.04);
@@ -53,12 +83,6 @@
 
 .mentioned .content {
     margin-left: -2px !important;
-}
-
-.multi-message-content {
-    width: 100%;
-    margin-top: 0px;
-    margin-bottom: 0px;
 }
 
 .message:hover {
@@ -116,37 +140,22 @@
     margin: 0px;
 }
 
-.message .message-content {
-    width: 95%;
+.message .left-info {
     display: inline-block;
-    margin-left: 3px;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    vertical-align: top;
-    padding-left: 52px;
-    max-width: 100%;
+    position: absolute;
 }
 
-.message .content {
-    width: 100%;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 300;
-    font-size: 16px;
-    line-height: 23px;
-    color: #FFFFFF;
-    margin: 0px;
-    word-break: break-all;
-    user-select: text;
-    width: 100%;
-    overflow: hidden;
+.message.minimal .left-info {
 }
 
 .message .time-container {
     min-width: 48px;
     position: absolute;
-    top: 0px;
     top: 37px;
+}
+
+.message.minimal .time-container {
+    top: -2px;
 }
 
 .message .time {
@@ -154,99 +163,35 @@
     font-style: normal;
     font-weight: normal;
     font-size: 11px;
-    line-height: 14px;
+    line-height: 15px;
     color: #7A7A7A;
     margin: 0px;
     display: none;
     text-align: center;
 }
 
-/*
-.message:focus{
-    background-color: red;
+.message.minimal .time {
+    margin-top: 8px;
+    visibility: hidden;
 }
-*/
 
 .message:hover .time {
     display: block;
 }
 
-.message:hover .author-pfp {
+.message.minimal:hover .time {
+    visibility: visible;
+}
+
+
+
+.message:hover .left-info .author-pfp {
     width: 30px;
     height: 30px;
     margin-left: 8px;
     margin-right: 8px;
 }
 
-/* Multi-message (slim) style */
-
-.multi-message {
-    width: 100%;
-    max-width: 100%;
-    margin-bottom: 0px;
-    padding-bottom: 0px;
-    padding-left: 4px;
-    position: relative;
-}
-
-    .multi-message.mentioned {
-        border-left: 2px solid #ffac6c;
-        background: rgba(168, 115, 87, 0.15);
-    }
-
-    .multi-message:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-
-        .multi-message:hover .time {
-            visibility: visible;
-        }
-
-    .multi-message .time {
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: normal;
-        font-size: 11px;
-        line-height: 14px;
-        color: #7A7A7A;
-        margin: 0px;
-        margin-top: 8px;
-        visibility: hidden;
-        text-align: center;
-    }
-
-    .multi-message .time-container {
-        min-width: 48px;
-        position: absolute;
-        top: -2px;
-    }
-
-    .multi-message .message-content {
-        width: 95%;
-        display: inline-block;
-        margin-left: 7px;
-        margin-top: 2px;
-        margin-bottom: 2px;
-        vertical-align: top;
-        max-width: 100%;
-    }
-
-    .multi-message .content {
-        width: 100%;
-        font-family: Ubuntu;
-        font-style: normal;
-        font-weight: 300;
-        font-size: 16px;
-        line-height: 23px;
-        color: #FFFFFF;
-        margin: 0px;
-        margin-bottom: 0px;
-        word-break: break-all;
-        user-select: text;
-        padding-left: 48px;
-        width: 100%;
-        overflow: hidden;
-    }
 
 /* Message content styles */
 
@@ -299,6 +244,7 @@
 
 ::deep .content a:not(.nohide):after {
     font-size: 16px;
+    line-height: 0px;
     content: attr(href);
     visibility: visible;
     left: 55px;
@@ -319,14 +265,15 @@
     font-weight: bold
 }
 
+/* Preview Message and Replies */
 .edit {
     background-color: rgba(255, 255, 255, 0.1);
     border: 1px solid var(--v-cyan);
 }
 
 .reply .author-pfp {
-    width: 25px;
-    height: 25px;
+    width: 30px;
+    height: 30px;
     margin-bottom: -5px;
 }
 
@@ -337,20 +284,16 @@
 }
 
 .message:hover .reply .author-pfp {
-    width: 25px;
-    height: 25px;
     margin-left: 4px;
-    margin-right: 4px;
-    margin-bottom: -5px;
 }
 
 .message:hover .reply .time {
     display: block;
     font-size: 10px;
-    margin-left: -12px;
+    margin-left: -10px;
 }
 
-.reply .message-content {
+.reply .content-holder {
     padding-left: 40px;
 }
 

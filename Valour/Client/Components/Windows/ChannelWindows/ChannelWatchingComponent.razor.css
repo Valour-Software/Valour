@@ -3,12 +3,6 @@
     text-align: right;
 }
 
-.watching-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-}
-
 .remainder-text {
     color: #b5b5b5;
     display: inline-block;

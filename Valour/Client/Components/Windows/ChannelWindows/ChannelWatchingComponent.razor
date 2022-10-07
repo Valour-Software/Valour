@@ -2,18 +2,18 @@
 @implements IDisposable
 
 <div class="watching-container">
-    @for (int i = 0; i < Icons.Count(); i++)
+    @for (int i = 0; i < DisplayData.Count(); i++)
     {
-        var z = 5 + Icons.Count() - i;
         var ii = i;
-        var icon = Icons[ii];
+        var icon = DisplayData[ii].icon;
+        var name = DisplayData[ii].name;
 
-        <img class="watching-icon" src='@icon' style="z-index: @z" />
+        <WatchingIconComponent IconUrl="@icon" Name="@name"></WatchingIconComponent>
     }
 
     @{
         // Amount we are *not* showing
-        int remaining = TotalCount - Icons.Count;
+        int remaining = TotalCount - DisplayData.Count;
 
         @if (remaining > 0)
         {
@@ -32,7 +32,7 @@
     /// <summary>
     /// Icons to be displayed
     /// </summary>
-    public List<string> Icons { get; set; }
+    public List<(string icon, string name)> DisplayData { get; set; }
 
     /// <summary>
     /// The total number of watching users
@@ -42,7 +42,7 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        Icons = new();
+        DisplayData = new();
         ValourClient.OnChannelWatchingUpdate += OnWatchingUpdate;
     }
 
@@ -60,13 +60,13 @@
         if (update.ChannelId != Channel.Id)
             return;
 
-        Icons.Clear();
+        DisplayData.Clear();
 
         // Take first ten
         foreach (var userId in update.UserIds.Take(10))
         {
             var user = await User.FindAsync(userId);
-            Icons.Add(user.PfpUrl);
+            DisplayData.Add((user.PfpUrl, user.Name));
         }
 
         TotalCount = update.UserIds.Count();

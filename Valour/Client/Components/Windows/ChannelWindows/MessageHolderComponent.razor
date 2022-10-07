@@ -13,15 +13,11 @@
 
                 foreach (ClientMessageWrapper messageData in DisplayedMessageData)
                 {
-                    string key = $"{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
-
                     Dictionary<string, object> messageParams = new()
                     {
                         { "MessageData", messageData },
-                        { "Key", key },
-                        { "Submessage", false },
+                        { "IsInnerReply", false },
                         { "LastMessage", last },
-                        { "Reply", false }
                     };
 
                     <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
@@ -41,15 +37,11 @@
 
                 foreach (ClientMessageWrapper messageData in QueuedMessageData)
                 {
-                    string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
-
                     Dictionary<string, object> messageParams = new()
                     {
                         { "MessageData", messageData },
-                        { "Key", key },
-                        { "Submessage", false },
+                        { "IsInnerReply", false },
                         { "LastMessage", last },
-                        { "Reply", false },
                         { "Ghost", true }
                     };
 
