@@ -140,6 +140,14 @@
     margin: 0px;
 }
 
+.message .left-info {
+    display: inline-block;
+    position: absolute;
+}
+
+.message.minimal .left-info {
+}
+
 .message .time-container {
     min-width: 48px;
     position: absolute;
@@ -155,7 +163,7 @@
     font-style: normal;
     font-weight: normal;
     font-size: 11px;
-    line-height: 14px;
+    line-height: 15px;
     color: #7A7A7A;
     margin: 0px;
     display: none;
@@ -177,7 +185,7 @@
 
 
 
-.message:hover .author-pfp {
+.message:hover .left-info .author-pfp {
     width: 30px;
     height: 30px;
     margin-left: 8px;
@@ -264,8 +272,8 @@
 }
 
 .reply .author-pfp {
-    width: 25px;
-    height: 25px;
+    width: 30px;
+    height: 30px;
     margin-bottom: -5px;
 }
 
@@ -276,17 +284,13 @@
 }
 
 .message:hover .reply .author-pfp {
-    width: 25px;
-    height: 25px;
     margin-left: 4px;
-    margin-right: 4px;
-    margin-bottom: -5px;
 }
 
 .message:hover .reply .time {
     display: block;
     font-size: 10px;
-    margin-left: -12px;
+    margin-left: -10px;
 }
 
 .reply .content-holder {

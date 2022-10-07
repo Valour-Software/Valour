@@ -11,71 +11,21 @@
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
             <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
-
-                @if (Minimal)
-                {
+                <div class="left-info">
+                    @if (!Minimal)
+                    {
+                        <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                    }
                     <div class="time-container">
                         <p class="time">
                             @MessageData.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                         </p>
                     </div>
-                    <div class="content-holder">
+                </div>
+                <div class="content-holder">
 
-                        <p class="content" @ref="InnerRef">
-
-                            @if (MessageData.Message.Attachments != null)
-                            {
-                                @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
-                                {
-                                    var id = i;
-                                    var attachment = MessageData.Message.Attachments[id];
-                                    var par = new Dictionary<string, object>(){ { "Attachment", attachment } };
-
-                                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
-                                        @if (Ghost)
-                                        {
-                                            <div class="attachment-x">x</div>
-                                        }
-                                        <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
-                                    </div>
-                                }
-                            }
-
-                            @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
-                            {
-                                <EmbedComponent embed="@MessageData.Message.Embed" Message="MessageData"></EmbedComponent>
-                            }
-                            else
-                            {
-                                string key = "";
-
-                                if (Ghost)
-                                {
-                                    key = $"ghost-{Window.Id}";
-                                }
-                                else
-                                {
-                                    key = $"content-{MessageData.Message.MessageIndex}-{MessageData.Message.TimeSent}-{Window.Id}";
-                                }
-
-                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
-                            }
-                        </p>
-                    </div>
-
-                }
-                else
-                {
-                    <div style="display:inline-block; position: absolute">
-                        <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
-                        <div class="time-container">
-                            <p class="time">
-                                @MessageData.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
-                            </p>
-                        </div>
-                    </div>
-                    <div class="content-holder">
-
+                    @if (!Minimal)
+                    {
                         <div style="width: max-content">
                             <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
                                 <p class="author-name" style="color: @nameColor;">
@@ -87,81 +37,57 @@
                                 &nbsp;- @nameTag
                             </p>
                         </div>
-
-
-                        @if (ReplyMessage is not null && !IsInnerReply)
-                        {
-                            string replykey = $"reply-{Window.Id}";
-
-                            Dictionary<string, object> replyParams = new()
-                            {
-                                { "MessageData", ReplyMessage },
-                                { "Key", replykey },
-                                { "IsInnerReply", true },
-                                { "LastMessage", null },
-                                { "Ghost", Ghost }
-                            };
-                            
-                            <DynamicComponent Type="ReplyMessage.GetComponentType()" Parameters="replyParams"></DynamicComponent>
-                        }
-                        <p class="content" @ref="InnerRef">
-
-                            @if (MessageData.Message.Attachments != null && 
-                                 MessageData.Message.Attachments.Count > 0)
-                            {
-                                var i = 0;
-
-                                @foreach (var attachment in MessageData.Message.Attachments)
-                                {
-                                    var par = new Dictionary<string, object>()
-                                    {
-                                        { "Attachment", attachment }
-                                    };
-
-                                    var id = i;
-
-                                    <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
-                                        @if (Ghost)
-                                        {
-                                            <div class="attachment-x">x</div>
-                                        }
-                                        <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
-                                    </div>
-
-                                    i++;
-                                }
-                            }
-
-                            @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
-                            {
-
-                                Console.WriteLine(MessageData.Message.Embed.Pages.Count);
-
-                                <EmbedComponent embed="@MessageData.Message.Embed" Message="MessageData"></EmbedComponent>
-                            }
-                            else
-                            {
-                                string key = "";
-
-                                if (Ghost)
-                                {
-                                    key = $"ghost-{Window.Id}";
-                                }
-                                else
-                                {
-                                    key = $"content-{MessageData.Message.MessageIndex}-{MessageData.Message.TimeSent}-{Window.Id}";
-                                }
-
-                                <MessageContentComponent @key="key" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
-                            }
-                        </p>
-                    </div>
-
-                    @if (IsInnerReply)
-                    {
-                        <div class="reply-x">x</div>
                     }
+
+                    @if (ReplyMessage is not null && !IsInnerReply)
+                    {
+                        Dictionary<string, object> replyParams = new()
+                        {
+                            { "MessageData", ReplyMessage },
+                            { "IsInnerReply", true },
+                            { "LastMessage", null },
+                            { "Ghost", Ghost }
+                        };
+
+                        <DynamicComponent @key='ReplyMessage' Type="ReplyMessage.GetComponentType()" Parameters="replyParams"></DynamicComponent>
+                    }
+
+                    <div class="content" @ref="InnerRef">
+
+                        @if (MessageData.Message.Attachments != null)
+                        {
+                            @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
+                            {
+                                var id = i;
+                                var attachment = MessageData.Message.Attachments[id];
+                                var par = new Dictionary<string, object>(){ { "Attachment", attachment } };
+
+                                <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                                    @if (Ghost)
+                                    {
+                                        <div class="attachment-x">x</div>
+                                    }
+                                    <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+                                </div>
+                            }
+                        }
+
+                        @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
+                        {
+                            <EmbedComponent embed="@MessageData.Message.Embed" Message="MessageData"></EmbedComponent>
+                        }
+                        else
+                        {
+                            <MessageContentComponent @key="MessageData.Message.Content" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
+                        }
+                    </div>
+                </div>
+
+                @if (IsInnerReply)
+                {
+                    <div class="reply-x">x</div>
                 }
+                
             </div>
         </div>
     </ContextMenuTrigger>
@@ -179,9 +105,6 @@
 
     [Parameter]
     public ClientMessageWrapper LastMessage { get; set; }
-
-    [Parameter]
-    public string Key { get; set; }
 
     [Parameter]
     public bool Ghost { get; set; }

@@ -13,12 +13,9 @@
 
                 foreach (ClientMessageWrapper messageData in DisplayedMessageData)
                 {
-                    string key = $"{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
-
                     Dictionary<string, object> messageParams = new()
                     {
                         { "MessageData", messageData },
-                        { "Key", key },
                         { "IsInnerReply", false },
                         { "LastMessage", last },
                     };
@@ -40,12 +37,9 @@
 
                 foreach (ClientMessageWrapper messageData in QueuedMessageData)
                 {
-                    string key = $"Queued-{Window.Id}-{Window.Channel.Id}-{messageData.Message.MessageIndex}-{messageData.Message.TimeSent}";
-
                     Dictionary<string, object> messageParams = new()
                     {
                         { "MessageData", messageData },
-                        { "Key", key },
                         { "IsInnerReply", false },
                         { "LastMessage", last },
                         { "Ghost", true }
