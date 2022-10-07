@@ -16,7 +16,7 @@
 <div style="width: @width" class="message-outer">
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
-            <div id="@Id" class="@Class message-base" @ref='this_ref' tabindex='0'>
+            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
 
                 @if (Minimal)
                 {
@@ -25,7 +25,7 @@
                             @MessageData.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
                         </p>
                     </div>
-                    <div class="message-content">
+                    <div class="content-holder">
 
                         <p class="content" @ref="InnerRef">
 
@@ -87,7 +87,7 @@
                             </p>
                         </div>
                     </div>
-                    <div class="message-content">
+                    <div class="content-holder">
 
                         <div style="width: max-content">
                             <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
@@ -238,41 +238,25 @@
     {
         get
         {
-            string _class = "";
+            string _class = "message";
 
             if (Minimal)
-            {
-                _class += "multi-message";
-            }
-            else
-            {
-                _class += "message";
-            }
+                _class += " minimal";
 
             if (mentioned)
-            {
                 _class += " mentioned";
-            }
 
             if (Edit)
-            {
                 _class += " edit";
-            }
 
             if (IsInnerReply)
-            {
                 _class += " reply";
-            }
 
             if (Ghost)
-            {
                 _class += " ghost";
-            }
 
             if (ReplyMessage is not null)
-            {
                 _class += " hasreply";
-            }
 
             return _class;
         }
