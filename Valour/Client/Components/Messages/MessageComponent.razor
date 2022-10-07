@@ -294,7 +294,7 @@
 
         Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.MessageIndex}";
 
-        if (!IsInnerReply)
+        if (!IsInnerReply && !Ghost)
         {
             Holder.AddRenderedMessage(this);
         }
