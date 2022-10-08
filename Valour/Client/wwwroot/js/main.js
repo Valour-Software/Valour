@@ -490,3 +490,7 @@ function SetCardTitle(id, name) {
 function enableTooltip(id) {
     $('#' + id).tooltip()
 }
+
+function enableTooltip(id) {
+    $('#' + id).tooltip('hide')
+}
