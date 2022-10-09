@@ -4,8 +4,8 @@
 
 <div style="@Item.GetStyle()" class="embed-item">
     <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => {await OnEmbedButtonClick();})">
-        @if (Item.Link != "") {
-            <a href="@Item.Link" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
+        @if (Item.Href != "") {
+            <a href="@Item.Href" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
         }
         else {
             @((MarkupString)MarkdownManager.GetHtml(Item.Text))
@@ -61,7 +61,7 @@
 
     public async Task OnEmbedButtonClick()
     {
-        if (Item.HasGoTo)
+        if (Item.Page != null)
         {
             ProcessClick = true;
             return;
