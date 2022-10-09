@@ -5,7 +5,7 @@
 <div style="@Item.GetStyle()" class="embed-item">
     <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => {await OnEmbedButtonClick();})">
         @if (Item.Href != "") {
-            <a href="@Item.Href" rel="nofollow" target="_blank" class="embed-button-text" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
+            <a href="@Item.Href" rel="nofollow" target="_blank" class="embed-button-text nohide" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
         }
         else {
             @((MarkupString)MarkdownManager.GetHtml(Item.Text))
@@ -40,7 +40,6 @@
     public void Refresh()
     {
         Item = (EmbedButtonItem)_item;
-        Console.WriteLine($"Button: {Item.Text}");
         StateHasChanged();
     }
 

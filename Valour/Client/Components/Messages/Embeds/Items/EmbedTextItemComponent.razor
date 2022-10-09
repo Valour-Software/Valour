@@ -21,7 +21,7 @@
 	<div style="color:#@item.TextColor;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
 		@if (item.Href != null)
 		{
-			<a href="@item.Href" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
+			<a href="@item.Href" class="nohide" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
 		}
 		else
 		{

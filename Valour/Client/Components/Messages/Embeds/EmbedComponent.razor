@@ -53,6 +53,8 @@
 
 	private bool ProcessPageChange = false;
 
+	private bool ProcessPageChangeForForms = false;
+
 	public EmbedPage page { get; set; }
 
 	protected override void OnInitialized()
@@ -67,6 +69,13 @@
 			ProcessPageChange = false;
 			UpdateItems();
 		}
+		else if (ProcessPageChangeForForms)
+		{
+			ProcessPageChangeForForms = false;
+			RefreshRowComponents?.Invoke();
+			RefreshRootItemComponents?.Invoke();
+			RefreshItemComponents?.Invoke();
+		}
 		return base.OnAfterRenderAsync(firstRender);
 	}
 
@@ -77,6 +86,7 @@
 		RefreshRootItemComponents?.Invoke();
 		RefreshFormComponents?.Invoke();
 		RefreshItemComponents?.Invoke();
+		ProcessPageChangeForForms = true;
 	}
 
 	public void NextPage()
