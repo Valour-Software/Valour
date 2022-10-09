@@ -1,24 +1,15 @@
-﻿document.addEventListener('contextmenu', event => EventForContextMenu(event));
+﻿document.addEventListener('contextmenu', event => event.preventDefault());
 
 window.clipboardCopy = {
     copyText: function (text) {
         navigator.clipboard.writeText(text).then(function () {
             // alert("Copied to clipboard!");
         })
-            .catch(function (error) {
-                alert(error);
-            });
+        .catch(function (error) {
+            alert(error);
+        });
     }
 };
-
-function EventForContextMenu(event) {
-    if (event.target.className.includes("EnableRightCLick")) {
-        return;
-    }
-    else {
-        event.preventDefault()
-    }
-}
 
 var splitStates = [null, null, null];
 
@@ -77,6 +68,14 @@ function FitMobile() {
 
     //sidebar2.toggle(false);
     topbar.toggle(false);
+}
+
+function IsMobile() {
+    return mobile;
+}
+
+function IsEmbedded() {
+    return embedded;
 }
 
 function OpenSidebar() {
@@ -486,4 +485,8 @@ function playSound(name) {
 
 function SetCardTitle(id, name) {
    document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
+}
+
+function enableTooltip(id) {
+    $('#' + id).tooltip()
 }

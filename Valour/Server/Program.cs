@@ -138,6 +138,19 @@ namespace Valour.Server
 
             // Run
 
+            //using (ValourDB db = new(ValourDB.DBOptions))
+            //{
+            //    foreach (User user in await db.Users.ToListAsync())
+            //    {
+            //        if (user.Disabled)
+            //        {
+            //           await user.HardDelete(db);
+            //        }
+            //    }
+
+            //    await db.SaveChangesAsync();
+            //}
+
             app.Run();
         }
 
@@ -185,22 +198,6 @@ namespace Valour.Server
             //app.UseDeveloperExceptionPage();
 
             PlanetHub.Current = app.Services.GetService<IHubContext<PlanetHub>>();
-
-            /* Reference code for any future migrations */
-
-            //using ValourDB db = new(ValourDB.DBOptions);
-            //db.Database.EnsureCreated();
-
-            //foreach (PlanetRole role in db.PlanetRoles.Include(x => x.Planet))
-            //{
-            //    if (role.Id == role.Planet.DefaultRoleId)
-            //    {
-            //        role.Position = uint.MaxValue;
-            //    }
-            //}
-
-            //db.SaveChanges();
-
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)
@@ -272,6 +269,7 @@ namespace Valour.Server
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
+            services.AddHostedService<ChannelWatchingWorker>();
 
             services.AddEndpointsApiExplorer();
 

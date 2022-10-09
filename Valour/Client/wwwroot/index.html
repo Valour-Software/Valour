@@ -10,32 +10,23 @@
     <link rel="icon" type="image/png" sizes="32x32" href="_content/Valour.Client/media/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="_content/Valour.Client/media/favicon/favicon-16x16.png">
     <link rel="manifest" href="manifest.json">
-    <meta name="msapplication-TileColor" content="#2d89ef">
+    <meta name="msapplication-TileColor" content="#040d14">
     <meta name="description" content="Valour is a community social platform based on privacy and transparency.">
     <meta name="keywords" content="Chat, Communication, Gaming, Privacy">
     <meta property="og:site_name" content="Valour">
     <meta name="twitter:image:alt" content="The Valour logo">
-    <meta name="theme-color" content="#00FAFF">
+    <meta name="theme-color" content="#040d14">
     <link rel="stylesheet" href="_content/Valour.Client/css/bootstrap.css" />
-    <link href="_content/Valour.Client/css/app.css?version=12" rel="stylesheet" />
+    <link href="_content/Valour.Client/css/app.css?version=18" rel="stylesheet" />
     <link href="_content/Valour.Client/css/context-menus.css" rel="stylesheet" />
     <link href="_content/Valour.Client/css/jquery-ui.min.css" rel="stylesheet" />
-    <link href="Valour.Client.Blazor.styles.css?version=9" rel="stylesheet">
+    <link href="Valour.Client.Blazor.styles.css?version=13" rel="stylesheet">
     <link href="_content/Blazored.Modal/blazored-modal.css" rel="stylesheet" />
-    <link href="_content/Blazor.ContextMenu/blazorContextMenu.css" rel="stylesheet" />
+    <link href="_content/Blazor.ContextMenu/blazorContextMenu.css?version=5" rel="stylesheet" />
     <script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/styles/vs2015.min.css">
     <!-- 'nano' theme -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/nano.min.css" />
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY7EMBJ74N"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-ZY7EMBJ74N');
-    </script>
 </head>
 
 <body style="max-width:100vw; height:100vh; touch-action: manipulation;">
@@ -51,18 +42,17 @@
 
 </html>
 
-<script src="_content/Valour.Client/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
 <script src="_content/Valour.Client/js/jquery-min.js"></script>
 <script src="_content/Valour.Client/js/jquery-ui.min.js"></script>
 <script src="_content/Valour.Client/js/channel.js?version=5"></script>
-<script src="_content/Valour.Client/js/main.js?version=7"></script>
+<script src="_content/Valour.Client/js/main.js?version=11"></script>
 <script src="_content/Valour.Client/js/pushNotifications.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.2.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.0/split.min.js"></script>
-<script src="_content/Blazored.Modal/blazored.modal.js"></script>
-<script src="_content/Blazor.ContextMenu/blazorContextMenu.js?version=3"></script>
-<script src="_framework/blazor.webassembly.js?version=6"></script>
+<script src="_content/Blazor.ContextMenu/blazorContextMenu.js?version=5"></script>
+<script src="_framework/blazor.webassembly.js?version=7"></script>
 <script>
     var registerRes = navigator.serviceWorker.register('/service-worker.js');
 

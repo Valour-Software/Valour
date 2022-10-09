@@ -1,0 +1,10 @@
+﻿.watching-container {
+    display: inline-block;
+    text-align: right;
+}
+
+.remainder-text {
+    color: #b5b5b5;
+    display: inline-block;
+    margin-left: 10px;
+}

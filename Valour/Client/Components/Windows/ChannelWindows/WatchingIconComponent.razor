@@ -1,0 +1,34 @@
+﻿@inject IJSRuntime JS
+
+<img id="watching-icon-@Name" style="@style" class="watching-icon" src='@IconUrl' data-bs-toggle="tooltip" data-bs-placement="bottom" title="@Name" @onerror="OnIconError" />
+
+@code {
+
+    [Parameter]
+    public string IconUrl { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+
+    public string style;
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Enable tooltip
+            await JS.InvokeVoidAsync("enableTooltip", $"watching-icon-{Name}");
+        }
+    }
+
+    protected void OnIconError()
+    {
+        IconUrl = "_content/Valour.Client/icon-512.png";
+
+        int r = Random.Shared.Next(24) * 15;
+
+        style = $"filter: hue-rotate({r}deg) saturate(2)";
+
+        StateHasChanged();
+    }
+}
