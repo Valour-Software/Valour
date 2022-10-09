@@ -404,7 +404,14 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, long messageId)
     {
         var db = ctx.GetDb();
-        return Results.Json(await db.PlanetMessages.FindAsync(messageId));
+        var message = await db.PlanetMessages.FindAsync(messageId);
+        if (message is null)
+            message = PlanetMessageWorker.GetStagedMessage(messageId);
+
+        if (message is null)
+            return ValourResult.NotFound("Message not found.");
+
+        return Results.Json(message);
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDb]

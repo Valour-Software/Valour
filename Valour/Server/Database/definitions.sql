@@ -47,6 +47,10 @@ CREATE TABLE IF NOT EXISTS user_emails (
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS blocked_user_emails (
+    email TEXT NOT NULL PRIMARY KEY
+);
+
 CREATE TABLE IF NOT EXISTS auth_tokens (
     id VARCHAR(40) NOT NULL PRIMARY KEY,
     app_id VARCHAR(36) NOT NULL,
@@ -54,6 +58,7 @@ CREATE TABLE IF NOT EXISTS auth_tokens (
     scope BIGINT NOT NULL,
     time_created TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     time_expires TIMESTAMP NOT NULL DEFAULT ((NOW() AT TIME ZONE 'utc') + interval '7 days'),
+    issued_address TEXT not null,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES Users(id)
 );

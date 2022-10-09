@@ -7,19 +7,48 @@ var blazorContextMenu = function (blazorContextMenu) {
     // Handler for long hold
     var pressTimer;
 
+    // base position
+    var basePosX;
+    var basePosY;
+
+    var cancel = false;
+
     blazorContextMenu.DoTouchHoldStart = function DoTouchHoldStart(event, menu, prop) {
         //if (!event.target.hasAttribute('data-dotnetref'))
         //    return;
+
+        cancel = false;
+
         var currentTarget = event.currentTarget;
 
+        basePosX = event.targetTouches[0].clientX;
+        basePosY = event.targetTouches[0].clientY;
+
         pressTimer = window.setTimeout(function () {
+
+            if (cancel)
+                return;
+
             if (canVibrate)
                 window.navigator.vibrate(10);
             blazorContextMenu.OnContextMenu(event, menu, prop, currentTarget, true);
-        }, 500);
+        }, 350);
+    }
+
+    blazorContextMenu.DoTouchMove = function DoTouchMove(event, menu, prop) {
+
+        var newX = event.targetTouches[0].clientX;
+        var newY = event.targetTouches[0].clientY;
+
+        if (Math.abs(basePosX - newX) > 2 ||
+            Math.abs(basePosY - newY > 2)) {
+            clearTimeout(pressTimer);
+            cancel = true;
+        }
     }
 
     blazorContextMenu.DoTouchHoldEnd = function DoTouchHoldEnd(event, menu, prop) {
+        cancel = true;
         clearTimeout(pressTimer);
     }
 
@@ -221,6 +250,12 @@ var blazorContextMenu = function (blazorContextMenu) {
             showMenuCommon(menu, menuId, e.x, e.y, e.target, triggerDotnetRef);
         }
 
+        // Disable inner input on mobile
+        if (mobile) {
+            var input = document.querySelector('.textbox-inner');
+            input.classList.add('block-input');
+        }
+
         e.preventDefault();
         if (stopPropagation) {
             e.stopPropagation();
@@ -303,6 +338,13 @@ var blazorContextMenu = function (blazorContextMenu) {
         var instanceId = menuElement.dataset["instanceId"];
         return menuHandlerReference.invokeMethodAsync('HideMenu', menuId).then(function (hideSuccessful) {
             if (menuElement.classList.contains("blazor-context-menu") && hideSuccessful) {
+
+                // Enable inner input on mobile
+                if (mobile) {
+                    var input = document.querySelector('.textbox-inner');
+                    input.classList.remove('block-input');
+                }
+
                 //this is a root menu. Remove from openMenus list
                 var openMenu = openMenus.find(function (item) {
                     return item.instanceId == instanceId;

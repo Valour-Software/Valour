@@ -1,0 +1,76 @@
+﻿@using Valour.Shared.Channels
+@implements IDisposable
+
+<div class="watching-container">
+    @for (int i = 0; i < DisplayData.Count(); i++)
+    {
+        var ii = i;
+        var icon = DisplayData[ii].icon;
+        var name = DisplayData[ii].name;
+
+        <WatchingIconComponent IconUrl="@icon" Name="@name"></WatchingIconComponent>
+    }
+
+    @{
+        // Amount we are *not* showing
+        int remaining = TotalCount - DisplayData.Count;
+
+        @if (remaining > 0)
+        {
+            <div class="remainder-text">
+                + @remaining watching
+            </div>
+        }
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public IChannel Channel { get; set; }
+
+    /// <summary>
+    /// Icons to be displayed
+    /// </summary>
+    public List<(string icon, string name)> DisplayData { get; set; }
+
+    /// <summary>
+    /// The total number of watching users
+    /// </summary>
+    public int TotalCount { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        DisplayData = new();
+        ValourClient.OnChannelWatchingUpdate += OnWatchingUpdate;
+    }
+
+    void IDisposable.Dispose()
+    {
+        ValourClient.OnChannelWatchingUpdate -= OnWatchingUpdate;
+    }
+
+    /// <summary>
+    /// Updates when SignalR sends a channel watching update
+    /// This is virtual to allow specific channels to change how it works
+    /// </summary>
+    public virtual async Task OnWatchingUpdate(ChannelWatchingUpdate update)
+    {
+        if (update.ChannelId != Channel.Id)
+            return;
+
+        DisplayData.Clear();
+
+        // Take first ten
+        foreach (var userId in update.UserIds.Take(10))
+        {
+            var user = await User.FindAsync(userId);
+            DisplayData.Add((user.PfpUrl, user.Name));
+        }
+
+        TotalCount = update.UserIds.Count();
+
+        StateHasChanged();
+    }
+}

@@ -6,6 +6,7 @@ using Valour.Api.Items;
 using Valour.Api.Items.Channels;
 using Valour.Api.Items.Messages;
 using Valour.Shared;
+using Valour.Shared.Channels;
 using Valour.Shared.Items.Channels;
 
 namespace Valour.Api.Nodes;
@@ -152,6 +153,7 @@ public class Node
         HubConnection.On<PlanetMessage>("DeleteMessage", ValourClient.MessageDeleted);
         HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
         HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);
+        HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", ValourClient.ChannelWatchingUpdateRecieved);
 
         await Logger.Log("[Item Events]: Events hooked.", "yellow");
     }
