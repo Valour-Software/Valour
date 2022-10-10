@@ -20,6 +20,10 @@
             // Enable tooltip
             await JS.InvokeVoidAsync("enableTooltip", $"watching-icon-{Name}");
         }
+        else
+        {
+            await JS.InvokeVoidAsync("updateTooltip", $"watching-icon-{Name}");
+        }
     }
 
     protected void OnIconError()
