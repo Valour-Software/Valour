@@ -151,7 +151,6 @@ public class EmbedBuilder
             Text = text,
             TextColor = textColor,
             Color = color,
-            Link = link,
             IsSubmitButton = isSubmitButton,
             Event = itemEvent,
             Size = size,
