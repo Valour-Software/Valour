@@ -19,9 +19,9 @@
 		}
 	}
 	<div style="color:#@item.TextColor;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
-		@if (item.Link != null)
+		@if (item.Href != null)
 		{
-			<a href="@item.Link" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
+			<a href="@item.Href" class="nohide" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
 		}
 		else
 		{
@@ -62,7 +62,7 @@
 
 	public async Task OnEmbedButtonClick()
 	{
-		if (item.HasGoTo)
+		if (item.Page != null)
 		{
 			ProcessClick = true;
 			return;

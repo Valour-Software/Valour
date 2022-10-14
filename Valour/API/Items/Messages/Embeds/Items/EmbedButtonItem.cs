@@ -7,7 +7,6 @@ public class EmbedButtonItem : EmbedItem
     public string? Color { get; set; } = "000000";
     public EmbedItemSize? Size { get; set; } = EmbedItemSize.Normal;
     public string Text { get; set; }
-    public string? Link { get; set; }
     public string Event { get; set; }
     public bool? IsSubmitButton { get; set; } = false;
 
@@ -16,13 +15,12 @@ public class EmbedButtonItem : EmbedItem
         ItemType = EmbedItemType.Button;
     }
 
-    public EmbedButtonItem(string id = null, string text = null, string textColor = null, string color = null, string link = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int? x = null, int? y = null, bool? isSubmitButton = null)
+    public EmbedButtonItem(string id = null, string text = null, string textColor = null, string color = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int? x = null, int? y = null, bool? isSubmitButton = null)
     {
         Id = id;
         Text = text;
         TextColor = textColor;
         Color = color;
-        Link = link;
         Size = size;
         IsSubmitButton = isSubmitButton;
         X = x;
