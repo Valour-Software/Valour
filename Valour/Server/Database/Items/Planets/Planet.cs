@@ -738,7 +738,8 @@ public class Planet : Item, ISharedPlanet
         var db = ctx.GetDb();
 
         var members = db.PlanetMembers
-            .Where(x => x.PlanetId == id);
+            .Where(x => x.PlanetId == id)
+            .OrderBy(x => x.Id);
 
         var totalCount = await members.CountAsync();
 
