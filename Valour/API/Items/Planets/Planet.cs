@@ -220,6 +220,8 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadMemberDataAsync()
     {
+        Console.WriteLine("Loading members");
+
         if (Members is null)
             Members = new List<PlanetMember>();
         else
@@ -227,7 +229,7 @@ public class Planet : Item, ISharedPlanet
 
         var totalCount = 1;
 
-        PlanetMemberInfo currentResult = null;
+        PlanetMemberInfo currentResult;
         List<PlanetMemberData> allResults = new();
 
         var page = 0;
