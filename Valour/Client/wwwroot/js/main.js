@@ -487,6 +487,16 @@ function SetCardTitle(id, name) {
    document.getElementById('text-' + id).firstElementChild.firstElementChild.innerHTML = name;
 }
 
+/* Tooltips */
+
 function enableTooltip(id) {
     $('#' + id).tooltip()
+}
+
+function enableTooltip(id) {
+    $('#' + id).tooltip('hide')
+}
+
+function updateTooltip(id) {
+    $('#' + id).tooltip('update')
 }

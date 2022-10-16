@@ -8,7 +8,7 @@
         var icon = DisplayData[ii].icon;
         var name = DisplayData[ii].name;
 
-        <WatchingIconComponent IconUrl="@icon" Name="@name"></WatchingIconComponent>
+        <WatchingIconComponent @key='name' IconUrl="@icon" Name="@name"></WatchingIconComponent>
     }
 
     @{
@@ -29,6 +29,9 @@
     [Parameter]
     public IChannel Channel { get; set; }
 
+    [Parameter]
+    public ChatChannelWindowComponent ParentComponent { get; set; }
+
     /// <summary>
     /// Icons to be displayed
     /// </summary>
@@ -44,10 +47,24 @@
         await base.OnInitializedAsync();
         DisplayData = new();
         ValourClient.OnChannelWatchingUpdate += OnWatchingUpdate;
+        ParentComponent.OnChannelChange += OnParentChannelChange;
+    }
+
+    public async Task OnParentChannelChange(IChatChannel channel)
+    {
+        Clear();
+    }
+
+    public void Clear()
+    {
+        TotalCount = 0;
+        DisplayData.Clear();
+        StateHasChanged();
     }
 
     void IDisposable.Dispose()
     {
+        ParentComponent.OnChannelChange -= OnParentChannelChange;
         ValourClient.OnChannelWatchingUpdate -= OnWatchingUpdate;
     }
 

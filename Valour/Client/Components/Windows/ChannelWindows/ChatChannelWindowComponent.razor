@@ -23,7 +23,7 @@
                     </p>
 
                     <div class="button-watching-bar">
-                        <ChannelWatchingComponent Channel="Channel"></ChannelWatchingComponent>
+                        <ChannelWatchingComponent ParentComponent="this" Channel="Channel"></ChannelWatchingComponent>
 
                         <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
                     </div>
@@ -60,6 +60,8 @@
     public IChatChannel Channel;
 
     public Func<Task> ForceRefreshMessages;
+
+    public event Func<IChatChannel, Task> OnChannelChange;
 
     public bool ForceMessageRefresh;
 
@@ -134,6 +136,9 @@
 
         await SetupNewChannelAsync();
         await InputComponent.SetupNewChannelAsync();
+
+        if (OnChannelChange is not null)
+            await OnChannelChange.Invoke(Channel);
 
         CanRenderFlag = true;
         StateHasChanged();
