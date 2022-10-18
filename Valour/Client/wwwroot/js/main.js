@@ -493,7 +493,7 @@ function enableTooltip(id) {
     $('#' + id).tooltip()
 }
 
-function enableTooltip(id) {
+function disableTooltip(id) {
     $('#' + id).tooltip('hide')
 }
 
