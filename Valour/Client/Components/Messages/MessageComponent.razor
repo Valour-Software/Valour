@@ -10,7 +10,7 @@
 <div class="message-outer">
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
-            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
+            <div id="@Id" class="@Class" tabindex='0'>
                 <div class="left-info">
                     @if (!Minimal)
                     {
@@ -125,8 +125,6 @@
     public bool Minimal = false;
 
     public ClientMessageWrapper ReplyMessage;
-
-    public ElementReference this_ref;
 
     public string Id = "";
 

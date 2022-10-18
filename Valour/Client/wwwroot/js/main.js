@@ -500,3 +500,11 @@ function disableTooltip(id) {
 function updateTooltip(id) {
     $('#' + id).tooltip('update')
 }
+
+/* Content upload handling */
+
+// Creates a blob and returns the location
+function createBlob(buffer, contentType) {
+    const blob = new Blob([buffer], { type: contentType });
+    return window.URL.createObjectURL(blob);
+}

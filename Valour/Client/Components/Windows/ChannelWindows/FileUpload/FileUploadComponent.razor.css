@@ -1,6 +1,25 @@
-.preview-scale {
-    max-width: 90%;
-    max-height: 90%;
-    min-width: 200px;
+.preview-container {
+    max-width: 95vw;
+    max-height: 95vh;
+}
+
+::deep img {
+    max-height: 80vh;
+    max-width: 80vw;
+}
+
+::deep video {
+    max-height: 80vh;
+    max-width: 80vw;
+}
+
+::deep audio {
+    max-height: 80vh;
+    max-width: 80vw;
+}
+
+.attachment-holder {
     text-align: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
