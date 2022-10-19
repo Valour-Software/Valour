@@ -223,7 +223,6 @@
     max-width: 300px;
     max-height: 300px;
     width: 100%;
-    height: 100%;
     object-fit: contain;
     object-position: left;
     margin: 5px;
@@ -231,6 +230,13 @@
     margin-right: 0px;
     display: block;
     cursor: pointer;
+}
+
+::deep .content img:not([src]) {
+    background-color: grey;
+    border: none;
+    display: none;
+    overflow: hidden;
 }
 
 ::deep .content .enlarged {
