@@ -4,8 +4,11 @@
 }
 
 ::deep img {
-    max-height: 80vh;
-    max-width: 80vw;
+    max-height: 75vh;
+    max-width: 75vw;
+
+    width: 100%;
+    height: 100%;
 }
 
 ::deep video {

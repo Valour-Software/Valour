@@ -17,6 +17,10 @@ public class MessageAttachment : ISharedMessageAttachment
     public string MimeType { get; set; }
     public string FileName { get; set; }
 
+    // Image attributes
+    public int Width { get; set; } = 1000;
+    public int Height { get; set; } = 1000;
+
     public AttachmentType GetAttachmentType()
     {
         // Malformed

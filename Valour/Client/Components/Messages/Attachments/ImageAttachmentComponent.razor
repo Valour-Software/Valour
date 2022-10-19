@@ -1,6 +1,4 @@
-﻿@inject IJSRuntime JS
-
-<img @ref="_imageRef" class="@GetCssClass() attached-image" @onclick="OnClick" />
+﻿<img class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
 
 @code {
     private bool enlarged = false;
@@ -10,14 +8,6 @@
 
     [Parameter]
     public MessageComponent MessageComponent { get; set; }
-
-    private ElementReference _imageRef;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        //if (firstRender && MessageComponent is not null)
-        //    await JS.InvokeVoidAsync("loadChannelImage", _imageRef, Attachment.Location, MessageComponent.Window.Id);
-    }
 
     public string GetCssClass()
     {
