@@ -256,6 +256,12 @@
     display: block;
 }
 
+::deep .content video {
+    max-width: 90%;
+    max-height: 300px;
+    display: block;
+}
+
 ::deep .content .table {
     max-width: 90%;
     display: block;

@@ -161,13 +161,6 @@ body {
     padding-right: 0.5rem;
 }
 
-video {
-    /* override other styles to make responsive */
-    width: 70% !important;
-    max-width: 400px;
-    height: auto !important;
-}
-
 .topline {
     border-top: 3px solid var(--main-5);
     width: 100%;
@@ -842,17 +835,6 @@ app {
         overflow-y: auto;
     }
 }
-/* This controls how modals act on small screens */
-@media (max-width: 767px) {
-
-    .blazored-modal-container {
-        align-items: start !important;
-        overflow-y: auto !important;
-        padding-top: 40px;
-        padding-bottom: 40px;
-    }
-}
-
 
 .roles-row {
     width: 100%;

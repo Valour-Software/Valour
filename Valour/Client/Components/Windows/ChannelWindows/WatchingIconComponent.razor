@@ -1,7 +1,6 @@
-﻿@inject IJSRuntime JS
-@implements IDisposable
-
-<img id="watching-icon-@Name" style="@style" class="watching-icon" src='@IconUrl' data-bs-toggle="tooltip" data-bs-placement="bottom" title="@Name" @onerror="OnIconError" />
+﻿<BasicTooltipComponent Title="@Name">
+    <img id="watching-icon-@Name" style="@style" class="watching-icon" src='@IconUrl' @onerror="OnIconError" />
+</BasicTooltipComponent>
 
 @code {
 
@@ -13,19 +12,6 @@
 
     public string style;
 
-    protected async override Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            // Enable tooltip
-            await JS.InvokeVoidAsync("enableTooltip", $"watching-icon-{Name}");
-        }
-        else
-        {
-            await JS.InvokeVoidAsync("updateTooltip", $"watching-icon-{Name}");
-        }
-    }
-
     protected void OnIconError()
     {
         IconUrl = "_content/Valour.Client/icon-512.png";
@@ -35,10 +21,5 @@
         style = $"filter: hue-rotate({r}deg) saturate(2)";
 
         StateHasChanged();
-    }
-
-    void IDisposable.Dispose()
-    {
-        JS.InvokeVoidAsync("disableTooltip", $"watching-icon-{Name}");
     }
 }

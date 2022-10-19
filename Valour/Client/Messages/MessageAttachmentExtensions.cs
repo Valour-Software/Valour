@@ -16,10 +16,8 @@ public static class MessageAttachmentExtensions
                 return typeof(VideoAttachmentComponent);
             case AttachmentType.Audio:
                 return typeof(AudioAttachmentComponent);
-            case AttachmentType.File:
+            default:
                 return typeof(FileAttachmentComponent);
         }
-
-        return null;
     }
 }
