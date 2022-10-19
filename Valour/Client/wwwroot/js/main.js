@@ -508,3 +508,11 @@ function createBlob(buffer, contentType) {
     const blob = new Blob([buffer], { type: contentType });
     return window.URL.createObjectURL(blob);
 }
+
+function getImageSize(blobUrl, ref) {
+    const image = new Image();
+    image.onload = function () {
+        ref.invokeMethodAsync('SetImageSize', this.width, this.height);
+    }
+    image.src = blobUrl;
+}

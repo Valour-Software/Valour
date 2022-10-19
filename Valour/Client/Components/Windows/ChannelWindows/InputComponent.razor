@@ -3,6 +3,7 @@
 @using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
 @using Valour.Api.Items.Messages;
 @using Valour.Api.Items.Messages.Attachments
+@using SixLabors.ImageSharp
 
 <div>
     <div class="preview-message">
@@ -167,28 +168,28 @@
             type = "Image";
         }
 
+        MessageAttachment newAttachment = new()
+        {
+            MimeType = file.ContentType,
+            FileName = file.Name
+        };
+
         ModalParameters modalParams = new();
-        modalParams.Add("File", file);
         modalParams.Add("Data", data);
+        modalParams.Add("Attachment", newAttachment);
         modalParams.Add("OnConfirm", 
             async () => {
                 var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{type}", content);
 
                 if (result.Success)
                 {
-                    string url = result.Data;
-                    MessageAttachment attachment = new()
-                    {
-                        Location = url,
-                        MimeType = file.ContentType,
-                        FileName = file.Name
-                    };
+                    newAttachment.Location = result.Data;
 
                     var attachments = PreviewMessage.Message.Attachments;
                     if (attachments is null)
                         attachments = new();
 
-                    attachments.Add(attachment);
+                    attachments.Add(newAttachment);
 
                     PreviewMessage.Message.SetAttachments(attachments);
 

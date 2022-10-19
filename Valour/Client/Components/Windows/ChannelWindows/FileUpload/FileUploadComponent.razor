@@ -1,6 +1,8 @@
 @inject IJSRuntime JS
+@implements IDisposable
+@using System.Drawing
 
-@if (_attachment is null)
+@if (Attachment is null)
 {
     <h5>Loading content...</h5>
     return;
@@ -10,18 +12,18 @@
 	<h4>Upload?</h4>
 
     <div class="attachment-holder">
-        @switch (_displayType){
-            case DisplayType.Image:
-                <ImageAttachmentComponent Attachment="@_attachment"/>
+        @switch (Attachment.GetAttachmentType()){
+            case AttachmentType.Image:
+                <ImageAttachmentComponent Attachment="Attachment"/>
                 break;
-            case DisplayType.Video:
-                <VideoAttachmentComponent Attachment="@_attachment" />
+            case AttachmentType.Video:
+                <VideoAttachmentComponent Attachment="Attachment" />
                 break;
-            case DisplayType.Audio:
-                <AudioAttachmentComponent Attachment="@_attachment" />
+            case AttachmentType.Audio:
+                <AudioAttachmentComponent Attachment="Attachment" />
                 break;
             default:
-                <FileAttachmentComponent Attachment="@_attachment" />
+                <FileAttachmentComponent Attachment="Attachment" />
                 break;
         }
     </div>
@@ -35,55 +37,47 @@
 @code
 {
     [Parameter]
-    public IBrowserFile File { get; set; }
-
-    [Parameter]
     public byte[] Data { get; set; }
 
     [Parameter]
     public Func<Task> OnConfirm { get; set; }
 
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+
     [CascadingParameter]
     public BlazoredModalInstance Instance { get; set; }
 
-    public enum DisplayType {
-        Image,
-        Video,
-        Audio,
-        File
-    }
-
-    private MessageAttachment _attachment { get; set; }
-
-    private DisplayType _displayType;
+    public DotNetObjectReference<FileUploadComponent>? objRef;
 
     protected override async Task OnInitializedAsync(){
 
-        _displayType = GetDisplayType(File);
+        objRef = DotNetObjectReference.Create(this);
 
         // Load into blob form and get url
-        string blobUrl = await JS.InvokeAsync<string>("createBlob", Data, File.ContentType);
+        string blobUrl = await JS.InvokeAsync<string>("createBlob", Data, Attachment.MimeType);
 
         // Build attachment object
-        _attachment = new MessageAttachment() { FileName = File.Name, Location = blobUrl, MimeType = File.ContentType };
+        Attachment.Location = blobUrl;
+
+        if (Attachment.GetAttachmentType() == AttachmentType.Image)
+        {
+            await JS.InvokeVoidAsync("getImageSize", blobUrl, objRef);
+        }
+    }
+
+    [JSInvokable]
+    public void SetImageSize(int width, int height)
+    {
+        Attachment.Width = width;
+        Attachment.Height = height;
+
+        Console.WriteLine($"Set image size to {width},{height}");
     }
 
     public async Task OnKeyDown(KeyboardEventArgs e){
         if (e.Key.ToLower() == "enter")
             await OnClickConfirm();
-    }
-
-    public DisplayType GetDisplayType(IBrowserFile file){
-        var mime = file.ContentType.ToLower();
-
-        if (mime.StartsWith("image"))
-            return DisplayType.Image;
-        else if (mime.StartsWith("video"))
-            return DisplayType.Video;
-        else if (mime.StartsWith("audio"))
-            return DisplayType.Audio;
-
-        return DisplayType.File;
     }
 
     public async Task OnClickCancel(){
@@ -93,5 +87,10 @@
     public async Task OnClickConfirm(){
         await Instance.CloseAsync();
         await OnConfirm.Invoke();
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
     }
 }
