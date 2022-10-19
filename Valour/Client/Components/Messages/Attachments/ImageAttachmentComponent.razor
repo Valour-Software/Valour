@@ -1,10 +1,13 @@
-﻿<img class="@GetCssClass() attached-image" src="@Attachment.Location" @onclick="OnClick" />
+﻿<img class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
 
 @code {
     private bool enlarged = false;
 
     [Parameter]
     public MessageAttachment Attachment { get; set; }
+
+    [Parameter]
+    public MessageComponent MessageComponent { get; set; }
 
     public string GetCssClass()
     {
