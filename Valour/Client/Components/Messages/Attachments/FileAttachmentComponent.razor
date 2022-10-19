@@ -11,6 +11,9 @@
     [Parameter]
     public MessageAttachment Attachment { get; set; }
 
+    [Parameter]
+    public MessageComponent MessageComponent { get; set; }
+
     private string extension = "?";
 
     protected override async Task OnInitializedAsync()

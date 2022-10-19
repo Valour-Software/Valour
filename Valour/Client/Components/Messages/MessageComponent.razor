@@ -60,7 +60,10 @@
                             {
                                 var id = i;
                                 var attachment = MessageData.Message.Attachments[id];
-                                var par = new Dictionary<string, object>(){ { "Attachment", attachment } };
+                                var par = new Dictionary<string, object>(){ 
+                                    { "Attachment", attachment },
+                                    { "MessageComponent", this }
+                                };
 
                                 <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
                                     @if (Ghost)
