@@ -232,7 +232,7 @@
     cursor: pointer;
 }
 
-::deep .content img:not([src]) {
+::deep .content img::before {
     background-color: grey;
     border: none;
     display: none;
