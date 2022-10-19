@@ -1,34 +1,35 @@
 @inject IJSRuntime JS
 
-<div class="col-md-12" @onkeydown='OnKeyDown'>
-	<section>
-		<h4>Upload?</h4>
+@if (_attachment is null)
+{
+    <h5>Loading content...</h5>
+    return;
+}
 
-        <br/> 
+<div class="preview-container" @onkeydown='OnKeyDown'>
+	<h4>Upload?</h4>
 
-        <div class="preview-scale">
-            @switch (type){
-                case DisplayType.Image:
-                    <img style="max-width: 50vw; max-height: 50vh;" src="data:@mime;base64,@base64" />
-                    break;
-                case DisplayType.Video:
-                    <video style='max-width: 50vw; max-height: 50vh;' id='video-preview' type='@mime' src="data:@mime;base64,@base64" controls>
-                    </video>
-                    break;
-                case DisplayType.Audio:
-                    <audio style="min-height: 0px; max-width: 50vw; max-height: 50vh;" type='@mime' src="data:@mime;base64,@base64" controls>
-                    </audio>
-                    break;
-            }
-        </div>    
+    <div class="attachment-holder">
+        @switch (_displayType){
+            case DisplayType.Image:
+                <ImageAttachmentComponent Attachment="@_attachment"/>
+                break;
+            case DisplayType.Video:
+                <VideoAttachmentComponent Attachment="@_attachment" />
+                break;
+            case DisplayType.Audio:
+                <AudioAttachmentComponent Attachment="@_attachment" />
+                break;
+            default:
+                <FileAttachmentComponent Attachment="@_attachment" />
+                break;
+        }
+    </div>
 
-        <br/>
-
-        <div class="d-flex flex-column align-content-center align-items-center">
-            <button class='btn v-button mb-4' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
-            <button class='btn v-button danger' @onclick='OnClickCancel'>Cancel</button>
-        </div>
-	</section>
+    <div class="d-flex flex-row justify-content-around">
+        <button class='btn v-button' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
+        <button class='btn v-button danger' @onclick='OnClickCancel'>Cancel</button>
+    </div>
 </div>
 
 @code
@@ -52,21 +53,19 @@
         File
     }
 
-    public string base64;
+    private MessageAttachment _attachment { get; set; }
 
-    public string mime;
-
-    public DisplayType type;
+    private DisplayType _displayType;
 
     protected override async Task OnInitializedAsync(){
-        base64 = Convert.ToBase64String(Data);
-        type = GetDisplayType(File);
-    }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (type == DisplayType.Video)
-            await JS.InvokeVoidAsync("loadVideo3", Data, mime);
+        _displayType = GetDisplayType(File);
+
+        // Load into blob form and get url
+        string blobUrl = await JS.InvokeAsync<string>("createBlob", Data, File.ContentType);
+
+        // Build attachment object
+        _attachment = new MessageAttachment() { FileName = File.Name, Location = blobUrl, MimeType = File.ContentType };
     }
 
     public async Task OnKeyDown(KeyboardEventArgs e){
@@ -75,7 +74,7 @@
     }
 
     public DisplayType GetDisplayType(IBrowserFile file){
-        mime = file.ContentType.ToLower();
+        var mime = file.ContentType.ToLower();
 
         if (mime.StartsWith("image"))
             return DisplayType.Image;
