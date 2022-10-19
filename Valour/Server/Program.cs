@@ -263,9 +263,12 @@ namespace Valour.Server
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            }
-            );
+            });
+
             services.AddRazorPages();
+
+            services.AddSingleton<CdnMemoryCache>();
+
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
