@@ -281,7 +281,7 @@ function SetupWindow(id) {
         if (window.prop('scrollHeight') > window.height()) {
 
             // User has reached top of scroll
-            if (window.scrollTop() == 0 && scrollUpTimer < (Date.now() - 50)) {
+            if (window.scrollTop() < 2000 && scrollUpTimer < (Date.now() - 500)) {
                 console.log("hello");
                 scrollUpTimer = new Date();
                 DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);

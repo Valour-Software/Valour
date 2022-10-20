@@ -87,15 +87,13 @@ namespace Valour.Client.Components.ChannelList
             if (target.Planet.Id == currentDragItem.ParentId)
                 return;
 
-            ushort position = (ushort)target.TopCategories.Count;
-
             // Add current item to target category
 
-            currentDragItem.Position =  position;
+            currentDragItem.Position =  -1;
             currentDragItem.ParentId = null;
             var response = await Item.UpdateAsync(currentDragItem);
 
-            Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id} at position {position}");
+            Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id}");
 
             Console.WriteLine(response.Message);
         }
