@@ -1,4 +1,4 @@
-﻿<img class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+﻿<img style="@_style" class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
 
 @code {
     private bool enlarged = false;
@@ -8,6 +8,29 @@
 
     [Parameter]
     public MessageComponent MessageComponent { get; set; }
+
+    private string _style;
+
+    protected override void OnInitialized()
+    {
+        if (Attachment.Height > 300 || Attachment.Width > 300)
+        {
+            if (Attachment.Height > Attachment.Width)
+            {
+                float scalar = Attachment.Height / 300f;
+                float widthMax = Attachment.Width / scalar;
+
+                _style = $"max-width: {widthMax}px";
+            }
+            else
+            {
+                float scalar = Attachment.Width / 300f;
+                float heightMax = Attachment.Height / scalar;
+
+                _style = $"max-height: {heightMax}px";
+            }
+        }
+    }
 
     public string GetCssClass()
     {
