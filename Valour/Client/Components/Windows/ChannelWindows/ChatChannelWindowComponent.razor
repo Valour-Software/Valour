@@ -79,9 +79,13 @@
 
     public string Description { get; set; }
 
+    private DotNetObjectReference<ChatChannelWindowComponent> _thisRef;
+
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        _thisRef = DotNetObjectReference.Create(this);
+
         Window.SetComponent(this);
 
         Console.WriteLine("Initializing channel window component.");
@@ -92,11 +96,7 @@
 
         await Channel.Open();
 
-        await JS.InvokeVoidAsync("SetupWindow", Window.Id);
-
-        await JS.InvokeVoidAsync("OnChannelLoad", null);
-
-        await JS.InvokeVoidAsync("SetupWindow", Window.Id);
+        await JS.InvokeVoidAsync("OnChannelLoad");
     }
 
     public virtual Type GetInputComponentType() => 
@@ -125,7 +125,7 @@
 
         MessageHolder.AddMessages(msgs);
 
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id, true);
+        await MessageHolder.ScrollToBottom();
     }
 
     public async Task SwapChannel(IChatChannel newchannel)
@@ -169,6 +169,8 @@
     void IDisposable.Dispose()
     {
         ValourClient.OnMessageRecieved -= OnRecieveMessage;
+
+        _thisRef.Dispose();
     }
 
     public async Task OnChatChannelUpdate(int flags)
@@ -211,65 +213,6 @@
             await soundManager.PlaySound("Notification.mp3");
     }
 
-    public async Task ScrollToBottom()
-    {
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id, false);
-    }
-
-    public async Task ScrollToBottomAnim()
-    {
-        await JS.InvokeVoidAsync("ScrollWindowBottomAnim", Window.Id);
-    }
-
     public virtual Task OnClickWindow()
         => Task.CompletedTask;
-
-    public async Task UpdateScrollPosition()
-    {
-        await JS.InvokeVoidAsync("UpdateScrollPosition", Window.Id);
-    }
-
-    public async Task ScaleScrollPosition()
-    {
-        await JS.InvokeVoidAsync("ScaleScrollPosition", Window.Id);
-    }
-
-    [JSInvokable("OnScrollTopInvoke")]
-    public static async Task OnScrollTop(string id)
-    {
-        ChatChannelWindow Window = WindowManager.Instance.GetWindow(id) as ChatChannelWindow;
-        MessageHolderComponent Holder = Window.Component.MessageHolder;
-
-        if (Window == null)
-        {
-            Console.WriteLine("Channel window is null in OnScrollTop!");
-            return;
-        }
-
-        if (Holder.DisplayedMessageData == null || Holder.DisplayedMessageData.Count == 0)
-        {
-            return;
-        }
-
-        long firstIndex = Holder.DisplayedMessageData[0].Message.MessageIndex;
-
-        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
-
-        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 64);
-
-        if (messages == null || messages.Count() == 0)
-        {
-            return;
-        }
-
-        foreach (var msg in messages)
-            await ValourCache.Put(msg.Id, msg, true);
-
-        await Window.Component.UpdateScrollPosition(); // This saves the scroll position
-
-        Holder.InsertMessages(0, ClientMessageWrapper.FromList(messages));
-
-        //Window.Component.StateHasChanged();
-        await Window.Component.ScaleScrollPosition(); // This ensures the page doesnt move harshly
-    }
 }

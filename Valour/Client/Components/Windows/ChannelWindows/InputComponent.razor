@@ -10,7 +10,7 @@
         <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
-    <div class="textbox-holder" @onclick="WindowComponent.ScrollToBottomAnim">
+    <div class="textbox-holder" @onclick="MessageHolder.ScrollToBottomAnimated">
 
         <MentionSelectComponent @ref="MentionSelector"></MentionSelectComponent>
 
@@ -95,8 +95,6 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JS.InvokeVoidAsync("ScrollWindowBottom", Window.Id);
-
         if (firstRender)
         {
             await JS.InvokeVoidAsync("SetInputComponent", Window.Id, DotNetObjectReference.Create(this));
@@ -317,6 +315,8 @@
 
         PreviewMessage.Message.Content = input;
         await RefreshPreviewMessage();
+
+        await MessageHolder.ScrollToBottom();
 
         StateHasChanged();
     }

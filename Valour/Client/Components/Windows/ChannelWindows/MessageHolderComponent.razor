@@ -1,8 +1,8 @@
 ﻿@inject IJSRuntime JS
-@implements IDisposable
+@implements IAsyncDisposable
 @using Valour.Api.Items.Messages
 
-<div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;" onscroll="OnScrollChannel('@Window.Id')">
+<div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
     <CascadingValue Value="this">
         @{
             ClientMessageWrapper last;    
@@ -65,9 +65,24 @@
 
     public List<MessageComponent> RenderedMessages { get; set; }
 
+    private DotNetObjectReference<MessageHolderComponent> _thisRef;
+
+    private IJSInProcessObjectReference _jsModule;
+
     public string state = "none";
 
-    //public HashSet<string> Keys = new HashSet<string>();
+    protected override void OnInitialized()
+    {
+        RenderedMessages = new List<MessageComponent>();
+        DisplayedMessageData = new List<ClientMessageWrapper>();
+        QueuedMessageData = new List<ClientMessageWrapper>();
+
+        ValourClient.OnMessageDeleted += OnDeleteMessage;
+
+        _thisRef = DotNetObjectReference.Create<MessageHolderComponent>(this);
+
+        StateHasChanged();
+    }
 
     public void AddQueuedMessage(ClientMessageWrapper message)
     {
@@ -140,7 +155,7 @@
         QueuedMessageData.RemoveAll(x => x.Message.Fingerprint == renderData.Message.Fingerprint);
 
         //Get current window scroll pos
-        bool IsAtBottom = await JS.InvokeAsync<bool>("IsAtBottom", Window.Id);
+        bool IsAtBottom = await _jsModule.InvokeAsync<bool>("isAtBottom", Window.Id);
 
         // check if theres too many messages
         if (IsAtBottom && DisplayedMessageData.Count > 120)
@@ -156,7 +171,7 @@
             StateHasChanged();
         }
 
-        await Window.Component.ScrollToBottom();
+        await ScrollToBottom();
     }
 
     public void ForceRefresh()
@@ -180,20 +195,10 @@
 
     //}
 
-    protected override void OnInitialized()
-    {
-        RenderedMessages = new List<MessageComponent>();
-        DisplayedMessageData = new List<ClientMessageWrapper>();
-        QueuedMessageData = new List<ClientMessageWrapper>();
-
-        ValourClient.OnMessageDeleted += OnDeleteMessage;
-
-        StateHasChanged();
-    }
-
-    void IDisposable.Dispose()
+    async ValueTask IAsyncDisposable.DisposeAsync()
     {
         ValourClient.OnMessageDeleted -= OnDeleteMessage;
+        await _jsModule.DisposeAsync();
     }
 
     public async Task OnDeleteMessage(PlanetMessage message)
@@ -217,11 +222,15 @@
         ForceRefresh();
     }
 
-    
-
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Console.WriteLine("Rendered messages");
+        if (firstRender)
+        {
+            _jsModule = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/MessageHolderComponent.razor.js");
+            await SetupJS();
+            await ScrollToBottom();
+        }
+
         state = GetState();
     }
 
@@ -240,5 +249,62 @@
     protected override bool ShouldRender()
     {
         return GetState() != state;
+    }
+
+    /////////////////////
+    // JS Interop Zone //
+    /////////////////////
+
+    public async Task SetupJS()
+    {
+        await _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
+    }
+
+    public async Task ScrollToBottom(bool force = false)
+    {
+        await _jsModule.InvokeVoidAsync("scrollToBottom", Window.Id, force);
+    }
+
+    public async Task ScrollToBottomAnimated()
+    {
+        await _jsModule.InvokeVoidAsync("scrollToBottomAnimated", Window.Id);
+    }
+
+    public async Task UpdateScrollPosition()
+    {
+        await _jsModule.InvokeVoidAsync("updateScrollPosition", Window.Id);
+    }
+
+    public async Task ScaleScrollPosition()
+    {
+        await _jsModule.InvokeVoidAsync("scaleScrollPosition", Window.Id);
+    }
+
+    [JSInvokable("OnScrollTopInvoke")]
+    public async Task OnScrollTop()
+    {
+        if (DisplayedMessageData == null ||
+            DisplayedMessageData.Count == 0)
+        {
+            return;
+        }
+
+        long firstIndex = DisplayedMessageData[0].Message.MessageIndex;
+
+        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
+
+        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 64);
+
+        if (messages == null || messages.Count() == 0)
+            return;
+
+        foreach (var msg in messages)
+            await ValourCache.Put(msg.Id, msg, true);
+
+        await UpdateScrollPosition(); // This saves the scroll position
+
+        InsertMessages(0, ClientMessageWrapper.FromList(messages));
+
+        await ScaleScrollPosition(); // This ensures the page doesnt move harshly
     }
 }
