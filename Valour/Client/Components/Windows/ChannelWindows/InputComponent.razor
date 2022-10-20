@@ -1,4 +1,5 @@
 ﻿@inject IJSRuntime JS
+@implements IAsyncDisposable
 @using System.Net.Http.Headers
 @using Valour.Client.Components.Windows.ChannelWindows.FileUpload;
 @using Valour.Api.Items.Messages;
@@ -12,7 +13,7 @@
 
     <div class="textbox-holder" @onclick="MessageHolder.ScrollToBottomAnimated">
 
-        <MentionSelectComponent @ref="MentionSelector"></MentionSelectComponent>
+        <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
 
         <div class="textbox" onclick="this.children[1].focus()" @ref='DropZoneElement'>
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
@@ -70,6 +71,16 @@
     public ClientMessageWrapper PreviewMessage { get; set; }
 
     /// <summary>
+    /// Dotnet object reference for use in Javascript
+    /// </summary>
+    private DotNetObjectReference<InputComponent> _thisRef;
+
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+
+    /// <summary>
     /// Run when the component is initialized
     /// </summary>
     protected override async Task OnInitializedAsync()
@@ -77,6 +88,12 @@
         await base.OnInitializedAsync();
 
         await SetupNewChannelAsync();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        _thisRef.Dispose();
+        await _jsModule.DisposeAsync();
     }
 
     public virtual async Task SetupNewChannelAsync()
@@ -97,7 +114,10 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("SetInputComponent", Window.Id, DotNetObjectReference.Create(this));
+            _thisRef = DotNetObjectReference.Create<InputComponent>(this);
+            _jsModule = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js");
+            await SetupJSAsync();
+
             await JS.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
         }
     }
@@ -225,35 +245,6 @@
 
     #endregion
 
-    [JSInvokable]
-    public async Task OnChatboxSubmit()
-    {
-        if (PreviewMessage.Message.Content is not null){
-            PreviewMessage.Message.Content =
-                PreviewMessage.Message.Content.TrimEnd('\n');
-
-            PreviewMessage.Message.Content =
-                PreviewMessage.Message.Content.Trim();
-        }
-
-        if (PreviewMessage.IsEmpty)
-        {
-            return;
-        }
-
-        var postMessage = new ClientMessageWrapper(PreviewMessage.Message);
-
-        // New message for preview
-        PreviewMessage = new(BuildNewMessage());
-        await PreviewMessageComponent.SetMessage(PreviewMessage);
-
-        await OnChatboxUpdate(null, "");
-
-        // Post message to server
-        //StateHasChanged();
-        await PostMessage(postMessage);
-    }
-
     public async Task UpdateMentionMenu(string text)
     {
         //Console.WriteLine(text);
@@ -273,50 +264,6 @@
                 MentionSelector.SetVisible(false);
             }
         }
-
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public async Task MentionSubmit()
-    {
-        await MentionSelector.Submit();
-
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public void MoveMentionSelect(int n)
-    {
-        MentionSelector.MoveSelect(n);
-    }
-
-    [JSInvokable]
-    public async Task OnCaretUpdate(string currentWord)
-    {
-        await UpdateMentionMenu(currentWord);
-    }
-
-    /// <summary>
-    /// This runs every time a key is pressed when the chatbox is selected
-    /// </summary>
-    [JSInvokable]
-    public async Task OnChatboxUpdate(string input, string currentWord)
-    {
-        //Console.WriteLine(currentWord);
-
-        await UpdateMentionMenu(currentWord);
-
-        if (input is not null)
-        {
-            // Fix for dumb formatting in HTML
-            input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
-        }
-
-        PreviewMessage.Message.Content = input;
-        await RefreshPreviewMessage();
-
-        await MessageHolder.ScrollToBottom();
 
         StateHasChanged();
     }
@@ -386,5 +333,95 @@
         PreviewMessageComponent.ReplyMessage = null;
         PreviewMessage.Clear();
         PreviewMessageComponent.ReRender();
+    }
+
+    /////////////////////
+    // JS Interop Zone //
+    /////////////////////
+
+    // C# -> JS
+    private async Task SetupJSAsync()
+    {
+        await _jsModule.InvokeVoidAsync("setup", Window.Id, _thisRef);
+    }
+
+    public async Task InjectElementAsync(string text, string coverText, string classList, string styleList)
+    {
+        await _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
+    }
+
+    // JS -> C#
+    [JSInvokable]
+    public async Task OnCaretUpdate(string currentWord)
+    {
+        await UpdateMentionMenu(currentWord);
+    }
+
+    /// <summary>
+    /// This runs every time a key is pressed when the chatbox is selected
+    /// </summary>
+    [JSInvokable]
+    public async Task OnChatboxUpdate(string input, string currentWord)
+    {
+        //Console.WriteLine(currentWord);
+
+        await UpdateMentionMenu(currentWord);
+
+        if (input is not null)
+        {
+            // Fix for dumb formatting in HTML
+            input = input.Replace("\n\n«", "«").Replace("» \n\n", "»");
+        }
+
+        PreviewMessage.Message.Content = input;
+        await RefreshPreviewMessage();
+
+        await MessageHolder.ScrollToBottom();
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public async Task MentionSubmit()
+    {
+        await MentionSelector.Submit();
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void MoveMentionSelect(int n)
+    {
+        MentionSelector.MoveSelect(n);
+    }
+
+    [JSInvokable]
+    public async Task OnChatboxSubmit()
+    {
+        if (PreviewMessage.Message.Content is not null)
+        {
+            PreviewMessage.Message.Content =
+                PreviewMessage.Message.Content.TrimEnd('\n');
+
+            PreviewMessage.Message.Content =
+                PreviewMessage.Message.Content.Trim();
+        }
+
+        if (PreviewMessage.IsEmpty)
+        {
+            return;
+        }
+
+        var postMessage = new ClientMessageWrapper(PreviewMessage.Message);
+
+        // New message for preview
+        PreviewMessage = new(BuildNewMessage());
+        await PreviewMessageComponent.SetMessage(PreviewMessage);
+
+        await OnChatboxUpdate(null, "");
+
+        // Post message to server
+        //StateHasChanged();
+        await PostMessage(postMessage);
     }
 }

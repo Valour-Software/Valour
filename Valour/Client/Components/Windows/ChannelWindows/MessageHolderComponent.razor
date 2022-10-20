@@ -262,7 +262,8 @@
 
     public async Task ScrollToBottom(bool force = false)
     {
-        await _jsModule.InvokeVoidAsync("scrollToBottom", Window.Id, force);
+        if (_jsModule is not null)
+            await _jsModule.InvokeVoidAsync("scrollToBottom", Window.Id, force);
     }
 
     public async Task ScrollToBottomAnimated()

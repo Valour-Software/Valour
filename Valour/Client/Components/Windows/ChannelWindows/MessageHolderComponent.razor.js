@@ -40,7 +40,7 @@ export function setup(id, ref){
         },
 
         scrollToBottomAnimated(){
-            $(this.element).animate({ scrollTop: this.element.scrollHeight }, "fast");
+            $(this.element).animate({ scrollTop: this.element.scrollHeight }, 'fast');
         },
 
         handleChatWindowScroll() {
