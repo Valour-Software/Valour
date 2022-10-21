@@ -4,6 +4,7 @@ export function setup(id, ref) {
     let input = {
         dotnet: ref,
         currentWord: '',
+        currentIndex: 0,
         element: document.getElementById('text-input-' + id)
     };
 
@@ -38,6 +39,7 @@ export function inputPasteHandler(e, input) {
 // Handles keys being pressed when the input is selected
 export function inputKeyDownHandler(e, input) {
     input.currentWord = getCurrentWord(0);
+    input.currentIndex = getCursorPos();
 
     switch (e.keyCode){
         // Down arrow
@@ -114,6 +116,7 @@ export function inputKeyDownHandler(e, input) {
 // Handles the caret moving 
 export function inputCaretMoveHandler(input, off = 0) {
     input.currentWord = getCurrentWord(off);
+    input.currentIndex = getCursorPos();
     input.dotnet.invokeMethodAsync('OnCaretUpdate', input.currentWord);
 }
 
@@ -142,8 +145,40 @@ export function getCurrentWord(off) {
     return text.split(/\s+/g).pop();
 }
 
+export function getCursorPos() {
+    var sel, range;
+    if (window.getSelection) {
+        sel = window.getSelection();
+        if (sel.getRangeAt && sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            return range.startOffset;
+        }
+    }
+
+    return 0;
+}
+
 export function injectElement(text, covertext, classlist, stylelist, id) {
+
     const input = inputs[id];
+
+    if (document.activeElement != input.element) {
+        input.element.focus();
+
+        var sel, range;
+        if (window.getSelection) {
+            sel = window.getSelection();
+            if (sel.getRangeAt && sel.rangeCount) {
+                console.log(sel);
+                console.log(input.currentIndex);
+                range = sel.getRangeAt(0);
+                range.setStart(range.endContainer, input.currentIndex + 1);
+                range.setEnd(range.endContainer, input.currentIndex + 1);
+            }
+        }
+    }
+
+    input.currentWord = getCurrentWord(0);
 
     var sel, range;
     if (window.getSelection) {
