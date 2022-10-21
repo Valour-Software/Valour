@@ -25,7 +25,7 @@ export function setup(id, ref){
         },
 
         isAtBottom(){
-            return (this.element.scrollHeight - (this.element.scrollTop + this.element.getBoundingClientRect().height)) < 75;
+            return (this.element.scrollHeight - (this.element.scrollTop + this.element.getBoundingClientRect().height)) < 200;
         },
 
         checkBottomSticky(){

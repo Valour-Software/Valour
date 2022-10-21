@@ -1,5 +1,4 @@
 ﻿function OnMessageLoad(innerContent) {
-
     if (innerContent != null && innerContent.getElementsByTagName) {
         var code_els = innerContent.getElementsByTagName('code');
 
@@ -25,10 +24,6 @@
             ext: '.svg'
         })
     }
-
-    //innerContent.getElementsByTagName('code').forEach(el => 
-    //    console.log(el)
-    //);
 }
 
 

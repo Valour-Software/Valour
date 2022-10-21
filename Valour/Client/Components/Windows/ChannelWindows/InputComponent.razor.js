@@ -59,7 +59,7 @@ export function inputKeyDownHandler(e, input) {
         case 38: {
             if (isMentionWord(input.currentWord)) {
                 e.preventDefault();
-                input.dotnet[windowId].invokeMethodAsync('MoveMentionSelect', -1);
+                input.dotnet.invokeMethodAsync('MoveMentionSelect', -1);
             }
             else {
                 inputCaretMoveHandler(input);
@@ -69,7 +69,9 @@ export function inputKeyDownHandler(e, input) {
         }
         // Left and right arrows
         case 37:
-        case 38:
+            inputCaretMoveHandler(input, 2);
+            break;
+        case 39:
             inputCaretMoveHandler(input);
             break;
         // Enter
@@ -92,7 +94,7 @@ export function inputKeyDownHandler(e, input) {
                 
                 // Handle submission of message
                 input.dotnet.invokeMethodAsync('OnChatboxSubmit');
-                input.dotnet.invokeMethodAsync('OnCaretUpdate', input);
+                input.dotnet.invokeMethodAsync('OnCaretUpdate', '');
             }
 
             break;
@@ -110,8 +112,8 @@ export function inputKeyDownHandler(e, input) {
 }
 
 // Handles the caret moving 
-export function inputCaretMoveHandler(input) {
-    input.currentWord = getCurrentWord(1);
+export function inputCaretMoveHandler(input, off = 0) {
+    input.currentWord = getCurrentWord(off);
     input.dotnet.invokeMethodAsync('OnCaretUpdate', input.currentWord);
 }
 
@@ -188,5 +190,5 @@ export function injectElement(text, covertext, classlist, stylelist, id) {
         document.selection.createRange().text = text;
     }
     
-    input.element.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
 }
