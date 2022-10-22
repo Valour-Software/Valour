@@ -18,22 +18,10 @@ public class EmbedBuilder
 
     public EmbedGoTo GoTo = new();
 
-    public EmbedBuilder(EmbedItemPlacementType embedType, int? width = null, int? height = null)
+    public EmbedBuilder()
     {
-        embed = new()
-        {
-            EmbedType = embedType
-        };
+        embed = new();
         embed.Pages = new();
-        if (embedType == EmbedItemPlacementType.FreelyBased)
-        {
-            if (width is null)
-                throw new ArgumentException("Width cannot be null if the placement type if FreelyBased!");
-            if (height is null)
-                throw new ArgumentException("Height cannot be null if the placement type if FreelyBased!");
-            embed.Width = width;
-            embed.Height = height;
-        }
     }
 
     [JsonIgnore]
@@ -45,16 +33,26 @@ public class EmbedBuilder
         }
     }
 
-    public EmbedBuilder AddPage(string title = null, string footer = null, string titlecolor = null, string footercolor = null)
+    public EmbedBuilder AddPage(string title = null, string footer = null, string titlecolor = null, string footercolor = null, int? width = null, int? height = null, EmbedItemPlacementType embedType = EmbedItemPlacementType.RowBased)
     {
         EmbedPage page = new()
         {
             Title = title,
             Footer = footer,
             TitleColor = titlecolor,
-            FooterColor = footercolor
+            FooterColor = footercolor,
+            EmbedType = embedType
         };
-        if (embed.EmbedType == EmbedItemPlacementType.RowBased)
+        if (embedType == EmbedItemPlacementType.FreelyBased)
+        {
+            if (width is null)
+                throw new ArgumentException("Width cannot be null if the placement type if FreelyBased!");
+            if (height is null)
+                throw new ArgumentException("Height cannot be null if the placement type if FreelyBased!");
+            page.Width = width;
+            page.Height = height;
+        }
+        if (embedType == EmbedItemPlacementType.RowBased)
             page.Rows = new();
         else
             page.Items = new();
@@ -83,7 +81,7 @@ public class EmbedBuilder
         if (GoTo.Page is not null)
             item.Page = GoTo.Page;
 
-        if (embed.EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
+        if (embed.Pages.Last().EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
         {
             item.X = x;
             item.Y = y;
