@@ -21,11 +21,22 @@
 			}
 			if (embed.Pages.Count > 1)
 			{
-				<div style="margin-top: 8px;">
-					<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
-					<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
-					<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
-				</div>
+				if (embed.CurrentlyDisplayed.EmbedType == EmbedItemPlacementType.RowBased) 
+				{
+					<div style="margin-top: 8px;">
+						<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
+						<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
+						<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+					</div>
+				}
+				else
+				{
+					<div style="position: absolute;bottom: calc(1rem);left: 71px;">
+						<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
+						<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
+						<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+					</div>
+				}
 			}
 			@if (embed.CurrentlyDisplayed.Footer is not null)
 			{
