@@ -16,10 +16,12 @@
 
   <ItemGroup>
     <None Remove="Components\ChannelList\ChannelListChatChannelComponent.razor.css" />
+    <None Remove="Components\Windows\ChannelWindows\InputComponent.razor.js" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="Components\ChannelList\ChannelListChatChannelComponent.razor.css" />
+    <Content Include="Components\Windows\ChannelWindows\InputComponent.razor.js" />
   </ItemGroup>
 
   <ItemGroup>

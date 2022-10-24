@@ -41,6 +41,15 @@
 
 @code {
 
+    [CascadingParameter]
+    public IChatChannel Channel { get; set; }
+
+    [CascadingParameter]
+    public ChatChannelWindowComponent ChannelComponent { get; set; }
+
+    [Parameter]
+    public InputComponent InputComponent { get; set; }
+
     public bool Visible { get; set; }
 
     public string Text { get; set; }
@@ -55,13 +64,7 @@
 
     public List<User> UserMatches;
 
-    [CascadingParameter]
-    public IChatChannel Channel { get; set; }
-
     public PlanetChatChannel PlanetChannel { get; set; }
-
-    [CascadingParameter]
-    public ChatChannelWindowComponent ChannelComponent { get; set; }
 
     public PlanetChatChannelWindowComponent PlanetChannelWindow { get; set; }
 
@@ -124,7 +127,7 @@
                 string classlist = "mention";
                 string stylelist = $"color: {await selected.GetRoleColorAsync()}";
 
-                await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, stylelist, ChannelComponent.Window.Id, true);
+                await InputComponent.InjectElementAsync(tag, text, classlist, stylelist);
             }
             else
             {
@@ -136,7 +139,7 @@
                 string classlist = "mention";
                 string stylelist = $"color: white";
 
-                await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, stylelist, ChannelComponent.Window.Id, true);
+                await InputComponent.InjectElementAsync(tag, text, classlist, stylelist);
             }
         }
 
@@ -149,7 +152,7 @@
             string text = "#" + selected.Name;
             string classlist = "channel-mention";
 
-            await JS.InvokeVoidAsync("InjectElement", tag, text, classlist, "", ChannelComponent.Window.Id, true);
+            await InputComponent.InjectElementAsync(tag, text, classlist, "");
         }
 
         SetVisible(false);
