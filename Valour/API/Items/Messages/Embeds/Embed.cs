@@ -84,6 +84,21 @@ public class EmbedPage
     public string FooterColor { get; set; }
 
     /// <summary>
+    /// The width of the page. Only works in FreelyBased embed/form type
+    /// </summary>
+    public int? Width { get; set; }
+
+    /// <summary>
+    /// The height of the page. Only works in FreelyBased embed/form type
+    /// </summary>
+    public int? Height { get; set; }
+
+    /// <summary>
+    /// If Freely based, items must have a x and y position.
+    /// </summary>
+    public EmbedItemPlacementType EmbedType { get; set; }
+
+    /// <summary>
     /// Takes in JsonNode and builds the EmbedPage from it
     /// </summary>
     /// <param name="Node">JsonNode of embedpage</param>
@@ -91,6 +106,12 @@ public class EmbedPage
     {
         Title = (string)Node["Title"];
         Footer = (string)Node["Footer"];
+        EmbedType = (EmbedItemPlacementType)((int?)Node["EmbedType"] ?? (int)EmbedItemPlacementType.RowBased);
+        if (EmbedType == EmbedItemPlacementType.FreelyBased)
+        {
+            Width = (int?)Node["Width"];
+            Height = (int?)Node["Height"];
+        }
         TitleColor = (string)Node["TitleColor"] ?? "eeeeee";
         FooterColor = (string)Node["FooterColor"] ?? "eeeeee";
         Rows = new();
@@ -121,6 +142,20 @@ public class EmbedPage
             }
         }
     }
+    public string GetStyle(Embed embed)
+    {
+        string style = "";
+        if (EmbedType == EmbedItemPlacementType.FreelyBased)
+        {
+            int? height = Height;
+            int? width = Width;
+            height += 32;
+            if (Title is not null)
+                height += 42;
+            style += $"height: calc(2rem + {height}px);width: calc(2rem + {width}px);";
+        }
+        return style;
+    }
 }
 
 public class Embed
@@ -129,8 +164,6 @@ public class Embed
     /// The pages within this embed.
     /// </summary>
     public List<EmbedPage> Pages { get; set; }
-
-    public EmbedItemPlacementType EmbedType { get; set; }
 
     /// <summary>
     /// The name of this embed. Must be set if the embed has forms.
@@ -141,16 +174,6 @@ public class Embed
     /// The id of this embed. Must be set if the embed has forms.
     /// </summary>
     public string? Id { get; set; }
-
-    /// <summary>
-    /// Only works in FreelyBased embed/form type
-    /// </summary>
-    public int? Width { get; set; }
-
-    /// <summary>
-    /// Only works in FreelyBased embed/form type
-    /// </summary>
-    public int? Height { get; set; }
 
     public int currentPage = 0;
 
@@ -181,24 +204,13 @@ public class Embed
 
     public string GetStyle()
     {
-        string style = "";
-        if (EmbedType == EmbedItemPlacementType.FreelyBased)
-        {
-            style += $"height: {Height}px;width: {Width}px;padding: unset;";
-        }
-        return style;
+        return CurrentlyDisplayed.GetStyle(this);
     }
 
     public void BuildFromJson(JsonNode Node)
     {
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
-        EmbedType = (EmbedItemPlacementType)(int)Node["EmbedType"];
-        if (EmbedType == EmbedItemPlacementType.FreelyBased)
-        {
-            Width = (int?)Node["Width"];
-            Height = (int?)Node["Height"];
-        }
         Pages = new();
         foreach(var pagenode in Node["Pages"].AsArray())
         {

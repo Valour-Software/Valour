@@ -1,7 +1,7 @@
 ﻿.embed {
     background-color: rgba(255, 255, 255, 0.07);
     padding: 1rem 1rem 1rem 1rem;
-    max-width: 512px;
+    max-width: 1024px;
     border-radius: 8px;
     width: fit-content;
 }
