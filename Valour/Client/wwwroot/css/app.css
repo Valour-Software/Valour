@@ -465,20 +465,6 @@ app {
     height: 100%;
 }
 
-@media screen and (max-width: 992px) {
-    .popup-box {
-        max-width: 90%;
-        max-height: 100%;
-        padding: 20px;
-    }
-
-    .modal-content-EditPlanet .popup-box {
-        max-width: 90%;
-        max-height: 100%;
-        padding: 20px;
-    }
-}
-
 .popup-box {
     background-color: var(--main-2);
     border-radius: 10px;
@@ -495,62 +481,6 @@ app {
     -ms-transform: translate(-50%, -50%);
 }
 
-
-.modal-content-CreatePlanet .popup-box {
-    transform: none;
-    border-radius: 10px;
-    width: 100%;
-    height: 100%;
-    margin: 0px;
-    transform: translateY(0%);
-}
-
-.modal-content-EditPlanet {
-    width: 70%;
-    height: 70%;
-    margin: auto;
-}
-
-@media screen and (max-width: 992px) {
-    .modal-content-EditPlanet {
-        width: 100%;
-        max-height: 100%;
-    }
-}
-
-.modal-content-EditPlanet .popup-box {
-    transform: none;
-    border-radius: 10px;
-    margin: auto;
-    width: 100%;
-    height: 100%;
-    transform: translateY(0%);
-    background-color: var(--main-2);
-}
-
-.modal-content-EditUser {
-    width: 70%;
-    height: 70%;
-    margin: auto;
-}
-
-@media screen and (max-width: 992px) {
-    .modal-content-EditUser {
-        width: 100%;
-        max-height: 100%;
-    }
-}
-
-.modal-content-EditUser .popup-box {
-    transform: none;
-    border-radius: 10px;
-    margin: auto;
-    width: 100%;
-    height: 100%;
-    transform: translateY(0%);
-    background-color: var(--main-2);
-}
-
 /* Scrollbar */
 *::-webkit-scrollbar {
     width: 12px;
@@ -564,60 +494,6 @@ app {
     background-color: white;
     border-radius: 20px;
     border: 3px solid black;
-}
-
-/* The Modal (background) */
-.modal {
-    display: inline-block;
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
-    padding-top: 100px; /* Location of the box */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-}
-
-.modal-main {
-    background-color: var(--main-2);
-    z-index: 200;
-    padding: 20px;
-    border-radius: 10px;
-    filter: drop-shadow(0px 0px 8px black);
-    width: 80vw;
-    max-width: 1200px;
-}
-
-.modal-shrink-fit {
-    background-color: var(--main-2);
-    z-index: 200;
-    padding: 20px;
-    border-radius: 10px;
-    filter: drop-shadow(0px 0px 8px black);
-
-    max-height: 90vh;
-    max-width: 90vw;
-}
-
-.mobile .modal-shrink-fit {
-
-}
-
-.modal-shrink-fit-no-padding {
-    background-color: var(--main-2);
-    z-index: 200;
-    border-radius: 10px;
-    filter: drop-shadow(0px 0px 8px black);
-    max-height: 90vh;
-    max-width: 90vw;
-}
-
-.modal-main .blazored-modal-content {
-    height: 100%;
-    width: 100%;
 }
 
 .login-background {
@@ -695,11 +571,6 @@ app {
 .home-buttons {
     float: right;
     margin-top: 15px;
-}
-
-.modal-content-EditUser .popup-box {
-    height: 100%;
-    width: 100%;
 }
 
 .tri-button {
@@ -791,50 +662,6 @@ app {
     overflow-y: scroll;
 }
 
-.settings-button:hover {
-    background-color: var(--main-4);
-}
-
-.settings-button.active {
-    background-color: var(--main-4);
-}
-
-.settings-button:hover.active {
-    background-color: var(--main-5);
-}
-
-.settings-modal {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-}
-
-.settings-modal .row {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-}
-
-.edit-col-left {
-    max-height: 100%;
-}
-
-.edit-col-right {
-    max-height: 100%;
-}
-
-/* This controls how modals act on large screens */
-@media (min-width: 768px){
-    .modal-main {
-        height: 80vh;
-    }
-
-    .edit-col-right {
-        border-left: solid 1px rgba(255, 255, 255, 0.25);
-        padding-left: 35px;
-        overflow-y: auto;
-    }
-}
 
 .roles-row {
     width: 100%;
@@ -1346,7 +1173,9 @@ img.emoji {
     box-shadow: unset;
 }
 
+/***************************/
 /* Mobile context menu CSS */
+/***************************/
 
 @keyframes slideInFromBottom {
     0% {
@@ -1406,4 +1235,28 @@ img.emoji {
 
 .block-input {
     pointer-events: none;
+}
+
+/*************/
+/* Modal CSS */
+/*************/
+
+/* Override default modal style */
+.blazored-modal {
+    /* Stylistic choices */
+    background-color: var(--main-2) !important;
+    border-radius: 20px !important;
+    border: none !important;
+    padding: 0 !important;
+    align-self: center;
+}
+
+.blazored-modal.size-automatic {
+    height: fit-content;
+}
+
+.blazored-modal-focus-trap {
+    display: flex;
+    padding: 20px;
+    min-height: 100vh;
 }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
+using Valour.Shared.Items.Authorization;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
@@ -22,12 +23,12 @@ public class OauthAPI : BaseAPI
         app.MapPost("api/oauth/authorize", Authorize);
     }
 
-    public static List<Shared.Items.Authorization.AuthorizeModel> OauthReqCache = new();
+    public static List<AuthorizeModel> OauthReqCache = new();
 
 
     public static async Task<object> Authorize(
         ValourDB db, HttpContext context,
-        [FromBody] Shared.Items.Authorization.AuthorizeModel model,
+        [FromBody] AuthorizeModel model,
         [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
