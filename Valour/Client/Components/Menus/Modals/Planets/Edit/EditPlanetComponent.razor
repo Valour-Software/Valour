@@ -2,11 +2,16 @@
 @inject NavigationManager navManager
 @inject WindowManager windowManager
 
-@if (Planet != null)
+@if (Planet is null)
 {
-    <div class="settings-modal container" style="padding: 0">
+    <h5>Loading planet details...</h5>
+    return;
+}
+
+<LargeModalWrapperComponent>
+    <div class="container">
         <div class="row settings-row">
-            <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
+            <div class="col-md-3 mb-5 mb-md-0">
                 <b>@Planet.Name</b>
                 <hr />
                 <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
@@ -16,7 +21,7 @@
                 <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
                 <div class="settings-button text-danger" @onclick="OnClickDelete">Delete</div>
             </div>
-            <div class="col-md-9 edit-col-right">
+            <div class="col-md-9">
                 @switch (selected)
                 {
                     case 0:
@@ -41,11 +46,7 @@
             </div>
         </div>
     </div>
-}
-else
-{
-    <h5>Loading planet details...</h5>
-}
+</LargeModalWrapperComponent>
 
 @code {
     [Parameter]
@@ -121,6 +122,6 @@ else
         ModalParameters modParams = new();
         modParams.Add("Data", modalData);
 
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
     }
 }

@@ -1,18 +1,26 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 
-@if (User != null)
+
+@if (User is null)
 {
-    <div class="settings-modal container">
+    <div class="background">
+        <h5>Loading user...</h5>
+    </div>
+    return;
+}
+
+<LargeModalWrapperComponent>
+    <div class="container">
         <div class="row settings-row">
-            <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
+            <div class="col-md-3 mb-5 mb-md-0">
                 <b>@User.Name</b>
                 <hr />
                 <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
                 <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Notifications</div>
                 <div class="logout-button" @onclick="LogOut">Log Out</div>
             </div>
-            <div class="col-md-9 edit-col-right">
+            <div class="col-md-9">
                 @switch (selected)
                 {
                     case 0:
@@ -28,11 +36,7 @@
             </div>
         </div>
     </div>
-}
-else
-{
-    <h5>Loading planet details...</h5>
-}
+</LargeModalWrapperComponent>
 
 @code {
     [Parameter]
