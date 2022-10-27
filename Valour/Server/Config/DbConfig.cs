@@ -4,11 +4,11 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database;
+namespace Valour.Server.Config;
 
-public class DBConfig
+public class DbConfig
 {
-    public static DBConfig instance;
+    public static DbConfig instance;
 
     public string Host { get; set; }
 
@@ -18,7 +18,7 @@ public class DBConfig
 
     public string Database { get; set; }
 
-    public DBConfig()
+    public DbConfig()
     {
         // Set main instance to the most recently created config
         instance = this;

@@ -27,5 +27,9 @@
 		<None Include=".\FAQ.md" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Server\Valour.Server.csproj" />
+	</ItemGroup>
+
 
 </Project>

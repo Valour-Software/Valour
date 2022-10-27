@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Valour.Server.API;
-using Valour.Server.Nodes;
 using Valour.Shared.Items;
 
 namespace Valour.Server.Database.Items;

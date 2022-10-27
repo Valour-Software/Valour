@@ -16,6 +16,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Api", "Valour\API\Va
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Web", "Valour\Web\Valour.Web.csproj", "{4815C7EF-AE83-4E2E-A4B0-C693BAC1576F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{17DA107C-C64F-4AE9-9FDA-EF6532139659} = {17DA107C-C64F-4AE9-9FDA-EF6532139659}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Valour.Client.Blazor", "Valour\Client.Blazor\Valour.Client.Blazor.csproj", "{9CABBEEF-DE8F-4374-9818-A55B62503004}"
 	ProjectSection(ProjectDependencies) = postProject
