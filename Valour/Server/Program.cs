@@ -292,6 +292,7 @@ namespace Valour.Server
         {
             var env = builder.Environment;
             var sharedFolder = Path.Combine(env.ContentRootPath, "..", "Config");
+            Console.WriteLine($"Loading shared configuration at {sharedFolder}");
             builder.Configuration.AddJsonFile(Path.Combine(sharedFolder, "sharedSettings.json"), optional: false)
                                  .AddJsonFile("appsettings.json", optional: true)
                                  .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
