@@ -10,12 +10,6 @@ var builder = WebApplication.CreateBuilder(args);
 //                                        .AllowAnyHeader());
 //});
 
-var env = builder.Environment;
-var sharedFolder = Path.Combine(env.ContentRootPath, "..", "Config");
-builder.Configuration.AddJsonFile(Path.Combine(sharedFolder, "sharedSettings.json"), optional: false)
-                     .AddJsonFile("appsettings.json", optional: true)
-                     .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
-
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
