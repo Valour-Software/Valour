@@ -1,4 +1,4 @@
-﻿namespace Valour.Server.Email;
+﻿namespace Valour.Server.Config;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -16,7 +16,7 @@ public class EmailConfig
     /// <summary>
     /// The API key for the email service
     /// </summary>
-    public string Api_Key { get; set; }
+    public string ApiKey { get; set; }
 
     /// <summary>
     /// Set instance to newest config

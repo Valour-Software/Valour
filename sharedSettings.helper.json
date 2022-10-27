@@ -1,0 +1,43 @@
+{
+	"Logging": {
+		"LogLevel": {
+			"Default": "Information",
+			"Microsoft.AspNetCore": "Warning"
+		}
+	},
+	"AllowedHosts": "*",
+	/* Media System */
+	"CDN": {
+		"Key": "",
+		"DbAddress": "",
+		"DbUser": "",
+		"DbPassword": "",
+		"DbName": "",
+		"S3Access": "",
+		"S3Secret": "",
+		"S3Endpoint": ""
+	},
+	/* Main Database */
+	"Database": {
+		"Host": "",
+		"Password": "",
+		"Username": "",
+		"Database": ""
+	},
+	/* Sendgrid */
+	"Email": {
+		"ApiKey": ""
+	},
+	/* Notifications */
+	"Vapid": {
+		"Subject": "",
+		"PublicKey": "",
+		"PrivateKey": ""
+	},
+	/* Node Settings */
+	"Node": {
+		"Key": "",
+		"Name": "",
+		"Location": ""
+	}
+}

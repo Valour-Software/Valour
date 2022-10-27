@@ -1,13 +1,14 @@
 ﻿using Valour.Server.Cdn.Objects;
+using Valour.Server.Config;
 
 namespace Valour.Server.Cdn;
 
 public class CdnDb : DbContext
 {
-    public static string ConnectionString = $"Host={CdnConfig.Current.DbAddr};" +
+    public static string ConnectionString = $"Host={CdnConfig.Current.DbAddress};" +
                                             $"Database={CdnConfig.Current.DbName};" +
                                             $"Username={CdnConfig.Current.DbUser};" +
-                                            $"Password={CdnConfig.Current.DbPass};" +
+                                            $"Password={CdnConfig.Current.DbPassword};" +
                                             $"SslMode=Prefer;";
 
     /// <summary>

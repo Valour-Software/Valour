@@ -1,5 +1,6 @@
 ﻿using SendGrid;
 using SendGrid.Helpers.Mail;
+using Valour.Server.Config;
 
 namespace Valour.Server.Email;
 
@@ -15,7 +16,7 @@ public class EmailManager
 
     public static void SetupClient()
     {
-        client = new SendGridClient(EmailConfig.instance.Api_Key);
+        client = new SendGridClient(EmailConfig.instance.ApiKey);
     }
 
     /// <summary>
