@@ -29,6 +29,7 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\Server\Valour.Server.csproj" />
+	  <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
 	</ItemGroup>
 
 

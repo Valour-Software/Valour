@@ -339,3 +339,5 @@ fabric.properties
 
 .idea/.idea.Valour/.idea/discord.xml
 /Valour/Server/appsettings.json
+/Valour/Server/appsettings.json
+/Valour/Config/sharedSettings.json
