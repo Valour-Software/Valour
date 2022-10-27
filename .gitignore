@@ -1,3 +1,6 @@
+# Settings
+*/appsettings.json
+
 # DB Credentials
 *Config.json
 DBConfig.json
@@ -342,3 +345,4 @@ fabric.properties
 /Valour/Server/appsettings.json
 /Valour/Config/sharedSettings.json
 Valour/Server/appsettings.json
+/Valour/Web/appsettings.json
