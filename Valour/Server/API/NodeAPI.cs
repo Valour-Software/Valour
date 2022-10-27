@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Xml.Linq;
 using Valour.Api.Nodes;
+using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Nodes;
-using Valour.Server.Nodes;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Server.API
 {
-	public class NodeAPI : BaseAPI
+    public class NodeAPI : BaseAPI
 	{
         public readonly string Name;
         public readonly string Address;
@@ -24,7 +24,7 @@ namespace Valour.Server.API
         {
             Node = this;
             Name = config.Name;
-            Address = config.Address;
+            Address = config.Location;
             Planets = new();
             Version = typeof(ISharedUser).Assembly.GetName().Version.ToString();
         }

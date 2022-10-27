@@ -1,6 +1,7 @@
 .preview-container {
     max-width: 95vw;
     max-height: 95vh;
+    padding: 20px;
 }
 
 ::deep img {

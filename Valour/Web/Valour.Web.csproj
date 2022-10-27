@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Markdig" Version="0.30.2" />
+    <PackageReference Include="Markdig" Version="0.30.4" />
   </ItemGroup>
 
 	<ItemGroup>
@@ -25,6 +25,11 @@
 			<TargetPath>.\FAQ.md</TargetPath>
 		</ContentWithTargetPath>
 		<None Include=".\FAQ.md" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Server\Valour.Server.csproj" />
+	  <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
 	</ItemGroup>
 
 

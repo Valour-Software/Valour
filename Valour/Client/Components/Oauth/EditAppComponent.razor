@@ -19,6 +19,10 @@
 
     <br/>
 
+    <p class="m-2 mb-4">App ID: @App.Id</p>
+
+    <br/>
+
     <p class="m-2 mb-4">Your app has been used @App.Uses times.</p>
 
     <button class='btn v-button btn-copy' @onclick='OnCopySecret'></button>
@@ -71,7 +75,7 @@
         ModalParameters modParams = new();
         modParams.Add("Data", data);
 
-        Modal.Show<ConfirmModalComponent>("Confirm Modal", modParams, new ModalOptions { Class = "modal-shrink-fit" });
+        Modal.Show<ConfirmModalComponent>("Confirm Modal", modParams);
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)

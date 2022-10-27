@@ -1,4 +1,5 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
+using Valour.Server.Config;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Channels.Planets;
@@ -23,7 +24,7 @@ public class ValourDB : DbContext
 
     public static ValourDB Instance = new ValourDB(DBOptions);
 
-    public static string ConnectionString = $"Host={DBConfig.instance.Host};Database={DBConfig.instance.Database};Username={DBConfig.instance.Username};Password={DBConfig.instance.Password};SslMode=Prefer;";
+    public static string ConnectionString = $"Host={DbConfig.instance.Host};Database={DbConfig.instance.Database};Username={DbConfig.instance.Username};Password={DbConfig.instance.Password};SslMode=Prefer;";
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {

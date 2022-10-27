@@ -2,9 +2,9 @@
 using System.Text.Json;
 using Valour.Server.API;
 using Valour.Server.Cdn;
+using Valour.Server.Config;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Users;
-using Valour.Server.Nodes;
 using Valour.Server.Notifications;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
@@ -334,7 +334,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             else
             {
                 // Inter-node communications
-                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={conn.UserId}&auth={NodeConfig.Instance.ApiKey}", message);
+                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={conn.UserId}&auth={NodeConfig.Instance.Key}", message);
             }
         }
 
@@ -395,7 +395,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             else
             {
                 // Inter-node communications
-                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={conn.UserId}&auth={NodeConfig.Instance.ApiKey}", message);
+                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={conn.UserId}&auth={NodeConfig.Instance.Key}", message);
             }
         }
 
@@ -407,7 +407,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
     [ValourRoute(HttpVerbs.Post, "/relay", $"api/{nameof(DirectChatChannel)}")]
     public static async Task<IResult> RelayDirectMessageAsync([FromBody] DirectMessage message, [FromQuery] string auth, [FromQuery] long targetId)
     {
-        if (auth != NodeConfig.Instance.ApiKey)
+        if (auth != NodeConfig.Instance.Key)
             return ValourResult.Forbid("Invalid inter-node key.");
 
         PlanetHub.RelayDirectMessage(message, targetId);
@@ -418,7 +418,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
     [ValourRoute(HttpVerbs.Post, "/relaydelete", $"api/{nameof(DirectChatChannel)}")]
     public static async Task<IResult> RelayDeleteDirectMessageAsync([FromBody] DirectMessage message, [FromQuery] string auth, [FromQuery] long targetId)
     {
-        if (auth != NodeConfig.Instance.ApiKey)
+        if (auth != NodeConfig.Instance.Key)
             return ValourResult.Forbid("Invalid inter-node key.");
 
         PlanetHub.NotifyDirectMessageDeletion(message, targetId);
