@@ -10,7 +10,7 @@
 <div class="message-outer">
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
-            <div id="@Id" class="@Class" @ref='this_ref' tabindex='0'>
+            <div id="@Id" class="@Class" tabindex='0'>
                 <div class="left-info">
                     @if (!Minimal)
                     {
@@ -60,7 +60,10 @@
                             {
                                 var id = i;
                                 var attachment = MessageData.Message.Attachments[id];
-                                var par = new Dictionary<string, object>(){ { "Attachment", attachment } };
+                                var par = new Dictionary<string, object>(){ 
+                                    { "Attachment", attachment },
+                                    { "MessageComponent", this }
+                                };
 
                                 <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
                                     @if (Ghost)
@@ -125,8 +128,6 @@
     public bool Minimal = false;
 
     public ClientMessageWrapper ReplyMessage;
-
-    public ElementReference this_ref;
 
     public string Id = "";
 

@@ -223,73 +223,6 @@ navigator.locks.request('valour_lock', lock => {
     // Now lock will be held until either resolve() or reject() is called.
 });
 
-
-var oldScrollHeight = {};
-var oldScrollTop = {};
-var stickyStates = {};
-var lastTopLoadPos = {};
-
-// Automagically scroll windows down
-function UpdateScrollPosition(id) {
-    var window = document.getElementById('innerwindow-' + id);
-    oldScrollHeight[id] = window.scrollHeight;
-    oldScrollTop[id] = window.scrollTop;
-}
-
-function ScaleScrollPosition(id) {
-    var window = document.getElementById('innerwindow-' + id);
-    window.scrollTop = oldScrollTop[id] + (window.scrollHeight - oldScrollHeight[id]);
-}
-
-function IsAtBottom(id) {
-    var window = document.getElementById('innerwindow-' + id);
-    var scrollUp = window.scrollHeight - (window.scrollTop + window.getBoundingClientRect().height);
-    return scrollUp < 75;
-}
-
-function OnScrollChannel(id) {
-    if (IsAtBottom(id)) {
-        stickyStates[id] = true;
-    }
-    else {
-        stickyStates[id] = false;
-    }
-}
-
-// Automagically scroll windows down
-function ScrollWindowBottom(id, force) {
-    var window = document.getElementById('innerwindow-' + id);
-
-    if (force || stickyStates[id]) {
-        window.scrollTop = window.scrollHeight;
-        stickyStates[id] = true;
-    }
-}
-
-function ScrollWindowBottomAnim(id) {
-    var window = $('#innerwindow-' + id);
-    window.animate({ scrollTop: window.prop("scrollHeight") }, "fast");
-}
-
-var scrollUpTimer = Date.now();
-
-function SetupWindow(id) {
-    var window = $("#innerwindow-" + id); 
-    window.scroll(function () {
-
-        // Scrollbar is actually visible
-        if (window.prop('scrollHeight') > window.height()) {
-
-            // User has reached top of scroll
-            if (window.scrollTop() == 0 && scrollUpTimer < (Date.now() - 50)) {
-                console.log("hello");
-                scrollUpTimer = new Date();
-                DotNet.invokeMethodAsync('Valour.Client', 'OnScrollTopInvoke', id);
-            }
-        }
-    });
-}
-
 async function postData(url = '', data = {}) {
     // Default options are marked with *
     const response = await fetch(url, {
@@ -493,10 +426,26 @@ function enableTooltip(id) {
     $('#' + id).tooltip()
 }
 
-function enableTooltip(id) {
+function disableTooltip(id) {
     $('#' + id).tooltip('hide')
 }
 
 function updateTooltip(id) {
     $('#' + id).tooltip('update')
+}
+
+/* Content upload handling */
+
+// Creates a blob and returns the location
+function createBlob(buffer, contentType) {
+    const blob = new Blob([buffer], { type: contentType });
+    return window.URL.createObjectURL(blob);
+}
+
+function getImageSize(blobUrl, ref) {
+    const image = new Image();
+    image.onload = function () {
+        ref.invokeMethodAsync('SetImageSize', this.width, this.height);
+    }
+    image.src = blobUrl;
 }

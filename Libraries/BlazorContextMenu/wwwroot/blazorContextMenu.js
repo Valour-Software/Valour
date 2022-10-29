@@ -357,7 +357,12 @@ var blazorContextMenu = function (blazorContextMenu) {
     }
 
     var subMenuTimeout = null;
-    blazorContextMenu.OnMenuItemMouseOver = function (e, xOffset, currentItemElement) {
+    blazorContextMenu.OnMenuItemMouseOver = function (e, xOffset, currentItemElement, isClick) {
+
+        if (mobile != isClick) {
+            return;
+        }
+
         if (closest(e.target, ".blazor-context-menu__wrapper") != closest(currentItemElement, ".blazor-context-menu__wrapper")) {
             //skip child menu mouseovers
             return;

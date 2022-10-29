@@ -1,0 +1,38 @@
+﻿@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="tooltip-holder" id="@_id" data-bs-toggle="tooltip" data-bs-placement="bottom" title="@Title">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "Insert title";
+
+    [Parameter]
+    public string Placement { get; set; } = "bottom";
+
+    // Creates a unique ID for this tooltip
+    private string _id = Guid.NewGuid().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Enable tooltip
+            await JS.InvokeVoidAsync("enableTooltip", _id);
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("updateTooltip", _id);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("disableTooltip", _id);
+    }
+}

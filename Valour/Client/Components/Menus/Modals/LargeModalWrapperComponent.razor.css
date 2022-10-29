@@ -1,0 +1,19 @@
+﻿.large-modal {
+    width: 75vw;
+    min-width: 280px;
+    max-width: 1200px;
+    min-height: 800px;
+    padding: 20px;
+}
+
+::deep .settings-button:hover {
+    background-color: var(--main-4);
+}
+
+::deep .settings-button.active {
+    background-color: var(--main-4);
+}
+
+::deep .settings-button:hover.active {
+    background-color: var(--main-5);
+}

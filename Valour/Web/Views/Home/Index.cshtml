@@ -1,4 +1,6 @@
-﻿@{
+﻿@model HomeModel
+
+@{
     ViewData["Title"] = "Valour";
 }
 <div class='index-back'>
@@ -10,6 +12,11 @@
 
     <div class="text-center m-4">
         <a href="https://app.valour.gg" class="btn v-button">Open the App</a>
+    </div>
+
+    <div class="stats-box">
+        <h3>Users: @Model.UserText</h3>
+        <h3>Planets: @Model.PlanetText</h3>
     </div>
 </div>
 

@@ -1,6 +1,6 @@
 ﻿using WebPush;
 
-namespace Valour.Server.Notifications
+namespace Valour.Server.Config
 {
     public class VapidConfig
     {

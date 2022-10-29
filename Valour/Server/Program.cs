@@ -10,6 +10,7 @@ using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
 using Valour.Server.Cdn.Extensions;
+using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels.Planets;
@@ -18,8 +19,6 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.Email;
-using Valour.Server.Nodes;
-using Valour.Server.Notifications;
 using Valour.Server.Workers;
 using WebPush;
 
@@ -27,24 +26,20 @@ namespace Valour.Server
 {
     public class Program
     {
-        public const string CONF_LOC = "ValourConfig/";
-        public const string DBCONF_FILE = "DBConfig.json";
-        public const string EMCONF_FILE = "EmailConfig.json";
-        public const string CDNCONFIG_FILE = "CDNConfig.json";
-        public const string VAPIDCONF_FILE = "VapidConfig.json";
-        public const string NODECONF_FILE = "NodeConfig.json";
-
         public static List<object> ItemApis { get; set; }
 
         public static NodeAPI NodeAPI { get; set; }
 
         public static async Task Main(string[] args)
         {
-            // Load configs
-            await LoadConfigsAsync();
-
             // Create builder
             var builder = WebApplication.CreateBuilder(args);
+
+            // Load configs
+            LoadConfigsAsync(builder);
+
+            // Initialize Email Manager
+            EmailManager.SetupClient();
 
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
@@ -82,7 +77,7 @@ namespace Valour.Server
             BasicAWSCredentials cred = new(CdnConfig.Current.S3Access, CdnConfig.Current.S3Secret);
             AmazonS3Config config = new AmazonS3Config()
             {
-                ServiceURL = CdnConfig.Current.R2Endpoint
+                ServiceURL = CdnConfig.Current.S3Endpoint
             };
 
             AmazonS3Client client = new(cred, config);
@@ -263,9 +258,12 @@ namespace Valour.Server
                 options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 
                 options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            }
-            );
+            });
+
             services.AddRazorPages();
+
+            services.AddSingleton<CdnMemoryCache>();
+
             services.AddHostedService<MessageCacheWorker>();
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
@@ -290,119 +288,13 @@ namespace Valour.Server
         /// <summary>
         /// Loads the json configs for services
         /// </summary>
-        public static async Task LoadConfigsAsync()
+        public static void LoadConfigsAsync(WebApplicationBuilder builder)
         {
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(CONF_LOC))
-            {
-                Directory.CreateDirectory(CONF_LOC);
-            }
-
-            // Load database settings
-            DBConfig dbconfig;
-            if (File.Exists(CONF_LOC + DBCONF_FILE))
-            {
-                // If there is a config, read it
-                dbconfig = await JsonSerializer.DeserializeAsync<DBConfig>(File.OpenRead(CONF_LOC + DBCONF_FILE));
-            }
-            else
-            {
-                // Otherwise create a config with default values and write it to the location
-                dbconfig = new DBConfig()
-                {
-                    Database = "database",
-                    Host = "host",
-                    Password = "password",
-                    Username = "user"
-                };
-
-                File.WriteAllText(CONF_LOC + DBCONF_FILE, JsonSerializer.Serialize(dbconfig));
-                Console.WriteLine("Error: No DB config was found. Creating file...");
-            }
-
-            EmailConfig emconfig;
-            if (File.Exists(CONF_LOC + EMCONF_FILE))
-            {
-                // If there is a config, read it
-                emconfig = await JsonSerializer.DeserializeAsync<EmailConfig>(File.OpenRead(CONF_LOC + EMCONF_FILE));
-            }
-            else
-            {
-                // Otherwise create a config with default values and write it to the location
-                emconfig = new EmailConfig()
-                {
-                    Api_Key = "api_key_goes_here"
-                };
-
-                File.WriteAllText(CONF_LOC + EMCONF_FILE, JsonSerializer.Serialize(emconfig));
-                Console.WriteLine("Error: No Email config was found. Creating file...");
-            }
-
-            // Initialize Email Manager
-            EmailManager.SetupClient();
-
-            CdnConfig cdnConfig;
-            if (File.Exists(CONF_LOC + CDNCONFIG_FILE))
-            {
-                // If there is a config, read it
-                cdnConfig = await JsonSerializer.DeserializeAsync<CdnConfig>(File.OpenRead(CONF_LOC + CDNCONFIG_FILE));
-            }
-            else
-            {
-                // Otherwise create a config with default values and write it to the location
-                cdnConfig = new CdnConfig()
-                {
-                    AuthKey = "key",
-                    DbAddr = "localhost",
-                    DbUser = "dbuser",
-                    DbPass = "dbpass",
-                    S3Access = "s3access",
-                    S3Secret = "s3secret",
-                    R2Endpoint = "r2endpoint"
-                };
-
-                File.WriteAllText(CONF_LOC + CDNCONFIG_FILE, JsonSerializer.Serialize(cdnConfig));
-                Console.WriteLine("Error: No CDN config was found. Creating file...");
-            }
-
-            VapidConfig vapidconfig;
-            if (File.Exists(CONF_LOC + VAPIDCONF_FILE))
-            {
-                // If there is a config, read it
-                vapidconfig = await JsonSerializer.DeserializeAsync<VapidConfig>(File.OpenRead(CONF_LOC + VAPIDCONF_FILE));
-            }
-            else
-            {
-                // Otherwise create a config with default values and write it to the location
-                vapidconfig = new VapidConfig()
-                {
-                    Subject = "mailto: <>",
-                    PublicKey = "public-key-here",
-                    PrivateKey = "private-key-here"
-                };
-
-                File.WriteAllText(CONF_LOC + VAPIDCONF_FILE, JsonSerializer.Serialize(vapidconfig));
-                Console.WriteLine("Error: No Vapid config was found. Creating file...");
-            }
-
-            NodeConfig nodeconfig;
-            if (File.Exists(CONF_LOC + NODECONF_FILE))
-            {
-                // If there is a config, read it
-                nodeconfig = await JsonSerializer.DeserializeAsync<NodeConfig>(File.OpenRead(CONF_LOC + NODECONF_FILE));
-            }
-            else
-            {
-                // Otherwise create a config with default values and write it to the location
-                nodeconfig = new NodeConfig()
-                {
-                    ApiKey = "insert api key",
-                    Name = "node name"
-                };
-
-                File.WriteAllText(CONF_LOC + NODECONF_FILE, JsonSerializer.Serialize(nodeconfig));
-                Console.WriteLine("Error: No node config was found. Creating file...");
-            }
+            builder.Configuration.GetSection("CDN").Get<CdnConfig>();
+            builder.Configuration.GetSection("Database").Get<DbConfig>();
+            builder.Configuration.GetSection("Email").Get<EmailConfig>();
+            builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
+            builder.Configuration.GetSection("Node").Get<NodeConfig>();
         }
     }
 }

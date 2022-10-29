@@ -1,0 +1,96 @@
+@inject IJSRuntime JS
+@implements IDisposable
+@using System.Drawing
+
+@if (Attachment is null)
+{
+    <h5>Loading content...</h5>
+    return;
+}
+
+<div class="preview-container" @onkeydown='OnKeyDown'>
+	<h4>Upload?</h4>
+
+    <div class="attachment-holder">
+        @switch (Attachment.GetAttachmentType()){
+            case AttachmentType.Image:
+                <ImageAttachmentComponent Attachment="Attachment"/>
+                break;
+            case AttachmentType.Video:
+                <VideoAttachmentComponent Attachment="Attachment" />
+                break;
+            case AttachmentType.Audio:
+                <AudioAttachmentComponent Attachment="Attachment" />
+                break;
+            default:
+                <FileAttachmentComponent Attachment="Attachment" />
+                break;
+        }
+    </div>
+
+    <div class="d-flex flex-row justify-content-around">
+        <button class='btn v-button' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
+        <button class='btn v-button danger' @onclick='OnClickCancel'>Cancel</button>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public byte[] Data { get; set; }
+
+    [Parameter]
+    public Func<Task> OnConfirm { get; set; }
+
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance Instance { get; set; }
+
+    public DotNetObjectReference<FileUploadComponent>? objRef;
+
+    protected override async Task OnInitializedAsync(){
+
+        objRef = DotNetObjectReference.Create(this);
+
+        // Load into blob form and get url
+        string blobUrl = await JS.InvokeAsync<string>("createBlob", Data, Attachment.MimeType);
+
+        // Build attachment object
+        Attachment.Location = blobUrl;
+
+        if (Attachment.GetAttachmentType() == AttachmentType.Image)
+        {
+            await JS.InvokeVoidAsync("getImageSize", blobUrl, objRef);
+        }
+    }
+
+    [JSInvokable]
+    public void SetImageSize(int width, int height)
+    {
+        Attachment.Width = width;
+        Attachment.Height = height;
+
+        Console.WriteLine($"Set image size to {width},{height}");
+    }
+
+    public async Task OnKeyDown(KeyboardEventArgs e){
+        if (e.Key.ToLower() == "enter")
+            await OnClickConfirm();
+    }
+
+    public async Task OnClickCancel(){
+        await Instance.CloseAsync();
+    }
+
+    public async Task OnClickConfirm(){
+        await Instance.CloseAsync();
+        await OnConfirm.Invoke();
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}

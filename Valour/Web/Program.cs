@@ -1,14 +1,15 @@
-﻿using System.Net;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Net;
+using Valour.Server.Config;
+using Valour.Server.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//builder.Services.AddCors(options =>
-//{
-//    options.AddDefaultPolicy(
-//                      builder => builder.WithOrigins("https://app.valour.gg")
-//                                        .AllowAnyMethod()
-//                                        .AllowAnyHeader());
-//});
+builder.Configuration.GetSection("CDN").Get<CdnConfig>();
+builder.Configuration.GetSection("Database").Get<DbConfig>();
+builder.Configuration.GetSection("Email").Get<EmailConfig>();
+builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
+builder.Configuration.GetSection("Node").Get<NodeConfig>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -20,6 +21,11 @@ builder.WebHost.ConfigureKestrel((context, options) =>
         listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
         //listenOptions.UseHttps();
     });
+});
+
+builder.Services.AddDbContextPool<ValourDB>(options =>
+{
+    options.UseNpgsql(ValourDB.ConnectionString);
 });
 
 var app = builder.Build();

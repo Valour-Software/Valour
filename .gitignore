@@ -1,3 +1,6 @@
+# Settings
+*/appsettings.json
+
 # DB Credentials
 *Config.json
 DBConfig.json
@@ -338,3 +341,8 @@ fabric.properties
 # End of https://www.toptal.com/developers/gitignore/api/intellij
 
 .idea/.idea.Valour/.idea/discord.xml
+/Valour/Server/appsettings.json
+/Valour/Server/appsettings.json
+/Valour/Config/sharedSettings.json
+Valour/Server/appsettings.json
+/Valour/Web/appsettings.json
