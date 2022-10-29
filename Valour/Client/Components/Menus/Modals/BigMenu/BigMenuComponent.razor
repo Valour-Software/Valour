@@ -1,0 +1,61 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject WindowManager windowManager
+
+<section>
+    <CascadingValue Value="this">
+        <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
+        <div class="inner">
+            <div class="leftside">
+                @LeftSide
+            </div>
+            <div class="rightside">
+                @RightSide
+            </div>
+        </div>
+    </CascadingValue>
+</section>
+
+@code {
+    [Parameter]
+    public RenderFragment LeftSide { get; set; }
+
+    [Parameter]
+    public RenderFragment RightSide { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+
+    public BigMenuSubMenuComponent SelectedSubMenu = null;
+
+    public BigMenuTopLevelMenuComponent SelectedTopLevelMenu = null;
+
+    public List<BigMenuTopLevelMenuComponent> TopLevelMenus = new();
+
+    public event Action RefreshRightSide;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            SelectedTopLevelMenu = TopLevelMenus.First();
+            SelectedSubMenu = SelectedTopLevelMenu.SubMenus.First();
+            StateHasChanged();
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    public async Task ClickEscape(MouseEventArgs e)
+    {
+        await ModalInstance.CloseAsync();
+    }
+
+    public void Update()
+    {
+        RefreshRightSide?.Invoke();
+    }
+}

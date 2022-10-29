@@ -1,0 +1,33 @@
+﻿.sub-menu {
+    border-radius: 5px;
+    width: 257px;
+    height: 31px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    cursor: pointer;
+}
+
+    .sub-menu .icon {
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+        margin-left: 9.5px;
+        margin-top: 9.5px;
+    }
+    .sub-menu p {
+        margin-left: 7.5px;
+        display: inline-block;
+        margin-top: 5px;
+        font-weight: 400;
+        font-size: 18px;
+        line-height: 21px;
+    }
+
+    .sub-menu.selected {
+        background-color: #293138;
+    }
+
+    .sub-menu:hover {
+        background-color: #151E26;
+    }

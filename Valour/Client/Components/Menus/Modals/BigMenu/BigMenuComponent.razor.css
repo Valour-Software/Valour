@@ -1,0 +1,48 @@
+﻿@media only screen and (min-width: 800px) {
+    
+}
+
+section {
+    width: 1007px;
+    height: 639px;
+}
+
+.inner {
+    position: relative;
+    top: -22px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.leftside {
+    width: 336px;
+    height: 639px;
+    background-color: var(--main-2);
+    display: inline-flex;
+    border-bottom-left-radius: 20px;
+    border-top-left-radius: 20px;
+}
+
+.rightside {
+    width: 671px;
+    background-color: var(--main-3);
+    height: 639px;
+    border-bottom-right-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 20px;
+    overflow-y: scroll;
+}
+
+*::-webkit-scrollbar-track {
+    background-color: var(--main-3) !important;
+}
+
+.escape-button {
+    position: relative;
+    top: 17px;
+    left: 15px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    z-index: 10000;
+}

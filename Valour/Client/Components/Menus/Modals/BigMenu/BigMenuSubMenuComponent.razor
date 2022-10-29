@@ -1,0 +1,57 @@
+﻿<div class="@Class" @onclick="OnClick">
+    <img class="icon" src="@IconUrl" style="@TextStyle" />
+    <p style="@TextStyle">@Name</p>
+</div>
+
+@code {
+    [Parameter]
+    public string Icon { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public string Color { get; set; }
+
+    public string TextStyle
+    {
+        get
+        {
+            if (Color is null)
+                return "";
+            return $"color: {Color};";
+        }
+    }
+
+    [CascadingParameter]
+    public BigMenuTopLevelMenuComponent bigMenuTopLevelMenuComponent { get; set; }
+
+    public string Class
+    {
+        get
+        {
+            if (bigMenuTopLevelMenuComponent.bigMenuComponent.SelectedSubMenu == this)
+                return "sub-menu selected";
+            return "sub-menu";
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        bigMenuTopLevelMenuComponent.SubMenus.Add(this);
+    }
+
+    public async Task OnClick(MouseEventArgs e)
+    {
+        bigMenuTopLevelMenuComponent.bigMenuComponent.SelectedSubMenu = this;
+        bigMenuTopLevelMenuComponent.Refresh();
+    }
+
+    public string IconUrl
+    {
+        get
+        {
+            return "_content/Valour.Client/media/" + Icon;
+        }
+    }
+}
