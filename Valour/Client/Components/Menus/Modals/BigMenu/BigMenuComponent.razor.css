@@ -29,8 +29,15 @@ section {
     height: 639px;
     border-bottom-right-radius: 20px;
     border-top-right-radius: 20px;
-    padding: 20px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.inner-rightside {
+    height: 619px;
+    background-color: var(--main-3);
     overflow-y: scroll;
+    margin-top: 20px;
 }
 
 *::-webkit-scrollbar-track {

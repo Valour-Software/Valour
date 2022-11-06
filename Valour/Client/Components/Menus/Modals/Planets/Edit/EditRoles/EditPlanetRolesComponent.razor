@@ -1,8 +1,8 @@
 ﻿@inject IJSRuntime JS
 
-<h3>Edit Roles</h3>
-<hr/>
-<br/>
+<h3 style="display: inline-block;">Edit Roles</h3>
+<img class="icon" src="_content/Valour.Client/media/Role-Icon.svg"/>
+<p class="subtitle">PLANET SETTINGS</p>
 
 <div class="settings-inner" id="edit-inner-settings">
 
@@ -83,9 +83,19 @@
     }
 
 
-    <div class="container" id="edit-rows-container" style="@normStyle">
+    <div id="edit-rows-container" style="@normStyle">
 
-        @foreach (PlanetRole role in Roles)
+        <p class="help-text">Use roles to assign permissions and group planet members.</p>
+
+        <div class="form-group mt-2 new-input-style">
+            <input class="form-control" placeholder="Search Roles" @bind="@searchRolesValue" @bind:event="oninput" />
+        </div>
+
+        <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
+
+        <p class="help-text">Keep in mind the highest role a user has is the color they will appear as.</p>
+
+        @foreach (PlanetRole role in Roles.Where(x => (searchRolesValue == "" || x.Name.Contains(searchRolesValue))))
         {
             // For magic lambda
             var role_x = role;
@@ -102,8 +112,6 @@
                 </p> 
             </div>
         }
-
-        <button class="mt-4 btn v-button" @onclick="OnClickCreateMode">Create a role</button>
 
     </div>
 </div>
@@ -132,6 +140,8 @@
     public string resultSpan = "";
 
     public string errorSpan = "";
+
+    public string searchRolesValue = "";
 
     public bool[] rolePermValues = new bool[PlanetPermissions.Permissions.Length];
 
