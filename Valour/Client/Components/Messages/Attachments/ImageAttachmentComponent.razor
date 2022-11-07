@@ -1,5 +1,5 @@
 ﻿<div class="image-attachment-wrapper">
-    <img style="@_style" class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+    <img style="@_style" class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
 </div>
 
 @code {
@@ -15,36 +15,33 @@
 
     protected override void OnInitialized()
     {
-        if (Attachment.Height > 300 || Attachment.Width > 300)
-        {
-            if (Attachment.Height > Attachment.Width)
-            {
-                float scalar = Attachment.Height / 300f;
-                float widthMax = Attachment.Width / scalar;
-
-                _style = $"max-width: {widthMax}px";
-            }
-            else
-            {
-                float scalar = Attachment.Width / 300f;
-                float heightMax = Attachment.Height / scalar;
-
-                _style = $"max-height: {heightMax}px";
-            }
-        }
+        LoadStyle(300f);
     }
 
-    public string GetCssClass()
+    public void LoadStyle(float maxSizePixels)
     {
-        if (enlarged)
-            return "enlarged";
+        float scalar;
+
+        if (Attachment.Height > Attachment.Width)
+            scalar = Attachment.Height / maxSizePixels;
         else
-            return "";
+            scalar = Attachment.Width / maxSizePixels;
+
+        float heightMax = Attachment.Height / scalar;
+        float widthMax = Attachment.Width / scalar;
+
+        _style = $"max-height: min({heightMax}px, 60vh); max-width: min({widthMax}px, 90%)";
     }
 
     public void OnClick()
     {
         enlarged = !enlarged;
+
+        if (enlarged)
+            LoadStyle(900f);
+        else
+            LoadStyle(300f);
+
         StateHasChanged();
     }
 }
