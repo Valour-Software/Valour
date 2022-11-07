@@ -1,4 +1,6 @@
-﻿<img style="@_style" class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+﻿<div class="image-attachment-wrapper">
+    <img style="@_style" class="@GetCssClass() attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+</div>
 
 @code {
     private bool enlarged = false;
