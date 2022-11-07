@@ -2,6 +2,7 @@
 
 export function setup(id, ref) {
     let input = {
+        id: id,
         dotnet: ref,
         currentWord: '',
         currentIndex: 0,
@@ -78,6 +79,12 @@ export function inputKeyDownHandler(e, input) {
             break;
         // Enter
         case 13: {
+
+            // Mobile uses submit button
+            if (mobile) {
+                break;
+            }
+
             // If shift key is down, do not submit on enter
             if (e.shiftKey) {
                 break;
@@ -92,11 +99,7 @@ export function inputKeyDownHandler(e, input) {
             else {
                 // prevent default behavior
                 e.preventDefault();
-                input.element.innerHTML = '';
-                
-                // Handle submission of message
-                input.dotnet.invokeMethodAsync('OnChatboxSubmit');
-                input.dotnet.invokeMethodAsync('OnCaretUpdate', '');
+                submitMessage(input.id);
             }
 
             break;
@@ -111,6 +114,16 @@ export function inputKeyDownHandler(e, input) {
             }
         }
     }
+}
+
+export function submitMessage(inputId) {
+    var input = inputs[inputId];
+
+    input.element.innerHTML = '';
+
+    // Handle submission of message
+    input.dotnet.invokeMethodAsync('OnChatboxSubmit');
+    input.dotnet.invokeMethodAsync('OnCaretUpdate', '');
 }
 
 // Handles the caret moving 
