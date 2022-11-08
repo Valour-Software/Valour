@@ -18,6 +18,10 @@
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <img class='upload' src="_content/Valour.Client/media/Plus-Icon.svg" onclick="document.getElementById('upload-core').click()" />
 
+            @if (DeviceInfo.IsMobile){
+                <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" @onclick="OnSubmitClick" />
+            }
+
             <div @ref='InnerInputRef' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
         </div>
@@ -347,6 +351,11 @@
     public async Task InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
         await _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
+    }
+
+    public async Task OnSubmitClick()
+    {
+        await _jsModule.InvokeVoidAsync("submitMessage", Window.Id);
     }
 
     // JS -> C#
