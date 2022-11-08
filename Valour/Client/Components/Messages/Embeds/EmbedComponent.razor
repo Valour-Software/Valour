@@ -22,7 +22,7 @@
 			{
 				<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
 			}
-			if (embed.Pages.Count > 1)
+			if (embed.Pages.Count > 1 && !embed.HideChangePageArrows)
 			{
 				if (embed.CurrentlyDisplayed.EmbedType == EmbedItemPlacementType.RowBased) 
 				{

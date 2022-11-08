@@ -182,6 +182,11 @@ public class Embed
 
     public int currentPage = 0;
 
+    /// <summary>
+    /// If true, hide the change page arrows at the bottom of the embed
+    /// </summary>
+    public bool HideChangePageArrows { get; set; }
+
     public bool KeepPageOnUpdate { get; set; }
 
     /// <summary>
@@ -226,6 +231,10 @@ public class Embed
             StartPage = (int)Node["StartPage"];
         else
             StartPage = 0;
+		if (Node["HideChangePageArrows"] is not null)
+			HideChangePageArrows = (bool)Node["HideChangePageArrows"];
+		else
+			HideChangePageArrows = false;
 		Pages = new();
         foreach(var pagenode in Node["Pages"].AsArray())
         {
