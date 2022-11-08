@@ -87,11 +87,19 @@
 
         <p class="help-text">Use roles to assign permissions and group planet members.</p>
 
+        @if (DeviceInfo.IsMobile)
+        {
+            <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
+        }
+
         <div class="form-group mt-2 new-input-style">
             <input class="form-control" placeholder="Search Roles" @bind="@searchRolesValue" @bind:event="oninput" />
         </div>
 
-        <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
+        @if (!DeviceInfo.IsMobile)
+        {
+            <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
+        }
 
         <p class="help-text">Keep in mind the highest role a user has is the color they will appear as. Drag roles to reorder them</p>
 

@@ -80,6 +80,17 @@ button {
     justify-content: space-between;
 }
 
+@media only screen and (max-width: 800px) {
+    .new-input-style input {
+        width: 87vw;
+    }
+
+    #CreateRole {
+        margin-left: 0px;
+        margin-bottom: 0px;
+    }
+}
+
 .roles-row {
     background-color: var(--main-4);
     cursor: pointer;

@@ -2,18 +2,38 @@
 @inject NavigationManager navManager
 @inject WindowManager windowManager
 
-<section>
+<section class="bigmenu-section">
     <CascadingValue Value="this">
         <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
         <div class="inner">
-            <div class="leftside">
-                @LeftSide
-            </div>
-            <div class="rightside">
-                <div class="inner-rightside">
-                    @RightSide
+            @if (DeviceInfo.IsMobile)
+            {
+                @if (ShowLeftSide)
+                {
+                    <div class="leftside">
+                        @LeftSide
+                    </div>
+                }
+                @if (ShowRightSide) 
+                {
+                    <div class="rightside">
+                        <div class="inner-rightside">
+                            @RightSide
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="leftside">
+                    @LeftSide
                 </div>
-            </div>
+                <div class="rightside">
+                    <div class="inner-rightside">
+                        @RightSide
+                    </div>
+                </div>
+            }
         </div>
     </CascadingValue>
 </section>
@@ -37,6 +57,9 @@
 
     public List<BigMenuTopLevelMenuComponent> TopLevelMenus = new();
 
+    public bool ShowLeftSide = true;
+    public bool ShowRightSide = false;
+
     public event Action RefreshRightSide;
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -53,7 +76,15 @@
 
     public async Task ClickEscape(MouseEventArgs e)
     {
-        await ModalInstance.CloseAsync();
+        if (!DeviceInfo.IsMobile || ShowLeftSide)
+        {
+            await ModalInstance.CloseAsync();
+        }
+        else
+        {
+            ShowLeftSide = true;
+            ShowRightSide = false;
+        }
     }
 
     public void Update()

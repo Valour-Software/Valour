@@ -44,6 +44,8 @@
     public async Task OnClick(MouseEventArgs e)
     {
         bigMenuTopLevelMenuComponent.bigMenuComponent.SelectedSubMenu = this;
+        bigMenuTopLevelMenuComponent.bigMenuComponent.ShowRightSide = true;
+        bigMenuTopLevelMenuComponent.bigMenuComponent.ShowLeftSide = false;
         bigMenuTopLevelMenuComponent.Refresh();
     }
 
