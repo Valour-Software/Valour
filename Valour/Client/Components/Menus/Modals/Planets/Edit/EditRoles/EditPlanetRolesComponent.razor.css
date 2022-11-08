@@ -44,29 +44,68 @@ button {
     margin-top: -3px !important;
 }
 
+.members-text {
+    display: inline-block;
+    margin-right: 50px;
+    margin-bottom: 10px;
+}
+
+.member-icon {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    margin-top: 8px;
+}
+
+.member-count {
+    margin-bottom: 0px;
+    margin-top: -19px;
+    margin-left: 17px;
+    font-size: 15px;
+}
+
+.role-name-div {
+    display: inline-block;
+}
+
+.role-member-count-div {
+    display: inline-block;
+    height: 22px;
+    opacity: 0.75;
+    margin-right: 33px;
+}
+
+.role-list-div-help-text {
+    display: flex;
+    justify-content: space-between;
+}
 
 .roles-row {
-    background-color: rgba(0, 0, 0, 0.15);
+    background-color: var(--main-4);
     cursor: pointer;
     user-select: none;
-    border-radius: 5px;
-    margin-right: 1px;
-    margin-left: 1px;
-    margin-top: 4px;
-    margin-bottom: 1px;
     border: 0px solid;
+    width: 94%;
+    display: flex;
+    justify-content: space-between;
 }
 
     .roles-row:hover {
         border: 1px solid;
-        margin-right: 0px;
-        margin-left: 0px;
-        margin-top: 3px;
-        margin-bottom: 0px;
     }
 
     .roles-row:active {
         background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .roles-row:first-child {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    .roles-row:last-child {
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
     }
 
 .roles-name {
