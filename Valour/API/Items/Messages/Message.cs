@@ -88,7 +88,7 @@ public abstract class Message : Item, ISharedMessage
     /// <summary>
     /// True if the embed data has been parsed
     /// </summary>
-    private bool embedParsed = false;
+    public bool embedParsed = false;
 
     /// <summary>
     /// The inner attachments data
@@ -192,7 +192,7 @@ public abstract class Message : Item, ISharedMessage
     /// </summary>
     public bool IsEmbed()
     {
-        if (EmbedData != null)
+        if (EmbedData != null || EmbedData == "")
         {
             return true;
         }

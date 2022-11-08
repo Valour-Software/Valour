@@ -33,7 +33,14 @@
 
     public void Refresh()
     {
-        Item = (EmbedInputBoxItem)_item;
+        if (!embedComponent.ProcessingPersonalEmbedUpdate)
+            Item = (EmbedInputBoxItem)_item;
+        else
+        {
+            string value = Item.Value;
+            Item = (EmbedInputBoxItem)_item;
+            Item.Value = value;
+        }
         StateHasChanged();
     }
 }

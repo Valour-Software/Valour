@@ -22,6 +22,8 @@ public class EmbedBuilder
     {
         embed = new();
         embed.Pages = new();
+        embed.KeepPageOnUpdate = true;
+        embed.StartPage = 0;
     }
 
     [JsonIgnore]

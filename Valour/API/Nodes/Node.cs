@@ -5,6 +5,7 @@ using Valour.Api.Client;
 using Valour.Api.Items;
 using Valour.Api.Items.Channels;
 using Valour.Api.Items.Messages;
+using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared;
 using Valour.Shared.Channels;
 using Valour.Shared.Items.Channels;
@@ -154,6 +155,7 @@ public class Node
         HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
         HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);
         HubConnection.On<ChannelWatchingUpdate>("Channel-Watching-Update", ValourClient.ChannelWatchingUpdateRecieved);
+        HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.PersonalEmbedUpdate);
 
         await Logger.Log("[Item Events]: Events hooked.", "yellow");
     }

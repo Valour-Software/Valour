@@ -175,7 +175,14 @@ public class Embed
     /// </summary>
     public string? Id { get; set; }
 
+    /// <summary>
+    /// The page that the embed starts on when it's loaded
+    /// </summary>
+    public int StartPage { get; set; }
+
     public int currentPage = 0;
+
+    public bool KeepPageOnUpdate { get; set; }
 
     /// <summary>
     /// The Version of the embed system
@@ -184,7 +191,7 @@ public class Embed
     {
         get
         {
-            return "1.0.0";
+            return "1.1.0";
         }
     }
 
@@ -211,7 +218,15 @@ public class Embed
     {
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
-        Pages = new();
+        if (Node["KeepPageOnUpdate"] is not null)
+            KeepPageOnUpdate = (bool)Node["KeepPageOnUpdate"];
+        else
+            KeepPageOnUpdate = false;
+        if (Node["StartPage"] is not null)
+            StartPage = (int)Node["StartPage"];
+        else
+            StartPage = 0;
+		Pages = new();
         foreach(var pagenode in Node["Pages"].AsArray())
         {
             var page = new EmbedPage();
