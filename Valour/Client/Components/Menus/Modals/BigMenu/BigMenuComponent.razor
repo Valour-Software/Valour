@@ -1,0 +1,94 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject WindowManager windowManager
+
+<section class="bigmenu-section">
+    <CascadingValue Value="this">
+        <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
+        <div class="inner">
+            @if (DeviceInfo.IsMobile)
+            {
+                @if (ShowLeftSide)
+                {
+                    <div class="leftside">
+                        @LeftSide
+                    </div>
+                }
+                @if (ShowRightSide) 
+                {
+                    <div class="rightside">
+                        <div class="inner-rightside">
+                            @RightSide
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="leftside">
+                    @LeftSide
+                </div>
+                <div class="rightside">
+                    <div class="inner-rightside">
+                        @RightSide
+                    </div>
+                </div>
+            }
+        </div>
+    </CascadingValue>
+</section>
+
+@code {
+    [Parameter]
+    public RenderFragment LeftSide { get; set; }
+
+    [Parameter]
+    public RenderFragment RightSide { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+
+    public BigMenuSubMenuComponent SelectedSubMenu = null;
+
+    public BigMenuTopLevelMenuComponent SelectedTopLevelMenu = null;
+
+    public List<BigMenuTopLevelMenuComponent> TopLevelMenus = new();
+
+    public bool ShowLeftSide = true;
+    public bool ShowRightSide = false;
+
+    public event Action RefreshRightSide;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            SelectedTopLevelMenu = TopLevelMenus.First();
+            SelectedSubMenu = SelectedTopLevelMenu.SubMenus.First();
+            StateHasChanged();
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    public async Task ClickEscape(MouseEventArgs e)
+    {
+        if (!DeviceInfo.IsMobile || ShowLeftSide)
+        {
+            await ModalInstance.CloseAsync();
+        }
+        else
+        {
+            ShowLeftSide = true;
+            ShowRightSide = false;
+        }
+    }
+
+    public void Update()
+    {
+        RefreshRightSide?.Invoke();
+    }
+}

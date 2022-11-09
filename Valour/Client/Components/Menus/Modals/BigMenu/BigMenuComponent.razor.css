@@ -1,0 +1,83 @@
+﻿@media only screen and (min-width: 800px) {
+    
+}
+
+section {
+    width: 1007px;
+    height: 639px;
+}
+
+.inner {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    top: -22px;
+}
+
+@media only screen and (min-width: 800px) {
+    .leftside {
+        width: 336px;
+        height: 639px;
+        border-bottom-left-radius: 20px;
+        border-top-left-radius: 20px;
+    }
+
+    .rightside {
+        width: 671px;
+        height: 639px;
+        padding-left: 20px;
+        padding-right: 20px;
+        border-bottom-right-radius: 20px;
+        border-top-right-radius: 20px;
+    }
+
+    .inner-rightside {
+        height: 619px;
+    }
+}
+
+@media only screen and (max-width: 800px) {
+    .leftside, .rightside {
+        width: 100vw;
+        height: 100vh;
+    }
+    .bigmenu-section {
+        position: absolute;
+        left: 0px;
+        top: 0px;
+    }
+    .inner-rightside {
+        height: calc(100vh - 20px);
+        padding: 20px;
+        overflow-x: hidden;
+    }
+}
+
+.leftside {
+    background-color: var(--main-2);
+    display: inline-flex;
+}
+
+.rightside {
+    background-color: var(--main-3);
+}
+
+    .inner-rightside {
+        background-color: var(--main-3);
+        overflow-y: scroll;
+        margin-top: 20px;
+    }
+
+    *::-webkit-scrollbar-track {
+        background-color: var(--main-3) !important;
+    }
+
+    .escape-button {
+        position: relative;
+        top: 17px;
+        left: 15px;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        z-index: 10000;
+    }

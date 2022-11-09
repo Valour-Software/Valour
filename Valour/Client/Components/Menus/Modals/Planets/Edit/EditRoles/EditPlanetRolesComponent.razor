@@ -1,8 +1,8 @@
 ﻿@inject IJSRuntime JS
 
-<h3>Edit Roles</h3>
-<hr/>
-<br/>
+<h3 style="display: inline-block;">Edit Roles</h3>
+<img class="icon" src="_content/Valour.Client/media/Role-Icon.svg"/>
+<p class="subtitle">PLANET SETTINGS</p>
 
 <div class="settings-inner" id="edit-inner-settings">
 
@@ -83,28 +83,57 @@
     }
 
 
-    <div class="container" id="edit-rows-container" style="@normStyle">
+    <div id="edit-rows-container" style="@normStyle">
 
-        @foreach (PlanetRole role in Roles)
+        <p class="help-text">Use roles to assign permissions and group planet members.</p>
+
+        @if (DeviceInfo.IsMobile)
         {
-            // For magic lambda
-            var role_x = role;
-
-            <div  
-                @onpointerdown='e => OnRoleItemClick(role_x)' 
-                @ondragstart='() => OnRoleDrag(role_x)' 
-                @ondrop='async () => await OnRoleDrop(role_x)' 
-                draggable="true"
-                ondragover="event.preventDefault();" 
-                style='border-color: @role.GetColorHex()' class='roles-row' @onclick="() => OnClickEdit(role_x)">
-                <p class='roles-name' style="color:@role.GetColorHex()">
-                        @role.Name
-                </p> 
-            </div>
+            <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
         }
 
-        <button class="mt-4 btn v-button" @onclick="OnClickCreateMode">Create a role</button>
+        <div class="form-group mt-2 new-input-style">
+            <input class="form-control" placeholder="Search Roles" @bind="@searchRolesValue" @bind:event="oninput" />
+        </div>
 
+        @if (!DeviceInfo.IsMobile)
+        {
+            <button class="btn btn-primary mt-2" @onclick="OnClickCreateMode" id="CreateRole">Create Role</button>
+        }
+
+        <p class="help-text">Keep in mind the highest role a user has is the color they will appear as. Drag roles to reorder them</p>
+
+        <div class="role-list-div-help-text">
+            <p class="help-text" style="display: inline-block;margin-bottom: 10px;">Roles: @Roles.Count</p>
+
+            <p class="help-text members-text">Members</p>
+        </div>
+
+        <div class="roles-list">
+            @foreach (PlanetRole role in Roles.Where(x => (searchRolesValue == "" || x.Name.Contains(searchRolesValue))))
+            {
+                // For magic lambda
+                var role_x = role;
+
+                <div  
+                    @onpointerdown='e => OnRoleItemClick(role_x)' 
+                    @ondragstart='() => OnRoleDrag(role_x)' 
+                    @ondrop='async () => await OnRoleDrop(role_x)' 
+                    draggable="true"
+                    ondragover="event.preventDefault();" 
+                    class='roles-row' @onclick="() => OnClickEdit(role_x)">
+                    <div class="role-name-div">
+                        <p class='roles-name' style="color:@role.GetColorHex()">
+                                @role.Name
+                        </p>
+                    </div>
+                    <div class="role-member-count-div">
+                        <img class="member-icon" src="_content/Valour.Client/media/Person-Icon.svg" />
+                        <p class="member-count">@RoleMemberCounts[role.Id]</p>
+                    </div>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
@@ -113,7 +142,9 @@
     [Parameter]
     public Planet Planet { get; set; }
 
-    public List<PlanetRole> Roles = new List<PlanetRole>();
+    public List<PlanetRole> Roles = new();
+
+    public Dictionary<long, int> RoleMemberCounts = new();
 
     // Stuff for role creation //
 
@@ -132,6 +163,8 @@
     public string resultSpan = "";
 
     public string errorSpan = "";
+
+    public string searchRolesValue = "";
 
     public bool[] rolePermValues = new bool[PlanetPermissions.Permissions.Length];
 
@@ -199,8 +232,29 @@
     {
         Roles = await Planet.GetRolesAsync();
 
+        await UpdateRoleMemberCount();
+
         ItemObserver<PlanetRole>.OnAnyUpdated += OnRolesUpdate;
         ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+
+        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
+    }
+
+    public async Task UpdateRoleMemberCount()
+    {
+        var Members = await Planet.GetMembersAsync();
+        foreach (var role in Roles)
+        {
+            RoleMemberCounts[role.Id] = 0;
+        }
+        foreach (var member in Members)
+        {
+            var memberroles = await member.GetRolesAsync();
+            foreach(var role in memberroles)
+            {
+                RoleMemberCounts[role.Id] += 1;
+            }
+        }
     }
 
 
@@ -217,6 +271,15 @@
         editMode = false;
 
         StateHasChanged();
+    }
+
+    public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
+    {
+        if (member.PlanetId == Planet.Id)
+        {
+            await UpdateRoleMemberCount();
+            StateHasChanged();
+        }
     }
 
     public async Task OnClickEdit(PlanetRole editRole)
