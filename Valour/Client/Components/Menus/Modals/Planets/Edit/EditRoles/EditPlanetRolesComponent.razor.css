@@ -53,15 +53,22 @@ button {
 .member-icon {
     width: 16px;
     height: 16px;
-    display: inline-block;
-    margin-top: 8px;
+    margin-top: -2px;
+    margin-left: -2px;
+}
+
+@media only screen and (max-width: 800px) {
+    .member-icon {
+        margin-top: -4px;
+    }
 }
 
 .member-count {
     margin-bottom: 0px;
-    margin-top: -19px;
-    margin-left: 17px;
+    margin-top: 7px;
+    margin-left: 10px;
     font-size: 15px;
+    display: inline-block;
 }
 
 .role-name-div {
