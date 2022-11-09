@@ -74,6 +74,17 @@ public class EmbedFormItem : EmbedItem
                 }
                 data.Add(DataItem);
             }
+            if (item.ItemType == EmbedItemType.DropDownMenu)
+            {
+				EmbedFormData DataItem = new()
+				{
+					ElementId = item.Id,
+					Value = item.Value,
+					Type = item.ItemType
+				};
+
+				data.Add(DataItem);
+			}
         }
         return data;
     }

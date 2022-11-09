@@ -12,7 +12,9 @@ public enum EmbedItemType
     TextArea = 4,
     ProgressBar = 5,
     Form = 6,
-    GoTo = 7
+    GoTo = 7,
+    DropDownItem = 8,
+    DropDownMenu = 9
 }
 
 public interface IEmbedFormItem
@@ -27,6 +29,8 @@ public interface IEmbedFormItem
 [JsonDerivedType(typeof(EmbedButtonItem), typeDiscriminator: 3)]
 [JsonDerivedType(typeof(EmbedFormItem), typeDiscriminator: 4)]
 [JsonDerivedType(typeof(EmbedInputBoxItem), typeDiscriminator: 5)]
+[JsonDerivedType(typeof(EmbedDropDownMenuItem), typeDiscriminator: 6)]
+[JsonDerivedType(typeof(EmbedDropDownItem), typeDiscriminator: 7)]
 public class EmbedItem
 {
     public EmbedItemType ItemType { get; set; }

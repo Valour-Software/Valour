@@ -16,6 +16,8 @@ public class EmbedBuilder
 
     public EmbedFormItem FormItem;
 
+    public EmbedDropDownMenuItem DropDownMenu;
+
     public EmbedGoTo GoTo = new();
 
     public EmbedBuilder()
@@ -234,4 +236,38 @@ public class EmbedBuilder
         AddItem(item, x, y);
         return this;
     }
+
+	public EmbedBuilder AddDropDownMenu(string id, string value = "", int? x = null, int? y = null)
+	{
+		var item = new EmbedDropDownMenuItem()
+		{
+			Id = id,
+            Value = value
+		};
+
+        DropDownMenu = item;
+
+		AddItem(item, x, y);
+		return this;
+	}
+
+    public EmbedBuilder EndDropDownMenu()
+    {
+        DropDownMenu = null;
+        return this;
+    }
+
+	public EmbedBuilder AddDropDownItem(string text = null, string textColor = null)
+	{
+        if (DropDownMenu is null)
+			throw new ArgumentException("You can not add a dropdown item without a drop down menu!");
+		var item = new EmbedDropDownItem()
+		{
+			Text = text,
+            TextColor = textColor
+		};
+
+		DropDownMenu.Items.Add(item);
+		return this;
+	}
 }

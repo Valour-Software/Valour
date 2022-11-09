@@ -208,7 +208,9 @@ public class Embed
             EmbedItemType.Text => node.Deserialize<EmbedTextItem>(),
             EmbedItemType.Form => new EmbedFormItem(node, embed),
             EmbedItemType.Button => node.Deserialize<EmbedButtonItem>(),
-            EmbedItemType.InputBox => node.Deserialize<EmbedInputBoxItem>()
+            EmbedItemType.InputBox => node.Deserialize<EmbedInputBoxItem>(),
+            EmbedItemType.DropDownItem => node.Deserialize<EmbedDropDownItem>(),
+            EmbedItemType.DropDownMenu => node.Deserialize<EmbedDropDownMenuItem>()
         };
         item.Embed = embed;
         return item;
