@@ -3,7 +3,6 @@
 }
 
 section {
-    width: 1007px;
     height: 639px;
 }
 
@@ -11,7 +10,6 @@ section {
     position: relative;
     display: flex;
     justify-content: space-between;
-    top: -22px;
 }
 
 @media only screen and (min-width: 800px) {
@@ -31,8 +29,16 @@ section {
         border-top-right-radius: 20px;
     }
 
+    .inner {
+        left: 16px;
+    }
+
     .inner-rightside {
         height: 619px;
+    }
+
+    section {
+        width: 1007px;
     }
 }
 
@@ -51,6 +57,12 @@ section {
         padding: 20px;
         overflow-x: hidden;
     }
+
+    .inner {
+        width: 100%;
+        top: -16px;
+    }
+
 }
 
 .leftside {
@@ -75,7 +87,8 @@ section {
     .escape-button {
         position: relative;
         top: 17px;
-        left: 15px;
+        float: right;
+        right: 17px;
         width: 16px;
         height: 16px;
         cursor: pointer;
