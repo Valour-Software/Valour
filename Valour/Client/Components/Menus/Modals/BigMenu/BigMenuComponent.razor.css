@@ -57,6 +57,12 @@ section {
         padding: 20px;
         overflow-x: hidden;
     }
+
+    .inner {
+        width: 100%;
+        top: -16px;
+    }
+
 }
 
 .leftside {
