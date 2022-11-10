@@ -8,26 +8,26 @@
     cursor: pointer;
 }
 
-    .sub-menu .icon {
-        width: 14px;
-        height: 14px;
-        display: inline-block;
-        margin-left: 9.5px;
-        margin-top: 8px;
-    }
-    .sub-menu p {
-        margin-left: 7.5px;
-        display: inline-block;
-        margin-top: 5px;
-        font-weight: 400;
-        font-size: 18px;
-        line-height: 21px;
-    }
+.sub-menu .icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    margin-left: 9.5px;
+    margin-top: 8px;
+}
+.sub-menu p {
+    margin-left: 7.5px;
+    display: inline-block;
+    margin-top: 5px;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 21px;
+}
 
-    .sub-menu:hover {
-        background-color: #151E26;
-    }
+.sub-menu:hover {
+    background-color: #151E26;
+}
 
-    .sub-menu.selected {
-        background-color: #293138;
-    }
+.sub-menu.selected {
+    background-color: #293138;
+}
