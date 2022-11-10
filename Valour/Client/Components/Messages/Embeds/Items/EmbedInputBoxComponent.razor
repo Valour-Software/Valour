@@ -33,7 +33,7 @@
 
     public void Refresh()
     {
-        if (!embedComponent.ProcessingPersonalEmbedUpdate)
+        if (!embedComponent.ProcessingPersonalEmbedUpdate || (Item.KeepValueOnUpdate is not null && !(bool)Item.KeepValueOnUpdate))
             Item = (EmbedInputBoxItem)_item;
         else
         {

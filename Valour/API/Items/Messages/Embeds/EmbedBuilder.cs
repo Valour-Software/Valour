@@ -201,7 +201,7 @@ public class EmbedBuilder
     /// this will add a inputbox item to the current form.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, EmbedItemSize size = EmbedItemSize.Normal, string namecolor = null, string value = null, int? x = null, int? y = null)
+    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, EmbedItemSize size = EmbedItemSize.Normal, string namecolor = null, string value = null, bool? keepvalueonupdate = null, int? x = null, int? y = null)
     {
         var item = new EmbedInputBoxItem()
         {
@@ -210,7 +210,8 @@ public class EmbedBuilder
             Size = size,
             Placeholder = placeholder,
             Name = name,
-            NameColor = namecolor
+            NameColor = namecolor,
+            KeepValueOnUpdate = keepvalueonupdate
         };
 
         AddItem(item, x, y);
