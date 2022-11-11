@@ -1,31 +1,28 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
+@implements IDisposable
 
-
-<div class="settings-modal container">
-    <div class="row settings-row">
-        <div class="col-md-3 mb-5 mb-md-0 edit-col-left">
-            <b>@GetTitle()</b>
-            <hr />
-            <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
-            <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Permissions</div>
-        </div>
-        <div class="col-md-9 edit-col-right">
-            @switch (selected)
-            {
-                case 0:
-                    <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
-                    break;
-                case 1:
-                    <EditCLIPermissionsComponent Target="ChannelListItem"></EditCLIPermissionsComponent>
-                    break;
-                default:
-                    break;
-
-            }
-        </div>
-    </div>
-</div>
+<BigMenuComponent @ref="bigMenuComponent">
+    <LeftSide>
+        <EditChannelListItemMenuComponent ChannelListItem="ChannelListItem" isChannel="isChannel"></EditChannelListItemMenuComponent>
+    </LeftSide>
+    <RightSide>
+        @switch (bigMenuComponent.SelectedTopLevelMenu?.Name)
+        {
+            case "General Settings":
+                switch (bigMenuComponent.SelectedSubMenu.Name)
+                {
+                    case "Info":
+                        <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
+                        break;
+                    case "Permissions":
+                        <EditCLIPermissionsComponent Target="ChannelListItem"></EditCLIPermissionsComponent>
+                        break;
+                }
+                break;
+        }
+    </RightSide>
+</BigMenuComponent>
 
 @code {
     [Parameter]
@@ -35,6 +32,27 @@
     public PlanetChatChannel Channel;
     public PlanetCategoryChannel Category;
 
+    public BigMenuComponent bigMenuComponent { get; set; }
+
+    public void Dispose()
+    {
+        bigMenuComponent.RefreshRightSide -= Refresh;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            bigMenuComponent.RefreshRightSide += Refresh;
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
 
     public string GetTitle()
     {

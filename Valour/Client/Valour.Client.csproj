@@ -19,6 +19,7 @@
     <None Remove="Components\Menus\Modals\BigMenu\BigMenuComponent.razor.css" />
     <None Remove="Components\Menus\Modals\BigMenu\BigMenuSubMenuComponent.razor.css" />
     <None Remove="Components\Menus\Modals\BigMenu\BigMenuTopLevelMenuComponent.razor.css" />
+    <None Remove="Components\Menus\Modals\Channels\Edit\EditChannelListItemMenuComponent.razor.css" />
     <None Remove="Components\Menus\Modals\Planets\Edit\EditPlanetMenuComponent.razor.css" />
     <None Remove="Components\Windows\ChannelWindows\InputComponent.razor.js" />
   </ItemGroup>
@@ -28,6 +29,7 @@
     <Content Include="Components\Menus\Modals\BigMenu\BigMenuComponent.razor.css" />
     <Content Include="Components\Menus\Modals\BigMenu\BigMenuSubMenuComponent.razor.css" />
     <Content Include="Components\Menus\Modals\BigMenu\BigMenuTopLevelMenuComponent.razor.css" />
+    <Content Include="Components\Menus\Modals\Channels\Edit\EditChannelListItemMenuComponent.razor.css" />
     <Content Include="Components\Menus\Modals\Planets\Edit\EditPlanetMenuComponent.razor.css" />
     <Content Include="Components\Windows\ChannelWindows\InputComponent.razor.js" />
   </ItemGroup>

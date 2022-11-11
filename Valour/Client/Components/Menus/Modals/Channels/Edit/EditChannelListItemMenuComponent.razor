@@ -1,0 +1,32 @@
+﻿<section>
+    <p class="channel-name">@ChannelListItem.Name</p>
+    <p class="channel-settings">@SettingTitle</p>
+
+    <div class="menu">
+        <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
+            <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Info"></BigMenuSubMenuComponent>
+            <BigMenuSubMenuComponent Icon="Role-Icon.svg" Name="Permissions"></BigMenuSubMenuComponent>
+        </BigMenuTopLevelMenuComponent>
+    </div>
+</section>
+@code {
+    [Parameter]
+    public PlanetChannel ChannelListItem { get; set; }
+
+    [Parameter]
+    public bool isChannel { get; set; }
+
+    public string SettingTitle
+    { 
+        get {
+            if (isChannel)
+            {
+                return "CHANNEL SETTINGS";
+            }
+            else
+            {
+                return "CATEGORY SETTINGS";
+            }
+        }
+    }
+}
