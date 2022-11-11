@@ -6,6 +6,8 @@ public class EmbedTextItem : EmbedItem
     public string? TextColor { get; set; } = "eeeeee";
     public string? Link { get; set; }
     public string? Text { get; set; }
+    public bool? UnderLineText { get; set; }
+    public bool? UnderLineName{ get; set; }
     public bool? IsNameClickable { get; set; }
 
     public EmbedTextItem()
@@ -13,7 +15,7 @@ public class EmbedTextItem : EmbedItem
         ItemType = EmbedItemType.Text;
     }
 
-    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, string? onclickeventname = null, int? x = null, int? y = null)
+    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, string? onclickeventname = null, bool? underlinetext = null, bool? underlinename = null, int? x = null, int? y = null)
     {
         Name = name;
         Text = text;
@@ -24,5 +26,7 @@ public class EmbedTextItem : EmbedItem
         ItemType = EmbedItemType.Text;
         IsNameClickable = isnameclickable;
         OnClickEventName = onclickeventname;
+        UnderLineText = underlinetext;
+        UnderLineName = underlinename;
     }
 }
