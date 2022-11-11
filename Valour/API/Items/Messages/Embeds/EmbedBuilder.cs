@@ -223,7 +223,7 @@ public class EmbedBuilder
     /// this will add a text item to the current page/form.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddText(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, int? x = null, int? y = null)
+    public EmbedBuilder AddText(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, string? onclickeventname = null, int? x = null, int? y = null)
     {
         var item = new EmbedTextItem()
         {
@@ -231,7 +231,8 @@ public class EmbedBuilder
             Text = text,
             TextColor = textColor,
             Link = link,
-            IsNameClickable = isnameclickable
+            IsNameClickable = isnameclickable,
+            OnClickEventName = onclickeventname
         };
 
         AddItem(item, x, y);

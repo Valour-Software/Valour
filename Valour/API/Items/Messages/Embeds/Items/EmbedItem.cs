@@ -49,6 +49,11 @@ public class EmbedItem
 
     public int? Page { get; set; }
 
+    /// <summary>
+	/// If not null, what will the event name be for when a user clicks on this text item
+	/// </summary>
+    public string? OnClickEventName { get; set; }
+
     [JsonIgnore]
     public Embed Embed { get; set; }
 

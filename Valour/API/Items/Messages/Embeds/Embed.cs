@@ -149,9 +149,10 @@ public class EmbedPage
         {
             int? height = Height;
             int? width = Width;
-            height += 32;
+            if (!embed.HideChangePageArrows && embed.Pages.Count > 1)
+                height += 32;
             if (Title is not null)
-                height += 42;
+                height += 36;
             style += $"height: calc(2rem + {height}px);width: calc(2rem + {width}px);";
         }
         return style;

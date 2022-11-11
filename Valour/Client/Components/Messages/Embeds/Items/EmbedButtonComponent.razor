@@ -66,7 +66,7 @@
             return;
         }
 
-        Api.Items.Messages.Embeds.EmbedInteractionEvent interaction = new Valour.Api.Items.Messages.Embeds.EmbedInteractionEvent()
+        var interaction = new EmbedInteractionEvent()
         {
             EventType = EmbedIteractionEventType.ButtonClick,
             MessageId = Message.Message.Id,

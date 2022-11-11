@@ -5,7 +5,7 @@
 	{
 		@if (item.Name != null)
 		{
-			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
+			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;cursor: pointer;" @onclick="(async () => {await OnEmbedButtonClick();})">
 				@((MarkupString)MarkdownManager.GetHtml(item.Name))
 			</div>
 		}
@@ -27,7 +27,7 @@
 		{
 			@if (item.Text is not null)
 			{
-				@if (item.HasGoTo)
+				@if (item.HasGoTo || item.OnClickEventName is not null)
 				{
 					<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
 				}
@@ -62,7 +62,7 @@
 
 	public async Task OnEmbedButtonClick()
 	{
-		if (item.Page != null)
+		if (item.Page is not null || item.OnClickEventName is not null)
 		{
 			ProcessClick = true;
 			return;
