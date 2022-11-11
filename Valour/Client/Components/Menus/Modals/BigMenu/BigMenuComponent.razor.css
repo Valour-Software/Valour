@@ -2,6 +2,11 @@
     
 }
 
+.bigmenu-section {
+    width: 1000px;
+    max-width: 90vw;
+}
+
 section {
     height: 639px;
 }
@@ -10,6 +15,40 @@ section {
     position: relative;
     display: flex;
     justify-content: space-between;
+    align-items: center;
+}
+
+.escape-button {
+    position: relative;
+    top: 17px;
+    right: 17px;
+    float: right;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    z-index: 10000;
+}
+
+.leftside {
+    min-width: 300px;
+    min-height: 450px;
+    background-color: var(--main-2);
+    display: inline-flex;
+}
+
+.rightside {
+    min-width: 300px;
+    background-color: var(--main-3);
+}
+
+.inner-rightside {
+    background-color: var(--main-3);
+    overflow-y: auto;
+    margin-top: 20px;
+}
+
+*::-webkit-scrollbar-track {
+    background-color: var(--main-3) !important;
 }
 
 @media only screen and (min-width: 800px) {
@@ -34,7 +73,9 @@ section {
     }
 
     .inner-rightside {
-        height: 619px;
+        margin-top: 50px;
+        padding-right: 10px;
+        height: 589px;
     }
 
     section {
@@ -44,53 +85,76 @@ section {
 
 @media only screen and (max-width: 800px) {
     .leftside, .rightside {
+        width: 80vw;
+        height: 50vh;
+    }
+
+    .escape-button {
+        top: 5vh;
+        right: 14vw;
+    }
+
+    .leftside {
+        margin-top:20px;
+        border-radius: 50px 50px 0px 0px;
+    }
+
+    .rightside {
+        margin-bottom: 20px;
+        border-radius: 0px 0px 50px 50px;
+    }
+
+    .mobile .leftside {
+        margin-top: 0;
+        border-radius: 0;
+    }
+
+    .mobile .rightside {
+        margin-bottom: 0;
+        border-radius: 0;
+    }
+
+    .mobile .leftside, .mobile .rightside {
         width: 100vw;
         height: 100vh;
     }
+
+    .mobile .escape-button {
+        margin-top: 0;
+        margin-right: 0;
+        top: 17px;
+        right: 17px;
+    }
+
     .bigmenu-section {
         position: absolute;
         left: 0px;
         top: 0px;
+        width: auto;
+        max-width: none;
     }
+
     .inner-rightside {
-        height: calc(100vh - 20px);
         padding: 20px;
+        padding-bottom: 240px;
         overflow-x: hidden;
+        border-radius: 0px 0px 50px 50px;
+    }
+
+    .mobile .inner-rightside {
+        height: calc(100vh - 20px);
+        padding-bottom: 20px;
+        border-radius: 0;
+    }
+
+    .mobile .inner-rightside {
+        border-radius: 0px;
     }
 
     .inner {
-        width: 100%;
+        flex-direction: column;
+        width: 100vw;
         top: -16px;
     }
 
 }
-
-.leftside {
-    background-color: var(--main-2);
-    display: inline-flex;
-}
-
-.rightside {
-    background-color: var(--main-3);
-}
-
-    .inner-rightside {
-        background-color: var(--main-3);
-        overflow-y: scroll;
-        margin-top: 20px;
-    }
-
-    *::-webkit-scrollbar-track {
-        background-color: var(--main-3) !important;
-    }
-
-    .escape-button {
-        position: relative;
-        top: 17px;
-        float: right;
-        right: 17px;
-        width: 16px;
-        height: 16px;
-        cursor: pointer;
-        z-index: 10000;
-    }

@@ -5,22 +5,22 @@
     height: 33px;
 }
 
-    .toplevel-menu-top .icon {
-        margin-left: 8px;
-        width: 18px;
-        height: 18px;
-        display: inline-block;
-        margin-top: 8px;
-    }
+.toplevel-menu-top .icon {
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    margin-top: 8px;
+}
 
-    .toplevel-menu-top p {
-        margin-left: 12px;
-        display: inline-block;
-        margin-top: 6px;
-        font-weight: 400;
-        font-size: 18px;
-        line-height: 21px;
-    }
+.toplevel-menu-top p {
+    margin-left: 12px;
+    display: inline-block;
+    margin-top: 6px;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 21px;
+}
 
 .toplevel-menu {
     width: 269px;
