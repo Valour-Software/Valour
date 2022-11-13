@@ -78,7 +78,7 @@ public class EmbedItem
                 y = 0;
             if (Embed.CurrentlyDisplayed.Title is not null)
                 y += 42;
-            style += $"position: absolute;left: calc(1rem + {x+59}px);top: calc(1rem + {y}px);width: fit-content";
+            style += $"position: absolute;left: calc(1rem + {x+59}px);top: calc(1rem + {y}px);max-width: {Embed.CurrentlyDisplayed.Width-x+16}px;";
         }
         else
         {
