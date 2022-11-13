@@ -30,7 +30,7 @@ public class EmbedFormItem : EmbedItem
 
     public EmbedFormItem()
     {
-        ItemType = EmbedItemType.Form;
+        ItemType = EmbedItemType.Form;    
     }
 
     public EmbedFormItem(EmbedItemPlacementType type, string id, int? width = null, int? height = null)
@@ -40,6 +40,16 @@ public class EmbedFormItem : EmbedItem
         ItemType = EmbedItemType.Form;
         Width = width;
         Height = height;
+    }
+
+    public EmbedItem GetLastItem()
+    {
+        if (ItemPlacementType == EmbedItemPlacementType.RowBased) {
+            return Rows.Last().Items.Last();
+        }
+        else {
+            return Items.Last();
+        }
     }
 
     public List<EmbedFormData> GetFormData()
@@ -99,6 +109,7 @@ public class EmbedFormItem : EmbedItem
             Width = (int?)Node["Width"];
             Height = (int?)Node["Height"];
         }
+        Rows = new();
         switch (ItemPlacementType)
         {
             case EmbedItemPlacementType.FreelyBased:
@@ -114,7 +125,6 @@ public class EmbedFormItem : EmbedItem
             case EmbedItemPlacementType.RowBased:
                 if (Node["Rows"] is not null && Node["Items"] is null)
                 {
-                    Rows = new();
                     foreach (var rownode in Node["Rows"].AsArray())
                     {
                         EmbedRow rowobject = new();

@@ -201,6 +201,29 @@ public class Embed
         }
     }
 
+    public EmbedItem GetLastItem(bool InsideofForms)
+    {
+        var page = Pages.Last();
+        if (page.EmbedType == EmbedItemPlacementType.RowBased) {
+            var item = page.Rows.Last().Items.Last();
+            if (InsideofForms) {
+                if (item.ItemType == EmbedItemType.Form) {
+                    return ((EmbedFormItem)item).GetLastItem();
+                }
+            }
+            return item;
+        }
+        else {
+            var item = page.Items.Last();
+            if (InsideofForms) {
+                if (item.ItemType == EmbedItemType.Form) {
+                    return ((EmbedFormItem)item).GetLastItem();
+                }
+            }
+            return item;
+        }
+    }
+
     internal static EmbedItem ConvertNodeToEmbedItem(JsonNode node, Embed embed)
     {
         var type = (EmbedItemType)(int)node["ItemType"];
