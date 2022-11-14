@@ -1,0 +1,62 @@
+﻿@implements IDisposable
+
+<div style="@item.GetStyle()" class="embed-item">
+	<div class="dropdown-center">
+		<button class="btn btn-secondary dropdown-toggle" style="background-color: rgba(0, 0, 0, 0.3);border-color: rgba(255, 255, 255, 0.1);" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+			<div style="display: inline-block;color: #@TextColor">@((MarkupString)MarkdownManager.GetHtml(Tip))</div>
+		</button>
+		<ul class="dropdown-menu dropdown-menu-dark">
+			@foreach(var dropdownitem in item.Items) {
+				<li>
+					<a class="dropdown-item nohide" href="#" style="color: #@dropdownitem.TextColor" @onclick="e => HandleSelect(dropdownitem)">@((MarkupString)MarkdownManager.GetHtml(dropdownitem.Text))</a>
+				</li>
+			}
+		</ul>
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public EmbedItem _item { get; set; }
+
+	public EmbedDropDownMenuItem item { get; set; }
+
+	[CascadingParameter]
+	public EmbedComponent embedComponent { get; set; }
+
+	public string TextColor = "ffffff";
+
+	private string Tip;
+
+	protected override void OnInitialized()
+	{
+		item = (EmbedDropDownMenuItem)_item;
+		embedComponent.RefreshItemComponents += Refresh;
+		Tip = item.Value;
+	}
+
+	public async Task HandleSelect(EmbedDropDownItem dropdownitem)
+	{
+		Tip = dropdownitem.Text;
+		item.Value = dropdownitem.Text;
+		TextColor = dropdownitem.TextColor;
+	}
+
+	public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+    }
+
+	public void Refresh()
+	{
+		if (!embedComponent.ProcessingPersonalEmbedUpdate)
+			item = (EmbedDropDownMenuItem)_item;
+		else
+		{
+			string value = item.Value;
+			item = (EmbedDropDownMenuItem)_item;
+			item.Value = value;
+		}
+		StateHasChanged();
+	}
+}

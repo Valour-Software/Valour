@@ -5,7 +5,7 @@
 	{
 		@if (item.Name != null)
 		{
-			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
+			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;cursor: pointer;@NameStyle" @onclick="(async () => {await OnEmbedButtonClick();})">
 				@((MarkupString)MarkdownManager.GetHtml(item.Name))
 			</div>
 		}
@@ -13,12 +13,12 @@
 	else {
 		@if (item.Name != null)
 		{
-			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;">
+			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;@NameStyle">
 				@((MarkupString)MarkdownManager.GetHtml(item.Name))
 			</div>
 		}
 	}
-	<div style="color:#@item.TextColor;font-size:14px;" @onclick="(async () => {await OnEmbedButtonClick();})">
+	<div style="color:#@item.TextColor;font-size:14px;@TextStyle" @onclick="(async () => {await OnEmbedButtonClick();})">
 		@if (item.Href != null)
 		{
 			<a href="@item.Href" class="nohide" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
@@ -27,7 +27,7 @@
 		{
 			@if (item.Text is not null)
 			{
-				@if (item.HasGoTo)
+				@if (item.HasGoTo || item.OnClickEventName is not null)
 				{
 					<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
 				}
@@ -48,6 +48,24 @@
 	[CascadingParameter]
 	public EmbedComponent embedComponent { get; set; }
 
+	public string NameStyle {
+		get {
+			if (item.UnderLineName is not null) {
+				return "text-decoration-line: underline;";
+			}
+			return "";
+		}
+	}
+
+	public string TextStyle {
+		get {
+			if (item.UnderLineText is not null) {
+				return "text-decoration-line: underline;";
+			}
+			return "";
+		}
+	}
+
 	private bool ProcessClick = false;
 
 	protected override Task OnAfterRenderAsync(bool firstRender)
@@ -62,7 +80,7 @@
 
 	public async Task OnEmbedButtonClick()
 	{
-		if (item.Page != null)
+		if (item.Page is not null || item.OnClickEventName is not null)
 		{
 			ProcessClick = true;
 			return;

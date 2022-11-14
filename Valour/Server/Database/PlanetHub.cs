@@ -408,6 +408,9 @@ namespace Valour.Server.Database
         public static async void NotifyDirectMessageDeletion(DirectMessage message, long targetUserId) =>
             await Current.Clients.Group($"u-{targetUserId}").SendAsync("DeleteMessage", message);
 
+        public static async void NotifyPersonalEmbedUpdateEvent(PersonalEmbedUpdate u) =>
+            await Current.Clients.Group($"u-{u.TargetUserId}").SendAsync("Personal-Embed-Update", u);
+
         public static async Task NotifyUserChange(User user, ValourDB db, int flags = 0)
         {
             var members = await db.PlanetMembers.Where(x => x.UserId == user.Id).ToListAsync();

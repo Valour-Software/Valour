@@ -1,3 +1,6 @@
+@implements IDisposable
+@using Valour.Api.Items.Messages
+
 @if (embed is null)
 {
 	return;
@@ -19,7 +22,7 @@
 			{
 				<EmbedItemComponent embed="@embed" Message="@Message" item="@item"></EmbedItemComponent>
 			}
-			if (embed.Pages.Count > 1)
+			if (embed.Pages.Count > 1 && !embed.HideChangePageArrows)
 			{
 				if (embed.CurrentlyDisplayed.EmbedType == EmbedItemPlacementType.RowBased) 
 				{
@@ -51,8 +54,8 @@
 
 @code {
 
-	[Parameter]
-	public Embed embed { get; set; }
+	[CascadingParameter]
+	public MessageHolderComponent Holder { get; set; }
 
 	[Parameter]
 	public ClientMessageWrapper Message { get; set; }
@@ -66,11 +69,44 @@
 
 	private bool ProcessPageChangeForForms = false;
 
+	public bool ProcessingPersonalEmbedUpdate = false;
+
+	public Embed embed = null;
+
 	public EmbedPage page { get; set; }
+
+	public void Dispose()
+	{
+		ValourClient.OnPersonalEmbedUpdate -= OnPersonalEmbedUpdate;
+	}
 
 	protected override void OnInitialized()
 	{
 		StateHasChanged();
+		ValourClient.OnPersonalEmbedUpdate += OnPersonalEmbedUpdate;
+		embed = Message.Message.Embed;
+	}
+
+	public async Task OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
+	{
+		if (update.TargetMessageId == Message.Message.Id)
+		{
+			int currentpage = embed.currentPage;
+			Message.Message.EmbedData = update.NewEmbedContent;
+			Message.Message.embedParsed = false;
+			embed = Message.Message.Embed;
+			if (!embed.KeepPageOnUpdate)
+			{
+				embed.currentPage = embed.StartPage;
+			}
+			else
+				embed.currentPage = currentpage;
+			ProcessPageChange = true;
+			ProcessingPersonalEmbedUpdate = true;
+			UpdateItems();
+			ProcessingPersonalEmbedUpdate = false;
+			await Holder.ScrollToBottom();
+		}
 	}
 
 	protected override Task OnAfterRenderAsync(bool firstRender)
