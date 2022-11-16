@@ -101,6 +101,9 @@
 			}
 			else
 				embed.currentPage = currentpage;
+			
+			if (embed.currentPage >= embed.Pages.Count) 
+				embed.currentPage = embed.StartPage;
 			ProcessPageChange = true;
 			ProcessingPersonalEmbedUpdate = true;
 			UpdateItems();
