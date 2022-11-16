@@ -1,0 +1,46 @@
+﻿<div class="toplevel-menu">
+    <div class="toplevel-menu-top">
+        <img class="icon" src="@IconUrl"/>
+        <p>@Name</p>
+    </div>
+    <CascadingValue Value="this">
+        <div class="submenus">
+            @ChildContent
+        </div>
+    </CascadingValue>
+</div>
+
+@code {
+    [Parameter]
+    public string Icon { get; set; }
+
+    [Parameter]
+    public string Name { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [CascadingParameter]
+    public BigMenuComponent bigMenuComponent { get; set; }
+
+    public List<BigMenuSubMenuComponent> SubMenus = new();
+
+    protected override void OnInitialized()
+    {
+        bigMenuComponent.TopLevelMenus.Add(this);
+    }
+
+    public void Refresh()
+    {
+        bigMenuComponent.Update();
+        StateHasChanged();
+    }
+
+    public string IconUrl
+    {
+        get
+        {
+            return "_content/Valour.Client/media/" + Icon;
+        }
+    }
+}

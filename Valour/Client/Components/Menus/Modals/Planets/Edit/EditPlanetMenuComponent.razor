@@ -1,0 +1,21 @@
+﻿<section>
+    <img src="@Planet.IconUrl" class="icon" />
+    <p class="planet-name">@Planet.Name</p>
+    <p class="planet-settings">PLANET SETTINGS</p>
+
+    <div class="menu">
+        <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
+            <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Info"></BigMenuSubMenuComponent>
+            <BigMenuSubMenuComponent Icon="Invite-Icon.svg" Name="Invites"></BigMenuSubMenuComponent>
+            <BigMenuSubMenuComponent Icon="Person-Icon.svg" Name="Users"></BigMenuSubMenuComponent>
+            <BigMenuSubMenuComponent Icon="Ban-Icon.svg" Name="Bans"></BigMenuSubMenuComponent>
+            <BigMenuSubMenuComponent Icon="Role-Icon.svg" Name="Roles"></BigMenuSubMenuComponent>
+            <BigMenuSubMenuComponent Icon="Trash-Can-Icon.svg" Name="Delete" Color="#EF3A3A"></BigMenuSubMenuComponent>
+        </BigMenuTopLevelMenuComponent>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+}
