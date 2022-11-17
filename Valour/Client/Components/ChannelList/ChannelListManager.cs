@@ -116,23 +116,21 @@ namespace Valour.Client.Components.ChannelList
             if (target.Category.Id == currentDragItem.Id)
                 return;
 
-            ushort position = (ushort)target.ItemList.Count();
-
             currentDragItem.ParentId = target.Category.Id;
-            currentDragItem.Position = position;
+            currentDragItem.Position = -1;
 
             // Add current item to target category
 
             if (currentDragItem is PlanetCategoryChannel)
             {
                 var response = await PlanetCategoryChannel.UpdateAsync((PlanetCategoryChannel)currentDragItem);
-                Console.WriteLine($"Inserting category {currentDragItem.Id} into {target.Category.Id} at position {position}");
+                Console.WriteLine($"Inserting category {currentDragItem.Id} into {target.Category.Id}");
                 Console.WriteLine(response.Message);
             }
             else if (currentDragItem is PlanetChatChannel)
             {
                 var response = await PlanetChatChannel.UpdateAsync((PlanetChatChannel)currentDragItem);
-                Console.WriteLine($"Inserting chat channel {currentDragItem.Id} into {target.Category.Id} at position {position}");
+                Console.WriteLine($"Inserting chat channel {currentDragItem.Id} into {target.Category.Id}");
                 Console.WriteLine(response.Message);
             }
         }

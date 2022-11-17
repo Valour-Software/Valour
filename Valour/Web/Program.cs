@@ -2,6 +2,7 @@
 using System.Net;
 using Valour.Server.Config;
 using Valour.Server.Database;
+using Valour.Web.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,8 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+AuthorizationController.RegisterMinimalRoutes(app);
 
 app.UseStaticFiles();
 

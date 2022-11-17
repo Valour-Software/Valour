@@ -46,4 +46,10 @@ public class OauthApp : Item, ISharedOauthApp
     /// </summary>
     [Column("name")]
     public string Name { get; set; }
+
+    /// <summary>
+    /// The redirect url for authorization
+    /// </summary>
+    [Column("redirect_url")]
+    public string RedirectUrl { get; set; }
 }
