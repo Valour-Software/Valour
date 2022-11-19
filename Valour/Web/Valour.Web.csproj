@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Markdig" Version="0.30.4" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.0" />
   </ItemGroup>
 
 	<ItemGroup>
