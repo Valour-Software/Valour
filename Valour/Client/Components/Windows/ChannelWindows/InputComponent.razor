@@ -21,6 +21,11 @@
                 <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" @onclick="OnSubmitClick" />
             }
 
+            @if (PreviewMessage.IsEmpty)
+            {
+                <p class="input-placeholder">@PlaceholderText</p>
+            }
+
             <div @ref='InnerInputRef' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
         </div>
@@ -41,6 +46,8 @@
     public IModalService Modal { get; set; }
 
     public MessageHolderComponent MessageHolder { get; set; }
+
+    public virtual string PlaceholderText { get; }
 
     /// <summary>
     /// A reference to the inner input component

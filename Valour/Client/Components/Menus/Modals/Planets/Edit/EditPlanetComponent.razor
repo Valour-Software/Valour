@@ -91,9 +91,16 @@
         Planet = windowManager.FocusedPlanet;
     }
 
-    public void Refresh()
+    public async void Refresh()
     {
-        StateHasChanged();
+        if (bigMenuComponent.SelectedSubMenu?.Name == "Delete")
+        {
+            await OnClickDelete();
+        }
+        else
+        {
+            StateHasChanged();
+        }
     }
 
     public void SetSelectedTab(int tab)
