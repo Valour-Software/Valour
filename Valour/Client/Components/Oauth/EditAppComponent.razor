@@ -2,7 +2,7 @@
 @inject HttpClient http
 @inject IJSRuntime JS
 
-<div style="text-align: center;">
+<div class="modal-bg" style="text-align: center;">
     <h5>Editing</h5>
     <h4 class='name'>@App.Name</h4>
     <br/>
@@ -19,9 +19,7 @@
 
     <br/>
 
-    <p class="m-2 mb-4">App ID: @App.Id</p>
-
-    <br/>
+    <code class="m-2 mb-4">App ID: @App.Id</code>
 
     <p class="m-2 mb-4">Your app has been used @App.Uses times.</p>
 

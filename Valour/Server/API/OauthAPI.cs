@@ -4,6 +4,7 @@ using Valour.Shared.Items.Authorization;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
+using Valour.Shared;
 
 namespace Valour.Server.API;
 
@@ -145,6 +146,9 @@ public class OauthAPI : BaseAPI
             return;
         }
 
+        if (app.RedirectUrl is null)
+            app.RedirectUrl = string.Empty;
+
         if (await db.OauthApps.CountAsync(x => x.OwnerId == authToken.UserId) > 9)
         {
             await BadRequest("There is currently a 10 app limit!", context);
@@ -154,7 +158,7 @@ public class OauthAPI : BaseAPI
         // Ensure variables are correctly set
         app.OwnerId = authToken.UserId;
         app.Uses = 0;
-        app.ImageUrl = "media/logo/logo-512.png";
+        app.ImageUrl = "../_content/Valour.Client/media/logo/logo-512.png";
 
         // Make name conform to server rules
         var nameValid = Planet.ValidateName(app.Name);

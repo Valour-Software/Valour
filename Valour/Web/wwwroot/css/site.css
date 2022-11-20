@@ -21,7 +21,7 @@
 
 .page-container {
     position: relative;
-    height: 100vh;
+    height: 100%;
     /* Jpeg loads first on slow connections */
     background-image: url("../media/Spookvooper-tall.svg"),url("../media/Spookvooper-tall-comp.jpg");
     background-position: center;
@@ -34,16 +34,12 @@
 }
 
 html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+  font-size: 16px;
 }
 
 body {
+  height: 100vh;
+  min-height: 800px;
   background-color: var(--main-1);
   color: var(--font-color);
 }
