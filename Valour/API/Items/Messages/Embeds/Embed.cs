@@ -201,9 +201,13 @@ public class Embed
         }
     }
 
-    public EmbedItem GetLastItem(bool InsideofForms)
+    public EmbedItem GetLastItem(bool InsideofForms, int? pagenum = null)
     {
-        var page = Pages.Last();
+        EmbedPage page = null;
+        if (pagenum is null)
+            page = Pages.Last();
+        else 
+            page = Pages[(int)pagenum];
         if (page.EmbedType == EmbedItemPlacementType.RowBased) {
             var item = page.Rows.Last().Items.Last();
             if (InsideofForms) {

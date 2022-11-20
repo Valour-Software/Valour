@@ -13,56 +13,49 @@
     <meta property="og:site_name" content="Valour">
     <meta name="twitter:image:alt" content="The Valour logo">
     <meta name="theme-color" content="#00FAFF">
-
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZY7EMBJ74N"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'G-ZY7EMBJ74N');
-    </script>
 </head>
-<body style="height: 100vh; margin: 0px;">
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark v-navbar border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a asp-controller="Home" asp-action="Index">
-                    <img class='navbar-icon' src='media/logo/logo-64.png' />
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link v-nav-link" href="@this.Context.Request.Scheme://app.@this.Context.Request.Host.ToUriComponent()">App</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link v-nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link v-nav-link" href="https://raw.githubusercontent.com/Vooper-Media-LLC/Valour/main/PRIVACY">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link v-nav-link" asp-area="" asp-controller="FAQ" asp-action="Index">FAQ</a>
-                        </li>
-                        <partial name='_Login.cshtml' />
-                    </ul>
+<body>
+    <div class="page-container">
+        <header>
+            <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark v-navbar border-bottom box-shadow">
+                <div class="container-fluid">
+                    <a asp-controller="Home" asp-action="Index">
+                        <img class='navbar-icon' src='media/logo/logo-64.png' />
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                        <ul class="navbar-nav flex-grow-1">
+                            <li class="nav-item">
+                                <a class="nav-link v-nav-link" href="@this.Context.Request.Scheme://app.@this.Context.Request.Host.ToUriComponent()">App</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link v-nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link v-nav-link" href="https://raw.githubusercontent.com/Vooper-Media-LLC/Valour/main/PRIVACY">Privacy</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link v-nav-link" asp-area="" asp-controller="FAQ" asp-action="Index">FAQ</a>
+                            </li>
+                            <partial name='_Login.cshtml' />
+                        </ul>
+                    </div>
                 </div>
-            </div>
-        </nav>
-    </header>
-
-    @RenderBody()
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2022 - Vooper Media LLC - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </nav>
+        </header>
+        <div class="content-wrap">
+            @RenderBody()
         </div>
-    </footer>
+        <footer class="border-top footer text-muted">
+            <div class="container">
+                &copy; 2022 - Vooper Media LLC - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            </div>
+        </footer>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

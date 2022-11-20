@@ -1,4 +1,4 @@
-﻿<div>
+﻿<div class="modal-bg">
     <h4>Your Applications</h4>
 
     @if (Apps is null)
@@ -46,10 +46,7 @@
 
         Modal.Show<EditAppComponent>(
              "Edit App", 
-             modParams,
-             new ModalOptions(){
-                 Class = "modal-shrink-fit"
-             }
+             modParams
         );
     }
 }

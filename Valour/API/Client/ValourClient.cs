@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Diagnostics;
-using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Xml.Linq;
 using Valour.Api.Extensions;
 using Valour.Api.Items;
 using Valour.Api.Items.Authorization;

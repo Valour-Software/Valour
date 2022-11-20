@@ -93,3 +93,12 @@
     border-top: 0;
     opacity: 1;
 }
+
+.input-placeholder {
+    position: absolute;
+    left: 46px;
+    top: 10px;
+    font-size: 18px;
+    color: rgba(255, 255, 255, 0.47);
+    font-weight: 300;
+}

@@ -3,7 +3,6 @@
 @using System.Net.Http.Headers
 @using Valour.Api.Items.Messages;
 @using Valour.Api.Items.Messages.Attachments
-@using SixLabors.ImageSharp
 
 <div>
     <div class="preview-message">
@@ -22,6 +21,11 @@
 
             @if (DeviceInfo.IsMobile){
                 <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" @onclick="OnSubmitClick" />
+            }
+
+            @if (PreviewMessage.IsEmpty)
+            {
+                <p class="input-placeholder">@PlaceholderText</p>
             }
 
             <div @ref='InnerInputRef' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
@@ -44,6 +48,8 @@
     public IModalService Modal { get; set; }
 
     public MessageHolderComponent MessageHolder { get; set; }
+
+    public virtual string PlaceholderText { get; }
 
     /// <summary>
     /// A reference to the inner input component

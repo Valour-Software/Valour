@@ -94,7 +94,8 @@ namespace Valour.Server
                 new ItemAPI<PlanetBan>()                .RegisterRoutes(app),
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app),
                 new ItemAPI<UserFriend>()               .RegisterRoutes(app),
-                new ItemAPI<DirectChatChannel>()        .RegisterRoutes(app)
+                new ItemAPI<DirectChatChannel>()        .RegisterRoutes(app),
+                new ItemAPI<OauthApp>()                 .RegisterRoutes(app)
             };
 
             NodeAPI = new NodeAPI(NodeConfig.Instance);

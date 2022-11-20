@@ -1,6 +1,6 @@
 @page "/oauth"
 
-<img src='/media/logo/logo-64.png' style='position: absolute; left: 50%; bottom: 20px; transform: translate(-50%, 0);'>
+<img src='../_content/Valour.Client/media/logo/logo-64.png' style='position: absolute; left: 50%; bottom: 20px; transform: translate(-50%, 0);'>
 
 <br/>
 <div style="text-align: center;">
@@ -20,22 +20,14 @@
     public async Task OnCreateClick(MouseEventArgs e)
     {
         Modal.Show<CreateAppComponent>(
-            "Create App", 
-            new ModalOptions()
-            { 
-                Class = "modal-shrink-fit"
-            }
+            "Create App"
         );
     }
 
     public async Task OnManageClick(MouseEventArgs e)
     {
         Modal.Show<ViewAppsComponent>(
-            "View Apps", 
-            new ModalOptions()
-            { 
-                Class = "modal-shrink-fit"
-            }
+            "View Apps"
         );
     }
 }
