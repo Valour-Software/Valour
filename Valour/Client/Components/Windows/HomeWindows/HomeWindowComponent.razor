@@ -203,14 +203,14 @@
     {
         var param = new ModalParameters();
         param.Add("Window", Window);
-        Modal.Show<CreatePlanetComponent>("Create Planet", param, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<CreatePlanetComponent>("Create Planet", param);
     }
 
     public async Task OnClickAddFriend()
     {
         var param = new ModalParameters();
         param.Add("Window", Window);
-        Modal.Show<AddFriendComponent>("Add Friend", param, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<AddFriendComponent>("Add Friend", param);
     }
 
     public async Task OnFriendsListUpdate()
