@@ -23,6 +23,30 @@
 
     <p class="m-2 mb-4">Your app has been used @App.Uses times.</p>
 
+    <br />
+
+
+    <div class="input-group" style="max-width: 400px;">
+        <input class="form-control" @bind='Redirect' placeholder="Your redirect url..." />
+        <button class="btn v-button" @onclick="OnClickRedirectUpdate">Apply</button>
+    </div>
+
+    @if (redirectResult is not null)
+    {
+        if (redirectResultError)
+        {
+            <span class="text-danger mb-4">@redirectResult</span>
+            <br />
+        }
+        else
+        {
+            <span class="text-info mb-4">@redirectResult</span>
+            <br />
+        }
+    }
+
+    <br />
+
     <button class='btn v-button btn-copy' @onclick='OnCopySecret'></button>
     <button class='btn v-button' @onclick='OnClickDelete'>Delete</button>
 </div>
@@ -46,6 +70,33 @@
 
     public string Icon_Output = "";
     public string Icon_Error = "";
+
+    public string Redirect { get; set; }
+    public string redirectResult = null;
+    public bool redirectResultError = false;
+
+    protected override void OnInitialized()
+    {
+        Redirect = App.RedirectUrl;
+    }
+
+    public async Task OnClickRedirectUpdate()
+    {
+        App.RedirectUrl = Redirect;
+
+        var updateResult = await Valour.Api.Items.Item.UpdateAsync(App);
+
+        Console.WriteLine(updateResult.Message);
+
+        redirectResultError = !updateResult.Success;
+
+        if (updateResult.Success)
+            redirectResult = "Successfully updated!";
+        else
+            redirectResult = updateResult.Message;
+
+        StateHasChanged();
+    }
 
     public async Task OnClickDelete(){
         ConfirmModalData data = new(
