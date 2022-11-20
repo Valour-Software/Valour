@@ -41,8 +41,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-AuthorizationController.RegisterMinimalRoutes(app);
-
 app.UseStaticFiles();
 
 app.UseRouting();
