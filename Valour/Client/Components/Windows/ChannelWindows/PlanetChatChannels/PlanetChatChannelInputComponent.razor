@@ -10,6 +10,14 @@
     public PlanetMember SelfMember { get; set; }
     public PlanetChatChannel PlanetChannel { get; set; }
 
+    public override string PlaceholderText
+    {
+        get
+        {
+            return $"Discuss in {PlanetChannel.Name}";
+        }
+    }
+
     public override async Task SetupNewChannelAsync()
     {
         WindowComponent.InputComponent = this;
