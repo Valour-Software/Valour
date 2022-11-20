@@ -3,6 +3,38 @@
     text-align: left;
 }
 
+@keyframes currentlytyping-icon {
+    0% {
+        content: ".";
+    }
+
+    50% {
+        content: "..";
+    }
+
+    75% {
+        content: "...";
+    }
+}
+
+.currentlytyping-icon-holder {
+    display: inline-block;
+    margin-right: 10px;
+    width: 11px;
+    position:relative;
+    top: -2px;
+}
+
+.currentlytyping-icon-holder:after {
+    color: #ffffff;
+    animation-name: currentlytyping-icon;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-fill-mode: forwards;
+    content: '.';
+    font-size: 24px;
+}
+
 .is-typing-name {
     font-weight: 700;
     font-size: 12px;
