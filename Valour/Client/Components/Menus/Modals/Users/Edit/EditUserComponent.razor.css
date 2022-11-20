@@ -1,1 +1,13 @@
-﻿
+﻿section {
+    width: 100%;
+}
+
+.user-settings {
+    font-family: 'Ubuntu';
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 17px;
+    text-align: center;
+    opacity: 0.75;
+    margin-top: 20px;
+}

@@ -10,37 +10,70 @@
     return;
 }
 
-<LargeModalWrapperComponent>
-    <div class="container">
-        <div class="row settings-row">
-            <div class="col-md-3 mb-5 mb-md-0">
-                <b>@User.Name</b>
-                <hr />
-                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
-                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Notifications</div>
-                <div class="logout-button" @onclick="LogOut">Log Out</div>
+<BigMenuComponent @ref="bigMenuComponent">
+    <LeftSide>
+        <section>
+            <p class="user-settings">USER SETTINGS</p>
+
+            <div class="menu">
+                <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
+                    <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Info"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Permissions"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Name="Log Out" Color="EF3A3A"></BigMenuSubMenuComponent>
+                </BigMenuTopLevelMenuComponent>
             </div>
-            <div class="col-md-9">
-                @switch (selected)
+        </section>
+    </LeftSide>
+    <RightSide>
+        @switch (bigMenuComponent.SelectedTopLevelMenu?.Name)
+        {
+            case "General Settings":
+                switch (bigMenuComponent.SelectedSubMenu.Name)
                 {
-                    case 0:
+                    case "Info":
                         <EditUserInfoComponent User="User"></EditUserInfoComponent>
                         break;
-                    case 1:
+                    case "Permissions":
                         <EditUserNotificationsComponent></EditUserNotificationsComponent>
                         break;
-                    default:
-                        break;
-
                 }
-            </div>
-        </div>
-    </div>
-</LargeModalWrapperComponent>
+                break;
+        }
+    </RightSide>
+</BigMenuComponent>
 
 @code {
     [Parameter]
     public User User { get; set; }
+
+    public BigMenuComponent bigMenuComponent { get; set; }
+
+    public void Dispose()
+    {
+        bigMenuComponent.RefreshRightSide -= Refresh;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            bigMenuComponent.RefreshRightSide += Refresh;
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    public async void Refresh()
+    {
+        if (bigMenuComponent.SelectedSubMenu?.Name == "Log Out")
+        {
+            await LogOut();
+        }
+        else
+        {
+            StateHasChanged();
+        }
+    }
 
     public string GetButtonClass(int tab)
     {

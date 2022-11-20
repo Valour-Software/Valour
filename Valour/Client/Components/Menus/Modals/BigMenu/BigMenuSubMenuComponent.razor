@@ -1,5 +1,8 @@
 ﻿<div class="@Class" @onclick="OnClick">
-    <img class="icon" src="@IconUrl" style="@TextStyle" />
+    @if (IconUrl is not null)
+    {
+        <img class="icon" src="@IconUrl" style="@TextStyle" />
+    }
     <p style="@TextStyle">@Name</p>
 </div>
 
