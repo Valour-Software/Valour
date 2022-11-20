@@ -2,6 +2,7 @@
 using System.Net;
 using Valour.Server.Config;
 using Valour.Server.Database;
+using Valour.Web.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 

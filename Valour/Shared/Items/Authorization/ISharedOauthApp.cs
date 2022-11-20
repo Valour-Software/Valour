@@ -40,5 +40,10 @@ public interface ISharedOauthApp : ISharedItem
     /// The name of the app
     /// </summary>
     string Name { get; set; }
+
+    /// <summary>
+    /// The redirect for this app's authorization
+    /// </summary>
+    string RedirectUrl { get; set; }
 }
 

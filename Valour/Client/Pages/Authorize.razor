@@ -1,8 +1,20 @@
 @page "/authorize"
 
 @inject NavigationManager navManager
+@inject IJSRuntime JS
+
+@if (finishedAuth)
+{
+    <br />
+    <div style="text-align: center;">
+        <h4>You have authorized the application.</h4>
+        <h5>You can close this page.</h5>
+    </div>
+    return;
+}
 
 @if (isError) {
+    <br />
     <div style="text-align: center;">
         <h4>Whoops! We have an issue.</h4>
         <p class="m-2">@errorString</p>
@@ -11,6 +23,7 @@
 }
 
 @if (App is null){
+    <br />
     <div style="text-align: center;">
         <h4>Loading!</h4>
         <p class="m-2">We promise it's worth the wait.</p>
@@ -22,6 +35,7 @@
     <div class="popup-box">
         <div class="col-md-12">
             <section>
+                <h3 class="invite-title">@ValourClient.Self.Name,</h3>
                 <h2 class="invite-title">Do you authorize</h2>
                 <div style="text-align: center">
                     <h3 class="text-info invite-name">@App.Name</h3>
@@ -35,7 +49,7 @@
 
                 <ul>
                     @for (int i = 0; i < UserPermissions.Permissions.Length; i++){
-                        if ((UserPermissions.Permissions[i].Value & u_scope) == UserPermissions.Permissions[i].Value){
+                        if ((UserPermissions.Permissions[i].Value & scope) == UserPermissions.Permissions[i].Value){
 
                             var perm = UserPermissions.Permissions[i];
 
@@ -71,8 +85,7 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "client_id")]
-    public string client_id { get; set; }
-    public long u_client_id;
+    public long client_id { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "redirect_uri")]
@@ -80,8 +93,7 @@
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "scope")]
-    public string scope { get; set; }
-    public long u_scope;
+    public long scope { get; set; }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "state")]
@@ -90,10 +102,12 @@
     public bool isError = false;
     public string errorString = "An unknown error occured.";
 
-    public Api.Items.Authorization.OauthApp App { get; set; }
+    public PublicOauthAppData App { get; set; }
 
     public string infoSpan;
     public string errorSpan;
+
+    bool finishedAuth = false;
 
 
     protected override async Task OnInitializedAsync()
@@ -115,33 +129,7 @@
 
         response_type = response_type.ToLower();
 
-        if (scope == null || string.IsNullOrWhiteSpace(scope))
-        {
-            isError = true;
-            errorString = "Scope is missing.";
-            StateHasChanged();
-            return;
-        }
-
-        bool suc_0 = long.TryParse(scope, out u_scope);
-
-        if (!suc_0){
-            isError = true;
-            errorString = $"Failed to parse scope.";
-            StateHasChanged();
-            return;
-        }
-
-        bool suc = long.TryParse(client_id, out long u_client_id);
-
-        if (!suc){
-            isError = true;
-            errorString = $"Failed to parse {client_id}";
-            StateHasChanged();
-            return;
-        }
-
-        App = await Api.Items.Authorization.OauthApp.FindAsync(u_client_id);
+        App = await Api.Items.Authorization.OauthApp.FindPublicDataAsync(client_id);
 
         if (App is null){
             isError = true;
@@ -158,22 +146,28 @@
         switch (response_type){
             case "code": {
 
-                var model = new Valour.Shared.Items.Authorization.AuthorizeModel(){
-                    client_id = u_client_id,
-                    redirect_uri = redirect_uri,
-                    userId = ValourClient.Self.Id,
-                    response_type = response_type,
-                    scope = u_scope,
-                    state = state
+                    var model = new Valour.Shared.Items.Authorization.AuthorizeModel(){
+                    ClientId = client_id,
+                    RedirectUri = redirect_uri,
+                    UserId = ValourClient.Self.Id,
+                    ResponseType = response_type,
+                    Scope = scope,
+                    State = state
                 };
 
-                var res = await ValourClient.Http.PostAsJsonAsync($"api/oauth/authorize", model);
+                var res = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"api/oauth/authorize", model);
 
-                var content = await res.Content.ReadAsStringAsync();
+                if (!res.Success)
+                {
+                    isError = true;
+                    errorString = res.Message;
+                    StateHasChanged();
+                    return;
+                }
 
-                Console.WriteLine(content);
+                await JS.InvokeAsync<object>("open", res.Data, "_blank");
 
-                //navManager.NavigateTo($"https://" + res.Message, true);
+                finishedAuth = true;
 
                 break;
             }

@@ -3,12 +3,13 @@
 @using System.Net.Http.Headers
 @using Valour.Api.Items.Messages;
 @using Valour.Api.Items.Messages.Attachments
-@using SixLabors.ImageSharp
 
 <div>
     <div class="preview-message">
         <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
+
+    <ChannelCurrentlyTypingComponent ParentComponent="WindowComponent" Channel="WindowComponent.Channel"></ChannelCurrentlyTypingComponent>
 
     <div class="textbox-holder" @onclick="MessageHolder.ScrollToBottomAnimated">
 
@@ -17,6 +18,15 @@
         <div class="textbox" onclick="this.children[1].focus()" @ref='DropZoneElement'>
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <img class='upload' src="_content/Valour.Client/media/Plus-Icon.svg" onclick="document.getElementById('upload-core').click()" />
+
+            @if (DeviceInfo.IsMobile){
+                <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" @onclick="OnSubmitClick" />
+            }
+
+            @if (PreviewMessage.IsEmpty)
+            {
+                <p class="input-placeholder">@PlaceholderText</p>
+            }
 
             <div @ref='InnerInputRef' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
@@ -38,6 +48,8 @@
     public IModalService Modal { get; set; }
 
     public MessageHolderComponent MessageHolder { get; set; }
+
+    public virtual string PlaceholderText { get; }
 
     /// <summary>
     /// A reference to the inner input component
@@ -78,6 +90,8 @@
     /// Module for calling Javascript functions
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
+
+    private DateTime LastIsTypingUpdateSent = DateTime.MinValue;
 
     /// <summary>
     /// Run when the component is initialized
@@ -349,6 +363,11 @@
         await _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
     }
 
+    public async Task OnSubmitClick()
+    {
+        await _jsModule.InvokeVoidAsync("submitMessage", Window.Id);
+    }
+
     // JS -> C#
     [JSInvokable]
     public async Task OnCaretUpdate(string currentWord)
@@ -376,6 +395,12 @@
         await RefreshPreviewMessage();
 
         await MessageHolder.ScrollToBottom();
+
+        if (DateTime.UtcNow > LastIsTypingUpdateSent.AddSeconds(5))
+        {
+            WindowComponent.Channel.SendIsTyping();
+            LastIsTypingUpdateSent = DateTime.UtcNow;
+        }
 
         StateHasChanged();
     }

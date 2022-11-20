@@ -1,15 +1,14 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Diagnostics;
-using System.Linq;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Xml.Linq;
 using Valour.Api.Extensions;
 using Valour.Api.Items;
 using Valour.Api.Items.Authorization;
 using Valour.Api.Items.Channels;
 using Valour.Api.Items.Channels.Planets;
 using Valour.Api.Items.Messages;
+using Valour.Api.Items.Messages.Embeds;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Items.Users;
@@ -149,10 +148,20 @@ public static class ValourClient
     /// </summary>
     public static event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
 
+    /// <summary>
+    /// Run when a channel sends a currently typing update
+    /// </summary>
+    public static event Func<ChannelTypingUpdate, Task> OnChannelCurrentlyTypingUpdate;
+
+    /// <summary>
+    /// Run when a personal embed update is received
+    /// </summary>
+    public static event Func<PersonalEmbedUpdate, Task> OnPersonalEmbedUpdate;
+
 #if (!DEBUG)
-    public static string BaseAddress => "https://app.valour.gg/";
+    public static string BaseAddress = "https://app.valour.gg/";
 #else
-    public static string BaseAddress => "https://localhost:44331/";
+    public static string BaseAddress = "https://localhost:44331/";
 #endif
 
     /// <summary>
@@ -612,6 +621,18 @@ public static class ValourClient
 
         if (OnChannelWatchingUpdate is not null)
             await OnChannelWatchingUpdate.Invoke(update);
+    }
+
+    public static async Task ChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
+    {
+        if (OnChannelCurrentlyTypingUpdate is not null)
+            await OnChannelCurrentlyTypingUpdate.Invoke(update);
+    }
+
+    public static async Task PersonalEmbedUpdate(PersonalEmbedUpdate update)
+    {
+        if (OnPersonalEmbedUpdate is not null)
+            await OnPersonalEmbedUpdate.Invoke(update);
     }
 
     #endregion

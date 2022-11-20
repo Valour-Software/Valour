@@ -19,23 +19,27 @@
   --v-cyan: #00faff;
 }
 
-html {
-  font-size: 14px;
+.page-container {
+    position: relative;
+    height: 100%;
+    /* Jpeg loads first on slow connections */
+    background-image: url("../media/Spookvooper-tall.svg"),url("../media/Spookvooper-tall-comp.jpg");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
 }
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+.content-wrap {
+  padding-bottom: 41px;
 }
 
 html {
-  position: relative;
-  min-height: 100%;
+  font-size: 16px;
 }
 
 body {
-  margin-bottom: 60px;
+  height: 100vh;
+  min-height: 800px;
   background-color: var(--main-1);
   color: var(--font-color);
 }
@@ -122,22 +126,26 @@ hr {
   }
 }
 
-.index-back {
-    /* Jpeg loads first on slow connections */
-    background-image: url("../media/Spookvooper-tall.svg"),url("../media/Spookvooper-tall-comp.jpg");
-    background-position: center;
-    background-repeat: no-repeat;
-    height: calc(100% - 74px);
-    margin: 0;
-    padding: 20px;
-    background-size: cover;
+.form-control {
+    margin-top: 5px;
+    background-color: var(--main-1);
+    border-color: var(--main-5);
+    color: var(--font-color);
+}
+
+.form-control:disabled {
+    background-color: var(--border-color);
+    border-color: var(--alt-border-color);
+    color: var(--font-color);
+}
+
+.form-select {
+    background-color: var(--main-1);
+    border-color: var(--main-5);
+    color: var(--font-color);
 }
 
 .v-link {
   color: var(--v-cyan);
   text-decoration: none;
-}
-
-.footer {
-    position: sticky !important;
 }

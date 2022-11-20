@@ -449,3 +449,30 @@ function getImageSize(blobUrl, ref) {
     }
     image.src = blobUrl;
 }
+
+/* Cookie management */
+
+function setCookie(name, value, domain, days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+    const dateString = date.toUTCString();
+
+    let domainChunk = '';
+
+    if (domain && domain.length > 0) {
+        domainChunk = `domain=${domain};`
+    }
+
+    document.cookie = `${name}=${value};expires=${dateString};${domainChunk}path=/`;
+}
+
+function getCookie(name) {
+    var nameEQ = `${name}=`;
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}

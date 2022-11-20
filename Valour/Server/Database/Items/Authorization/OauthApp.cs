@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using Valour.Server.Database.Items.Users;
+using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
 /*  Valour - A free and secure chat client
@@ -46,4 +48,43 @@ public class OauthApp : Item, ISharedOauthApp
     /// </summary>
     [Column("name")]
     public string Name { get; set; }
+
+    /// <summary>
+    /// The redirect url for authorization
+    /// </summary>
+    [Column("redirect_url")]
+    public string RedirectUrl { get; set; }
+
+    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> PutRouteAsync(HttpContext ctx, [FromBody] OauthApp app,
+        ILogger<User> logger)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        // Unlike most other entities, we are just copying over a few fields here and
+        // ignoring the rest. There are so many things that *should not* be touched by
+        // the API it's smarter to just only do what *should*
+
+        if (app.OwnerId != token.UserId)
+            return ValourResult.Forbid("You can only change your own applications.");
+
+        var old = await FindAsync<OauthApp>(app.Id, db);
+
+        old.RedirectUrl = app.RedirectUrl;
+
+        try
+        {
+            db.OauthApps.Update(old);
+            await db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message);
+            return ValourResult.Problem(e.Message);
+        }
+
+        return Results.Json(old);
+    }
 }

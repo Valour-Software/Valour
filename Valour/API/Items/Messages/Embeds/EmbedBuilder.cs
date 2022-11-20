@@ -16,12 +16,16 @@ public class EmbedBuilder
 
     public EmbedFormItem FormItem;
 
+    public EmbedDropDownMenuItem DropDownMenu;
+
     public EmbedGoTo GoTo = new();
 
     public EmbedBuilder()
     {
         embed = new();
         embed.Pages = new();
+        embed.KeepPageOnUpdate = true;
+        embed.StartPage = 0;
     }
 
     [JsonIgnore]
@@ -197,7 +201,7 @@ public class EmbedBuilder
     /// this will add a inputbox item to the current form.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, EmbedItemSize size = EmbedItemSize.Normal, string namecolor = null, string value = null, int? x = null, int? y = null)
+    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, EmbedItemSize size = EmbedItemSize.Normal, string namecolor = null, string value = null, bool? keepvalueonupdate = null, int? x = null, int? y = null)
     {
         var item = new EmbedInputBoxItem()
         {
@@ -206,7 +210,8 @@ public class EmbedBuilder
             Size = size,
             Placeholder = placeholder,
             Name = name,
-            NameColor = namecolor
+            NameColor = namecolor,
+            KeepValueOnUpdate = keepvalueonupdate
         };
 
         AddItem(item, x, y);
@@ -218,7 +223,7 @@ public class EmbedBuilder
     /// this will add a text item to the current page/form.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddText(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, int? x = null, int? y = null)
+    public EmbedBuilder AddText(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, string? onclickeventname = null, bool? underLineText = null, bool? underLineName = null, int? x = null, int? y = null)
     {
         var item = new EmbedTextItem()
         {
@@ -226,10 +231,47 @@ public class EmbedBuilder
             Text = text,
             TextColor = textColor,
             Link = link,
-            IsNameClickable = isnameclickable
+            IsNameClickable = isnameclickable,
+            OnClickEventName = onclickeventname,
+            UnderLineName = underLineName,
+            UnderLineText = underLineText
         };
 
         AddItem(item, x, y);
         return this;
     }
+
+	public EmbedBuilder AddDropDownMenu(string id, string value = "", int? x = null, int? y = null)
+	{
+		var item = new EmbedDropDownMenuItem()
+		{
+			Id = id,
+            Value = value
+		};
+
+        DropDownMenu = item;
+
+		AddItem(item, x, y);
+		return this;
+	}
+
+    public EmbedBuilder EndDropDownMenu()
+    {
+        DropDownMenu = null;
+        return this;
+    }
+
+	public EmbedBuilder AddDropDownItem(string text = null, string textColor = null)
+	{
+        if (DropDownMenu is null)
+			throw new ArgumentException("You can not add a dropdown item without a drop down menu!");
+		var item = new EmbedDropDownItem()
+		{
+			Text = text,
+            TextColor = textColor
+		};
+
+		DropDownMenu.Items.Add(item);
+		return this;
+	}
 }

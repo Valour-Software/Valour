@@ -12,7 +12,9 @@ public enum EmbedItemType
     TextArea = 4,
     ProgressBar = 5,
     Form = 6,
-    GoTo = 7
+    GoTo = 7,
+    DropDownItem = 8,
+    DropDownMenu = 9
 }
 
 public interface IEmbedFormItem
@@ -27,6 +29,8 @@ public interface IEmbedFormItem
 [JsonDerivedType(typeof(EmbedButtonItem), typeDiscriminator: 3)]
 [JsonDerivedType(typeof(EmbedFormItem), typeDiscriminator: 4)]
 [JsonDerivedType(typeof(EmbedInputBoxItem), typeDiscriminator: 5)]
+[JsonDerivedType(typeof(EmbedDropDownMenuItem), typeDiscriminator: 6)]
+[JsonDerivedType(typeof(EmbedDropDownItem), typeDiscriminator: 7)]
 public class EmbedItem
 {
     public EmbedItemType ItemType { get; set; }
@@ -44,6 +48,11 @@ public class EmbedItem
     public string? Href { get; set; }
 
     public int? Page { get; set; }
+
+    /// <summary>
+	/// If not null, what will the event name be for when a user clicks on this text item
+	/// </summary>
+    public string? OnClickEventName { get; set; }
 
     [JsonIgnore]
     public Embed Embed { get; set; }
@@ -69,7 +78,7 @@ public class EmbedItem
                 y = 0;
             if (Embed.CurrentlyDisplayed.Title is not null)
                 y += 42;
-            style += $"position: absolute;left: calc(1rem + {x+59}px);top: calc(1rem + {y}px);width: fit-content";
+            style += $"position: absolute;left: calc(1rem + {x+59}px);top: calc(1rem + {y}px);max-width: {Embed.CurrentlyDisplayed.Width-x+16}px;";
         }
         else
         {

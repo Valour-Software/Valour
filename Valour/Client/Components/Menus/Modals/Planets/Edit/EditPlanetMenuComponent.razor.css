@@ -1,0 +1,33 @@
+﻿.icon {
+    width: 76px;
+    height: 76px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 13px;
+    display: block;
+}
+
+section {
+    width: 100%;
+}
+
+.planet-name {
+    text-align: center;
+    font-family: 'Ubuntu';
+    font-weight: 700;
+    font-size: 30px;
+    line-height: 34px;
+    text-align: center;
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+
+.planet-settings {
+    font-family: 'Ubuntu';
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 17px;
+    text-align: center;
+    opacity: 0.75;
+}

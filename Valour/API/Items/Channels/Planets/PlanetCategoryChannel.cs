@@ -156,5 +156,9 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
     public override Task Close()
         => Task.CompletedTask;
+
+    // Categories can't really having people typing in them...
+    public override Task SendIsTyping()
+        => Task.CompletedTask;
 }
 

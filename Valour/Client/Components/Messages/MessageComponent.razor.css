@@ -221,8 +221,6 @@
 }
 
 ::deep .content img {
-    max-width: 300px;
-    max-height: 300px;
     object-fit: contain;
     object-position: left;
     margin: 5px;

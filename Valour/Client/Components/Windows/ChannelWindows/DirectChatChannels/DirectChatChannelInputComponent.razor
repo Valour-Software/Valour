@@ -8,6 +8,14 @@
 
 @code {
 
+    public override string PlaceholderText
+    {
+        get
+        {
+            return $"Discuss with {((DirectChatChannelWindowComponent)WindowComponent).OtherUser.Name}";
+        }
+    }
+
     public override async Task SetupNewChannelAsync()
     {
         WindowComponent.InputComponent = this;

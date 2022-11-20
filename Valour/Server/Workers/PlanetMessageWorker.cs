@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Messages;
+using Valour.Shared.Channels;
 using Valour.Shared.Items.Channels;
 
 namespace Valour.Server.Workers
@@ -92,6 +93,18 @@ namespace Valour.Server.Workers
 
                         // This is not awaited on purpose
 #pragma warning disable CS4014
+
+                        if (PlanetHub.CurrentlyTyping.ContainsKey(channelId))
+                        {
+                            PlanetHub.CurrentlyTyping[channelId].Remove(Message.AuthorUserId, out _);
+                            PlanetHub.PrevCurrentlyTyping[channelId] = PlanetHub.CurrentlyTyping[channelId].Keys.ToList();
+                            PlanetHub.Current.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate()
+                            {
+                                ChannelId = channelId,
+                                UserIds = PlanetHub.PrevCurrentlyTyping[channelId]
+                            });
+                        }
+
                         PlanetHub.Current.Clients.Group($"p-{Message.PlanetId}").SendAsync("Channel-State", new ChannelStateUpdate(channel.Id, channel.State));
                         PlanetHub.RelayMessage(Message);
 #pragma warning restore CS4014

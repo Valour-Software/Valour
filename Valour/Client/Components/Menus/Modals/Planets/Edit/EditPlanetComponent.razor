@@ -1,6 +1,7 @@
 ﻿@inject HttpClient Http
 @inject NavigationManager navManager
 @inject WindowManager windowManager
+@implements IDisposable
 
 @if (Planet is null)
 {
@@ -8,45 +9,38 @@
     return;
 }
 
-<LargeModalWrapperComponent>
-    <div class="container">
-        <div class="row settings-row">
-            <div class="col-md-3 mb-5 mb-md-0">
-                <b>@Planet.Name</b>
-                <hr />
-                <div class="@GetButtonClass(0)" @onclick="(async () => SetSelectedTab(0))">Info</div>
-                <div class="@GetButtonClass(1)" @onclick="(async () => SetSelectedTab(1))">Invites</div>
-                <div class="@GetButtonClass(2)" @onclick="(async () => SetSelectedTab(2))">Users</div>
-                <div class="@GetButtonClass(3)" @onclick="(async () => SetSelectedTab(3))">Bans</div>
-                <div class="@GetButtonClass(4)" @onclick="(async () => SetSelectedTab(4))">Roles</div>
-                <div class="settings-button text-danger" @onclick="OnClickDelete">Delete</div>
-            </div>
-            <div class="col-md-9">
-                @switch (selected)
+<BigMenuComponent @ref="bigMenuComponent">
+    <LeftSide>
+        <EditPlanetMenuComponent Planet="@Planet"></EditPlanetMenuComponent>
+    </LeftSide>
+    <RightSide>
+        @switch (bigMenuComponent.SelectedTopLevelMenu?.Name)
+        {
+            case "General Settings":
+                switch (bigMenuComponent.SelectedSubMenu.Name)
                 {
-                    case 0:
+                    case "Info":
                         <EditPlanetInfoComponent Planet="Planet"></EditPlanetInfoComponent>
                         break;
-                    case 1:
+                    case "Invites":
                         <EditPlanetInvitesComponent Planet="Planet"></EditPlanetInvitesComponent>
                         break;
-                    case 2:
+                    case "Users":
                         <EditPlanetUsersComponent></EditPlanetUsersComponent>
                         break;
-                    case 3:
+                    case "Bans":
                         <EditPlanetBansComponent></EditPlanetBansComponent>
                         break;
-                    case 4:
+                    case "Roles":
                         <EditPlanetRolesComponent Planet="Planet"></EditPlanetRolesComponent>
                         break;
-                    default:
+                    case "Delete":
                         break;
-
                 }
-            </div>
-        </div>
-    </div>
-</LargeModalWrapperComponent>
+                break;
+        }
+    </RightSide>
+</BigMenuComponent>
 
 @code {
     [Parameter]
@@ -57,6 +51,8 @@
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
+
+    private BigMenuComponent bigMenuComponent { get; set; }
 
     public string GetButtonClass(int tab)
     {
@@ -75,9 +71,36 @@
 
     public int selected = 0;
 
+    public void Dispose()
+    {
+        bigMenuComponent.RefreshRightSide -= Refresh;
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (firstRender)
+        {
+            bigMenuComponent.RefreshRightSide += Refresh;
+        }
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         Planet = windowManager.FocusedPlanet;
+    }
+
+    public async void Refresh()
+    {
+        if (bigMenuComponent.SelectedSubMenu?.Name == "Delete")
+        {
+            await OnClickDelete();
+        }
+        else
+        {
+            StateHasChanged();
+        }
     }
 
     public void SetSelectedTab(int tab)

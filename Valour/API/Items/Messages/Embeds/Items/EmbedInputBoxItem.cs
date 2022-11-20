@@ -19,12 +19,14 @@ public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem
 
     public EmbedItemSize Size { get; set; }
 
+    public bool? KeepValueOnUpdate { get; set; } = true;
+
     public EmbedInputBoxItem()
     {
         ItemType = EmbedItemType.InputBox;
     }
 
-    public EmbedInputBoxItem(string id, string value = null, string placeholder = null, string namecolor = null, int? x = null, int? y = null)
+    public EmbedInputBoxItem(string id, string value = null, string placeholder = null, string namecolor = null, bool? keepvalueonupdate = null, int? x = null, int? y = null)
     {
         Id = id;
         Value = value;
@@ -33,5 +35,6 @@ public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem
         Y = y;
         ItemType = EmbedItemType.InputBox;
         NameColor = namecolor;
+        KeepValueOnUpdate = keepvalueonupdate;
     }
 }

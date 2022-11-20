@@ -149,9 +149,10 @@ public class EmbedPage
         {
             int? height = Height;
             int? width = Width;
-            height += 32;
+            if (!embed.HideChangePageArrows && embed.Pages.Count > 1)
+                height += 32;
             if (Title is not null)
-                height += 42;
+                height += 36;
             style += $"height: calc(2rem + {height}px);width: calc(2rem + {width}px);";
         }
         return style;
@@ -175,7 +176,19 @@ public class Embed
     /// </summary>
     public string? Id { get; set; }
 
+    /// <summary>
+    /// The page that the embed starts on when it's loaded
+    /// </summary>
+    public int StartPage { get; set; }
+
     public int currentPage = 0;
+
+    /// <summary>
+    /// If true, hide the change page arrows at the bottom of the embed
+    /// </summary>
+    public bool HideChangePageArrows { get; set; }
+
+    public bool KeepPageOnUpdate { get; set; }
 
     /// <summary>
     /// The Version of the embed system
@@ -184,7 +197,34 @@ public class Embed
     {
         get
         {
-            return "1.0.0";
+            return "1.1.0";
+        }
+    }
+
+    public EmbedItem GetLastItem(bool InsideofForms, int? pagenum = null)
+    {
+        EmbedPage page = null;
+        if (pagenum is null)
+            page = Pages.Last();
+        else 
+            page = Pages[(int)pagenum];
+        if (page.EmbedType == EmbedItemPlacementType.RowBased) {
+            var item = page.Rows.Last().Items.Last();
+            if (InsideofForms) {
+                if (item.ItemType == EmbedItemType.Form) {
+                    return ((EmbedFormItem)item).GetLastItem();
+                }
+            }
+            return item;
+        }
+        else {
+            var item = page.Items.Last();
+            if (InsideofForms) {
+                if (item.ItemType == EmbedItemType.Form) {
+                    return ((EmbedFormItem)item).GetLastItem();
+                }
+            }
+            return item;
         }
     }
 
@@ -196,7 +236,9 @@ public class Embed
             EmbedItemType.Text => node.Deserialize<EmbedTextItem>(),
             EmbedItemType.Form => new EmbedFormItem(node, embed),
             EmbedItemType.Button => node.Deserialize<EmbedButtonItem>(),
-            EmbedItemType.InputBox => node.Deserialize<EmbedInputBoxItem>()
+            EmbedItemType.InputBox => node.Deserialize<EmbedInputBoxItem>(),
+            EmbedItemType.DropDownItem => node.Deserialize<EmbedDropDownItem>(),
+            EmbedItemType.DropDownMenu => node.Deserialize<EmbedDropDownMenuItem>()
         };
         item.Embed = embed;
         return item;
@@ -211,7 +253,19 @@ public class Embed
     {
         Id = (string)Node["Id"];
         Name = (string)Node["Name"];
-        Pages = new();
+        if (Node["KeepPageOnUpdate"] is not null)
+            KeepPageOnUpdate = (bool)Node["KeepPageOnUpdate"];
+        else
+            KeepPageOnUpdate = false;
+        if (Node["StartPage"] is not null)
+            StartPage = (int)Node["StartPage"];
+        else
+            StartPage = 0;
+		if (Node["HideChangePageArrows"] is not null)
+			HideChangePageArrows = (bool)Node["HideChangePageArrows"];
+		else
+			HideChangePageArrows = false;
+		Pages = new();
         foreach(var pagenode in Node["Pages"].AsArray())
         {
             var page = new EmbedPage();

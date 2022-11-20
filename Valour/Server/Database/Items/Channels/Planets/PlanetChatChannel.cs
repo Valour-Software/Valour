@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using IdGen;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Text.Json;
 using Valour.Server.Cdn;
 using Valour.Server.Database.Items.Authorization;
@@ -11,6 +13,7 @@ using Valour.Server.Requests;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Channels;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
 using Valour.Shared.Items.Messages.Mentions;
@@ -595,6 +598,36 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         PlanetHub.NotifyMessageDeletion(message);
 
         return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Post, "/{id}/typing"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
+    [PlanetMembershipRequired]
+    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
+                              ChatChannelPermissionsEnum.PostMessages)]
+    public static async Task<IResult> PostTypingAsync(HttpContext ctx, HttpClient client, long id)
+    {
+        var member = ctx.GetMember();
+
+        if (!PlanetHub.CurrentlyTyping.TryGetValue(id, out _))
+        {
+            PlanetHub.CurrentlyTyping[id] = new();
+            PlanetHub.PrevCurrentlyTyping[id] = new();
+        }
+
+        PlanetHub.CurrentlyTyping[id][member.UserId] = DateTime.UtcNow;
+
+        if (PlanetHub.PrevCurrentlyTyping[id].Count == 0)
+        {
+            PlanetHub.PrevCurrentlyTyping[id] = PlanetHub.CurrentlyTyping[id].Keys.ToList();
+            PlanetHub.Current.Clients.Group($"c-{id}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate()
+            {
+                ChannelId = id,
+                UserIds = PlanetHub.PrevCurrentlyTyping[id]
+            });
+        }
+
+        return Results.Ok();
     }
 
     #endregion
