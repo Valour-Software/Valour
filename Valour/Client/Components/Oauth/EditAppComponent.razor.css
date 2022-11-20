@@ -27,3 +27,9 @@
 .btn-copy:active:after {
     content: 'Copied!';
 }
+
+.modal-bg {
+    background-color: var(--main-4);
+    padding: 20px;
+    border-radius: 20px;
+}

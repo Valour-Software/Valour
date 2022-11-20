@@ -15,6 +15,8 @@
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.WebAssembly.Http
 @using Valour.Client.Components.Sounds
+@using Valour.Client.Components
+@using Valour.Client.Utility
 
 
 @inject HttpClient Http
@@ -24,6 +26,9 @@
 
 <!-- Enable app sounds -->
 <SoundsComponent></SoundsComponent>
+
+<!-- Enable app cookies -->
+<CookiesComponent></CookiesComponent>
 
 @if (triedInitialLogin)
 {
@@ -85,11 +90,6 @@ else
         ColorLogger.App = this;
         ColorLogger.Setup();
 
-        // Attempt to re-login the user from local token
-        TaskResult<User> tokenResult = await ClientUserManager.TryInitializeWithLocalToken(storage, navManager);
-
-        triedInitialLogin = true;
-
         await JS.InvokeAsync<object>(
           "blazorFuncs.registerClient",
           DotNetObjectReference.Create(this)
@@ -97,6 +97,30 @@ else
 
         // Request notifications in background
         _ = RequestNotificationSubscriptionAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!ValourClient.IsLoggedIn)
+            {
+                var cookieToken = await JS.GetCookieAsync("token");
+
+                if (!string.IsNullOrWhiteSpace(cookieToken))
+                {
+                    var result = await ValourClient.InitializeUser(cookieToken);
+
+                    if (result.Success) {
+                        ColorLogger.Log($"Auto-logged user {result.Data.Name}", "magenta");
+                    }
+                }
+            }
+
+            triedInitialLogin = true;
+
+            StateHasChanged();
+        }
     }
 
     public async Task RequestNotificationSubscriptionAsync()

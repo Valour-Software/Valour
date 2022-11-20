@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Nodes;
+using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 
@@ -35,6 +36,14 @@ public class OauthApp : Item, ISharedOauthApp {
     /// </summary>
     public string Name { get; set; }
 
+    /// <summary>
+    /// The redirect for this app's authorization
+    /// </summary>
+    public string RedirectUrl { get; set; }
+
     public static async Task<OauthApp> FindAsync(long id) => 
         (await NodeManager.Nodes[0].GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
+
+    public static async Task<PublicOauthAppData> FindPublicDataAsync(long id) =>
+        (await NodeManager.Nodes[0].GetJsonAsync<PublicOauthAppData>($"api/oauth/app/public/{id}")).Data;
 }

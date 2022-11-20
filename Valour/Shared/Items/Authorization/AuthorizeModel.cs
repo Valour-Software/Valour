@@ -4,23 +4,23 @@ namespace Valour.Shared.Items.Authorization;
 
 public class AuthorizeModel {
     [JsonPropertyName("client_id")]
-    public long client_id { get; set; }
+    public long ClientId { get; set; }
 
     [JsonPropertyName("redirect_uri")]
-    public string redirect_uri { get; set; }
+    public string RedirectUri { get; set; }
 
     [JsonPropertyName("userId")]
-    public long userId { get; set; }
+    public long UserId { get; set; }
 
     [JsonPropertyName("response_type")]
-    public string response_type { get; set; }
+    public string ResponseType { get; set; }
 
     [JsonPropertyName("scope")]
-    public long scope { get; set; }
+    public long Scope { get; set; }
 
     [JsonPropertyName("state")]
-    public string state { get; set; }
+    public string State { get; set; }
 
     [JsonPropertyName("code")]
-    public string code { get; set; }
+    public string Code { get; set; }
 }

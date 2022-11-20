@@ -25,3 +25,9 @@
     margin: 0;
     margin-left: 5px;
 }
+
+.modal-bg {
+    background-color: var(--main-4);
+    padding: 20px;
+    border-radius: 20px;
+}

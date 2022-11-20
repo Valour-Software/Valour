@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS oauth_apps (
     uses INTEGER NOT NULL DEFAULT 0,
     name VARCHAR(32) NOT NULL,
     image_url TEXT,
+    redirect_url TEXT NOT NULL,
 
     CONSTRAINT fk_owner FOREIGN KEY(owner_id) REFERENCES users(id)
 );

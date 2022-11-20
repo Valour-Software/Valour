@@ -1,4 +1,5 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Valour.Server.Config;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels;
@@ -28,6 +29,7 @@ public class ValourDB : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
+        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.ForeignKeyPropertiesMappedToUnrelatedTables));
         options.UseNpgsql(ConnectionString).UseExceptionProcessor();
     }
 
