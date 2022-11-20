@@ -25,6 +25,7 @@ public class OauthAPI : BaseAPI
         app.MapGet("api/user/{userId}/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
+        app.MapGet("api/oauth/token", Token);
     }
 
     // TODO: Clean this cache based on age of entry
@@ -53,6 +54,54 @@ public class OauthAPI : BaseAPI
 
         // Slightly different than normal oauth because of Blazor: We return the link for the app to redirect itself to
         return ValourResult.Ok($"{model.RedirectUri}?code={model.Code}&state={model.State}");
+    }
+
+    public static async Task<IResult> Token(
+        ValourDB db,
+        long client_id,
+        string client_secret,
+        string grant_type,
+        string code,
+        string redirect_uri,
+        string state
+    )
+    {
+        OauthReqCache.TryGetValue(code, out var model);
+        if (model is null ||
+            model.ClientId != client_id ||
+            model.RedirectUri != redirect_uri ||
+            model.State !=  state)
+            return ValourResult.Forbid("Parameters are invalid.");
+
+        var app = await db.OauthApps.FindAsync(client_id);
+        if (app.Secret != client_secret)
+            return ValourResult.Forbid("Parameters are invalid.");
+
+        switch (grant_type)
+        {
+            case "authorization_code":
+                {
+                    AuthToken newToken = new AuthToken()
+                    {
+                        Id = "val-" + Guid.NewGuid().ToString(),
+                        AppId = client_id.ToString(),
+                        Scope = model.Scope,
+                        TimeCreated = DateTime.UtcNow,
+                        TimeExpires = DateTime.UtcNow.AddDays(7),
+                        UserId = model.UserId,
+                        IssuedAddress = "Oauth Internal"
+                    };
+
+                    await db.AuthTokens.AddAsync(newToken);
+                    await db.SaveChangesAsync();
+
+                    return Results.Json(newToken);
+                }
+
+            default:
+                return ValourResult.Problem("Available grant types: authorization_code");
+        }
+
     }
 
     public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization)
