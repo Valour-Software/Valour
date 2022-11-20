@@ -200,7 +200,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     /// Returns the role color of the member
     /// </summary>
     public async Task<string> GetRoleColorAsync(bool force_refresh = false) =>
-        (await GetPrimaryRoleAsync(force_refresh))?.GetColorHex() ?? "ffffff";
+        (await GetPrimaryRoleAsync(force_refresh))?.GetColorHex() ?? "#ffffff";
     
 
     /// <summary>

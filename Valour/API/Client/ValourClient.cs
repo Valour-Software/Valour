@@ -151,6 +151,11 @@ public static class ValourClient
     public static event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
 
     /// <summary>
+    /// Run when a channel sends a currently typing update
+    /// </summary>
+    public static event Func<ChannelTypingUpdate, Task> OnChannelCurrentlyTypingUpdate;
+
+    /// <summary>
     /// Run when a personal embed update is received
     /// </summary>
     public static event Func<PersonalEmbedUpdate, Task> OnPersonalEmbedUpdate;
@@ -618,6 +623,12 @@ public static class ValourClient
 
         if (OnChannelWatchingUpdate is not null)
             await OnChannelWatchingUpdate.Invoke(update);
+    }
+
+    public static async Task ChannelCurrentlyTypingUpdateRecieved(ChannelTypingUpdate update)
+    {
+        if (OnChannelCurrentlyTypingUpdate is not null)
+            await OnChannelCurrentlyTypingUpdate.Invoke(update);
     }
 
     public static async Task PersonalEmbedUpdate(PersonalEmbedUpdate update)

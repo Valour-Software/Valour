@@ -7,4 +7,5 @@ public interface IChannel : ISharedItem
     public string Description { get; set; }
     public Task Open();
     public Task Close();
+    public Task SendIsTyping();
 }

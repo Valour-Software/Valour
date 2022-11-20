@@ -1,0 +1,23 @@
+﻿.currentlytyping-container {
+    margin-left: 13px;
+    text-align: left;
+}
+
+.is-typing-name {
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 14px;
+    display: inline-block;
+}
+
+.icon {
+    margin-right: 7px;
+    height: 7px;
+    display: inline-block;
+}
+
+.remainder-text {
+    color: #b5b5b5;
+    display: inline-block;
+    margin-left: 10px;
+}

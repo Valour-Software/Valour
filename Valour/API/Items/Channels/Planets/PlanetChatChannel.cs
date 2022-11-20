@@ -1,4 +1,5 @@
-﻿using Valour.Api.Client;
+﻿using System;
+using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets;
@@ -239,5 +240,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     /// </summary>
     public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
         (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
+
+    public override async Task SendIsTyping()
+    {
+        await Node.PostAsync($"{IdRoute}/typing", null);
+    }
 }
 

@@ -268,6 +268,7 @@ namespace Valour.Server
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
+            services.AddHostedService<ChannelCurrentlyTypingWorker>();
 
             services.AddEndpointsApiExplorer();
 
