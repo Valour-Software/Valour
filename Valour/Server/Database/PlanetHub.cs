@@ -58,6 +58,12 @@ namespace Valour.Server.Database
         // This specifically stores primary user connections
         public static ConcurrentDictionary<string, PrimaryNodeConnection> PrimaryConnections = new ConcurrentDictionary<string, PrimaryNodeConnection>();
 
+        // Map of channelids to users typing
+        public static ConcurrentDictionary<long, ConcurrentDictionary<long, DateTime>> CurrentlyTyping = new();
+
+        // Map of channelids to users typing from prev channel update
+        public static ConcurrentDictionary<long, List<long>> PrevCurrentlyTyping = new ConcurrentDictionary<long, List<long>>();
+
         public static IHubContext<PlanetHub> Current;
 
         #region Connection Tracking
@@ -441,13 +447,58 @@ namespace Valour.Server.Database
                 // Channel connections only
                 if (!pair.Key.StartsWith('c'))
                     continue;
-                
+
                 // Send current active channel connection user ids
-                await Current.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate()
+
+                // no need to await these
+#pragma warning disable CS4014
+                var channelid = long.Parse(pair.Key.Substring(2));
+                Current.Clients.Group(pair.Key).SendAsync("Channel-Watching-Update", new ChannelWatchingUpdate()
                 {
-                    ChannelId = long.Parse(pair.Key.Substring(2)),
+                    ChannelId = channelid,
                     UserIds = pair.Value.Distinct().ToList()
                 });
+#pragma warning restore CS4014
+            }
+        }
+
+        public static async Task UpdateCurrentlyTypingChannels()
+        {
+            foreach(var pair in CurrentlyTyping)
+            {
+#pragma warning disable CS4014
+                ConcurrentDictionary<long, DateTime> currentlytyping = CurrentlyTyping[pair.Key];
+                bool haschanged = false;
+                foreach (var typingpair in currentlytyping)
+                {
+                    // if the last typing update from this pair is old enough, then remove it from currently typing
+                    if (DateTime.UtcNow > typingpair.Value.AddSeconds(7))
+                    {
+                        currentlytyping.Remove(typingpair.Key, out _);
+                        haschanged = true;
+                    }
+                }
+                if (!haschanged)
+                {
+                    foreach (var typingpair in currentlytyping)
+                    {
+                        if (!PrevCurrentlyTyping[pair.Key].Contains(typingpair.Key))
+                        {
+                            haschanged = true;
+                            break;
+                        }
+                    }
+                }
+                if (haschanged)
+                {
+                    PrevCurrentlyTyping[pair.Key] = currentlytyping.Keys.ToList();
+                    Current.Clients.Group($"c-{pair.Key}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate()
+                    {
+                        ChannelId = pair.Key,
+                        UserIds = PrevCurrentlyTyping[pair.Key]
+                    });
+                }
+#pragma warning restore CS4014
             }
         }
     }

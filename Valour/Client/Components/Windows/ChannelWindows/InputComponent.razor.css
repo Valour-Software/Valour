@@ -62,6 +62,7 @@
 }
 
 .textbox-holder {
+    margin-top: -3px;
 }
 
 ::deep .preview-message .message {

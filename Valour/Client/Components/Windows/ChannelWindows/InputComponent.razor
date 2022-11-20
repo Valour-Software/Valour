@@ -9,6 +9,8 @@
         <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
+    <ChannelCurrentlyTypingComponent ParentComponent="WindowComponent" Channel="WindowComponent.Channel"></ChannelCurrentlyTypingComponent>
+
     <div class="textbox-holder" @onclick="MessageHolder.ScrollToBottomAnimated">
 
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
@@ -88,6 +90,8 @@
     /// Module for calling Javascript functions
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
+
+    private DateTime LastIsTypingUpdateSent = DateTime.MinValue;
 
     /// <summary>
     /// Run when the component is initialized
@@ -391,6 +395,12 @@
         await RefreshPreviewMessage();
 
         await MessageHolder.ScrollToBottom();
+
+        if (DateTime.UtcNow > LastIsTypingUpdateSent.AddSeconds(5))
+        {
+            WindowComponent.Channel.SendIsTyping();
+            LastIsTypingUpdateSent = DateTime.UtcNow;
+        }
 
         StateHasChanged();
     }

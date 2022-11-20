@@ -20,4 +20,5 @@ public abstract class Channel : Item, IChannel, ISharedChannel
 
     public abstract Task Open();
     public abstract Task Close();
+    public abstract Task SendIsTyping();
 }
