@@ -69,7 +69,7 @@
 
 	private bool ProcessPageChangeForForms = false;
 
-	public bool ProcessingPersonalEmbedUpdate = false;
+	public bool ProcessingEmbedUpdate = false;
 
 	public Embed embed = null;
 
@@ -78,13 +78,40 @@
 	public void Dispose()
 	{
 		ValourClient.OnPersonalEmbedUpdate -= OnPersonalEmbedUpdate;
+		ValourClient.OnChannelEmbedUpdate -= OnChannelEmbedUpdate;
 	}
 
 	protected override void OnInitialized()
 	{
 		StateHasChanged();
 		ValourClient.OnPersonalEmbedUpdate += OnPersonalEmbedUpdate;
+		ValourClient.OnChannelEmbedUpdate += OnChannelEmbedUpdate;
 		embed = Message.Message.Embed;
+	}
+
+	public async Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
+	{
+		if (update.TargetMessageId == Message.Message.Id)
+		{
+			int currentpage = embed.currentPage;
+			Message.Message.EmbedData = update.NewEmbedContent;
+			Message.Message.embedParsed = false;
+			embed = Message.Message.Embed;
+			if (!embed.KeepPageOnUpdate)
+			{
+				embed.currentPage = embed.StartPage;
+			}
+			else
+				embed.currentPage = currentpage;
+			
+			if (embed.currentPage >= embed.Pages.Count) 
+				embed.currentPage = embed.StartPage;
+			ProcessPageChange = true;
+			ProcessingEmbedUpdate = true;
+			UpdateItems();
+			ProcessingEmbedUpdate = false;
+			await Holder.ScrollToBottom();
+		}
 	}
 
 	public async Task OnPersonalEmbedUpdate(PersonalEmbedUpdate update)
@@ -105,9 +132,9 @@
 			if (embed.currentPage >= embed.Pages.Count) 
 				embed.currentPage = embed.StartPage;
 			ProcessPageChange = true;
-			ProcessingPersonalEmbedUpdate = true;
+			ProcessingEmbedUpdate = true;
 			UpdateItems();
-			ProcessingPersonalEmbedUpdate = false;
+			ProcessingEmbedUpdate = false;
 			await Holder.ScrollToBottom();
 		}
 	}
