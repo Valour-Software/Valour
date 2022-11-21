@@ -116,8 +116,12 @@ export function inputKeyDownHandler(e, input) {
     }
 }
 
-export function submitMessage(inputId) {
+export function submitMessage(inputId, keepOpen = false) {
     var input = inputs[inputId];
+
+    if (keepOpen) {
+        input.element.focus();
+    }
 
     input.element.innerHTML = '';
 
