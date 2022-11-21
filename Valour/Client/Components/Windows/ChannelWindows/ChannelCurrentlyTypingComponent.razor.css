@@ -1,6 +1,8 @@
 ﻿.currentlytyping-container {
     margin-left: 13px;
     text-align: left;
+    height: 14px;
+    line-height: 9px;
 }
 
 @keyframes currentlytyping-icon {
