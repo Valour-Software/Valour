@@ -110,6 +110,7 @@ public class EmbedFormItem : EmbedItem
             Height = (int?)Node["Height"];
         }
         Rows = new();
+        Items = new();
         switch (ItemPlacementType)
         {
             case EmbedItemPlacementType.FreelyBased:
