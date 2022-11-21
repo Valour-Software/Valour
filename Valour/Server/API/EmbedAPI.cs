@@ -17,11 +17,64 @@ public class EmbedAPI : BaseAPI
     {
         app.MapPost("api/embed/interact", Interaction);
         app.MapPost("api/embed/planetpersonalupdate", PlanetPersonalUpdate);
+        app.MapPost("api/embed/planetchannelupdate", PlanetChannelUpdate);
+    }
+
+    private static async Task<IResult> PlanetChannelUpdate(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
+    {
+        var ceu = await JsonSerializer.DeserializeAsync<ChannelEmbedUpdate>(ctx.Request.Body);
+
+        if (ceu.NewEmbedContent.Length > 65535)
+        {
+            return Results.BadRequest("EmbedData must be under 65535 chars");
+        }
+
+        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        if (authToken == null) { await TokenInvalid(ctx); return Results.BadRequest(); }
+
+        var targetmessage = await db.PlanetMessages.Include(x => x.AuthorMember).FirstOrDefaultAsync(x => x.Id == ceu.TargetMessageId);
+        if (targetmessage is null)
+        {
+            targetmessage = PlanetMessageWorker.GetStagedMessage(ceu.TargetMessageId);
+            if (targetmessage is null)
+                return Results.NotFound("Target message not found");
+        }
+
+        var botmember = await db.PlanetMembers.Include(x => x.User).FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.PlanetId == targetmessage.PlanetId);
+
+        if (botmember is null)
+            return Results.NotFound("Bot's member not found");
+
+        if (!botmember.User.Bot)
+            return Results.BadRequest("Only bots can do personal embed updates!");
+
+        // only the bot who sent the message can send channel embed updates
+        if (targetmessage.AuthorUserId != botmember.UserId)
+            return Results.BadRequest("User id mismatch");
+
+        if (targetmessage.PlanetId != botmember.PlanetId)
+            return Results.BadRequest("Planet id mismatch");
+
+        if (targetmessage.EmbedData == null || targetmessage.EmbedData == "")
+            return Results.BadRequest("Target message does not contain an embed!");
+
+        var channel = await db.PlanetChatChannels.FindAsync(targetmessage.ChannelId);
+
+        if (!await channel.HasPermissionAsync(botmember, ChatChannelPermissions.View, db))
+            return Results.BadRequest("Member lacks ChatChannelPermissions.View");
+
+        channel = await db.PlanetChatChannels.FindAsync(ceu.TargetChannelId);
+
+        if (!await channel.HasPermissionAsync(botmember, ChatChannelPermissions.View, db))
+            return Results.BadRequest("Member lacks ChatChannelPermissions.View");
+
+        PlanetHub.NotifyChannelEmbedUpdateEvent(ceu);
+
+        return Results.Ok("Sent Channel Embed Update");
     }
 
     private static async Task<IResult> PlanetPersonalUpdate(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
     {
-        Console.WriteLine(ctx.Request.Body);
         var peu = await JsonSerializer.DeserializeAsync<PersonalEmbedUpdate>(ctx.Request.Body);
 
         if (peu.NewEmbedContent.Length > 65535) {
