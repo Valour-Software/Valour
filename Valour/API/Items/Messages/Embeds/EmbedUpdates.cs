@@ -20,3 +20,15 @@ public class PersonalEmbedUpdate
 	[JsonPropertyName("NewEmbedContent")]
 	public string NewEmbedContent { get; set; }
 }
+
+public class ChannelEmbedUpdate
+{
+    [JsonPropertyName("TargetChannelId")]
+    public long TargetChannelId { get; set; }
+
+    [JsonPropertyName("TargetMessageId")]
+    public long TargetMessageId { get; set; }
+
+    [JsonPropertyName("NewEmbedContent")]
+    public string NewEmbedContent { get; set; }
+}

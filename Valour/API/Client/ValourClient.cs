@@ -158,6 +158,11 @@ public static class ValourClient
     /// </summary>
     public static event Func<PersonalEmbedUpdate, Task> OnPersonalEmbedUpdate;
 
+    /// <summary>
+    /// Run when a channel embed update is received
+    /// </summary>
+    public static event Func<ChannelEmbedUpdate, Task> OnChannelEmbedUpdate;
+
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
@@ -632,7 +637,13 @@ public static class ValourClient
     public static async Task PersonalEmbedUpdate(PersonalEmbedUpdate update)
     {
         if (OnPersonalEmbedUpdate is not null)
-            await OnPersonalEmbedUpdate.Invoke(update);
+            await OnPersonalEmbedUpdate?.Invoke(update);
+    }
+
+    public static async Task ChannelEmbedUpdate(ChannelEmbedUpdate update)
+    {
+        if (OnChannelEmbedUpdate is not null)
+            await OnChannelEmbedUpdate?.Invoke(update);
     }
 
     #endregion
