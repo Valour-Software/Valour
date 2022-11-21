@@ -365,7 +365,7 @@
 
     public async Task OnSubmitClick()
     {
-        await _jsModule.InvokeVoidAsync("submitMessage", Window.Id);
+        await _jsModule.InvokeVoidAsync("submitMessage", Window.Id, true);
     }
 
     // JS -> C#
