@@ -191,30 +191,20 @@ public class OauthAPI : BaseAPI
         return Results.Json(publicData);
     }
 
-    public static async Task CreateApp(HttpContext context, ValourDB db, [FromBody] OauthApp app, [FromHeader] string authorization)
+    public static async Task<IResult> CreateApp(HttpContext context, ValourDB db, [FromBody] OauthApp app, [FromHeader] string authorization)
     {
         var authToken = await AuthToken.TryAuthorize(authorization, db);
-
         if (authToken is null)
-        {
-            await Unauthorized("Include token", context);
-            return;
-        }
+            return ValourResult.NoToken();
 
         if (app is null)
-        {
-            await BadRequest("Include app in body", context);
-            return;
-        }
+            return ValourResult.BadRequest("Include app in body");
 
         if (app.RedirectUrl is null)
             app.RedirectUrl = string.Empty;
 
         if (await db.OauthApps.CountAsync(x => x.OwnerId == authToken.UserId) > 9)
-        {
-            await BadRequest("There is currently a 10 app limit!", context);
-            return;
-        }
+            return ValourResult.BadRequest("There is currently a 10 app limit!");
 
         // Ensure variables are correctly set
         app.OwnerId = authToken.UserId;
@@ -225,10 +215,7 @@ public class OauthAPI : BaseAPI
         var nameValid = Planet.ValidateName(app.Name);
 
         if (!nameValid.Success)
-        {
-            await BadRequest(nameValid.Message, context);
-            return;
-        }
+            return ValourResult.BadRequest(nameValid.Message);
 
         // Generate secret token
 
@@ -238,10 +225,9 @@ public class OauthAPI : BaseAPI
 
         app.Id = IdManager.Generate();
 
-        await db.OauthApps.AddAsync(app);
+        db.OauthApps.Add(app);
         await db.SaveChangesAsync();
 
-        context.Response.StatusCode = 201;
-        await context.Response.WriteAsJsonAsync(app.Id);
+        return ValourResult.Ok(app.Id.ToString());
     }
 }

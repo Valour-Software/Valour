@@ -79,12 +79,6 @@ export function inputKeyDownHandler(e, input) {
             break;
         // Enter
         case 13: {
-
-            // Mobile uses submit button
-            if (mobile) {
-                break;
-            }
-
             // If shift key is down, do not submit on enter
             if (e.shiftKey) {
                 break;
@@ -97,6 +91,12 @@ export function inputKeyDownHandler(e, input) {
                 input.dotnet.invokeMethodAsync('MentionSubmit');
             }
             else {
+
+                // Mobile uses submit button
+                if (mobile) {
+                    break;
+                }
+
                 // prevent default behavior
                 e.preventDefault();
                 submitMessage(input.id);
@@ -116,8 +116,12 @@ export function inputKeyDownHandler(e, input) {
     }
 }
 
-export function submitMessage(inputId) {
+export function submitMessage(inputId, keepOpen = false) {
     var input = inputs[inputId];
+
+    if (keepOpen) {
+        input.element.focus();
+    }
 
     input.element.innerHTML = '';
 
