@@ -22,7 +22,7 @@
 }
 
 .mobile .textbox-inner {
-    padding-right: 45px;
+    width: calc(100% - 35px);
 }
 
 .upload {
@@ -59,6 +59,10 @@
     right: 12px;
     bottom: 10px;
     user-select: none;
+}
+
+.send-button:hover {
+    color: lightslategrey;
 }
 
 .textbox-holder {
