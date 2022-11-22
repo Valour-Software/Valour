@@ -46,18 +46,19 @@ public class EmbedItem
     /// </summary>
     public int? Y { get; set; }
 
-    public string? Href { get; set; }
+    public string Href { get; set; }
 
     public int? Page { get; set; }
 
     /// <summary>
 	/// If not null, what will the event name be for when a user clicks on this text item
 	/// </summary>
-    public string? OnClickEventName { get; set; }
+    public string OnClickEventName { get; set; }
 
     [JsonIgnore]
     public Embed Embed { get; set; }
 
+    [JsonIgnore]
     public bool HasGoTo
     {
         get

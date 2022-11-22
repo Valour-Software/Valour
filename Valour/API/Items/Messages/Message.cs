@@ -135,8 +135,8 @@ public abstract class Message : Item, ISharedMessage
             {
                 if (!string.IsNullOrEmpty(EmbedData))
                 {
-                    _embed = new Embed();
-                    _embed.BuildFromJson(JsonNode.Parse(EmbedData));
+                    Console.WriteLine(EmbedData);
+                    _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
                 }
 
                 embedParsed = true;

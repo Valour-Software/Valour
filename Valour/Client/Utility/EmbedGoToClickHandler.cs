@@ -13,20 +13,20 @@ internal static class EmbedGoToClickHandler
     public static async Task HandleClick(EmbedItem item, EmbedComponent embedComponent)
     {
         //await Task.Delay(10);
-        if (item.OnClickEventName is not null)
+        if (!string.IsNullOrWhiteSpace(item.OnClickEventName))
         {
             var interaction = new EmbedInteractionEvent()
             {
                 EventType = EmbedIteractionEventType.TextClicked,
-                MessageId = embedComponent.Message.Message.Id,
-                ChannelId = embedComponent.Message.Message.ChannelId,
+                MessageId = embedComponent.MessageWrapper.Message.Id,
+                ChannelId = embedComponent.MessageWrapper.Message.ChannelId,
                 TimeInteracted = DateTime.UtcNow,
                 ElementId = item.OnClickEventName
             };
 
-            if (embedComponent.Message.Message is PlanetMessage)
+            if (embedComponent.MessageWrapper.Message is PlanetMessage)
             {
-                var planetMessage = embedComponent.Message.Message as PlanetMessage;
+                var planetMessage = embedComponent.MessageWrapper.Message as PlanetMessage;
                 PlanetMember SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, planetMessage.PlanetId);
 
                 interaction.PlanetId = SelfMember.PlanetId;
@@ -38,9 +38,9 @@ internal static class EmbedGoToClickHandler
 
             Console.WriteLine(response.Content.ReadAsStringAsync());
         }
-        else if (item.Page is not null)
+        else if (item.Page.HasValue)
         {
-            item.Embed.currentPage = (int)item.Page;
+            item.Embed.currentPage = item.Page.Value;
             embedComponent.UpdateItems();
         }
     }

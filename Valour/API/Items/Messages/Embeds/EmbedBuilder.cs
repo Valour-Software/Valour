@@ -153,7 +153,7 @@ public class EmbedBuilder
     /// this will add a button item to the current page.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddButton(string id = null, string text = null, string color = null, string textColor = null, string link = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int? x = null, int? y = null, bool? isSubmitButton = null)
+    public EmbedBuilder AddButton(string id = null, string text = null, string color = null, string textColor = null, string link = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int? x = null, int? y = null, bool isSubmitButton = false)
     {
         var item = new EmbedButtonItem()
         {

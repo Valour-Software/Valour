@@ -5,9 +5,12 @@
 	{
 		<EmbedRowComponent Row="@row" Message="@Message" embed="@embed" FormItem="@item"></EmbedRowComponent>
 	}
-	@foreach (EmbedItem _item in item.Items)
+	@if (item.Items is not null)
 	{
-		<EmbedItemComponent embed="@embed" Message="@Message" item="@_item" FormItem="@item"></EmbedItemComponent>
+		foreach (EmbedItem _item in item.Items)
+		{
+			<EmbedItemComponent embed="@embed" Message="@Message" item="@_item" FormItem="@item"></EmbedItemComponent>
+		}
 	}
 </div>
 
