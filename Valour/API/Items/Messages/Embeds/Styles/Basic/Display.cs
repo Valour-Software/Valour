@@ -2,7 +2,7 @@
 
 namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public class Display : IStyle
+public class Display : StyleBase
 {
     public enum DisplayType
     {
@@ -64,7 +64,6 @@ public class Display : IStyle
     public Display(DisplayType display)
     {
         Value = display;
-        Type = EmbedStyleType.Display;
     }
 
     public override string ToString()

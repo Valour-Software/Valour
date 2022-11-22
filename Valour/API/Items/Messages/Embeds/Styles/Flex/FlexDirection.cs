@@ -8,7 +8,7 @@ public enum Direction
     ColumnReverse,
 }
 
-public struct FlexDirection : IStyle
+public class FlexDirection : StyleBase
 {
     private readonly string[] _strings = new string[]
     {

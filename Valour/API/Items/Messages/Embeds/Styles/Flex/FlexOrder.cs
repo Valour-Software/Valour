@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
-public struct FlexOrder : IStyle
+public class FlexOrder : StyleBase
 {
     public int Value { get; set; }
 

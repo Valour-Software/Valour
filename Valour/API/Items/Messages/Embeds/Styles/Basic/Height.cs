@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public struct Height : IStyle
+public class Height : StyleBase
 {
     public static readonly Height Zero = new Height(Size.Zero);
     public static readonly Height Full = new Height(Size.Full);
@@ -21,7 +21,7 @@ public struct Height : IStyle
     }
 }
 
-public struct MaxHeight : IStyle
+public class MaxHeight : StyleBase
 {
     public static readonly MaxHeight Zero = new MaxHeight(Size.Zero);
     public static readonly MaxHeight Full = new MaxHeight(Size.Full);
@@ -42,7 +42,7 @@ public struct MaxHeight : IStyle
     }
 }
 
-public struct MinHeight : IStyle
+public class MinHeight : StyleBase
 {
     public static readonly MinHeight Zero = new MinHeight(Size.Zero);
     public static readonly MinHeight Full = new MinHeight(Size.Full);

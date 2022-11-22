@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public struct TextColor : IStyle
+public class TextColor : StyleBase
 {
     public Color Color { get; set; }
 

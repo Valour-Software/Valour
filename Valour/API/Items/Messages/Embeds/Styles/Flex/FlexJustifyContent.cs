@@ -10,7 +10,7 @@ public enum JustifyContent
     SpaceEvenly
 }
 
-public struct FlexJustifyContent : IStyle
+public class FlexJustifyContent : StyleBase
 {
 
     private readonly string[] _strings = new string[]

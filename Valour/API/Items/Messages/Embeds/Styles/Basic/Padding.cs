@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public struct Padding : IStyle
+public class Padding : StyleBase
 {
     public Size Left { get; set; }
     public Size Right { get; set; }

@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public struct FontSize : IStyle
+public class FontSize : StyleBase
 {
     public Size Size { get; set; }
 

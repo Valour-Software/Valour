@@ -2,7 +2,7 @@
 
 namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public class BorderRadius : IStyle
+public class BorderRadius : StyleBase
 {
     [JsonPropertyName("tl")]
     public Size TopLeft { get; set; }
@@ -22,7 +22,6 @@ public class BorderRadius : IStyle
     public BorderRadius(Size size)
     {
         Only = size;
-        Type = EmbedStyleType.BorderRadius;
     }
 
     public BorderRadius(Size topLeft, Size topRight, Size bottomLeft, Size bottomRight)
@@ -31,7 +30,6 @@ public class BorderRadius : IStyle
         TopRight = topRight;
         BottomLeft = bottomLeft;
         BottomRight = bottomRight;
-        Type = EmbedStyleType.BorderRadius;
     }
 
     public override string ToString()

@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
-public struct FlexGap : IStyle
+public class FlexGap : StyleBase
 {
     public Size Row { get; set; }
     public Size Column { get; set; }

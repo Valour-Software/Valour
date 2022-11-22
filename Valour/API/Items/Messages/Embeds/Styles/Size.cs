@@ -14,7 +14,7 @@ public enum Unit
     Em
 }
 
-public class Size : IStyle
+public class Size : StyleBase
 {
     public static readonly Size Zero = new Size(Unit.Zero);
     public static readonly Size Full = new Size(Unit.Percent, 100);
@@ -32,7 +32,6 @@ public class Size : IStyle
     {
         Unit = unit;
         Value = size;
-        Type = EmbedStyleType.Size;
     }
     
     public override string ToString()

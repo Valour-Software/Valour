@@ -7,7 +7,7 @@ public enum Wrap
     WrapReverse,
 }
 
-public struct FlexWrap : IStyle
+public class FlexWrap : StyleBase
 {
     private readonly string[] _strings = new string[]
     {

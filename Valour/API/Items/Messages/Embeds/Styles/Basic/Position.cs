@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public class Position : IStyle
+public class Position : StyleBase
 {
     public Size Left {  get; set; }
     public Size Right { get; set; }

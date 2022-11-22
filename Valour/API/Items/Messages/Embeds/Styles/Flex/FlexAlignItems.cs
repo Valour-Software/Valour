@@ -15,7 +15,7 @@ public enum AlignItem
     SelfEnd,
 }
 
-public class FlexAlignItems : IStyle
+public class FlexAlignItems : StyleBase
 {
     private readonly string[] _strings = new string[]
     {

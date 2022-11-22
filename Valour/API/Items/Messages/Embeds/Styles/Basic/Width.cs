@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
-public struct Width : IStyle
+public class Width : StyleBase
 {
     public static readonly Width Zero = new Width(Size.Zero);
     public static readonly Width Full = new Width(Size.Full);
@@ -21,7 +21,7 @@ public struct Width : IStyle
     }
 }
 
-public struct MaxWidth : IStyle
+public class MaxWidth : StyleBase
 {
     public static readonly MaxWidth Zero = new MaxWidth(Size.Zero);
     public static readonly MaxWidth Full = new MaxWidth(Size.Full);
@@ -42,7 +42,7 @@ public struct MaxWidth : IStyle
     }
 }
 
-public struct MinWidth : IStyle
+public class MinWidth : StyleBase
 {
     public static readonly MinWidth Zero = new MinWidth(Size.Zero);
     public static readonly MinWidth Full = new MinWidth(Size.Full);

@@ -1,6 +1,6 @@
 ﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
-public struct FlexShrink : IStyle
+public class FlexShrink : StyleBase
 {
     public int Value { get; set; }
 

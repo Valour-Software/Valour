@@ -10,7 +10,7 @@ public enum AlignSelf
     Stretch
 }
 
-public struct FlexAlignSelf : IStyle
+public class FlexAlignSelf : StyleBase
 {
     private readonly string[] _strings = new string[]
     {

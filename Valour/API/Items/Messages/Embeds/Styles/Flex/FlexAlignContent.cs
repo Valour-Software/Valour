@@ -16,7 +16,7 @@ public enum AlignContent
     LastBaseline
 }
 
-public struct FlexAlignContent : IStyle
+public class FlexAlignContent : StyleBase
 {
     private readonly string[] _strings = new string[]
     {
