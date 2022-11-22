@@ -1,6 +1,7 @@
 ﻿using Valour.Api.Items.Messages.Embeds;
 using System;
 using System.Text.Json.Serialization;
+using Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 namespace Valour.Api.Items.Messages.Embeds.Items;
 
