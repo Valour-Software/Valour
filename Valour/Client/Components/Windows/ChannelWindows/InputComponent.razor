@@ -19,6 +19,8 @@
             <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <img class='upload' src="_content/Valour.Client/media/Plus-Icon.svg" onclick="document.getElementById('upload-core').click()" />
 
+            <UploadMenuComponent></UploadMenuComponent>
+
             @if (DeviceInfo.IsMobile){
                 <div class="send-wrapper" @onclick="OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
                     <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" />
@@ -72,6 +74,11 @@
     /// True if the mention selection system list visible
     /// </summary>
     private bool mentionSelect;
+
+    /// <summary>
+    /// True if the upload/gif/add menu should be visible
+    /// </summary>
+    private bool showUploadMenu;
 
     /// <summary>
     /// The message component for the preview message

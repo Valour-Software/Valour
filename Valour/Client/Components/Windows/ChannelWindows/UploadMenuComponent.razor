@@ -1,0 +1,33 @@
+﻿@if (!visible)
+{
+    return;
+}
+
+<div class="upload-menu">
+    <div class="content">
+        <div class="button">
+            Upload a File
+        </div>
+        <div class="button">
+            Gifs via Tenor
+        </div>
+    </div>
+    <div class="carrot" />
+</div>
+
+@code {
+    private bool visible = false;
+
+    public void ShowAsync()
+    {
+        visible = true;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void HideAsync()
+    {
+        visible = false;
+        StateHasChanged();
+    }
+}
