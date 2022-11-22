@@ -1,4 +1,7 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Nodes;
+using Valour.Api.Items.Messages.Embeds.Items;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
 public enum BorderStyle
 {
@@ -14,7 +17,7 @@ public enum BorderStyle
     Hidden
 }
 
-public struct Border
+public class Border : IStyle
 {
     public static readonly Border Empty = new Border();
 
@@ -41,6 +44,7 @@ public struct Border
         Thickness = width;
         Color = color;
         Style = style;
+        Type = EmbedStyleType.BorderRadius;
     }
 
     public override string ToString()
@@ -52,7 +56,7 @@ public struct Border
     }
 }
 
-public struct Borders : IStyle
+public class Borders : IStyle
 {
     public Border Left { get; set; }
     public Border Right { get; set; }
@@ -75,11 +79,60 @@ public struct Borders : IStyle
         Bottom = bottom;
     }
 
+    public Borders(Border border)
+    {
+
+    }
+
     public override string ToString()
     {
         return @$"border-left: {Left};
                   border-right: {Right};
                   border-top: {Top};
                   border-bottom: {Bottom};";
+    }
+
+    public Borders(JsonNode Node, Embed embed)
+    {
+        Type = EmbedStyleType.Borders;
+        Id = (string)Node["Id"];
+        ItemPlacementType = (EmbedItemPlacementType)(int)Node["ItemPlacementType"];
+        if (ItemPlacementType == EmbedItemPlacementType.FreelyBased)
+        {
+            Width = (int?)Node["Width"];
+            Height = (int?)Node["Height"];
+        }
+        Rows = new();
+        Items = new();
+        switch (ItemPlacementType)
+        {
+            case EmbedItemPlacementType.FreelyBased:
+                if (Node["Items"] is not null)
+                {
+                    Items = new();
+                    foreach (JsonNode node in Node["Items"].AsArray())
+                    {
+                        Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
+                    }
+                }
+                break;
+            case EmbedItemPlacementType.RowBased:
+                if (Node["Rows"] is not null && Node["Items"] is null)
+                {
+                    foreach (var rownode in Node["Rows"].AsArray())
+                    {
+                        EmbedRow rowobject = new();
+                        if (rownode["Align"] is not null)
+                            rowobject.Align = (EmbedAlignType)(int)rownode["Align"];
+                        int i = 0;
+                        foreach (JsonNode node in rownode["Items"].AsArray())
+                        {
+                            rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
+                        }
+                        Rows.Add(rowobject);
+                    }
+                }
+                break;
+        }
     }
 }

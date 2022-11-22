@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles;
 
 public enum Unit
 {
@@ -12,7 +14,7 @@ public enum Unit
     Em
 }
 
-public struct Size
+public class Size : IStyle
 {
     public static readonly Size Zero = new Size(Unit.Zero);
     public static readonly Size Full = new Size(Unit.Percent, 100);
@@ -20,18 +22,22 @@ public struct Size
     public static readonly Size Third = new Size(Unit.Percent, 33);
     public static readonly Size Quarter = new Size(Unit.Percent, 25);
 
-    public Unit Type { get; set; }
+    [JsonPropertyName("u")]
+    public Unit Unit { get; set; }
+
+    [JsonPropertyName("v")]
     public int Value { get; set; }
 
-    public Size(Unit type, int size = 0)
+    public Size(Unit unit, int size = 0)
     {
-        Type = type;
+        Unit = unit;
         Value = size;
+        Type = EmbedStyleType.Size;
     }
-
+    
     public override string ToString()
     {
-        switch (Type)
+        switch (Unit)
         {
             case Unit.Zero:
                 return "0";

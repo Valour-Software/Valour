@@ -1,6 +1,8 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Serialization;
 
-public struct Display : IStyle
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+
+public class Display : IStyle
 {
     public enum DisplayType
     {
@@ -56,11 +58,13 @@ public struct Display : IStyle
         "display: inherit;"
     };
 
+    [JsonPropertyName("v")]
     public DisplayType Value { get; set; }
 
     public Display(DisplayType display)
     {
         Value = display;
+        Type = EmbedStyleType.Display;
     }
 
     public override string ToString()

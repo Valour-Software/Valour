@@ -1,6 +1,12 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Valour.Api.Items.Messages.Embeds.Items;
+using Valour.Api.Items.Messages.Embeds.Styles;
+using Valour.Api.Nodes;
+using Valour.Api.Items.Messages.Embeds.Styles.Basic;
+using Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 namespace Valour.Api.Items.Messages.Embeds;
 
@@ -26,6 +32,8 @@ public class EmbedBuilder
         embed.Pages = new();
         embed.KeepPageOnUpdate = true;
         embed.StartPage = 0;
+        JsonNode node = null;
+        node.Deserialize<Width>();
     }
 
     [JsonIgnore]
