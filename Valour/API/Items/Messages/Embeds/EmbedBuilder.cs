@@ -24,6 +24,8 @@ public class EmbedBuilder
 
     public EmbedDropDownMenuItem DropDownMenu;
 
+    public EmbedItem LastItem;
+
     public EmbedGoTo GoTo = new();
 
     public EmbedBuilder()

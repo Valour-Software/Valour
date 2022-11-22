@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 using Valour.Api.Items.Messages.Embeds.Items;
 
 namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
@@ -19,8 +20,13 @@ public enum BorderStyle
 
 public class Border : StyleBase
 {
+    [JsonPropertyName("t")]
     public Size Thickness { get; set; }
+
+    [JsonPropertyName("c")]
     public Color Color { get; set; }
+
+    [JsonPropertyName("s")]
     public BorderStyle Style { get; set; }
 
     private readonly string[] _styleStrings = new string[]

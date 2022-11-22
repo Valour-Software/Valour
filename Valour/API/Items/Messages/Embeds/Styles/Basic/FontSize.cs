@@ -1,7 +1,10 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
 public class FontSize : StyleBase
 {
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public FontSize(Size size)

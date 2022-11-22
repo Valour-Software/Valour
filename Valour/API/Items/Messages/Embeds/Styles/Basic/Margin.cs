@@ -1,10 +1,19 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
 public class Margin : StyleBase
 {
+    [JsonPropertyName("l")]
     public Size Left { get; set; }
+
+    [JsonPropertyName("r")]
     public Size Right { get; set; }
+
+    [JsonPropertyName("t")]
     public Size Top { get; set; }
+
+    [JsonPropertyName("b")]
     public Size Bottom { get; set; }
 
     public Margin(Size size)

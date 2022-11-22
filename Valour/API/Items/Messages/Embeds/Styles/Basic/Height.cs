@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
 public class Height : StyleBase
 {
@@ -8,6 +10,7 @@ public class Height : StyleBase
     public static readonly Height Third = new Height(Size.Third);
     public static readonly Height Quarter = new Height(Size.Quarter);
 
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public Height(Size size)
@@ -29,6 +32,7 @@ public class MaxHeight : StyleBase
     public static readonly MaxHeight Third = new MaxHeight(Size.Third);
     public static readonly MaxHeight Quarter = new MaxHeight(Size.Quarter);
 
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public MaxHeight(Size size)
@@ -50,6 +54,7 @@ public class MinHeight : StyleBase
     public static readonly MinHeight Third = new MinHeight(Size.Third);
     public static readonly MinHeight Quarter = new MinHeight(Size.Quarter);
 
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public MinHeight(Size size)

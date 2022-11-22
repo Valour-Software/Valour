@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
 public class Width : StyleBase
 {
@@ -8,6 +10,7 @@ public class Width : StyleBase
     public static readonly Width Third = new Width(Size.Third);
     public static readonly Width Quarter = new Width(Size.Quarter);
 
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public Width(Size size)
@@ -29,6 +32,7 @@ public class MaxWidth : StyleBase
     public static readonly MaxWidth Third = new MaxWidth(Size.Third);
     public static readonly MaxWidth Quarter = new MaxWidth(Size.Quarter);
 
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public MaxWidth(Size size)
@@ -50,6 +54,7 @@ public class MinWidth : StyleBase
     public static readonly MinWidth Third = new MinWidth(Size.Third);
     public static readonly MinWidth Quarter = new MinWidth(Size.Quarter);
 
+    [JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public MinWidth(Size size)

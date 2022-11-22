@@ -1,7 +1,10 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
 public class TextColor : StyleBase
 {
+    [JsonPropertyName("c")]
     public Color Color { get; set; }
 
     public TextColor(Color color)
