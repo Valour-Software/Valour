@@ -7,9 +7,9 @@ public class EmbedFormItem : EmbedItem
     /// <summary>
     /// The embed items in this form
     /// </summary>
-    public List<EmbedItem>? Items { get; set; }
+    public List<EmbedItem> Items { get; set; }
 
-    public List<EmbedRow>? Rows { get; set; }
+    public List<EmbedRow> Rows { get; set; }
 
     /// <summary>
     /// the id of this form, ex "UserForms.User-Signup"
@@ -97,50 +97,6 @@ public class EmbedFormItem : EmbedItem
 			}
         }
         return data;
-    }
-
-    public EmbedFormItem(JsonNode Node, Embed embed)
-    {
-        ItemType = EmbedItemType.Form;
-        Id = (string)Node["Id"];
-        ItemPlacementType = (EmbedItemPlacementType)(int)Node["ItemPlacementType"];
-        if (ItemPlacementType == EmbedItemPlacementType.FreelyBased)
-        {
-            Width = (int?)Node["Width"];
-            Height = (int?)Node["Height"];
-        }
-        Rows = new();
-        Items = new();
-        switch (ItemPlacementType)
-        {
-            case EmbedItemPlacementType.FreelyBased:
-                if (Node["Items"] is not null)
-                {
-                    Items = new();
-                    foreach (JsonNode node in Node["Items"].AsArray())
-                    {
-                        Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
-                    }
-                }
-                break;
-            case EmbedItemPlacementType.RowBased:
-                if (Node["Rows"] is not null && Node["Items"] is null)
-                {
-                    foreach (var rownode in Node["Rows"].AsArray())
-                    {
-                        EmbedRow rowobject = new();
-                        if (rownode["Align"] is not null)
-                            rowobject.Align = (EmbedAlignType)(int)rownode["Align"];
-                        int i = 0;
-                        foreach (JsonNode node in rownode["Items"].AsArray())
-                        {
-                            rowobject.Items.Add(Embed.ConvertNodeToEmbedItem(node, embed));
-                        }
-                        Rows.Add(rowobject);
-                    }
-                }
-                break;
-        }
     }
 
     public void AddItem(EmbedItem item)

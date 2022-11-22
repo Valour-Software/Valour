@@ -66,6 +66,8 @@
             return;
         }
 
+        Console.WriteLine("Hello");
+
         var interaction = new EmbedInteractionEvent()
         {
             EventType = EmbedIteractionEventType.ButtonClick,
@@ -85,7 +87,7 @@
             interaction.MemberId = SelfMember.Id;
         }
 
-        if (FormItem is not null && Item.IsSubmitButton.Value)
+        if (FormItem is not null && Item.IsSubmitButton)
         {
             interaction.FormData = FormItem.GetFormData();
             interaction.FormId = FormItem.Id;
