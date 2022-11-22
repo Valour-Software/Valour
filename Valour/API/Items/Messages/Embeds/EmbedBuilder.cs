@@ -32,8 +32,6 @@ public class EmbedBuilder
         embed.Pages = new();
         embed.KeepPageOnUpdate = true;
         embed.StartPage = 0;
-        JsonNode node = null;
-        node.Deserialize<Width>();
     }
 
     [JsonIgnore]
