@@ -86,7 +86,7 @@
         ModalParameters imodParams = new();
         imodParams.Add("Data", imodalData);
 
-        Modal.Show<InfoModalComponent>("Info", imodParams, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<InfoModalComponent>("Info", imodParams);
 
         StateHasChanged();
     }

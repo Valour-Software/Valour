@@ -332,7 +332,7 @@
         ModalParameters mParams = new();
         mParams.Add("Data", cData);
 
-        Modal.Show<ConfirmModalComponent>("Role Delete Confirm", mParams, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<ConfirmModalComponent>("Role Delete Confirm", mParams);
     }
 
     public async Task OnClickCreateMode()

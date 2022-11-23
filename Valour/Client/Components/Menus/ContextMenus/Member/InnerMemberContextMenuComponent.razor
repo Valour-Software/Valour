@@ -152,7 +152,7 @@ else
         ModalParameters modParams = new();
         modParams.Add("Data", modalData);
 
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
 	}
 
 	public async Task OnClickBan()
