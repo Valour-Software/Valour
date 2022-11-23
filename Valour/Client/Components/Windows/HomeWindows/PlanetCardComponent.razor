@@ -1,36 +1,40 @@
 @inject WindowManager windowManager
 @inject IJSRuntime JS
 
-<div @onclick="OnClick" class="home-icon-outer">
 
-    <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style' />
+<ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='planet-context' @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
+    <div @onclick="OnClick" class="home-icon-outer">
 
-    <svg style='position: absolute; left: -10px; top: -10px' width='160px' height='160px' id="shape" xmlns="http://www.w3.org/2000/svg"
-         xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
-            <path id="path"
-                  fill="none" stroke="black" stroke-width="10"
-                  d="
-                    M 80, 80
-                    m -60, 0
-                    a 60,60 0 1,0 120,0
-                    a 60,60 0 1,0 -120,0
-                    "
-                  transform="rotate(90 80 80)">
-            </path>
-        </defs>
-        <text id="text-@Window.Id-@Planet.Id">
-            <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
-                <tspan class="title" fill='white' dy="0.3em">Loading...</tspan>
-            </textPath>
-        </text>
-    </svg>
-    @if (IsUnread)
-    {
-        <div class="noti">
-        </div>
-    }
-</div>
+        <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style' />
+
+        <svg style='position: absolute; left: -10px; top: -10px' width='160px' height='160px' id="shape" xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink">
+            <defs>
+                <path id="path"
+                        fill="none" stroke="black" stroke-width="10"
+                        d="
+                        M 80, 80
+                        m -60, 0
+                        a 60,60 0 1,0 120,0
+                        a 60,60 0 1,0 -120,0
+                        "
+                        transform="rotate(90 80 80)">
+                </path>
+            </defs>
+            <text id="text-@Window.Id-@Planet.Id">
+                <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
+                    <tspan class="title" fill='white' dy="0.3em">Loading...</tspan>
+                </textPath>
+            </text>
+        </svg>
+        @if (IsUnread)
+        {
+            <div class="noti">
+            </div>
+        }
+    </div>
+</ContextMenuTrigger>
+
 
 
 @code {

@@ -1,35 +1,39 @@
 ﻿@inject WindowManager windowManager
 @inject ChannelListManager listManager
 
-<div class="@GetCssClass()" id="list-@Planet.Id">
-    <div style="cursor:pointer" id="list-inner-@Planet.Id" @oncontextmenu="OnContextMenu">
-        <div @onclick='@OnClick'
-             @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
-             class="header" ondragover="event.preventDefault();">
-            <img class="arrow" src="_content/Valour.Client/media/Category-Icon.svg" style="@GetArrowStyle()">
-            <p class="name">
-                @Planet.Name
-            </p>
+<div @onpointerdown:stopPropagation='true'>
+    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='planet-context' @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
+        <div class="@GetCssClass()" id="list-@Planet.Id">
+            <div style="cursor:pointer" id="list-inner-@Planet.Id">
+                <div @onclick='@OnClick'
+                     @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
+                     class="header" ondragover="event.preventDefault();">
+                    <img class="arrow" src="_content/Valour.Client/media/Category-Icon.svg" style="@GetArrowStyle()">
+                    <p class="name">
+                        @Planet.Name
+                    </p>
 
-            <img src="@Planet.IconUrl" class="icon" />
+                    <img src="@Planet.IconUrl" class="icon" />
+                </div>
+            </div>
+            <div class="channel-list">
+                <!-- The Modal -->
+                @if (Open)
+                {
+                    @foreach (PlanetCategoryChannel category in TopCategories)
+                    {
+                        <ChannelListCategoryComponent Categories="Categories"
+                                                      Channels="Channels"
+                                                      Category="category"
+                                                      IsTopLevel="true"
+                                                      @key='category.Id'>
+                        </ChannelListCategoryComponent>
+                    }
+
+                }
+            </div>
         </div>
-    </div>
-    <div class="channel-list">
-        <!-- The Modal -->
-        @if (Open)
-        {
-            @foreach (PlanetCategoryChannel category in TopCategories)
-            {
-                <ChannelListCategoryComponent Categories="Categories"
-                                              Channels="Channels"
-                                              Category="category"
-                                              IsTopLevel="true"
-                                              @key='category.Id'>
-                </ChannelListCategoryComponent>
-            }
-
-        }
-    </div>
+    </ContextMenuTrigger>
 </div>
 
 @code {
@@ -60,11 +64,6 @@
         await GetCategories();
         await GetChannels();
         GetTopLevelCategories();
-    }
-
-    public async Task OnContextMenu()
-    {
-
     }
 
     public string GetCssClass()

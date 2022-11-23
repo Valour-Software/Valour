@@ -356,7 +356,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async ValueTask<PlanetMember> GetMemberByUserAsync(long userId, bool force_refresh = false)
     {
-        return await PlanetMember.FindAsync(userId, Id, force_refresh);
+        return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
     }
 
     /// <summary>

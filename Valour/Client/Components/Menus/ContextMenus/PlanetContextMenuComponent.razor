@@ -1,0 +1,70 @@
+﻿@inject IJSRuntime JS
+
+@using Item = Valour.Api.Items.Item
+<ContextMenu Id='planet-context' CssClass='context'>
+    @if (ValourClient.Self.Id != Planet.OwnerId)
+    {
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickLeavePlanet'>Leave Planet</BlazorContextMenu.Item>
+    }
+    <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickCopyId'>Copy Id</BlazorContextMenu.Item>
+</ContextMenu>
+
+@code {
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    public static Planet Planet { get; set; }
+
+    public static PlanetContextMenuComponent Instance;
+
+    public static async Task SetSelectedPlanet(Planet planet)
+    {
+        Planet = planet;
+        Instance.Refresh();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Instance = this;
+    }
+
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
+
+    public async Task OnClickCopyId()
+    {
+        await JS.InvokeVoidAsync("clipboardCopy.copyText", Planet.Id);
+    }
+
+    public async Task OnClickLeavePlanet()
+    {
+        ConfirmModalData modalData =
+        new($"Leave {Planet.Name}?",
+             "Are you sure?",
+             "Continue",
+             "Cancel",
+             async () =>
+             {
+                 Console.WriteLine("Confirmed leaving planet.");
+
+                 // Get member
+                 var member = await Planet.GetMemberByUserAsync(ValourClient.Self.Id);
+                 var result = await Item.DeleteAsync(member);
+                 Console.WriteLine("Leave: " + result.Message);
+
+             },
+             async () =>
+             {
+                 Console.WriteLine("Cancelled planet leave.");
+             }
+        );
+
+        ModalParameters modParams = new();
+        modParams.Add("Data", modalData);
+
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
+    }
+}

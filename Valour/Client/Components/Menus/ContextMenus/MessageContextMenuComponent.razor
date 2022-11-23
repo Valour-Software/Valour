@@ -111,7 +111,7 @@
         ModalParameters par = new();
         par.Add("Data", confirm);
 
-        Modal.Show<ConfirmModalComponent>("Delete Message", par, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<ConfirmModalComponent>("Delete Message", par);
     }
 
     public async Task OnClickEdit()
