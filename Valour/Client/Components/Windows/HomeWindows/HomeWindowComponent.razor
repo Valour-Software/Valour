@@ -18,7 +18,7 @@
         <div class="flex-row flex-wrap align-items-stretch m-2">
             @foreach (Planet planet in ValourClient.JoinedPlanets)
             {
-                <PlanetCardComponent Planet='planet' Window='Window'></PlanetCardComponent>
+                <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window'></PlanetCardComponent>
             }
 
             <div @onclick="OnClickCreatePlanet" class="home-icon-outer">
@@ -75,7 +75,7 @@
 
             @foreach (var friend in ValourClient.Friends)
             {
-                <FriendCardComponent Friend="friend" Window="Window" homeWindowComponent="this"></FriendCardComponent>
+                <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" Window="Window" homeWindowComponent="this"></FriendCardComponent>
             }
 
             <div @onclick="OnClickAddFriend" class="home-icon-outer">
@@ -152,7 +152,7 @@
                 if (ValourClient.JoinedPlanets.Any(x => x.Id == planet.Id))
                     continue;
 
-                <PlanetDiscoverableComponent Planet="planet" Window="Window"></PlanetDiscoverableComponent>
+                <PlanetDiscoverableComponent @key='"discovery-" + planet.Id' Planet="planet" Window="Window"></PlanetDiscoverableComponent>
             }
         </div>
 
@@ -220,4 +220,9 @@
 
     public virtual async Task OnClickWindow()
         => await windowManager.SetFocusedPlanet(null);
+
+    public void Refresh()
+    {
+        StateHasChanged();
+    }
 }

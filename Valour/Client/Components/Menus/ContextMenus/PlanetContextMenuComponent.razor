@@ -50,9 +50,7 @@
              {
                  Console.WriteLine("Confirmed leaving planet.");
 
-                 // Get member
-                 var member = await Planet.GetMemberByUserAsync(ValourClient.Self.Id);
-                 var result = await Item.DeleteAsync(member);
+                 var result = await ValourClient.LeavePlanetAsync(Planet);
                  Console.WriteLine("Leave: " + result.Message);
 
              },
