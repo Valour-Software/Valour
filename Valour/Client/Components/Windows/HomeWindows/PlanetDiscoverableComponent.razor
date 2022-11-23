@@ -52,7 +52,7 @@
     public async Task OnClick()
     {
         // Attempt to join planet
-        var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planet/{Planet.Id}/discover");
+        var result = await ValourClient.JoinPlanetAsync(Planet);
 
         InfoModalData imodalData;
 
@@ -79,16 +79,12 @@
                     Console.WriteLine("User Clicked Ok");
                 }
             );
-
-            ValourClient.JoinedPlanets.Add(Planet);
         }
 
         ModalParameters imodParams = new();
         imodParams.Add("Data", imodalData);
 
-        Modal.Show<InfoModalComponent>("Info", imodParams, new ModalOptions() { Class = "modal-shrink-fit" });
-
-        StateHasChanged();
+        Modal.Show<InfoModalComponent>("Info", imodParams);
     }
 
     protected void OnIconError()

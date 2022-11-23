@@ -119,6 +119,16 @@ public static class ValourClient
     public static event Func<Planet, Task> OnPlanetClose;
 
     /// <summary>
+    /// Run when a planet is joined
+    /// </summary>
+    public static event Func<Planet, Task> OnPlanetJoin;
+
+    /// <summary>
+    /// Run when a planet is left
+    /// </summary>
+    public static event Func<Planet, Task> OnPlanetLeave;
+
+    /// <summary>
     /// Run when a UserChannelState is updated
     /// </summary>
     public static event Func<UserChannelState, Task> OnUserChannelStateUpdate;
@@ -228,6 +238,50 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult> SendMessage(PlanetMessage message)
         => await message.PostMessageAsync();
+
+    /// <summary>
+    /// Attempts to join the given planet
+    /// </summary>
+    public static async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
+    {
+        var result = await PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planet/{planet.Id}/discover");
+
+        if (result.Success)
+        {
+            JoinedPlanets.Add(planet);
+
+            if (OnPlanetJoin is not null)
+                await OnPlanetJoin.Invoke(planet);
+
+            if (OnJoinedPlanetsUpdate is not null)
+                await OnJoinedPlanetsUpdate?.Invoke();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to leave the given planet
+    /// </summary>
+    public static async Task<TaskResult> LeavePlanetAsync(Planet planet)
+    {
+        // Get member
+        var member = await planet.GetMemberByUserAsync(ValourClient.Self.Id);
+        var result = await Item.DeleteAsync(member);
+
+        if (result.Success)
+        {
+            JoinedPlanets.Remove(planet);
+
+            if (OnPlanetLeave is not null)
+                await OnPlanetLeave.Invoke(planet);
+
+            if (OnJoinedPlanetsUpdate is not null)
+                await OnJoinedPlanetsUpdate.Invoke();
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// Adds a friend
