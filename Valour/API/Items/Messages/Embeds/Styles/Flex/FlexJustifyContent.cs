@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public enum JustifyContent
 {
@@ -23,11 +25,12 @@ public class FlexJustifyContent : StyleBase
         "justify-content: space-evenly;",
     };
 
-    public JustifyContent Value { get; set; }
+	[JsonPropertyName("v")]
+	public JustifyContent Value { get; set; }
 
     public FlexJustifyContent(JustifyContent value)
     {
-        this.Value = value;
+        Value = value;
     }
 
     public override string ToString()

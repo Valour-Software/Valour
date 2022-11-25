@@ -1,7 +1,7 @@
 ﻿@implements IDisposable
 
-<div class="embed-row">
-	@foreach(EmbedItem item in Row.Items)
+<div class="embed-row" style="@Row.GetStyle()">
+	@foreach(EmbedItem item in Row.Children)
 	{
 		<EmbedItemComponent embed="@embed" Message="@Message" FormItem="@FormItem" item="@item"></EmbedItemComponent>
 	}
@@ -18,28 +18,10 @@
 	public Embed embed { get; set; }
 
 	[Parameter]
-	public EmbedFormItem? FormItem { get; set; }
+	public EmbedFormItem FormItem { get; set; }
 
 	[CascadingParameter]
 	public EmbedComponent embedComponent { get; set; }
-
-	public string Style {
-		get {
-			if (Row.Align == EmbedAlignType.Left) {
-				return "margin-right:auto;";
-			}
-			if (Row.Align == EmbedAlignType.Center)
-			{
-				return "margin-left: auto;margin-right: auto;";
-			}
-			if (Row.Align == EmbedAlignType.Right)
-			{
-				return "margin-left:auto;";
-			}
-			return "";
-
-		}
-	}
 
 	public void Refresh()
 	{

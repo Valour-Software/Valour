@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public enum Wrap
 {
@@ -16,11 +18,12 @@ public class FlexWrap : StyleBase
         "flex-wrap: wrap-reverse;",
     };
 
-    public Wrap Type { get; set; }
+	[JsonPropertyName("t")]
+	public Wrap Type { get; set; }
 
     public FlexWrap(Wrap type)
     {
-        this.Type = type;
+        Type = type;
     }
 
     public override string ToString()

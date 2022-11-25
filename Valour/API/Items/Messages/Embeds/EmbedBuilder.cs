@@ -10,23 +10,18 @@ using Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 namespace Valour.Api.Items.Messages.Embeds;
 
-public class EmbedGoTo
-{
-    public string? Href { get; set; }
-    public int? Page { get; set; }
-}
-
 public class EmbedBuilder
 {
+    public static List<EmbedItemType> AllowedTypesForNameStyles = new() { EmbedItemType.Text, EmbedItemType.DropDownMenu, EmbedItemType.InputBox };
+
     public Embed embed;
-
-    public EmbedFormItem FormItem;
-
-    public EmbedDropDownMenuItem DropDownMenu;
 
     public EmbedItem LastItem;
 
-    public EmbedGoTo GoTo = new();
+    /// <summary>
+    /// The current item that we are "in"
+    /// </summary>
+    public IParentItem CurrentParent;
 
     public EmbedBuilder()
     {
@@ -36,7 +31,6 @@ public class EmbedBuilder
         embed.StartPage = 0;
     }
 
-    [JsonIgnore]
     public EmbedPage CurrentPage
     {
         get
@@ -45,128 +39,83 @@ public class EmbedBuilder
         }
     }
 
-    public EmbedBuilder AddPage(string title = null, string footer = null, string titlecolor = null, string footercolor = null, int? width = null, int? height = null, EmbedItemPlacementType embedType = EmbedItemPlacementType.RowBased)
+    public EmbedBuilder AddPage(string title = null, string footer = null)
     {
         EmbedPage page = new()
         {
             Title = title,
             Footer = footer,
-            TitleColor = titlecolor,
-            FooterColor = footercolor,
-            EmbedType = embedType
+            Children = new()
         };
-        if (embedType == EmbedItemPlacementType.FreelyBased)
-        {
-            if (width is null)
-                throw new ArgumentException("Width cannot be null if the placement type if FreelyBased!");
-            if (height is null)
-                throw new ArgumentException("Height cannot be null if the placement type if FreelyBased!");
-            page.Width = width;
-            page.Height = height;
-        }
-        if (embedType == EmbedItemPlacementType.RowBased)
-            page.Rows = new();
-        else
-            page.Items = new();
         embed.Pages.Add(page);
+        CurrentParent = page;
         return this;
     }
 
-    public EmbedBuilder AddRow(params EmbedItem[] items)
+	/// <summary>
+	/// Adds a row
+	/// </summary>
+	/// <returns></returns>
+	public EmbedBuilder AddRow()
     {
         var row = new EmbedRow()
         {
-            Items = items.ToList()
+            Children = new()
         };
-        if (FormItem is not null)
-            FormItem.Rows.Add(row);
+
+        if (CurrentParent.ItemType != EmbedItemType.EmbedRow)
+            CurrentParent.Children.Add(row);
         else
-            embed.Pages.Last().Rows.Add(row);
+            CurrentPage.Children.Add(row);
+
+		CurrentParent = row;
+        LastItem = row;
+		return this;
+    }
+
+	public EmbedBuilder WithRow()
+	{
+		var row = new EmbedRow()
+		{
+			Children = new()
+		};
+
+		CurrentParent.Children.Add(row);
+        CurrentParent = row;
+        LastItem = row;
+		return this;
+	}
+
+	/// <summary>
+	/// You should only call this function if you are closing a row that was added with WithRow
+	/// </summary>
+	/// <returns></returns>
+	public EmbedBuilder CloseRow()
+    {
+        CurrentParent = CurrentParent.Parent;
         return this;
     }
 
-    internal void AddItem(EmbedItem item, int? x, int? y)
+	internal void AddItem(EmbedItem item)
     {
-
-        if (GoTo.Href is not null)
-            item.Href = GoTo.Href;
-        if (GoTo.Page is not null)
-            item.Page = GoTo.Page;
-
-        if (embed.Pages.Last().EmbedType == EmbedItemPlacementType.FreelyBased || (FormItem is not null && FormItem.ItemPlacementType == EmbedItemPlacementType.FreelyBased))
-        {
-            item.X = x;
-            item.Y = y;
-            if (FormItem is not null)
-                FormItem.AddItem(item);
-            else
-                embed.Pages.Last().Items.Add(item);
-        }
-        else
-        {
-            if (FormItem is not null)
-                FormItem.AddItem(item);
-            else
-                embed.Pages.Last().Rows.Last().Items.Add(item);
-        }
-    }
-
-    public EmbedBuilder AddGoToLink(string href)
-    {
-        if (GoTo.Page is not null || GoTo.Href is not null)
-            throw new ArgumentException("You can not call GoToLink more than once without calling EndGoTo()!");
-        GoTo.Href = href;
-        return this;
-    }
-
-    public EmbedBuilder AddGoToPage(int PageNumber)
-    {
-        if (GoTo.Page is not null || GoTo.Href is not null)
-            throw new ArgumentException("You can not call GoToLink more than once without calling EndGoTo()!");
-        GoTo.Page = PageNumber;
-        return this;
-    }
-
-    public EmbedBuilder EndGoTo()
-    {
-        GoTo.Href = null;
-        GoTo.Page = null;
-        return this;
-    }
-
-    /// <summary>
-    /// Adds a row to the current page.
-    /// </summary>
-    /// <returns></returns>
-
-    public EmbedBuilder AddRow()
-    {
-        if (FormItem is not null)
-            FormItem.Rows.Add(new());
-        else
-            embed.Pages.Last().Rows.Add(new());
-        return this;
-    }
+        item.Parent = CurrentParent;
+        CurrentParent.Children.Add(item);
+		LastItem = item;
+	}
 
     /// <summary>
     /// Adds a button item to the current row of the current page. If FreelyBased, then
     /// this will add a button item to the current page.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddButton(string id = null, string text = null, string color = null, string textColor = null, string link = null, string itemEvent = null, EmbedItemSize size = EmbedItemSize.Normal, int? x = null, int? y = null, bool isSubmitButton = false)
+    public EmbedBuilder AddButton(string text = null)
     {
         var item = new EmbedButtonItem()
         {
-            Id = id,
-            Text = text,
-            TextColor = textColor,
-            Color = color,
-            IsSubmitButton = isSubmitButton,
-            Event = itemEvent,
-            Size = size,
+            Children = new() { new EmbedTextItem(text) }
         };
 
-        AddItem(item, x, y);
+        AddItem(item);
         return this;
     }
 
@@ -177,7 +126,7 @@ public class EmbedBuilder
 
     public EmbedBuilder EndForm()
     {
-        FormItem = null;
+		CurrentParent = CurrentParent.Parent;
         return this;
     }
 
@@ -185,22 +134,15 @@ public class EmbedBuilder
     /// Adds a form item; until EndForm() is called, all items will be added to the form instead of the builder.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddForm(EmbedItemPlacementType placementtype, string id)
+    public EmbedBuilder AddForm(string id)
     {
         var item = new EmbedFormItem()
         {
-            ItemPlacementType = placementtype,
-            Id = id
+            Id = id,
+            Children = new()
         };
 
-        if (placementtype == EmbedItemPlacementType.RowBased)
-            item.Rows = new();
-        else
-            item.Items = new();
-
-        AddItem(item, null, null);
-
-        FormItem = item;
+        AddItem(item);
         return this;
     }
 
@@ -209,77 +151,188 @@ public class EmbedBuilder
     /// this will add a inputbox item to the current form.
     /// </summary>
     /// <returns></returns>
-    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, EmbedItemSize size = EmbedItemSize.Normal, string namecolor = null, string value = null, bool? keepvalueonupdate = null, int? x = null, int? y = null)
+    public EmbedBuilder AddInputBox(string id = null, string name = null, string placeholder = null, string value = null, bool? keepvalueonupdate = null)
     {
         var item = new EmbedInputBoxItem()
         {
             Value = value,
             Id = id,
-            Size = size,
             Placeholder = placeholder,
-            Name = name,
-            NameColor = namecolor,
             KeepValueOnUpdate = keepvalueonupdate
         };
 
-        AddItem(item, x, y);
+        if (name is not null)
+            item.NameItem = new EmbedTextItem(name);
+
+        AddItem(item);
         return this;
     }
 
-    /// <summary>
-    /// Adds a text item to the current row of the current page/form. If FreelyBased, then
-    /// this will add a text item to the current page/form.
-    /// </summary>
-    /// <returns></returns>
-    public EmbedBuilder AddText(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, string? onclickeventname = null, bool? underLineText = null, bool? underLineName = null, int? x = null, int? y = null)
+    public EmbedBuilder AddText(string name = null, string text = null)
     {
         var item = new EmbedTextItem()
         {
-            Name = name,
-            Text = text,
-            TextColor = textColor,
-            Link = link,
-            IsNameClickable = isnameclickable,
-            OnClickEventName = onclickeventname,
-            UnderLineName = underLineName,
-            UnderLineText = underLineText
+            Text = text
         };
 
-        AddItem(item, x, y);
+        if (name is not null)
+        {
+			item.NameItem = new EmbedTextItem(name)
+			{
+				Styles = new() { FontWeight.Bold }
+			};
+		}
+
+		AddItem(item);
         return this;
     }
 
-	public EmbedBuilder AddDropDownMenu(string id, string value = "", int? x = null, int? y = null)
+	public EmbedBuilder WithName(string text = null)
+	{
+        var item = new EmbedTextItem(text);
+		((INameable)LastItem).NameItem = item;
+        item.Parent = LastItem;
+        LastItem = item;
+
+		return this;
+	}
+
+	public EmbedBuilder WithText(string text = null)
+	{
+		var item = new EmbedTextItem(text);
+        LastItem.Children.Add(item);
+		item.Parent = LastItem;
+		LastItem = item;
+
+		return this;
+	}
+
+	public EmbedBuilder AddDropDownMenu(string id, string name = null, string value = "")
 	{
 		var item = new EmbedDropDownMenuItem()
 		{
 			Id = id,
-            Value = value
+            Value = value,
+            Children = new()
 		};
 
-        DropDownMenu = item;
+		if (name is not null)
+			item.NameItem = new EmbedTextItem(name);
 
-		AddItem(item, x, y);
+		AddItem(item);
+        CurrentParent = item;
 		return this;
 	}
 
     public EmbedBuilder EndDropDownMenu()
     {
-        DropDownMenu = null;
+        CurrentParent = CurrentParent.Parent;
         return this;
     }
 
-	public EmbedBuilder AddDropDownItem(string text = null, string textColor = null)
+	public EmbedBuilder WithDropDownItem(string text = null)
 	{
-        if (DropDownMenu is null)
+        if (CurrentParent.ItemType != EmbedItemType.DropDownMenu)
 			throw new ArgumentException("You can not add a dropdown item without a drop down menu!");
+
 		var item = new EmbedDropDownItem()
 		{
-			Text = text,
-            TextColor = textColor
+			Children = new() { new EmbedTextItem(text) },
+            Parent = CurrentParent
 		};
 
-		DropDownMenu.Items.Add(item);
+		CurrentParent.Children.Add(item);
+		LastItem = item;
 		return this;
 	}
+
+    /// <summary>
+    /// This function is intended for you to use WithText, etc afterwards
+    /// </summary>
+    /// <returns></returns>
+	public EmbedBuilder WithDropDownItem()
+	{
+		if (CurrentParent.ItemType != EmbedItemType.DropDownMenu)
+			throw new ArgumentException("You can not add a dropdown item without a drop down menu!");
+
+		var item = new EmbedDropDownItem()
+		{
+			Children = new(),
+            Parent = CurrentParent
+		};
+
+		CurrentParent.Children.Add(item);
+        LastItem = item;
+		return this;
+	}
+
+    public EmbedBuilder OnClickGoToEmbedPage(int page)
+    {
+        ((IClickable)LastItem).ClickTarget = new EmbedPageTarget()
+        {
+            Type = TargetType.EmbedPage,
+            PageNumber = page
+		};
+        return this;
+    }
+
+	public EmbedBuilder OnCLickGoToLink(string href)
+	{
+		((IClickable)LastItem).ClickTarget = new EmbedLinkTarget()
+		{
+			Type = TargetType.Link,
+			Href = href
+		};
+		return this;
+	}
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="ElementId">The eventid that the Interaction will use</param>
+    /// <returns></returns>
+	public EmbedBuilder OnClickSendInteractionEvent(string ElementId)
+	{
+		((IClickable)LastItem).ClickTarget = new EmbedEventTarget()
+		{
+			Type = TargetType.Event,
+			EventElementId = ElementId
+		};
+		return this;
+	}
+
+	public EmbedBuilder OnClickSubmitForm()
+	{
+		((IClickable)LastItem).ClickTarget = new EmbedFormSubmitTarget()
+		{
+			Type = TargetType.SubmitForm
+		};
+		return this;
+	}
+
+	public EmbedBuilder WithTitleStyles(params StyleBase[] styles)
+	{
+		var page = embed.Pages.Last();
+		if (page.TitleStyles is null)
+			page.TitleStyles = new();
+		page.TitleStyles.AddRange(styles);
+		return this;
+	}
+
+	public EmbedBuilder WithFooterStyles(params StyleBase[] styles)
+    {
+        var page = embed.Pages.Last();
+        if (page.FooterStyles is null)
+            page.FooterStyles = new();
+        page.FooterStyles.AddRange(styles);
+        return this;
+    }
+
+    public EmbedBuilder WithStyles(params StyleBase[] styles)
+    {
+        if (LastItem.Styles is null)
+            LastItem.Styles = new();
+        LastItem.Styles.AddRange(styles);
+		return this;
+    }
 }

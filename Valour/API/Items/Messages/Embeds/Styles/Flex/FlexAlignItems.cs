@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public enum AlignItem
 {
@@ -32,11 +34,12 @@ public class FlexAlignItems : StyleBase
         "align-items: self-end;",
     };
 
-    public AlignItem Value { get; set; }
+	[JsonPropertyName("v")]
+	public AlignItem Value { get; set; }
 
     public FlexAlignItems(AlignItem value)
     {
-        this.Value = value;
+        Value = value;
     }
 
     public override string ToString()

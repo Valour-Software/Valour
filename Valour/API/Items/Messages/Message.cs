@@ -136,25 +136,18 @@ public abstract class Message : Item, ISharedMessage
                 if (!string.IsNullOrEmpty(EmbedData))
                 {
                     Console.WriteLine(EmbedData);
+                    // prevent a million errors in console
+                    if (EmbedData.Contains("EmbedVersion\":\"1.1.0\"")) {
+                        embedParsed = true;
+                        return null;
+                    }
                     _embed = JsonSerializer.Deserialize<Embed>(EmbedData);
                     foreach (var page in _embed.Pages)
                     {
-                        if (page.Rows is not null)
-                        { 
-                            foreach (var row in page.Rows)
-                            {
-                                foreach(var item in row.Items)
-                                {
-                                    item.Embed = _embed;
-                                }
-                            }
-                        }
-						if (page.Items is not null)
+						foreach (var item in page.Children)
 						{
-							foreach (var item in page.Items)
-							{
-								item.Embed = _embed;
-							}
+							item.Embed = _embed;
+                            item.Init(_embed, page);
 						}
 					}
                 }

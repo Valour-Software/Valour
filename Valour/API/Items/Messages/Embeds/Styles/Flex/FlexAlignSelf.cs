@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public enum AlignSelf
 {
@@ -22,11 +24,12 @@ public class FlexAlignSelf : StyleBase
         "align-self: stretch;",
     };
 
-    public AlignSelf Type { get; set; }
+	[JsonPropertyName("t")]
+	public AlignSelf Type { get; set; }
 
     public FlexAlignSelf(AlignSelf type)
     {
-        this.Type = type;
+        Type = type;
     }
 
     public override string ToString()

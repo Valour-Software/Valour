@@ -10,46 +10,28 @@
 		@if (embed.CurrentlyDisplayed != null)
 		{
 			if (embed.CurrentlyDisplayed.Title is not null) {
-				<div style="color:#@embed.CurrentlyDisplayed.TitleColor;font-weight:bold;font-size:16px;margin-bottom: 8px;">
+				<div class="embed-title" style="@embed.CurrentlyDisplayed.GetTitleStyle(embed)">
 					@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Title))
 				</div>
 			}
-			foreach (EmbedRow item in embed.CurrentlyDisplayed.Rows)
-			{
-				<EmbedRowComponent Row="@item" Message="@MessageWrapper" embed="@embed"></EmbedRowComponent>
-			}
 
-			if (embed.CurrentlyDisplayed.Items is not null)
+			foreach (EmbedItem item in embed.CurrentlyDisplayed.Children)
 			{
-				foreach (EmbedItem item in embed.CurrentlyDisplayed.Items)
-				{
-					<EmbedItemComponent embed="@embed" Message="@MessageWrapper" item="@item"></EmbedItemComponent>
-				}
+				<EmbedItemComponent embed="@embed" Message="@MessageWrapper" item="@item"></EmbedItemComponent>
 			}
 
 			if (embed.Pages is not null && embed.Pages.Count > 1 && !embed.HideChangePageArrows)
 			{
-				if (embed.CurrentlyDisplayed.EmbedType == EmbedItemPlacementType.RowBased)
-				{
-					<div style="margin-top: 8px;">
-						<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
-						<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
-						<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
-					</div>
-				}
-				else
-				{
-					<div style="position: absolute;bottom: calc(1rem);left: 71px;">
-						<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
-						<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
-						<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
-					</div>
-				}
+				<div style="position: absolute;bottom: calc(1rem);left: 71px;">
+					<button @onclick="PrevPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&lt</button>
+					<p style="font-size:12px;display: inline-block;">@embed.currentPage</p>
+					<button @onclick="NextPage" class="btn btn-primary btn-sm" style="display: inline-block;box-shadow: none;">&gt</button>
+				</div>
 			}
 
 			if (embed.CurrentlyDisplayed.Footer is not null)
 			{
-				<div style="color:#@embed.CurrentlyDisplayed.FooterColor;font-size:14px;margin-top: 8px;">
+				<div class="embed-footer" style="@embed.CurrentlyDisplayed.GetFooterStyle(embed)">
 					@((MarkupString)MarkdownManager.GetHtml(embed.CurrentlyDisplayed.Footer))
 				</div>
 			}
@@ -124,24 +106,32 @@
 	{
 		if (update.TargetMessageId == MessageWrapper.Message.Id)
 		{
-			int currentpage = embed.currentPage;
-			MessageWrapper.Message.EmbedData = update.NewEmbedContent;
-			MessageWrapper.Message.embedParsed = false;
-			embed = MessageWrapper.Message.Embed;
-			if (!embed.KeepPageOnUpdate)
+			try
 			{
-				embed.currentPage = embed.StartPage;
-			}
-			else
-				embed.currentPage = currentpage;
+				int currentpage = embed.currentPage;
+				MessageWrapper.Message.EmbedData = update.NewEmbedContent;
+				MessageWrapper.Message.embedParsed = false;
+				embed = MessageWrapper.Message.Embed;
+				if (!embed.KeepPageOnUpdate)
+				{
+					embed.currentPage = embed.StartPage;
+				}
+				else
+					embed.currentPage = currentpage;
 
-			if (embed.currentPage >= embed.Pages.Count) 
-				embed.currentPage = embed.StartPage;
-			ProcessPageChange = true;
-			ProcessingEmbedUpdate = true;
-			UpdateItems();
-			ProcessingEmbedUpdate = false;
-			await Holder.ScrollToBottom();
+				if (embed.currentPage >= embed.Pages.Count)
+					embed.currentPage = embed.StartPage;
+				ProcessPageChange = true;
+				ProcessingEmbedUpdate = true;
+				UpdateItems();
+				ProcessingEmbedUpdate = false;
+				await Holder.ScrollToBottom();
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e.Message);
+				Console.WriteLine(e.StackTrace);
+			}
 		}
 	}
 
@@ -160,6 +150,12 @@
 			RefreshItemComponents?.Invoke();
 		}
 		return base.OnAfterRenderAsync(firstRender);
+	}
+
+	public void UpdateItemComponents()
+	{
+		ProcessPageChangeForForms = true;
+		StateHasChanged();
 	}
 
 	public void UpdateItems()

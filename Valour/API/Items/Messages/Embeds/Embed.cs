@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Items.Messages.Embeds.Items;
+using Valour.Api.Items.Messages.Embeds.Styles;
 
 namespace Valour.Api.Items.Messages.Embeds;
 
@@ -9,114 +10,75 @@ namespace Valour.Api.Items.Messages.Embeds;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public enum EmbedItemSize
+public class EmbedRow : EmbedItem
 {
-    VerySmall,
-    Small,
-    Normal,
-    Large
+	[JsonIgnore]
+	public override EmbedItemType ItemType => EmbedItemType.EmbedRow;
+	public override EmbedItem GetLastItem(bool InsideofForms)
+	{
+		return Children.Last().GetLastItem(InsideofForms);
+	}
 }
 
-public enum EmbedItemPlacementType
+public class EmbedPage : IParentItem
 {
-    /// <summary>
-    /// Based on rows
-    /// </summary>
-    RowBased = 1,
+    public List<EmbedItem> Children { get; set; }
 
-    /// <summary>
-    /// Every item will have a x, y position
-    /// </summary>
-    FreelyBased = 2
-}
+    public string Title { get; set; }
 
-public enum EmbedAlignType
-{
-    Left = 1,
-    Center = 2,
-    Right = 3
-}
+    public string Footer { get; set; }
+	public List<StyleBase> TitleStyles { get; set; }
 
-public class EmbedRow
-{
-    public List<EmbedItem> Items { get; set; }
+	public List<StyleBase> MyStyles { get; set; }
 
-    public EmbedAlignType Align { get; set; }
+    public List<StyleBase> FooterStyles { get; set; }
 
-    public EmbedRow()
-    {
-    }
+    [JsonIgnore]
+    public EmbedItemType ItemType => EmbedItemType.EmbedPage;
 
-    public EmbedRow(List<EmbedItem> items = null)
-    {
-        if (items is not null)
-        {
-            Items = items;
-        }
-        else
-        {
-            Items = new();
-        }
-    }
-}
+    [JsonIgnore]
+	public IParentItem Parent { get; set; }
 
-public class EmbedPage 
-{
-    /// <summary>
-    /// Items in this page. This should be null if embed is not FreelyBased
-    /// </summary>
-    public List<EmbedItem> Items { get; set; }
-
-    public List<EmbedRow> Rows { get; set; }
-
-    public string? Title { get; set; }
-
-    public string? Footer { get; set; }
-
-    /// <summary>
-    /// The color (hex) of this page's title
-    /// </summary>
-    public string TitleColor { get; set; }
-
-    /// <summary>
-    /// The color (hex) of this page's footer
-    /// </summary>
-    public string FooterColor { get; set; }
-
-    /// <summary>
-    /// The width of the page. Only works in FreelyBased embed/form type
-    /// </summary>
-    public int? Width { get; set; }
-
-    /// <summary>
-    /// The height of the page. Only works in FreelyBased embed/form type
-    /// </summary>
-    public int? Height { get; set; }
-
-    /// <summary>
-    /// If Freely based, items must have a x and y position.
-    /// </summary>
-    public EmbedItemPlacementType EmbedType { get; set; }
-
-    public EmbedPage()
+	public EmbedPage()
     {
 
     }
+	public string GetTitleStyle(Embed embed)
+	{
+		string style = "";
+		if (TitleStyles is not null)
+		{
+			foreach (var _style in TitleStyles)
+			{
+				style += _style;
+			}
+		}
+		return style;
+	}
+	public string GetFooterStyle(Embed embed)
+	{
+		string style = "";
+		if (FooterStyles is not null)
+		{
+			foreach (var _style in FooterStyles)
+			{
+				style += _style;
+			}
+		}
+		return style;
+	}
 
-    public string GetStyle(Embed embed)
+	public string GetStyle(Embed embed)
     {
         string style = "";
-        if (EmbedType == EmbedItemPlacementType.FreelyBased)
-        {
-            int? height = Height;
-            int? width = Width;
-            if (!embed.HideChangePageArrows && embed.Pages.Count > 1)
-                height += 32;
-            if (Title is not null)
-                height += 36;
-            style += $"height: calc(2rem + {height}px);width: calc(2rem + {width}px);";
-        }
-        return style;
+		if (MyStyles is not null)
+		{
+			foreach (var _style in MyStyles)
+			{
+				style += _style;
+			}
+		}
+		return style;
     }
 }
 
@@ -159,7 +121,7 @@ public class Embed
     {
         get
         {
-            return "1.1.0";
+            return "1.2";
         }
     }
 
@@ -174,25 +136,14 @@ public class Embed
             page = Pages.Last();
         else 
             page = Pages[(int)pagenum];
-        if (page.EmbedType == EmbedItemPlacementType.RowBased) {
-            var item = page.Rows.Last().Items.Last();
-            if (InsideofForms) {
-                if (item.ItemType == EmbedItemType.Form) {
-                    return ((EmbedFormItem)item).GetLastItem();
-                }
+        var item = page.Children.Last();
+        if (InsideofForms) {
+            if (item.ItemType == EmbedItemType.Form) {
+                return ((EmbedFormItem)item).GetLastItem(InsideofForms);
             }
-            return item;
         }
-        else {
-            var item = page.Items.Last();
-            if (InsideofForms) {
-                if (item.ItemType == EmbedItemType.Form) {
-                    return ((EmbedFormItem)item).GetLastItem();
-                }
-            }
-            return item;
-        }
-    }
+        return item;
+}
 
     public string GetStyle()
     {

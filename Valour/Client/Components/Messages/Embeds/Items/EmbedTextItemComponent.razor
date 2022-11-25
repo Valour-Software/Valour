@@ -1,41 +1,22 @@
 ﻿@implements IDisposable
 
-<div style="@item.GetStyle()" class="embed-item">
-	@if (item.IsNameClickable is not null && (bool)item.IsNameClickable)
+<div style="@item.GetStyle()" class="@MainClass">
+	@if (item.NameItem is not null)
 	{
-		@if (item.Name != null)
-		{
-			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;cursor: pointer;@NameStyle" @onclick="(async () => {await OnEmbedButtonClick();})">
-				@((MarkupString)MarkdownManager.GetHtml(item.Name))
-			</div>
-		}
+		<EmbedTextItemComponent _item="@item.NameItem"></EmbedTextItemComponent>
 	}
-	else {
-		@if (item.Name != null)
+	<div @onclick="(async () => {await OnEmbedButtonClick();})">
+	@if (item.Text is not null)
+	{
+		@if (item.ClickTarget is not null)
 		{
-			<div style="color:#@item.TextColor;font-weight:bold;font-size:14px;@NameStyle">
-				@((MarkupString)MarkdownManager.GetHtml(item.Name))
-			</div>
-		}
-	}
-	<div style="color:#@item.TextColor;font-size:14px;@TextStyle" @onclick="(async () => {await OnEmbedButtonClick();})">
-		@if (item.Href != null)
-		{
-			<a href="@item.Href" class="nohide" rel="nofollow" target="_blank">@((MarkupString)MarkdownManager.GetHtml(item.Text))</a>
+			<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
 		}
 		else
 		{
-			@if (item.Text is not null)
-			{
-				@if (item.HasGoTo || item.OnClickEventName is not null)
-				{
-					<div style="cursor: pointer;">@((MarkupString)MarkdownManager.GetHtml(item.Text))</div>
-				}
-				else {
-					@((MarkupString)MarkdownManager.GetHtml(item.Text))
-				}
-			}
+			@((MarkupString)MarkdownManager.GetHtml(item.Text))
 		}
+	}
 	</div>
 </div>
 
@@ -48,19 +29,15 @@
 	[CascadingParameter]
 	public EmbedComponent embedComponent { get; set; }
 
-	public string NameStyle {
-		get {
-			if (item.UnderLineName is not null) {
-				return "text-decoration-line: underline;";
-			}
-			return "";
-		}
-	}
-
-	public string TextStyle {
-		get {
-			if (item.UnderLineText is not null) {
-				return "text-decoration-line: underline;";
+	public string MainClass
+	{
+		get
+		{
+			if (item.Parent is not null && (item.Parent.ItemType == EmbedItemType.EmbedRow 
+				|| item.Parent.ItemType == EmbedItemType.EmbedPage 
+				|| item.Parent.ItemType == EmbedItemType.Form))
+			{
+				return "embed-item";
 			}
 			return "";
 		}
@@ -80,7 +57,7 @@
 
 	public async Task OnEmbedButtonClick()
 	{
-		if (item.Page is not null || item.OnClickEventName is not null)
+		if (item.ClickTarget is not null)
 		{
 			ProcessClick = true;
 			return;

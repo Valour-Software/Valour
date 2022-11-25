@@ -14,7 +14,7 @@ public enum Unit
     Em
 }
 
-public class Size : StyleBase
+public class Size
 {
     public static readonly Size Zero = new Size(Unit.Zero);
     public static readonly Size Full = new Size(Unit.Percent, 100);
@@ -28,10 +28,10 @@ public class Size : StyleBase
     [JsonPropertyName("v")]
     public int Value { get; set; }
 
-    public Size(Unit unit, int size = 0)
+	public Size(Unit unit, int value = 0)
     {
         Unit = unit;
-        Value = size;
+        Value = value;
     }
     
     public override string ToString()

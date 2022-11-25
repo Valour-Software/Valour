@@ -2,28 +2,22 @@
 @using Valour.Api.Items.Messages
 @implements IDisposable
 
-<div style="@Item.GetStyle()" class="embed-item">
-    <button type="button" class="btn btn-@Item.Size" style="background-color:#@Item.Color;color:#@Item.TextColor;" @onclick="(async () => {await OnEmbedButtonClick();})">
-        @if (Item.Href != "") {
-            <a href="@Item.Href" rel="nofollow" target="_blank" class="embed-button-text nohide" style="color:#@Item.TextColor;">@((MarkupString)MarkdownManager.GetHtml(Item.Text))</a>
-        }
-        else {
-            @((MarkupString)MarkdownManager.GetHtml(Item.Text))
-        }
-    </button>
-</div>
-
+<button type="button" class="btn embed-item" style="color: #ffffff;background: #000000;@Item.GetStyle()" @onclick="(async () => {await OnEmbedButtonClick();})">
+    <EmbedItemComponent item="@Item.Children[0]"></EmbedItemComponent>
+</button>
 @code {
     [Parameter]
     public EmbedItem _item {get; set;}
 
     [Parameter]
     public ClientMessageWrapper Message {get; set;}
+
     [Parameter]
     public Embed embed { get; set;}
 
     [Parameter]
     public EmbedFormItem FormItem { get; set; }
+
     [CascadingParameter]
     public EmbedComponent embedComponent { get; set; }
 
@@ -60,7 +54,10 @@
 
     public async Task OnEmbedButtonClick()
     {
-        if (Item.Page != null)
+        if (Item.ClickTarget is null)
+            return;
+
+        if (Item.ClickTarget.Type != TargetType.SubmitForm)
         {
             ProcessClick = true;
             return;
@@ -70,11 +67,10 @@
 
         var interaction = new EmbedInteractionEvent()
         {
-            EventType = EmbedIteractionEventType.ButtonClick,
             MessageId = Message.Message.Id,
             ChannelId = Message.Message.ChannelId,
             TimeInteracted = DateTime.UtcNow,
-            ElementId = Item.Id
+            ElementId = ((EmbedFormSubmitTarget)Item.ClickTarget).EventElementId
         };
 
         if (Message.Message is PlanetMessage)
@@ -87,7 +83,7 @@
             interaction.MemberId = SelfMember.Id;
         }
 
-        if (FormItem is not null && Item.IsSubmitButton)
+        if (FormItem is not null && Item.ClickTarget.Type == TargetType.SubmitForm)
         {
             interaction.FormData = FormItem.GetFormData();
             interaction.FormId = FormItem.Id;

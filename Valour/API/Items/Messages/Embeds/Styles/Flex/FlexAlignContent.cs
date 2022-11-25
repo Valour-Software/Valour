@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public enum AlignContent
 {
@@ -34,11 +36,12 @@ public class FlexAlignContent : StyleBase
         "align-content: last baseline;",
     };
 
-    public AlignContent Value { get; set; }
+	[JsonPropertyName("v")]
+	public AlignContent Value { get; set; }
 
     public FlexAlignContent(AlignContent value)
     {
-        this.Value = value;
+        Value = value;
     }
 
     public override string ToString()

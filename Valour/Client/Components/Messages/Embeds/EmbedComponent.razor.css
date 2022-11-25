@@ -18,3 +18,14 @@
 .embed-item {
 
 }
+
+.embed-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.embed-footer {
+    font-size: 14px;
+    margin-top: 8px;
+}

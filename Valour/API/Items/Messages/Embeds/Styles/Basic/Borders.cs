@@ -68,6 +68,8 @@ public class Borders : StyleBase
 
     public Border Only { get; set; }
 
+    public Borders() { }
+
     public Borders(Border left, Border right, Border top, Border bottom)
     {
         Left = left;
@@ -76,6 +78,7 @@ public class Borders : StyleBase
         Bottom = bottom;
     }
 
+    [JsonConstructor]
     public Borders(Border border)
     {
         Only = border;

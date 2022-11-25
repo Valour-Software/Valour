@@ -1,67 +1,31 @@
 ﻿using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Valour.Api.Items.Messages.Embeds.Items;
 
 public class EmbedFormItem : EmbedItem
 {
     /// <summary>
-    /// The embed items in this form
-    /// </summary>
-    public List<EmbedItem> Items { get; set; }
-
-    public List<EmbedRow> Rows { get; set; }
-
-    /// <summary>
     /// the id of this form, ex "UserForms.User-Signup"
     /// </summary>
     public string Id { get; set; }
 
-    /// <summary>
-    /// Only works in FreelyBased embed/form type
-    /// </summary>
-    public int? Width { get; set; }
+	[JsonIgnore]
+	public override EmbedItemType ItemType => EmbedItemType.Form;
 
-    /// <summary>
-    /// Only works in FreelyBased embed/form type
-    /// </summary>
-    public int? Height { get; set; }
-
-    public EmbedItemPlacementType ItemPlacementType { get; set; }
-
-    public EmbedFormItem()
+	public override EmbedItem GetLastItem(bool InsideofForms)
     {
-        ItemType = EmbedItemType.Form;    
-    }
-
-    public EmbedFormItem(EmbedItemPlacementType type, string id, int? width = null, int? height = null)
-    {
-        Id = id;
-        ItemPlacementType = type;
-        ItemType = EmbedItemType.Form;
-        Width = width;
-        Height = height;
-    }
-
-    public EmbedItem GetLastItem()
-    {
-        if (ItemPlacementType == EmbedItemPlacementType.RowBased) {
-            return Rows.Last().Items.Last();
-        }
-        else {
-            return Items.Last();
-        }
+        if (InsideofForms)
+            return Children.Last().GetLastItem(InsideofForms);
+        else
+            return this;
     }
 
     public List<EmbedFormData> GetFormData()
     {
         List<EmbedFormData> data = new();
 
-        IEnumerable<EmbedItem> items = null;
-        if (ItemPlacementType == EmbedItemPlacementType.RowBased)
-            items = Rows.SelectMany(x => x.Items);
-        else
-            items = Items;
-        items = items.Where(x => x is IEmbedFormItem);
+        var items = Children.Where(x => x is IEmbedFormItem);
         foreach (IEmbedFormItem item in items)
         {
             if (item.ItemType == EmbedItemType.InputBox)
@@ -97,13 +61,5 @@ public class EmbedFormItem : EmbedItem
 			}
         }
         return data;
-    }
-
-    public void AddItem(EmbedItem item)
-    {
-        if (ItemPlacementType == EmbedItemPlacementType.RowBased)
-            Rows.Last().Items.Add(item);
-        else
-            Items.Add(item);
     }
 }

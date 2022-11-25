@@ -2,6 +2,7 @@
 using System;
 using System.Text.Json.Serialization;
 using Valour.Api.Items.Messages.Embeds.Styles.Flex;
+using Valour.Api.Items.Messages.Embeds.Styles;
 
 namespace Valour.Api.Items.Messages.Embeds.Items;
 
@@ -15,14 +16,35 @@ public enum EmbedItemType
     Form = 6,
     GoTo = 7,
     DropDownItem = 8,
-    DropDownMenu = 9
+    DropDownMenu = 9,
+    EmbedRow = 10,
+    EmbedPage = 11
 }
 
 public interface IEmbedFormItem
 {
     public string Id { get; set; }
     public string Value { get; set; }
-    public EmbedItemType ItemType { get; set; }
+    public EmbedItemType ItemType { get; }
+}
+
+public interface IClickable
+{
+    [JsonPropertyName("ct")]
+    public EmbedClickTargetBase ClickTarget { get; set; }
+}
+public interface INameable
+{
+    public EmbedTextItem NameItem { get; set; }
+}
+
+public interface IParentItem
+{
+	public List<EmbedItem> Children { get; set; }
+
+	public EmbedItemType ItemType { get; }
+
+	public IParentItem Parent { get; set; }
 }
 
 [JsonDerivedType(typeof(EmbedItem), typeDiscriminator: 1)]
@@ -32,61 +54,68 @@ public interface IEmbedFormItem
 [JsonDerivedType(typeof(EmbedInputBoxItem), typeDiscriminator: 5)]
 [JsonDerivedType(typeof(EmbedDropDownMenuItem), typeDiscriminator: 6)]
 [JsonDerivedType(typeof(EmbedDropDownItem), typeDiscriminator: 7)]
-public class EmbedItem
+[JsonDerivedType(typeof(EmbedRow), typeDiscriminator: 8)]
+public class EmbedItem : IParentItem
 {
-    public EmbedItemType ItemType { get; set; }
-
-    /// <summary>
-    /// Should be null if the embed is not FreelyBased
-    /// </summary>
-    public int? X { get; set; }
-
-    /// <summary>
-    /// Should be null if the embed is not FreelyBased
-    /// </summary>
-    public int? Y { get; set; }
-
-    public string Href { get; set; }
-
-    public int? Page { get; set; }
-
-    /// <summary>
-	/// If not null, what will the event name be for when a user clicks on this text item
-	/// </summary>
-    public string OnClickEventName { get; set; }
+    [JsonIgnore]
+    public virtual EmbedItemType ItemType { get; }
+    
+    public List<EmbedItem> Children { get; set; }
 
     [JsonIgnore]
+	public IParentItem Parent { get; set; }
+
+	public List<StyleBase> Styles { get; set; }
+
+	[JsonIgnore]
     public Embed Embed { get; set; }
 
-    [JsonIgnore]
-    public bool HasGoTo
-    {
-        get
-        {
-            return Href is not null || Page is not null;
-        }
-    }
-
-    public string GetStyle()
-    {
-        string style = "";
-        if (X is not null)
-        {
-            int x = Math.Min((int)X, 1024);
-            int y = Math.Min((int)Y, 600);
-            if (x < 0)
-                x = 0;
-            if (y < 0)
-                y = 0;
-            if (Embed.CurrentlyDisplayed.Title is not null)
-                y += 42;
-            style += $"position: absolute;left: calc(1rem + {x+59}px);top: calc(1rem + {y}px);max-width: {Embed.CurrentlyDisplayed.Width-x+16}px;";
-        }
+	public virtual EmbedItem GetLastItem(bool InsideofForms)
+	{
+        if (Children.Count == 0)
+            return this;
         else
         {
-            style += "display: inline-block;margin-right:5px;";
+            return Children.Last().GetLastItem(InsideofForms);
+        }
+	}
+
+    public void Init(Embed embed, IParentItem parent)
+    {
+        Parent = parent;
+        Embed = embed;
+        if (Children is not null) {
+            foreach(var item in Children) 
+            {
+                item.Init(embed, this);
+            }
+        }
+        if (Children is null)
+        {
+            Children = new();
+		}
+    }
+
+	public string GetStyle()
+    {
+        string style = "";
+        if (Styles is not null)
+        {
+            foreach(var _style in Styles)
+            {
+                style += _style;
+            }
         }
 
-        return style;
+        if (ItemType == EmbedItemType.EmbedRow && !style.Contains("display: flex"))
+            style += "display: flex;";
+
+        else if (Parent is null)
+            return style;
+
+        if (Parent.ItemType == EmbedItemType.EmbedRow && !(style.Contains("margin-right") || style.Contains("margin-left")))
+            style += "margin-right: 5px;";
+
+		return style;
     }
 }

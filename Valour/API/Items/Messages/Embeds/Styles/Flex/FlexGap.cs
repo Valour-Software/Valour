@@ -1,9 +1,14 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public class FlexGap : StyleBase
 {
-    public Size Row { get; set; }
-    public Size Column { get; set; }
+	[JsonPropertyName("r")]
+	public Size Row { get; set; }
+
+	[JsonPropertyName("c")]
+	public Size Column { get; set; }
 
     public FlexGap(Size row)
     {

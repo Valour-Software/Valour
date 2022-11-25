@@ -1,4 +1,6 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+﻿using System.Text.Json.Serialization;
+
+namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
 
 public enum Direction
 {
@@ -18,11 +20,12 @@ public class FlexDirection : StyleBase
         "flex-direction: column-reverse;"
     };
 
-    public Direction Type { get; set; }
+	[JsonPropertyName("t")]
+	public Direction Type { get; set; }
 
     public FlexDirection(Direction type)
     {
-        this.Type = type;
+        Type = type;
     }
 
     public override string ToString()
