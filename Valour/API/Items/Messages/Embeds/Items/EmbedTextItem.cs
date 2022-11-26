@@ -3,7 +3,7 @@ using Valour.Api.Items.Messages.Embeds.Styles;
 
 namespace Valour.Api.Items.Messages.Embeds.Items;
 
-public class EmbedTextItem : EmbedItem, IClickable
+public class EmbedTextItem : EmbedItem, IClickable, INameable
 {
     public EmbedTextItem NameItem { get; set; }
     public string Text { get; set; }

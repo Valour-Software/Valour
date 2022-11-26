@@ -2,35 +2,35 @@
 
 namespace Valour.Api.Items.Messages.Embeds.Styles.Basic;
 
+public enum DisplayType
+{
+    Inline,
+    Block,
+    Contents,
+    Flex,
+    Grid,
+    InlineBlock,
+    InlineFlex,
+    InlineGrid,
+    InlineTable,
+    ListItem,
+    RunIn,
+    Table,
+    TableCaption,
+    TableColumnGroup,
+    TableHeaderGroup,
+    TableFooterGroup,
+    TableRowGroup,
+    TableCell,
+    TableColumn,
+    TableRow,
+    None,
+    Initial,
+    Static
+}
+
 public class Display : StyleBase
 {
-    public enum DisplayType
-    {
-        Inline,
-        Block,
-        Contents,
-        Flex,
-        Grid,
-        InlineBlock,
-        InlineFlex,
-        InlineGrid,
-        InlineTable,
-        ListItem,
-        RunIn,
-        Table,
-        TableCaption,
-        TableColumnGroup,
-        TableHeaderGroup,
-        TableFooterGroup,
-        TableRowGroup,
-        TableCell,
-        TableColumn,
-        TableRow,
-        None,
-        Initial,
-        Static
-    }
-
     private readonly string[] _strings = new string[]
     {
         "display: inline;",

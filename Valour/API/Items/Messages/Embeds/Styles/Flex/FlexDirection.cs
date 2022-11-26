@@ -12,6 +12,10 @@ public enum Direction
 
 public class FlexDirection : StyleBase
 {
+    public static readonly FlexDirection Row = new(Direction.Row);
+    public static readonly FlexDirection RowReverse = new(Direction.RowReverse);
+    public static readonly FlexDirection Column = new(Direction.Column);
+    public static readonly FlexDirection ColumnReverse = new(Direction.ColumnReverse);
     private readonly string[] _strings = new string[]
     {
         "flex-direction: row;",

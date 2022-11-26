@@ -108,7 +108,7 @@ public class EmbedItem : IParentItem
         }
 
         if (ItemType == EmbedItemType.EmbedRow && !style.Contains("display: flex"))
-            style += "display: flex;";
+            style += "display: flex;align-items: center;";
 
         else if (Parent is null)
             return style;

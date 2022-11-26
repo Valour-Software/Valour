@@ -5,12 +5,17 @@ using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Client;
 using System.Net.Http.Json;
+using Blazored.Modal.Services;
+using Valour.Client.Modals;
+using Microsoft.JSInterop;
+using Blazored.Modal;
+using Valour.Client.Components.Menus.Modals;
 
 namespace Valour.Client.Utility;
 
 internal static class EmbedGoToClickHandler
 {
-    public static async Task HandleClick(EmbedItem _item, EmbedComponent embedComponent)
+    public static async Task HandleClick(EmbedItem _item, EmbedComponent embedComponent, IModalService Modal, IJSRuntime JS)
     {
 		var item = (IClickable)_item;
 
@@ -45,5 +50,30 @@ internal static class EmbedGoToClickHandler
 			_item.Embed.currentPage = ((EmbedPageTarget)item.ClickTarget).PageNumber;
             embedComponent.UpdateItems();
         }
+
+		else if (item.ClickTarget.Type == TargetType.Link)
+		{
+			EmbedLinkTarget target = (EmbedLinkTarget)item.ClickTarget;
+			ConfirmModalData modalData =
+			new($"This link will take you to {target.Href}",
+				"Are you sure?",
+				"Continue",
+				"Cancel", 
+				async () =>
+				{
+					JS.InvokeAsync<object>("open", target.Href, "_blank");
+
+				},
+				async () =>
+				{
+					Console.WriteLine($"Cancelled going to link: {target.Href}");
+				}
+			);
+
+			ModalParameters modParams = new();
+			modParams.Add("Data", modalData);
+
+			Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+		}
     }
 }

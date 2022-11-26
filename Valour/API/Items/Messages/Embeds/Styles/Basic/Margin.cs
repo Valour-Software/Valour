@@ -26,7 +26,7 @@ public class Margin : StyleBase
         Bottom = size;
     }
 
-    public Margin(Size left, Size right, Size top, Size bottom)
+    public Margin(Size left = null, Size right = null, Size top = null, Size bottom = null)
     {
         Left = left;
         Right = right;
@@ -36,9 +36,15 @@ public class Margin : StyleBase
 
     public override string ToString()
     {
-        return @$"margin-left: {Left};
-                  margin-right: {Right};
-                  margin-top: {Top};
-                  margin-bottom: {Bottom};";
+        var s = "";
+        if (Left is not null)
+            s += $"margin-left: {Left};";
+        if (Right is not null)
+            s += $"margin-right: {Right};";
+        if (Top is not null)
+            s += $"margin-top: {Top};";
+        if (Bottom is not null)
+            s += $"margin-bottom: {Bottom};";
+        return s;
     }
 }

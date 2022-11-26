@@ -1,4 +1,5 @@
 ﻿@implements IDisposable
+@inject IJSRuntime JS
 
 <div style="@item.GetStyle()" class="@MainClass">
 	@if (item.NameItem is not null)
@@ -29,6 +30,9 @@
 	[CascadingParameter]
 	public EmbedComponent embedComponent { get; set; }
 
+	[CascadingParameter]
+    public IModalService Modal { get; set; }
+
 	public string MainClass
 	{
 		get
@@ -50,7 +54,7 @@
 		if (ProcessClick)
 		{
 			ProcessClick = false;
-			Task.Run((async () => await EmbedGoToClickHandler.HandleClick(item, embedComponent)));
+			Task.Run((async () => await EmbedGoToClickHandler.HandleClick(item, embedComponent, Modal, JS)));
 		}
 		return base.OnAfterRenderAsync(firstRender);
 	}

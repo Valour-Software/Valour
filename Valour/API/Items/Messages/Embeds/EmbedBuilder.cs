@@ -60,7 +60,8 @@ public class EmbedBuilder
     {
         var row = new EmbedRow()
         {
-            Children = new()
+            Children = new(),
+            Parent = CurrentParent
         };
 
         if (CurrentParent.ItemType != EmbedItemType.EmbedRow)
@@ -77,7 +78,8 @@ public class EmbedBuilder
 	{
 		var row = new EmbedRow()
 		{
-			Children = new()
+			Children = new(),
+            Parent = CurrentParent
 		};
 
 		CurrentParent.Children.Add(row);
@@ -168,7 +170,7 @@ public class EmbedBuilder
         return this;
     }
 
-    public EmbedBuilder AddText(string name = null, string text = null)
+    public EmbedBuilder AddText(string name, string text)
     {
         var item = new EmbedTextItem()
         {
@@ -182,6 +184,17 @@ public class EmbedBuilder
 				Styles = new() { FontWeight.Bold }
 			};
 		}
+
+		AddItem(item);
+        return this;
+    }
+
+    public EmbedBuilder AddText(string text)
+    {
+        var item = new EmbedTextItem()
+        {
+            Text = text
+        };
 
 		AddItem(item);
         return this;

@@ -20,6 +20,9 @@ public enum DecoractionStyle
 
 public class TextDecoration : StyleBase
 {
+	public static readonly TextDecoration UnderLine = new(DecoractionType.UnderLine);
+	public static readonly TextDecoration LineThrough = new(DecoractionType.LineThrough);
+	public static readonly TextDecoration OverLine = new(DecoractionType.OverLine);
 	private readonly string[] _strings = new string[]
 	{
 		"text-decoration: overline",
