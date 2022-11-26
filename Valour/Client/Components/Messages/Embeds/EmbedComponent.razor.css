@@ -4,6 +4,7 @@
     max-width: 1024px;
     border-radius: 8px;
     width: fit-content;
+    position: relative;
 }
 
 .embed a {

@@ -16,7 +16,7 @@ public class Position : StyleBase
     [JsonPropertyName("b")]
     public Size Bottom {  get; set; }
 
-    public Position(Size left, Size right, Size top, Size bottom)
+    public Position(Size left = null, Size right = null, Size top = null, Size bottom = null)
     {
         Left = left;
         Right = right;
@@ -26,9 +26,15 @@ public class Position : StyleBase
 
     public override string ToString()
     {
-        return @$"left: {Left};
-                  right: {Right};
-                  top: {Top};
-                  bottom: {Bottom};";
+        var s = "position: absolute;";
+        if (Left is not null)
+            s += $"left: {Left};";
+        if (Right is not null)
+            s += $"right: {Right};";
+        if (Top is not null)
+            s += $"top: {Top};";
+        if (Bottom is not null)
+            s += $"bottom: {Bottom};";
+        return s;
     }
 }

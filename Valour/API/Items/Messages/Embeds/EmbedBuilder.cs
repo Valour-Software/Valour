@@ -49,7 +49,9 @@ public class EmbedBuilder
         };
         embed.Pages.Add(page);
         CurrentParent = page;
-        return this;
+        LastItem = page;
+
+		return this;
     }
 
 	/// <summary>

@@ -20,7 +20,7 @@ public class EmbedRow : EmbedItem
 	}
 }
 
-public class EmbedPage : IParentItem
+public class EmbedPage : EmbedItem, IParentItem
 {
     public List<EmbedItem> Children { get; set; }
 
@@ -28,8 +28,6 @@ public class EmbedPage : IParentItem
 
     public string Footer { get; set; }
 	public List<StyleBase> TitleStyles { get; set; }
-
-	public List<StyleBase> MyStyles { get; set; }
 
     public List<StyleBase> FooterStyles { get; set; }
 
@@ -71,9 +69,9 @@ public class EmbedPage : IParentItem
 	public string GetStyle(Embed embed)
     {
         string style = "";
-		if (MyStyles is not null)
+		if (Styles is not null)
 		{
-			foreach (var _style in MyStyles)
+			foreach (var _style in Styles)
 			{
 				style += _style;
 			}
