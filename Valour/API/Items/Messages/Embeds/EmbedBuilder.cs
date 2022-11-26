@@ -316,11 +316,18 @@ public class EmbedBuilder
 		return this;
 	}
 
-	public EmbedBuilder OnClickSubmitForm()
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="ElementId">The id that the button will use</param>
+    /// <returns></returns>
+	public EmbedBuilder OnClickSubmitForm(string ElementId)
 	{
 		((IClickable)LastItem).ClickTarget = new EmbedFormSubmitTarget()
 		{
-			Type = TargetType.SubmitForm
+			Type = TargetType.SubmitForm,
+            EventElementId = ElementId
 		};
 		return this;
 	}
