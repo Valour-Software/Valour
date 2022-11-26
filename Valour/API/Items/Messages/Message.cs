@@ -135,7 +135,7 @@ public abstract class Message : Item, ISharedMessage
             {
                 if (!string.IsNullOrEmpty(EmbedData))
                 {
-                    Console.WriteLine(EmbedData);
+                    //Console.WriteLine(EmbedData);
                     // prevent a million errors in console
                     if (EmbedData.Contains("EmbedVersion\":\"1.1.0\"")) {
                         embedParsed = true;
