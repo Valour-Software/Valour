@@ -13,10 +13,10 @@ public class TextColor : StyleBase
         Color = color;
     }
 
-    /// <summary>
-    /// </summary>
-    /// <param name="hex">Must be in xxxxxx format!</param>
-    public TextColor(string hex)
+	/// <summary>
+	/// </summary>
+	/// <param name="hex">Must be in #xxxxxx or xxxxxx format!</param>
+	public TextColor(string hex)
     {
         Color = new Color(hex);
     }

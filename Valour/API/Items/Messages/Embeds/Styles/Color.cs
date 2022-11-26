@@ -18,12 +18,15 @@ public class Color
 
     /// <summary>
     /// </summary>
-    /// <param name="hex">Must be in xxxxxx format!</param>
+    /// <param name="hex">Must be in #xxxxxx or xxxxxx format!</param>
 	public Color(string hex)
     {
-        Red = byte.Parse(hex.Substring(0, 2), System.Globalization.NumberStyles.HexNumber);
-		Green = byte.Parse(hex.Substring(2, 2), System.Globalization.NumberStyles.HexNumber);
-		Blue = byte.Parse(hex.Substring(4, 2), System.Globalization.NumberStyles.HexNumber);
+        int offset = 0;
+        if (hex[0] == '#')
+            offset = 1;
+        Red = byte.Parse(hex.Substring(0+offset, 2), System.Globalization.NumberStyles.HexNumber);
+		Green = byte.Parse(hex.Substring(2+offset, 2), System.Globalization.NumberStyles.HexNumber);
+		Blue = byte.Parse(hex.Substring(4+offset, 2), System.Globalization.NumberStyles.HexNumber);
         Alpha = 1f;
 	}
 
