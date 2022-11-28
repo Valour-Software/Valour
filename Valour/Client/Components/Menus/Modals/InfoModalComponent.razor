@@ -1,14 +1,12 @@
 <!-- This modal exists to allow parts of the app to give the user info -->
 
 <div class="col-md-12">
-    <section>
-        <center>
-            <h2>@Data.title_text</h2>
-            <h4>@Data.desc_text</h4>
-            <br />
-            <br />
-            <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
-        </center>
+    <section style="text-align: center; padding: 30px">
+        <h2>@Data.title_text</h2>
+        <h4>@Data.desc_text</h4>
+        <br />
+        <br />
+        <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
     </section>
 </div>
 

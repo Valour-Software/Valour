@@ -1,32 +1,24 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Items;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Items.Messages.Embeds.Styles;
 
-public class EmbedTextItem : EmbedItem
+namespace Valour.Api.Items.Messages.Embeds.Items;
+
+public class EmbedTextItem : EmbedItem, IClickable, INameable
 {
-    public string? Name { get; set; }
-    public string? TextColor { get; set; } = "eeeeee";
-    public string? Link { get; set; }
-    public string? Text { get; set; }
-    public bool? UnderLineText { get; set; }
-    public bool? UnderLineName{ get; set; }
-    public bool? IsNameClickable { get; set; }
+    public EmbedTextItem NameItem { get; set; }
+    public string Text { get; set; }
+	public EmbedClickTargetBase ClickTarget { get; set; }
 
-    public EmbedTextItem()
-    {
-        ItemType = EmbedItemType.Text;
-    }
+	[JsonIgnore]
+	public override EmbedItemType ItemType => EmbedItemType.Text;
 
-    public EmbedTextItem(string name = null, string text = null, string textColor = null, string link = null, bool? isnameclickable = null, string? onclickeventname = null, bool? underlinetext = null, bool? underlinename = null, int? x = null, int? y = null)
-    {
-        Name = name;
-        Text = text;
-        TextColor = textColor;
-        Link = link;
-        X = x;
-        Y = y;
-        ItemType = EmbedItemType.Text;
-        IsNameClickable = isnameclickable;
-        OnClickEventName = onclickeventname;
-        UnderLineText = underlinetext;
-        UnderLineName = underlinename;
-    }
+	public EmbedTextItem()
+	{
+
+	}
+
+	public EmbedTextItem(string text)
+	{
+		Text = text;
+	}
 }

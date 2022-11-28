@@ -1,6 +1,9 @@
-﻿namespace Valour.Api.Items.Messages.Embeds.Items;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Items.Messages.Embeds.Styles;
 
-public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem
+namespace Valour.Api.Items.Messages.Embeds.Items;
+
+public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem, INameable
 {
     /// <summary>
     /// The input value
@@ -11,30 +14,26 @@ public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem
     /// The placeholder text for inputs
     /// </summary>
     public string Placeholder { get; set; }
+
     public string Id { get; set; }
 
-    public string Name { get; set; }
+    public EmbedTextItem NameItem { get; set; }
 
-    public string NameColor { get; set; } = "eeeeee";
+	public bool? KeepValueOnUpdate { get; set; } = true;
 
-    public EmbedItemSize Size { get; set; }
+	[JsonIgnore]
+	public override EmbedItemType ItemType => EmbedItemType.InputBox;
 
-    public bool? KeepValueOnUpdate { get; set; } = true;
-
-    public EmbedInputBoxItem()
+	public EmbedInputBoxItem()
     {
-        ItemType = EmbedItemType.InputBox;
+        
     }
 
-    public EmbedInputBoxItem(string id, string value = null, string placeholder = null, string namecolor = null, bool? keepvalueonupdate = null, int? x = null, int? y = null)
+    public EmbedInputBoxItem(string id, string value = null, string placeholder = null, bool? keepvalueonupdate = null)
     {
         Id = id;
         Value = value;
         Placeholder = placeholder; 
-        X = x;
-        Y = y;
-        ItemType = EmbedItemType.InputBox;
-        NameColor = namecolor;
         KeepValueOnUpdate = keepvalueonupdate;
     }
 }

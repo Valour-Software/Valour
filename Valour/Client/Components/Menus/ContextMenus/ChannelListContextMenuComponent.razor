@@ -117,7 +117,7 @@
                 ModalParameters imodParams = new();
                 imodParams.Add("Data", imodalData);
 
-                Modal.Show<InfoModalComponent>("Info", imodParams, new ModalOptions() { Class = "modal-shrink-fit" });
+                Modal.Show<InfoModalComponent>("Info", imodParams);
             }
         }
 
@@ -142,7 +142,7 @@
         ModalParameters modParams = new();
         modParams.Add("Data", modalData);
 
-        Modal.Show<ConfirmModalComponent>("Confirm", modParams, new ModalOptions() { Class = "modal-shrink-fit" });
+        Modal.Show<ConfirmModalComponent>("Confirm", modParams);
     }
 
     public async Task EditChannelListItem()

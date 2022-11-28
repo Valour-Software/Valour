@@ -10,9 +10,8 @@ namespace Valour.Api.Items.Messages.Embeds;
 
 public enum EmbedIteractionEventType
 {
-    ButtonClick = 1,
+    ItemClicked = 1,
     FormSubmitted = 2,
-    TextClicked = 3
 }
 
 public class EmbedInteractionEvent

@@ -9,11 +9,6 @@ public abstract class ClientWindow
     public string Id { get; set; }
 
     /// <summary>
-    /// True if a render is needed
-    /// </summary>
-    public bool NeedsRender { get; set; }
-
-    /// <summary>
     /// The holder of this window
     /// </summary>
     public IWindowHolder Holder { get; set; }
