@@ -6,6 +6,12 @@
     <PublishTrimmed>false</PublishTrimmed>
     <DebugType>portable</DebugType>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Components\Messages\Embeds\Items\EmbedTextItemComponent.razor.css" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Components\Messages\Embeds\Items\EmbedTextItemComponent.razor.css" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
