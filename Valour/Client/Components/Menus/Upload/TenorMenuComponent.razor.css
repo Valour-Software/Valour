@@ -1,14 +1,24 @@
 .tenor-bg {
     padding: 20px;
     max-width: 400px;
-    width: 95%;
+    width: 90%;
     height: 600px;
-
+    max-height: 80vh;
     position: absolute;
-    right: 10px;
-    bottom: 15px;
+    right: 20px;
+    bottom: 20px;
     background-color: var(--main-2);
     border-radius: 20px;
+    border: 5px solid var(--main-4);
+    box-shadow: black 0px 0px 15px;
+}
+
+.tenor-bg input {
+    background: var(--main-4);
+    border: 1px solid #030B11;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 5px 9px;
 }
 
 #masonry-root {
@@ -22,6 +32,7 @@
 
 .masonry-scroller {
     overflow-y: auto;
+    overflow-x: hidden;
     height: 90%;
 }
 

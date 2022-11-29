@@ -1,8 +1,16 @@
 /* Credit to Diederik van Leeuwen, https://codepen.io/didumos/pen/xNPKRJ */
 
-export function scrollUpMasonry(rootId){
-    const scrollElement = document.getElementById(rootId).parentElement;
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+export function focusAndScroll(rootId){
+    const rootElement = document.getElementById(rootId);
+    const scrollElement = rootElement.parentElement;
     scrollElement.scrollTop = 0;
+    
+    // Focus on input
+    setTimeout(function(){
+        scrollElement.parentElement.querySelector('input').focus();
+    }, 10);
 }
 
 export function sizeItems(rootElement){

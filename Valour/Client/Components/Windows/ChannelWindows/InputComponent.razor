@@ -135,9 +135,9 @@
         StateHasChanged();
     }
 
-    public void ShowTenorMenu()
+    public async Task ShowTenorMenu()
     {
-        TenorMenu.Show();
+        await TenorMenu.Show();
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
