@@ -1,8 +1,9 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
+@using TenorSharp.Enums
+@using TenorSharp.ResponseObjects
 @using Valour.Api.Items.Messages;
-@using Valour.Api.Items.Messages.Attachments
 
 <div>
     <div class="preview-message">
@@ -12,27 +13,29 @@
     <ChannelCurrentlyTypingComponent ParentComponent="WindowComponent" Channel="WindowComponent.Channel"></ChannelCurrentlyTypingComponent>
 
     <div class="textbox-holder" @onclick="MessageHolder.ScrollToBottomAnimated">
-
+        <div style="position: relative">
+            <TenorMenuComponent @key="@("tenor-menu-" + Window.Id)" @ref="TenorMenu" ChannelWindow="Window"></TenorMenuComponent>
+        </div>
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
 
-        <div class="textbox" onclick="this.children[1].focus()" @ref='DropZoneElement'>
-            <InputFile @ref='InputFile_Ref' id='upload-core' style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            <img class='upload' src="_content/Valour.Client/media/Plus-Icon.svg" onclick="document.getElementById('upload-core').click()" />
+        <div class="textbox" onclick="this.children[1].focus()" @ref="DropZoneElement">
+            <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" alt="Upload File" />
 
-            <UploadMenuComponent></UploadMenuComponent>
+            <UploadMenuComponent @ref="UploadMenu" ChannelWindow="Window" Input="this"></UploadMenuComponent>
 
             @if (DeviceInfo.IsMobile){
                 <div class="send-wrapper" @onclick="OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
-                    <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" />
+                    <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
                 </div>
             }
 
-            @if (PreviewMessage.IsEmpty)
+            @if (PreviewMessage is null || PreviewMessage.IsEmpty)
             {
                 <p class="input-placeholder">@PlaceholderText</p>
             }
 
-            <div @ref='InnerInputRef' contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
+            <div @ref="InnerInputRef" contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
             </div>
         </div>
     </div>
@@ -51,19 +54,35 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public MessageHolderComponent MessageHolder { get; set; }
+    /// <summary>
+    /// A reference to the container for message rendering
+    /// </summary>
+    protected MessageHolderComponent MessageHolder { get; set; }
 
-    public virtual string PlaceholderText { get; }
+    /// <summary>
+    /// Placeholder text shown in the input box when empty
+    /// </summary>
+    protected virtual string PlaceholderText { get; }
 
+    /// <summary>
+    /// The upload menu component
+    /// </summary>
+    private UploadMenuComponent UploadMenu { get; set; }
+    
+    /// <summary>
+    /// The tenor menu component
+    /// </summary>
+    private TenorMenuComponent TenorMenu { get; set; }
+    
     /// <summary>
     /// A reference to the inner input component
     /// </summary>
-    public ElementReference InnerInputRef { get; set; }
+    private ElementReference InnerInputRef { get; set; }
 
     /// <summary>
     /// The component that displays the mention selection
     /// </summary>
-    public MentionSelectComponent MentionSelector { get; set; }
+    private MentionSelectComponent MentionSelector { get; set; }
 
     /// <summary>
     /// True if this input is currently editing a message
@@ -71,24 +90,14 @@
     public bool IsEditing { get; set; }
 
     /// <summary>
-    /// True if the mention selection system list visible
-    /// </summary>
-    private bool mentionSelect;
-
-    /// <summary>
-    /// True if the upload/gif/add menu should be visible
-    /// </summary>
-    private bool showUploadMenu;
-
-    /// <summary>
     /// The message component for the preview message
     /// </summary>
-    public MessageComponent PreviewMessageComponent { get; set; }
+    public MessageComponent PreviewMessageComponent { get; private set; }
 
     /// <summary>
     /// The preview message
     /// </summary>
-    public ClientMessageWrapper PreviewMessage { get; set; }
+    protected ClientMessageWrapper PreviewMessage { get; set; }
 
     /// <summary>
     /// Dotnet object reference for use in Javascript
@@ -99,8 +108,13 @@
     /// Module for calling Javascript functions
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
+    
+    /// <summary>
+    /// Allows this component to render when true
+    /// </summary>
+    public bool CanRenderFlag { get; set; }
 
-    private DateTime LastIsTypingUpdateSent = DateTime.MinValue;
+    private DateTime _lastTypingUpdateSent = DateTime.MinValue;
 
     /// <summary>
     /// Run when the component is initialized
@@ -110,6 +124,20 @@
         await base.OnInitializedAsync();
 
         await SetupNewChannelAsync();
+    }
+
+    protected override bool ShouldRender()
+        => CanRenderFlag;
+
+    public void Refresh()
+    {
+        CanRenderFlag = true;
+        StateHasChanged();
+    }
+
+    public void ShowTenorMenu()
+    {
+        TenorMenu.Show();
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
@@ -124,6 +152,8 @@
         MessageHolder = WindowComponent.MessageHolder;
 
         PreviewMessage = new(BuildNewMessage());
+        
+        Refresh();
     }
 
     public virtual Message BuildNewMessage()
@@ -136,12 +166,13 @@
     {
         if (firstRender)
         {
-            _thisRef = DotNetObjectReference.Create<InputComponent>(this);
-            _jsModule = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js");
+            _thisRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js");
             await SetupJSAsync();
-
-            await JS.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
+            await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
         }
+
+        CanRenderFlag = false;
     }
 
     #region File Drop System
@@ -170,7 +201,8 @@
     {
         PreviewMessage = message;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
-        StateHasChanged();
+        
+        Refresh();
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
@@ -224,17 +256,7 @@
                 if (result.Success)
                 {
                     newAttachment.Location = result.Data;
-
-                    var attachments = PreviewMessage.Message.Attachments;
-                    if (attachments is null)
-                        attachments = new();
-
-                    attachments.Add(newAttachment);
-
-                    PreviewMessage.Message.SetAttachments(attachments);
-
-                    await RefreshPreviewMessage();
-                    Refresh();
+                    await AddMessageAttachment(newAttachment);
                 }
                 else
                 {
@@ -245,7 +267,7 @@
 
         Modal.Show<FileUploadComponent>("File Upload", modalParams);
 
-        StateHasChanged();
+        Refresh();
     }
 
     public async Task RemoveAttachment(int id)
@@ -267,6 +289,20 @@
 
     #endregion
 
+    public async Task AddTenor(GifObject gif)
+    {
+        var media = gif.GetMediaType(GifFormat.gif);
+        
+        await AddMessageAttachment(new MessageAttachment()
+        {
+            Location = media.Url,
+            MimeType = "image/gif",
+            Width = media.Dims[0],
+            Height = media.Dims[1],
+            FileName = gif.Title + ".gif"
+        });
+    }
+
     public async Task UpdateMentionMenu(string text)
     {
         //Console.WriteLine(text);
@@ -287,17 +323,19 @@
             }
         }
 
-        StateHasChanged();
+        Refresh();
     }
 
-    public void Refresh()
+    public async Task AddMessageAttachment(MessageAttachment attachment)
     {
-        StateHasChanged();
-    }
+        var attachments = PreviewMessage.Message.Attachments;
+        attachments ??= new List<MessageAttachment>();
 
-    public async Task AddMessageAttachment()
-    {
+        attachments.Add(attachment);
+        PreviewMessage.Message.SetAttachments(attachments);
 
+        await RefreshPreviewMessage();
+        Refresh();
     }
 
     public async Task RefreshPreviewMessage() {
@@ -405,13 +443,13 @@
 
         await MessageHolder.ScrollToBottom();
 
-        if (DateTime.UtcNow > LastIsTypingUpdateSent.AddSeconds(5))
+        if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
         {
             WindowComponent.Channel.SendIsTyping();
-            LastIsTypingUpdateSent = DateTime.UtcNow;
+            _lastTypingUpdateSent = DateTime.UtcNow;
         }
 
-        StateHasChanged();
+        Refresh();
     }
 
     [JSInvokable]
@@ -419,7 +457,7 @@
     {
         await MentionSelector.Submit();
 
-        StateHasChanged();
+        Refresh();
     }
 
     [JSInvokable]
