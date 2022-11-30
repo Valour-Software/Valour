@@ -1,0 +1,75 @@
+.tenor-bg {
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    height: 600px;
+    max-height: 80vh;
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    background-color: var(--main-2);
+    border-radius: 20px;
+    border: 5px solid var(--main-4);
+    box-shadow: black 0px 0px 15px;
+}
+
+.tenor-bg input {
+    background: var(--main-4);
+    border: 1px solid #030B11;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 5px 9px;
+}
+
+#masonry-root {
+    overflow-y: auto;
+    margin-top: 10px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+
+.masonry-scroller {
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 90%;
+}
+
+#masonry-root .masonry-cell {
+    flex: 1;
+    position: relative;
+    cursor: pointer;
+}
+
+#masonry-root .masonry-cell .item {
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    margin-right: 10px;
+    border: var(--main-5) 5px solid;
+}
+
+.masonry-cell .favorite {
+    position: absolute;
+    left: 15px;
+    top: 15px;
+    opacity: 0;
+}
+
+.masonry-cell:hover .favorite {
+    opacity: 0.6;
+    text-shadow: black 0px 0px 6px;
+}
+
+#masonry-root .masonry-cell:hover .item {
+    border: 5px solid var(--v-cyan);
+}
+
+.masonry-cell h2 {
+    position: absolute;
+    right: 26px;
+    top: 10px;
+    font-size: 1em;
+    text-shadow: -2px -2px 0 #000, 0 -2px 0 #000, 2px -2px 0 #000, 2px 0 0 #000, 2px 2px 0 #000, 0 2px 0 #000, -2px 2px 0 #000, -2px 0 0 #000;
+}

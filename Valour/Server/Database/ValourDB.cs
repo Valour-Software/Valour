@@ -77,6 +77,11 @@ public class ValourDB : DbContext
     /// Table for Valour user friends
     /// </summary>
     public DbSet<UserFriend> UserFriends { get; set; }
+    
+    /// <summary>
+    /// Table for user Tenor favorites
+    /// </summary>
+    public DbSet<TenorFavorite> TenorFavorites { get; set; }
 
     // USER LOGIN AND PERMISSION STUFF //
 
