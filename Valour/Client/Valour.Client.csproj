@@ -19,13 +19,13 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
+    <PackageReference Include="Valour.TenorSharp" Version="0.1.0-ci.90" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\Libraries\BlazorContextMenu\BlazorContextMenu.csproj" />
     <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
-    <ProjectReference Include="..\TenorSharp\TenorSharp\TenorSharp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
