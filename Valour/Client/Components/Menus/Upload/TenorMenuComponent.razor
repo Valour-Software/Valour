@@ -19,13 +19,26 @@
                         return;
 
                     var addGif = result;
-                    <div class="masonry-cell" @onclick="async () => await OnClickGif(result)">
+                    <div @key="@("cell-" + result.Id)" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
+                        @if (ValourClient.TenorFavorites.Any(x => x.TenorId == result.Id))
+                        {
+                            <h3 class="favorite" @onclick="() => OnClickUnfavorite(addGif)" @onclick:stopPropagation="true">❤️</h3>
+                        }
+                        else
+                        {
+                            <h3 class="favorite" @onclick="() => OnClickFavorite(addGif)" @onclick:stopPropagation="true">🤍</h3>
+                        }
                         <img data-natwidth="@media.Dims[0]" data-natheight="@media.Dims[1]" class="item" src="@media.Url" alt="@result.Title"/>
                     </div>
                 }
             }
             else if (CategoryResults is not null)
             {
+                <div class="masonry-cell">
+                    <h2>Favorites ❤️</h2>
+                    <img data-natwidth="210" data-natheight="180" class="item" src="./_content/Valour.Client/media/Spookvooper.jpg" alt="Favorites" @onclick='() => OnClickCategory(":favorites:")'/>
+                </div>
+                
                 foreach (var category in CategoryResults.Tags)
                 {
                     <div class="masonry-cell">
@@ -71,16 +84,48 @@
         StateHasChanged();
     }
 
+    private async Task OnClickFavorite(GifObject gif)
+    {
+        TenorFavorite favorite = new TenorFavorite()
+        {
+            UserId = ValourClient.Self.Id,
+            TenorId = gif.Id
+        };
+
+        await ValourClient.AddTenorFavorite(favorite);
+        
+        Refresh();
+    }
+
+    private async Task OnClickUnfavorite(GifObject gif)
+    {
+        var favorite = ValourClient.TenorFavorites.FirstOrDefault(x => x.TenorId == gif.Id);
+        if (favorite is null)
+            return;
+        
+        await ValourClient.RemoveTenorFavorite(favorite);
+        
+        Refresh();
+    }
+
     private async Task OnClickGif(GifObject gif)
     {
         await ChannelWindow.Component.InputComponent.AddTenor(gif);
         Hide();
+        
+        // Register share to make Tenor happy
+        await TenorService.Client.RegisterShareAsync(gif.Id, _searchTerm);
     }
 
     private async Task OnSearchChange()
     {
         await FocusAndScroll();
-        SearchResults = await TenorService.Client.SearchAsync(_searchTerm, 20, 0);
+
+        if (_searchTerm == ":favorites:")
+            SearchResults = await TenorService.Client
+                .GetGifsAsync(100, 0, ValourClient.TenorFavorites.Select(x => x.TenorId).ToArray());
+        else
+            SearchResults = await TenorService.Client.SearchAsync(_searchTerm, 50, 0);
         
         Refresh();
     }

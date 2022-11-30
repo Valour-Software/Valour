@@ -50,6 +50,18 @@
     border: var(--main-5) 5px solid;
 }
 
+.masonry-cell .favorite {
+    position: absolute;
+    left: 15px;
+    top: 15px;
+    opacity: 0;
+}
+
+.masonry-cell:hover .favorite {
+    opacity: 0.6;
+    text-shadow: black 0px 0px 6px;
+}
+
 #masonry-root .masonry-cell:hover .item {
     border: 5px solid var(--v-cyan);
 }
