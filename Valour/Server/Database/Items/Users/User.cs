@@ -828,6 +828,21 @@ public class User : Item, ISharedUser
             addedBy = addedBy
         });
     }
+    
+    [ValourRoute(HttpVerbs.Get, "/self/tenorfavorites"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
+
+    public static async Task<IResult> GetTenorFavoritesRouteAsync(HttpContext ctx)
+    {
+        var token = ctx.GetToken();
+        var db = ctx.GetDb();
+
+        var favorites = await db.TenorFavorites
+            .Where(x => x.UserId == token.UserId)
+            .ToListAsync();
+
+        return Results.Json(favorites);
+    }
 
     #endregion
 }

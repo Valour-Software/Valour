@@ -7,6 +7,7 @@ using Valour.Client.Components.ChannelList;
 using Valour.Client.Categories;
 using Valour.Client.Windows;
 using Valour.Client.Sounds;
+using Valour.Client.Tenor;
 
 namespace Valour.Client.Blazor;
 
@@ -35,6 +36,11 @@ public class Program
         builder.Services.AddScoped(sp =>
             httpClient
         );
+
+        builder.Services.AddHttpClient<TenorService>(client =>
+        {
+            client.BaseAddress = new Uri("https://tenor.googleapis.com/v2/");
+        });
 
         builder.Services.AddSingleton<WindowManager>();
         builder.Services.AddSingleton<ClientCategoryManager>();

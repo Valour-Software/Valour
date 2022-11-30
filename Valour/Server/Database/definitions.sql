@@ -39,6 +39,14 @@ CREATE TABLE IF NOT EXISTS user_friends (
     CONSTRAINT fk_friend FOREIGN KEY(friend_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS tenor_favorites (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    tenor_id TEXT NOT NULL,
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS user_emails (
     email TEXT NOT NULL PRIMARY KEY,
     verified BOOLEAN NOT NULL DEFAULT false,

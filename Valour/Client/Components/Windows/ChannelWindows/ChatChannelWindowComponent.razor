@@ -32,11 +32,7 @@
                 <CascadingValue Value='ChannelPermissions'>
                     <MessageHolderComponent @ref="MessageHolder" @key='$"mh-{Window.Id}"'></MessageHolderComponent>
                 </CascadingValue>
-
-                @{
-                    var lastMessage = MessageHolder?.GetLastMessage();
-                }
-
+                
                 <DynamicComponent Type="Window.Component.GetInputComponentType()"></DynamicComponent>
 
             </div>
@@ -97,6 +93,12 @@
         await Channel.Open();
     }
 
+    public void Refresh()
+    {
+        CanRenderFlag = true;
+        StateHasChanged();
+    }
+
     public virtual Type GetInputComponentType() => 
         typeof(InputComponent);
 
@@ -111,8 +113,7 @@
         Title = await GetChannelDisplayTitleAsync();
         Description = await GetChannelDisplayDescriptionAsync();
 
-        CanRenderFlag = true;
-        StateHasChanged();
+        Refresh();
 
         MessageHolder.Clear();
 
@@ -138,8 +139,7 @@
         if (OnChannelChange is not null)
             await OnChannelChange.Invoke(Channel);
 
-        CanRenderFlag = true;
-        StateHasChanged();
+        Refresh();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -160,9 +160,7 @@
     }
 
     protected override bool ShouldRender()
-    {
-        return CanRenderFlag;
-    }
+        => CanRenderFlag;
 
     void IDisposable.Dispose()
     {
@@ -173,8 +171,7 @@
 
     public async Task OnChatChannelUpdate(int flags)
     {
-        CanRenderFlag = true;
-        StateHasChanged();
+        Refresh();
     }
 
     public async Task CloseWindow()
