@@ -1,8 +1,9 @@
 #!/bin/sh
+git submodule init
+git submodule update
 curl -sSL https://dot.net/v1/dotnet-install.sh > dotnet-install.sh
 chmod +x dotnet-install.sh
 ./dotnet-install.sh -c 7.0 -InstallDir ./dotnet7
 ./dotnet7/dotnet --version
-cp /opt/buildhome/clone/Valour/Tenorsharp /opt/buildhome/repo/Valour/TenorSharp
 ./dotnet7/dotnet clean
 ./dotnet7/dotnet publish -c Release -o output
