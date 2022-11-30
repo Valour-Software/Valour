@@ -1,3 +1,4 @@
 [submodule "Valour/TenorSharp"]
 	path = Valour/TenorSharp
 	url = https://github.com/Vooper-Media-LLC/Valour.TenorSharp
+	branch = main
