@@ -2,4 +2,4 @@
 	path = Valour/Tenorsharp
 	url = https://github.com/Vooper-Media-LLC/Valour.TenorSharp
 	branch = main
-	update = rebase
+	update = merge
