@@ -6,6 +6,7 @@ public class StatWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     public readonly ILogger<StatWorker> _logger;
+    private static int _messageCount = 0;
 
     public StatWorker(ILogger<StatWorker> logger,
                         IServiceScopeFactory scopeFactory)
@@ -14,13 +15,9 @@ public class StatWorker : BackgroundService
         _scopeFactory = scopeFactory;
     }
 
-    private static ValourDB Context;
-
-    private static StatObject stats = new StatObject();
-
     public static void IncreaseMessageCount()
     {
-        stats.MessagesSent += 1;
+        _messageCount += 1;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -32,21 +29,27 @@ public class StatWorker : BackgroundService
                 //try
                 //{
 
-                Context = new ValourDB(ValourDB.DBOptions);
-
-                if (Context != null && System.Diagnostics.Debugger.IsAttached == false)
+                using (var scope = _scopeFactory.CreateScope())
                 {
-                    stats.TimeCreated = DateTime.UtcNow;
-                    stats.UserCount = await Context.Users.CountAsync();
-                    stats.PlanetCount = await Context.Planets.CountAsync();
-                    stats.PlanetMemberCount = await Context.PlanetMembers.CountAsync();
-                    stats.ChannelCount = await Context.PlanetChatChannels.CountAsync();
-                    stats.CategoryCount = await Context.PlanetCategoryChannels.CountAsync();
-                    stats.MessageDayCount = await Context.PlanetMessages.CountAsync();
-                    await Context.Stats.AddAsync(stats);
-                    await Context.SaveChangesAsync();
-                    stats = new StatObject();
-                    _logger.LogInformation($"Saved successfully.");
+                    ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
+
+                    if (System.Diagnostics.Debugger.IsAttached == false)
+                    {
+                        StatObject stats = new();
+                        stats.TimeCreated = DateTime.UtcNow;
+                        stats.UserCount = await context.Users.CountAsync();
+                        stats.PlanetCount = await context.Planets.CountAsync();
+                        stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();
+                        stats.ChannelCount = await context.PlanetChatChannels.CountAsync();
+                        stats.CategoryCount = await context.PlanetCategoryChannels.CountAsync();
+                        stats.MessageDayCount = await context.PlanetMessages.CountAsync();
+                        stats.MessagesSent = _messageCount;
+                        _messageCount = 0;
+                        await context.Stats.AddAsync(stats);
+                        await context.SaveChangesAsync();
+                        stats = new StatObject();
+                        _logger.LogInformation($"Saved successfully.");
+                    }
                 }
             });
             while (!task.IsCompleted)
