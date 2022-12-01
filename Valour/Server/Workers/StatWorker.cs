@@ -2,10 +2,11 @@
 
 namespace Valour.Server.Workers;
 
-public class StatWorker : BackgroundService
+public class StatWorker : IHostedService, IDisposable
 {
     private readonly IServiceScopeFactory _scopeFactory;
     public readonly ILogger<StatWorker> _logger;
+    private Timer _timer;
     private static int _messageCount = 0;
 
     public StatWorker(ILogger<StatWorker> logger,
@@ -19,47 +20,55 @@ public class StatWorker : BackgroundService
     {
         _messageCount += 1;
     }
-
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    
+    public Task StartAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        _logger.LogInformation("Starting Stat Worker");
+
+        _timer = new Timer(DoWork, null, TimeSpan.Zero, 
+            TimeSpan.FromSeconds(60));
+
+        return Task.CompletedTask;
+    }
+
+    private async void DoWork(object state)
+    {
+        using var scope = _scopeFactory.CreateScope();
+            
+        ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
+
+        if (!System.Diagnostics.Debugger.IsAttached)
         {
-            Task task = Task.Run(async () =>
-            {
-                //try
-                //{
-
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    ValourDB context = scope.ServiceProvider.GetRequiredService<ValourDB>();
-
-                    if (System.Diagnostics.Debugger.IsAttached == false)
-                    {
-                        StatObject stats = new();
-                        stats.TimeCreated = DateTime.UtcNow;
-                        stats.UserCount = await context.Users.CountAsync();
-                        stats.PlanetCount = await context.Planets.CountAsync();
-                        stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();
-                        stats.ChannelCount = await context.PlanetChatChannels.CountAsync();
-                        stats.CategoryCount = await context.PlanetCategoryChannels.CountAsync();
-                        stats.MessageDayCount = await context.PlanetMessages.CountAsync();
-                        stats.MessagesSent = _messageCount;
-                        _messageCount = 0;
-                        await context.Stats.AddAsync(stats);
-                        await context.SaveChangesAsync();
-                        stats = new StatObject();
-                        _logger.LogInformation($"Saved successfully.");
-                    }
-                }
-            });
-            while (!task.IsCompleted)
-            {
-                _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now.ToString()}");
-                await Task.Delay(60000, stoppingToken);
-            }
-
-            _logger.LogInformation("Stat Worker task stopped at: {time}", DateTimeOffset.Now.ToString());
-            _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
+            StatObject stats = new();
+            stats.TimeCreated = DateTime.UtcNow;
+            stats.UserCount = await context.Users.CountAsync();
+            stats.PlanetCount = await context.Planets.CountAsync();
+            stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();
+            stats.ChannelCount = await context.PlanetChatChannels.CountAsync();
+            stats.CategoryCount = await context.PlanetCategoryChannels.CountAsync();
+            stats.MessageDayCount = await context.PlanetMessages.CountAsync();
+            stats.MessagesSent = _messageCount;
+            _messageCount = 0;
+            
+            await context.Stats.AddAsync(stats);
+            await context.SaveChangesAsync();
+            _logger.LogInformation($"Saved Stats Successfully");
         }
+            
+        _logger.LogInformation($"Stat Worker running at: {DateTimeOffset.Now.ToString()}");
+    }
+
+    public Task StopAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Stat Worker is Stopping.");
+
+        _timer?.Change(Timeout.Infinite, 0);
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
     }
 }
