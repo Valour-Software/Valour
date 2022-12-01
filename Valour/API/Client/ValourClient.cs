@@ -99,6 +99,11 @@ public static class ValourClient
     public static HashSet<long> FriendFastLookup { get; set; }
     public static List<User> FriendRequests { get; set; }
     public static List<User> FriendsRequested { get; set; }
+    
+    /// <summary>
+    /// The Tenor favorites of this user
+    /// </summary>
+    public static List<TenorFavorite> TenorFavorites { get; set; }
 
 
     #region Event Fields
@@ -117,6 +122,16 @@ public static class ValourClient
     /// Run when SignalR closes a planet
     /// </summary>
     public static event Func<Planet, Task> OnPlanetClose;
+
+    /// <summary>
+    /// Run when a planet is joined
+    /// </summary>
+    public static event Func<Planet, Task> OnPlanetJoin;
+
+    /// <summary>
+    /// Run when a planet is left
+    /// </summary>
+    public static event Func<Planet, Task> OnPlanetLeave;
 
     /// <summary>
     /// Run when a UserChannelState is updated
@@ -166,7 +181,7 @@ public static class ValourClient
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
-    public static string BaseAddress = "https://localhost:44331/";
+    public static string BaseAddress = "http://192.168.0.226:5000/";
 #endif
 
     /// <summary>
@@ -223,11 +238,89 @@ public static class ValourClient
     public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
         PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
 
+    public static async Task<List<TenorFavorite>> GetTenorFavoritesAsync()
+    {
+        if (TenorFavorites is null)
+            await LoadTenorFavoritesAsync();
+
+        return TenorFavorites;
+    }
+
     /// <summary>
     /// Sends a message
     /// </summary>
     public static async Task<TaskResult> SendMessage(PlanetMessage message)
         => await message.PostMessageAsync();
+
+    /// <summary>
+    /// Attempts to join the given planet
+    /// </summary>
+    public static async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
+    {
+        var result = await PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planet/{planet.Id}/discover");
+
+        if (result.Success)
+        {
+            JoinedPlanets.Add(planet);
+
+            if (OnPlanetJoin is not null)
+                await OnPlanetJoin.Invoke(planet);
+
+            if (OnJoinedPlanetsUpdate is not null)
+                await OnJoinedPlanetsUpdate?.Invoke();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Attempts to leave the given planet
+    /// </summary>
+    public static async Task<TaskResult> LeavePlanetAsync(Planet planet)
+    {
+        // Get member
+        var member = await planet.GetMemberByUserAsync(ValourClient.Self.Id);
+        var result = await Item.DeleteAsync(member);
+
+        if (result.Success)
+        {
+            JoinedPlanets.Remove(planet);
+
+            if (OnPlanetLeave is not null)
+                await OnPlanetLeave.Invoke(planet);
+
+            if (OnJoinedPlanetsUpdate is not null)
+                await OnJoinedPlanetsUpdate.Invoke();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Tries to add the given Tenor favorite
+    /// </summary>
+    public static async Task<TaskResult<TenorFavorite>> AddTenorFavorite(TenorFavorite favorite)
+    {
+        var result = await TenorFavorite.PostAsync(favorite);
+
+        if (result.Success)
+            TenorFavorites.Add(result.Data);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Tries to delete the given Tenor favorite
+    /// </summary>
+    public static async Task<TaskResult> RemoveTenorFavorite(TenorFavorite favorite)
+    {
+        var result = await TenorFavorite.DeleteAsync(favorite);
+
+        if (result.Success)
+            TenorFavorites.RemoveAll(x => x.Id == favorite.Id);
+
+        return result;
+    }
 
     /// <summary>
     /// Adds a friend
@@ -827,7 +920,8 @@ public static class ValourClient
         {
             LoadChannelStatesAsync(),
             LoadFriendsAsync(),
-            LoadJoinedPlanetsAsync()
+            LoadJoinedPlanetsAsync(),
+            LoadTenorFavoritesAsync()
         };
 
         // Load user data concurrently
@@ -922,6 +1016,22 @@ public static class ValourClient
 
         // Access dict again to maintain references (do not try to optimize and break everything)
         await OnUserChannelStateUpdate.Invoke(ChannelStates[channelState.ChannelId]);
+    }
+
+    public static async Task LoadTenorFavoritesAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/user/self/tenorfavorites");
+        if (!response.Success)
+        {
+            await Logger.Log("** Failed to load Tenor favorites **", "red");
+            await Logger.Log(response.Message, "red");
+
+            return;
+        }
+
+        TenorFavorites = response.Data;
+        
+        Console.WriteLine($"Loaded {TenorFavorites.Count} Tenor favorites");
     }
     
     public static async Task LoadChannelStatesAsync()

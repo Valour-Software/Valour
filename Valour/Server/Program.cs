@@ -95,7 +95,8 @@ namespace Valour.Server
                 new ItemAPI<PermissionsNode>()          .RegisterRoutes(app),
                 new ItemAPI<UserFriend>()               .RegisterRoutes(app),
                 new ItemAPI<DirectChatChannel>()        .RegisterRoutes(app),
-                new ItemAPI<OauthApp>()                 .RegisterRoutes(app)
+                new ItemAPI<OauthApp>()                 .RegisterRoutes(app),
+                new ItemAPI<TenorFavorite>()            .RegisterRoutes(app)
             };
 
             NodeAPI = new NodeAPI(NodeConfig.Instance);
@@ -212,6 +213,7 @@ namespace Valour.Server
                         .AllowCredentials()
                         .WithOrigins(
                         "https://www.valour.gg",
+                        "https://tenor.googleapis.com",
                         "http://www.valour.gg",
                         "https://valour.gg",
                         "http://valour.gg",

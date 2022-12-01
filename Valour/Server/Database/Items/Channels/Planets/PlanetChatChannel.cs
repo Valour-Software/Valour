@@ -503,7 +503,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             {
                 foreach (var at in attachments)
                 {
-                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
+                    if (!at.Location.StartsWith("https://cdn.valour.gg") && 
+                        !at.Location.StartsWith("https://media.tenor.com"))
                     {
                         return Results.BadRequest("Attachments must be from https://cdn.valour.gg...");
                     }

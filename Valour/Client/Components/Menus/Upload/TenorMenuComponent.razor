@@ -1,0 +1,193 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@inject TenorService TenorService
+@using TenorSharp.SearchResults
+@using TenorSharp.Enums
+@using TenorSharp.ResponseObjects
+
+<div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg" class="tenor-bg">
+    <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Tenor..." />
+    <div class="masonry-scroller">
+        <div id="masonry-root">
+            @if (SearchResults?.GifResults is not null)
+            {
+                foreach (var result in SearchResults.GifResults)
+                {
+                    var media = result.GetMediaType(GifFormat.gif);
+                    if (media is null)
+                        return;
+
+                    var addGif = result;
+                    <div @key="@("cell-" + result.Id)" class="masonry-cell" @onclick="async () => await OnClickGif(result)">
+                        @if (ValourClient.TenorFavorites.Any(x => x.TenorId == result.Id))
+                        {
+                            <h3 class="favorite" @onclick="() => OnClickUnfavorite(addGif)" @onclick:stopPropagation="true">❤️</h3>
+                        }
+                        else
+                        {
+                            <h3 class="favorite" @onclick="() => OnClickFavorite(addGif)" @onclick:stopPropagation="true">🤍</h3>
+                        }
+                        <img data-natwidth="@media.Dims[0]" data-natheight="@media.Dims[1]" class="item" src="@media.Url" alt="@result.Title"/>
+                    </div>
+                }
+            }
+            else if (CategoryResults is not null)
+            {
+                <div class="masonry-cell">
+                    <h2>Favorites ❤️</h2>
+                    <img data-natwidth="210" data-natheight="180" class="item" src="./_content/Valour.Client/media/Spookvooper.jpg" alt="Favorites" @onclick='() => OnClickCategory(":favorites:")'/>
+                </div>
+                
+                foreach (var category in CategoryResults.Tags)
+                {
+                    <div class="masonry-cell">
+                        <h2>@category.Name</h2>
+                        <img data-natwidth="210" data-natheight="180" class="item" src="@category.Image" alt="@category.Name" @onclick="() => OnClickCategory(category.SearchTerm)"/>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ChatChannelWindow ChannelWindow { get; set; }
+    
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+    
+    /// <summary>
+    /// Dotnet object reference for use in Javascript
+    /// </summary>
+    private DotNetObjectReference<TenorMenuComponent> _thisRef;
+    
+    private Gif SearchResults { get; set; }
+    
+    private Category CategoryResults { get; set; }
+    
+    private string _searchTerm;
+
+    private bool _visible = false;
+
+    private bool _canRender = false;
+
+    protected override bool ShouldRender()
+        => _canRender;
+
+    public void Refresh()
+    {
+        _canRender = true;
+        StateHasChanged();
+    }
+
+    private async Task OnClickFavorite(GifObject gif)
+    {
+        TenorFavorite favorite = new TenorFavorite()
+        {
+            UserId = ValourClient.Self.Id,
+            TenorId = gif.Id
+        };
+
+        await ValourClient.AddTenorFavorite(favorite);
+        
+        Refresh();
+    }
+
+    private async Task OnClickUnfavorite(GifObject gif)
+    {
+        var favorite = ValourClient.TenorFavorites.FirstOrDefault(x => x.TenorId == gif.Id);
+        if (favorite is null)
+            return;
+        
+        await ValourClient.RemoveTenorFavorite(favorite);
+        
+        Refresh();
+    }
+
+    private async Task OnClickGif(GifObject gif)
+    {
+        await ChannelWindow.Component.InputComponent.AddTenor(gif);
+        Hide();
+        
+        // Register share to make Tenor happy
+        await TenorService.Client.RegisterShareAsync(gif.Id, _searchTerm);
+    }
+
+    private async Task OnSearchChange()
+    {
+        await FocusAndScroll();
+
+        if (_searchTerm == ":favorites:")
+            SearchResults = await TenorService.Client
+                .GetGifsAsync(100, 0, ValourClient.TenorFavorites.Select(x => x.TenorId).ToArray());
+        else
+            SearchResults = await TenorService.Client.SearchAsync(_searchTerm, 50, 0);
+        
+        Refresh();
+    }
+
+    private async Task OnClickCategory(string term)
+    {
+        _searchTerm = term;
+        await OnSearchChange();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        CategoryResults = await TenorService.Client.CategoriesAsync();
+        Refresh();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        _canRender = false;
+        
+        if (firstRender)
+        {
+            _thisRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Upload/TenorMenuComponent.razor.js");
+            await _jsModule.InvokeVoidAsync("setupHide", "tenor-bg", _thisRef);
+        }
+        
+        await BuildMasonry();
+    }
+
+    public async Task FocusAndScroll()
+    {
+        await _jsModule.InvokeVoidAsync("focusAndScroll", "masonry-root");
+    }
+
+    public async Task BuildMasonry()
+    {
+        if (_jsModule is not null)
+            await _jsModule.InvokeVoidAsync("buildMasonry", "masonry-root");
+    }
+    
+    public async Task Show()
+    {
+        _visible = true;
+        await FocusAndScroll();
+        Refresh();
+    }
+
+    [JSInvokable]
+    public void Hide()
+    {
+        if (!_visible)
+            return;
+        
+        _visible = false;
+        Refresh();
+    }
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        _thisRef.Dispose();
+        await _jsModule.DisposeAsync();
+    }
+
+}

@@ -30,6 +30,8 @@
 	/// The windows being displayed by this window holder
 	/// </summary>
 	public List<ClientWindow> Windows { get; set; }
+	
+	public bool CanRender { get; set; }
 
 	protected override async Task OnInitializedAsync(){
 
@@ -45,14 +47,19 @@
 		}
 	}
 
+	protected override bool ShouldRender()
+		=> CanRender;
+
 	public async Task RefreshAsync()
 	{
+		CanRender = true;
 		StateHasChanged();
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		await JS.InvokeVoidAsync("SplitWindows", "window-man");
+		CanRender = false;
 	}
 
 	/// <summary>
