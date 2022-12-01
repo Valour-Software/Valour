@@ -20,6 +20,7 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.Email;
 using Valour.Server.Workers;
+using Valour.Shared.Items.Users;
 using WebPush;
 
 namespace Valour.Server
@@ -47,6 +48,12 @@ namespace Valour.Server
                 {
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
                 });
+            });
+
+            builder.WebHost.UseSentry(x =>
+            {
+                x.Release = typeof(ISharedUser).Assembly.GetName().Version.ToString();
+                x.ServerName = NodeConfig.Instance.Name;
             });
 
             // Set up services
@@ -172,6 +179,8 @@ namespace Valour.Server
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
             });
+
+            app.UseSentryTracing();
 
             app.UseWebSockets();
 
