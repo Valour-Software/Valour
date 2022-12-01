@@ -40,15 +40,10 @@ public class StatObject
     [Column("category_count")]
     public int CategoryCount { get; set; }
 
-    [Column("message")]
+    [Column("message_day_count")]
     public int MessageDayCount { get; set; }
 
-    [Column("time_created")]
+    [Column("time_created")] 
     public DateTime TimeCreated { get; set; }
-
-    public StatObject()
-    {
-
-    }
 }
 
