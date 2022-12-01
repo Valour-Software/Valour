@@ -18,6 +18,8 @@ public class EmbedBuilder
 
     public EmbedItem LastItem;
 
+    public EmbedFormItem formItem;
+
     /// <summary>
     /// The current item that we are "in"
     /// </summary>
@@ -69,7 +71,14 @@ public class EmbedBuilder
         if (CurrentParent.ItemType != EmbedItemType.EmbedRow)
             CurrentParent.Children.Add(row);
         else
-            CurrentPage.Children.Add(row);
+        {
+            if (formItem is null)
+                CurrentPage.Children.Add(row);
+            else
+            {
+                formItem.Children.Add(row);
+            }
+        }
 
 		CurrentParent = row;
         LastItem = row;
@@ -130,8 +139,9 @@ public class EmbedBuilder
 
     public EmbedBuilder EndForm()
     {
-		CurrentParent = CurrentParent.Parent;
-        return this;
+		CurrentParent = formItem.Parent;
+        formItem = null;
+		return this;
     }
 
     /// <summary>
@@ -147,7 +157,10 @@ public class EmbedBuilder
         };
 
         AddItem(item);
-        return this;
+        CurrentParent = item;
+        formItem = item;
+
+		return this;
     }
 
     /// <summary>
@@ -322,7 +335,7 @@ public class EmbedBuilder
     /// </summary>
     /// <param name="ElementId">The id that the button will use</param>
     /// <returns></returns>
-	public EmbedBuilder OnClickSubmitForm(string ElementId)
+	public EmbedBuilder OnClickSubmitForm(string ElementId = null)
 	{
 		((IClickable)LastItem).ClickTarget = new EmbedFormSubmitTarget()
 		{
