@@ -24,8 +24,8 @@ public class EmbedFormItem : EmbedItem
     public List<EmbedFormData> GetFormData()
     {
         List<EmbedFormData> data = new();
-
-        var items = Children.Where(x => x is IEmbedFormItem);
+        
+        var items = GetAllItems().Where(x => x is IEmbedFormItem);
         foreach (IEmbedFormItem item in items)
         {
             if (item.ItemType == EmbedItemType.InputBox)
