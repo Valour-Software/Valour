@@ -23,6 +23,8 @@
             OtherUser = await User.FindAsync(DirectChannel.UserOneId);
 
         await base.SetupNewChannelAsync();
+        
+        InputComponent.Refresh();
     }
 
     public override Type GetInputComponentType() => 

@@ -18,11 +18,16 @@ public class TenorService
     private readonly HttpClient _httpClient;
     private readonly TenorClient _client;
 
+    public HttpClient GetHttpClient()
+    {
+        return _httpClient;
+    }
+    
     public TenorService(HttpClient httpClient)
     {
         _httpClient = httpClient;
         var rest = new RestClient(_httpClient, new RestClientOptions("https://tenor.googleapis.com/v2/"));
-
+        _httpClient.DefaultRequestHeaders.UserAgent.Clear();
         _client = new TenorClient(TenorKey, testClient: rest);
     }
 }

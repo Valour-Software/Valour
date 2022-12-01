@@ -11,7 +11,7 @@
     private DirectChatChannelWindowComponent DirectWindow { get; set; }
     
     protected override string PlaceholderText =>
-        $"Discuss with {DirectWindow.OtherUser.Name}";
+        $"Discuss with {DirectWindow.OtherUser?.Name}";
 
     public override async Task SetupNewChannelAsync()
     {
