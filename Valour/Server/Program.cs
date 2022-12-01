@@ -213,6 +213,7 @@ namespace Valour.Server
                         .AllowCredentials()
                         .WithOrigins(
                         "https://www.valour.gg",
+                        "https://tenor.googleapis.com",
                         "http://www.valour.gg",
                         "https://valour.gg",
                         "http://valour.gg",

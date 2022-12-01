@@ -20,7 +20,7 @@
 
         <div class="textbox" onclick="this.children[1].focus()" @ref="DropZoneElement">
             <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" alt="Upload File" />
+            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" @onclick:stopPropagation="true" alt="Upload File" />
 
             <UploadMenuComponent @ref="UploadMenu" ChannelWindow="Window" Input="this"></UploadMenuComponent>
 
@@ -34,8 +34,9 @@
             {
                 <p class="input-placeholder">@PlaceholderText</p>
             }
-
-            <div @ref="InnerInputRef" contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
+            <div class="textbox-wrapper">
+                <div @ref="InnerInputRef" contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
+                </div>
             </div>
         </div>
     </div>

@@ -7,22 +7,25 @@
     margin: 10px;
 }
 
-.textbox-inner {
+.textbox-wrapper {
     background: rgba(0, 0, 0, 0);
     border: none;
     outline: none;
     width: 100%;
-    height: 100%;
+    height: fit-content;
     resize: none;
-    color: white;
     vertical-align: bottom;
-    text-align: start;
-    padding: 12px;
-    padding-left: 45px;
 }
 
-.mobile .textbox-inner {
-    padding-right: 45px;
+.textbox-inner {
+    border: none;
+    outline: none;
+    margin-left: auto;
+    margin-right: auto;
+    height: 100%;
+    padding-top: 11px;
+    padding-bottom: 11px;
+    width: calc(100% - 90px);
 }
 
 .upload {
@@ -35,7 +38,7 @@
     line-height: 24px;
     cursor: pointer;
     left: 12px;
-    bottom: 10px;
+    bottom: 8.5px;
     user-select: none;
 }
 
@@ -54,7 +57,7 @@
     line-height: 45px;
     text-align: center;
     right: -2px;
-    bottom: -3px;
+    bottom: -6px;
 }
 
 .send-button {

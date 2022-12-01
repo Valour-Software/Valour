@@ -181,7 +181,7 @@ public static class ValourClient
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
-    public static string BaseAddress = "https://localhost:44331/";
+    public static string BaseAddress = "http://192.168.0.226:5000/";
 #endif
 
     /// <summary>
