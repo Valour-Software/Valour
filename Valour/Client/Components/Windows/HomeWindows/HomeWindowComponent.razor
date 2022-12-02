@@ -11,7 +11,7 @@
         </div>
     </div>
 
-    <div class="inner-window">
+    <div class="inner-window @mobileTag">
         <h6 class="m-2">Planets</h6>
         <div class="icon-container">
             @foreach (Planet planet in ValourClient.JoinedPlanets)
@@ -19,8 +19,8 @@
                 <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window'></PlanetCardComponent>
             }
         
-            <div id="flipper-planet-create-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 220)">
-                <div class="outer-circle" @onclick="OnClickCreatePlanet">
+            <div id="flipper-planet-create-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 220)" @onclick="OnClickCreatePlanet">
+                <div class="outer-circle">
                     <div class="text-hide-circle"></div>
                     <svg class="icon create" style="border-radius: 0; transform: scale(0.7)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
                         <defs>
@@ -65,8 +65,8 @@
                 <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" Window="Window" homeWindowComponent="this"></FriendCardComponent>
             }
             
-            <div id="flipper-friend-add-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-friend-add-@Window.Id', 220)">
-                <div class="outer-circle" @onclick="OnClickAddFriend">
+            <div id="flipper-friend-add-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-friend-add-@Window.Id', 220)" @onclick="OnClickAddFriend">
+                <div class="outer-circle">
                     <div class="text-hide-circle" />
                     @if (ValourClient.FriendRequests.Count > 0)
                     {
@@ -146,6 +146,8 @@
 
     public event Func<Task> RerenderFriendCards;
 
+    private string mobileTag = "";
+
     protected async override Task OnInitializedAsync()
     {
         ValourClient.OnJoinedPlanetsUpdate += OnJoinedPlanetsUpdate;
@@ -159,6 +161,18 @@
             await RerenderFriendCards?.Invoke();
 
         StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (DeviceInfo.IsMobile)
+            {
+                mobileTag = "mobile";
+                StateHasChanged();
+            }
+        }
     }
 
     public async Task OnJoinedPlanetsUpdate()
