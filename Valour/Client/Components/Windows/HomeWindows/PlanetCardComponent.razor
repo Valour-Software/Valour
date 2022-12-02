@@ -1,10 +1,10 @@
 @inject WindowManager windowManager
 @inject IJSRuntime JS
 
-<div id="flipper-planet-@Planet.Id-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 220)"> 
+<div id="flipper-planet-@Planet.Id-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 220)" @onclick="OnClick"> 
     <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='planet-context' @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
         
-        <div class="outer-circle" @onclick="OnClick">
+        <div class="outer-circle">
             <div class="text-hide-circle" />
             <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style'/>
             @if (IsUnread)

@@ -113,7 +113,7 @@ export function buildMasonry(rootId) {
 }
 
 export function setupHide(elementId, dotnetRef) {
-    document.addEventListener('click', (e) => {
+    const handler = function(e){
         // Allow tenor button
         if (e.target.classList.contains('tenor')) {
             return;
@@ -132,6 +132,11 @@ export function setupHide(elementId, dotnetRef) {
 
         // Close the menu if the target was not us or the upload
         // button
-        dotnetRef.invokeMethodAsync('Hide');
-    });
+        dotnetRef.invokeMethodAsync('Hide').catch((err) => {
+            document.removeEventListener('click', handler);
+            console.log("Cleaning up old Tenor Menu event");
+        });
+    }
+    
+    document.addEventListener('click', handler);
 }

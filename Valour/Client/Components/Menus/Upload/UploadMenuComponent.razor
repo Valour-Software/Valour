@@ -82,6 +82,7 @@
     
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
+        await _jsModule.InvokeVoidAsync("dispose");
         _thisRef.Dispose();
         await _jsModule.DisposeAsync();
     }

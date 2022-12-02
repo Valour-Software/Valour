@@ -2,9 +2,9 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 220)"> 
+<div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 220)" @onclick="OnClick"> 
     <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='user-context' @onpointerdown='async () => await UserContextMenuComponent.Initialize(Friend)'>
-        <div class="outer-circle" @onclick="OnClick">
+        <div class="outer-circle">
             <div class="text-hide-circle" />
             <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style'/>
             @if (IsUnread)

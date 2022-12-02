@@ -18,7 +18,12 @@ export function initialize(elementId, dotnetRef) {
         
         // Close the menu if the target was not us or the upload
         // button
-        dotnetRef.invokeMethodAsync('Hide');
+        try {
+            dotnetRef.invokeMethodAsync('Hide');
+        }
+        catch (err){
+            console.log("HELLO");
+        }
     });
 }
 
