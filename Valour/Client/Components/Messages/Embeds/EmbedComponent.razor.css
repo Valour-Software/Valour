@@ -5,6 +5,7 @@
     border-radius: 8px;
     width: fit-content;
     position: relative;
+    font-size: 14px;
 }
 
 .embed a {

@@ -70,6 +70,17 @@ public class EmbedItem : IParentItem
 	[JsonIgnore]
     public Embed Embed { get; set; }
 
+    public virtual List<EmbedItem> GetAllItems()
+	{
+        List<EmbedItem> items = new();
+        foreach(var _item in Children) 
+        {
+            items.Add(_item);
+            items.AddRange(_item.GetAllItems());
+        }
+        return items;
+	}
+
 	public virtual EmbedItem GetLastItem(bool InsideofForms)
 	{
         if (Children.Count == 0)
