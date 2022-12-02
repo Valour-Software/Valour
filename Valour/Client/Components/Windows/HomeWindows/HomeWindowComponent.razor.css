@@ -42,6 +42,11 @@
     height: 35px;
 }
 
+.icons-title {
+    font-size: 1.7em;
+    font-weight: 250;
+}
+
 /* New window CSS */
 .icon-container {
     padding: 20px;
@@ -50,10 +55,18 @@
     grid-gap: 0rem;
     justify-content: space-evenly;
     overflow: hidden;
+    border: 4px solid var(--main-5);
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 40px;
+    margin: 20px;
 }
 
 .mobile .icon-container {
-    grid-template-columns: repeat(auto-fill, 160px);
+    grid-template-columns: repeat(auto-fill, 179px);
+    padding-left: 0px;
+    padding-bottom: 0px;
+    padding-right: 4px;
+    padding-top: 20px;
 }
 
 /* New icon CSS */
@@ -63,9 +76,9 @@
 }
 
 ::deep .mobile .flipper {
-    scale: 0.7;
+    scale: 0.8;
     margin-right: 150px;
-    margin-top: -26px;
+    margin-top: -23px;
 }
 
 ::deep .outer-circle {
