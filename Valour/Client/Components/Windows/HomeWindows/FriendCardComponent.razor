@@ -2,37 +2,26 @@
 @inject IJSRuntime JS
 @implements IDisposable
 
-<div @onclick="OnClick" class="home-icon-outer">
-
-    <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style' />
-
-    <svg style='position: absolute; left: -10px; top: -10px' width='160px' height='160px' id="shape" xmlns="http://www.w3.org/2000/svg"
-         xmlns:xlink="http://www.w3.org/1999/xlink">
-        <defs>
-            <path id="path"
-                  fill="none" stroke="black" stroke-width="10"
-                  d="
-                    M 80, 80
-                    m -60, 0
-                    a 60,60 0 1,0 120,0
-                    a 60,60 0 1,0 -120,0
-                    "
-                  transform="rotate(90 80 80)">
-            </path>
-        </defs>
-        <text id="text-@Window.Id-@Friend.Id">
-            <textPath xlink:href="#path" startOffset="50%" text-anchor="middle">
-                <tspan class="title" fill='white' dy="0.3em">Loading...</tspan>
-            </textPath>
-        </text>
-    </svg>
-    @if (IsUnread)
-    {
-        <div class="noti">
+<div id="flipper-friend-@Friend.Id-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-friend-@Friend.Id-@Window.Id', 220)"> 
+    <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='user-context' @onpointerdown='async () => await UserContextMenuComponent.Initialize(Friend)'>
+        <div class="outer-circle" @onclick="OnClick">
+            <div class="text-hide-circle" />
+            <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style'/>
+            @if (IsUnread)
+            {
+                <div class="noti">
+                </div>
+            }
+            <div class="rect-slide">
+                <div class="text-wrapper">
+                    <div class="text-flex">
+                        <b class="friend-name">@Friend.Name</b>
+                    </div>
+                </div>
+            </div>
         </div>
-    }
+    </ContextMenuTrigger>
 </div>
-
 
 @code {
     [Parameter]
@@ -44,13 +33,16 @@
     [Parameter]
     public HomeWindowComponent homeWindowComponent { get; set; }
 
-    public string iconUrl = "/media/logo/logo-512.png";
+    public string iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
 
     public string image_style = "";
     public bool IsUnread = false;
 
     protected override async Task OnInitializedAsync(){
-        iconUrl = Friend.PfpUrl;
+        if (!string.IsNullOrWhiteSpace(Friend.PfpUrl))
+        {
+            iconUrl = Friend.PfpUrl;
+        }
 
         homeWindowComponent.RerenderFriendCards += Refresh;
     }
@@ -93,11 +85,6 @@
         return !(localIndex >= channelIndex);
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        await JS.InvokeVoidAsync($"SetCardTitle", $"{Window.Id}-{Friend.Id}", Friend.Name);
-    }
-
     public async Task OnClick()
     {
         // Get dm channel
@@ -115,7 +102,7 @@
 
     protected void OnIconError()
     {
-        iconUrl = "_content/Valour.Client/media/logo/logo-512.png";
+        iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
 
         int r = Random.Shared.Next(24) * 15;
 

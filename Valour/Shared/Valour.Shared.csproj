@@ -12,7 +12,7 @@
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
 
-    <Version>0.1.6.2</Version>
+    <Version>0.1.6.23</Version>
   </PropertyGroup>
 
   <PropertyGroup>
