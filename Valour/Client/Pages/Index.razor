@@ -86,12 +86,6 @@
 	{
 		await JS.InvokeVoidAsync("FixClip");
 		await JS.InvokeVoidAsync("FitMobile");
-
-		var isMobile = await JS.InvokeAsync<bool>("IsMobile");
-		var isEmbedded = await JS.InvokeAsync<bool>("IsEmbedded");
-
-		DeviceInfo.IsMobile = isMobile;
-		DeviceInfo.IsEmbedded = isEmbedded;
 	}
 
 	public async Task OnPlanetChange(Planet planet)

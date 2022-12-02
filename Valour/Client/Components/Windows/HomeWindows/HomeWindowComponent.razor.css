@@ -52,10 +52,20 @@
     overflow: hidden;
 }
 
+.mobile .icon-container {
+    grid-template-columns: repeat(auto-fill, 160px);
+}
+
 /* New icon CSS */
 
 ::deep .flipper {
     display: inline-block;
+}
+
+::deep .mobile .flipper {
+    scale: 0.7;
+    margin-right: 150px;
+    margin-top: -26px;
 }
 
 ::deep .outer-circle {
@@ -110,7 +120,7 @@
     position: absolute;
     width: 80px;
     height: 80px;
-    background-color: black;
+    background-color: var(--main-1);
     z-index: 0;
     border-radius: 80px 80px 80px 80px;
     pointer-events: none;
@@ -118,6 +128,12 @@
     opacity: 0;
 
     transition: width 0.2s ease-in-out, opacity 0.1s ease-in-out;
+}
+
+::deep .mobile .rect-slide {
+    pointer-events: all;
+    width: 220px;
+    opacity: 1;
 }
 
 ::deep .outer-circle:hover .rect-slide {
