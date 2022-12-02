@@ -479,6 +479,11 @@ function getCookie(name) {
 
 /* Useful functions for layout items */
 function determineFlip(elementId, safeWidth){
+    
+    /* Mobile menus do not expand on hover */
+    if (mobile)
+        return;
+    
     const element = document.getElementById(elementId);
     if (!element)
         return;
