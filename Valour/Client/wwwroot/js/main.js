@@ -476,3 +476,19 @@ function getCookie(name) {
     }
     return null;
 }
+
+/* Useful functions for layout items */
+function determineFlip(elementId, safeWidth){
+    const element = document.getElementById(elementId);
+    if (!element)
+        return;
+
+    const parentWidth = element.parentElement.offsetWidth;
+    const selfPosition = element.offsetLeft;
+    
+    if (parentWidth - selfPosition < safeWidth) {
+        element.classList.add('flip');
+    } else {
+        element.classList.remove('flip');
+    }
+}

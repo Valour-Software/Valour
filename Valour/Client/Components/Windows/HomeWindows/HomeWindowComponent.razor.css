@@ -1,3 +1,14 @@
+.home-window {
+    height: 100%;
+}
+
+.inner-window {
+    height: 100%;
+    overflow-y: auto;
+    position: relative;
+    padding-bottom: 50px;
+}
+
 .channel-info {
     padding: 10px;
     padding-bottom: 5px;
@@ -20,12 +31,6 @@
     margin-right: 150px;
 }
 
-/*.channel-info:hover .description {
-    white-space: pre-wrap;
-    overflow: visible;
-    margin-bottom: 8px;
-}*/
-
 .channel-info .title {
     vertical-align: top;
     display: inline-block;
@@ -33,93 +38,165 @@
     margin-right: 150px;
 }
 
-
 .title-box {
     height: 35px;
 }
 
-.inner-window {
-    max-width: 100%;
-    max-height: calc(100% - 70px);
-    overflow-y: auto;
+/* New window CSS */
+.icon-container {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 87px);
+    grid-gap: 0rem;
+    justify-content: space-evenly;
+    overflow: hidden;
 }
 
-::deep .home-icon-outer {
+/* New icon CSS */
+
+::deep .flipper {
     display: inline-block;
-    margin: 5px;
-    width: 140px;
-    height: 140px;
-    background-color: var(--main-2);
-    border-radius: 50%;
+}
+
+::deep .outer-circle {
     position: relative;
+    background-color: black;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    z-index: initial;
+    margin: 5px;
+    box-shadow: black 0 0 10px;
+}
+
+::deep .outer-circle .icon {
+    border-radius: 50%;
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    left: 0px;
+    top: 0;
+    z-index: 1;
     cursor: pointer;
 }
 
-::deep .home-icon-outer .icon {
+::deep .outer-circle:hover .icon {
+    z-index: 4;
+}
+
+::deep .outer-circle .noti {
     border-radius: 50%;
     position: absolute;
-    width: 100px;
-    height: 100px;
-    left: 20px;
-    top: 20px;
-    transform: scale(0.9);
-    transition: transform .2s ease-in-out;
-}
-
-::deep .home-icon-outer .icon.create {
-    transition: transform .2s ease-in-out;
-    transform: scale(0.7) !important;
-}
-
-::deep .home-icon-outer:hover .icon.create {
-    transform: scale(0.8) !important;
-}
-
-::deep .home-icon-outer:hover .icon {
-    transform: scale(1);
-}
-
-::deep .home-icon-outer .title {
-    font-family: Ubuntu, sans-serif;
-    font-size: 16px;
-    letter-spacing: 0px
-}
-
-
-
-.planet-create-icon {
-    width: 100px;
-    height: 100px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 20px;
-    -webkit-transition: -webkit-transform .2s ease-in-out;
-    transition: transform .2s ease-in-out;
-}
-
-.planet-create-icon:hover {
-    -webkit-transform: scale(1.05);
-    transform: scale(1.05);
-}
-
-::deep .planet-card-icon:hover {
-    -webkit-transform: scale(1.05);
-    transform: scale(1.05);
-}
-
-::deep .noti {
-    border-radius: 50%;
-    position: absolute;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     background-color: rgba(255, 255, 255, 1);
-    left: 85px;
-    top: 25px;
-    border: solid 5px #040d14;
+    left: 55px;
+    top: 0px;
+    border: solid 3px #040d14;
+    text-align: center;
+    z-index: 1;
+}
+
+::deep .outer-circle .noti.friends {
+    background-color: red;
+    font-size: 14px;
+}
+
+::deep .outer-circle:hover .noti {
+    z-index: 4;
+}
+
+::deep .rect-slide {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background-color: black;
+    z-index: 0;
+    border-radius: 80px 80px 80px 80px;
+    pointer-events: none;
+    
+    opacity: 0;
+
+    transition: width 0.2s ease-in-out, opacity 0.1s ease-in-out;
+}
+
+::deep .outer-circle:hover .rect-slide {
+    z-index: 2;
+}
+
+::deep .flipper.flip .rect-slide {
+    right: 0;
+}
+
+::deep .outer-circle:hover .rect-slide {
+    opacity: 1;
+    width: 220px;
+    box-shadow: cyan 0px 0px 10px;
+}
+
+::deep .inner-circle {
+    position: absolute;
+    background-color: black;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    right: -40px;
+    top: 0;
+    z-index: -5;
+}
+
+::deep .outer-circle .planet-name {
+    color: lightgrey;
+    width: 90px;
+    float: right;
+    margin-right: 40px;
+    overflow-wrap: break-word;
     text-align: center;
 }
 
-::deep .noti.friends {
-    background-color: red;
+::deep .flipper.flip .outer-circle .planet-name {
+    margin-right: 92px;
+}
+
+::deep .outer-circle .friend-name {
+    color: lightgrey;
+    width: 90px;
+    float: right;
+    margin-right: 40px;
+    overflow-wrap: break-word;
+    text-align: center;
+}
+
+::deep .flipper.flip .outer-circle .friend-name {
+    margin-right: 92px;
+}
+
+::deep .text-flex {
+    height: 80px;
+    display: flex;
+    float: right;
+    margin-right: 40px;
+    align-items: center;
+    justify-content: center;
+}
+
+::deep .text-wrapper {
+    height: 80px;
+    overflow: hidden;
+    margin-left: 40px;
+    margin-right: 40px;
+    width: 100%;
+}
+
+::deep .text-hide-circle {
+    width: 80px;
+    height: 80px;
+    background-color: black;
+    position: absolute;
+    border-radius: 100%;
+    z-index: 1;
+}
+
+::deep .outer-circle:hover .text-hide-circle {
+    z-index: 3;
 }

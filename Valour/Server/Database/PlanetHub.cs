@@ -35,8 +35,6 @@ namespace Valour.Server.Database
             this._db = db;
         }
 
-
-
         /// <summary>
         /// We can store the authentication tokens for clients after they connect to the hub, and use them as long as the connection lasts
         /// </summary>
