@@ -252,6 +252,45 @@ public class ItemAPI<T> where T : Item
                             return await next(ctx);
                         });
                     }
+
+                    // Voice channel permissions validation
+                    foreach (var attr in attributes.Where(x => x is VoiceChannelPermsRequiredAttribute))
+                    {
+                        var voicePermAttr = (VoiceChannelPermsRequiredAttribute)attr;
+
+                        builder.AddEndpointFilter(async (ctx, next) =>
+                        {
+                            var member = ctx.HttpContext.GetMember();
+                            if (member is null)
+                                throw new Exception("VoiceChannelPermsRequired attribute requires a PlanetMembershipRequired attribute.");
+
+                            var db = ctx.HttpContext.GetDb();
+                            if (db is null)
+                                throw new Exception("VoiceChannelPermsRequired attribute requires InjectDB attribute");
+
+                            var routeName = voicePermAttr.channelRouteName;
+                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
+                                throw new Exception($"Could not bind route value for '{routeName}'");
+
+                            var channelId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
+
+                            var channel = await db.PlanetVoiceChannels.FindAsync(channelId);
+
+                            if (channel is null)
+                                return ValourResult.NotFound<PlanetVoiceChannel>();
+
+                            foreach (var permEnum in voicePermAttr.permissions)
+                            {
+                                var perm = VoiceChannelPermissions.Permissions[(int)permEnum];
+                                if (!await channel.HasPermissionAsync(member, perm, db))
+                                    return ValourResult.LacksPermission(perm);
+                            }
+
+                            ctx.HttpContext.Items.Add(channelId, channel);
+
+                            return await next(ctx);
+                        });
+                    }
                 }
             }
         }
