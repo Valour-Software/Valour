@@ -1,6 +1,7 @@
 ﻿using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
@@ -18,8 +19,16 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
 
     #endregion
 
-    public override PermissionsTargetType PermissionsTargetType 
+
+    [NotMapped]
+    public override PermissionsTargetType PermissionsTargetType
         => PermissionsTargetType.PlanetVoiceChannel;
+
+    /// <summary>
+    /// The regex used for name validation
+    /// </summary>
+    [JsonIgnore]
+    public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
     /// <summary>
     /// Returns if a given member has a channel permission
@@ -87,4 +96,98 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
         // No roles ever defined behavior: resort to false.
         return false;
     }
+
+    public void Delete(ValourDB db)
+    {
+        // Remove permission nodes
+        db.PermissionsNodes.RemoveRange(
+            db.PermissionsNodes.Where(x => x.TargetId == Id)
+        );
+
+        // Remove channel
+        db.PlanetVoiceChannels.Remove(this);
+    }
+
+    /// <summary>
+    /// Returns all members who can see this channel
+    /// </summary>
+    public async Task<List<PlanetMember>> GetChannelMembersAsync(ValourDB db)
+    {
+        // TODO: It would be more efficient to check each role and then get all users in those roles
+        // rather than going member by member. Revisit this later.
+
+        List<PlanetMember> members = new List<PlanetMember>();
+
+        var planetMembers = db.PlanetMembers.Include(x => x.RoleMembership).Where(x => x.PlanetId == PlanetId);
+
+        foreach (var member in planetMembers)
+        {
+            if (await HasPermissionAsync(member, VoiceChannelPermissions.View, db))
+            {
+                members.Add(member);
+            }
+        }
+
+        return members;
+    }
+
+
+
+    #region Routes
+
+    /// <summary>
+    /// Validates that a given name is allowable
+    /// </summary>
+    public static TaskResult ValidateName(string name)
+    {
+        if (name.Length > 32)
+            return new TaskResult(false, "Channel names must be 32 characters or less.");
+
+        if (!nameRegex.IsMatch(name))
+            return new TaskResult(false, "Channel names may only include letters, numbers, dashes, and underscores.");
+
+        return new TaskResult(true, "The given name is valid.");
+    }
+
+    /// <summary>
+    /// Validates that a given description is allowable
+    /// </summary>
+    public static TaskResult ValidateDescription(string desc)
+    {
+        if (desc.Length > 500)
+        {
+            return new TaskResult(false, "Channel descriptions must be 500 characters or less.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    public static async Task<TaskResult> ValidateParentAndPosition(ValourDB db, PlanetChatChannel channel)
+    {
+        // Logic to check if parent is legitimate
+        if (channel.ParentId is not null)
+        {
+            var parent = await db.PlanetCategoryChannels.FirstOrDefaultAsync
+                (x => x.Id == channel.ParentId
+                && x.PlanetId == channel.PlanetId); // This ensures the result has the same planet id
+
+            if (parent is null)
+                return new TaskResult(false, "Parent ID is not valid");
+        }
+
+        // Auto determine position
+        if (channel.Position < 0)
+        {
+            channel.Position = (ushort)(await db.PlanetChannels.CountAsync(x => x.ParentId == channel.ParentId));
+        }
+        else
+        {
+            if (!await HasUniquePosition(db, channel))
+                return new TaskResult(false, "The position is already taken.");
+        }
+
+        return new TaskResult(true, "Valid");
+    }
+
+    #endregion
 }
