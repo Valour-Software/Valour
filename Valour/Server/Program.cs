@@ -94,6 +94,7 @@ namespace Valour.Server
                 new ItemAPI<User>()                     .RegisterRoutes(app),
                 new ItemAPI<Planet>()                   .RegisterRoutes(app),
                 new ItemAPI<PlanetChatChannel>()        .RegisterRoutes(app),
+                new ItemAPI<PlanetVoiceChannel>()       .RegisterRoutes(app),
                 new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),

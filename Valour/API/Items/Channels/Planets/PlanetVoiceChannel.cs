@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
-using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Nodes;
@@ -13,26 +16,14 @@ using Valour.Shared.Items.Channels.Planets;
 
 namespace Valour.Api.Items.Channels.Planets;
 
-
-/*  Valour - A free and secure chat client
-*  Copyright (C) 2021 Vooper Media LLC
-*  This program is subject to the GNU Affero General Public license
-*  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
-*/
-
-public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatChannel
+public class PlanetVoiceChannel : PlanetChannel, ISharedPlanetVoiceChannel
 {
     #region IPlanetItem implementation
 
     public override string BaseRoute =>
-            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetChatChannel)}";
+            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetVoiceChannel)}";
 
     #endregion
-
-    /// <summary>
-    /// The total number of messages sent in this channel
-    /// </summary>
-    public long MessageCount { get; set; }
 
     /// <summary>
     /// True if this channel inherits permissions from its parent
@@ -42,16 +33,36 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     /// <summary>
     /// Returns the name of the item type
     /// </summary>
-    public override string GetHumanReadableName() => "Chat Channel";
+    public override string GetHumanReadableName() => "Voice Channel";
 
-    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetVoiceChannel;
 
     public override async Task Open() =>
-        await ValourClient.OpenPlanetChannel(this);
+        await Task.CompletedTask;
 
     public override async Task Close() =>
-        await ValourClient.ClosePlanetChannel(this);
-    
+        await Task.CompletedTask;
+
+    /// <summary>
+    /// Returns the item for the given id
+    /// </summary>
+    public static async ValueTask<PlanetVoiceChannel> FindAsync(long id, long planetId, bool refresh = false)
+    {
+        if (!refresh)
+        {
+            var cached = ValourCache.Get<PlanetVoiceChannel>(id);
+            if (cached is not null)
+                return cached;
+        }
+
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var item = (await node.GetJsonAsync<PlanetVoiceChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetVoiceChannel)}/{id}")).Data;
+
+        if (item is not null)
+            await item.AddToCache();
+
+        return item;
+    }
 
     /// <summary>
     /// Returns the permissions node for the given role id
@@ -60,10 +71,10 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         await GetChannelPermissionsNodeAsync(roleId, refresh);
 
     /// <summary>
-    /// Returns the channel permissions node for the given role id
+    /// Returns the voice channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetChatChannel, refresh);
+        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetVoiceChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
@@ -84,7 +95,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermissionsTargetType.PlanetChatChannel
+            TargetType = PermissionsTargetType.PlanetVoiceChannel
         };
 
         var planet = await GetPlanetAsync();
@@ -107,7 +118,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
                 continue;
             }
 
-            foreach (var perm in ChatChannelPermissions.Permissions)
+            foreach (var perm in VoiceChannelPermissions.Permissions)
             {
                 var val = node.GetPermissionState(perm);
 
@@ -128,7 +139,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     }
 
     /// <summary>
-    /// Returns if the member has the given permission in this channel
+    /// Returns if the member has the given permission in this voice channel
     /// </summary>
     public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
     {
@@ -160,7 +171,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
             {
                 if (role.Id == planet.DefaultRoleId)
                 {
-                    return Permission.HasPermission(ChatChannelPermissions.Default, permission);
+                    return Permission.HasPermission(VoiceChannelPermissions.Default, permission);
                 }
                 continue;
             }
@@ -187,63 +198,12 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         return false;
     }
 
-    /// <summary>
-    /// Returns the item for the given id
-    /// </summary>
-    public static async ValueTask<PlanetChatChannel> FindAsync(long id, long planetId, bool refresh = false)
-    {
-        if (!refresh)
-        {
-            var cached = ValourCache.Get<PlanetChatChannel>(id);
-            if (cached is not null)
-                return cached;
-        }
-
-        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetChatChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{id}")).Data;
-
-        if (item is not null)
-            await item.AddToCache();
-
-        return item;
-    }
-
-    public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(CreatePlanetChatChannelRequest request)
+    public static async Task<TaskResult<PlanetVoiceChannel>> CreateWithDetails(CreatePlanetVoiceChannelRequest request)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId);
-        return await node.PostAsyncWithResponse<PlanetChatChannel>($"{request.Channel.BaseRoute}/detailed", request);
+        return await node.PostAsyncWithResponse<PlanetVoiceChannel>($"{request.Channel.BaseRoute}/detailed", request);
     }
 
-    public async Task<bool> HasPermissionAsync(long memberId, ChatChannelPermission perm) =>
+    public async Task<bool> HasPermissionAsync(long memberId, VoiceChannelPermission perm) =>
         (await Node.GetJsonAsync<bool>($"{IdRoute}/checkperm/{memberId}/{perm.Value}")).Data;
-
-    /// <summary>
-    /// Returns the last (count) messages starting at (index)
-    /// </summary>
-    public async Task<List<PlanetMessage>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data;
-
-    /// <summary>
-    /// Returns the last (count) messages
-    /// </summary>
-    public async Task<List<PlanetMessage>> GetLastMessagesAsync(int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data;
-
-    /// <summary>
-    /// Returns the last (count) generic messages
-    /// </summary>
-    public async Task<List<Message>> GetLastMessagesGenericAsync(int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data.Cast<Message>().ToList();
-
-    /// <summary>
-    /// Returns the last (count) generic messages starting at (index)
-    /// </summary>
-    public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
-
-    public async Task SendIsTyping()
-    {
-        await Node.PostAsync($"{IdRoute}/typing", null);
-    }
 }
-

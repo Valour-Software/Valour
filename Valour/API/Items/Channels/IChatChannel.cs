@@ -7,5 +7,6 @@ namespace Valour.Api.Items.Channels
     {
         public Task<List<Message>> GetLastMessagesGenericAsync(int count = 10);
         public Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10);
+        public Task SendIsTyping();
     }
 }

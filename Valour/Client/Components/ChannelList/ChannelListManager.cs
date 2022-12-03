@@ -135,6 +135,51 @@ namespace Valour.Client.Components.ChannelList
             }
         }
 
+        // TODO: Merge this and below into one function using some inheritance on the components
+        public async Task OnItemDropOnVoiceChannel(ChannelListVoiceChannelComponent target)
+        {
+            if (target == null)
+                return;
+
+            var oldIndex = 0;
+
+            if (currentDragParentCategory != null)
+            {
+                oldIndex = currentDragParentCategory.GetIndex(currentDragItem);
+            }
+            var newIndex = target.ParentCategory.GetIndex(target.Channel);
+
+            // Remove from old list
+            if (currentDragParentCategory != null)
+            {
+                currentDragParentCategory.ItemList.RemoveAt(oldIndex);
+            }
+            // Insert into new list at correct position
+            target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
+            currentDragItem.ParentId = target.ParentCategory.Category.Id;
+
+            TaskResult response;
+            var orderData = new List<long>();
+
+            ushort pos = 0;
+
+            foreach (var item in target.ParentCategory.ItemList)
+            {
+                Console.WriteLine($"{item.Id} at {pos}");
+
+                orderData.Add(
+                    item.Id
+                );
+
+                pos++;
+            }
+
+            response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
+
+            Console.WriteLine(response.Message);
+            Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
+        }
+
         public async Task OnItemDropOnChatChannel(ChannelListChatChannelComponent target)
         {
             if (target == null)
@@ -158,40 +203,24 @@ namespace Valour.Client.Components.ChannelList
             currentDragItem.ParentId = target.ParentCategory.Category.Id;
 
             TaskResult response;
-            List<long> orderData = null;
+            var orderData = new List<long>();
 
-            // Categories are not the same
-            //if (currentDragParentCategory.Category.Id !=
-            //    target.ParentCategory.Category.Id)
-            //{
-                // Update the target's category
+            ushort pos = 0;
 
-                // Create order data
-                orderData = new List<long>();
+            foreach (var item in target.ParentCategory.ItemList)
+            {
+                Console.WriteLine($"{item.Id} at {pos}");
 
-                ushort pos = 0;
+                orderData.Add(
+                    item.Id
+                );
 
-                foreach (var item in target.ParentCategory.ItemList)
-                {
-                    Console.WriteLine($"{item.Id} at {pos}");
+                pos++;
+            }
 
-                    orderData.Add(
-                        item.Id
-                    );
+            response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
 
-                    pos++;
-                }
-
-                response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
-
-                Console.WriteLine(response.Message);
-
-                //target.ParentCategory.Refresh();
-            //}
-
-            // Update the source category
-            //currentDragParentCategory.Refresh();
-            
+            Console.WriteLine(response.Message);
             Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
         }
     }

@@ -621,6 +621,13 @@ public class Planet : Item, ISharedPlanet
                     allowedChannels.Add(channel);
                 }
             }
+            else if (channel is PlanetVoiceChannel)
+            {
+                if (await channel.HasPermissionAsync(member, VoiceChannelPermissions.View, db))
+                {
+                    allowedChannels.Add(channel);
+                }
+            }
             else if (channel is PlanetCategoryChannel)
             {
                 if (await channel.HasPermissionAsync(member, CategoryPermissions.View, db))
@@ -679,6 +686,28 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
+    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannels"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetVoiceChannelsRouteAsync(HttpContext ctx, long id)
+    {
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+        var voiceChannels = await db.PlanetVoiceChannels.Where(x => x.PlanetId == id).ToListAsync();
+
+        var allowedChannels = new List<PlanetVoiceChannel>();
+
+        foreach (var channel in voiceChannels)
+        {
+            if (await channel.HasPermissionAsync(member, VoiceChannelPermissions.View, db))
+            {
+                allowedChannels.Add(channel);
+            }
+        }
+
+        return Results.Json(allowedChannels);
+    }
+
     [ValourRoute(HttpVerbs.Get, "/{id}/categories"), TokenRequired, InjectDb]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
@@ -718,6 +747,16 @@ public class Planet : Item, ISharedPlanet
         var db = ctx.GetDb();
         var chatChannels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
         return Results.Json(chatChannels);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannelids"), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired("id")]
+    public static async Task<IResult> GetVoiceChannelIdsRouteAsync(HttpContext ctx, long id)
+    {
+        var db = ctx.GetDb();
+        var voiceChannels = await db.PlanetVoiceChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
+        return Results.Json(voiceChannels);
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/categoryids"), TokenRequired, InjectDb]

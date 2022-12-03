@@ -181,7 +181,7 @@ public static class ValourClient
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
-    public static string BaseAddress = "http://192.168.0.226:5000/";
+    public static string BaseAddress = "https://localhost:44331/";
 #endif
 
     /// <summary>
@@ -473,6 +473,7 @@ public static class ValourClient
         // Load channels and categories
         tasks.Add(planet.LoadChannelsAsync());
         tasks.Add(planet.LoadCategoriesAsync());
+        tasks.Add(planet.LoadVoiceChannelsAsync());
 
         // requesting/loading the data does not require data from other requests/types
         // so just await them all, instead of one by one
@@ -743,10 +744,13 @@ public static class ValourClient
 
     #region Planet Event Handling
 
-    private static void HookPlanetEvents()
+        private static void HookPlanetEvents()
         {
             ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChannelUpdated;
             ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDeleted;
+
+            ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdated;
+            ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeleted;
 
             ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdated;
             ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeleted;
@@ -811,6 +815,14 @@ public static class ValourClient
                 await planet.NotifyUpdateChannel(channel);
         }
 
+        private static async Task OnVoiceChannelUpdated(PlanetVoiceChannel channel, bool newItem, int flags)
+        {
+            var planet = await Planet.FindAsync(channel.PlanetId);
+
+            if (planet is not null)
+                await planet.NotifyUpdateVoiceChannel(channel);
+        }
+
         private static async Task OnCategoryUpdated(PlanetCategoryChannel category, bool newItem, int flags)
         {
             var planet = await Planet.FindAsync(category.PlanetId);
@@ -833,6 +845,14 @@ public static class ValourClient
 
             if (planet is not null)
                 await planet.NotifyDeleteChannel(channel);
+        }
+
+        private static async Task OnVoiceChannelDeleted(PlanetVoiceChannel channel)
+        {
+            var planet = await Planet.FindAsync(channel.PlanetId);
+
+            if (planet is not null)
+                await planet.NotifyDeleteVoiceChannel(channel);
         }
 
         private static async Task OnCategoryDeleted(PlanetCategoryChannel category)
