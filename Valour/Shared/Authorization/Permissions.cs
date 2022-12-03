@@ -120,6 +120,14 @@ public class CategoryPermission : Permission
     }
 }
 
+public class VoiceChannelPermission : Permission
+{
+    public override string PermissionType => "Voice Channel";
+    public VoiceChannelPermission(long value, string name, string description) : base(value, name, description)
+    {
+    }
+}
+
 public class UserPermission : Permission
 {
     public override string PermissionType => "User";
@@ -307,6 +315,63 @@ public static class CategoryPermissions
         };
 
         Default = Permission.CreateCode(View);
+    }
+}
+
+public enum VoiceChannelPermissionsEnum
+{
+    FullControl,
+    View,
+    Join,
+    Speak,
+    ManageChannel,
+    ManagePermissions,
+}
+
+/// <summary>
+/// This class contains all voice channel permissions and helper methods for working
+/// with them
+/// </summary>
+public static class VoiceChannelPermissions
+{
+
+    public static readonly long Default;
+
+    /// <summary>
+    /// Contains every voice channel permission
+    /// </summary>
+    public static VoiceChannelPermission[] Permissions;
+
+
+    // Use shared full control definition
+    public static readonly VoiceChannelPermission FullControl;
+
+    public static readonly VoiceChannelPermission View;
+    public static readonly VoiceChannelPermission Join;
+    public static readonly VoiceChannelPermission Speak;
+    public static readonly VoiceChannelPermission ManageChannel;
+    public static readonly VoiceChannelPermission ManagePermissions;
+
+    static VoiceChannelPermissions()
+    {
+        FullControl = new VoiceChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
+        View = new VoiceChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
+        Join = new VoiceChannelPermission(0x02, "Join Channel", "Allow members to connect to this voice channel.");
+        Speak = new VoiceChannelPermission(0x04, "Speak", "Allow members to speak in this channel.");
+        ManageChannel = new VoiceChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
+        ManagePermissions = new VoiceChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+
+        Permissions = new VoiceChannelPermission[]
+        {
+                FullControl,
+                View,
+                Join,
+                Speak,
+                ManageChannel,
+                ManagePermissions
+        };
+
+        Default = Permission.CreateCode(View, Join, Speak);
     }
 }
 
