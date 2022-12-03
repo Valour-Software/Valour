@@ -1,4 +1,5 @@
-﻿using Valour.Server.Database.Items.Authorization;
+﻿using Microsoft.AspNetCore.Mvc;
+using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared;
@@ -131,9 +132,68 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
         return members;
     }
 
-
-
     #region Routes
+
+    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [PlanetMembershipRequired, VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.View)]
+    public static IResult GetRoute(HttpContext ctx, long id) =>
+        Results.Json(ctx.GetItem<PlanetVoiceChannel>(id));
+
+    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetVoiceChannel channel,
+        ILogger<PlanetVoiceChannel> logger)
+    {
+        // Get resources
+        var db = ctx.GetDb();
+        var member = ctx.GetMember();
+
+        if (channel.PlanetId != planetId)
+            return Results.BadRequest("PlanetId mismatch.");
+
+        var nameValid = ValidateName(channel.Name);
+        if (!nameValid.Success)
+            return Results.BadRequest(nameValid.Message);
+
+        var descValid = ValidateDescription(channel.Description);
+        if (!descValid.Success)
+            return Results.BadRequest(descValid.Message);
+
+        var positionValid = await ValidateParentAndPosition(db, channel);
+        if (!positionValid.Success)
+            return Results.BadRequest(positionValid.Message);
+
+        // Ensure user has permission for parent category management
+        if (channel.ParentId is not null)
+        {
+            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
+            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+
+        channel.Id = IdManager.Generate();
+
+        try
+        {
+            await db.PlanetVoiceChannels.AddAsync(channel);
+            await db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+        PlanetHub.NotifyPlanetItemChange(channel);
+
+        return Results.Created(channel.GetUri(), channel);
+    }
+
+    #endregion
+
+    #region Validation
 
     /// <summary>
     /// Validates that a given name is allowable
@@ -162,7 +222,7 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
         return TaskResult.SuccessResult;
     }
 
-    public static async Task<TaskResult> ValidateParentAndPosition(ValourDB db, PlanetChatChannel channel)
+    public static async Task<TaskResult> ValidateParentAndPosition(ValourDB db, PlanetVoiceChannel channel)
     {
         // Logic to check if parent is legitimate
         if (channel.ParentId is not null)
