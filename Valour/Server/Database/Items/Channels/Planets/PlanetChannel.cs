@@ -10,6 +10,7 @@ namespace Valour.Server.Database.Items.Channels.Planets;
 
 [Table("planet_channels")]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
+[JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
 public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel, ISharedPermissionsTarget
 {
