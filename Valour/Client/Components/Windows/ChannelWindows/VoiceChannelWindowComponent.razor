@@ -1,0 +1,126 @@
+﻿@inject WindowManager windowManager
+
+<CascadingValue Value="Channel">
+    <CascadingValue Value="Window">
+        <CascadingValue Value='this'>
+            <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
+                @* Window header *@
+                <div class="channel-info">
+                    <h3 class="title">
+                        @Title
+                    </h3>
+
+                    <p class="description">
+                        @Description
+                    </p>
+
+                    <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
+                </div>
+
+                @* Actual window *@
+
+            </div>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+
+    [Parameter]
+    public VoiceChannelWindow Window { get; set; }
+
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    protected IVoiceChannel Channel;
+
+    public bool CanRenderFlag { get; set; }
+
+    public string Title { get; set; }
+
+    public string Description { get; set; }
+
+    public event Func<IVoiceChannel, Task> OnChannelChange;
+
+    public PermissionsNode ChannelPermissions { get; set; }
+
+    public virtual Task<string> GetChannelDisplayTitleAsync() =>
+        Task.FromResult(Channel.Name);
+
+    public virtual Task<string> GetChannelDisplayDescriptionAsync() =>
+        Task.FromResult(Channel.Description);
+
+    protected override async Task OnInitializedAsync()
+    {
+        Window.SetComponent(this);
+
+        Console.WriteLine("Initializing voice window component.");
+
+        Channel = Window.Channel;
+
+        await Channel.Open();
+    }
+
+    protected override bool ShouldRender()
+        => CanRenderFlag;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        CanRenderFlag = false;
+    }
+
+    public async Task OnVoiceChannelUpdate(int flags)
+    {
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        CanRenderFlag = true;
+        StateHasChanged();
+    }
+
+    public async virtual Task SetupNewChannelAsync()
+    {
+        Title = await GetChannelDisplayTitleAsync();
+        Description = await GetChannelDisplayDescriptionAsync();
+
+        Refresh();
+    }
+
+    public async Task SwapChannel(IVoiceChannel newchannel)
+    {
+        Channel = newchannel;
+
+        await windowManager.SwapVoiceWindowChannel(Window, newchannel);
+
+        await SetupNewChannelAsync();
+
+        if (OnChannelChange is not null)
+            await OnChannelChange.Invoke(Channel);
+
+        Refresh();
+    }
+
+    public async Task OnWindowClosed()
+    {
+        Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
+        await Channel.Close();
+    }
+
+    public async Task CloseWindow()
+    {
+        await windowManager.CloseWindow(Window);
+    }
+
+    public async Task ReturnHome()
+    {
+        HomeWindow newWindow = new HomeWindow();
+        await windowManager.ReplaceWindow(Window, newWindow);
+        await windowManager.SetFocusedPlanet(null);
+    }
+
+    public virtual Task OnClickWindow()
+        => Task.CompletedTask;
+}

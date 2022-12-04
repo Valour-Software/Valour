@@ -166,6 +166,29 @@ public class WindowManager
     }
 
     /// <summary>
+    /// Swaps the channel a voice channel window is showing
+    /// </summary>
+    public async Task SwapVoiceWindowChannel(VoiceChannelWindow window, IVoiceChannel newChannel)
+    {
+        // Already that channel
+        if (window.Channel.Id == newChannel.Id)
+            return;
+
+        await Log("[WindowManager]: Swapping voice channel " + window.Channel.Name + " for " + newChannel.Name);
+
+        var oldChannel = window.Channel;
+
+        // Set window's new channel
+        window.Channel = newChannel;
+
+        // Open new channel
+        await newChannel.Open();
+
+        // Close old channel
+        await oldChannel.Close();
+    }
+
+    /// <summary>
     /// Sets the window selected by the user (last interacted with)
     /// </summary>
     public async Task SetSelectedWindow(ClientWindow window)

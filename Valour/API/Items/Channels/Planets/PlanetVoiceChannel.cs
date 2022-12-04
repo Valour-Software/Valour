@@ -16,7 +16,7 @@ using Valour.Shared.Items.Channels.Planets;
 
 namespace Valour.Api.Items.Channels.Planets;
 
-public class PlanetVoiceChannel : PlanetChannel, ISharedPlanetVoiceChannel
+public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoiceChannel
 {
     #region IPlanetItem implementation
 

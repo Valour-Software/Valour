@@ -1,0 +1,70 @@
+﻿@inherits VoiceChannelWindowComponent
+@implements IDisposable
+@inject WindowManager windowManager
+
+@{
+    // Renders the base component
+    base.BuildRenderTree(__builder);
+}
+
+@code {
+    public Planet Planet { get; set; }
+    public PlanetMember SelfMember { get; set; }
+    public PlanetVoiceChannel PlanetChannel { get; set; }
+
+    public override async Task SetupNewChannelAsync()
+    {
+        // Build up planet-channel specific variables
+        PlanetChannel = Channel as PlanetVoiceChannel;
+        Planet = await PlanetChannel.GetPlanetAsync();
+        SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, Planet.Id);
+
+        SelfMember.OnDeleted += OnSelfMemberDeleted;
+
+        // Hook events
+        Planet.OnDeleted += OnPlanetDeleted;
+
+        // Get permissions
+        ChannelPermissions = await PlanetChannel.GetMemberPermissionsAsync(SelfMember.Id, PlanetChannel.PlanetId);
+
+        // Hook events
+        PlanetChannel.OnUpdated += OnVoiceChannelUpdate;
+
+        // Do normal channel setup
+        await base.SetupNewChannelAsync();
+    }
+
+    public override async Task OnClickWindow()
+    {
+        await windowManager.SetFocusedPlanet(await PlanetChannel.GetPlanetAsync());
+    }
+
+    #region Event Handling
+
+    public async Task OnPlanetDeleted() {
+        await SwitchToHome();
+    }
+
+    public async Task OnSelfMemberDeleted()
+    {
+        await SwitchToHome();
+    }
+
+    public async Task SwitchToHome()
+    {
+        var newWindow = new HomeWindow();
+        await windowManager.ReplaceWindow(Window, newWindow);
+
+        Refresh();
+    }
+
+    #endregion
+
+    // Clean up events and others during disposal
+    void IDisposable.Dispose()
+    {
+        Planet.OnDeleted -= OnPlanetDeleted;
+        PlanetChannel.OnUpdated -= OnVoiceChannelUpdate;
+        SelfMember.OnDeleted -= OnSelfMemberDeleted;
+    }
+}

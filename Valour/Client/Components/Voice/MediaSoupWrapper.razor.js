@@ -27,7 +27,7 @@ export let client,
     micPaused = false,
     screenPaused = false,
     screenAudioPaused = false,
-    serverUrl = 'https://18.219.159.39:3000';
+    serverUrl = 'https://voice.valour.gg';
 
 /* Initialized by Blazor interop */
 export function initialize(clientId, dotnet) {
@@ -46,7 +46,7 @@ export function initialize(clientId, dotnet) {
 
     client = {
         device,
-        clientId,
+        id: clientId,
         mediasoup: window.mediasoup,
         dotnet
     };
@@ -793,7 +793,7 @@ export function screenshareEncodings() {
 export async function sig(endpoint, data, beacon) {
     try {
         let headers = { 'Content-Type': 'application/json' },
-            body = JSON.stringify({ ...data, peerId: myPeerId });
+            body = JSON.stringify({ ...data, peerId: client.id });
 
         if (beacon) {
             navigator.sendBeacon(serverUrl + '/signaling/' + endpoint, body);

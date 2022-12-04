@@ -2,6 +2,13 @@
 @implements IAsyncDisposable
 
 @code {
+    public static MediaSoupWrapper Instance { get; private set; }
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
     /// <summary>
     /// Module for calling Javascript functions
     /// </summary>
@@ -20,6 +27,8 @@
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Voice/MediaSoupWrapper.razor.js");
             await _jsModule.InvokeVoidAsync("initialize", _clientId);
+
+            await JoinRoom();
         }
     }
 
