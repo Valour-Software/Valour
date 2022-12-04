@@ -1,0 +1,98 @@
+﻿@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+@code {
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+    private string _clientId = Guid.NewGuid().ToString();
+
+    /// <summary>
+    /// Dotnet object reference for use in Javascript
+    /// </summary>
+    private DotNetObjectReference<MediaSoupWrapper> _thisRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _thisRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Voice/MediaSoupWrapper.razor.js");
+            await _jsModule.InvokeVoidAsync("initialize", _clientId);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        _thisRef.Dispose();
+        await _jsModule.DisposeAsync();
+    }
+
+    /* Methods that invoke JS */
+
+    public async Task<JoinRoomResponse> JoinRoom() => 
+        await _jsModule.InvokeAsync<JoinRoomResponse>("joinRoom");
+
+    public async Task<SendCameraStreamResponse> SendCameraStreams() =>
+        await _jsModule.InvokeAsync<SendCameraStreamResponse>("sendCameraStreams");
+
+    public async Task<StartScreenshareResponse> StartScreenshare() =>
+        await _jsModule.InvokeAsync<StartScreenshareResponse>("startScreenshare");
+
+    public async Task<StartCameraResponse> StartCamera() =>
+        await _jsModule.InvokeAsync<StartCameraResponse>("startCamera");
+
+    public async Task<CycleCameraResponse> CycleCamera() =>
+        await _jsModule.InvokeAsync<CycleCameraResponse>("cycleCamera");
+
+    public async Task<StopStreamsResponse> StopStreams() =>
+        await _jsModule.InvokeAsync<StopStreamsResponse>("stopStreams");
+
+    public async Task<LeaveRoomResponse> LeaveRoom() =>
+        await _jsModule.InvokeAsync<LeaveRoomResponse>("leaveRoom");
+
+    public async Task<SubscribeToTrackResponse> SubscribeToTrack(string peerId, string mediaTag) =>
+        await _jsModule.InvokeAsync<SubscribeToTrackResponse>("subscribeToTrack", peerId, mediaTag);
+
+    public async Task<UnsubscribeFromTrackResponse> UnsubscribeFromTrack(string peerId, string mediaTag) =>
+        await _jsModule.InvokeAsync<UnsubscribeFromTrackResponse>("unsubscribeFromTrack", peerId, mediaTag);
+
+    public async Task SetMicPaused(bool value) =>
+        await _jsModule.InvokeVoidAsync("setMicPaused", value);
+
+    public async Task SetCamPaused(bool value) =>
+        await _jsModule.InvokeVoidAsync("setCamPaused", value);
+
+    public async Task SetScreenPaused(bool value) =>
+        await _jsModule.InvokeVoidAsync("setScreenPaused", value);
+
+    public async Task SetScreenAudioPaused(bool value) =>
+        await _jsModule.InvokeVoidAsync("setScreenAudioPaused", value);
+
+
+    /* Methods that are invoked by JS */
+
+
+    /// <summary>
+    /// This is called when the user closes the screen share through the browser
+    /// UI rather than through Valour's
+    /// </summary>
+    [JSInvokable]
+    public async Task OnScreenshareForceStop()
+    {
+
+    }
+
+    [JSInvokable]
+    public async Task OnUnexpectedLeaveRoom()
+    {
+
+    }
+
+    [JSInvokable]
+    public async Task OnStateUpdate(string currentSpeaker)
+    {
+        
+    }
+}
