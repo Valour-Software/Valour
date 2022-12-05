@@ -135,4 +135,13 @@
 
         await ActiveWindow.OnReadyBuildPeer(peerId, mediaTag, kind);
     }
+
+    [JSInvokable]
+    public async Task NotifyNeedDisposePeer(string peerId, string mediaTag)
+    {
+        if (ActiveWindow is null)
+            return;
+
+        await ActiveWindow.DisposePeer(peerId, mediaTag);
+    }
 }

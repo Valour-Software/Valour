@@ -1,11 +1,13 @@
-﻿@if (Peer.Kind == "audio")
-{
-    <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
-}
-else
-{
-    <video class="peer-video" playsinline autoplay id="@ElementId"></video>
-}
+﻿<div>
+    @if (Peer.Kind == "audio")
+    {
+        <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
+    }
+    else
+    {
+        <video class="peer-video" playsinline autoplay id="@ElementId"></video>
+    }
+</div>
 
 @code {
     [Parameter]
@@ -15,6 +17,17 @@ else
     public VisiblePeer Peer { get; set; }
 
     public string ElementId { get; set; }
+
+    private bool _canRender = false;
+
+    protected override bool ShouldRender() =>
+        _canRender;
+
+    public void Refresh()
+    {
+        _canRender = true;
+        StateHasChanged();
+    }
 
     protected override void OnInitialized()
     {
@@ -29,5 +42,7 @@ else
             Console.WriteLine("Peer component rendered. Notifying parent...");
             await Parent.NotifyPeerElementReady(Peer);
         }
+
+        _canRender = false;
     }
 }

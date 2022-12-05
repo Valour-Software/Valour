@@ -22,7 +22,7 @@
                 <div class="peer-container"> 
                     @foreach (var peer in VisiblePeers)
                     {
-                        <MediaPeerComponent Parent="this" Peer="peer"></MediaPeerComponent>
+                        <MediaPeerComponent @key='@($"peer-{peer.PeerId}-{peer.MediaTag}")' Parent="this" Peer="peer"></MediaPeerComponent>
                     }
                 </div>
 
@@ -74,11 +74,7 @@
         Channel = Window.Channel;
 
         // TODO: Eventually move this stuff to the API
-        // await Channel.Open();
 
-        await MediaSoup.JoinRoom();
-        await MediaSoup.SetCamPaused(true);
-        await MediaSoup.StartCamera();
         await MediaSoup.SendCameraStreams();
     }
 
@@ -127,11 +123,13 @@
     public async Task OnWindowClosed()
     {
         Console.WriteLine($"Gracefully exiting channel {Channel.Id} due to window change.");
+        await MediaSoup.LeaveRoom();
         await Channel.Close();
     }
 
     public async Task CloseWindow()
     {
+        await MediaSoup.LeaveRoom();
         await windowManager.CloseWindow(Window);
     }
 
@@ -178,5 +176,11 @@
 
             Refresh();
         }
+    }
+
+    public async Task DisposePeer(string peerId, string mediaTag)
+    {
+        VisiblePeers.RemoveAll(x => x.PeerId == peerId && x.MediaTag == mediaTag);
+        Refresh();
     }
 }
