@@ -4,7 +4,12 @@
 }
 else
 {
-    <video class="peer-video" playsinline autoplay id="@ElementId"></video>
+    <div class="peer-video-wrapper">
+        <video class="peer-video" playsinline autoplay id="@ElementId" />
+        <div class='pause-button'>
+            Pause
+        </div>
+    </div>
 }
 
 @code {
