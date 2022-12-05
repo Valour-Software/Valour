@@ -1,7 +1,5 @@
 ﻿using Valour.Api.Items.Channels;
-using Valour.Api.Items.Channels.Planets;
-using Valour.Client.Components.Windows.ChannelWindows;
-using Valour.Client.Components.Windows.ChannelWindows.PlanetVoiceChannels;
+using Valour.Client.Components.Windows.ChannelWindows.Voice;
 
 namespace Valour.Client.Windows.ChatWindows;
 public class VoiceChannelWindow : ClientWindow

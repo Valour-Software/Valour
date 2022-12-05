@@ -12,6 +12,14 @@
     public PlanetMember SelfMember { get; set; }
     public PlanetVoiceChannel PlanetChannel { get; set; }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await SetupNewChannelAsync();
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
     public override async Task SetupNewChannelAsync()
     {
         // Build up planet-channel specific variables

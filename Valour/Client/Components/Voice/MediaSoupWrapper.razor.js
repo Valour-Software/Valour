@@ -23,6 +23,7 @@ export let device,
 /* Added variables */
 export let client,
     mediasoup = window.mediasoup,
+    deepEqual = window.deepEqual,
     cameraPaused = false,
     micPaused = false,
     screenPaused = false,
@@ -59,8 +60,8 @@ export function initialize(clientId, dotnet) {
 //////////////////////////////////////////////////////
 
 export async function setCamPaused(value) {
-    camPaused = value;
-    if (camPaused) {
+    cameraPaused = value;
+    if (cameraPaused) {
         pauseProducer(camVideoProducer);
     }
     else {
@@ -118,10 +119,6 @@ export async function joinRoom() {
         }
         joined = true;
 
-        return {
-            success: true
-        };
-
     } catch (e) {
         console.error(e);
         return {
@@ -132,12 +129,17 @@ export async function joinRoom() {
 
     // super-simple signaling: let's poll at 1-second intervals
     pollingInterval = setInterval(async () => {
+        console.log('Polling...');
         let { error } = await pollAndUpdate();
         if (error) {
             clearInterval(pollingInterval);
             console.error(error);
         }
     }, 1000);
+
+    return {
+        success: true
+    };
 }
 
 /* Sends camera streams */
@@ -435,14 +437,14 @@ export async function subscribeToTrack(peerId, mediaTag) {
         rtpCapabilities: device.rtpCapabilities
     });
 
-    console.log(`Consumer params: ${consumerParameters}`);
+    console.log(`Consumer params:`, consumerParameters);
 
     consumer = await recvTransport.consume({
         ...consumerParameters,
         appData: { peerId, mediaTag }
     });
 
-    console.log(`Created new consumer: ${consumer.id}`);
+    console.log(`Created new consumer ${consumer.id}`);
 
     // the server-side consumer will be started in paused state. wait
     // until we're connected, then send a resume request to the server
@@ -457,6 +459,8 @@ export async function subscribeToTrack(peerId, mediaTag) {
 
     // keep track of all our consumers
     consumers.push(consumer);
+
+    await addVideoAudio(consumer);
 
     return {
         success: true,
@@ -481,6 +485,41 @@ export async function unsubscribeFromTrack(peerId, mediaTag) {
     return { success: true }
 }
 
+export function addVideoAudio(consumer) {
+    if (!(consumer && consumer.track)) {
+        return;
+    }
+
+    console.log('Sending event to dotnet for peer build.');
+
+    client.dotnet.invokeMethodAsync('OnReadyBuildPeer', consumer.appData.peerId, consumer.appData.mediaTag, consumer.kind);
+}
+
+export async function hookPeerElementMediaTrack(elementId, peerId, mediaTag) {
+
+    console.log(`Hooking peer ${elementId}`);
+
+    const consumer = findConsumerForTrack(peerId, mediaTag);
+
+    console.log(consumer);
+
+    const element = document.getElementById(elementId);
+    const stream = new MediaStream();
+    const track = consumer.track.clone();
+
+    console.log(track)
+
+    stream.addTrack(track);
+
+    element.srcObject = stream;
+
+    element.play()
+        .then(() => { })
+        .catch((e) => {
+            console.error(e);
+        });
+}
+
 //////////////////////////////////////////////////////////////
 /* These are internal functions not used by the Blazor side */
 //////////////////////////////////////////////////////////////
@@ -501,7 +540,7 @@ export async function pauseConsumer(consumer) {
 }
 
 export async function resumeConsumer(consumer) {
-    if (consumer) {
+    if (!consumer) {
         return;
     }
 
@@ -677,8 +716,12 @@ export async function pollAndUpdate() {
         return ({ error });
     }
 
-    // always update bandwidth stats and active speaker display
-    client.dotnet.invokeMethodAsync('OnStateUpdate', activeSpeaker);
+    if (activeSpeaker.peerId) {
+        client.dotnet.invokeMethodAsync('OnSpeakerUpdate', activeSpeaker);
+    }
+    else {
+        client.dotnet.invokeMethodAsync('OnSpeakerUpdate', null);
+    }
 
     // decide if we need to update tracks list and video/audio
     // elements. build list of peers, sorted by join time, removing last
@@ -688,7 +731,8 @@ export async function pollAndUpdate() {
     let thisPeersList = sortPeers(peers),
         lastPeersList = sortPeers(lastPollSyncData);
     if (!deepEqual(thisPeersList, lastPeersList)) {
-        updatePeersDisplay(peers, thisPeersList);
+        client.dotnet.invokeMethodAsync('OnPeerListUpdate', peers);
+        subscribeNewPeers(peers);
     }
 
     // if a peer has gone away, we need to close all consumers we have
@@ -708,7 +752,8 @@ export async function pollAndUpdate() {
     // need to close the consumer and remove video and audio elements
     consumers.forEach((consumer) => {
         let { peerId, mediaTag } = consumer.appData;
-        if (!peers[peerId].media[mediaTag]) {
+
+        if (!peers[peerId] || !peers[peerId].media[mediaTag]) {
             log(`Peer ${peerId} has stopped transmitting ${mediaTag}`);
             closeConsumer(consumer);
         }
@@ -716,6 +761,18 @@ export async function pollAndUpdate() {
 
     lastPollSyncData = peers;
     return ({}); // return an empty object if there isn't an error
+}
+
+/* Automatically subscribes to new peers */
+export function subscribeNewPeers(newPeers) {
+    for (const [peerId, peer] of Object.entries(newPeers)) {
+        for (const [mediaTag, media] of Object.entries(peer.media)) {
+            // Only subscribe if not already
+            if (!findConsumerForTrack(peerId, mediaTag)) {
+                subscribeToTrack(peerId, mediaTag);
+            }
+        }
+    }
 }
 
 export function sortPeers(peers) {

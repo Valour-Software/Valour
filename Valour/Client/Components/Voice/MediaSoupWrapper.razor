@@ -20,15 +20,15 @@
     /// </summary>
     private DotNetObjectReference<MediaSoupWrapper> _thisRef;
 
+    private VoiceChannelWindowComponent ActiveWindow { get; set; }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Voice/MediaSoupWrapper.razor.js");
-            await _jsModule.InvokeVoidAsync("initialize", _clientId);
-
-            await JoinRoom();
+            await _jsModule.InvokeVoidAsync("initialize", _clientId, _thisRef);
         }
     }
 
@@ -36,6 +36,11 @@
     {
         _thisRef.Dispose();
         await _jsModule.DisposeAsync();
+    }
+
+    public void SetActiveWindow(VoiceChannelWindowComponent window)
+    {
+        ActiveWindow = window;
     }
 
     /* Methods that invoke JS */
@@ -79,6 +84,9 @@
     public async Task SetScreenAudioPaused(bool value) =>
         await _jsModule.InvokeVoidAsync("setScreenAudioPaused", value);
 
+    public async Task HookPeerElementMediaTrack(string elementId, string peerId, string mediaTag) =>
+        await _jsModule.InvokeVoidAsync("hookPeerElementMediaTrack", elementId, peerId, mediaTag);
+
 
     /* Methods that are invoked by JS */
 
@@ -100,8 +108,31 @@
     }
 
     [JSInvokable]
-    public async Task OnStateUpdate(string currentSpeaker)
+    public async Task OnSpeakerUpdate(ActiveSpeaker speaker)
     {
-        
+        if (ActiveWindow is null)
+            return;
+
+        await ActiveWindow.OnSpeakerUpdate(speaker);
+    }
+
+    [JSInvokable]
+    public async Task OnPeerListUpdate(Dictionary<string, MediaPeer> peers)
+    {
+        if (ActiveWindow is null)
+            return;
+
+        await ActiveWindow.OnPeerListUpdate(peers);
+    }
+
+    [JSInvokable]
+    public async Task OnReadyBuildPeer(string peerId, string mediaTag, string kind)
+    {
+        Console.WriteLine("Got peer build request, forwarding to active window...");
+
+        if (ActiveWindow is null)
+            return;
+
+        await ActiveWindow.OnReadyBuildPeer(peerId, mediaTag, kind);
     }
 }

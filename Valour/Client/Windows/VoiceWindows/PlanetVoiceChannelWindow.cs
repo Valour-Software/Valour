@@ -1,5 +1,5 @@
 ﻿using Valour.Api.Items.Channels.Planets;
-using Valour.Client.Components.Windows.ChannelWindows.PlanetVoiceChannels;
+using Valour.Client.Components.Windows.ChannelWindows.Voice.PlanetVoiceChannels;
 using Valour.Client.Windows.ChatWindows;
 
 namespace Valour.Client.Windows.VoiceWindows;

@@ -19,12 +19,21 @@
 
                 @* Actual window *@
 
+                <div class="peer-container"> 
+                    @foreach (var peer in VisiblePeers)
+                    {
+                        <MediaPeerComponent Parent="this" Peer="peer"></MediaPeerComponent>
+                    }
+                </div>
+
             </div>
         </CascadingValue>
     </CascadingValue>
 </CascadingValue>
 
 @code {
+
+    public List<VisiblePeer> VisiblePeers { get; set; }
 
     [Parameter]
     public VoiceChannelWindow Window { get; set; }
@@ -44,6 +53,8 @@
 
     public PermissionsNode ChannelPermissions { get; set; }
 
+    public MediaSoupWrapper MediaSoup { get; set; } = MediaSoupWrapper.Instance;
+
     public virtual Task<string> GetChannelDisplayTitleAsync() =>
         Task.FromResult(Channel.Name);
 
@@ -52,13 +63,23 @@
 
     protected override async Task OnInitializedAsync()
     {
+        MediaSoup.SetActiveWindow(this);
+
+        VisiblePeers = new List<VisiblePeer>();
+
         Window.SetComponent(this);
 
         Console.WriteLine("Initializing voice window component.");
 
         Channel = Window.Channel;
 
-        await Channel.Open();
+        // TODO: Eventually move this stuff to the API
+        // await Channel.Open();
+
+        await MediaSoup.JoinRoom();
+        await MediaSoup.SetCamPaused(true);
+        await MediaSoup.StartCamera();
+        await MediaSoup.SendCameraStreams();
     }
 
     protected override bool ShouldRender()
@@ -123,4 +144,39 @@
 
     public virtual Task OnClickWindow()
         => Task.CompletedTask;
+
+    /// <summary>
+    /// Called by a child media peer component to begin the hook process
+    /// for the content stream
+    /// </summary>
+    public async Task NotifyPeerElementReady(VisiblePeer peer)
+    {
+        await MediaSoup.HookPeerElementMediaTrack(peer.ElementId, peer.PeerId, peer.MediaTag);
+    }
+
+    /* Fun part - events from MediaSoup integration */
+    public async Task OnSpeakerUpdate(ActiveSpeaker speaker)
+    {
+
+    }
+
+    public async Task OnPeerListUpdate(Dictionary<string, MediaPeer> peers)
+    {
+
+    }
+
+    public async Task OnReadyBuildPeer(string peerId, string mediaTag, string kind)
+    {
+        if (!VisiblePeers.Any(x => x.PeerId == peerId && x.MediaTag == mediaTag))
+        {
+            VisiblePeers.Add(new()
+            {
+                PeerId = peerId,
+                MediaTag = mediaTag,
+                Kind = kind
+            });
+
+            Refresh();
+        }
+    }
 }

@@ -1,0 +1,33 @@
+﻿@if (Peer.Kind == "audio")
+{
+    <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
+}
+else
+{
+    <video class="peer-video" playsinline autoplay id="@ElementId"></video>
+}
+
+@code {
+    [Parameter]
+    public VoiceChannelWindowComponent Parent { get; set; }
+
+    [Parameter]
+    public VisiblePeer Peer { get; set; }
+
+    public string ElementId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ElementId = $"{Peer.PeerId}-{Peer.MediaTag}";
+        Peer.ElementId = ElementId;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("Peer component rendered. Notifying parent...");
+            await Parent.NotifyPeerElementReady(Peer);
+        }
+    }
+}
