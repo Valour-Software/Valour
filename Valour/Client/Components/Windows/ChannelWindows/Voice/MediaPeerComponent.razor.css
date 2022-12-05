@@ -1,0 +1,8 @@
+﻿.peer-video {
+    width: 500px;
+    max-width: min(500px, 40%);
+    margin: 30px;
+    border-radius: 30px;
+    border: 5px solid var(--main-1);
+    display: inline-block;
+}

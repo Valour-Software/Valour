@@ -1,13 +1,11 @@
-﻿<div>
-    @if (Peer.Kind == "audio")
-    {
-        <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
-    }
-    else
-    {
-        <video class="peer-video" playsinline autoplay id="@ElementId"></video>
-    }
-</div>
+﻿@if (Peer.Kind == "audio")
+{
+    <audio class="peer-audio" playsinline autoplay id="@ElementId"></audio>
+}
+else
+{
+    <video class="peer-video" playsinline autoplay id="@ElementId"></video>
+}
 
 @code {
     [Parameter]

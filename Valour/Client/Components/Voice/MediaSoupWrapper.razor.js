@@ -425,7 +425,10 @@ export async function leaveRoom() {
     return { success: true };
 }
 
+export let subInProcess = false;
+
 export async function subscribeToTrack(peerId, mediaTag) {
+
     console.log(`Subscribing to track ${peerId} ${mediaTag}`);
 
     // create a receive transport if we don't already have one
@@ -520,16 +523,16 @@ export function hookPeerElementMediaTrack(elementId, peerId, mediaTag) {
 
     const element = document.getElementById(elementId);
 
-    element.srcObject = new MediaStream([ consumer.track.clone() ]);
+    element.srcObject = new MediaStream([consumer.track.clone()]);
     element.consumer = consumer;
 
-    element.rehook = function(){
+    element.rehook = function () {
         hookPeerElementMediaTrack(elementId, peerId, mediaTag);
     }
 
-    element.resumeConsumer = function(){
+    element.resumeConsumer = function () {
         resumeConsumer(consumer);
-    }  
+    }
 
     element.play()
         .then(() => { })
@@ -569,7 +572,7 @@ export async function resumeConsumer(consumer) {
         await consumer.resume();
     } catch (e) {
         console.error(e);
-    } 
+    }
 }
 
 export async function pauseProducer(producer) {
@@ -584,7 +587,7 @@ export async function pauseProducer(producer) {
         await producer.pause();
     } catch (e) {
         console.error(e);
-    }  
+    }
 }
 
 export async function resumeProducer(producer) {
@@ -751,7 +754,7 @@ export async function pollAndUpdate() {
         lastPeersList = sortPeers(lastPollSyncData);
     if (!deepEqual(thisPeersList, lastPeersList)) {
         // client.dotnet.invokeMethodAsync('OnPeerListUpdate', peers);
-        subscribeNewPeers(peers);
+        await subscribeNewPeers(peers);
     }
 
     // if a peer has gone away, we need to close all consumers we have
@@ -783,20 +786,22 @@ export async function pollAndUpdate() {
 }
 
 /* Automatically subscribes to new peers */
-export function subscribeNewPeers(newPeers) {
+export async function subscribeNewPeers(newPeers) {
+
+    console.log('New peers: ', newPeers)
+
     for (const [peerId, peer] of Object.entries(newPeers)) {
 
         // Do not subscribe to self
-        //if (peerId != client.id) {
+        if (peerId != client.id) {
 
             for (const [mediaTag, media] of Object.entries(peer.media)) {
                 // Only subscribe if not already
                 if (!findConsumerForTrack(peerId, mediaTag)) {
-                    console.log(peerId, mediaTag)
-                    subscribeToTrack(peerId, mediaTag);
+                    await subscribeToTrack(peerId, mediaTag);
                 }
             }
-        //}
+        }
     }
 }
 
