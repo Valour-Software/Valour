@@ -42,32 +42,6 @@
         }
     }
 
-    public bool DetermineUnread()
-    {
-        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == Channel.Id))
-            return false;
-
-        if (!ValourClient.ChannelStates.ContainsKey(Channel.Id))
-            return true;
-
-        if (string.IsNullOrEmpty(Channel.State))
-            return false;
-
-        var channelStateTrim = Channel.State.Substring(13, Channel.State.Length - 13);
-        long channelIndex = long.Parse(channelStateTrim);
-
-        var localState = ValourClient.ChannelStates[Channel.Id].LastViewedState;
-        long localIndex = -1;
-
-        if (!string.IsNullOrEmpty(localState))
-        {
-            var localTrim = localState.Substring(13, localState.Length - 13);
-            localIndex = long.Parse(localTrim);
-        }
-
-        return !(localIndex >= channelIndex);
-    }
-
     public async Task OnClick()
     {
 
@@ -98,7 +72,7 @@
     {
         if (Channel.Id == channel.Id)
         {
-            AnyUnread = DetermineUnread();
+            AnyUnread = channel.DetermineUnread();
             StateHasChanged();
         }
     }
@@ -120,7 +94,7 @@
 
         ValourClient.OnUserChannelStateUpdate += OnChannelStateUpdate;
 
-        AnyUnread = DetermineUnread();
+        AnyUnread = Channel.DetermineUnread();
     }
 
     public async Task OnChannelStateUpdate(UserChannelState state)
@@ -128,7 +102,7 @@
         if (state.ChannelId != Channel.Id)
             return;
 
-        AnyUnread = DetermineUnread();
+        AnyUnread = Channel.DetermineUnread();
         StateHasChanged();
     }
 

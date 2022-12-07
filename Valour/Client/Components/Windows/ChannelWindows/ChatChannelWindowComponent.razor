@@ -5,6 +5,7 @@
 @implements IDisposable
 @inject SoundManager soundManager
 @using Valour.Api.Items.Messages
+@using System.Reflection.Metadata
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
 <CascadingValue Value='Channel'>
@@ -124,6 +125,23 @@
 
         MessageHolder.AddMessages(msgs);
 
+        if (msgs.Any())
+        {
+            await ValourClient.UpdateChannelState(new ChannelStateUpdate()
+            {
+                ChannelId = Channel.Id,
+                State = msgs.Last().Message.Id.ToString()
+            });
+        }
+        else
+        {
+            await ValourClient.UpdateChannelState(new ChannelStateUpdate()
+            {
+                ChannelId = Channel.Id,
+                State = "0"
+            });
+        }
+        
         await MessageHolder.ScrollToBottom();
     }
 

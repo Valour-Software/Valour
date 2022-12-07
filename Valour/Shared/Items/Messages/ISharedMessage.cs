@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace Valour.Shared.Items.Messages
 {
-    public interface ISharedMessage
+    public interface ISharedMessage : ISharedItem
     {
         /// <summary>
         /// The message (if any) this is a reply to
@@ -45,6 +45,7 @@ namespace Valour.Shared.Items.Messages
         /// <summary>
         /// Index of the message
         /// </summary>
+        [Obsolete("Message Id should be used instead.")]
         long MessageIndex { get; set; }
 
         /// <summary>

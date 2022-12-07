@@ -52,6 +52,7 @@ public class DirectMessage  : Item, ISharedMessage
     /// Index of the message
     /// </summary>
     [Column("message_index")]
+    [Obsolete("Message Id should be used instead.")]
     public long MessageIndex { get; set; }
 
     /// <summary>

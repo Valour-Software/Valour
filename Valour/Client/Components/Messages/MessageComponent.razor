@@ -293,7 +293,7 @@
         if (MessageData is null)
             return;
 
-        Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.MessageIndex}";
+        Id = $"m-{MessageData.Message.ChannelId}-{MessageData.Message.Id}";
 
         if (!IsInnerReply && !Ghost)
         {
