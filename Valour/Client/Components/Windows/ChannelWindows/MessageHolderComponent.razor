@@ -100,7 +100,7 @@
 
     public void RemoveErrorMessage()
     {
-        var error = DisplayedMessageData.FirstOrDefault(x => x.Message.MessageIndex == long.MaxValue);
+        var error = DisplayedMessageData.FirstOrDefault(x => x.Message.Id == 0);
         if (error != null) { 
             QueuedMessageData.Remove(error); 
             StateHasChanged();
@@ -209,11 +209,11 @@
         DisplayedMessageData.RemoveAll(x => x.Message.Id == message.Id);
         QueuedMessageData.RemoveAll(x => x.Message.Id == message.Id);
 
-        var nextMessage = RenderedMessages.Where(x => x.MessageData.Message.MessageIndex > message.MessageIndex).FirstOrDefault();
+        var nextMessage = RenderedMessages.FirstOrDefault(x => x.MessageData.Message.Id > message.Id);
         if (nextMessage != null){
-            var lastMessage = RenderedMessages.OrderByDescending(x => x.MessageData.Message.MessageIndex)
-                                              .Where(x => x.MessageData.Message.MessageIndex < message.MessageIndex)
-                                              .FirstOrDefault();
+            var lastMessage = RenderedMessages
+                .OrderByDescending(x => x.MessageData.Message.Id)
+                .FirstOrDefault(x => x.MessageData.Message.Id < message.Id);
             nextMessage.SetLast(lastMessage.MessageData);
             await nextMessage.RefreshMessage();
             nextMessage.ReRender();
@@ -242,7 +242,7 @@
         }
         else
         {
-            return $"{DisplayedMessageData.First().Message.MessageIndex}-{DisplayedMessageData.Last().Message.MessageIndex}-{QueuedMessageData.Count}";
+            return $"{DisplayedMessageData.First().Message.Id}-{DisplayedMessageData.Last().Message.Id}-{QueuedMessageData.Count}";
         }
     }
 
@@ -290,11 +290,11 @@
             return;
         }
 
-        long firstIndex = DisplayedMessageData[0].Message.MessageIndex;
+        long firstId = DisplayedMessageData[0].Message.Id;
 
-        Console.WriteLine($"Fetching older messages from index {firstIndex} for window {Window.Id}");
+        Console.WriteLine($"Fetching older messages from id {firstId} for window {Window.Id}");
 
-        var messages = await Window.Channel.GetMessagesGenericAsync(firstIndex, 64);
+        var messages = await Window.Channel.GetMessagesGenericAsync(firstId, 64);
 
         if (messages == null || messages.Count() == 0)
             return;

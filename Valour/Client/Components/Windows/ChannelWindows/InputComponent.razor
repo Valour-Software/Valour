@@ -380,7 +380,7 @@
                 Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
                 AuthorUserId = long.MaxValue,
                 ChannelId = Window.Channel.Id,
-                MessageIndex = long.MaxValue
+                Id = 0
             };
 
             MessageHolder.RemoveErrorMessage();

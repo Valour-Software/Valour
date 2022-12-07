@@ -169,8 +169,8 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             return ValourResult.Forbid("You do not have access to this direct chat channel");
 
 
-        var messages = await db.DirectMessages.Where(x => x.ChannelId == id && x.MessageIndex <= index)
-                                              .OrderByDescending(x => x.MessageIndex)
+        var messages = await db.DirectMessages.Where(x => x.ChannelId == id && x.Id <= index)
+                                              .OrderByDescending(x => x.Id)
                                               .Take(count)
                                               .Reverse()
                                               .ToListAsync();
@@ -307,10 +307,9 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             return ValourResult.NotFound("Target user not found.");
 
         // Add message to database
-        channel.MessageCount += 1;
-        channel.State = $"MessageIndex-{channel.MessageCount}";
-        message.MessageIndex = channel.MessageCount;
-
+        ChannelStateService.SetMessageState(channel, message);
+        var newChannelState = ChannelStateService.GetState(channel.Id);
+        
         var state = await valourDb.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
         if (state is null)
         {
@@ -318,13 +317,13 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             {
                 UserId = token.UserId,
                 ChannelId = channel.Id,
-                LastViewedState = channel.State
+                LastViewedState = newChannelState
             });
         }
 
         else
         {
-            state.LastViewedState = channel.State;
+            state.LastViewedState = newChannelState;
         }
 
         await valourDb.DirectMessages.AddAsync(message);

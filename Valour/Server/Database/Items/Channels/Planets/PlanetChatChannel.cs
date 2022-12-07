@@ -53,17 +53,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
-    public string GetCurrentState()
-    {
-        if (PlanetMessageWorker.ChannelMessageIndices.ContainsKey(Id))
-        {
-            return "MessageIndex-" + PlanetMessageWorker.ChannelMessageIndices[Id];
-        }
-        else
-        {
-            return "MessageIndex-" + MessageCount;
-        }
-    }
+    public string GetCurrentState() =>
+        ChannelStateService.GetState(Id);
 
     /// <summary>
     /// Returns if a given member has a channel permission
@@ -428,7 +419,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(
+    public static async Task<IResult> GetMessageRouteAsync(
         long id, 
         long messageId, 
         HttpContext ctx,
@@ -449,8 +440,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
     public static async Task<IResult> GetMessagesRouteAsync(
-        long id, 
-        HttpContext ctx, 
+        long id,
         ValourDB db, 
         [FromQuery] long index = long.MaxValue, 
         [FromQuery] int count = 10)
@@ -458,14 +448,12 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
         
-        List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id, count);
-
-        count -= staged.Count;
-
+        List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id);
+        
         if (count > 0)
         {
-            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.MessageIndex <= index)
-                                                  .OrderByDescending(x => x.MessageIndex)
+            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.Id < index)
+                                                  .OrderByDescending(x => x.TimeSent)
                                                   .Take(count)
                                                   .Reverse()
                                                   .ToListAsync();

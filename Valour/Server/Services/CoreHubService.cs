@@ -41,7 +41,8 @@ public class CoreHubService
             // All of the connections to this group
             var viewingIds = ConnectionTracker.GroupUserIds[groupId];
             
-            // await _db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1});", viewingIds, message.ChannelId);
+            await _db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});", 
+                viewingIds, message.ChannelId, ChannelStateService.GetState(message.ChannelId));
         }
 
         await group.SendAsync("Relay", message);

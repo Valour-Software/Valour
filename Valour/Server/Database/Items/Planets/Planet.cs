@@ -628,7 +628,7 @@ public class Planet : Item, ISharedPlanet
                         {
                             UserId = member.UserId,
                             ChannelId = channel.Id,
-                            LastViewedState = channel.State
+                            LastViewedState = ChannelStateService.GetState(channel.Id)
                         });
 
                         dbAdded = true;
@@ -684,7 +684,7 @@ public class Planet : Item, ISharedPlanet
                 {
                     UserId = member.UserId,
                     ChannelId = channel.Id,
-                    LastViewedState = channel.State
+                    LastViewedState = ChannelStateService.GetState(channel.Id)
                 });
 
                 dbAdded = true;
