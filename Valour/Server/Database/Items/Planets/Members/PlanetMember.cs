@@ -2,6 +2,10 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
@@ -220,16 +224,15 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     }
 
     // Helpful route to return the member for the authorizing user
-    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired]
     [PlanetMembershipRequired]
     public static void GetSelfRoute(HttpContext ctx) =>
         Results.Json(ctx.GetMember());
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetRouteAsync(long id, ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = await FindAsync<PlanetMember>(id, db);
 
         if (member is null)
@@ -238,11 +241,12 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         return Results.Json(member);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetAuthorityRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetAuthorityRouteAsync(
+        long id, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = await FindAsync<PlanetMember>(id, db);
 
         if (member is null)
@@ -251,11 +255,13 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         return Results.Json(await member.GetAuthorityAsync(db));
     }
 
-    [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRoute(HttpContext ctx, long planetId, long userId)
+    public static async Task<IResult> GetRoute(
+        long planetId, 
+        long userId, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = await FindAsyncByUser(userId, planetId, db);
 
         if (member is null)
@@ -264,11 +270,16 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         return Results.Json(member);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, string inviteCode, [FromBody] PlanetMember member,
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PlanetMember member, 
+        long planetId, 
+        string inviteCode, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDb();
         var token = ctx.GetToken();
 
         if (member.PlanetId != planetId)
@@ -309,17 +320,22 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(member);
+        hubService.NotifyPlanetItemChange(member);
 
         return Results.Created(member.GetUri(), member);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] PlanetMember member,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PlanetMember member, 
+        long id, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDb();
         var token = ctx.GetToken();
 
         var old = await FindAsync<PlanetMember>(id, db);
@@ -354,16 +370,21 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
+        
+        hubService.NotifyPlanetItemChange(member);
 
         return Results.Ok(member);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
         var targetMember = await FindAsync<PlanetMember>(id, db);
 
@@ -376,8 +397,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
 
-
-        using var tran = await db.Database.BeginTransactionAsync();
+        await using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -391,43 +411,41 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         }
 
         await tran.CommitAsync();
-        PlanetHub.NotifyPlanetItemDelete(targetMember);
+        hubService.NotifyPlanetItemDelete(targetMember);
 
         return Results.NoContent();
     }
 
-    public static TaskResult ValidateName(PlanetMember member)
+    private static TaskResult ValidateName(PlanetMember member)
     {
         // Ensure nickname is valid
-        if (member.Nickname.Length > 32)
-        {
-            return new TaskResult(false, "Maximum nickname is 32 characters.");
-        }
-
-        return TaskResult.SuccessResult;
+        return member.Nickname.Length > 32 ? new TaskResult(false, "Maximum nickname is 32 characters.") : 
+            TaskResult.SuccessResult;
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetAllRolesForMember(HttpContext ctx, long id, long planetId)
+    public static async Task<IResult> GetAllRolesForMember(long id, long planetId, ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                                            .ThenInclude(x => x.Role)
                                            .FirstOrDefaultAsync(x => x.Id == id && x.PlanetId == planetId);
-        if (member is null)
-            return ValourResult.NotFound<PlanetMember>();
-
-        return Results.Json(member.RoleMembership.Select(r => r.RoleId));
+        
+        return member is null ? ValourResult.NotFound<PlanetMember>() : 
+            Results.Json(member.RoleMembership.Select(r => r.RoleId));
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/roles/{roleId}"), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> AddRoleToMember(HttpContext ctx, long id, long planetId, long roleId,
+    public static async Task<IResult> AddRoleToMember(
+        long id, 
+        long planetId, 
+        long roleId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetMember> logger)
     {
-        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         var member = await FindAsync<PlanetMember>(id, db);
@@ -471,19 +489,23 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(newRoleMember);
+        hubService.NotifyPlanetItemChange(newRoleMember);
 
         return Results.Created(newRoleMember.GetUri(), newRoleMember);
     }
 
 
-    [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{roleId}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{roleId}"), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> RemoveRoleFromMember(HttpContext ctx, long id, long planetId, long roleId, [FromHeader] string authorization,
+    public static async Task<IResult> RemoveRoleFromMember(
+        long id, 
+        long planetId, 
+        long roleId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetMember> logger)
     {
-
-        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         var member = await FindAsync<PlanetMember>(id, db);
@@ -520,7 +542,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemDelete(oldRoleMember);
+        hubService.NotifyPlanetItemDelete(oldRoleMember);
 
         return Results.NoContent();
     }

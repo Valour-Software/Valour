@@ -3,6 +3,8 @@ using Valour.Server.Database;
 using Valour.Server.Database.Items;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.API;
@@ -74,222 +76,84 @@ public class ItemAPI<T> where T : Item
                             builder = app.MapDelete(idRoute, del);
                             break;
                     }
-
-                    if (attributes.Any(x => x is InjectDbAttribute))
-                    {
-                        builder.AddEndpointFilter(async (ctx, next) =>
-                        {
-                            var db = ctx.HttpContext.RequestServices.GetService<ValourDB>();
-                            ctx.HttpContext.Items.Add("db", db);
-                            return await next(ctx);
-                        });
-                    }
-
+                    
                     // Add token validation
                     if (attributes.Any(x => x is TokenRequiredAttribute))
                     {
-                        builder.AddEndpointFilter(async (ctx, next) =>
-                        {
-                            var hasAuth = ctx.HttpContext.Request.Headers.ContainsKey("authorization");
-
-                            if (!hasAuth)
-                                return ValourResult.NoToken();
-
-                            var authKey = ctx.HttpContext.Request.Headers["authorization"];
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("TokenRequired attribute requires InjectDB attribute");
-
-                            var authToken = await AuthToken.TryAuthorize(authKey, db);
-
-                            if (authToken is null)
-                                return ValourResult.InvalidToken();
-
-                            ctx.HttpContext.Items.Add("token", authToken);
-
-                            return await next(ctx);
-                        });
+                        builder.AddEndpointFilter<TokenRequiredFilter>();
                     }
 
                     // Add user validation
 
                     foreach (var attr in attributes.Where(x => x is UserPermissionsRequiredAttribute))
                     {
-                        var userPermAttr = (UserPermissionsRequiredAttribute)attr;
-
+                        /* Adds data */
                         builder.AddEndpointFilter(async (ctx, next) =>
                         {
-                            var token = ctx.HttpContext.GetToken();
-                            if (token is null)
-                                throw new Exception("UserPermissionRequired attribute requires a TokenRequired attribute.");
-
-                            foreach (var permEnum in userPermAttr.permissions)
-                            {
-                                var permission = UserPermissions.Permissions[(int)permEnum];
-                                if (!token.HasScope(permission))
-                                    return ValourResult.LacksPermission(permission);
-                            }
-
+                            ctx.HttpContext.Items[nameof(UserPermissionsRequiredAttribute)] = (UserPermissionsRequiredAttribute)attr;
                             return await next(ctx);
                         });
+
+                        /* Does filtering */
+                        builder.AddEndpointFilter<UserPermissionsRequiredFilter>();
                     }
 
                     var memberAttr = (PlanetMembershipRequiredAttribute)attributes.FirstOrDefault(x => x is PlanetMembershipRequiredAttribute);
                     if (memberAttr is not null)
                     {
+                        /* Adds data */
                         builder.AddEndpointFilter(async (ctx, next) =>
                         {
-                            var token = ctx.HttpContext.GetToken();
-                            if (token is null)
-                                throw new Exception("PlanetMembershipRequired attribute requires a TokenRequired attribute.");
-
-                            var routeId = memberAttr.planetRouteName;
-
-                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeId))
-                                throw new Exception($"Could not bind route value for '{routeId}'");
-
-                            var routeVal = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeId]);
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("PlanetMembershipRequired attribute requires InjectDB attribute");
-
-                            var member = await db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
-                            if (member is null)
-                                return ValourResult.NotPlanetMember();
-
-                            foreach (var permEnum in memberAttr.permissions)
-                            {
-                                var perm = PlanetPermissions.Permissions[(int)permEnum];
-                                if (!await member.Planet.HasPermissionAsync(member, perm, db))
-                                    return ValourResult.LacksPermission(perm);
-                            }
-
-                            ctx.HttpContext.Items.Add("member", member);
-                            ctx.HttpContext.Items.Add(routeVal, member.Planet);
-
+                            ctx.HttpContext.Items[nameof(PlanetMembershipRequiredAttribute)] = memberAttr;
                             return await next(ctx);
                         });
+
+                        /* Does filtering */
+                        builder.AddEndpointFilter<PlanetMembershipRequiredFilter>();
                     }
 
                     // Category permissions validation
 
                     foreach (var attr in attributes.Where(x => x is CategoryChannelPermsRequiredAttribute))
                     {
-                        var catPermAttr = (CategoryChannelPermsRequiredAttribute)attr;
-
+                        /* Adds data */
                         builder.AddEndpointFilter(async (ctx, next) =>
                         {
-                            var member = ctx.HttpContext.GetMember();
-                            if (member is null)
-                                throw new Exception("CategoryChannelPermsRequired attribute requires a PlanetMembershipRequired attribute.");
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("CategoryChannelPermsRequired attribute requires InjectDB attribute");
-
-                            var routeName = catPermAttr.categoryRouteName;
-                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
-                                throw new Exception($"Could not bind route value for '{routeName}'");
-
-                            var categoryId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
-
-                            var category = await db.PlanetCategoryChannels.FindAsync(categoryId);
-
-                            if (category is null)
-                                return ValourResult.NotFound<PlanetCategoryChannel>();
-
-                            foreach (var permEnum in catPermAttr.permissions)
-                            {
-                                var perm = CategoryPermissions.Permissions[(int)permEnum];
-                                if (!await category.HasPermissionAsync(member, perm, db))
-                                    return ValourResult.LacksPermission(perm);
-                            }
-
-                            ctx.HttpContext.Items.Add(categoryId, category);
-
+                            ctx.HttpContext.Items[nameof(CategoryPermissionsFilter)] = (CategoryChannelPermsRequiredAttribute)attr;
                             return await next(ctx);
                         });
+                        
+                        /* Does filtering */
+                        builder.AddEndpointFilter<CategoryPermissionsFilter>();
                     }
 
                     // Channel permissions validation
 
                     foreach (var attr in attributes.Where(x => x is ChatChannelPermsRequiredAttribute))
                     {
-                        var chanPermAttr = (ChatChannelPermsRequiredAttribute)attr;
-
+                        /* Adds data */
                         builder.AddEndpointFilter(async (ctx, next) =>
                         {
-                            var member = ctx.HttpContext.GetMember();
-                            if (member is null)
-                                throw new Exception("ChatChannelPermsRequired attribute requires a PlanetMembershipRequired attribute.");
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("ChatChannelPermsRequired attribute requires InjectDB attribute");
-
-                            var routeName = chanPermAttr.channelRouteName;
-                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
-                                throw new Exception($"Could not bind route value for '{routeName}'");
-
-                            var channelId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
-
-                            var channel = await db.PlanetChatChannels.FindAsync(channelId);
-
-                            if (channel is null)
-                                return ValourResult.NotFound<PlanetChatChannel>();
-
-                            foreach (var permEnum in chanPermAttr.permissions)
-                            {
-                                var perm = ChatChannelPermissions.Permissions[(int)permEnum];
-                                if (!await channel.HasPermissionAsync(member, perm, db))
-                                    return ValourResult.LacksPermission(perm);
-                            }
-
-                            ctx.HttpContext.Items.Add(channelId, channel);
-
+                            ctx.HttpContext.Items[nameof(ChatChannelPermsRequiredAttribute)] = (ChatChannelPermsRequiredAttribute)attr;
                             return await next(ctx);
                         });
+                        
+                        /* Does filtering */
+                        builder.AddEndpointFilter<ChatChannelPermissionsFilter>();
                     }
 
                     // Voice channel permissions validation
                     foreach (var attr in attributes.Where(x => x is VoiceChannelPermsRequiredAttribute))
                     {
-                        var voicePermAttr = (VoiceChannelPermsRequiredAttribute)attr;
-
+                        /* Adds data */
                         builder.AddEndpointFilter(async (ctx, next) =>
                         {
-                            var member = ctx.HttpContext.GetMember();
-                            if (member is null)
-                                throw new Exception("VoiceChannelPermsRequired attribute requires a PlanetMembershipRequired attribute.");
-
-                            var db = ctx.HttpContext.GetDb();
-                            if (db is null)
-                                throw new Exception("VoiceChannelPermsRequired attribute requires InjectDB attribute");
-
-                            var routeName = voicePermAttr.channelRouteName;
-                            if (!ctx.HttpContext.Request.RouteValues.ContainsKey(routeName))
-                                throw new Exception($"Could not bind route value for '{routeName}'");
-
-                            var channelId = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeName]);
-
-                            var channel = await db.PlanetVoiceChannels.FindAsync(channelId);
-
-                            if (channel is null)
-                                return ValourResult.NotFound<PlanetVoiceChannel>();
-
-                            foreach (var permEnum in voicePermAttr.permissions)
-                            {
-                                var perm = VoiceChannelPermissions.Permissions[(int)permEnum];
-                                if (!await channel.HasPermissionAsync(member, perm, db))
-                                    return ValourResult.LacksPermission(perm);
-                            }
-
-                            ctx.HttpContext.Items.Add(channelId, channel);
-
+                            ctx.HttpContext.Items[nameof(VoiceChannelPermsRequiredAttribute)] = (VoiceChannelPermsRequiredAttribute)attr;
                             return await next(ctx);
                         });
+                        
+                        /* Does filtering */
+                        builder.AddEndpointFilter<VoiceChannelPermissionsFilter>();
                     }
                 }
             }

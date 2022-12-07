@@ -4,6 +4,10 @@ using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Users.Identity;
 using Valour.Server.Email;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Users;
@@ -215,25 +219,26 @@ public class User : Item, ISharedUser
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetUserRouteAsync(HttpContext ctx, long id)
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
+    public static async Task<IResult> GetUserRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var user = await FindAsync<User>(id, db);
-
-        if (user is null)
-            return ValourResult.NotFound<User>();
-
-        return Results.Json(user);
+        return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, [FromBody] User user,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] User user, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<User> logger)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         // Unlike most other entities, we are just copying over a few fields here and
         // ignoring the rest. There are so many things that *should not* be touched by
@@ -264,17 +269,18 @@ public class User : Item, ISharedUser
             return ValourResult.Problem(e.Message);
         }
 
-        PlanetHub.NotifyUserChange(old, db);
+        await hubService.NotifyUserChange(old);
 
         return Results.Json(user);
     }
 
     // This HAS to be GET so that we can forward it from the generic valour.gg domain
-    [ValourRoute(HttpVerbs.Get, "/verify/{code}"), InjectDb]
-    public static async Task<IResult> VerifyEmailRouteAsync(HttpContext ctx, string code,
+    [ValourRoute(HttpVerbs.Get, "/verify/{code}")]
+    public static async Task<IResult> VerifyEmailRouteAsync(
+        string code,
+        ValourDB db,
         ILogger<User> logger)
     {
-        var db = ctx.GetDb();
 
         var confirmCode = await db.EmailConfirmCodes
             .Include(x => x.User)
@@ -284,7 +290,7 @@ public class User : Item, ISharedUser
         if (confirmCode is null)
             return ValourResult.NotFound<EmailConfirmCode>();
 
-        using var tran = await db.Database.BeginTransactionAsync();
+        await using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -304,12 +310,13 @@ public class User : Item, ISharedUser
         return Results.LocalRedirect("/FromVerify", true, false);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/self/logout"), TokenRequired, InjectDb]
-    public static async Task<IResult> LogOutRouteAsync(HttpContext ctx,
+    [ValourRoute(HttpVerbs.Post, "/self/logout"), TokenRequired]
+    public static async Task<IResult> LogOutRouteAsync(
+        HttpContext ctx,
+        ValourDB db,
         ILogger<User> logger)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         try
         {
@@ -326,11 +333,12 @@ public class User : Item, ISharedUser
         return Results.Ok("Come back soon!");
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired, InjectDb]
-    public static async Task<IResult> SelfRouteAsync(HttpContext ctx)
+    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired]
+    public static async Task<IResult> SelfRouteAsync(
+        HttpContext ctx,
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         var user = await FindAsync<User>(token.UserId, db);
 
@@ -341,23 +349,25 @@ public class User : Item, ISharedUser
         return Results.Json(user);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self/channelstates"), TokenRequired, InjectDb]
-    public static IResult ChannelStatesRouteAsync(HttpContext ctx)
+    [ValourRoute(HttpVerbs.Get, "/self/channelstates"), TokenRequired]
+    public static IResult ChannelStatesRouteAsync(
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
-
+        
         var channelStates = db.UserChannelStates.Where(x => x.UserId == token.UserId).AsAsyncEnumerable();
 
         return Results.Json(channelStates);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/token"), InjectDb]
-    public static async Task<IResult> GetTokenRouteAsync(HttpContext ctx, [FromBody] TokenRequest tokenRequest,
+    [ValourRoute(HttpVerbs.Post, "/token")]
+    public static async Task<IResult> GetTokenRouteAsync(
+        [FromBody] TokenRequest tokenRequest,
+        HttpContext ctx,
+        ValourDB db,
         ILogger<User> logger)
     {
-        var db = ctx.GetDb();
-
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
 
@@ -421,12 +431,13 @@ public class User : Item, ISharedUser
         return Results.Json(token);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/self/recovery"), InjectDb]
-    public static async Task<IResult> RecoverPasswordRouteAsync(HttpContext ctx, [FromBody] PasswordRecoveryRequest request,
+    [ValourRoute(HttpVerbs.Post, "/self/recovery")]
+    public static async Task<IResult> RecoverPasswordRouteAsync(
+        [FromBody] PasswordRecoveryRequest request,
+        HttpContext ctx,
+        ValourDB db,
         ILogger<User> logger)
     {
-        var db = ctx.GetDb();
-
         if (request is null)
             return ValourResult.BadRequest("Include request in body.");
 
@@ -469,12 +480,13 @@ public class User : Item, ISharedUser
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/register"), InjectDb]
-    public static async Task<IResult> RegisterUserRouteAsync(HttpContext ctx, [FromBody] RegisterUserRequest request,
+    [ValourRoute(HttpVerbs.Post, "/register")]
+    public static async Task<IResult> RegisterUserRouteAsync(
+        [FromBody] RegisterUserRequest request, 
+        HttpContext ctx, 
+        ValourDB db,
         ILogger<User> logger)
     {
-        var db = ctx.GetDb();
-
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
@@ -604,12 +616,13 @@ public class User : Item, ISharedUser
         return Results.Ok("Your confirmation email has been sent!");
     }
 
-    [ValourRoute(HttpVerbs.Post, "/resendemail"), InjectDb]
-    public static async Task<IResult> ResendRegistrationEmail(HttpContext ctx, [FromBody] RegisterUserRequest request,
+    [ValourRoute(HttpVerbs.Post, "/resendemail")]
+    public static async Task<IResult> ResendRegistrationEmail(
+        [FromBody] RegisterUserRequest request,
+        HttpContext ctx, 
+        ValourDB db,
         ILogger<User> logger)
     {
-        var db = ctx.GetDb();
-
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
@@ -621,7 +634,7 @@ public class User : Item, ISharedUser
         if (userEmail.Verified)
             return Results.Ok("You are already verified, you can close this!");
 
-        using var tran = await db.Database.BeginTransactionAsync();
+        await using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -680,12 +693,13 @@ public class User : Item, ISharedUser
         return result;
     }
 
-    [ValourRoute(HttpVerbs.Post, "/resetpassword"), InjectDb]
-    public static async Task<IResult> ResetPasswordRouteAsync(HttpContext ctx, [FromBody] string email,
+    [ValourRoute(HttpVerbs.Post, "/resetpassword")]
+    public static async Task<IResult> ResetPasswordRouteAsync(
+        [FromBody] string email,
+        HttpContext ctx, 
+        ValourDB db,
         ILogger<User> logger)
     {
-        var db = ctx.GetDb();
-
         var userEmail = await db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
 
         if (userEmail is null)
@@ -746,13 +760,14 @@ public class User : Item, ISharedUser
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self/planets"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/self/planets"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
 
-    public static async Task<IResult> GetPlanetsRouteAsync(HttpContext ctx)
+    public static async Task<IResult> GetPlanetsRouteAsync(
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         var planets = await db.PlanetMembers
             .Where(x => x.UserId == token.UserId)
@@ -763,13 +778,14 @@ public class User : Item, ISharedUser
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self/planetids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/self/planetids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
 
-    public static async Task<IResult> GetPlanetIdsRouteAsync(HttpContext ctx)
+    public static async Task<IResult> GetPlanetIdsRouteAsync(
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         var planets = await db.PlanetMembers
             .Where(x => x.UserId == token.UserId)
@@ -779,12 +795,14 @@ public class User : Item, ISharedUser
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/friends"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/friends"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Friends)]
-    public static async Task<IResult> GetFriendsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetFriendsRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         if (id != token.UserId)
             return ValourResult.Forbid("You cannot currently view another user's friends.");
@@ -803,12 +821,14 @@ public class User : Item, ISharedUser
         return Results.Json(friends);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/frienddata"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/frienddata"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Friends)]
-    public static async Task<IResult> GetFriendDataRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetFriendDataRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         if (id != token.UserId)
             return ValourResult.Forbid("You cannot currently view another user's friend data.");
@@ -829,13 +849,14 @@ public class User : Item, ISharedUser
         });
     }
     
-    [ValourRoute(HttpVerbs.Get, "/self/tenorfavorites"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/self/tenorfavorites"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
 
-    public static async Task<IResult> GetTenorFavoritesRouteAsync(HttpContext ctx)
+    public static async Task<IResult> GetTenorFavoritesRouteAsync(
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         var favorites = await db.TenorFavorites
             .Where(x => x.UserId == token.UserId)

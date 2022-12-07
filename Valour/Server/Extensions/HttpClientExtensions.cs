@@ -39,10 +39,5 @@ namespace Valour.Server.Extensions
             return (T)ctx.Items[id];
         }
 
-        public static ValourDB GetDb(this HttpContext ctx)
-        {
-            return (ValourDB)ctx.Items["db"];
-        }
-
     }
 }

@@ -1,10 +1,15 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Api.Items.Planets;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets;
@@ -223,7 +228,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Adds a member to the server
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db, bool doTransaction = true)
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db, CoreHubService hubService, bool doTransaction = true)
     {
         if (await db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == Id &&
             (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
@@ -302,7 +307,7 @@ public class Planet : Item, ISharedPlanet
         if (doTransaction)
             await trans.CommitAsync();
 
-        PlanetHub.NotifyPlanetItemChange(member);
+        hubService.NotifyPlanetItemChange(member);
 
         Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
 
@@ -311,25 +316,27 @@ public class Planet : Item, ISharedPlanet
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetRouteAsync(
+        long id,
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var planet = await FindAsync<Planet>(id, db);
-
         return Results.Json(planet);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] Planet planet,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] Planet planet, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<Planet> logger)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
-
         if (planet is null)
             return ValourResult.BadRequest("Include planet in body.");
 
@@ -414,7 +421,7 @@ public class Planet : Item, ISharedPlanet
 
             await db.SaveChangesAsync();
 
-            await planet.AddMemberAsync(user, db, false);
+            await planet.AddMemberAsync(user, db, hubService, false);
         }
         catch (Exception e)
         {
@@ -428,13 +435,17 @@ public class Planet : Item, ISharedPlanet
         return Results.Created(planet.GetUri(), planet);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] Planet planet,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] Planet planet,
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<Planet> logger)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var old = await FindAsync<Planet>(id, db);
@@ -498,19 +509,22 @@ public class Planet : Item, ISharedPlanet
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-
-        PlanetHub.NotifyPlanetChange(planet);
-
+        
+        hubService.NotifyPlanetChange(planet);
+        
         return Results.Json(planet);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<Planet> logger)
     {
-        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
         var planet = await FindAsync<Planet>(id, db);
 
@@ -581,18 +595,20 @@ public class Planet : Item, ISharedPlanet
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-
-        PlanetHub.NotifyPlanetDelete(planet);
-
+        
+        hubService.NotifyPlanetDelete(planet);
+        
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/channels"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/channels"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChannelsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetChannelsRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var channels = await db.PlanetChannels.Where(x => x.PlanetId == id).ToListAsync();
@@ -645,12 +661,14 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannels"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannels"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChatChannelsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetChatChannelsRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
         var chatChannels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).ToListAsync();
 
@@ -686,12 +704,14 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannels"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannels"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetVoiceChannelsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetVoiceChannelsRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
         var voiceChannels = await db.PlanetVoiceChannels.Where(x => x.PlanetId == id).ToListAsync();
 
@@ -708,12 +728,14 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/categories"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/categories"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetCategoriesRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetCategoriesRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
         var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).ToListAsync();
         var allowedCategories = new List<PlanetCategoryChannel>();
@@ -729,53 +751,59 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(allowedCategories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/channelids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/channelids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChannelIdsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetChannelIdsRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var channels = await db.PlanetChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
         return Results.Json(channels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannelids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannelids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChatChannelIdsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetChatChannelIdsRouteAsync(
+        long id,
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var chatChannels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
         return Results.Json(chatChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannelids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannelids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetVoiceChannelIdsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetVoiceChannelIdsRouteAsync(
+        long id,
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var voiceChannels = await db.PlanetVoiceChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
         return Results.Json(voiceChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/categoryids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/categoryids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetCategoryIdsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetCategoryIdsRouteAsync(
+        long id,
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
         return Results.Json(categories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/memberinfo"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/memberinfo"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetMemberInfoRouteAsync(HttpContext ctx, long id, int page = 0)
+    public static async Task<IResult> GetMemberInfoRouteAsync(
+        long id, 
+        ValourDB db, 
+        int page = 0)
     {
-        var db = ctx.GetDb();
-
         var members = db.PlanetMembers
             .Where(x => x.PlanetId == id)
             .OrderBy(x => x.Id);
@@ -796,35 +824,39 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(new { members = roleInfo, totalCount = totalCount });
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetRolesRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetRolesRouteAsync(
+        long id, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).ToListAsync();
-
         return Results.Json(roles);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roleids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/roleids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetRoleIdsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetRoleIdsRouteAsync(
+        long id, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-
         return Results.Json(roles);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/roleorder"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/roleorder"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> SetRoleOrderRouteAsync(HttpContext ctx, long id, [FromBody] long[] order,
+    public static async Task<IResult> SetRoleOrderRouteAsync(
+        [FromBody] long[] order, 
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<Planet> logger)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var authority = await member.GetAuthorityAsync(db);
@@ -878,39 +910,37 @@ public class Planet : Item, ISharedPlanet
 
         foreach (var role in roles)
         {
-            PlanetHub.NotifyPlanetItemChange(role);
+            hubService.NotifyPlanetItemChange(role);
         }
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/invites"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/invites"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> GetInvitesRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetInvitesRouteAsync(
+        long id, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).ToListAsync();
-
         return Results.Json(invites);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/inviteids"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/inviteids"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> GetInviteIdsRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetInviteIdsRouteAsync(
+        long id, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-
         return Results.Json(invites);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/discoverable"), TokenRequired, InjectDb]
-    public static async Task<IResult> GetDiscoverables(HttpContext ctx)
+    [ValourRoute(HttpVerbs.Get, "/discoverable"), TokenRequired]
+    public static async Task<IResult> GetDiscoverables(ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var planets = await db.Planets.Include(x => x.Members)
                                       .Where(x => x.Public && x.Discoverable)
                                       .OrderByDescending(x => x.Members.Count())
@@ -919,11 +949,14 @@ public class Planet : Item, ISharedPlanet
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/discover"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/discover"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Invites)]
-    public static async Task<IResult> JoinDiscoverable(HttpContext ctx, long id)
+    public static async Task<IResult> JoinDiscoverable(
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService)
     {
-        var db = ctx.GetDb();
         long userId = ctx.GetToken().UserId;
 
         if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == id))
@@ -940,7 +973,7 @@ public class Planet : Item, ISharedPlanet
         if (!planet.Discoverable)
             return Results.BadRequest("Planet is not discoverable");
 
-        TaskResult<PlanetMember> result = await planet.AddMemberAsync(await FindAsync<User>(userId, db), db);
+        TaskResult<PlanetMember> result = await planet.AddMemberAsync(await FindAsync<User>(userId, db), db, hubService);
 
         if (result.Success)
             return Results.Created(result.Data.GetUri(), result.Data);

@@ -2,7 +2,11 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
 using Valour.Server.Requests;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
@@ -135,20 +139,24 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.View)]
     public static IResult GetRoute(HttpContext ctx, long id) =>
         Results.Json(ctx.GetItem<PlanetVoiceChannel>(id));
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetVoiceChannel channel,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PlanetVoiceChannel channel,
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetVoiceChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (channel.PlanetId != planetId)
@@ -187,19 +195,23 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(channel);
+        hubService.NotifyPlanetItemChange(channel);
 
         return Results.Created(channel.GetUri(), channel);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId,
-        [FromBody] CreatePlanetVoiceChannelRequest request, ILogger<PlanetVoiceChannel> logger)
+    public static async Task<IResult> PostRouteWithDetailsAsync(
+        [FromBody] CreatePlanetVoiceChannelRequest request,
+        long planetId,
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
+        ILogger<PlanetVoiceChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var channel = request.Channel;
@@ -266,20 +278,24 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
 
         await tran.CommitAsync();
 
-        PlanetHub.NotifyPlanetItemChange(channel);
+        hubService.NotifyPlanetItemChange(channel);
 
         return Results.Created(channel.GetUri(), channel);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
     [VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetVoiceChannel channel,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PlanetVoiceChannel channel, 
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var old = ctx.GetItem<PlanetVoiceChannel>(id);
 
         // Validation
@@ -313,24 +329,28 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(channel);
+        hubService.NotifyPlanetItemChange(channel);
 
         // Response
         return Results.Ok(channel);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
     [VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetVoiceChannel> logger)
     {
-        var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetVoiceChannel>(id);
 
         // Always use transaction for multi-step DB operations
-        using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -345,17 +365,21 @@ public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoice
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemDelete(channel);
+        hubService.NotifyPlanetItemDelete(channel);
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired]
     [PlanetMembershipRequired]
     [VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.View)]
-    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, long id, long memberId, long value)
+    public static async Task<IResult> HasPermissionRouteAsync(
+        long id, 
+        long memberId, 
+        long value, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetVoiceChannel>(id);
 
         var targetMember = await FindAsync<PlanetMember>(memberId, db);

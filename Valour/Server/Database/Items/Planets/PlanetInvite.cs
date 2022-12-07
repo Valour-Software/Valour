@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets;
@@ -69,11 +73,11 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
         db.PlanetInvites.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}", $"api/{nameof(PlanetInvite)}"), TokenRequired, InjectDb]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, [FromRoute] string inviteCode)
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}", $"api/{nameof(PlanetInvite)}"), TokenRequired]
+    public static async Task<IResult> GetRouteAsync(
+        [FromRoute] string inviteCode, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var invite = await db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == inviteCode);
 
         if (invite is null)
@@ -82,13 +86,16 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
         return Results.Json(invite);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetInvite invite,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PlanetInvite invite,
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetInvite> logger)
     {
-        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         invite.Id = IdManager.Generate();
@@ -107,20 +114,23 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(invite);
-
+        hubService.NotifyPlanetItemChange(invite);
+        
         return Results.Created(invite.GetUri(), invite);
 
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Manage)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetInvite invite,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PlanetInvite invite, 
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetInvite> logger)
     {
-        var db = ctx.GetDb();
-
         var oldInvite = await FindAsync<PlanetInvite>(id, db);
 
         if (invite.Code != oldInvite.Code)
@@ -142,21 +152,22 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-
-        PlanetHub.NotifyPlanetItemChange(invite);
-
+        
+        hubService.NotifyPlanetItemChange(invite);
+        
         return Results.Json(invite);
 
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Manage)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetInvite> logger)
     {
-        var db = ctx.GetDb();
-
         var invite = await FindAsync<PlanetInvite>(id, db);
 
         try
@@ -169,25 +180,25 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-
-        PlanetHub.NotifyPlanetItemDelete(invite);
-
+        
+        hubService.NotifyPlanetItemDelete(invite);
+        
         return Results.NoContent();
 
     }
+    
+    private Random random = new();
+    private const string inviteChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    public async Task<string> GenerateCode(ValourDB db)
+    private async Task<string> GenerateCode(ValourDB db)
     {
-        Random random = new();
-
-        const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        string code = "";
-
-        bool exists = false;
+        
+        string code;
+        bool exists;
 
         do
         {
-            code = new string(Enumerable.Repeat(chars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
+            code = new string(Enumerable.Repeat(inviteChars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
             exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
         }
         while (exists);
@@ -196,43 +207,39 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname", $"api/{nameof(PlanetInvite)}"), InjectDb]
-    public static async Task<IResult> GetPlanetName(HttpContext ctx, string inviteCode)
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname", $"api/{nameof(PlanetInvite)}")]
+    public static async Task<IResult> GetPlanetName(
+        string inviteCode, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
 
-        if (invite is null)
-            return ValourResult.NotFound<PlanetInvite>();
-
-        return Results.Json(invite.Planet.Name);
+        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon", $"api/{nameof(PlanetInvite)}"), InjectDb]
-    public static async Task<IResult> GetPlanetIconUrl(HttpContext ctx, string inviteCode)
+    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon", $"api/{nameof(PlanetInvite)}")]
+    public static async Task<IResult> GetPlanetIconUrl(
+        string inviteCode, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
 
-        if (invite is null)
-            return ValourResult.NotFound<PlanetInvite>();
-
-        return Results.Json(invite.Planet.IconUrl);
+        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.IconUrl);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join", $"api/{nameof(PlanetInvite)}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join", $"api/{nameof(PlanetInvite)}"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Invites)]
-    public static async Task<IResult> Join(HttpContext ctx, string inviteCode)
+    public static async Task<IResult> Join(
+        string inviteCode, 
+        HttpContext ctx, 
+        ValourDB db,
+        CoreHubService hubService)
     {
-        var db = ctx.GetDb();
-
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
         if (invite == null)
             return ValourResult.NotFound<PlanetInvite>();
 
-        long userId = ctx.GetToken().UserId;
+        var userId = ctx.GetToken().UserId;
 
         if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == invite.PlanetId))
             return Results.BadRequest("User is banned from the planet");
@@ -243,11 +250,8 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
         if (!invite.Planet.Public)
             return Results.BadRequest("Planet is set to private"); // TODO: Support invites w/ specific users
 
-        TaskResult<PlanetMember> result = await invite.Planet.AddMemberAsync(await User.FindAsync<User>(userId, db), db);
+        var result = await invite.Planet.AddMemberAsync(await User.FindAsync<User>(userId, db), db, hubService);
 
-        if (result.Success)
-            return Results.Created(result.Data.GetUri(), result.Data);
-        else
-            return Results.Problem(result.Message);
+        return result.Success ? Results.Created(result.Data.GetUri(), result.Data) : Results.Problem(result.Message);
     }
 }

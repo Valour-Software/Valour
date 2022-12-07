@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Api.Items.Planets;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
@@ -73,12 +77,14 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [PlanetMembershipRequired]
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
-    public static async Task<IResult> GetRoute(HttpContext ctx, long id)
+    public static async Task<IResult> GetRoute(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var ban = await FindAsync<PlanetBan>(id, db);
         var member = ctx.GetMember();
 
@@ -95,12 +101,16 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
         return Results.Json(ban);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PostRoute(HttpContext ctx, long planetId, [FromBody] PlanetBan ban,
+    public static async Task<IResult> PostRoute(
+        [FromBody] PlanetBan ban, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetBan> logger)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (ban is null)
@@ -128,7 +138,7 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
         if (await target.GetAuthorityAsync(db) >= await member.GetAuthorityAsync(db))
             return ValourResult.Forbid("The target has a higher authority than you.");
 
-        using var tran = await db.Database.BeginTransactionAsync();
+        await using var tran = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -156,18 +166,23 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
         await tran.CommitAsync();
 
         // Notify of changes
-        PlanetHub.NotifyPlanetItemChange(ban);
-        PlanetHub.NotifyPlanetItemDelete(target);
+        hubService.NotifyPlanetItemChange(ban);
+        hubService.NotifyPlanetItemDelete(target);
 
         return Results.Created(ban.GetUri(), ban);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> PutRoute(HttpContext ctx, long id, long planetId, [FromBody] PlanetBan ban,
+    public static async Task<IResult> PutRoute(
+        [FromBody] PlanetBan ban, 
+        long id, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetBan> logger)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (ban is null)
@@ -203,17 +218,21 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
         }
 
         // Notify of changes
-        PlanetHub.NotifyPlanetItemChange(ban);
+        hubService.NotifyPlanetItemChange(ban);
 
         return Results.Ok(ban);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
-    public static async Task<IResult> DeleteRoute(HttpContext ctx, long id, long planetId,
+    public static async Task<IResult> DeleteRoute(
+        long id, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetBan> logger)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var ban = await FindAsync<PlanetBan>(id, db);
@@ -242,7 +261,7 @@ public class PlanetBan : Item, IPlanetItem, ISharedPlanetBan
 
 
         // Notify of changes
-        PlanetHub.NotifyPlanetItemDelete(ban);
+        hubService.NotifyPlanetItemDelete(ban);
 
         return Results.NoContent();
     }

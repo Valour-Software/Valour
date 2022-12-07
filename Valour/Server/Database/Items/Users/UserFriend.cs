@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Users;
 
@@ -51,13 +53,15 @@ public class UserFriend : Item, ISharedUserFriend
     public override string BaseRoute =>
         $"api/{nameof(UserFriend)}/{UserId}/{FriendId}";
 
-    [ValourRoute(HttpVerbs.Get, "/{userId}/{friendId}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{userId}/{friendId}", $"api/{nameof(UserFriend)}"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Friends)]
-    public static async Task<IResult> GetFriendRouteAsync(HttpContext ctx, long userId, long friendId)
+    public static async Task<IResult> GetFriendRouteAsync(
+	    long userId, 
+	    long friendId, 
+	    HttpContext ctx, 
+	    ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
-
         /* TODO: In the future, allow users to enable other users seeing their friends */
         if (token.UserId != userId)
             return ValourResult.Forbid("You cannot currently view another user's friends.");
@@ -71,12 +75,14 @@ public class UserFriend : Item, ISharedUserFriend
         return Results.Json(friend);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/remove/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/remove/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Friends)]
-    public static async Task<IResult> RemoveFriendRouteAsync(HttpContext ctx, [FromRoute] string friendUsername)
+    public static async Task<IResult> RemoveFriendRouteAsync(
+	    [FromRoute] string friendUsername, 
+	    HttpContext ctx,
+	    ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         /* TODO: Eventually ensure user is not blocked */
 
@@ -95,12 +101,14 @@ public class UserFriend : Item, ISharedUserFriend
         return ValourResult.Ok("Friendship removed successfully.");
     }
 
-    [ValourRoute(HttpVerbs.Post, "/add/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/add/{friendUsername}", $"api/{nameof(UserFriend)}"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Friends)]
-    public static async Task<IResult> AddFriendRouteAsync(HttpContext ctx, [FromRoute] string friendUsername)
+    public static async Task<IResult> AddFriendRouteAsync(
+	    [FromRoute] string friendUsername, 
+	    HttpContext ctx, 
+	    ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         /* TODO: Eventually ensure user is not blocked */
 
@@ -125,12 +133,14 @@ public class UserFriend : Item, ISharedUserFriend
         return Results.Created(newFriend.GetUri(), newFriend);
     }
 
-	[ValourRoute(HttpVerbs.Post, "/decline/{username}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+	[ValourRoute(HttpVerbs.Post, "/decline/{username}", $"api/{nameof(UserFriend)}"), TokenRequired]
 	[UserPermissionsRequired(UserPermissionsEnum.Friends)]
-	public static async Task<IResult> DeclineFriendRouteAsync(HttpContext ctx, [FromRoute] string username)
+	public static async Task<IResult> DeclineFriendRouteAsync(
+		[FromRoute] string username, 
+		HttpContext ctx, 
+		ValourDB db)
 	{
 		var token = ctx.GetToken();
-		var db = ctx.GetDb();
 
 		var requestUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower());
 		if (requestUser is null)
@@ -149,13 +159,15 @@ public class UserFriend : Item, ISharedUserFriend
 		return ValourResult.Ok("Declined request");
 	}
 
-	[ValourRoute(HttpVerbs.Post, "/cancel/{username}", $"api/{nameof(UserFriend)}"), TokenRequired, InjectDb]
+	[ValourRoute(HttpVerbs.Post, "/cancel/{username}", $"api/{nameof(UserFriend)}")]
 	[UserPermissionsRequired(UserPermissionsEnum.Friends)]
-	public static async Task<IResult> CancelFriendRouteAsync(HttpContext ctx, [FromRoute] string username)
+	public static async Task<IResult> CancelFriendRouteAsync(
+		[FromRoute] string username, 
+		HttpContext ctx, 
+		ValourDB db)
 	{
 		var token = ctx.GetToken();
-		var db = ctx.GetDb();
-
+		
 		var targetUser = await db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower());
 		if (targetUser is null)
 			return ValourResult.NotFound($"User {username} was not found.");

@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Messages;
+using Valour.Server.Services;
 using Valour.Shared.Channels;
 using Valour.Shared.Items.Channels;
 
@@ -10,14 +11,15 @@ namespace Valour.Server.Workers
 {
     public class PlanetMessageWorker : BackgroundService
     {
-        private readonly IServiceScopeFactory _scopeFactory;
-        public readonly ILogger<PlanetMessageWorker> _logger;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<PlanetMessageWorker> _logger;
+        
 
         public PlanetMessageWorker(ILogger<PlanetMessageWorker> logger,
-                            IServiceScopeFactory scopeFactory)
+                                   IServiceProvider serviceProvider)
         {
             _logger = logger;
-            _scopeFactory = scopeFactory;
+            _serviceProvider = serviceProvider;
         }
 
         private static BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
@@ -26,8 +28,6 @@ namespace Valour.Server.Workers
         private static HashSet<long> BlockSet = new();
 
         private static ConcurrentDictionary<long, PlanetMessage> StagedMessages = new();
-
-        private static ValourDB Context;
 
         public static Dictionary<long, long> ChannelMessageIndices = new();
 
@@ -62,14 +62,13 @@ namespace Valour.Server.Workers
             {
                 Task task = Task.Run(async () =>
                 {
-                    //try
-                    //{
-
-                    Context = new ValourDB(ValourDB.DBOptions);
-
                     // This is a stream and will run forever
                     foreach (PlanetMessage Message in MessageQueue.GetConsumingEnumerable())
                     {
+                        using var scope = _serviceProvider.CreateScope();
+                        await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+                        var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+                        
                         if (BlockSet.Contains(Message.Id))
                         {
                             BlockSet.Remove(Message.Id);
@@ -78,7 +77,7 @@ namespace Valour.Server.Workers
 
                         long channelId = Message.ChannelId;
 
-                        PlanetChatChannel channel = await Context.PlanetChatChannels.FindAsync(channelId);
+                        PlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(channelId);
 
                         // Update message count. May have to queue this in the future to prevent concurrency issues (done).
                         channel.MessageCount += 1;
@@ -93,20 +92,8 @@ namespace Valour.Server.Workers
 
                         // This is not awaited on purpose
 #pragma warning disable CS4014
-
-                        if (PlanetHub.CurrentlyTyping.ContainsKey(channelId))
-                        {
-                            PlanetHub.CurrentlyTyping[channelId].Remove(Message.AuthorUserId, out _);
-                            PlanetHub.PrevCurrentlyTyping[channelId] = PlanetHub.CurrentlyTyping[channelId].Keys.ToList();
-                            PlanetHub.Current.Clients.Group($"c-{channelId}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate()
-                            {
-                                ChannelId = channelId,
-                                UserIds = PlanetHub.PrevCurrentlyTyping[channelId]
-                            });
-                        }
-
-                        PlanetHub.Current.Clients.Group($"p-{Message.PlanetId}").SendAsync("Channel-State", new ChannelStateUpdate(channel.Id, channel.State));
-                        PlanetHub.RelayMessage(Message);
+                        hubService.NotifyChannelStateUpdate(Message.PlanetId, Message.ChannelId, channel.State);
+                        hubService.RelayMessage(Message);
 #pragma warning restore CS4014
 
                         StagedMessages.TryAdd(Message.Id, Message);
@@ -123,14 +110,17 @@ namespace Valour.Server.Workers
 
                 while (!task.IsCompleted)
                 {
+                    using var scope = _serviceProvider.CreateScope();
+                    await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+                    
                     _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now.ToString()}");
                     _logger.LogInformation($"Queue size: {MessageQueue.Count.ToString()}");
                     _logger.LogInformation($"Saving {StagedMessages.Count.ToString()} messages to DB.");
 
-                    if (Context != null)
+                    if (db != null)
                     {
-                        await Context.PlanetMessages.AddRangeAsync(StagedMessages.Values);
-                        await Context.SaveChangesAsync();
+                        await db.PlanetMessages.AddRangeAsync(StagedMessages.Values);
+                        await db.SaveChangesAsync();
                         BlockSet.Clear();
                         StagedMessages.Clear();
                         _logger.LogInformation($"Saved successfully.");

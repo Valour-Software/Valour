@@ -1,15 +1,19 @@
 ﻿using Valour.Server.Database;
+using Valour.Server.Services;
 
 namespace Valour.Server.Workers;
 
 public class ChannelWatchingWorker : BackgroundService
 {
-    public readonly ILogger<StatWorker> _logger;
+    private readonly ILogger<StatWorker> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
-    public ChannelWatchingWorker(ILogger<StatWorker> logger)
+    public ChannelWatchingWorker(ILogger<StatWorker> logger, IServiceProvider serviceProvider)
     {
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
+    
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -17,8 +21,11 @@ public class ChannelWatchingWorker : BackgroundService
             Task task = Task.Run(async () => {
                 while (!stoppingToken.IsCancellationRequested)
                 {
+                    using var scope = _serviceProvider.CreateScope();
+                    var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+                    
                     await Task.Delay(5000);
-                    await PlanetHub.UpdateChannelsWatching();
+                    hubService.UpdateChannelsWatching();
                 }
             });
 

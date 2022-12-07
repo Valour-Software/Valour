@@ -7,6 +7,7 @@ using Valour.Api.Items.Messages;
 using Valour.Api.Items.Messages.Embeds;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
 
@@ -20,7 +21,7 @@ public class EmbedAPI : BaseAPI
         app.MapPost("api/embed/planetchannelupdate", PlanetChannelUpdate);
     }
 
-    private static async Task<IResult> PlanetChannelUpdate(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
+    private static async Task<IResult> PlanetChannelUpdate(HttpContext ctx, ValourDB db, CoreHubService hubService, [FromHeader] string authorization)
     {
         var ceu = await JsonSerializer.DeserializeAsync<ChannelEmbedUpdate>(ctx.Request.Body);
 
@@ -68,12 +69,12 @@ public class EmbedAPI : BaseAPI
         if (!await channel.HasPermissionAsync(botmember, ChatChannelPermissions.View, db))
             return Results.BadRequest("Member lacks ChatChannelPermissions.View");
 
-        PlanetHub.NotifyChannelEmbedUpdateEvent(ceu);
+        hubService.NotifyChannelEmbedUpdateEvent(ceu);
 
         return Results.Ok("Sent Channel Embed Update");
     }
 
-    private static async Task<IResult> PlanetPersonalUpdate(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
+    private static async Task<IResult> PlanetPersonalUpdate(HttpContext ctx, ValourDB db, CoreHubService hubService, [FromHeader] string authorization)
     {
         var peu = await JsonSerializer.DeserializeAsync<PersonalEmbedUpdate>(ctx.Request.Body);
 
@@ -119,12 +120,12 @@ public class EmbedAPI : BaseAPI
         if (!await channel.HasPermissionAsync(botmember, ChatChannelPermissions.View, db))
             return Results.BadRequest("Member lacks ChatChannelPermissions.View");
 
-        PlanetHub.NotifyPersonalEmbedUpdateEvent(peu);
+        hubService.NotifyPersonalEmbedUpdateEvent(peu);
 
         return Results.Ok("Sent Personal Embed Update");
     }
 
-    private static async Task Interaction(HttpContext ctx, ValourDB db, [FromHeader] string authorization)
+    private static async Task Interaction(HttpContext ctx, ValourDB db, CoreHubService hubService, [FromHeader] string authorization)
     {
         EmbedInteractionEvent e = await JsonSerializer.DeserializeAsync<EmbedInteractionEvent>(ctx.Request.Body);
 
@@ -139,6 +140,6 @@ public class EmbedAPI : BaseAPI
 
         if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db)) { await Unauthorized("Member lacks ChatChannelPermissions.View", ctx); return; }
 
-        PlanetHub.NotifyInteractionEvent(e);
+        hubService.NotifyInteractionEvent(e);
     }
 }

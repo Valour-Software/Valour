@@ -5,6 +5,7 @@ using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Nodes;
+using Valour.Server.Hubs;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Server.API
@@ -62,14 +63,14 @@ namespace Valour.Server.API
                 DetailedNodeStats stats = new()
                 {
                     Name = NodeConfig.Instance.Name,
-                    ConnectionCount = PlanetHub.ConnectionIdentities.Count,
-                    ConnectionGroupCount = PlanetHub.ConnectionGroups.Count,
+                    ConnectionCount = ConnectionTracker.ConnectionIdentities.Count,
+                    ConnectionGroupCount = ConnectionTracker.ConnectionGroups.Count,
                     PlanetCount = Node.Planets.Count,
 
-                    GroupConnections = PlanetHub.GroupConnections,
-                    GroupUserIds = PlanetHub.GroupUserIds,
-                    ConnectionGroups = PlanetHub.ConnectionGroups,
-                    UserIdGroups = PlanetHub.UserIdGroups
+                    GroupConnections = ConnectionTracker.GroupConnections,
+                    GroupUserIds = ConnectionTracker.GroupUserIds,
+                    ConnectionGroups = ConnectionTracker.ConnectionGroups,
+                    UserIdGroups = ConnectionTracker.UserIdGroups
                 };
 
                 return stats;
