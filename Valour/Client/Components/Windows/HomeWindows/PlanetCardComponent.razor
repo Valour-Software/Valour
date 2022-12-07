@@ -48,43 +48,17 @@
             var channel = channels.FirstOrDefault(x => x.Id == state.ChannelId);
             if (channel is not null)
             {
-                IsUnread = DetermineUnread(channel);
+                IsUnread = channel.DetermineUnread();
 
                 // no need to check the other channels if this one is unread
                 if (IsUnread)
                 {
-                    return;
+                    break;
                 }
             }
         }
     }
-
-    public bool DetermineUnread(PlanetChatChannel chatChannel)
-    {
-        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == chatChannel.Id))
-            return false;
-
-        if (!ValourClient.ChannelStates.ContainsKey(chatChannel.Id))
-            return true;
-
-        if (string.IsNullOrEmpty(chatChannel.State))
-            return false;
-
-        var channelStateTrim = chatChannel.State.Substring(13, chatChannel.State.Length - 13);
-        long channelIndex = long.Parse(channelStateTrim);
-
-        var localState = ValourClient.ChannelStates[chatChannel.Id].LastViewedState;
-        long localIndex = -1;
-
-        if (!string.IsNullOrEmpty(localState))
-        {
-            var localTrim = localState.Substring(13, localState.Length - 13);
-            localIndex = long.Parse(localTrim);
-        }
-
-        return !(localIndex >= channelIndex);
-    }
-
+    
     public async Task OnClick()
     {
         // Load planet first for personal reasons (let me keep the kids thanks)

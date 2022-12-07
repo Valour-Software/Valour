@@ -208,7 +208,8 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         HttpClient client, 
         ValourDB valourDb, 
         CdnDb db,
-        CoreHubService hubService)
+        CoreHubService hubService,
+        ChannelStateService channelService)
     {
         var token = ctx.GetToken();
 
@@ -307,8 +308,8 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             return ValourResult.NotFound("Target user not found.");
 
         // Add message to database
-        ChannelStateService.SetMessageState(channel, message);
-        var newChannelState = ChannelStateService.GetState(channel.Id);
+        await channelService.SetMessageState(channel, message.Id);
+        var newChannelState = await channelService.GetState(channel.Id);
         
         var state = await valourDb.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
         if (state is null)

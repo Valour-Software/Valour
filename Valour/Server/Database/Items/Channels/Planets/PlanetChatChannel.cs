@@ -53,9 +53,6 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [JsonIgnore]
     public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
 
-    public string GetCurrentState() =>
-        ChannelStateService.GetState(Id);
-
     /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
@@ -477,13 +474,16 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
                               ChatChannelPermissionsEnum.PostMessages)]
     public static async Task<IResult> PostMessageRouteAsync(
         [FromBody] PlanetMessage message,
+        long id,
         HttpContext ctx, 
         HttpClient client, 
         ValourDB valourDb, 
         CdnDb db,
-        UserOnlineService onlineService)
+        UserOnlineService onlineService,
+        ChannelStateService stateService)
     {
         var member = ctx.GetMember();
+        var channel = ctx.GetItem<PlanetChatChannel>(id);
 
         if (message is null)
             return Results.BadRequest("Include message in body.");
@@ -565,6 +565,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         StatWorker.IncreaseMessageCount();
         
         await onlineService.UpdateOnlineState(member.UserId);
+        await stateService.SetMessageState(channel, message.Id);
 
         return Results.Ok();
     }
