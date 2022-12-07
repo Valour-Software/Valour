@@ -24,6 +24,7 @@
                     {
                         <ChannelListCategoryComponent Categories="Categories"
                                                       Channels="Channels"
+                                                      VoiceChannels="VoiceChannels"
                                                       Category="category"
                                                       IsTopLevel="true"
                                                       @key='category.Id'>
@@ -45,24 +46,29 @@
     public List<PlanetCategoryChannel> TopCategories;
     public List<PlanetCategoryChannel> Categories { get; set; }
     public List<PlanetChatChannel> Channels { get; set; }
+    public List<PlanetVoiceChannel> VoiceChannels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
         Categories = new List<PlanetCategoryChannel>();
         Channels = new List<PlanetChatChannel>();
+        VoiceChannels = new List<PlanetVoiceChannel>();
         TopCategories = new List<PlanetCategoryChannel>();
 
         // Handle list change
         ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdate;
         ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
+        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
 
         // Handle Deletions
         ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeletion;
         ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
+        ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
 
         await GetCategories();
         await GetChannels();
+        await GetVoiceChannels();
         GetTopLevelCategories();
     }
 
@@ -109,6 +115,18 @@
         if (oldChannel != null)
         {
             Channels.Remove(oldChannel);
+
+            StateHasChanged();
+        }
+    }
+
+    public async Task OnVoiceChannelDeletion(PlanetVoiceChannel channel)
+    {
+        var oldChannel = VoiceChannels.FirstOrDefault(x => x.Id == channel.Id);
+
+        if (oldChannel != null)
+        {
+            VoiceChannels.Remove(oldChannel);
 
             StateHasChanged();
         }
@@ -194,8 +212,33 @@
         StateHasChanged();
     }
 
+    public async Task OnVoiceChannelUpdate(PlanetVoiceChannel channel, bool newItem, int flags)
+    {
+        var oldChannel = VoiceChannels.FirstOrDefault(x => x.Id == channel.Id);
+
+        if (oldChannel == null)
+        {
+            VoiceChannels.Add(channel);
+
+            StateHasChanged();
+            return;
+        }
+
+        var index = VoiceChannels.IndexOf(oldChannel);
+
+        // Set to new channel
+        VoiceChannels[index] = channel;
+
+        StateHasChanged();
+    }
+
     public async Task GetChannels()
     {
         Channels = await Planet.GetChannelsAsync();
+    }
+
+    public async Task GetVoiceChannels()
+    {
+        VoiceChannels = await Planet.GetVoiceChannelsAsync();
     }
 }

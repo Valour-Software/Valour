@@ -41,6 +41,7 @@ public class StatWorker : IHostedService, IDisposable
         {
             StatObject stats = new();
             stats.TimeCreated = DateTime.UtcNow;
+
             stats.UserCount = await context.Users.CountAsync();
             stats.PlanetCount = await context.Planets.CountAsync();
             stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();

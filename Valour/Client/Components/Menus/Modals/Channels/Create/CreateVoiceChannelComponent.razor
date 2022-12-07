@@ -1,0 +1,226 @@
+﻿@inject HttpClient Http
+@inject NavigationManager navManager
+@inject IJSRuntime JS
+@using Valour.Shared.Categories
+
+<section>
+    <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
+    <div class="top-section">
+        <h2 class="title">Create a Voice Channel</h2>
+
+        <center>
+            <span id="image-span" style="color:white">@imageSpan</span>
+        </center>
+
+        <div asp-validation-summary="All" class="text-info"></div>
+        <div class="form-group mt-2 new-input-style">
+            <label>Channel Name</label>
+            <input class="form-control" placeholder="New Channel" @bind-value="@name" />
+        </div>
+        <div style="margin-top:20px;">
+            <img class="lock-icon" src="_content/Valour.Client/media/lock-icon.svg">
+            <div class="perm-list-name mb-1">
+                Private Channel
+            </div>
+            <div type="button" style="float: right">
+                <label class="switch">
+                    <input type="checkbox" @onclick="PrivateSwitch" checked="@isprivate">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    @if (isprivate)
+    {
+        <div class="private">
+            <div class="inner-private">
+                <label style="margin-top: 12px;">Who can see and join this channel?</label>
+                <div class="roles-box">
+                    @foreach (PlanetRole role in Roles)
+                    {
+                        <div class="role">
+                            <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
+                                @role.Name
+                            </div>
+                            <div type="button" style="float: right">
+                                <label class="switch">
+                                    <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (isprivate)
+    {
+        <div class="form-group mt-4 bottom" style="margin-top: 0px !important;">
+            <center>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Channel</button>
+            </center>
+        </div>
+    }
+    else
+    {
+        <div class="form-group mt-4 bottom">
+            <center>
+                <button class="btn btn-primary mt-2" @onclick="OnClickSubmit">Create Channel</button>
+            </center>
+        </div>
+    }
+</section>
+@code {
+
+    [Parameter, EditorRequired]
+    public Planet Planet { get; set; }
+
+    [Parameter]
+    public PlanetCategoryChannel Parent { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+
+    // Input fields
+    string name;
+
+    // Spans
+    string imageSpan = "";
+    Dictionary<PlanetRole, bool> SelectedRoles = new Dictionary<PlanetRole, bool>();
+
+    List<PlanetRole> Roles = new List<PlanetRole>();
+    bool isprivate = false;
+
+    public async Task ClickEscape(MouseEventArgs e)
+    {
+        await ModalInstance.CloseAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Roles.Clear();
+        SelectedRoles.Clear();
+
+        PlanetMember SelfMember = await ValourClient.GetSelfMember(Planet);
+
+        int SelfAuthority = await SelfMember.GetAuthorityAsync();
+
+        var roleResponse = await Planet.GetRolesAsync();
+
+        foreach (PlanetRole item in roleResponse)
+        {
+            if (item.GetAuthority() >= SelfAuthority)
+                continue;
+            Roles.Add(item);
+            SelectedRoles.Add(item, false);
+        }
+        StateHasChanged();
+    }
+
+    private void SwitchRole(PlanetRole role)
+    {
+        SelectedRoles[role] = !SelectedRoles[role];
+    }
+
+    private void PrivateSwitch()
+    {
+        isprivate = !isprivate;
+    }
+
+    private async Task OnClickSubmit(MouseEventArgs e)
+    {
+
+        // Require a name
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            imageSpan = "Please input a channel name!";
+            return;
+        }
+
+
+        long userId = ValourClient.Self.Id;
+
+        long parentId = Parent.Id;
+        long planetId = Planet.Id;
+
+        CreatePlanetVoiceChannelRequest createRequest = new()
+        {
+            Channel = new PlanetVoiceChannel()
+            {
+                Name = name,
+                Description = "A voice channel",
+                PlanetId = planetId,
+                ParentId = parentId,
+                Position = -1
+            },
+            Nodes = new()
+        };
+
+        if (isprivate)
+        {
+            // set the default role channel view perms to false
+
+            PermissionsNode defaultNode = new()
+            {
+                TargetId = 0,
+                PlanetId = Planet.Id,
+                RoleId = Planet.DefaultRoleId.Value,
+                Mask = 0x00,
+                Code = 0x00,
+                TargetType = PermissionsTargetType.PlanetVoiceChannel
+            };
+
+            defaultNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.False);
+            defaultNode.SetPermission(VoiceChannelPermissions.Speak, PermissionState.False);
+            defaultNode.SetPermission(VoiceChannelPermissions.View, PermissionState.False);
+
+            createRequest.Nodes.Add(defaultNode);
+
+            foreach (PlanetRole role in Roles)
+            {
+
+                if (!SelectedRoles[role])
+                {
+                    continue;
+                }
+
+                var roleNode = new PermissionsNode()
+                {
+                    TargetId = 0,
+                    PlanetId = Planet.Id,
+                    RoleId = role.Id,
+                    Mask = 0x00,
+                    Code = 0x00,
+                    TargetType = PermissionsTargetType.PlanetVoiceChannel
+                };
+
+                roleNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.True);
+                roleNode.SetPermission(VoiceChannelPermissions.Speak, PermissionState.True);
+                roleNode.SetPermission(VoiceChannelPermissions.View, PermissionState.True);
+
+                createRequest.Nodes.Add(roleNode);
+            }
+        }
+
+        var result = await PlanetVoiceChannel.CreateWithDetails(createRequest);
+
+        if (!result.Success)
+        {
+            string errorText = result.Message;
+            Console.WriteLine(errorText);
+            imageSpan = errorText;
+            return;
+        }
+
+        // close modal
+        await ModalInstance.CloseAsync();
+    }
+
+    private async Task OnImageInput()
+    {
+
+    }
+}

@@ -1,0 +1,76 @@
+﻿@implements IDisposable
+
+@inject WindowManager windowManager
+@inject ChannelListManager listManager
+
+<div @onpointerdown:stopPropagation='true'>
+    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
+        <div class="@Chosen_CSS"
+        @onclick="OnClick"
+        @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
+        @ondrop="async () => await listManager.OnItemDropOnVoiceChannel(this)" draggable="true" id="@Channel.Id">
+            <div class="chat-icon">
+                <img src="_content/Valour.Client/media/voice-channel-icon.svg">
+            </div>
+            <p class="channel-name">
+                @Channel.Name
+            </p>
+        </div>
+    </ContextMenuTrigger>
+</div>
+
+@code {
+    [Parameter]
+    public PlanetVoiceChannel Channel { get; set; }
+
+    [Parameter]
+    public ChannelListCategoryComponent ParentCategory { get; set; }
+
+    public string Chosen_CSS
+    {
+        get
+        {
+            return "channel";
+        }
+    }
+
+    public async Task OnClick()
+    {
+        /* Very cool logic goes here */
+        listManager.OnItemClickInCategory(Channel, ParentCategory);
+
+        var voiceWindows = windowManager.GetWindows().OfType<VoiceChannelWindow>();
+
+        /* Check if another voice channel is open */
+        if (voiceWindows.Count() > 0)
+        {
+            var current = voiceWindows.FirstOrDefault();
+            await current.Component.SwapChannel(Channel);
+        }
+        else
+        {
+            var newWindow = new PlanetVoiceChannelWindow(Channel);
+            await windowManager.AddWindowAsync(newWindow, windowManager.GetSelectedWindow().Holder);
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnVoiceChannelUpdate(PlanetVoiceChannel channel, bool newItem, int flags)
+    {
+        if (Channel.Id == channel.Id)
+        {
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
+    }
+
+    public void Dispose()
+    {
+        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
+    }
+}

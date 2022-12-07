@@ -19,6 +19,8 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.Email;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Items.Users;
 using WebPush;
@@ -94,6 +96,7 @@ namespace Valour.Server
                 new ItemAPI<User>()                     .RegisterRoutes(app),
                 new ItemAPI<Planet>()                   .RegisterRoutes(app),
                 new ItemAPI<PlanetChatChannel>()        .RegisterRoutes(app),
+                new ItemAPI<PlanetVoiceChannel>()       .RegisterRoutes(app),
                 new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
@@ -196,14 +199,10 @@ namespace Valour.Server
             app.MapRazorPages();
             app.MapControllers();
             app.MapFallbackToFile("_content/Valour.Client/index.html");
-            app.MapHub<PlanetHub>(PlanetHub.HubUrl, options =>
+            app.MapHub<CoreHub>(CoreHub.HubUrl, options =>
             {
                 options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
             });
-
-            //app.UseDeveloperExceptionPage();
-
-            PlanetHub.Current = app.Services.GetService<IHubContext<PlanetHub>>();
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)
@@ -247,13 +246,13 @@ namespace Valour.Server
                 options.MemoryBufferThreshold = 10240000;
                 options.MultipartBodyLengthLimit = 10240000;
             });
-
-            services.AddDbContextPool<CdnDb>(options =>
+            
+            services.AddDbContext<CdnDb>(options =>
             {
                 options.UseNpgsql(CdnDb.ConnectionString);
             });
 
-            services.AddDbContextPool<ValourDB>(options =>
+            services.AddDbContext<ValourDB>(options =>
             {
                 options.UseNpgsql(ValourDB.ConnectionString);
             });
@@ -276,11 +275,13 @@ namespace Valour.Server
 
             services.AddSingleton<CdnMemoryCache>();
 
-            services.AddHostedService<MessageCacheWorker>();
+            services.AddScoped<UserOnlineService>();
+            services.AddScoped<CoreHubService>();
+            services.AddScoped<CurrentlyTypingService>();
+            
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
-            services.AddHostedService<ChannelCurrentlyTypingWorker>();
 
             services.AddEndpointsApiExplorer();
 
