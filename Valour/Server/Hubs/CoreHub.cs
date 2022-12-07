@@ -1,22 +1,10 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Messages;
-using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
 using Valour.Shared.Authorization;
-using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds;
-using System.Collections.Concurrent;
 using Valour.Shared;
-using IdGen;
-using Newtonsoft.Json.Linq;
-using Valour.Server.Database.Items.Channels;
-using Valour.Server.Database.Nodes;
-using Valour.Server.API;
 using Valour.Server.Hubs;
 using Valour.Server.Services;
-using Valour.Shared.Channels;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

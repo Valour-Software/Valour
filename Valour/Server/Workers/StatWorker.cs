@@ -5,7 +5,7 @@ namespace Valour.Server.Workers;
 public class StatWorker : IHostedService, IDisposable
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    public readonly ILogger<StatWorker> _logger;
+    private readonly ILogger<StatWorker> _logger;
     private Timer _timer;
     private static int _messageCount = 0;
 
