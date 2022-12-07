@@ -2,7 +2,11 @@
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
 using Valour.Server.Requests;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
@@ -128,21 +132,25 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
-    public static IResult GetRoute(HttpContext ctx, long id) =>
+    public static IResult GetRoute(long id, HttpContext ctx) =>
         Results.Json(ctx.GetItem<PlanetCategoryChannel>(id));
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
     [CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetCategoryChannel category,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PlanetCategoryChannel category, 
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var old = ctx.GetItem<PlanetCategoryChannel>(id);
 
         // Validation
@@ -176,20 +184,24 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(category);
+        hubService.NotifyPlanetItemChange(category);
 
         // Response
         return Results.Ok(category);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetCategoryChannel category,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PlanetCategoryChannel category, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (category.PlanetId != planetId)
@@ -228,19 +240,23 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(category);
+        hubService.NotifyPlanetItemChange(category);
 
         return Results.Created(category.GetUri(), category);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
-    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId,
-        [FromBody] CreatePlanetCategoryChannelRequest request, ILogger<PlanetCategoryChannel> logger)
+    public static async Task<IResult> PostRouteWithDetailsAsync(
+        [FromBody] CreatePlanetCategoryChannelRequest request,
+        long planetId,
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
+         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var category = request.Category;
@@ -307,20 +323,24 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
         await tran.CommitAsync();
 
-        PlanetHub.NotifyPlanetItemChange(category);
+        hubService.NotifyPlanetItemChange(category);
 
         return Results.Created(category.GetUri(), category);
     }
 
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id,
+        long planetId,
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetCategoryChannel> logger)
     {
-        var db = ctx.GetDb();
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
 
         if (await db.PlanetCategoryChannels.CountAsync(x => x.PlanetId == planetId) < 2)
@@ -332,7 +352,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             return Results.BadRequest("Category must be empty.");
 
         // Always use transaction for multi-step DB operations
-        using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -347,19 +367,18 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemDelete(category);
+        hubService.NotifyPlanetItemDelete(category);
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/children"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
-    public static async Task<IResult> GetChildrenRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetChildrenRouteAsync(
+        long id,
+        ValourDB db)
     {
-        var category = ctx.GetItem<PlanetCategoryChannel>(id);
-        var db = ctx.GetDb();
-
         // Build child list. We don't have to check permissions for each, because even if the ID is there,
         // it's impossible to get any details on the channels that are hidden.
         var children_ids = await db.PlanetChannels.Where(x => x.ParentId == id).Select(x => x.Id).ToListAsync();
@@ -367,14 +386,19 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         return Results.Json(children_ids);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/children/order"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/children/order"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
      CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
-    public static async Task<IResult> SetChildOrderRouteAsync(HttpContext ctx, long id, long planetId, [FromBody] long[] order,
+    public static async Task<IResult> SetChildOrderRouteAsync(
+        [FromBody] long[] order, 
+        long id, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetCategoryChannel> logger)
     {
-        var db = ctx.GetDb();
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
 
         if (category.PlanetId != planetId)
@@ -388,7 +412,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             return Results.BadRequest("Your order does not contain all the children.");
 
         // Use transaction so we can stop at any failure
-        using var tran = await db.Database.BeginTransactionAsync();
+        await using var tran = await db.Database.BeginTransactionAsync();
 
         List<PlanetChannel> children = new();
 
@@ -430,7 +454,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
         foreach (var child in children)
         {
-            PlanetHub.NotifyPlanetItemChange(child);
+            hubService.NotifyPlanetItemChange(child);
         }
 
         return Results.NoContent();

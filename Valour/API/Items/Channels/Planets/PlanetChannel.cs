@@ -9,6 +9,7 @@ using Valour.Api.Items.Planets;
 namespace Valour.Api.Items.Channels.Planets;
 
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
+[JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
 public abstract class PlanetChannel : Channel, IPlanetItem
 {

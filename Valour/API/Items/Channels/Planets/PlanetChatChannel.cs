@@ -128,7 +128,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     }
 
     /// <summary>
-    /// Returns if the member has the given permission in this category
+    /// Returns if the member has the given permission in this channel
     /// </summary>
     public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
     {
@@ -241,7 +241,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
         (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
 
-    public override async Task SendIsTyping()
+    public async Task SendIsTyping()
     {
         await Node.PostAsync($"{IdRoute}/typing", null);
     }

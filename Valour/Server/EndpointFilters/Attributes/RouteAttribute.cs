@@ -1,4 +1,5 @@
-﻿namespace Valour.Server.Attributes;
+﻿namespace Valour.Server.EndpointFilters.Attributes;
+
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
 public class ValourRouteAttribute : Attribute

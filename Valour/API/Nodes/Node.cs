@@ -86,9 +86,9 @@ public class Node
 
     private async Task ConnectSignalRHub()
     {
-        string address = ValourClient.BaseAddress + "planethub";
+        string address = ValourClient.BaseAddress + "hubs/core";
 
-        await Logger.Log("Connecting to Planethub at " + address);
+        await Logger.Log("Connecting to Core hub at " + address);
 
         HubConnection = new HubConnectionBuilder()
         .WithUrl(address, options =>
@@ -202,7 +202,7 @@ public class Node
         {
             await Task.Delay(3000);
 
-            await Log("Reconnecting to Planet Hub...");
+            await Log("Reconnecting to Core Hub...");
 
             try
             {

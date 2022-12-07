@@ -141,6 +141,11 @@ public class ValourDB : DbContext
     public DbSet<PlanetChatChannel> PlanetChatChannels { get; set; }
 
     /// <summary>
+    /// Table for all planet voice channels
+    /// </summary>
+    public DbSet<PlanetVoiceChannel> PlanetVoiceChannels { get; set; }
+
+    /// <summary>
     /// Table for all planet chat categories
     /// </summary>
     public DbSet<PlanetCategoryChannel> PlanetCategoryChannels { get; set; }

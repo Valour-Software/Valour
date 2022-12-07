@@ -1,0 +1,37 @@
+﻿.peer-video-wrapper {
+    display: flex;
+    text-align: center;
+    width: fit-content;
+    max-height: 50%;
+    background-color: black;
+    position: relative;
+    outline: 5px solid var(--main-1);
+    margin: 20px;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.peer-video {
+    width: 100%;
+    border-radius: 20px;
+}
+
+.pause-button {
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    background-color: red;
+    color: white;
+    outline: 3px solid var(--main-5);
+    border-radius: 50%;
+    left: calc(50% - 20px);
+    bottom: 20px;
+    text-align: center;
+    line-height: 50px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.peer-video-wrapper:hover .pause-button {
+    opacity: 1;
+}

@@ -3,6 +3,10 @@ using System.Security.Cryptography;
 using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
@@ -94,11 +98,12 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
     public async Task<PlanetChannel> GetTargetAsync(ValourDB db)
         => await db.PlanetChannels.FindAsync(TargetId);
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
-    public static async Task<IResult> GetNodeRouteAsync(HttpContext ctx, long id)
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
+    public static async Task<IResult> GetNodeRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var node = await FindAsync<PermissionsNode>(id, db);
         if (node is null)
             return ValourResult.NotFound<PermissionsNode>();
@@ -106,11 +111,13 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
         return Results.Json(node);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{type}/{targetId}/{roleId}", $"/api/{nameof(PermissionsNode)}"), TokenRequired, InjectDb]
-    public static async Task<IResult> GetNodeForTargetRouteAsync(HttpContext ctx, PermissionsTargetType type, long targetId, long roleId)
+    [ValourRoute(HttpVerbs.Get, "/{type}/{targetId}/{roleId}", $"/api/{nameof(PermissionsNode)}"), TokenRequired]
+    public static async Task<IResult> GetNodeForTargetRouteAsync(
+        PermissionsTargetType type, 
+        long targetId, 
+        long roleId, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var node = await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == targetId && x.RoleId == roleId && x.TargetType == type);
         if (node is null)
             return ValourResult.NotFound<PermissionsNode>();
@@ -118,13 +125,19 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
         return Results.Json(node);
     }
 
-    [ValourRoute(HttpVerbs.Put, "/{type}/{targetId}/{roleId}", $"/api/{nameof(PermissionsNode)}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put, "/{type}/{targetId}/{roleId}", $"/api/{nameof(PermissionsNode)}"), TokenRequired]
     // Planet permissions are not required in attribute because
     // There will be more permissions than just planet permissions!
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, [FromBody] PermissionsNode node,
-        PermissionsTargetType type, long targetId, long roleId, ILogger<PermissionsNode> logger)
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PermissionsNode node,
+        PermissionsTargetType type,
+        long targetId, 
+        long roleId,
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
+        ILogger<PermissionsNode> logger)
     {
-        var db = ctx.GetDb();
         var token = ctx.GetToken();
 
         if (node.TargetId != targetId)
@@ -180,18 +193,21 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(node);
+        hubService.NotifyPlanetItemChange(node);
 
         return Results.Json(node);
     }
 
-    [ValourRoute(HttpVerbs.Post, prefix: $"/api/{nameof(PermissionsNode)}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, prefix: $"/api/{nameof(PermissionsNode)}"), TokenRequired]
     // Planet permissions are not required in attribute because
     // There will be more permissions than just planet permissions!
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PermissionsNode node,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PermissionsNode node, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PermissionsNode> logger)
     {
-        var db = ctx.GetDb();
         var token = ctx.GetToken();
 
         if (!token.HasScope(UserPermissions.PlanetManagement))
@@ -246,7 +262,7 @@ public class PermissionsNode : Item, IPlanetItem, ISharedPermissionsNode
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(node);
+        hubService.NotifyPlanetItemChange(node);
 
         return Results.Created(node.GetUri(), node);
     }

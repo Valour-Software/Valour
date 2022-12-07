@@ -8,8 +8,12 @@ using Valour.Server.Database.Items.Messages;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
 using Valour.Server.Notifications;
 using Valour.Server.Requests;
+using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -166,20 +170,24 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
     public static IResult GetRoute(HttpContext ctx, long id) =>
         Results.Json(ctx.GetItem<PlanetChatChannel>(id));
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, long planetId, [FromBody] PlanetChatChannel channel,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PlanetChatChannel channel, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         if (channel.PlanetId != planetId)
@@ -218,19 +226,23 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(channel);
+        hubService.NotifyPlanetItemChange(channel);
 
         return Results.Created(channel.GetUri(), channel);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    public static async Task<IResult> PostRouteWithDetailsAsync(HttpContext ctx, long planetId, 
-        [FromBody] CreatePlanetChatChannelRequest request, ILogger<PlanetChatChannel> logger)
+    public static async Task<IResult> PostRouteWithDetailsAsync(
+        [FromBody] CreatePlanetChatChannelRequest request, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
+        ILogger<PlanetChatChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
 
         var channel = request.Channel;
@@ -297,20 +309,24 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
         await tran.CommitAsync();
 
-        PlanetHub.NotifyPlanetItemChange(channel);
+        hubService.NotifyPlanetItemChange(channel);
 
         return Results.Created(channel.GetUri(), channel);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetChatChannel channel,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PlanetChatChannel channel, 
+        long id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
-        var db = ctx.GetDb();
         var old = ctx.GetItem<PlanetChatChannel>(id);
 
         // Validation
@@ -344,24 +360,28 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(channel);
+        hubService.NotifyPlanetItemChange(channel);
 
         // Response
         return Results.Ok(channel);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id, long planetId,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id, 
+        long planetId, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetChatChannel> logger)
     {
-        var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
 
         // Always use transaction for multi-step DB operations
-        using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginTransactionAsync();
 
         try
         {
@@ -376,17 +396,21 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemDelete(channel);
+        hubService.NotifyPlanetItemDelete(channel);
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
-    public static async Task<IResult> HasPermissionRouteAsync(HttpContext ctx, long id, long memberId, long value)
+    public static async Task<IResult> HasPermissionRouteAsync(
+        long id, 
+        long memberId, 
+        long value, 
+        HttpContext ctx,
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
 
         var targetMember = await FindAsync<PlanetMember>(memberId, db);
@@ -400,13 +424,16 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
     // Message routes
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/message/{messageId}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/message/{messageId}"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, long messageId)
+    public static async Task<IResult> GetMessagesRouteAsync(
+        long id, 
+        long messageId, 
+        HttpContext ctx,
+        ValourDB db)
     {
-        var db = ctx.GetDb();
         var message = await db.PlanetMessages.FindAsync(messageId);
         if (message is null)
             message = PlanetMessageWorker.GetStagedMessage(messageId);
@@ -417,21 +444,23 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         return Results.Json(message);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> GetMessagesRouteAsync(HttpContext ctx, long id, [FromQuery] long index = long.MaxValue, [FromQuery] int count = 10)
+    public static async Task<IResult> GetMessagesRouteAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db, 
+        [FromQuery] long index = long.MaxValue, 
+        [FromQuery] int count = 10)
     {
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
-
-        var channel = ctx.GetItem<PlanetChatChannel>(id);
-        var db = ctx.GetDb();
-
+        
         List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id, count);
 
-        count = count - staged.Count;
+        count -= staged.Count;
 
         if (count > 0)
         {
@@ -453,12 +482,18 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
     public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
                               ChatChannelPermissionsEnum.PostMessages)]
-    public static async Task<IResult> PostMessageRouteAsync(HttpContext ctx, HttpClient client, ValourDB valourDb, CdnDb db, [FromBody] PlanetMessage message)
+    public static async Task<IResult> PostMessageRouteAsync(
+        [FromBody] PlanetMessage message,
+        HttpContext ctx, 
+        HttpClient client, 
+        ValourDB valourDb, 
+        CdnDb db,
+        UserOnlineService onlineService)
     {
         var member = ctx.GetMember();
 
@@ -540,18 +575,24 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         PlanetMessageWorker.AddToQueue(message);
 
         StatWorker.IncreaseMessageCount();
+        
+        await onlineService.UpdateOnlineState(member.UserId);
 
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
-    public static async Task<IResult> DeleteMessageRouteAsync(HttpContext ctx, long id, long message_id,
+    public static async Task<IResult> DeleteMessageRouteAsync(
+        long id, 
+        long message_id, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetChatChannel> logger)
     {
-        var db = ctx.GetDb();
         var member = ctx.GetMember();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
 
@@ -596,38 +637,27 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             }
         }
 
-        PlanetHub.NotifyMessageDeletion(message);
+        hubService.NotifyMessageDeletion(message);
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/typing"), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post, "/{id}/typing"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
     [PlanetMembershipRequired]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
                               ChatChannelPermissionsEnum.PostMessages)]
-    public static async Task<IResult> PostTypingAsync(HttpContext ctx, HttpClient client, long id)
+    public static async Task<IResult> PostTypingAsync(
+        long id, 
+        HttpContext ctx,
+        CurrentlyTypingService typingService)
     {
         var member = ctx.GetMember();
-
-        if (!PlanetHub.CurrentlyTyping.TryGetValue(id, out _))
-        {
-            PlanetHub.CurrentlyTyping[id] = new();
-            PlanetHub.PrevCurrentlyTyping[id] = new();
-        }
-
-        PlanetHub.CurrentlyTyping[id][member.UserId] = DateTime.UtcNow;
-
-        if (PlanetHub.PrevCurrentlyTyping[id].Count == 0)
-        {
-            PlanetHub.PrevCurrentlyTyping[id] = PlanetHub.CurrentlyTyping[id].Keys.ToList();
-            PlanetHub.Current.Clients.Group($"c-{id}").SendAsync("Channel-CurrentlyTyping-Update", new ChannelTypingUpdate()
-            {
-                ChannelId = id,
-                UserIds = PlanetHub.PrevCurrentlyTyping[id]
-            });
-        }
-
+        if (member is null)
+            return ValourResult.Forbid("Member not found");
+        
+        typingService.AddCurrentlyTyping(id, member.UserId);
+        
         return Results.Ok();
     }
 

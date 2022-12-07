@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Shared.Authorization;
 using Valour.Server.Database.Items.Authorization;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
 using Valour.Shared.Items.Users;
 
 namespace Valour.Server.Database.Items.Users;
@@ -22,12 +24,14 @@ public class TenorFavorite : Item, ISharedTenorFavorite
 
     #region Routes
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    public static async Task<IResult> PostAsync(HttpContext ctx, [FromBody] TenorFavorite favorite)
+    public static async Task<IResult> PostAsync(
+        [FromBody] TenorFavorite favorite, 
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
         var user = await User.FindAsync(token.UserId, db);
 
         favorite.UserId = user.Id;
@@ -39,12 +43,14 @@ public class TenorFavorite : Item, ISharedTenorFavorite
         return Results.Json(favorite);
     }
     
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    public static async Task<IResult> PostAsync(HttpContext ctx, long id)
+    public static async Task<IResult> PostAsync(
+        long id, 
+        HttpContext ctx, 
+        ValourDB db)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
         var user = await User.FindAsync(token.UserId, db);
 
         var favorite = await FindAsync<TenorFavorite>(id, db);

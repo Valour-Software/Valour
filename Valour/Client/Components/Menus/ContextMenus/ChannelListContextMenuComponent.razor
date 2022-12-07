@@ -5,6 +5,9 @@
 
     @if (SelectedItem is PlanetCategoryChannel && CanModifyCategory){
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
+        /* Uncomment when voice is production ready
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
+        */
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
 
@@ -15,7 +18,7 @@
     <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-item'>Copy Id</BlazorContextMenu.Item>
 </ContextMenu>
 
-    @code {
+@code {
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
@@ -47,6 +50,10 @@
             {
                 CanModifyChannel = await item.HasPermissionAsync(selfmember, ChatChannelPermissions.ManageChannel);
             }
+            else if (item is PlanetVoiceChannel)
+            {
+                CanModifyChannel = await item.HasPermissionAsync(selfmember, VoiceChannelPermissions.ManageChannel);
+            }
         }
         Instance.Refresh();
     }
@@ -76,6 +83,24 @@
         }
 
         Modal.Show<CreateChannelComponent>("Create Channel", modalParams);
+    }
+
+    public async Task OpenCreateVoiceChannel()
+    {
+        var planet = await SelectedItem.GetPlanetAsync();
+        ModalParameters modalParams = new();
+        modalParams.Add("Planet", planet);
+
+        if (SelectedItem is PlanetCategoryChannel)
+        {
+            modalParams.Add("Parent", SelectedItem);
+        }
+        else
+        {
+            modalParams.Add("Parent", null);
+        }
+
+        Modal.Show<CreateVoiceChannelComponent>("Create Voice Channel", modalParams);
     }
     
     public async Task OpenCreateCategory(){

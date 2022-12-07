@@ -140,6 +140,6 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
         (await ValourClient.PrimaryNode.GetJsonAsync<List<DirectMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
 
     // IsCurrentlyTyping is not supported for direct chat channels right now
-    public override Task SendIsTyping()
+    public Task SendIsTyping()
         => Task.CompletedTask;
 }

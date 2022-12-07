@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
@@ -55,13 +57,15 @@ public class OauthApp : Item, ISharedOauthApp
     [Column("redirect_url")]
     public string RedirectUrl { get; set; }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, [FromBody] OauthApp app,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] OauthApp app, 
+        HttpContext ctx,
+        ValourDB db,
         ILogger<User> logger)
     {
         var token = ctx.GetToken();
-        var db = ctx.GetDb();
 
         // Unlike most other entities, we are just copying over a few fields here and
         // ignoring the rest. There are so many things that *should not* be touched by

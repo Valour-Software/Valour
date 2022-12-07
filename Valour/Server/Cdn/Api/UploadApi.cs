@@ -13,6 +13,7 @@ using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
+using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 
@@ -110,7 +111,7 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, [FromHeader] string authorization)
+        private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, [FromHeader] string authorization)
         {
             var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
             if (authToken is null) return ValourResult.InvalidToken();
@@ -135,7 +136,7 @@ namespace Valour.Server.Cdn.Api
                 user.PfpUrl = bucketResult.Message;
                 await valourDb.SaveChangesAsync();
 
-                PlanetHub.NotifyUserChange(user, valourDb);
+                await hubService.NotifyUserChange(user);
 
                 return ValourResult.Ok(bucketResult.Message);
             }
@@ -147,7 +148,7 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> PlanetImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, long planetId, [FromHeader] string authorization)
+        private static async Task<IResult> PlanetImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, long planetId, [FromHeader] string authorization)
         {
             var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
             if (authToken is null) return ValourResult.InvalidToken();
@@ -179,7 +180,7 @@ namespace Valour.Server.Cdn.Api
                 planet.IconUrl = bucketResult.Message;
                 await valourDb.SaveChangesAsync();
 
-                PlanetHub.NotifyPlanetChange(planet);
+                hubService.NotifyPlanetChange(planet);
 
                 return ValourResult.Ok(bucketResult.Message);
             }

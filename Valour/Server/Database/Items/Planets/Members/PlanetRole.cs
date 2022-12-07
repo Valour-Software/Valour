@@ -3,6 +3,10 @@ using System.Drawing;
 using System.Security.Cryptography;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Hubs;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
@@ -141,13 +145,13 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         db.PlanetRoles.Remove(this);
     }
 
-    [ValourRoute(HttpVerbs.Get), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Get), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(HttpContext ctx, long id)
+    public static async Task<IResult> GetRouteAsync(
+        long id, 
+        ValourDB db)
     {
-        var db = ctx.GetDb();
-
         var role = await FindAsync<PlanetRole>(id, db);
 
         if (role is null)
@@ -156,13 +160,16 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         return Results.Json(role);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Post), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PostRouteAsync(HttpContext ctx, [FromBody] PlanetRole role,
+    public static async Task<IResult> PostRouteAsync(
+        [FromBody] PlanetRole role, 
+        HttpContext ctx,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetRole> logger)
     {
-        var db = ctx.GetDb();
         var authMember = ctx.GetMember();
 
         role.Position = await db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
@@ -182,20 +189,22 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(role);
+        hubService.NotifyPlanetItemChange(role);
 
         return Results.Created(role.GetUri(), role);
 
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> PutRouteAsync(HttpContext ctx, long id, [FromBody] PlanetRole role,
+    public static async Task<IResult> PutRouteAsync(
+        [FromBody] PlanetRole role, 
+        long id,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetRole> logger)
     {
-        var db = ctx.GetDb();
-
         var oldRole = await FindAsync<PlanetRole>(id, db);
 
         if (role.PlanetId != oldRole.PlanetId)
@@ -215,20 +224,21 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemChange(role);
+        hubService.NotifyPlanetItemChange(role);
 
         return Results.Json(role);
 
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired, InjectDb]
+    [ValourRoute(HttpVerbs.Delete), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageRoles)]
-    public static async Task<IResult> DeleteRouteAsync(HttpContext ctx, long id,
+    public static async Task<IResult> DeleteRouteAsync(
+        long id,
+        ValourDB db,
+        CoreHubService hubService,
         ILogger<PlanetRole> logger)
     {
-        var db = ctx.GetDb();
-
         var role = await FindAsync<PlanetRole>(id, db);
 
         try
@@ -242,7 +252,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
             return Results.Problem(e.Message);
         }
 
-        PlanetHub.NotifyPlanetItemDelete(role);
+        hubService.NotifyPlanetItemDelete(role);
 
         return Results.NoContent();
 

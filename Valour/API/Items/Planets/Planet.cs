@@ -15,6 +15,7 @@ public class Planet : Item, ISharedPlanet
 {
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
+    private List<PlanetVoiceChannel> VoiceChannels { get; set; }
     private List<PlanetCategoryChannel> Categories { get; set; }
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
@@ -203,6 +204,54 @@ public class Planet : Item, ISharedPlanet
     }
 
     /// <summary>
+    /// Returns the voice channels of a planet
+    /// </summary>
+    public async ValueTask<List<PlanetVoiceChannel>> GetVoiceChannelsAsync(bool force_refresh = false)
+    {
+        if (VoiceChannels == null || force_refresh)
+        {
+            await LoadVoiceChannelsAsync();
+        }
+
+        return VoiceChannels;
+    }
+
+    /// <summary>
+    /// Requests and caches voice channels from the server
+    /// </summary>
+    public async Task LoadVoiceChannelsAsync()
+    {
+        var channels = (await Node.GetJsonAsync<List<PlanetVoiceChannel>>($"{IdRoute}/voicechannels")).Data;
+
+        if (channels is null)
+            return;
+
+        foreach (var channel in channels)
+        {
+            // Skip event for bulk loading
+            await ValourCache.Put(channel.Id, channel, true);
+        }
+
+        // Create container if needed
+        if (VoiceChannels == null)
+            VoiceChannels = new List<PlanetVoiceChannel>();
+        else
+            VoiceChannels.Clear();
+
+        // Retrieve cache values (this is necessary to ensure single copies of items)
+        foreach (var channel in channels)
+        {
+            var vChan = ValourCache.Get<PlanetVoiceChannel>(channel.Id);
+
+            if (vChan is not null)
+                VoiceChannels.Add(vChan);
+        }
+
+        // Sort via position
+        VoiceChannels.Sort((a, b) => a.Position.CompareTo(b.Position));
+    }
+
+    /// <summary>
     /// Returns the members of the planet
     /// </summary>
     public async ValueTask<List<PlanetMember>> GetMembersAsync(bool force_refresh = false)
@@ -386,6 +435,35 @@ public class Planet : Item, ISharedPlanet
             return;
 
         Channels.Remove(channel);
+    }
+
+    /// <summary>
+    /// Ran to notify the planet that a voice channel has been updated
+    /// </summary>
+    public async ValueTask NotifyUpdateVoiceChannel(PlanetVoiceChannel channel)
+    {
+        if (VoiceChannels == null)
+            await LoadChannelsAsync();
+
+        if (!VoiceChannels.Contains(channel))
+            return;
+
+        // Resort
+        VoiceChannels.Sort((a, b) => a.Position.CompareTo(b.Position));
+    }
+
+    /// <summary>
+    /// Ran to notify the planet that a voice channel has been deleted
+    /// </summary>
+    public async ValueTask NotifyDeleteVoiceChannel(PlanetVoiceChannel channel)
+    {
+        if (VoiceChannels == null)
+            await LoadChannelsAsync();
+
+        if (!VoiceChannels.Contains(channel))
+            return;
+
+        VoiceChannels.Remove(channel);
     }
 
     /// <summary>
