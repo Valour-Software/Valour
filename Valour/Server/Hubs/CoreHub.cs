@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared;
@@ -21,15 +22,18 @@ namespace Valour.Server.Database
         private readonly ValourDB _db;
         private readonly CoreHubService _hubService;
         private readonly UserOnlineService _onlineService;
+        private readonly ChannelStateService _stateService;
 
         public CoreHub(
             ValourDB db, 
             CoreHubService hubService, 
-            UserOnlineService onlineService)
+            UserOnlineService onlineService,
+            ChannelStateService stateService)
         {
-            this._db = db;
-            this._hubService = hubService;
-            this._onlineService = onlineService;
+            _db = db;
+            _hubService = hubService;
+            _onlineService = onlineService;
+            _stateService = stateService;
         }
 
         public async Task<TaskResult> Authorize(string token)
@@ -139,15 +143,24 @@ namespace Valour.Server.Database
 
             ConnectionTracker.TrackGroupMembership(groupId, Context);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
-
-            // These are always the last messages so we always update user state for these
+            
             var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
-            if (channelState != null)
+
+            if (channelState is null)
             {
-                channelState.LastViewedState = channel.GetCurrentState();
-                _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState);
-                await _db.SaveChangesAsync();
+                channelState = new UserChannelState()
+                {
+                    UserId = authToken.UserId,
+                    ChannelId = channelId
+                };
+
+                _db.UserChannelStates.Add(channelState);
             }
+            
+            channelState.LastViewedState = await _stateService.GetState(channelId);
+            await _db.SaveChangesAsync();
+            
+            _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState);
 
             return new TaskResult(true, "Connected to channel " + channelId);
         }

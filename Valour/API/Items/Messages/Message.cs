@@ -39,6 +39,7 @@ public abstract class Message : Item, ISharedMessage
     /// <summary>
     /// Index of the message
     /// </summary>
+    [Obsolete("Message Id should be used instead.", true)]
     public long MessageIndex { get; set; }
 
     /// <summary>

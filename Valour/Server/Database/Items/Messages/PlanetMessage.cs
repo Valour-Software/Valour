@@ -85,6 +85,7 @@ public class PlanetMessage : Item, IPlanetItem, ISharedPlanetMessage
     /// Index of the message
     /// </summary>
     [Column("message_index")]
+    [Obsolete("Message Id should be used instead.", true)]
     public long MessageIndex { get; set; }
 
     /// <summary>

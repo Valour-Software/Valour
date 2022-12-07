@@ -51,7 +51,25 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
     public override async Task Close() =>
         await ValourClient.ClosePlanetChannel(this);
-    
+
+    public bool DetermineUnread()
+    {
+        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == Id))
+            return false;
+
+        if (!ValourClient.ChannelStates.ContainsKey(Id))
+            return true;
+
+        if (string.IsNullOrEmpty(State))
+            return true;
+        
+        long.TryParse(State, out var channelIndex);
+
+        var localState = ValourClient.ChannelStates[Id].LastViewedState;
+        long.TryParse(localState, out var localIndex);
+
+        return !(localIndex >= channelIndex);
+    }
 
     /// <summary>
     /// Returns the permissions node for the given role id

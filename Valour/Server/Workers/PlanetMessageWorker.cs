@@ -1,140 +1,160 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Services;
-using Valour.Shared.Channels;
-using Valour.Shared.Items.Channels;
 
 namespace Valour.Server.Workers
 {
-    public class PlanetMessageWorker : BackgroundService
+    public class PlanetMessageWorker : IHostedService, IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<PlanetMessageWorker> _logger;
-        
 
+        // A queue of all messages that need to be processed
+        private static readonly BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
+        
+        // A map from channel id to the messages currently queued for that channel
+        private static readonly ConcurrentDictionary<long, List<PlanetMessage>> StagedChannelMessages = new();
+        
+        // A map from message id to the message queued
+        private static readonly ConcurrentDictionary<long, PlanetMessage> StagedMessages = new();
+
+        // Prevents deleted messages from being staged
+        private static readonly HashSet<long> BlockSet = new();
+
+        /// <summary>
+        /// Holds the long-running queue task
+        /// </summary>
+        private static Task _queueTask;
+        
+        // Timer for executing timed tasks
+        private Timer _timer;
+        
         public PlanetMessageWorker(ILogger<PlanetMessageWorker> logger,
                                    IServiceProvider serviceProvider)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
         }
-
-        private static BlockingCollection<PlanetMessage> MessageQueue = new(new ConcurrentQueue<PlanetMessage>());
-
-        // Prevents deleted messages from being staged
-        private static HashSet<long> BlockSet = new();
-
-        private static ConcurrentDictionary<long, PlanetMessage> StagedMessages = new();
-
-        public static Dictionary<long, long> ChannelMessageIndices = new();
-
-        public static PlanetMessage GetStagedMessage(long id)
-        {
-            StagedMessages.TryGetValue(id, out PlanetMessage msg);
-            return msg;
-        }
-
+        
         public static void AddToQueue(PlanetMessage message)
         {
+            // Generate Id for message
+            message.Id = IdManager.Generate();
             MessageQueue.Add(message);
         }
 
         public static void RemoveFromQueue(PlanetMessage message)
         {
             // Remove currently staged
-            StagedMessages.Remove(message.Id, out _);
+            StagedChannelMessages.Remove(message.Id, out _);
 
             // Protect from being staged
             BlockSet.Add(message.Id);
         }
 
-        public static List<PlanetMessage> GetStagedMessages(long channelId, int max)
+        public static PlanetMessage GetStagedMessage(long messageId)
         {
-            return StagedMessages.Values.Where(x => x.ChannelId == channelId).TakeLast(max).ToList();
+            StagedMessages.TryGetValue(messageId, out var staged);
+            return staged;
+        }
+        
+        public static List<PlanetMessage> GetStagedMessages(long channelId)
+        {
+            StagedChannelMessages.TryGetValue(channelId, out var stagedList);
+            return stagedList ?? new List<PlanetMessage>();
+        }
+        
+        public Task StartAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("Starting Message Worker");
+
+            // Start the queue task
+            _queueTask = Task.Run(ConsumeMessageQueue);
+            
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, 
+                TimeSpan.FromSeconds(20));
+
+            return Task.CompletedTask;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private async void DoWork(object? state)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            // First check if queue task is running
+            if (_queueTask.IsCompleted)
             {
-                Task task = Task.Run(async () =>
-                {
-                    // This is a stream and will run forever
-                    foreach (PlanetMessage Message in MessageQueue.GetConsumingEnumerable())
-                    {
-                        using var scope = _serviceProvider.CreateScope();
-                        await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
-                        var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
-                        
-                        if (BlockSet.Contains(Message.Id))
-                        {
-                            BlockSet.Remove(Message.Id);
-                            continue;
-                        }
-
-                        long channelId = Message.ChannelId;
-
-                        PlanetChatChannel channel = await db.PlanetChatChannels.FindAsync(channelId);
-
-                        // Update message count. May have to queue this in the future to prevent concurrency issues (done).
-                        channel.MessageCount += 1;
-
-                        // Get index for message
-                        long index = channel.MessageCount;
-                        channel.State = $"MessageIndex-{channel.MessageCount}";
-                        channel.TimeLastActive = DateTime.UtcNow;
-
-                        Message.MessageIndex = index;
-                        Message.TimeSent = DateTime.UtcNow;
-
-                        // This is not awaited on purpose
-#pragma warning disable CS4014
-                        hubService.NotifyChannelStateUpdate(Message.PlanetId, Message.ChannelId, channel.State);
-                        hubService.RelayMessage(Message);
-#pragma warning restore CS4014
-
-                        StagedMessages.TryAdd(Message.Id, Message);
-                    }
-
-
-                    //}
-                    //catch (System.Exception e)
-                    //{
-                    //    Console.WriteLine("FATAL MESSAGE WORKER ERROR:");
-                    //    Console.WriteLine(e.Message);
-                    //}
-                });
-
-                while (!task.IsCompleted)
-                {
-                    using var scope = _serviceProvider.CreateScope();
-                    await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
-                    
-                    _logger.LogInformation($"Planet Message Worker running at: {DateTimeOffset.Now.ToString()}");
-                    _logger.LogInformation($"Queue size: {MessageQueue.Count.ToString()}");
-                    _logger.LogInformation($"Saving {StagedMessages.Count.ToString()} messages to DB.");
-
-                    if (db != null)
-                    {
-                        await db.PlanetMessages.AddRangeAsync(StagedMessages.Values);
-                        await db.SaveChangesAsync();
-                        BlockSet.Clear();
-                        StagedMessages.Clear();
-                        _logger.LogInformation($"Saved successfully.");
-                    }
-
-                    // Save to DB
-
-
-                    await Task.Delay(30000, stoppingToken);
-                }
-
-                _logger.LogInformation("Planet Message Worker task stopped at: {time}", DateTimeOffset.Now.ToString());
-                _logger.LogInformation("Restarting.", DateTimeOffset.Now.ToString());
+                // If not, restart it
+                _queueTask = Task.Run(ConsumeMessageQueue);
+                
+                _logger.LogInformation($@"Planet Message Worker queue task stopped at: {DateTime.UtcNow}
+                                                 Restarting queue task.");
             }
+
+            /* Get required services in new scope */
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            await using var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+            
+            _logger.LogInformation($@"Planet Message Worker running at: {DateTimeOffset.Now.ToString()}
+                                             Queue size: {MessageQueue.Count.ToString()}
+                                             Saving {StagedMessages.Count.ToString()} messages to DB.");
+
+            await db.PlanetMessages.AddRangeAsync(StagedMessages.Values);
+            await db.SaveChangesAsync();
+            BlockSet.Clear();
+            StagedMessages.Clear();
+            StagedChannelMessages.Clear();
+            _logger.LogInformation($"Saved successfully.");
+            
+        }
+
+        /// <summary>
+        /// This task should run forever and consume messages from
+        /// the queue.
+        /// </summary>
+        private async Task ConsumeMessageQueue()
+        {
+            // This scope is long-living, which is usually bad. But it's only used to send events,
+            // and does not interact with the database, so it should be fine.
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+            
+            // This is a stream and will run forever
+            foreach (var Message in MessageQueue.GetConsumingEnumerable())
+            {
+                if (BlockSet.Contains(Message.Id))
+                    continue; // It's going to get cleared anyways
+
+                Message.TimeSent = DateTime.UtcNow;
+                
+                hubService.NotifyChannelStateUpdate(Message.PlanetId, Message.ChannelId, Message.Id.ToString());
+                hubService.RelayMessage(Message);
+
+                // Add message to message staging
+                StagedMessages[Message.Id] = Message;
+
+                // Add message to channel-specific staging
+                StagedChannelMessages.TryGetValue(Message.ChannelId, out var channelStaged);
+                if (channelStaged is null)
+                {
+                    channelStaged = new List<PlanetMessage>();
+                    StagedChannelMessages[Message.ChannelId] = channelStaged;
+                }
+                channelStaged.Add(Message);
+            }
+        }
+        
+        public Task StopAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("Message Worker is Stopping.");
+
+            _timer?.Change(Timeout.Infinite, 0);
+
+            return Task.CompletedTask;
+        }
+        
+        public void Dispose()
+        {
+            _timer?.Dispose();
         }
     }
 }

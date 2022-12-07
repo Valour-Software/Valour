@@ -278,6 +278,7 @@ namespace Valour.Server
             services.AddScoped<UserOnlineService>();
             services.AddScoped<CoreHubService>();
             services.AddScoped<CurrentlyTypingService>();
+            services.AddScoped<ChannelStateService>();
             
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();

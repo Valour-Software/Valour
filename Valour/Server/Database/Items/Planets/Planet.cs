@@ -613,27 +613,13 @@ public class Planet : Item, ISharedPlanet
 
         var channels = await db.PlanetChannels.Where(x => x.PlanetId == id).ToListAsync();
         var allowedChannels = new List<PlanetChannel>();
-
-        var dbAdded = false;
-
+        
         foreach (var channel in channels)
         {
             if (channel is PlanetChatChannel)
             {
                 if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
                 {
-                    if (!db.UserChannelStates.Any(x => x.UserId == member.UserId && x.ChannelId == channel.Id))
-                    {
-                        await db.UserChannelStates.AddAsync(new UserChannelState()
-                        {
-                            UserId = member.UserId,
-                            ChannelId = channel.Id,
-                            LastViewedState = channel.State
-                        });
-
-                        dbAdded = true;
-                    }
-
                     allowedChannels.Add(channel);
                 }
             }
@@ -653,11 +639,6 @@ public class Planet : Item, ISharedPlanet
             }
         }
 
-        if (dbAdded)
-        {
-            await db.SaveChangesAsync();
-        }
-
         return Results.Json(allowedChannels);
     }
 
@@ -674,33 +655,14 @@ public class Planet : Item, ISharedPlanet
 
         var allowedChannels = new List<PlanetChatChannel>();
 
-        var dbAdded = false;
-
         foreach (var channel in chatChannels)
         {
-            if (!db.UserChannelStates.Any(x => x.UserId == member.UserId && x.ChannelId == channel.Id))
-            {
-                await db.UserChannelStates.AddAsync(new UserChannelState()
-                {
-                    UserId = member.UserId,
-                    ChannelId = channel.Id,
-                    LastViewedState = channel.State
-                });
-
-                dbAdded = true;
-            }
-
             if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
             {
                 allowedChannels.Add(channel);
             }
         }
-
-        if (dbAdded)
-        {
-            await db.SaveChangesAsync();
-        }
-
+        
         return Results.Json(allowedChannels);
     }
 
