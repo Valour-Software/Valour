@@ -2,19 +2,18 @@
 @implements IAsyncDisposable
 
 @inject TenorService TenorService
-@using TenorSharp.SearchResults
-@using TenorSharp.Enums
-@using TenorSharp.ResponseObjects
+@using Valour.TenorTwo.Models
+@using Valour.TenorTwo.Responses
 
 <div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg" class="tenor-bg">
     <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Tenor..." />
     <div class="masonry-scroller">
         <div id="masonry-root">
-            @if (SearchResults?.GifResults is not null)
+            @if (SearchResults?.Results is not null)
             {
-                foreach (var result in SearchResults.GifResults)
+                foreach (var result in SearchResults.Results)
                 {
-                    var media = result.GetMediaType(GifFormat.gif);
+                    var media = result.GetFormat(MediaFormatType.tinygif);
                     if (media is null)
                         return;
 
@@ -39,7 +38,7 @@
                     <img data-natwidth="210" data-natheight="180" class="item" src="./_content/Valour.Client/media/Spookvooper.jpg" alt="Favorites" @onclick='() => OnClickCategory(":favorites:")'/>
                 </div>
                 
-                foreach (var category in CategoryResults.Tags)
+                foreach (var category in CategoryResults.Categories)
                 {
                     <div class="masonry-cell">
                         <h2>@category.Name</h2>
@@ -65,15 +64,19 @@
     /// </summary>
     private DotNetObjectReference<TenorMenuComponent> _thisRef;
     
-    private Gif SearchResults { get; set; }
+    private MediaResponse SearchResults { get; set; }
     
-    private Category CategoryResults { get; set; }
+    private CategoriesResponse CategoryResults { get; set; }
     
     private string _searchTerm;
 
     private bool _visible = false;
 
     private bool _canRender = false;
+
+    // Used for debouncing
+    private string _newestSearch;
+    private DateTime _lastLoad = DateTime.UtcNow;
 
     protected override bool ShouldRender()
         => _canRender;
@@ -84,12 +87,12 @@
         StateHasChanged();
     }
 
-    private async Task OnClickFavorite(GifObject gif)
+    private async Task OnClickFavorite(TenorTwo.Models.Media media)
     {
         TenorFavorite favorite = new TenorFavorite()
         {
             UserId = ValourClient.Self.Id,
-            TenorId = gif.Id
+            TenorId = media.Id
         };
 
         await ValourClient.AddTenorFavorite(favorite);
@@ -97,9 +100,9 @@
         Refresh();
     }
 
-    private async Task OnClickUnfavorite(GifObject gif)
+    private async Task OnClickUnfavorite(TenorTwo.Models.Media media)
     {
-        var favorite = ValourClient.TenorFavorites.FirstOrDefault(x => x.TenorId == gif.Id);
+        var favorite = ValourClient.TenorFavorites.FirstOrDefault(x => x.TenorId == media.Id);
         if (favorite is null)
             return;
         
@@ -108,24 +111,45 @@
         Refresh();
     }
 
-    private async Task OnClickGif(GifObject gif)
+    private async Task OnClickGif(TenorTwo.Models.Media media)
     {
-        await ChannelWindow.Component.InputComponent.AddTenor(gif);
+        await ChannelWindow.Component.InputComponent.AddTenor(media);
         Hide();
         
         // Register share to make Tenor happy
-        await TenorService.Client.RegisterShareAsync(gif.Id, _searchTerm);
+        await TenorService.Client.RegisterShare(media.Id, _searchTerm);
     }
 
     private async Task OnSearchChange()
     {
+        string term = new string(_searchTerm);
+        _newestSearch = _searchTerm;
+        
+        // If we're currently loading a result, wait to send off another request.
+        if (_lastLoad.AddMilliseconds(500) > DateTime.UtcNow)
+            await Task.Delay(500);
+        
+        _lastLoad = DateTime.UtcNow;
+
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            SearchResults = null;
+            Refresh();
+            return;
+        }
+
+        // There's been more typing since the delay and we're not the latest.
+        // Cancel here.
+        if (term != _searchTerm)
+            return;
+
         await FocusAndScroll();
 
         if (_searchTerm == ":favorites:")
             SearchResults = await TenorService.Client
-                .GetGifsAsync(100, 0, ValourClient.TenorFavorites.Select(x => x.TenorId).ToArray());
+                .Posts(ValourClient.TenorFavorites.Select(x => x.TenorId).ToArray(), 100, formatFilter: TenorService.Formats);
         else
-            SearchResults = await TenorService.Client.SearchAsync(_searchTerm, 50, 0);
+            SearchResults = await TenorService.Client.Search(_searchTerm, 50, formatFilter: TenorService.Formats);
         
         Refresh();
     }
@@ -138,7 +162,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        CategoryResults = await TenorService.Client.CategoriesAsync();
+        CategoryResults = await TenorService.Client.Categories();
         Refresh();
     }
 

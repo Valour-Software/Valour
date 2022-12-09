@@ -1,9 +1,9 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using System.Net.Http.Headers
-@using TenorSharp.Enums
-@using TenorSharp.ResponseObjects
 @using Valour.Api.Items.Messages;
+@using Valour.TenorTwo.Models
+@using Media = Valour.TenorTwo.Models.Media
 
 <div>
     <div class="preview-message">
@@ -290,17 +290,17 @@
 
     #endregion
 
-    public async Task AddTenor(GifObject gif)
+    public async Task AddTenor(Media media)
     {
-        var media = gif.GetMediaType(GifFormat.gif);
+        var format = media.GetFormat(MediaFormatType.gif);
         
         await AddMessageAttachment(new MessageAttachment()
         {
             Location = media.Url,
             MimeType = "image/gif",
-            Width = media.Dims[0],
-            Height = media.Dims[1],
-            FileName = gif.Title + ".gif"
+            Width = format.Dims[0],
+            Height = format.Dims[1],
+            FileName = media.Title + ".gif"
         });
     }
 
