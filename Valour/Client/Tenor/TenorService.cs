@@ -29,6 +29,6 @@ public class TenorService
         _httpClient = httpClient;
         var rest = new RestClient(_httpClient, new RestClientOptions("https://tenor.googleapis.com/v2/"));
         _httpClient.DefaultRequestHeaders.UserAgent.Clear();
-        _client = new TenorClient(TenorKey, testClient: rest, mediaFilter: MediaFilter.minimal);
+        _client = new TenorClient(TenorKey, testClient: rest, mediaFilter: new List<GifFormat>() { GifFormat.gif, GifFormat.tinygif });
     }
 }
