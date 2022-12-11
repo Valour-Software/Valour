@@ -195,10 +195,7 @@ namespace Valour.Server
 
             app.MapFallbackToFile("_content/Valour.Client/index.html");
 
-            app.MapHub<CoreHub>(CoreHub.HubUrl, options =>
-            {
-                options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
-            });
+            app.MapHub<CoreHub>(CoreHub.HubUrl);
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)
