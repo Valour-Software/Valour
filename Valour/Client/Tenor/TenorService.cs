@@ -1,5 +1,5 @@
-using RestSharp;
-using TenorSharp;
+using Valour.TenorTwo;
+using Valour.TenorTwo.Models;
 
 namespace Valour.Client.Tenor;
 
@@ -18,6 +18,12 @@ public class TenorService
     private readonly HttpClient _httpClient;
     private readonly TenorClient _client;
 
+    public static readonly List<MediaFormatType> Formats = new()
+    {
+        MediaFormatType.gif,
+        MediaFormatType.tinygif
+    };
+
     public HttpClient GetHttpClient()
     {
         return _httpClient;
@@ -26,8 +32,6 @@ public class TenorService
     public TenorService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        var rest = new RestClient(_httpClient, new RestClientOptions("https://tenor.googleapis.com/v2/"));
-        _httpClient.DefaultRequestHeaders.UserAgent.Clear();
-        _client = new TenorClient(TenorKey, testClient: rest);
+        _client = new TenorClient(TenorKey, "valour", http: httpClient);
     }
 }
