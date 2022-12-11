@@ -86,7 +86,7 @@ public class Node
 
     private async Task ConnectSignalRHub()
     {
-        string address = ValourClient.BaseAddress + "hubs/core";
+        string address = ValourClient.BaseAddress + "corehub";
 
         await Logger.Log("Connecting to Core hub at " + address);
 
