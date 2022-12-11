@@ -49,6 +49,7 @@ namespace Valour.Server
                 options.Listen(IPAddress.Any, 5000, listenOptions =>
                 {
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
+                    listenOptions.UseHttps();
                 });
             });
 
@@ -172,7 +173,6 @@ namespace Valour.Server
             else
             {
                 app.UseExceptionHandler("/Error");
-                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
 
@@ -183,22 +183,18 @@ namespace Valour.Server
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
             });
 
-            app.UseSentryTracing();
-
             app.UseWebSockets();
-
-            app.UseHttpsRedirection();
+            app.UseSentryTracing();
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
-
             app.UseRouting();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapRazorPages();
             app.MapControllers();
+
             app.MapFallbackToFile("_content/Valour.Client/index.html");
+
             app.MapHub<CoreHub>(CoreHub.HubUrl, options =>
             {
                 options.LongPolling.PollTimeout = TimeSpan.FromSeconds(60);
