@@ -49,7 +49,7 @@ namespace Valour.Server
                 options.Listen(IPAddress.Any, 5000, listenOptions =>
                 {
                     listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
-                    listenOptions.UseHttps();
+                    //listenOptions.UseHttps();
                 });
             });
 
