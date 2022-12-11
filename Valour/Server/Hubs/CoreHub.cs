@@ -17,7 +17,7 @@ namespace Valour.Server.Database
 {
     public class CoreHub : Hub
     {
-        public const string HubUrl = "hubs/core";
+        public const string HubUrl = "/corehub";
 
         private readonly ValourDB _db;
         private readonly CoreHubService _hubService;
