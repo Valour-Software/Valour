@@ -50,7 +50,7 @@ namespace Valour.Server
                 {
                     var httpsCert = builder.Configuration.GetValue<string>("HttpsCert");
 
-                    if (string.IsNullOrWhiteSpace(httpsCert))
+                    if (!string.IsNullOrWhiteSpace(httpsCert))
                     {
                         Console.WriteLine($"Specified cert at {httpsCert}");
                         listenOptions.UseHttps(httpsCert);
