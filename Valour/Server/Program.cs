@@ -47,7 +47,7 @@ namespace Valour.Server
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
                 options.Configure(builder.Configuration.GetSection("Kestrel"));
-            });
+            }); 
 
             builder.WebHost.UseSentry(x =>
             {
