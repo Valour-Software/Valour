@@ -47,6 +47,11 @@ namespace Valour.Server
             builder.WebHost.ConfigureKestrel((context, options) =>
             {
                 options.Configure(builder.Configuration.GetSection("Kestrel"));
+                options.Listen(IPAddress.Any, 5000, listenOptions =>
+                {
+                    listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2AndHttp3;
+                    listenOptions.UseHttps();
+                });
             }); 
 
             builder.WebHost.UseSentry(x =>
