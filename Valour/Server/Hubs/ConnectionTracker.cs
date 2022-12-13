@@ -69,7 +69,8 @@ public class ConnectionTracker
             UserIdGroups[userId] = new();
 
         // Add group to user
-        UserIdGroups[userId].Add(groupId);
+        // if (!UserIdGroups[userId].Contains(groupId))
+            UserIdGroups[userId].Add(groupId);
 
         // Create group user list if it doesn't exist
         if (!GroupUserIds.ContainsKey(groupId))
@@ -154,12 +155,7 @@ public class ConnectionTracker
         // Remove any existing connection from collection
         var removed = PrimaryConnections.Remove(context.ConnectionId, out var conn);
 
-        if (removed)
-        {
-            // Remove from database
-            db.PrimaryNodeConnections.Remove(conn);
-
-            await db.SaveChangesAsync();
-        }
+        db.PrimaryNodeConnections.RemoveRange(db.PrimaryNodeConnections.Where(x => x.ConnectionId == conn.ConnectionId));
+        await db.SaveChangesAsync();
     }
 }

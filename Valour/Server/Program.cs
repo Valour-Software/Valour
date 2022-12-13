@@ -114,6 +114,13 @@ namespace Valour.Server
             NodeAPI.AddRoutes(app);
 
             // Migrations and tasks
+            
+            // Remove old connections for this node since we have restarted
+            await using (ValourDB db = new(ValourDB.DBOptions))
+            {
+                db.PrimaryNodeConnections.RemoveRange(db.PrimaryNodeConnections.Where(x => x.NodeId == NodeConfig.Instance.Name));
+                await db.SaveChangesAsync();
+            }
 
             /*
 
@@ -159,7 +166,7 @@ namespace Valour.Server
             //    await db.SaveChangesAsync();
             //}
 
-            app.Run();
+            await app.RunAsync();
         }
 
         public static void ConfigureApp(WebApplication app)
