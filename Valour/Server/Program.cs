@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
+using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
@@ -256,6 +257,9 @@ namespace Valour.Server
             {
                 options.UseNpgsql(ValourDB.ConnectionString);
             });
+            
+            
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
 
             // This probably needs to be customized further but the documentation changed
             services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -310,6 +314,7 @@ namespace Valour.Server
             builder.Configuration.GetSection("Email").Get<EmailConfig>();
             builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
             builder.Configuration.GetSection("Node").Get<NodeConfig>();
+            builder.Configuration.GetSection("Redis").Get<RedisConfig>();
         }
     }
 }
