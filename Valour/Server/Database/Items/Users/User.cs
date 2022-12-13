@@ -172,10 +172,6 @@ public class User : Item, ISharedUser
 
         await db.SaveChangesAsync();
 
-        // Node connections
-        var nodecs = db.PrimaryNodeConnections.Where(x => x.UserId == Id);
-        db.PrimaryNodeConnections.RemoveRange(nodecs);
-
         // Authtokens
         var tokens = db.AuthTokens.Where(x => x.UserId == Id);
         db.AuthTokens.RemoveRange(tokens);

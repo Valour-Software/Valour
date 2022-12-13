@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Config;
@@ -9,6 +10,7 @@ using Valour.Server.EndpointFilters;
 using Valour.Server.EndpointFilters.Attributes;
 using Valour.Server.Hubs;
 using Valour.Server.Notifications;
+using Valour.Server.Redis;
 using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
@@ -209,7 +211,8 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         ValourDB valourDb, 
         CdnDb db,
         CoreHubService hubService,
-        ChannelStateService channelService)
+        ChannelStateService channelService,
+        IConnectionMultiplexer redis)
     {
         var token = ctx.GetToken();
 
@@ -331,25 +334,34 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         await valourDb.SaveChangesAsync();
 
         // Relay to nodes where sending user or target user is connected
-        var targetConnections = await valourDb.PrimaryNodeConnections
-            .Where(x => x.UserId == targetUser.Id || 
-                        x.UserId == token.UserId)
-            .GroupBy(x => new { x.NodeId, x.UserId })
-            .Select(x => x.FirstOrDefault())
-            .ToListAsync();
-        
-        foreach (var conn in targetConnections)
+        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
+
+        var nodeTargets = new List<(string nodeId, long userId)>();
+        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))
+        {
+            var split = conn.ToString().Split(':');
+            var nodeId = split[0];
+            nodeTargets.Add((nodeId, channel.UserOneId));
+        }
+        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserTwoId}"))
+        {
+            var split = conn.ToString().Split(':');
+            var nodeId = split[0];
+            nodeTargets.Add((nodeId, channel.UserTwoId));
+        }
+
+        foreach (var target in nodeTargets.Distinct())
         {
             // Case for same name
-            if (conn.NodeId == NodeAPI.Node.Name)
+            if (target.nodeId == NodeAPI.Node.Name)
             {
                 // Just fire event in this node
-                hubService.RelayDirectMessage(message, conn.UserId);
+                hubService.RelayDirectMessage(message, target.userId);
             }
             else
             {
                 // Inter-node communications
-                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={conn.UserId}&auth={NodeConfig.Instance.Key}", message);
+                await client.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
             }
         }
 
@@ -368,7 +380,8 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         ValourDB db,
         CoreHubService hubService,
         UserOnlineService onlineService,
-        ILogger<DirectChatChannel> logger)
+        ILogger<DirectChatChannel> logger,
+        IConnectionMultiplexer redis)
     {
         var token = ctx.GetToken();
 
@@ -396,27 +409,36 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             logger.LogError(e.Message);
             return Results.Problem(e.Message);
         }
-
+        
         // Relay to nodes where sending user or target user is connected
-        var targetConnections = await db.PrimaryNodeConnections
-            .Where(x => x.UserId == channel.UserOneId ||
-                        x.UserId == channel.UserTwoId)
-            .GroupBy(x => new { x.NodeId, x.UserId })
-            .Select(x => x.FirstOrDefault())
-            .ToListAsync();
+        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
 
-        foreach (var conn in targetConnections)
+        var nodeTargets = new List<(string nodeId, long userId)>();
+        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))
+        {
+            var split = conn.ToString().Split(':');
+            var nodeId = split[0];
+            nodeTargets.Add((nodeId, channel.UserOneId));
+        }
+        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserTwoId}"))
+        {
+            var split = conn.ToString().Split(':');
+            var nodeId = split[0];
+            nodeTargets.Add((nodeId, channel.UserTwoId));
+        }
+
+        foreach (var target in nodeTargets.Distinct())
         {
             // Case for same name
-            if (conn.NodeId == NodeAPI.Node.Name)
+            if (target.nodeId == NodeAPI.Node.Name)
             {
                 // Just fire event in this node
-                hubService.NotifyDirectMessageDeletion(message, conn.UserId);
+                hubService.NotifyDirectMessageDeletion(message, target.userId);
             }
             else
             {
                 // Inter-node communications
-                await client.PostAsJsonAsync($"https://{conn.NodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={conn.UserId}&auth={NodeConfig.Instance.Key}", message);
+                await client.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
             }
         }
 
