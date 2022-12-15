@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
+using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Cdn.Api;
@@ -20,6 +21,7 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.Email;
 using Valour.Server.Hubs;
+using Valour.Server.Redis;
 using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Items.Users;
@@ -114,7 +116,19 @@ namespace Valour.Server
             NodeAPI.AddRoutes(app);
 
             // Migrations and tasks
+            
+            // Remove old connections for this node since we have restarted
+            var redis = app.Services.GetRequiredService<IConnectionMultiplexer>();
+            var rdb = redis.GetDatabase(RedisDbTypes.Connections);
 
+            foreach (var con in rdb.SetScan($"node:{NodeConfig.Instance.Name}"))
+            {
+                var split = con.ToString().Split(':');
+                var userIdString = split[0];
+                var conIdString = split[1];
+                await rdb.SetRemoveAsync($"user:{userIdString}", $"{NodeConfig.Instance.Name}:{conIdString}", CommandFlags.FireAndForget);
+            }
+            
             /*
 
             int c = 0;
@@ -159,7 +173,7 @@ namespace Valour.Server
             //    await db.SaveChangesAsync();
             //}
 
-            app.Run();
+            await app.RunAsync();
         }
 
         public static void ConfigureApp(WebApplication app)
@@ -249,6 +263,8 @@ namespace Valour.Server
             {
                 options.UseNpgsql(ValourDB.ConnectionString);
             });
+            
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
 
             // This probably needs to be customized further but the documentation changed
             services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -303,6 +319,7 @@ namespace Valour.Server
             builder.Configuration.GetSection("Email").Get<EmailConfig>();
             builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
             builder.Configuration.GetSection("Node").Get<NodeConfig>();
+            builder.Configuration.GetSection("Redis").Get<RedisConfig>();
         }
     }
 }

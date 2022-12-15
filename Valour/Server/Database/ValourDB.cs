@@ -198,8 +198,6 @@ public class ValourDB : DbContext
 
     public DbSet<NodeStats> NodeStats { get; set; }
 
-    public DbSet<PrimaryNodeConnection> PrimaryNodeConnections { get; set; }
-
     public ValourDB(DbContextOptions options)
     {
 

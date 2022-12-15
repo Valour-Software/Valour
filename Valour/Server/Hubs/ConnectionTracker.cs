@@ -1,9 +1,12 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
+using StackExchange.Redis;
 using Valour.Server.API;
+using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Nodes;
+using Valour.Server.Redis;
 using Valour.Shared;
 
 namespace Valour.Server.Hubs;
@@ -69,7 +72,8 @@ public class ConnectionTracker
             UserIdGroups[userId] = new();
 
         // Add group to user
-        UserIdGroups[userId].Add(groupId);
+        // if (!UserIdGroups[userId].Contains(groupId))
+            UserIdGroups[userId].Add(groupId);
 
         // Create group user list if it doesn't exist
         if (!GroupUserIds.ContainsKey(groupId))
@@ -128,7 +132,7 @@ public class ConnectionTracker
         //ConnectionIdentities.Remove(Context.ConnectionId, out _);
     }
 
-    public static async Task AddPrimaryConnection(long userId, HubCallerContext context, ValourDB db)
+    public static async Task AddPrimaryConnection(long userId, HubCallerContext context, IConnectionMultiplexer redis)
     {
         var conn = new PrimaryNodeConnection()
         {
@@ -137,29 +141,32 @@ public class ConnectionTracker
             OpenTime = DateTime.UtcNow,
             NodeId = NodeAPI.Node.Name
         };
-
+        
         // Add to collection
-        var added = PrimaryConnections.TryAdd(context.ConnectionId, conn);
+        PrimaryConnections.TryAdd(context.ConnectionId, conn);
+        
+        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
 
-        if (added)
-        {
-            // Add to database
-            await db.PrimaryNodeConnections.AddAsync(conn);
-            await db.SaveChangesAsync();
-        }
+        // Connection to node
+        rdb.SetAdd($"node:{NodeAPI.Node.Name}", $"{userId}:{context.ConnectionId}");
+        
+        // Specific connection by user
+        rdb.SetAdd($"user:{userId}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
     }
 
-    public static async Task RemovePrimaryConnection(HubCallerContext context, ValourDB db)
+    public static async Task RemovePrimaryConnection(HubCallerContext context, IConnectionMultiplexer redis)
     {
         // Remove any existing connection from collection
-        var removed = PrimaryConnections.Remove(context.ConnectionId, out var conn);
-
-        if (removed)
-        {
-            // Remove from database
-            db.PrimaryNodeConnections.Remove(conn);
-
-            await db.SaveChangesAsync();
-        }
+        PrimaryConnections.Remove(context.ConnectionId, out _);
+        
+        var userId = ConnectionIdentities[context.ConnectionId].UserId;
+        
+        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
+        
+        // Connection to node
+        rdb.SetRemove($"node:{NodeAPI.Node.Name}", $"{userId}:{context.ConnectionId}");
+        
+        // Specific connection by user
+        rdb.SetRemove($"user:{userId}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
     }
 }

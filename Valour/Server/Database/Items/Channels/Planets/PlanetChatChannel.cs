@@ -563,8 +563,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         PlanetMessageWorker.AddToQueue(message);
 
         StatWorker.IncreaseMessageCount();
-        
-        await onlineService.UpdateOnlineState(member.UserId);
+
         await stateService.SetMessageState(channel, message.Id);
 
         return Results.Ok();
