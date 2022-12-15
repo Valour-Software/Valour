@@ -27,7 +27,8 @@ CREATE TABLE IF NOT EXISTS users (
     disabled BOOLEAN NOT NULL DEFAULT false,
     valour_staff BOOLEAN NOT NULL DEFAULT false,
     user_state_code INT NOT NULL DEFAULT 0,
-    time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+    time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    is_mobile BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS user_friends (

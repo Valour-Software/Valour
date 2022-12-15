@@ -16,7 +16,7 @@ public class UserOnlineService
         _db = db;
     }
 
-    public async Task UpdateOnlineState(long userId)
+    public async Task UpdateOnlineState(long userId, bool isMobile = false)
     {
         UserTimeCache.TryGetValue(userId, out var lastActiveCached);
 
@@ -28,6 +28,7 @@ public class UserOnlineService
         {
             var user = await _db.Users.FindAsync(userId);
             user.TimeLastActive = DateTime.UtcNow;
+            user.IsMobile = isMobile;
             UserTimeCache[user.Id] = user.TimeLastActive;
             
             // Notify of user activity change

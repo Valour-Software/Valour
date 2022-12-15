@@ -60,6 +60,11 @@ public interface ISharedUser : ISharedItem
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
     DateTime TimeLastActive { get; set; }
+    
+    /// <summary>
+    /// True if the user has been recently on a mobile device
+    /// </summary>
+    bool IsMobile { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active

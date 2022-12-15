@@ -66,6 +66,11 @@ public class User : Item, ISharedUser
     /// The last time this user was flagged as active (successful auth)
     /// </summary>
     public DateTime TimeLastActive { get; set; }
+    
+    /// <summary>
+    /// True if the user has been recently on a mobile device
+    /// </summary>
+    public bool IsMobile { get; set; }
 
     public TimeSpan LastActiveSpan =>
         ISharedUser.GetLastActiveSpan(this);

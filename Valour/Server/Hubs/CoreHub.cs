@@ -97,8 +97,6 @@ namespace Valour.Server.Database
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to Planet: SignalR was not authenticated.");
 
-            await _onlineService.UpdateOnlineState(authToken.UserId);
-            
             PlanetMember member = await _db.PlanetMembers.FirstOrDefaultAsync(
                 x => x.UserId == authToken.UserId && x.PlanetId == planetId);
 
@@ -129,8 +127,6 @@ namespace Valour.Server.Database
         {
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to Channel: SignalR was not authenticated.");
-
-            await _onlineService.UpdateOnlineState(authToken.UserId);
             
             // Grab channel
             var channel = await _db.PlanetChatChannels.FindAsync(channelId);

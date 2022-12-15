@@ -441,9 +441,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
                 await client.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
             }
         }
-
-        await onlineService.UpdateOnlineState(token.UserId);
-
+        
         return Results.NoContent();
     }
 

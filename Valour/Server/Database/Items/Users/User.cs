@@ -1,4 +1,5 @@
-﻿using SendGrid;
+﻿using Microsoft.AspNetCore.Authentication;
+using SendGrid;
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Planets.Members;
@@ -86,6 +87,12 @@ public class User : Item, ISharedUser
     /// </summary>
     [Column("time_last_active")]
     public DateTime TimeLastActive { get; set; }
+    
+    /// <summary>
+    /// True if the user has been recently on a mobile device
+    /// </summary>
+    [Column("is_mobile")]
+    public bool IsMobile { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active
@@ -214,6 +221,13 @@ public class User : Item, ISharedUser
 
 
     #region Routes
+
+    [ValourRoute(HttpVerbs.Get, "/ping"), TokenRequired]
+    public static async Task PingOnlineAsync(HttpContext ctx, UserOnlineService onlineService, [FromQuery] bool isMobile = false)
+    {
+        var token = ctx.GetToken();
+        await onlineService.UpdateOnlineState(token.UserId);
+    }
 
     [ValourRoute(HttpVerbs.Get), TokenRequired]
     public static async Task<IResult> GetUserRouteAsync(
