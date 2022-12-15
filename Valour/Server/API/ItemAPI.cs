@@ -119,7 +119,7 @@ public class ItemAPI<T> where T : Item
                         /* Adds data */
                         builder.AddEndpointFilter(async (ctx, next) =>
                         {
-                            ctx.HttpContext.Items[nameof(CategoryPermissionsFilter)] = (CategoryChannelPermsRequiredAttribute)attr;
+                            ctx.HttpContext.Items[nameof(CategoryChannelPermsRequiredAttribute)] = (CategoryChannelPermsRequiredAttribute)attr;
                             return await next(ctx);
                         });
                         
