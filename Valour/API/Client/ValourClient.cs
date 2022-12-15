@@ -105,6 +105,10 @@ public static class ValourClient
     /// </summary>
     public static List<TenorFavorite> TenorFavorites { get; set; }
 
+    /// <summary>
+    /// Timer that updates the user's online status
+    /// </summary>
+    private static Timer _onlineTimer;
 
     #region Event Fields
 
@@ -903,6 +907,27 @@ public static class ValourClient
     }
 
     /// <summary>
+    /// Starts pinging for online state
+    /// </summary>
+    private static async Task BeginOnlinePings()
+    {
+        await Logger.Log("Beginning online pings...", "lime");
+        _onlineTimer = new Timer(OnOnlineTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
+    }
+
+    /// <summary>
+    /// Run by the online timer
+    /// </summary>
+    private static async void OnOnlineTimer(object state = null)
+    {
+        await Logger.Log("Doing user ping...", "lime");
+
+        var pingResult = await PrimaryNode.GetAsync("api/user/ping");
+        if (!pingResult.Success)
+            await Logger.Log("Failed to ping server for online state", "salmon");
+    }
+
+    /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
     public static async Task<TaskResult<User>> InitializeUser(string token)
@@ -949,6 +974,8 @@ public static class ValourClient
 
         if (OnLogin != null)
             await OnLogin?.Invoke();
+        
+        await BeginOnlinePings();
 
         return new TaskResult<User>(true, "Success", Self);
     }
@@ -994,6 +1021,8 @@ public static class ValourClient
             await OnLogin?.Invoke();
 
         await JoinAllChannelsAsync();
+        
+        await BeginOnlinePings();
 
         return new TaskResult<User>(true, "Success", Self);
     }
