@@ -33,6 +33,7 @@ public class UserOnlineService
             
             // Notify of user activity change
             await _hubService.NotifyUserChange(user);
+            await _db.SaveChangesAsync();
         }
     }
 }
