@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using StackExchange.Redis;
 using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Planets.Members;
@@ -23,17 +24,20 @@ namespace Valour.Server.Database
         private readonly CoreHubService _hubService;
         private readonly UserOnlineService _onlineService;
         private readonly ChannelStateService _stateService;
+        private readonly IConnectionMultiplexer _redis;
 
         public CoreHub(
             ValourDB db, 
             CoreHubService hubService, 
             UserOnlineService onlineService,
-            ChannelStateService stateService)
+            ChannelStateService stateService,
+            IConnectionMultiplexer redis)
         {
             _db = db;
             _hubService = hubService;
             _onlineService = onlineService;
             _stateService = stateService;
+            _redis = redis;
         }
 
         public async Task<TaskResult> Authorize(string token)
@@ -51,7 +55,7 @@ namespace Valour.Server.Database
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {
-            await ConnectionTracker.RemovePrimaryConnection(Context, _db);
+            await ConnectionTracker.RemovePrimaryConnection(Context, _redis);
             ConnectionTracker.RemoveAllMemberships(Context);
 
             await base.OnDisconnectedAsync(exception);
@@ -68,7 +72,7 @@ namespace Valour.Server.Database
             var groupId = $"u-{authToken.UserId}";
 
             ConnectionTracker.TrackGroupMembership(groupId, Context);
-            await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _db);
+            await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _redis);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
 
@@ -83,7 +87,7 @@ namespace Valour.Server.Database
             var groupId = $"u-{authToken.UserId}";
 
             ConnectionTracker.UntrackGroupMembership(groupId, Context);
-            await ConnectionTracker.RemovePrimaryConnection(Context, _db);
+            await ConnectionTracker.RemovePrimaryConnection(Context, _redis);
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
         }
@@ -93,8 +97,6 @@ namespace Valour.Server.Database
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to Planet: SignalR was not authenticated.");
 
-            await _onlineService.UpdateOnlineState(authToken.UserId);
-            
             PlanetMember member = await _db.PlanetMembers.FirstOrDefaultAsync(
                 x => x.UserId == authToken.UserId && x.PlanetId == planetId);
 
@@ -125,8 +127,6 @@ namespace Valour.Server.Database
         {
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to Channel: SignalR was not authenticated.");
-
-            await _onlineService.UpdateOnlineState(authToken.UserId);
             
             // Grab channel
             var channel = await _db.PlanetChatChannels.FindAsync(channelId);
