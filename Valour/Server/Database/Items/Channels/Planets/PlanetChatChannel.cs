@@ -98,20 +98,22 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
                 continue;
             }
-
-            PermissionState state = node.GetPermissionState(permission);
-
-            if (state == PermissionState.Undefined)
-            {
-                continue;
-            }
-            else if (state == PermissionState.True)
-            {
-                return true;
-            }
-            else
-            {
+            
+            // If there is no view permission, there can't be any other permissions
+            if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
                 return false;
+
+            var state = node.GetPermissionState(permission);
+
+            switch (state)
+            {
+                case PermissionState.Undefined:
+                    continue;
+                case PermissionState.True:
+                    return true;
+                case PermissionState.False:
+                default:
+                    return false;
             }
 
         }
