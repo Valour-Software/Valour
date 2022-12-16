@@ -21,15 +21,13 @@ public class CoreHubService
     
     private readonly IHubContext<CoreHub> _hub;
     private readonly ValourDB _db;
-    private readonly ChannelStateService _stateService;
     private readonly IServiceProvider _serviceProvider;
     
-    public CoreHubService(ValourDB db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, ChannelStateService stateService)
+    public CoreHubService(ValourDB db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub)
     {
         _db = db;
         _hub = hub;
         _serviceProvider = serviceProvider;
-        _stateService = stateService;
     }
     
     public async void RelayMessage(PlanetMessage message)
@@ -44,7 +42,7 @@ public class CoreHubService
             var viewingIds = ConnectionTracker.GroupUserIds[groupId];
             
             await _db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});", 
-                viewingIds, message.ChannelId, await _stateService.GetState(message.ChannelId));
+                viewingIds, message.ChannelId, DateTime.UtcNow);
         }
 
         await group.SendAsync("Relay", message);
@@ -142,9 +140,9 @@ public class CoreHubService
             });
         }
 
-        public async void NotifyChannelStateUpdate(long planetId, long channelId, string state)
+        public async void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
         {
-            await _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, state));
+            await _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time));
         }
 
 }

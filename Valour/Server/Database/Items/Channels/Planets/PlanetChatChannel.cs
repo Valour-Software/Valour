@@ -481,8 +481,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         HttpClient client, 
         ValourDB valourDb, 
         CdnDb db,
-        UserOnlineService onlineService,
-        ChannelStateService stateService)
+        UserOnlineService onlineService)
     {
         var member = ctx.GetMember();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
@@ -565,8 +564,6 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         PlanetMessageWorker.AddToQueue(message);
 
         StatWorker.IncreaseMessageCount();
-
-        await stateService.SetMessageState(channel, message.Id);
 
         return Results.Ok();
     }

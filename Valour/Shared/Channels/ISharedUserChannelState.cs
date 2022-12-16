@@ -3,5 +3,5 @@ public interface ISharedUserChannelState
 {
     long ChannelId { get; set; }
     long UserId { get; set; }
-    string LastViewedState { get; set; }
+    DateTime LastViewedTime { get; set; }
 }

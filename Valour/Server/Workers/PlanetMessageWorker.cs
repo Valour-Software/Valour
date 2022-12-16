@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
+using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Messages;
 using Valour.Server.Services;
 
@@ -89,6 +90,10 @@ namespace Valour.Server.Workers
                 _logger.LogInformation($@"Planet Message Worker queue task stopped at: {DateTime.UtcNow}
                                                  Restarting queue task.");
             }
+            
+            // Don't work if there's no staged messages
+            if (!StagedMessages.Any())
+                return;
 
             /* Get required services in new scope */
             await using var scope = _serviceProvider.CreateAsyncScope();
@@ -98,6 +103,21 @@ namespace Valour.Server.Workers
                                              Queue size: {MessageQueue.Count.ToString()}
                                              Saving {StagedMessages.Count.ToString()} messages to DB.");
 
+            var staged = StagedMessages.Values;
+            var channelIds = staged.Select(x => x.ChannelId).Distinct();
+
+            /* Update channel last active for all channels where we are saving message update */
+            foreach (var channelId in channelIds)
+            {
+                var updated = new Channel()
+                {
+                    Id = channelId,
+                    TimeLastActive = DateTime.UtcNow
+                };
+
+                db.Channels.Attach(updated).Property(x => x.TimeLastActive).IsModified = true;
+            }
+            
             await db.PlanetMessages.AddRangeAsync(StagedMessages.Values);
             await db.SaveChangesAsync();
             BlockSet.Clear();
@@ -126,7 +146,7 @@ namespace Valour.Server.Workers
 
                 Message.TimeSent = DateTime.UtcNow;
                 
-                hubService.NotifyChannelStateUpdate(Message.PlanetId, Message.ChannelId, Message.Id.ToString());
+                hubService.NotifyChannelStateUpdate(Message.PlanetId, Message.ChannelId, DateTime.UtcNow);
                 hubService.RelayMessage(Message);
 
                 // Add message to message staging

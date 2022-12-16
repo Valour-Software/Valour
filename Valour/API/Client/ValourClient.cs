@@ -615,32 +615,7 @@ public static class ValourClient
         if (channel is null)
             return;
 
-        channel.State = update.State;
-
-        // If the channel is currently open, we also update the user's channel state.
-        // Because they can see the channel.
-        // That makes sense, right?
-        // Right?
-        /*
-        if (OpenChannels.Any(x => x.Id == channel.Id))
-        {
-            ChannelStates.TryGetValue(channel.Id, out UserChannelState state);
-
-            if (state != null)
-            {
-                state.LastViewedState = channel.State;
-            }
-            else
-            {
-                ChannelStates.Add(channel.Id, new UserChannelState()
-                {
-                    LastViewedState = channel.State,
-                    UserId = Self.Id,
-                    ChannelId = channel.Id
-                });
-            }
-        }
-        */
+        channel.TimeLastActive = update.Time;
 
         await channel.OnUpdate(0x01);
         await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
@@ -1059,7 +1034,7 @@ public static class ValourClient
     {
 
         if (ChannelStates.ContainsKey(channelState.ChannelId))
-            ChannelStates[channelState.ChannelId].LastViewedState = channelState.LastViewedState;
+            ChannelStates[channelState.ChannelId].LastViewedTime = channelState.LastViewedTime;
         else
             ChannelStates.Add(channelState.ChannelId, channelState);
 
