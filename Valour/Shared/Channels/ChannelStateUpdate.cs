@@ -3,11 +3,11 @@
 public struct ChannelStateUpdate
 {
     public long ChannelId { get; set; }
-    public string State { get; set; }
+    public DateTime Time { get; set; }
 
-    public ChannelStateUpdate(long channelId, string state)
+    public ChannelStateUpdate(long channelId, DateTime time)
     {
         this.ChannelId = channelId;
-        this.State = state;
+        this.Time = time;
     }
 }

@@ -67,22 +67,9 @@
         if (!ValourClient.ChannelStates.ContainsKey(chatChannel.Id))
             return true;
 
-        if (string.IsNullOrEmpty(chatChannel.State))
-            return false;
+        var localState = ValourClient.ChannelStates[chatChannel.Id].LastViewedTime;
 
-        var channelStateTrim = chatChannel.State.Substring(13, chatChannel.State.Length - 13);
-        long channelIndex = long.Parse(channelStateTrim);
-
-        var localState = ValourClient.ChannelStates[chatChannel.Id].LastViewedState;
-        long localIndex = -1;
-
-        if (!string.IsNullOrEmpty(localState))
-        {
-            var localTrim = localState.Substring(13, localState.Length - 13);
-            localIndex = long.Parse(localTrim);
-        }
-
-        return !(localIndex >= channelIndex);
+        return localState < chatChannel.TimeLastActive;
     }
 
     public async Task OnClick()

@@ -104,22 +104,20 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
         var roles = await member.GetRolesAsync();
 
-        var do_channel = permission is ChatChannelPermission;
+        var doChannel = permission is ChatChannelPermission;
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
         foreach (var role in roles.OrderBy(x => x.Position))
         {
-            PermissionsNode node = null;
-
-            node = await GetPermissionsNodeAsync(role.Id);
+            var node = await GetPermissionsNodeAsync(role.Id);
 
             // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
             if (node == null)
             {
                 if (role.Id == planet.DefaultRoleId)
                 {
-                    if (do_channel)
+                    if (doChannel)
                         return Permission.HasPermission(ChatChannelPermissions.Default, permission);
                     else
                         return Permission.HasPermission(CategoryPermissions.Default, permission);
@@ -127,22 +125,22 @@ public class PlanetCategoryChannel : PlanetChannel, ISharedPlanetCategoryChannel
 
                 continue;
             }
-
-            PermissionState state = PermissionState.Undefined;
-
-            state = node.GetPermissionState(permission);
-
-            if (state == PermissionState.Undefined)
-            {
-                continue;
-            }
-            else if (state == PermissionState.True)
-            {
-                return true;
-            }
-            else
-            {
+            
+            // If there is no view permission, there can't be any other permissions
+            if (node.GetPermissionState(CategoryPermissions.View) == PermissionState.False)
                 return false;
+
+            var state = node.GetPermissionState(permission);
+
+            switch (state)
+            {
+                case PermissionState.Undefined:
+                    continue;
+                case PermissionState.True:
+                    return true;
+                case PermissionState.False:
+                default:
+                    return false;
             }
         }
 
