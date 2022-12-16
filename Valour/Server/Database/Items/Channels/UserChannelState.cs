@@ -11,6 +11,6 @@ public class UserChannelState : ISharedUserChannelState
     [Column("user_id")]
     public long UserId { get; set; }
 
-    [Column("last_viewed_state")]
-    public string LastViewedState { get; set; }
+    [Column("last_viewed_time")]
+    public DateTime LastViewedTime { get; set; }
 }

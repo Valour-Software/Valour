@@ -89,7 +89,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
                 return cached;
         }
 
-        var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}")).Data;
+        var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}", true)).Data;
 
         if (permNode is not null)
             await permNode.AddToCache();

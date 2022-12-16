@@ -6,7 +6,7 @@
 
 <h3>@Target.GetHumanReadableName() Permissions</h3>
 
-<select class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.GetColorHex();
+<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.GetColorHex();
         background-color: var(--main-1)">
 
     @{
@@ -183,6 +183,8 @@ else
     public PermissionsNode CategoryPermissionsNode { get; set; }
 
     public PlanetRole SelectedRole { get; set; }
+
+    private PlanetRole _lastRole;
 
     public List<PlanetRole> Roles { get; set; }
 
@@ -373,15 +375,18 @@ else
 
     public async Task OnRoleChange(PlanetRole role)
     {
+        if (_lastRole == role)
+            return;
+        
+        _lastRole = role;
+        
         needCreateChannelNode = false;
         needCreateCategoryNode = false;
 
         SelectedRole = role;
 
         Console.WriteLine($"Selected role {SelectedRole.Name}");
-
-        ChannelPermissionsNode = await Target.GetPermissionsNodeAsync(SelectedRole.Id);
-
+        
         if (Target is PlanetCategoryChannel){
             var category = (PlanetCategoryChannel)Target;
             ChannelPermissionsNode = await category.GetChannelPermissionsNodeAsync(SelectedRole.Id);
