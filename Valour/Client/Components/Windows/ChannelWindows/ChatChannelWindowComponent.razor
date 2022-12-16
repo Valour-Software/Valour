@@ -209,6 +209,8 @@
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
             return;
+        
+        ValourClient.ChannelStateTimes[Channel.Id] = DateTime.UtcNow;
 
         // Create client wrapper
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);

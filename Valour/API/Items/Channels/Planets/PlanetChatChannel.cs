@@ -57,9 +57,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         if (ValourClient.OpenPlanetChannels.Any(x => x.Id == Id))
             return false;
 
-        var localState = ValourClient.ChannelStates[Id].LastViewedTime;
-
-        return localState < TimeLastActive;
+        ValourClient.ChannelStateTimes.TryGetValue(Id, out var lastRead);
+        if (lastRead is null)
+            lastRead = DateTime.MaxValue;
+        
+        return lastRead < TimeLastActive;
     }
 
     /// <summary>

@@ -64,12 +64,14 @@
         if (ValourClient.OpenPlanetChannels.Any(x => x.Id == chatChannel.Id))
             return false;
 
-        if (!ValourClient.ChannelStates.ContainsKey(chatChannel.Id))
+        if (!ValourClient.ChannelStateTimes.ContainsKey(chatChannel.Id))
             return true;
 
-        var localState = ValourClient.ChannelStates[chatChannel.Id].LastViewedTime;
+        ValourClient.ChannelStateTimes.TryGetValue(chatChannel.Id, out var lastRead);
+        if (lastRead is null)
+            lastRead = DateTime.MaxValue;
 
-        return localState < chatChannel.TimeLastActive;
+        return lastRead < chatChannel.TimeLastActive;
     }
 
     public async Task OnClick()
