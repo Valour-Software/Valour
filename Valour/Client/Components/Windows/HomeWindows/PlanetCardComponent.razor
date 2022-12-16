@@ -43,18 +43,14 @@
         }
         
         var channels = await Planet.GetChannelsAsync();
-        foreach(var state in ValourClient.ChannelStates.Values)
+        foreach(var channel in channels)
         {
-            var channel = channels.FirstOrDefault(x => x.Id == state.ChannelId);
-            if (channel is not null)
-            {
-                IsUnread = channel.DetermineUnread();
+            IsUnread = channel.DetermineUnread();
 
-                // no need to check the other channels if this one is unread
-                if (IsUnread)
-                {
-                    break;
-                }
+            // no need to check the other channels if this one is unread
+            if (IsUnread)
+            {
+                break;
             }
         }
     }

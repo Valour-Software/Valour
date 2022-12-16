@@ -81,7 +81,7 @@ public static class ValourClient
     /// <summary>
     /// The state of channels this user has access to
     /// </summary>
-    public static Dictionary<long, UserChannelState> ChannelStates { get; private set; } = new();
+    public static Dictionary<long, DateTime?> ChannelStateTimes { get; private set; } = new();
 
     /// <summary>
     /// The primary node this client is connected to
@@ -1032,14 +1032,9 @@ public static class ValourClient
 
     public static async Task UpdateUserChannelState(UserChannelState channelState)
     {
-
-        if (ChannelStates.ContainsKey(channelState.ChannelId))
-            ChannelStates[channelState.ChannelId].LastViewedTime = channelState.LastViewedTime;
-        else
-            ChannelStates.Add(channelState.ChannelId, channelState);
-
+        ChannelStateTimes[channelState.ChannelId] = channelState.LastViewedTime;
         // Access dict again to maintain references (do not try to optimize and break everything)
-        await OnUserChannelStateUpdate.Invoke(ChannelStates[channelState.ChannelId]);
+        await OnUserChannelStateUpdate.Invoke(channelState);
     }
 
     public static async Task LoadTenorFavoritesAsync()
@@ -1071,10 +1066,10 @@ public static class ValourClient
 
         foreach (var state in response.Data)
         {
-            ChannelStates[state.ChannelId] = state;
+            ChannelStateTimes[state.ChannelId] = state.LastViewedTime;
         }
 
-        Console.WriteLine("Loaded " + ChannelStates.Count + " channel states.");
+        Console.WriteLine("Loaded " + ChannelStateTimes.Count + " channel states.");
     }
 
     /// <summary>
