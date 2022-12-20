@@ -51,6 +51,7 @@ public class TextDecoration : StyleBase
 	[JsonPropertyName("th")]
 	public Size Thickness { get; set; }
 
+	[JsonConstructor]
 	public TextDecoration(DecoractionType type)
     {
         Type = type;
@@ -70,12 +71,6 @@ public class TextDecoration : StyleBase
 		// causing exceptions by just ignoring
 		// unknown styles
 		if ((int)Type >= _strings.Length)
-			return string.Empty;
-
-		// Protect from updates or malformed data
-		// causing exceptions by just ignoring
-		// unknown styles
-		if ((int)Style >= _styleStrings.Length)
 			return string.Empty;
 
 		if (Style is null)

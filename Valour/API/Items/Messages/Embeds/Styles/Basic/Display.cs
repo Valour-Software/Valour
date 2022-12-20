@@ -61,9 +61,10 @@ public class Display : StyleBase
     [JsonPropertyName("v")]
     public DisplayType Value { get; set; }
 
-    public Display(DisplayType display)
+    
+    public Display(DisplayType value)
     {
-        Value = display;
+        Value = value;
     }
 
     public override string ToString()
