@@ -1,5 +1,6 @@
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.EndpointFilters;
@@ -7,10 +8,12 @@ namespace Valour.Server.EndpointFilters;
 public class ChatChannelPermissionsFilter : IEndpointFilter
 {
     private readonly ValourDB _db;
+    private readonly PermissionsService _permService;
 
-    public ChatChannelPermissionsFilter(ValourDB db)
+    public ChatChannelPermissionsFilter(ValourDB db, PermissionsService permService)
     {
         _db = db;
+        _permService = permService;
     }
     
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
@@ -36,7 +39,7 @@ public class ChatChannelPermissionsFilter : IEndpointFilter
         foreach (var permEnum in chanPermAttr.permissions)
         {
             var perm = ChatChannelPermissions.Permissions[(int)permEnum];
-            if (!await channel.HasPermissionAsync(member, perm, _db))
+            if (!await channel.HasPermissionAsync(member, perm, _permService))
                 return ValourResult.LacksPermission(perm);
         }
 

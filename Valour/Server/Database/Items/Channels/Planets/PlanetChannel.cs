@@ -1,6 +1,7 @@
 ﻿using Valour.Server.Database.Items.Channels;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
@@ -23,8 +24,11 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     [Column("planet_id")]
     public long PlanetId { get; set; }
 
-    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
-        IPlanetItem.GetPlanetAsync(this, db);
+    public async ValueTask<Planet> GetPlanetAsync(PlanetService service)
+    {
+        Planet ??= await service.GetAsync(PlanetId);
+        return Planet;
+    }
 
     [JsonIgnore]
     public override string BaseRoute =>
@@ -56,13 +60,14 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     /// <summary>
     /// Returns the parent category of this channel
     /// </summary>
-    public async Task<PlanetCategoryChannel> GetParentAsync(ValourDB db)
+    public async Task<PlanetCategoryChannel> GetParentAsync(PlanetCategoryService service)
     {
-        Parent ??= await db.PlanetCategoryChannels.FindAsync(ParentId);
+        if (ParentId is null)
+            return null;
+        
+        Parent ??= await service.GetAsync(ParentId.Value);
         return Parent;
     }
-
-    public abstract Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db);
 
     public static async Task<bool> HasUniquePosition(ValourDB db, PlanetChannel channel) =>
         // Ensure position is not already taken

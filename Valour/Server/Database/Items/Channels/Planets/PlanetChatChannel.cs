@@ -1,6 +1,4 @@
-﻿using IdGen;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using Valour.Server.Cdn;
 using Valour.Server.Database.Items.Authorization;
@@ -10,14 +8,12 @@ using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.EndpointFilters;
 using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Hubs;
 using Valour.Server.Notifications;
 using Valour.Server.Requests;
 using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Channels;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
 using Valour.Shared.Items.Messages.Mentions;
@@ -56,108 +52,13 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     /// <summary>
     /// Returns if a given member has a channel permission
     /// </summary>
-    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db)
-    {
-        await GetPlanetAsync(db);
-
-        if (Planet.OwnerId == member.UserId)
-            return true;
-
-        // If true, we just ask the category
-        if (InheritsPerms)
-        {
-            return await (await GetParentAsync(db)).HasPermissionAsync(member, permission, db);
-        }
-
-
-        // Load permission data
-        await db.Entry(member).Collection(x => x.RoleMembership)
-                              .Query()
-                              .Where(x => x.PlanetId == Planet.Id)
-                              .Include(x => x.Role)
-                              .ThenInclude(x => x.PermissionNodes.Where(x => x.TargetId == Id))
-                              .OrderBy(x => x.Role.Position)
-                              .LoadAsync();
-
-        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
-        // If we get an undecided, we continue to the next role down
-        foreach (var roleMembership in member.RoleMembership)
-        {
-            var role = roleMembership.Role;
-            // For some reason, we need to make sure we get the node that has the same targetId as this channel
-            // When loading I suppose it grabs all the nodes even if the target is not the same?
-            PermissionsNode node = role.PermissionNodes.FirstOrDefault(x => x.TargetId == Id && x.TargetType == PermissionsTargetType.PlanetChatChannel);
-
-            // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
-            if (node == null)
-            {
-                if (role.Id == Planet.DefaultRoleId)
-                {
-                    return Permission.HasPermission(ChatChannelPermissions.Default, permission);
-                }
-
-                continue;
-            }
-            
-            // If there is no view permission, there can't be any other permissions
-            if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
-                return false;
-
-            var state = node.GetPermissionState(permission);
-
-            switch (state)
-            {
-                case PermissionState.Undefined:
-                    continue;
-                case PermissionState.True:
-                    return true;
-                case PermissionState.False:
-                default:
-                    return false;
-            }
-
-        }
-
-        // No roles ever defined behavior: resort to false.
-        return false;
-    }
-
-    public async Task DeleteAsync(ValourDB db)
-    {
-        // Remove permission nodes
-        db.PermissionsNodes.RemoveRange(
-            db.PermissionsNodes.Where(x => x.TargetId == Id)
-        );
-
-        // Remove messages
-        db.PlanetMessages.RemoveRange(
-            db.PlanetMessages.Where(x => x.ChannelId == Id)
-        );
-
-        // Remove channel
-        db.PlanetChatChannels.Remove(this);
-    }
-
-    /// <summary>
-    /// Returns all members who can see this channel
-    /// </summary>
-    public async Task<List<PlanetMember>> GetChannelMembersAsync(ValourDB db)
-    {
-        List<PlanetMember> members = new List<PlanetMember>();
-
-        var planetMembers = db.PlanetMembers.Include(x => x.RoleMembership).Where(x => x.PlanetId == PlanetId);
-
-        foreach (var member in planetMembers)
-        {
-            if (await HasPermissionAsync(member, ChatChannelPermissions.View, db))
-            {
-                members.Add(member);
-            }
-        }
-
-        return members;
-    }
-
+    public async Task<bool> HasPermissionAsync(PlanetMember member, ChatChannelPermission permission, PermissionsService permService) =>
+        await permService.HasPermissionAsync(member, this, permission);
+    
+    public void Delete(PlanetChatChannelService service) =>
+        service.Delete(this);
+    
+    
     #region Routes
 
     [ValourRoute(HttpVerbs.Get), TokenRequired]
@@ -175,6 +76,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PermissionsService permService,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -198,8 +100,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         // Ensure user has permission for parent category management
         if (channel.ParentId is not null)
         {
-            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
-            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            var parent = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
+            if (!await parent.HasPermissionAsync(member, CategoryPermissions.ManageCategory, permService))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
@@ -230,6 +132,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PermissionsService permService,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -255,8 +158,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         // Ensure user has permission for parent category management
         if (channel.ParentId is not null)
         {
-            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
-            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            var parent = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
+            if (!await parent.HasPermissionAsync(member, CategoryPermissions.ManageCategory, permService))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
@@ -366,6 +269,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PlanetChatChannelService channelService,
         ILogger<PlanetChatChannel> logger)
     {
         var channel = ctx.GetItem<PlanetChatChannel>(id);
@@ -375,7 +279,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
         try
         {
-            await channel.DeleteAsync(db);
+            channel.Delete(channelService);
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
         }
@@ -397,7 +301,8 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     public static async Task<IResult> HasPermissionRouteAsync(
         long id, 
         long memberId, 
-        long value, 
+        long value,
+        PermissionsService permService,
         HttpContext ctx,
         ValourDB db)
     {
@@ -407,7 +312,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         if (targetMember is null)
             return ValourResult.NotFound<PlanetMember>();
 
-        var hasPerm = await channel.HasPermissionAsync(targetMember, new Permission(value, "", ""), db);
+        var hasPerm = await channel.HasPermissionAsync(targetMember, new ChatChannelPermission(value, "", ""), permService);
 
         return Results.Json(hasPerm);
     }
@@ -578,6 +483,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PermissionsService permService,
         ILogger<PlanetChatChannel> logger)
     {
         var member = ctx.GetMember();
@@ -602,7 +508,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
         if (member.Id != message.AuthorMemberId)
         {
-            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageMessages, db))
+            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ManageMessages, permService))
                 return ValourResult.LacksPermission(ChatChannelPermissions.ManageMessages);
         }
 

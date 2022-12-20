@@ -284,6 +284,13 @@ namespace Valour.Server
 
             services.AddSingleton<CdnMemoryCache>();
 
+            services.AddScoped<UserService>();
+            services.AddScoped<PermissionsService>();
+            services.AddScoped<PlanetService>();
+            services.AddScoped<PlanetMemberService>();
+            services.AddScoped<PlanetCategoryService>();
+            services.AddScoped<PlanetChatChannelService>();
+            
             services.AddScoped<UserOnlineService>();
             services.AddScoped<CoreHubService>();
             services.AddScoped<CurrentlyTypingService>();

@@ -1,5 +1,6 @@
 using Valour.Server.Database;
 using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.EndpointFilters;
@@ -7,10 +8,12 @@ namespace Valour.Server.EndpointFilters;
 public class CategoryPermissionsFilter : IEndpointFilter
 {
     private readonly ValourDB _db;
+    private readonly PermissionsService _permService;
 
-    public CategoryPermissionsFilter(ValourDB db)
+    public CategoryPermissionsFilter(ValourDB db, PermissionsService permService)
     {
         _db = db;
+        _permService = permService;
     }
     
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
@@ -35,7 +38,7 @@ public class CategoryPermissionsFilter : IEndpointFilter
         foreach (var permEnum in catPermAttr.permissions)
         {
             var perm = CategoryPermissions.Permissions[(int)permEnum];
-            if (!await category.HasPermissionAsync(member, perm, _db))
+            if (!await category.HasPermissionAsync(member, perm, _permService))
                 return ValourResult.LacksPermission(perm);
         }
 

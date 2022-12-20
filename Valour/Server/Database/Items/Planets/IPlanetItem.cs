@@ -1,4 +1,5 @@
-﻿using Valour.Shared.Items;
+﻿using Valour.Server.Services;
+using Valour.Shared.Items;
 
 namespace Valour.Server.Database.Items.Planets;
 
@@ -14,7 +15,10 @@ public interface IPlanetItem : ISharedItem
     [Column("planet_id")]
     public long PlanetId { get; set; }
 
-    public static ValueTask<Planet> GetPlanetAsync(IPlanetItem item, ValourDB db) =>
-        Item.FindAsync<Planet>(item.PlanetId, db);
+    public async ValueTask<Planet> GetPlanetAsync(PlanetService service)
+    {
+        Planet ??= await service.GetAsync(PlanetId);
+        return Planet;
+    }
 }
 

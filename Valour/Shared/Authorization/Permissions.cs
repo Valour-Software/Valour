@@ -4,6 +4,8 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using Valour.Shared.Items.Authorization;
+
 namespace Valour.Shared.Authorization;
 
 /// <summary>
@@ -42,7 +44,11 @@ public class Permission
     /// </summary>
     const string Mixed_Description = "A mix of several permissions";
 
-    public virtual string PermissionType => "Base";
+    public virtual string ReadableName => "Base";
+    
+    public virtual PermissionsTargetType TargetType => PermissionsTargetType.Undefined;
+
+    public virtual long GetDefault() => 0;
 
     /// <summary>
     /// Initializes the permission
@@ -106,7 +112,9 @@ public class Permission
 
 public class ChatChannelPermission : Permission
 {
-    public override string PermissionType => "Chat Channel";
+    public override PermissionsTargetType TargetType => PermissionsTargetType.PlanetChatChannel;
+    public override string ReadableName => "Chat Channel";
+    public override long GetDefault() => ChatChannelPermissions.Default;
     public ChatChannelPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -114,7 +122,9 @@ public class ChatChannelPermission : Permission
 
 public class CategoryPermission : Permission
 {
-    public override string PermissionType => "Category";
+    public override PermissionsTargetType TargetType => PermissionsTargetType.PlanetCategoryChannel;
+    public override string ReadableName => "Category";
+    public override long GetDefault() => CategoryPermissions.Default;
     public CategoryPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -122,7 +132,9 @@ public class CategoryPermission : Permission
 
 public class VoiceChannelPermission : Permission
 {
-    public override string PermissionType => "Voice Channel";
+    public override PermissionsTargetType TargetType => PermissionsTargetType.PlanetVoiceChannel;
+    public override string ReadableName => "Voice Channel";
+    public override long GetDefault() => VoiceChannelPermissions.Default;
     public VoiceChannelPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -130,7 +142,7 @@ public class VoiceChannelPermission : Permission
 
 public class UserPermission : Permission
 {
-    public override string PermissionType => "User";
+    public override string ReadableName => "User";
     public UserPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -138,7 +150,7 @@ public class UserPermission : Permission
 
 public class PlanetPermission : Permission
 {
-    public override string PermissionType => "Planet";
+    public override string ReadableName => "Planet";
     public PlanetPermission(long value, string name, string description) : base(value, name, description)
     {
     }

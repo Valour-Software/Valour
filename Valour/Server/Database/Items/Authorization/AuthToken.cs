@@ -9,10 +9,6 @@ namespace Valour.Server.Database.Items.Authorization;
 [Table("auth_tokens")]
 public class AuthToken : ISharedAuthToken
 {
-    [NotMapped]
-    [JsonIgnore]
-    public static ConcurrentDictionary<string, AuthToken> QuickCache = new ConcurrentDictionary<string, AuthToken>();
-
     [Key]
     [Column("id")]
     public string Id { get; set; }
@@ -62,30 +58,6 @@ public class AuthToken : ISharedAuthToken
     /// </summary>
     public bool HasScope(Permission permission) =>
         ISharedAuthToken.HasScope(permission, this);
-
-    /// <summary>
-    /// Will return the auth object for a valid token, including the user.
-    /// This will log the access time in the user object.
-    /// A null response means the token was invalid.
-    /// </summary>
-    public static async Task<AuthToken> TryAuthorize(string token, ValourDB db)
-    {
-        if (token == null) return null;
-
-        AuthToken authToken;
-
-        if (QuickCache.ContainsKey(token))
-        {
-            authToken = QuickCache[token];
-        }
-        else
-        {
-            authToken = await db.AuthTokens.FindAsync(token);
-
-            QuickCache.TryAdd(token, authToken);
-        }
-
-        return authToken;
-    }
+    
 }
 

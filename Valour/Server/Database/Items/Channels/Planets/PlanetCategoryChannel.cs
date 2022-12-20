@@ -4,7 +4,6 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.EndpointFilters;
 using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Hubs;
 using Valour.Server.Requests;
 using Valour.Server.Services;
 using Valour.Shared;
@@ -39,96 +38,26 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
     /// <summary>
     /// Returns if the member has the given permission in this category
     /// </summary>
-    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission, ValourDB db)
-    {
-        Planet planet = await GetPlanetAsync(db);
+    public async Task<bool> HasPermissionAsync(PlanetMember member, CategoryPermission permission, PermissionsService service) =>
+        await service.HasPermissionAsync(member, this, permission);
+    
+    /// <summary>
+    /// Returns if the member has the given chat permission in this category
+    /// </summary>
+    public async Task<bool> HasPermissionAsync(PlanetMember member, ChatChannelPermission permission, PermissionsService service) =>
+        await service.HasPermissionAsync(member, this, permission);
 
-        if (planet.OwnerId == member.UserId)
-        {
-            return true;
-        }
-
-        // If true, we ask the parent
-        if (InheritsPerms)
-        {
-            return await (await GetParentAsync(db)).HasPermissionAsync(member, permission, db);
-        }
-
-        var roles = await member.GetRolesAsync(db);
-
-        var do_channel = permission is ChatChannelPermission;
-
-        int pos = 0;
-
-        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
-        // If we get an undecided, we continue to the next role down
-        foreach (var role in roles.OrderBy(x => x.Position))
-        {
-            PermissionsNode node = null;
-
-            if (do_channel)
-                node = await role.GetChannelNodeAsync(this, db);
-            else
-                node = await role.GetCategoryNodeAsync(this, db);
-
-
-            PermissionState state = PermissionState.Undefined;
-
-            if (node is not null)
-            {
-                state = node.GetPermissionState(permission);
-            }
-
-            if (state == PermissionState.Undefined)
-            {
-                // Last role
-                if (pos == roles.Count - 1)
-                {
-                    // If the bottom role is undefined, fallback to defaults
-                    if (do_channel)
-                        return Permission.HasPermission(ChatChannelPermissions.Default, permission);
-                    else
-                        return Permission.HasPermission(CategoryPermissions.Default, permission);
-                }
-
-                pos++;
-                continue;
-            }
-            else if (state == PermissionState.True)
-            {
-                pos++;
-                return true;
-            }
-            else
-            {
-                pos++;
-                return false;
-            }
-
-        }
-
-        // No roles ever defined behavior: resort to false.
-        return false;
-    }
-
-    public async Task DeleteAsync(ValourDB db)
-    {
-        // Remove permission nodes
-        db.PermissionsNodes.RemoveRange(
-            db.PermissionsNodes.Where(x => x.TargetId == Id)
-        );
-
-        // Remove category
-        db.PlanetCategoryChannels.Remove(
-            this
-        );
-    }
+    /// <summary>
+    /// Deletes this category
+    /// </summary>
+    public void DeleteAsync(PlanetCategoryService service) =>
+        service.DeleteAsync(this);
 
     /// <summary>
     /// Returns the children for this category
     /// </summary>
-    public async Task<List<PlanetChannel>> GetChildrenAsync(ValourDB db)
-        => await db.PlanetChannels.Where(x => x.ParentId == Id).ToListAsync();
+    public async Task<List<PlanetChannel>> GetChildrenAsync(PlanetCategoryService service) =>
+        await service.GetChildrenAsync(this);
 
     #region Routes
 
@@ -199,6 +128,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PermissionsService permService,
         ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
@@ -222,8 +152,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         // Ensure user has permission for parent category management
         if (category.ParentId is not null)
         {
-            var parent_cat = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
-            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            var parent = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
+            if (!await parent.HasPermissionAsync(member, CategoryPermissions.ManageCategory, permService))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
@@ -254,6 +184,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PermissionsService permService,
          ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
@@ -279,8 +210,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         // Ensure user has permission for parent category management
         if (category.ParentId is not null)
         {
-            var parent_cat = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
-            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            var parent = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
+            if (!await parent.HasPermissionAsync(member, CategoryPermissions.ManageCategory, permService))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
 
@@ -339,6 +270,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PlanetCategoryService categoryService,
         ILogger<PlanetCategoryChannel> logger)
     {
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
@@ -356,7 +288,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
         try
         {
-            await category.DeleteAsync(db);
+            categoryService.DeleteAsync(category);
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
         }

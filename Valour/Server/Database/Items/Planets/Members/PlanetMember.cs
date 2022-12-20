@@ -8,6 +8,7 @@ using Valour.Server.Hubs;
 using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
@@ -34,8 +35,11 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     [Column("planet_id")]
     public long PlanetId { get; set; }
 
-    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
-        IPlanetItem.GetPlanetAsync(this, db);
+    public async ValueTask<Planet> GetPlanetAsync(PlanetService service)
+    {
+        Planet ??= await service.GetAsync(PlanetId);
+        return Planet;
+    }
 
     [JsonIgnore]
     public override string BaseRoute =>
@@ -77,117 +81,21 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     /// </summary>
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
-
-    public static async Task<PlanetMember> FindAsync(long memberId, ValourDB db)
-    {
-        return await db.PlanetMembers.FindAsync(memberId);
-    }
-
-    public static async Task<PlanetMember> FindAsyncByUser(long userId, long planetId, ValourDB db)
-    {
-        return await db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId &&
-                                                                  x.UserId == userId);
-    }
-
-    /// <summary>
-    /// Returns all of the roles for a planet user
-    /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(ValourDB db)
-    {
-        List<PlanetRole> roles;
-
-        if (RoleMembership == null)
-        {
-            await LoadRoleMembershipAsync(db);
-        }
-
-        roles = RoleMembership.Select(x => x.Role).ToList();
-
-        return roles;
-    }
-
-    /// <summary>
-    /// Loads role membership data from database
-    /// </summary>
-    public async Task LoadRoleMembershipAsync(ValourDB db) =>
-        await db.Attach(this).Collection(x => x.RoleMembership)
-                                 .Query()
-                                 .Include(x => x.Role)
-                                 .OrderBy(x => x.Role.Position)
-                                 .LoadAsync();
-
-    /// <summary>
-    /// Returns the member's primary role
-    /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(ValourDB db)
-    {
-        if (RoleMembership == null)
-        {
-            await LoadRoleMembershipAsync(db);
-        }
-
-        return RoleMembership.FirstOrDefault()?.Role;
-    }
+    
+    public async Task<List<PlanetRole>> GetRolesAsync(PlanetMemberService service) =>
+        await service.GetRolesAsync(Id);
+    
+    public async Task<List<PlanetRole>> GetRolesAndNodesAsync(long targetId, PermissionsTargetType type, PlanetMemberService service) =>
+        await service.GetRolesAndNodesAsync(Id, targetId, type);
+    
+    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMemberService service) =>
+        await service.GetPrimaryRoleAsync(Id);
 
     /// <summary>
     /// Returns if the member has the given permission
     /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetPermission permission, ValourDB db)
-    {
-        await GetPlanetAsync(db);
-        return await Planet.HasPermissionAsync(this, permission, db);
-    }
-
-    /// <summary>
-    /// Returns a success or failure for the combination of permissions
-    /// Send in pairs of permissions with their target object! For example (ChannelPermission, Channel) or (UserPermission, AuthToken)
-    /// 
-    /// Todo: Use interface to make this better? IPermissable?
-    /// </summary>
-    public async Task<TaskResult> HasAllPermissions(ValourDB db, params (Permission perm, object target)[] permission_pairs)
-    {
-        foreach (var pair in permission_pairs)
-        {
-            if (pair.perm is UserPermission)
-            {
-                var uperm = pair.perm as UserPermission;
-                var token = pair.target as AuthToken;
-
-                if (!token.HasScope(uperm))
-                    return new TaskResult(false, "Token lacks " + uperm.Name + " permission.");
-            }
-            else if (pair.perm is PlanetPermission)
-            {
-                var pperm = pair.perm as PlanetPermission;
-                var planet = pair.target as Planet;
-
-                if (!await planet.HasPermissionAsync(this, pperm, db))
-                    return new TaskResult(false, "Member lacks " + pperm.Name + " planet permission.");
-            }
-            else if (pair.perm is ChatChannelPermission)
-            {
-                var cperm = pair.perm as ChatChannelPermission;
-                var channel = pair.target as PlanetChatChannel;
-
-                if (!await channel.HasPermissionAsync(this, cperm, db))
-                    return new TaskResult(false, "Member lacks " + cperm.Name + " channel permission.");
-            }
-            else if (pair.perm is CategoryPermission)
-            {
-                var cperm = pair.perm as CategoryPermission;
-                var channel = pair.target as PlanetCategoryChannel;
-
-                if (!await channel.HasPermissionAsync(this, cperm, db))
-                    return new TaskResult(false, "Member lacks " + cperm.Name + " category permission.");
-            }
-            else
-            {
-                throw new Exception("This type of permission needs to be implemented!");
-            }
-        }
-
-        return new TaskResult(true, "Authorized.");
-    }
+    public async Task<bool> HasPermissionAsync(PlanetPermission permission, PermissionsService permService) =>
+        await permService.HasPermissionAsync(this, permission);
 
     /// <summary>
     /// Returns the user (async)

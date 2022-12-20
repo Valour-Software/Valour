@@ -13,9 +13,10 @@ namespace Valour.Shared.Items.Authorization;
 
 public enum PermissionsTargetType
 {
-    PlanetChatChannel,
-    PlanetCategoryChannel,
-    PlanetVoiceChannel
+    Undefined = -1,
+    PlanetChatChannel = 0,
+    PlanetCategoryChannel = 1,
+    PlanetVoiceChannel = 2
 }
 
 public interface ISharedPermissionsTarget

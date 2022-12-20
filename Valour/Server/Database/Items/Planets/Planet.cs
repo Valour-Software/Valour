@@ -158,25 +158,7 @@ public class Planet : Item, ISharedPlanet
 
         return TaskResult.SuccessResult;
     }
-
-    /// <summary>
-    /// Retrieves a planet for the given id
-    /// </summary>
-    public static async Task<Planet> FindAsync(long id, ValourDB db) =>
-        await FindAsync<Planet>(id, db);
-
-    /// <summary>
-    /// Returns if a given user id is a member (async)
-    /// </summary>
-    public async Task<bool> IsMemberAsync(long userId, ValourDB db) =>
-        await db.PlanetMembers.AnyAsync(x => x.PlanetId == this.Id && x.UserId == userId);
-
-    /// <summary>
-    /// Returns if a given user is a member (async)
-    /// </summary>
-    public async Task<bool> IsMemberAsync(User user, ValourDB db) =>
-        await IsMemberAsync(user.Id, db);
-
+    
     /// <summary>
     /// Returns the primary channel for the planet
     /// </summary>
@@ -201,28 +183,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission, ValourDB db)
     {
-        // Special case for viewing planets
-        if (permission.Value == PlanetPermissions.View.Value)
-        {
-            if (Public || (member != null))
-            {
-                return true;
-            }
-        }
-
-        // At this point all permissions require membership
-        if (member is null)
-            return false;
-
-        // Owner has all permissions
-        if (member.UserId == OwnerId)
-            return true;
-
-        // Get user main role
-        var mainRole = await member.GetPrimaryRoleAsync(db);
-
-        // Return permission state
-        return mainRole.HasPermission(permission);
+        
     }
 
     /// <summary>

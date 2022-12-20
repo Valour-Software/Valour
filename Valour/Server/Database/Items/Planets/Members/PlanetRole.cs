@@ -109,12 +109,12 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
                                           x.RoleId == Id).ToList();
     }
 
-    public async Task<PermissionsNode> GetChannelNodeAsync(PlanetChatChannel channel, ValourDB db) =>
+    public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetChatChannel channel, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
                                                            x.TargetType == PermissionsTargetType.PlanetChatChannel &&
                                                            x.RoleId == Id);
 
-    public async Task<PermissionsNode> GetChannelNodeAsync(PlanetCategoryChannel category, ValourDB db) =>
+    public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetCategoryChannel category, ValourDB db) =>
         await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
                                                            x.TargetType == PermissionsTargetType.PlanetChatChannel &&
                                                            x.RoleId == Id);

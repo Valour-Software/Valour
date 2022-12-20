@@ -1,17 +1,25 @@
 using Valour.Server.Database;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.EndpointFilters;
 
 public class PlanetMembershipRequiredFilter : IEndpointFilter
 {
-    private readonly ValourDB _db;
+    private readonly PlanetService _planetService;
+    private readonly PlanetMemberService _memberService;
+    private readonly PermissionsService _permService;
 
-    public PlanetMembershipRequiredFilter(ValourDB db)
+    public PlanetMembershipRequiredFilter(
+        PlanetMemberService memberService,
+        PlanetService planetService,
+        PermissionsService permService)
     {
-        _db = db;
+        _memberService = memberService;
+        _planetService = planetService;
+        _permService = permService;
     }
-    
+
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
         var token = ctx.HttpContext.GetToken();
@@ -27,10 +35,12 @@ public class PlanetMembershipRequiredFilter : IEndpointFilter
             throw new Exception($"Could not bind route value for '{routeId}'");
 
         var routeVal = long.Parse((string)ctx.HttpContext.Request.RouteValues[routeId]);
-        
-        var member = await _db.PlanetMembers.Include(x => x.Planet).FirstOrDefaultAsync(x => x.UserId == token.UserId && x.PlanetId == routeVal);
+
+        var member = await _memberService.GetByUserAsync(token.UserId, routeVal);
         if (member is null)
             return ValourResult.NotPlanetMember();
+
+        var planet = await member.GetPlanetAsync(_planetService);
 
         foreach (var permEnum in memberAttr.permissions)
         {
