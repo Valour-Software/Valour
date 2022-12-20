@@ -83,7 +83,7 @@ public class EmbedItem : IParentItem
 
 	public virtual EmbedItem GetLastItem(bool InsideofForms)
 	{
-        if (Children.Count == 0)
+        if (Children is null || Children.Count == 0)
             return this;
         else
         {
@@ -119,13 +119,16 @@ public class EmbedItem : IParentItem
         }
 
         if (ItemType == EmbedItemType.EmbedRow && !style.Contains("display: flex"))
-            style += "display: flex;align-items: center;";
+            style += "display: flex;";//align-items: center;";
 
         else if (Parent is null)
             return style;
 
         if (Parent.ItemType == EmbedItemType.EmbedRow && !(style.Contains("margin-right") || style.Contains("margin-left")))
             style += "margin-right: 5px;";
+
+        if (ItemType == EmbedItemType.Button && !style.Contains("align-self"))
+            style += "align-self: end;display: flex;";
 
 		return style;
     }

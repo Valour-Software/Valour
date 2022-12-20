@@ -16,7 +16,12 @@ public class EmbedRow : EmbedItem
 	public override EmbedItemType ItemType => EmbedItemType.EmbedRow;
 	public override EmbedItem GetLastItem(bool InsideofForms)
 	{
-		return Children.Last().GetLastItem(InsideofForms);
+        if (Children is null || Children.Count == 0)
+            return this;
+        else
+        {
+            return Children.Last().GetLastItem(InsideofForms);
+        }
 	}
 }
 
@@ -134,12 +139,12 @@ public class Embed
             page = Pages.Last();
         else 
             page = Pages[(int)pagenum];
-        var item = page.Children.Last();
-        if (InsideofForms) {
-            if (item.ItemType == EmbedItemType.Form) {
-                return ((EmbedFormItem)item).GetLastItem(InsideofForms);
-            }
-        }
+        var item = page.GetLastItem(InsideofForms);
+        //if (InsideofForms) {
+        //    if (item.ItemType == EmbedItemType.Form) {
+        //        return ((EmbedFormItem)item).GetLastItem(InsideofForms);
+        //    }
+       // }
         return item;
 }
 

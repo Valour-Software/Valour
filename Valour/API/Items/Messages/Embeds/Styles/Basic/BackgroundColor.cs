@@ -7,12 +7,21 @@ public class BackgroundColor : StyleBase
     [JsonPropertyName("c")]
     public Color Color { get; set; }
 
-    public BackgroundColor(Color color)
+	[JsonConstructor]
+	public BackgroundColor(Color color)
     {
         Color = color;
     }
 
-    public override string ToString()
+	/// <summary>
+	/// </summary>
+	/// <param name="hex">Must be in #xxxxxx or xxxxxx format!</param>
+	public BackgroundColor(string hex)
+	{
+		Color = new Color(hex);
+	}
+
+	public override string ToString()
     {
         return $"background-color: {Color};";
     }
