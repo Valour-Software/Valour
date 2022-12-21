@@ -23,20 +23,17 @@ namespace Valour.Server.Database
         private readonly ValourDB _db;
         private readonly CoreHubService _hubService;
         private readonly UserOnlineService _onlineService;
-        private readonly ChannelStateService _stateService;
         private readonly IConnectionMultiplexer _redis;
 
         public CoreHub(
             ValourDB db, 
             CoreHubService hubService, 
             UserOnlineService onlineService,
-            ChannelStateService stateService,
             IConnectionMultiplexer redis)
         {
             _db = db;
             _hubService = hubService;
             _onlineService = onlineService;
-            _stateService = stateService;
             _redis = redis;
         }
 
@@ -157,7 +154,7 @@ namespace Valour.Server.Database
                 _db.UserChannelStates.Add(channelState);
             }
             
-            channelState.LastViewedState = await _stateService.GetState(channelId);
+            channelState.LastViewedTime = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             
             _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState);

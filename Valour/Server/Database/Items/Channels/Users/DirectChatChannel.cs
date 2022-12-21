@@ -183,7 +183,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             {
                 UserId = token.UserId,
                 ChannelId = channel.Id,
-                LastViewedState = channel.State
+                LastViewedTime = DateTime.UtcNow
             });
 
             await db.SaveChangesAsync();
@@ -191,9 +191,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
 
         else
         {
-
-            state.LastViewedState = channel.State;
-
+            state.LastViewedTime = DateTime.UtcNow;
             await db.SaveChangesAsync();
         }
 
@@ -211,7 +209,6 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
         ValourDB valourDb, 
         CdnDb db,
         CoreHubService hubService,
-        ChannelStateService channelService,
         IConnectionMultiplexer redis)
     {
         var token = ctx.GetToken();
@@ -309,10 +306,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
 
         if (targetUser is null)
             return ValourResult.NotFound("Target user not found.");
-
-        // Add message to database
-        await channelService.SetMessageState(channel, message.Id);
-        var newChannelState = await channelService.GetState(channel.Id);
+        
         
         var state = await valourDb.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
         if (state is null)
@@ -321,13 +315,13 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
             {
                 UserId = token.UserId,
                 ChannelId = channel.Id,
-                LastViewedState = newChannelState
+                LastViewedTime = DateTime.UtcNow
             });
         }
 
         else
         {
-            state.LastViewedState = newChannelState;
+            state.LastViewedTime = DateTime.UtcNow;
         }
 
         await valourDb.DirectMessages.AddAsync(message);

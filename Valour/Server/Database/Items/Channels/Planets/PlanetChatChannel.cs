@@ -98,20 +98,22 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
 
                 continue;
             }
-
-            PermissionState state = node.GetPermissionState(permission);
-
-            if (state == PermissionState.Undefined)
-            {
-                continue;
-            }
-            else if (state == PermissionState.True)
-            {
-                return true;
-            }
-            else
-            {
+            
+            // If there is no view permission, there can't be any other permissions
+            if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
                 return false;
+
+            var state = node.GetPermissionState(permission);
+
+            switch (state)
+            {
+                case PermissionState.Undefined:
+                    continue;
+                case PermissionState.True:
+                    return true;
+                case PermissionState.False:
+                default:
+                    return false;
             }
 
         }
@@ -479,8 +481,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         HttpClient client, 
         ValourDB valourDb, 
         CdnDb db,
-        UserOnlineService onlineService,
-        ChannelStateService stateService)
+        UserOnlineService onlineService)
     {
         var member = ctx.GetMember();
         var channel = ctx.GetItem<PlanetChatChannel>(id);
@@ -563,8 +564,6 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         PlanetMessageWorker.AddToQueue(message);
 
         StatWorker.IncreaseMessageCount();
-
-        await stateService.SetMessageState(channel, message.Id);
 
         return Results.Ok();
     }

@@ -81,7 +81,7 @@ public static class ValourClient
     /// <summary>
     /// The state of channels this user has access to
     /// </summary>
-    public static Dictionary<long, UserChannelState> ChannelStates { get; private set; } = new();
+    public static Dictionary<long, DateTime?> ChannelStateTimes { get; private set; } = new();
 
     /// <summary>
     /// The primary node this client is connected to
@@ -105,6 +105,10 @@ public static class ValourClient
     /// </summary>
     public static List<TenorFavorite> TenorFavorites { get; set; }
 
+    /// <summary>
+    /// Timer that updates the user's online status
+    /// </summary>
+    private static Timer _onlineTimer;
 
     #region Event Fields
 
@@ -611,32 +615,7 @@ public static class ValourClient
         if (channel is null)
             return;
 
-        channel.State = update.State;
-
-        // If the channel is currently open, we also update the user's channel state.
-        // Because they can see the channel.
-        // That makes sense, right?
-        // Right?
-        /*
-        if (OpenChannels.Any(x => x.Id == channel.Id))
-        {
-            ChannelStates.TryGetValue(channel.Id, out UserChannelState state);
-
-            if (state != null)
-            {
-                state.LastViewedState = channel.State;
-            }
-            else
-            {
-                ChannelStates.Add(channel.Id, new UserChannelState()
-                {
-                    LastViewedState = channel.State,
-                    UserId = Self.Id,
-                    ChannelId = channel.Id
-                });
-            }
-        }
-        */
+        channel.TimeLastActive = update.Time;
 
         await channel.OnUpdate(0x01);
         await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
@@ -903,6 +882,27 @@ public static class ValourClient
     }
 
     /// <summary>
+    /// Starts pinging for online state
+    /// </summary>
+    private static async Task BeginOnlinePings()
+    {
+        await Logger.Log("Beginning online pings...", "lime");
+        _onlineTimer = new Timer(OnOnlineTimer, null, TimeSpan.Zero, TimeSpan.FromSeconds(60));
+    }
+
+    /// <summary>
+    /// Run by the online timer
+    /// </summary>
+    private static async void OnOnlineTimer(object state = null)
+    {
+        await Logger.Log("Doing user ping...", "lime");
+
+        var pingResult = await PrimaryNode.GetAsync("api/user/ping");
+        if (!pingResult.Success)
+            await Logger.Log("Failed to ping server for online state", "salmon");
+    }
+
+    /// <summary>
     /// Logs in and prepares the client for use
     /// </summary>
     public static async Task<TaskResult<User>> InitializeUser(string token)
@@ -949,6 +949,8 @@ public static class ValourClient
 
         if (OnLogin != null)
             await OnLogin?.Invoke();
+        
+        await BeginOnlinePings();
 
         return new TaskResult<User>(true, "Success", Self);
     }
@@ -994,6 +996,8 @@ public static class ValourClient
             await OnLogin?.Invoke();
 
         await JoinAllChannelsAsync();
+        
+        await BeginOnlinePings();
 
         return new TaskResult<User>(true, "Success", Self);
     }
@@ -1028,14 +1032,9 @@ public static class ValourClient
 
     public static async Task UpdateUserChannelState(UserChannelState channelState)
     {
-
-        if (ChannelStates.ContainsKey(channelState.ChannelId))
-            ChannelStates[channelState.ChannelId].LastViewedState = channelState.LastViewedState;
-        else
-            ChannelStates.Add(channelState.ChannelId, channelState);
-
+        ChannelStateTimes[channelState.ChannelId] = channelState.LastViewedTime;
         // Access dict again to maintain references (do not try to optimize and break everything)
-        await OnUserChannelStateUpdate.Invoke(ChannelStates[channelState.ChannelId]);
+        await OnUserChannelStateUpdate.Invoke(channelState);
     }
 
     public static async Task LoadTenorFavoritesAsync()
@@ -1067,10 +1066,10 @@ public static class ValourClient
 
         foreach (var state in response.Data)
         {
-            ChannelStates[state.ChannelId] = state;
+            ChannelStateTimes[state.ChannelId] = state.LastViewedTime;
         }
 
-        Console.WriteLine("Loaded " + ChannelStates.Count + " channel states.");
+        Console.WriteLine("Loaded " + ChannelStateTimes.Count + " channel states.");
     }
 
     /// <summary>

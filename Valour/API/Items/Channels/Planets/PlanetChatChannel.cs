@@ -57,18 +57,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         if (ValourClient.OpenPlanetChannels.Any(x => x.Id == Id))
             return false;
 
-        if (!ValourClient.ChannelStates.ContainsKey(Id))
-            return true;
-
-        if (string.IsNullOrEmpty(State))
-            return true;
+        ValourClient.ChannelStateTimes.TryGetValue(Id, out var lastRead);
+        if (lastRead is null)
+            lastRead = DateTime.MaxValue;
         
-        long.TryParse(State, out var channelIndex);
-
-        var localState = ValourClient.ChannelStates[Id].LastViewedState;
-        long.TryParse(localState, out var localIndex);
-
-        return !(localIndex >= channelIndex);
+        return lastRead < TimeLastActive;
     }
 
     /// <summary>
