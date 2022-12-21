@@ -32,8 +32,11 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
     [Column("planet_id")]
     public long PlanetId { get; set; }
 
-    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
-        IPlanetItem.GetPlanetAsync(this, db);
+    public async ValueTask<Planet> GetPlanetAsync(PlanetService service)
+    {
+        Planet ??= await service.GetAsync(PlanetId);
+        return Planet;
+    }
 
     [JsonIgnore]
     public override string BaseRoute =>
@@ -168,6 +171,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PlanetMemberService memberService,
         ILogger<PlanetRole> logger)
     {
         var authMember = ctx.GetMember();
@@ -175,7 +179,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         role.Position = await db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
         role.Id = IdManager.Generate();
 
-        if (role.GetAuthority() > await authMember.GetAuthorityAsync(db))
+        if (role.GetAuthority() > await authMember.GetAuthorityAsync(memberService))
             return ValourResult.Forbid("You cannot create roles with higher authority than your own.");
 
         try

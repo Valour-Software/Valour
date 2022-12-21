@@ -127,8 +127,11 @@ CREATE TABLE IF NOT EXISTS planets (
     description TEXT NOT NULL,
     public BOOLEAN NOT NULL DEFAULT true,
     discoverable BOOLEAN NOT NULL DEFAULT true,
-    default_role_id BIGINT,
-    primary_channel_id BIGINT
+    default_role_id BIGINT NOT NULL,
+    primary_channel_id BIGINT NOT NULL,
+
+    CONSTRAINT fk_default_role FOREIGN KEY(default_role_id) REFERENCES planet_roles(id),
+    CONSTRAINT fk_primary_channel FOREIGN KEY(primary_channel_id) REFERENCES planet_chat_channels(id)
 );
 
 CREATE TABLE IF NOT EXISTS planet_bans (

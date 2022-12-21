@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Channels.Planets;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.EndpointFilters;
 using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Hubs;
 using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -57,6 +54,14 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     [InverseProperty("Member")]
     [JsonIgnore]
     public virtual ICollection<PlanetRoleMember> RoleMembership { get; set; }
+    
+    /// <summary>
+    /// This is a cached list of roles, only intended to be used within the
+    /// same request. It is not saved to the database or updated.
+    /// </summary>
+    [JsonIgnore]
+    [NotMapped]
+    public List<PlanetRole> Roles { get; set; }
 
     /// <summary>
     /// The user within the planet
@@ -83,13 +88,13 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     public bool IsDeleted { get; set; }
     
     public async Task<List<PlanetRole>> GetRolesAsync(PlanetMemberService service) =>
-        await service.GetRolesAsync(Id);
+        await service.GetRolesAsync(this);
     
     public async Task<List<PlanetRole>> GetRolesAndNodesAsync(long targetId, PermissionsTargetType type, PlanetMemberService service) =>
-        await service.GetRolesAndNodesAsync(Id, targetId, type);
+        await service.GetRolesAndNodesAsync(this, targetId, type);
     
     public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMemberService service) =>
-        await service.GetPrimaryRoleAsync(Id);
+        await service.GetPrimaryRoleAsync(this);
 
     /// <summary>
     /// Returns if the member has the given permission
@@ -103,32 +108,12 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     public async Task<User> GetUserAsync(ValourDB db) =>
         User ??= await db.Users.FindAsync(UserId);
 
-    public async Task<int> GetAuthorityAsync(ValourDB db)
+    public async Task<int> GetAuthorityAsync(PlanetMemberService service) =>
+        await service.GetAuthorityAsync(this);
+
+    public void Delete(PlanetMemberService service)
     {
-        if (Planet is null)
-            await GetPlanetAsync(db);
-
-        if (Planet.OwnerId == UserId)
-        {
-            // Highest possible authority for owner
-            return int.MaxValue;
-        }
-        else
-        {
-            var primaryRole = await GetPrimaryRoleAsync(db);
-            return primaryRole?.GetAuthority() ?? int.MinValue;
-        }
-    }
-
-    public async Task DeleteAsync(ValourDB db)
-    {
-        // Remove roles
-        var roles = db.PlanetRoleMembers.Where(x => x.MemberId == Id);
-        db.PlanetRoleMembers.RemoveRange(roles);
-
-        // Soft delete member
-        IsDeleted = true;
-        db.PlanetMembers.Update(this);
+        
     }
 
     // Helpful route to return the member for the authorizing user
@@ -152,7 +137,8 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired]
     [PlanetMembershipRequired]
     public static async Task<IResult> GetAuthorityRouteAsync(
-        long id, 
+        long id,
+        PlanetMemberService memberService,
         ValourDB db)
     {
         var member = await FindAsync<PlanetMember>(id, db);
@@ -160,18 +146,18 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         if (member is null)
             return ValourResult.NotFound<PlanetMember>();
 
-        return Results.Json(await member.GetAuthorityAsync(db));
+        return Results.Json(await member.GetAuthorityAsync(memberService));
     }
 
     [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired]
     [PlanetMembershipRequired]
     public static async Task<IResult> GetRoute(
         long planetId, 
-        long userId, 
+        long userId,
+        PlanetMemberService memberService,
         ValourDB db)
     {
-        var member = await FindAsyncByUser(userId, planetId, db);
-
+        var member = await memberService.GetByUserAsync(userId, planetId);
         if (member is null)
             return ValourResult.NotFound<PlanetMember>();
 
@@ -291,6 +277,8 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PlanetMemberService memberService,
+        PermissionsService permService,
         ILogger<PlanetMember> logger)
     {
         var authMember = ctx.GetMember();
@@ -298,10 +286,10 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
 
         if (authMember.Id != id)
         {
-            if (!await authMember.HasPermissionAsync(PlanetPermissions.Kick, db))
+            if (!await authMember.HasPermissionAsync(PlanetPermissions.Kick, permService))
                 return ValourResult.LacksPermission(PlanetPermissions.Kick);
 
-            if (await authMember.GetAuthorityAsync(db) < await targetMember.GetAuthorityAsync(db))
+            if (await authMember.GetAuthorityAsync(memberService) < await targetMember.GetAuthorityAsync(memberService))
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
 
@@ -309,7 +297,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
 
         try
         {
-            await targetMember.DeleteAsync(db);
+            targetMember.Delete(memberService);
             await db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -352,6 +340,8 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PlanetMemberService memberService,
+        PermissionsService permService,
         ILogger<PlanetMember> logger)
     {
         var authMember = ctx.GetMember();
@@ -363,7 +353,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         if (member.PlanetId != planetId)
             return ValourResult.NotFound<PlanetMember>();
 
-        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, permService))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
         if (await db.PlanetRoleMembers.AnyAsync(x => x.MemberId == member.Id && x.RoleId == roleId))
@@ -373,7 +363,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync(db);
+        var authAuthority = await authMember.GetAuthorityAsync(memberService);
         if (role.GetAuthority() > authAuthority)
             return ValourResult.Forbid("You have lower authority than the role you are trying to add");
 
@@ -412,6 +402,8 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PermissionsService permService,
+        PlanetMemberService memberService,
         ILogger<PlanetMember> logger)
     {
         var authMember = ctx.GetMember();
@@ -423,7 +415,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         if (member.PlanetId != planetId)
             return ValourResult.NotFound<PlanetMember>();
 
-        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, db))
+        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, permService))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
         var oldRoleMember = await db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == member.Id && x.RoleId == roleId);
@@ -435,7 +427,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync(db);
+        var authAuthority = await authMember.GetAuthorityAsync(memberService);
         if (role.GetAuthority() > authAuthority)
             return ValourResult.Forbid("You have less authority than the role you are trying to remove"); ;
 

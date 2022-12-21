@@ -20,7 +20,7 @@ public class PlanetMembershipRequiredFilter : IEndpointFilter
         _permService = permService;
     }
 
-    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
+    public async ValueTask<object> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
         var token = ctx.HttpContext.GetToken();
         if (token is null)
@@ -45,7 +45,7 @@ public class PlanetMembershipRequiredFilter : IEndpointFilter
         foreach (var permEnum in memberAttr.permissions)
         {
             var perm = PlanetPermissions.Permissions[(int)permEnum];
-            if (!await member.Planet.HasPermissionAsync(member, perm, _db))
+            if (!await member.HasPermissionAsync(perm, _permService))
                 return ValourResult.LacksPermission(perm);
         }
 

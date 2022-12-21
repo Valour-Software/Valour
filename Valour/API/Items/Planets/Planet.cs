@@ -54,12 +54,12 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// The default role for the planet
     /// </summary>
-    public long? DefaultRoleId { get; set; }
+    public long DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
-    public long? PrimaryChannelId { get; set; }
+    public long PrimaryChannelId { get; set; }
 
     public Planet()
     {
@@ -105,7 +105,7 @@ public class Planet : Item, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await PlanetChatChannel.FindAsync(PrimaryChannelId.Value, Id, refresh);
+        return await PlanetChatChannel.FindAsync(PrimaryChannelId, Id, refresh);
     }
 
     /// <summary>

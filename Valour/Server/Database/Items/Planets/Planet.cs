@@ -112,13 +112,13 @@ public class Planet : Item, ISharedPlanet
     /// The default role for the planet
     /// </summary>
     [Column("default_role_id")]
-    public long? DefaultRoleId { get; set; }
+    public long DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
     [Column("primary_channel_id")]
-    public long? PrimaryChannelId { get; set; }
+    public long PrimaryChannelId { get; set; }
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
@@ -162,29 +162,27 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the primary channel for the planet
     /// </summary>
-    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(ValourDB db) =>
-        PrimaryChannel ??= await FindAsync<PlanetChatChannel>(PrimaryChannelId, db);
+    public ValueTask<PlanetChatChannel> GetPrimaryChannelAsync(PlanetService service) =>
+        service.GetPrimaryChannelAsync(this);
 
     /// <summary>
     /// Returns the default role for the planet
     /// </summary>
-    public async Task<PlanetRole> GetDefaultRole(ValourDB db) =>
-        DefaultRole ??= await FindAsync<PlanetRole>(DefaultRoleId, db);
+    public ValueTask<PlanetRole> GetDefaultRole(PlanetService service) =>
+        service.GetDefaultRole(this);
 
     /// <summary>
     /// Returns all roles within the planet
     /// </summary>
-    public async Task<ICollection<PlanetRole>> GetRolesAsync(ValourDB db) =>
-        Roles ??= await db.Attach(this).Collection(x => x.Roles).Query().ToListAsync();
+    public Task<ICollection<PlanetRole>> GetRolesAsync(PlanetService service) =>
+        service.GetRolesAsync(this);
 
 
     /// <summary>
     /// Returns if the given user has the given planet permission
     /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission, ValourDB db)
-    {
-        
-    }
+    public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission, PermissionsService service) =>
+        await service.HasPermissionAsync(member, permission);
 
     /// <summary>
     /// Adds a member to the server
@@ -229,12 +227,12 @@ public class Planet : Item, ISharedPlanet
         }
 
         // Add to default planet role
-        PlanetRoleMember rolemember = new PlanetRoleMember()
+        var roleMember = new PlanetRoleMember()
         {
             Id = IdManager.Generate(),
             PlanetId = Id,
             UserId = user.Id,
-            RoleId = DefaultRoleId.Value,
+            RoleId = DefaultRoleId,
             MemberId = member.Id
         };
 
@@ -256,7 +254,7 @@ public class Planet : Item, ISharedPlanet
                 await db.PlanetMembers.AddAsync(member);
             }
             
-            await db.PlanetRoleMembers.AddAsync(rolemember);
+            await db.PlanetRoleMembers.AddAsync(roleMember);
             await db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -405,13 +403,15 @@ public class Planet : Item, ISharedPlanet
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
+        PlanetMemberService memberService,
+        PermissionsService permService,
         ILogger<Planet> logger)
     {
         var member = ctx.GetMember();
 
         var old = await FindAsync<Planet>(id, db);
 
-        if (!await member.HasPermissionAsync(PlanetPermissions.Manage, db))
+        if (!await member.HasPermissionAsync(PlanetPermissions.Manage, permService))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
         if (planet is null)
