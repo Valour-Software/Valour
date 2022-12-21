@@ -56,7 +56,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         await permService.HasPermissionAsync(member, this, permission);
     
     public void Delete(PlanetChatChannelService service) =>
-        service.Delete(this);
+        service.DeleteAsync(this);
     
     
     #region Routes
@@ -133,6 +133,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
         ValourDB db,
         CoreHubService hubService,
         PermissionsService permService,
+        PlanetMemberService memberService,
         ILogger<PlanetChatChannel> logger)
     {
         // Get resources
@@ -175,7 +176,7 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
             node.PlanetId = planetId;
 
             var role = await FindAsync<PlanetRole>(node.RoleId, db);
-            if (role.GetAuthority() > await member.GetAuthorityAsync(db))
+            if (role.GetAuthority() > await member.GetAuthorityAsync(memberService))
                 return ValourResult.Forbid("A permission node's role has higher authority than you.");
 
             node.Id = IdManager.Generate();
@@ -264,32 +265,13 @@ public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatCh
     [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
     [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
     public static async Task<IResult> DeleteRouteAsync(
-        long id, 
-        long planetId, 
+        long id,
         HttpContext ctx,
-        ValourDB db,
         CoreHubService hubService,
-        PlanetChatChannelService channelService,
-        ILogger<PlanetChatChannel> logger)
+        PlanetChatChannelService channelService)
     {
         var channel = ctx.GetItem<PlanetChatChannel>(id);
-
-        // Always use transaction for multi-step DB operations
-        await using var transaction = await db.Database.BeginTransactionAsync();
-
-        try
-        {
-            channel.Delete(channelService);
-            await db.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            await transaction.RollbackAsync();
-            return Results.Problem(e.Message);
-        }
-
+        await channelService.DeleteAsync(channel);
         hubService.NotifyPlanetItemDelete(channel);
 
         return Results.NoContent();

@@ -8,6 +8,7 @@ namespace Valour.Server.Database.Items.Channels;
 [JsonDerivedType(typeof(DirectChatChannel), typeDiscriminator: nameof(DirectChatChannel))]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
+[JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 public class Channel : Item
 {
     [Column("time_last_active")]
@@ -15,4 +16,10 @@ public class Channel : Item
 
     [Column("state")]
     public string State { get; set; }
+    
+    /// <summary>
+    /// Soft-delete flag
+    /// </summary>
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
 }

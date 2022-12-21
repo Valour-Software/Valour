@@ -119,6 +119,12 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     [Column("primary_channel_id")]
     public long PrimaryChannelId { get; set; }
+    
+    /// <summary>
+    /// Soft-delete flag
+    /// </summary>
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
 
     [JsonIgnore]
     public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
@@ -174,104 +180,22 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns all roles within the planet
     /// </summary>
-    public Task<ICollection<PlanetRole>> GetRolesAsync(PlanetService service) =>
+    public ValueTask<ICollection<PlanetRole>> GetRolesAsync(PlanetService service) =>
         service.GetRolesAsync(this);
 
 
     /// <summary>
     /// Returns if the given user has the given planet permission
     /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission, PermissionsService service) =>
-        await service.HasPermissionAsync(member, permission);
+    public ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission, PermissionsService service) =>
+        service.HasPermissionAsync(member, permission);
 
     /// <summary>
     /// Adds a member to the server
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> AddMemberAsync(User user, ValourDB db, CoreHubService hubService, bool doTransaction = true)
-    {
-        if (await db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == Id &&
-            (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
-        {
-            return new TaskResult<PlanetMember>(false, "You are banned from this planet.");
-        }
-
-        var oldMember = await db.PlanetMembers
-            .IgnoreQueryFilters() // Allow soft-deleted members
-            .FirstOrDefaultAsync(x => x.UserId == user.Id && x.PlanetId == Id);
-
-        PlanetMember member;
-        bool rejoin = false;
-
-        // Already a member
-        if (oldMember is not null)
-        {
-            if (!oldMember.IsDeleted)
-            {
-                return new TaskResult<PlanetMember>(false, "Already a member.", null);
-            }
-            else
-            {
-                member = oldMember;
-                rejoin = true;
-            }
-        }
-        else 
-        {
-            member = new PlanetMember()
-            {
-                Id = IdManager.Generate(),
-                Nickname = user.Name,
-                PlanetId = Id,
-                UserId = user.Id
-            };
-        }
-
-        // Add to default planet role
-        var roleMember = new PlanetRoleMember()
-        {
-            Id = IdManager.Generate(),
-            PlanetId = Id,
-            UserId = user.Id,
-            RoleId = DefaultRoleId,
-            MemberId = member.Id
-        };
-
-
-        IDbContextTransaction trans = null;
-
-        if (doTransaction)
-            trans = await db.Database.BeginTransactionAsync();
-
-        try
-        {
-            if (rejoin)
-            {
-                member.IsDeleted = false;
-                db.PlanetMembers.Update(member);
-            }
-            else
-            {
-                await db.PlanetMembers.AddAsync(member);
-            }
-            
-            await db.PlanetRoleMembers.AddAsync(roleMember);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            await trans.RollbackAsync();
-            return new TaskResult<PlanetMember>(false, e.Message);
-        }
-
-        if (doTransaction)
-            await trans.CommitAsync();
-
-        hubService.NotifyPlanetItemChange(member);
-
-        Console.WriteLine($"User {user.Name} ({user.Id}) has joined {Name} ({Id})");
-
-        return new TaskResult<PlanetMember>(true, "Success", member);
-    }
+    public Task<TaskResult<PlanetMember>> AddMemberAsync(User user, PlanetService service, bool doTransaction = true) =>
+        service.AddMemberAsync(this, user, doTransaction);
+    
 
     #region Routes
 
@@ -292,7 +216,7 @@ public class Planet : Item, ISharedPlanet
         [FromBody] Planet planet, 
         HttpContext ctx,
         ValourDB db,
-        CoreHubService hubService,
+        PlanetService planetService,
         ILogger<Planet> logger)
     {
         var token = ctx.GetToken();
@@ -324,8 +248,6 @@ public class Planet : Item, ISharedPlanet
 
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
-        planet.PrimaryChannelId = null;
-        planet.DefaultRoleId = null;
 
         // Create general category
         var category = new PlanetCategoryChannel()
@@ -365,22 +287,20 @@ public class Planet : Item, ISharedPlanet
 
         try
         {
-            await db.Planets.AddAsync(planet);
-
-            await db.SaveChangesAsync();
-
             await db.PlanetCategoryChannels.AddAsync(category);
             await db.PlanetChatChannels.AddAsync(channel);
             await db.PlanetRoles.AddAsync(defaultRole);
 
             await db.SaveChangesAsync();
-
+                        
             planet.PrimaryChannelId = channel.Id;
             planet.DefaultRoleId = defaultRole.Id;
+            
+            await db.Planets.AddAsync(planet);
 
             await db.SaveChangesAsync();
 
-            await planet.AddMemberAsync(user, db, hubService, false);
+            await planet.AddMemberAsync(user, planetService, false);
         }
         catch (Exception e)
         {
@@ -436,7 +356,7 @@ public class Planet : Item, ISharedPlanet
                 return ValourResult.Forbid("Only a planet owner can transfer ownership.");
 
             // Ensure new owner is a member of the planet
-            if (!await old.IsMemberAsync(planet.OwnerId, db))
+            if (!await memberService.ExistsAsync(planet.OwnerId, planet.Id))
                 return Results.BadRequest("You cannot transfer ownership to a non-member.");
 
             var ownedPlanets = await db.Planets.CountAsync(x => x.OwnerId == planet.OwnerId);
@@ -482,81 +402,16 @@ public class Planet : Item, ISharedPlanet
     public static async Task<IResult> DeleteRouteAsync(
         long id, 
         HttpContext ctx,
-        ValourDB db,
         CoreHubService hubService,
-        ILogger<Planet> logger)
+        PlanetService planetService)
     {
         var authMember = ctx.GetMember();
-        var planet = await FindAsync<Planet>(id, db);
+        var planet = await planetService.GetAsync(id);
 
         if (authMember.UserId != planet.OwnerId)
             return ValourResult.Forbid("You are not the owner of this planet.");
 
-        // This is quite complicated.
-
-        using var tran = await db.Database.BeginTransactionAsync();
-
-        try
-        {
-            var channels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).ToListAsync();
-            var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).ToListAsync();
-            var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).ToListAsync();
-            var members = await db.PlanetMembers.Where(x => x.PlanetId == id).ToListAsync();
-            var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).ToListAsync();
-
-            // Channels (also deletes messages and nodes)
-            foreach (var channel in channels)
-            {
-                await channel.DeleteAsync(db);
-            }
-
-            await db.SaveChangesAsync();
-
-            // Categories (also deletes nodes)
-            foreach (var category in categories)
-            {
-                await category.DeleteAsync(db);
-            }
-
-            await db.SaveChangesAsync();
-
-            // Roles (Also deletes role membership)
-            foreach (var role in roles)
-            {
-                await role.DeleteAsync(db);
-            }
-
-            await db.SaveChangesAsync();
-
-            // Members
-            foreach (var member in members)
-            {
-                await member.DeleteAsync(db);
-            }
-
-            await db.SaveChangesAsync();
-
-            // Invites
-            foreach (var invite in invites)
-            {
-                await invite.DeleteAsync(db);
-            }
-
-            await db.SaveChangesAsync();
-
-            db.Remove(planet);
-
-            await db.SaveChangesAsync();
-
-            await tran.CommitAsync();
-        }
-        catch (System.Exception e)
-        {
-            await tran.RollbackAsync();
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-        
+        await planetService.DeleteAsync(planet);
         hubService.NotifyPlanetDelete(planet);
         
         return Results.NoContent();

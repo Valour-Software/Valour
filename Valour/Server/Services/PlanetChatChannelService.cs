@@ -44,21 +44,12 @@ public class PlanetChatChannelService
         await _permissionsService.HasPermissionAsync(member, channel, permission);
 
     /// <summary>
-    /// Deletes the given PlanetChatChannel and related data
+    /// Soft deletes the given channel
     /// </summary>
-    public void Delete(PlanetChatChannel channel)
+    public async Task DeleteAsync(PlanetChatChannel channel)
     {
-        // Remove permission nodes
-        _db.PermissionsNodes.RemoveRange(
-            _db.PermissionsNodes.Where(x => x.TargetId == channel.Id)
-        );
-
-        // Remove messages
-        _db.PlanetMessages.RemoveRange(
-            _db.PlanetMessages.Where(x => x.ChannelId == channel.Id)
-        );
-
-        // Remove channel
-        _db.PlanetChatChannels.Remove(channel);
+        channel.IsDeleted = true;
+        _db.PlanetChatChannels.Update(channel);
+        await _db.SaveChangesAsync();
     }
 }

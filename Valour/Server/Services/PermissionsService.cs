@@ -26,7 +26,7 @@ public class PermissionsService
         _categoryService = categoryService;
     }
 
-    public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
     {
         if (member is null)
             return false;
@@ -51,7 +51,7 @@ public class PermissionsService
         return mainRole.HasPermission(permission);
     }
     
-    public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetChannel channel, Permission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetChannel channel, Permission permission)
     {
         var planet = await channel.GetPlanetAsync(_planetService);
 

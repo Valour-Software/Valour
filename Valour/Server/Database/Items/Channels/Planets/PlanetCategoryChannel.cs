@@ -185,6 +185,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         ValourDB db,
         CoreHubService hubService,
         PermissionsService permService,
+        PlanetMemberService memberService,
          ILogger<PlanetCategoryChannel> logger)
     {
         // Get resources
@@ -227,7 +228,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
             node.PlanetId = planetId;
 
             var role = await FindAsync<PlanetRole>(node.RoleId, db);
-            if (role.GetAuthority() > await member.GetAuthorityAsync(db))
+            if (role.GetAuthority() > await member.GetAuthorityAsync(memberService))
                 return ValourResult.Forbid("A permission node's role has higher authority than you.");
 
             node.Id = IdManager.Generate();
@@ -270,8 +271,7 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
-        PlanetCategoryService categoryService,
-        ILogger<PlanetCategoryChannel> logger)
+        PlanetCategoryService categoryService)
     {
         var category = ctx.GetItem<PlanetCategoryChannel>(id);
 
@@ -282,23 +282,8 @@ public class PlanetCategoryChannel : PlanetChannel, IPlanetItem, ISharedPlanetCa
 
         if (childCount > 0)
             return Results.BadRequest("Category must be empty.");
-
-        // Always use transaction for multi-step DB operations
-        await using var transaction = await db.Database.BeginTransactionAsync();
-
-        try
-        {
-            categoryService.DeleteAsync(category);
-            await db.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e.Message);
-            await transaction.RollbackAsync();
-            return Results.Problem(e.Message);
-        }
-
+        
+        await categoryService.DeleteAsync(category);
         hubService.NotifyPlanetItemDelete(category);
 
         return Results.NoContent();

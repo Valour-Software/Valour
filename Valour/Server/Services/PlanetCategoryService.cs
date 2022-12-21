@@ -57,16 +57,10 @@ public class PlanetCategoryService
     /// <summary>
     /// Deletes the given category
     /// </summary>
-    public void DeleteAsync(PlanetCategoryChannel category)
+    public async Task DeleteAsync(PlanetCategoryChannel category)
     {
-        // Remove permission nodes
-        _db.PermissionsNodes.RemoveRange(
-            _db.PermissionsNodes.Where(x => x.TargetId == category.Id)
-        );
-
-        // Remove category
-        _db.PlanetCategoryChannels.Remove(
-            category
-        );
+        category.IsDeleted = true;
+        _db.PlanetCategoryChannels.Update(category);
+        await _db.SaveChangesAsync();
     }
 }

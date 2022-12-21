@@ -150,7 +150,8 @@ CREATE TABLE IF NOT EXISTS planet_bans (
 
 CREATE TABLE IF NOT EXISTS channels (
     id BIGINT NOT NULL PRIMARY KEY,
-    time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc')
+    time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    is_deleted BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE TABLE IF NOT EXISTS planet_channels (

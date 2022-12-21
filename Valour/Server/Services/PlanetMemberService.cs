@@ -28,6 +28,13 @@ public class PlanetMemberService
         await _db.PlanetMembers.FindAsync(id);
     
     /// <summary>
+    /// Returns the deleted PlanetMember for the given id
+    /// Null if there is no deleted member with that id
+    /// </summary>
+    public async ValueTask<PlanetMember> GetIncludingDeletedAsync(long id) =>
+        await _db.PlanetMembers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == id);
+    
+    /// <summary>
     /// Returns if the PlanetMember with the given id exists
     /// </summary>
     public async Task<bool> ExistsAsync(long id) =>
@@ -44,6 +51,13 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetByUserAsync(long userId, long planetId) =>
         await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+    
+    /// <summary>
+    /// Returns the deleted PlanetMember for a given user id and planet id
+    /// Null if there is no deleted member with the ids
+    /// </summary>
+    public async Task<PlanetMember> GetIncludingDeletedByUserAsync(long userId, long planetId) =>
+        await _db.PlanetMembers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
 
     /// <summary>
     /// Returns the roles for the given PlanetMember id
