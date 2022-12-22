@@ -1,16 +1,17 @@
 ﻿using EntityFramework.Exceptions.PostgreSQL;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Valour.Server.Config;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Channels;
-using Valour.Server.Database.Items.Channels.Planets;
-using Valour.Server.Database.Items.Channels.Users;
-using Valour.Server.Database.Items.Messages;
-using Valour.Server.Database.Items.Notifications;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
-using Valour.Server.Database.Nodes;
+using Valour.Database.Config;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Channels;
+using Valour.Database.Items.Channels.Planets;
+using Valour.Database.Items.Channels.Users;
+using Valour.Database.Items.Messages;
+using Valour.Database.Items.Notifications;
+using Valour.Database.Items.Planets;
+using Valour.Database.Items.Planets.Members;
+using Valour.Database.Items.Users;
+using Valour.Database.Nodes;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -18,14 +19,11 @@ using Valour.Server.Database.Nodes;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database;
+namespace Valour.Database;
 
 public class ValourDB : DbContext
 {
-
-    public static ValourDB Instance = new ValourDB(DBOptions);
-
-    public static string ConnectionString = $"Host={DbConfig.instance.Host};Database={DbConfig.instance.Database};Username={DbConfig.instance.Username};Password={DbConfig.instance.Password};SslMode=Prefer;";
+    public static string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {

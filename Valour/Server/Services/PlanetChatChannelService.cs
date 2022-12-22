@@ -37,11 +37,7 @@ public class PlanetChatChannelService
     public async ValueTask<PlanetChatChannel> GetAsync(long id) =>
         await _db.PlanetChatChannels.FindAsync(id);
 
-    /// <summary>
-    /// Returns if a given member has a channel permission
-    /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetChatChannel channel, PlanetMember member, ChatChannelPermission permission) =>
-        await _permissionsService.HasPermissionAsync(member, channel, permission);
+    
 
     /// <summary>
     /// Soft deletes the given channel

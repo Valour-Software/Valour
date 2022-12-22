@@ -1,5 +1,10 @@
+using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Server.Database;
+using Valour.Server.Database.Items.Channels.Planets;
+using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Planets.Members;
+using Valour.Server.Database.Items.Users;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
@@ -9,16 +14,17 @@ public class PlanetMemberService
 {
     private readonly ValourDB _db;
     private readonly PlanetService _planetService;
-    private readonly PermissionsService _permissionsService;
+    private readonly PlanetCategoryService _categoryService;
+    private readonly CoreHubService _coreHub;
 
     public PlanetMemberService(
-        ValourDB db, 
-        PlanetService planetService, 
-        PermissionsService permService)
+        ValourDB db,
+        PlanetCategoryService categoryService,
+        PlanetService planetService)
     {
         _db = db;
+        _categoryService = categoryService;
         _planetService = planetService;
-        _permissionsService = permService;
     }
 
     /// <summary>
@@ -94,12 +100,6 @@ public class PlanetMemberService
     }
 
     /// <summary>
-    /// Returns if the member has the given planet permission
-    /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetMember member, PlanetPermission perm) =>
-        await _permissionsService.HasPermissionAsync(member, perm);
-
-    /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
     public async Task<int> GetAuthorityAsync(PlanetMember member)
@@ -122,10 +122,185 @@ public class PlanetMemberService
     }
     
     /// <summary>
-    /// Deletes the PlanetMember
-    /// Note: This is a soft deletion
+    /// Returns if a member has the given permission
     /// </summary>
-    public void Delete(PlanetMember member)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
+    {
+        if (member is null)
+            return false;
+        
+        // Special case for viewing planets
+        // All existing members can view a planet
+        if (permission.Value == PlanetPermissions.View.Value)
+        {
+            return true;
+        }
+        
+        var planet = await _planetService.GetAsync(member.PlanetId);
+
+        // Owner has all permissions
+        if (member.UserId == planet.OwnerId)
+            return true;
+
+        // Get user main role
+        var mainRole = await GetPrimaryRoleAsync(member);
+
+        // Return permission state
+        return mainRole.HasPermission(permission);
+    }
+    
+    /// <summary>
+    /// Returns if the member has the given channel permission
+    /// </summary>
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetChannel channel, Permission permission)
+    {
+        var planet = await channel.GetPlanetAsync(_planetService);
+
+        if (planet.OwnerId == member.UserId)
+            return true;
+
+        // If the channel inherits from its parent, move up until it does not
+        while (channel.InheritsPerms)
+        {
+            channel = await _categoryService.GetAsync(channel.ParentId.Value);
+        }
+        
+        // Load permission data
+        // This loads the roles and the node for the specific channel
+        var roles = await GetRolesAndNodesAsync(member, channel.Id, permission.TargetType);
+
+        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
+        // If we get an undecided, we continue to the next role down
+        foreach (var role in roles)
+        {
+            // If the role has a node for this channel, we use that
+            var node = role.PermissionNodes.FirstOrDefault();
+            
+            // We continue to the next role
+            // if the node is null
+            if (node is null)
+                continue;
+
+            // If there is no view permission, there can't be any other permissions
+            // View is always 0x01 for chanel permissions, so it is safe to use ChatChannelPermission.View for
+            // all cases.
+            if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
+                return false;
+
+            var state = node.GetPermissionState(permission);
+
+            switch (state)
+            {
+                case PermissionState.Undefined:
+                    continue;
+                case PermissionState.True:
+                    return true;
+                case PermissionState.False:
+                default:
+                    return false;
+            }
+        }
+
+        // Fallback to default permissions
+        return Permission.HasPermission(permission.GetDefault(), permission);
+    }
+    
+    /// <summary>
+    /// Adds the given user to the given planet as a member
+    /// </summary>
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(Planet planet, User user, bool doTransaction)
+    {
+        if (await _db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == planet.Id &&
+            (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
+        {
+            return new TaskResult<PlanetMember>(false, "You are banned from this planet.");
+        }
+
+        // New member
+        PlanetMember member;
+        
+        // See if there is an old member
+        var oldMember = await GetIncludingDeletedByUserAsync(user.Id, planet.Id);
+        
+        // If there is an old member, we can just restore it
+        bool rejoin = false;
+
+        // Already a member
+        if (oldMember is not null)
+        {
+            // If the member already exists and is not deleted, do nothing
+            if (!oldMember.IsDeleted)
+            {
+                return new TaskResult<PlanetMember>(false, "Already a member.", null);
+            }
+            // Set old member to be restored
+            else
+            {
+                member = oldMember;
+                rejoin = true;
+            }
+        }
+        else 
+        {
+            member = new PlanetMember()
+            {
+                Id = IdManager.Generate(),
+                Nickname = user.Name,
+                PlanetId = planet.Id,
+                UserId = user.Id
+            };
+        }
+
+        // Add to default planet role
+        var roleMember = new PlanetRoleMember()
+        {
+            Id = IdManager.Generate(),
+            PlanetId = planet.Id,
+            UserId = user.Id,
+            RoleId = planet.DefaultRoleId,
+            MemberId = member.Id
+        };
+        
+        IDbContextTransaction trans = null;
+
+        if (doTransaction)
+            trans = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            if (rejoin)
+            {
+                member.IsDeleted = false;
+                _db.PlanetMembers.Update(member);
+            }
+            else
+            {
+                await _db.PlanetMembers.AddAsync(member);
+            }
+            
+            await _db.PlanetRoleMembers.AddAsync(roleMember);
+            await _db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            await trans.RollbackAsync();
+            return new TaskResult<PlanetMember>(false, e.Message);
+        }
+
+        if (doTransaction)
+            await trans.CommitAsync();
+
+        _coreHub.NotifyPlanetItemChange(member);
+
+        Console.WriteLine($"User {user.Name} ({user.Id}) has joined {planet.Name} ({planet.Id})");
+
+        return new TaskResult<PlanetMember>(true, "Success", member);
+    }
+
+    /// <summary>
+    /// Soft deletes the PlanetMember (and member roles)
+    /// </summary>
+    public async Task DeleteAsync(PlanetMember member)
     {
         // Remove roles
         var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id);
@@ -134,5 +309,6 @@ public class PlanetMemberService
         // Soft delete member
         member.IsDeleted = true;
         _db.PlanetMembers.Update(member);
+        await _db.SaveChangesAsync();
     }
 }

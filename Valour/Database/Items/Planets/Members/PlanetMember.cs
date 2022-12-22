@@ -5,7 +5,6 @@ using Valour.Server.EndpointFilters.Attributes;
 using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
@@ -17,7 +16,7 @@ using Valour.Shared.Items.Planets.Members;
 namespace Valour.Server.Database.Items.Planets.Members;
 
 /// <summary>
-/// This class exists to add server funtionality to the PlanetMember
+/// This class exists to add server functionality to the PlanetMember
 /// class.
 /// </summary>
 [Table("planet_members")]
@@ -86,35 +85,6 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     /// </summary>
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
-    
-    public async Task<List<PlanetRole>> GetRolesAsync(PlanetMemberService service) =>
-        await service.GetRolesAsync(this);
-    
-    public async Task<List<PlanetRole>> GetRolesAndNodesAsync(long targetId, PermissionsTargetType type, PlanetMemberService service) =>
-        await service.GetRolesAndNodesAsync(this, targetId, type);
-    
-    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMemberService service) =>
-        await service.GetPrimaryRoleAsync(this);
-
-    /// <summary>
-    /// Returns if the member has the given permission
-    /// </summary>
-    public async Task<bool> HasPermissionAsync(PlanetPermission permission, PermissionsService permService) =>
-        await permService.HasPermissionAsync(this, permission);
-
-    /// <summary>
-    /// Returns the user (async)
-    /// </summary>
-    public async Task<User> GetUserAsync(ValourDB db) =>
-        User ??= await db.Users.FindAsync(UserId);
-
-    public async Task<int> GetAuthorityAsync(PlanetMemberService service) =>
-        await service.GetAuthorityAsync(this);
-
-    public void Delete(PlanetMemberService service)
-    {
-        
-    }
 
     // Helpful route to return the member for the authorizing user
     [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired]
@@ -141,12 +111,11 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         PlanetMemberService memberService,
         ValourDB db)
     {
-        var member = await FindAsync<PlanetMember>(id, db);
-
+        var member = await memberService.GetAsync(id);
         if (member is null)
             return ValourResult.NotFound<PlanetMember>();
 
-        return Results.Json(await member.GetAuthorityAsync(memberService));
+        return Results.Json(await memberService.GetAuthorityAsync(member));
     }
 
     [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired]
@@ -275,38 +244,24 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     public static async Task<IResult> DeleteRouteAsync(
         long id, 
         HttpContext ctx,
-        ValourDB db,
         CoreHubService hubService,
-        PlanetMemberService memberService,
-        PermissionsService permService,
-        ILogger<PlanetMember> logger)
+        PlanetMemberService memberService)
     {
         var authMember = ctx.GetMember();
-        var targetMember = await FindAsync<PlanetMember>(id, db);
+        var targetMember = await memberService.GetAsync(id);
 
+        // You can always delete your own membership, so we only check permissions
+        // if you are not the same as the target
         if (authMember.Id != id)
         {
-            if (!await authMember.HasPermissionAsync(PlanetPermissions.Kick, permService))
+            if (!await memberService.HasPermissionAsync(authMember, PlanetPermissions.Kick))
                 return ValourResult.LacksPermission(PlanetPermissions.Kick);
 
-            if (await authMember.GetAuthorityAsync(memberService) < await targetMember.GetAuthorityAsync(memberService))
+            if (await memberService.GetAuthorityAsync(authMember) < await memberService.GetAuthorityAsync(targetMember))
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
 
-        await using var tran = await db.Database.BeginTransactionAsync();
-
-        try
-        {
-            targetMember.Delete(memberService);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        await tran.CommitAsync();
+        await memberService.DeleteAsync(targetMember);
         hubService.NotifyPlanetItemDelete(targetMember);
 
         return Results.NoContent();
@@ -352,8 +307,8 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
 
         if (member.PlanetId != planetId)
             return ValourResult.NotFound<PlanetMember>();
-
-        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, permService))
+        
+        if (!await memberService.HasPermissionAsync(authMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
         if (await db.PlanetRoleMembers.AnyAsync(x => x.MemberId == member.Id && x.RoleId == roleId))
@@ -363,7 +318,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var authAuthority = await authMember.GetAuthorityAsync(memberService);
+        var authAuthority = await memberService.GetAuthorityAsync(authMember);
         if (role.GetAuthority() > authAuthority)
             return ValourResult.Forbid("You have lower authority than the role you are trying to add");
 

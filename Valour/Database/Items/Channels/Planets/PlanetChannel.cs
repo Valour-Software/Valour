@@ -24,12 +24,6 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     [Column("planet_id")]
     public long PlanetId { get; set; }
 
-    public async ValueTask<Planet> GetPlanetAsync(PlanetService service)
-    {
-        Planet ??= await service.GetAsync(PlanetId);
-        return Planet;
-    }
-
     [JsonIgnore]
     public override string BaseRoute =>
         $"api/planet/{{planetId}}/{nameof(PlanetChannel)}";
@@ -56,23 +50,5 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     public bool InheritsPerms { get; set; }
 
     public abstract PermissionsTargetType PermissionsTargetType { get; }
-
-    /// <summary>
-    /// Returns the parent category of this channel
-    /// </summary>
-    public async Task<PlanetCategoryChannel> GetParentAsync(PlanetCategoryService service)
-    {
-        if (ParentId is null)
-            return null;
-        
-        Parent ??= await service.GetAsync(ParentId.Value);
-        return Parent;
-    }
-
-    public static async Task<bool> HasUniquePosition(ValourDB db, PlanetChannel channel) =>
-        // Ensure position is not already taken
-        !await db.PlanetChannels.AnyAsync(x => x.ParentId == channel.ParentId && // Same parent
-                                                x.Position == channel.Position && // Same position
-                                                x.Id != channel.Id); // Not self
 }
 

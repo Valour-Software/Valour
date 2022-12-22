@@ -14,11 +14,5 @@ public interface IPlanetItem : ISharedItem
 
     [Column("planet_id")]
     public long PlanetId { get; set; }
-
-    public async ValueTask<Planet> GetPlanetAsync(PlanetService service)
-    {
-        Planet ??= await service.GetAsync(PlanetId);
-        return Planet;
-    }
 }
 
