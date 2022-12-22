@@ -17,7 +17,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared.Items.Channels.Users;
 using Valour.Shared.Items.Messages.Mentions;
 
-namespace Valour.Server.Database.Items.Channels.Users;
+namespace Valour.Database.Items.Channels.Users;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

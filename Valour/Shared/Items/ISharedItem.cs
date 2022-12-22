@@ -9,9 +9,6 @@ public interface ISharedItem
 {
     long Id { get; set; }
     string NodeName { get; }
-
-    string IdRoute { get; }
-    string BaseRoute { get; }
 }
 
 

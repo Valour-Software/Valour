@@ -1,10 +1,11 @@
-﻿using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
-namespace Valour.Server.Database.Items.Authorization;
+namespace Valour.Database.Items.Authorization;
 
 [Table("auth_tokens")]
 public class AuthToken : ISharedAuthToken

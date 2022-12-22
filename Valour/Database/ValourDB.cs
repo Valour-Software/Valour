@@ -9,7 +9,6 @@ using Valour.Database.Items.Channels.Users;
 using Valour.Database.Items.Messages;
 using Valour.Database.Items.Notifications;
 using Valour.Database.Items.Planets;
-using Valour.Database.Items.Planets.Members;
 using Valour.Database.Items.Users;
 using Valour.Database.Nodes;
 

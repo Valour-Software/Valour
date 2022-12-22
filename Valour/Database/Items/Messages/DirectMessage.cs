@@ -1,7 +1,7 @@
 ﻿using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Messages;
 
-namespace Valour.Server.Database.Items.Messages;
+namespace Valour.Database.Items.Messages;
 
 [Table("direct_messages")]
 public class DirectMessage  : Item, ISharedMessage

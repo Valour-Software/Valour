@@ -12,7 +12,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Server.Database.Items.Channels.Planets;
+namespace Valour.Database.Items.Channels.Planets;
 
 [Table("planet_voice_channels")]
 public class PlanetVoiceChannel : PlanetChannel, IPlanetItem, ISharedPlanetVoiceChannel

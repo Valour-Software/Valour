@@ -1,6 +1,6 @@
 ﻿using Valour.Shared.Channels;
 
-namespace Valour.Server.Database.Items.Channels;
+namespace Valour.Database.Items.Channels;
 
 [Table("user_channel_states")]
 public class UserChannelState : ISharedUserChannelState

@@ -1,7 +1,7 @@
 ﻿using Valour.Api.Items.Channels.Users;
 using Valour.Server.Database.Items.Channels.Planets;
 
-namespace Valour.Server.Database.Items.Channels;
+namespace Valour.Database.Items.Channels;
 
 [Table("channels")]
 [JsonDerivedType(typeof(PlanetChannel), typeDiscriminator: nameof(PlanetChannel))]

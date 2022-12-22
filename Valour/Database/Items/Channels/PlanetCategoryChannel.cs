@@ -11,7 +11,7 @@ using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Server.Database.Items.Channels.Planets;
+namespace Valour.Database.Items.Channels.Planets;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

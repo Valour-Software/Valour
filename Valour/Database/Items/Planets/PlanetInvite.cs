@@ -1,36 +1,28 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Valour.Server.Database.Items.Planets.Members;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Valour.Server.Database.Items;
 using Valour.Server.Database.Items.Users;
-using Valour.Server.EndpointFilters;
-using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Hubs;
-using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets;
 
-namespace Valour.Server.Database.Items.Planets;
+namespace Valour.Database.Items.Planets;
 
 [Table("planet_invites")]
 public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
 {
-    #region IPlanetItem Implementation
-
     [JsonIgnore]
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
 
     [Column("planet_id")]
     public long PlanetId { get; set; }
-
-    public ValueTask<Planet> GetPlanetAsync(ValourDB db) =>
-        IPlanetItem.GetPlanetAsync(this, db);
-
+    
     [JsonIgnore]
     public override string BaseRoute =>
         $"api/planet/{{planetId}}/{nameof(PlanetInvite)}";
-
-    #endregion
 
     /// <summary>
     /// The invite code

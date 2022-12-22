@@ -1,5 +1,7 @@
-﻿using Valour.Server.Database.Items.Users;
-using Valour.Shared.Items;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Valour.Server.Database.Items;
+using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items.Planets.Members;
 
 /*  Valour - A free and secure chat client
@@ -8,7 +10,7 @@ using Valour.Shared.Items.Planets.Members;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database.Items.Planets.Members;
+namespace Valour.Database.Items.Planets;
 
 [Table("planet_role_members")]
 public class PlanetRoleMember : Item, IPlanetItem, ISharedPlanetRoleMember

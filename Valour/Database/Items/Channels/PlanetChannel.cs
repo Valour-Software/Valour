@@ -7,7 +7,7 @@ using Valour.Shared.Items;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Channels.Planets;
 
-namespace Valour.Server.Database.Items.Channels.Planets;
+namespace Valour.Database.Items.Channels.Planets;
 
 [Table("planet_channels")]
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]

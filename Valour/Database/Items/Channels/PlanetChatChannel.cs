@@ -24,7 +24,7 @@ using Valour.Shared.Items.Messages.Mentions;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database.Items.Channels.Planets;
+namespace Valour.Database.Items.Channels.Planets;
 
 [Table("planet_chat_channels")]
 public class PlanetChatChannel : PlanetChannel, IPlanetItem, ISharedPlanetChatChannel

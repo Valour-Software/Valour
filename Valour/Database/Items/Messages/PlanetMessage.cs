@@ -4,7 +4,7 @@ using Valour.Server.Database.Items.Users;
 using Valour.Shared.Items;
 using Valour.Shared.Items.Messages;
 
-namespace Valour.Server.Database.Items.Messages;
+namespace Valour.Database.Items.Messages;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

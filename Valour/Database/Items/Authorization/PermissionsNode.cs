@@ -10,7 +10,7 @@ using Valour.Server.Services;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
-namespace Valour.Server.Database.Items.Authorization;
+namespace Valour.Database.Items.Authorization;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

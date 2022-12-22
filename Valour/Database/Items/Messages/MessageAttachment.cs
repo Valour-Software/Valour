@@ -1,6 +1,6 @@
 ﻿using Valour.Shared.Items.Messages;
 
-namespace Valour.Server.Database.Items.Messages;
+namespace Valour.Database.Items.Messages;
 
 public class MessageAttachment : ISharedMessageAttachment
 {

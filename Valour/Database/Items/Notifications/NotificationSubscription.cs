@@ -8,7 +8,7 @@ using Valour.Shared.Items.Notifications;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database.Items.Notifications;
+namespace Valour.Database.Items.Notifications;
 
 [Table("notification_subscriptions")]
 public class NotificationSubscription : ISharedNotificationSubscription

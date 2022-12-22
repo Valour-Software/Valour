@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Drawing;
-using System.Security.Cryptography;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Channels.Planets;
-using Valour.Server.EndpointFilters;
-using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Hubs;
-using Valour.Server.Services;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Valour.Database.Items.Authorization;
+using Valour.Database.Items.Channels.Planets;
+using Valour.Server.Database.Items;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 using Valour.Shared.Items.Planets.Members;
@@ -18,7 +17,7 @@ using Valour.Shared.Items.Planets.Members;
  */
 
 
-namespace Valour.Server.Database.Items.Planets.Members;
+namespace Valour.Database.Items.Planets;
 
 [Table("planet_roles")]
 public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole

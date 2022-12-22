@@ -1,9 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
-using Valour.Api.Items.Planets;
-using Valour.Server.EndpointFilters;
-using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Hubs;
-using Valour.Server.Services;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Valour.Server.Database.Items;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Planets.Members;
 
@@ -13,7 +12,7 @@ using Valour.Shared.Items.Planets.Members;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-namespace Valour.Server.Database.Items.Planets.Members;
+namespace Valour.Database.Items.Planets;
 
 /// <summary>
 /// This represents a user within a planet and is used to represent membership
