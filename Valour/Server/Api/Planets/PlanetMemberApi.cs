@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Valour.Database;
 using Valour.Server.Database;
 using Valour.Server.EndpointFilters;
@@ -8,7 +9,7 @@ using Valour.Shared.Authorization;
 
 namespace Valour.Server.API.Planets;
 
-public class PlanetApi
+public class PlanetMemberApi
 {
      // Helpful route to return the member for the authorizing user
     [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired]
@@ -18,28 +19,26 @@ public class PlanetApi
 
     [ValourRoute(HttpVerbs.Get), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(long id, ValourDB db)
+    public static async Task<IResult> GetRouteAsync(long id, PlanetMemberService service)
     {
-        var member = await FindAsync<PlanetMember>(id, db);
-
+        var member = await service.GetAsync(id);
         if (member is null)
-            return ValourResult.NotFound<PlanetMember>();
-
+            return ValourResult.NotFound<Models.PlanetMember>();
+        
         return Results.Json(member);
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired]
     [PlanetMembershipRequired]
-    public static async Task<IResult> GetAuthorityRouteAsync(
-        long id,
-        PlanetMemberService memberService,
-        ValourDB db)
+    public static async Task<IResult> GetAuthorityRouteAsync(long id, PlanetMemberService memberService)
     {
         var member = await memberService.GetAsync(id);
         if (member is null)
-            return ValourResult.NotFound<PlanetMember>();
+            return ValourResult.NotFound<Models.PlanetMember>();
 
-        return Results.Json(await memberService.GetAuthorityAsync(member));
+        var authority = await memberService.GetAuthorityAsync(member);
+        
+        return Results.Json(authority);
     }
 
     [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired]
@@ -47,19 +46,18 @@ public class PlanetApi
     public static async Task<IResult> GetRoute(
         long planetId, 
         long userId,
-        PlanetMemberService memberService,
-        ValourDB db)
+        PlanetMemberService memberService)
     {
         var member = await memberService.GetByUserAsync(userId, planetId);
         if (member is null)
-            return ValourResult.NotFound<PlanetMember>();
+            return ValourResult.NotFound<Models.PlanetMember>();
 
         return Results.Json(member);
     }
 
     [ValourRoute(HttpVerbs.Post), TokenRequired]
     public static async Task<IResult> PostRouteAsync(
-        [FromBody] PlanetMember member, 
+        [FromBody] Models.PlanetMember member, 
         long planetId, 
         string inviteCode, 
         HttpContext ctx,

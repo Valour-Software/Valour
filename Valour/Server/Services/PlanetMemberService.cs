@@ -1,14 +1,36 @@
 using Microsoft.EntityFrameworkCore.Storage;
+using Valour.Database;
+using Valour.Database.Items.Planets;
+using Valour.Server.Config;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels.Planets;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
 
 namespace Valour.Server.Services;
+
+///////////////////
+// Model mapping //
+///////////////////
+public static class PlanetMemberMapper
+{
+    public static Models.PlanetMember ToModel(this PlanetMember member)
+    {
+        if (member is null)
+            return null;
+        
+        return new Models.PlanetMember()
+        {
+            Id = member.Id,
+            NodeName = NodeConfig.Instance.Name,
+            UserId = member.UserId,
+            PlanetId = member.PlanetId,
+            Nickname = member.Nickname,
+            MemberPfp = member.MemberPfp
+        };
+    }
+}
 
 public class PlanetMemberService
 {
@@ -26,20 +48,13 @@ public class PlanetMemberService
         _categoryService = categoryService;
         _planetService = planetService;
     }
-
+    
     /// <summary>
     /// Returns the PlanetMember for the given id
     /// </summary>
-    public async ValueTask<PlanetMember> GetAsync(long id) =>
-        await _db.PlanetMembers.FindAsync(id);
-    
-    /// <summary>
-    /// Returns the deleted PlanetMember for the given id
-    /// Null if there is no deleted member with that id
-    /// </summary>
-    public async ValueTask<PlanetMember> GetIncludingDeletedAsync(long id) =>
-        await _db.PlanetMembers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == id);
-    
+    public async Task<Models.PlanetMember> GetAsync(long id) =>
+        (await _db.PlanetMembers.FindAsync(id)).ToModel();
+
     /// <summary>
     /// Returns if the PlanetMember with the given id exists
     /// </summary>
@@ -51,39 +66,28 @@ public class PlanetMemberService
     /// </summary>
     public async Task<bool> ExistsAsync(long userId, long planetId) =>
         await _db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == planetId);
-    
+
     /// <summary>
     /// Returns the PlanetMember for a given user id and planet id
     /// </summary>
-    public async Task<PlanetMember> GetByUserAsync(long userId, long planetId) =>
-        await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
-    
-    /// <summary>
-    /// Returns the deleted PlanetMember for a given user id and planet id
-    /// Null if there is no deleted member with the ids
-    /// </summary>
-    public async Task<PlanetMember> GetIncludingDeletedByUserAsync(long userId, long planetId) =>
-        await _db.PlanetMembers.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId);
+    public async Task<Models.PlanetMember> GetByUserAsync(long userId, long planetId) =>
+        (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId)).ToModel();
 
     /// <summary>
     /// Returns the roles for the given PlanetMember id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(PlanetMember member)
-    {
-        member.Roles ??= await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+    public async Task<List<PlanetRole>> GetRolesAsync(Models.PlanetMember member) =>
+        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role)
             .ToListAsync();
 
-        return member.Roles;
-    }
-
     /// <summary>
     /// Returns the roles for the given PlanetMember id,
     /// including the permissions nodes for a specific target channel
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermissionsTargetType type) =>
+    public async Task<List<PlanetRole>> GetRolesAndNodesAsync(Models.PlanetMember member, long targetId, PermissionsTargetType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -94,7 +98,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the primary (top) role for the given PlanetMember id
     /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMember member)
+    public async Task<PlanetRole> GetPrimaryRoleAsync(Models.PlanetMember member)
     {
         return (await GetRolesAsync(member)).FirstOrDefault();
     }
@@ -102,9 +106,9 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
-    public async Task<int> GetAuthorityAsync(PlanetMember member)
+    public async Task<int> GetAuthorityAsync(Models.PlanetMember member)
     {
-        var planet = await member.GetPlanetAsync(_planetService);
+        var planet = await _db.Planets.FindAsync(member.PlanetId);
         
         // Planet owner has highest possible authority
         if (planet.OwnerId == member.UserId)
@@ -124,7 +128,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns if a member has the given permission
     /// </summary>
-    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
+    public async ValueTask<bool> HasPermissionAsync(Models.PlanetMember member, PlanetPermission permission)
     {
         if (member is null)
             return false;
