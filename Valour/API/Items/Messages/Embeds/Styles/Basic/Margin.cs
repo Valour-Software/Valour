@@ -16,6 +16,7 @@ public class Margin : StyleBase
     [JsonPropertyName("b")]
     public Size Bottom { get; set; }
 
+    [JsonConstructor]
     public Margin() { }
 
     public Margin(Size size)
