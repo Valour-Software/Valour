@@ -9,6 +9,8 @@ public class FontWeight : StyleBase
 	[JsonPropertyName("w")]
     public int Weight { get; set; }
 
+    internal FontWeight() { }
+
     public FontWeight(int weight)
     {
         Weight = weight;

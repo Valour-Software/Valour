@@ -61,6 +61,7 @@ public class Display : StyleBase
     [JsonPropertyName("v")]
     public DisplayType Value { get; set; }
 
+    internal Display() { }
     
     public Display(DisplayType value)
     {

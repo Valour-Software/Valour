@@ -19,6 +19,8 @@ public class Padding : StyleBase
 	[JsonPropertyName("o")]
 	public Size Only { get; set; }
 
+    internal Padding() { }
+
 	public Padding(Size size)
     {
         Only = size;

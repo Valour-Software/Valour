@@ -68,8 +68,7 @@ public class Borders : StyleBase
 
     public Border Only { get; set; }
 
-	[JsonConstructor]
-	public Borders() { }
+	internal Borders() { }
 
     public Borders(Border left = null, Border right = null, Border top = null, Border bottom = null)
     {

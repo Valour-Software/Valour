@@ -7,6 +7,8 @@ public class FontSize : StyleBase
     [JsonPropertyName("s")]
     public Size Size { get; set; }
 
+    internal FontSize() { }
+
     public FontSize(Size size)
     {
         Size = size;

@@ -16,6 +16,8 @@ public class Position : StyleBase
     [JsonPropertyName("b")]
     public Size Bottom {  get; set; }
 
+    internal Position() { }
+
     public Position(Size left = null, Size right = null, Size top = null, Size bottom = null)
     {
         Left = left;

@@ -10,6 +10,8 @@ public class FlexGap : StyleBase
 	[JsonPropertyName("c")]
 	public Size Column { get; set; }
 
+    internal FlexGap() { }
+
     public FlexGap(Size row)
     {
         this.Row = row;
