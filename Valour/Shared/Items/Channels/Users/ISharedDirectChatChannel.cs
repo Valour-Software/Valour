@@ -1,4 +1,6 @@
-﻿namespace Valour.Shared.Items.Channels.Users;
+﻿using Valour.Shared.Items.Authorization;
+
+namespace Valour.Shared.Items.Channels.Users;
 
 public interface ISharedDirectChatChannel  : ISharedChatChannel
 {

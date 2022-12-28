@@ -88,7 +88,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public PlanetCategoryChannel Parent { get; set; }
+    public PlanetCategory Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -196,7 +196,7 @@
             }
         }
 
-        var result = await PlanetCategoryChannel.CreateWithDetails(createRequest);
+        var result = await PlanetCategory.CreateWithDetails(createRequest);
 
         if (!result.Success)
         {

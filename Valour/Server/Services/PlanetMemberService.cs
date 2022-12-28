@@ -1,9 +1,8 @@
 using Microsoft.EntityFrameworkCore.Storage;
-using Valour.Database;
-using Valour.Database.Items.Planets;
+using Valour.Database.Context;
+using Valour.Server.Models;
 using Valour.Server.Config;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Items.Authorization;
@@ -15,12 +14,12 @@ namespace Valour.Server.Services;
 ///////////////////
 public static class PlanetMemberMapper
 {
-    public static Models.PlanetMember ToModel(this PlanetMember member)
+    public static PlanetMember ToModel(this Valour.Database.PlanetMember member)
     {
         if (member is null)
             return null;
         
-        return new Models.PlanetMember()
+        return new PlanetMember()
         {
             Id = member.Id,
             NodeName = NodeConfig.Instance.Name,
@@ -30,8 +29,26 @@ public static class PlanetMemberMapper
             MemberPfp = member.MemberPfp
         };
     }
+    
+    public static Valour.Database.PlanetMember ToDatabase(this PlanetMember member)
+    {
+        if (member is null)
+            return null;
+        
+        return new Valour.Database.PlanetMember()
+        {
+            Id = member.Id,
+            UserId = member.UserId,
+            PlanetId = member.PlanetId,
+            Nickname = member.Nickname,
+            MemberPfp = member.MemberPfp
+        };
+    }
 }
 
+//////////////////
+// Service Code //
+//////////////////
 public class PlanetMemberService
 {
     private readonly ValourDB _db;
@@ -52,7 +69,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the PlanetMember for the given id
     /// </summary>
-    public async Task<Models.PlanetMember> GetAsync(long id) =>
+    public async Task<PlanetMember> GetAsync(long id) =>
         (await _db.PlanetMembers.FindAsync(id)).ToModel();
 
     /// <summary>
@@ -76,7 +93,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the roles for the given PlanetMember id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(Models.PlanetMember member) =>
+    public async Task<List<PlanetRole>> GetRolesAsync(PlanetMember member) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
@@ -87,7 +104,7 @@ public class PlanetMemberService
     /// Returns the roles for the given PlanetMember id,
     /// including the permissions nodes for a specific target channel
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAndNodesAsync(Models.PlanetMember member, long targetId, PermissionsTargetType type) =>
+    public async Task<List<PlanetRole>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermissionsTargetType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -98,7 +115,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the primary (top) role for the given PlanetMember id
     /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(Models.PlanetMember member)
+    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMember member)
     {
         return (await GetRolesAsync(member)).FirstOrDefault();
     }
@@ -106,7 +123,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
-    public async Task<int> GetAuthorityAsync(Models.PlanetMember member)
+    public async Task<int> GetAuthorityAsync(PlanetMember member)
     {
         var planet = await _db.Planets.FindAsync(member.PlanetId);
         

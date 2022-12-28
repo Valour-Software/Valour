@@ -5,7 +5,7 @@ namespace Valour.Api.Requests;
 
 public class CreatePlanetCategoryChannelRequest
 {
-    public PlanetCategoryChannel Category { get; set; }
+    public PlanetCategory Category { get; set; }
     public List<PermissionsNode> Nodes { get; set; }
 }
 

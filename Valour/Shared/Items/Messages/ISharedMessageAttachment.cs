@@ -1,5 +1,5 @@
 ﻿namespace Valour.Shared.Items.Messages;
-public interface ISharedMessageAttachment
+public class MessageAttachment
 {
     public string Location { get; set; }
     public string MimeType { get; set; }

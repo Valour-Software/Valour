@@ -10,7 +10,7 @@ namespace Valour.Api.Items.Channels.Planets;
 
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
-[JsonDerivedType(typeof(PlanetCategoryChannel), typeDiscriminator: nameof(PlanetCategoryChannel))]
+[JsonDerivedType(typeof(PlanetCategory), typeDiscriminator: nameof(PlanetCategory))]
 public abstract class PlanetChannel : Channel, IPlanetItem
 {
     #region IPlanetItem implementation
@@ -37,7 +37,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem
         {
             return null;
         }
-        return await PlanetCategoryChannel.FindAsync(ParentId.Value, PlanetId);
+        return await PlanetCategory.FindAsync(ParentId.Value, PlanetId);
     }
 
     public abstract Task<bool> HasPermissionAsync(PlanetMember member, Permission perm);

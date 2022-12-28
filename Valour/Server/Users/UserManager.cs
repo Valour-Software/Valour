@@ -1,4 +1,5 @@
-﻿using Valour.Server.Database.Items.Users;
+﻿using Valour.Database.Items;
+using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 
 namespace Valour.Server.Users;

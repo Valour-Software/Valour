@@ -16,7 +16,7 @@ public class Planet : Item, ISharedPlanet
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
     private List<PlanetVoiceChannel> VoiceChannels { get; set; }
-    private List<PlanetCategoryChannel> Categories { get; set; }
+    private List<PlanetCategory> Categories { get; set; }
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
     private List<PlanetInvite> Invites { get; set; }
@@ -111,7 +111,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Returns the categories of this planet
     /// </summary>
-    public async ValueTask<List<PlanetCategoryChannel>> GetCategoriesAsync(bool refresh = false)
+    public async ValueTask<List<PlanetCategory>> GetCategoriesAsync(bool refresh = false)
     {
         if (Categories == null || refresh)
             await LoadCategoriesAsync();
@@ -124,7 +124,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadCategoriesAsync()
     {
-        var categories = (await Node.GetJsonAsync<List<PlanetCategoryChannel>>($"{IdRoute}/categories")).Data;
+        var categories = (await Node.GetJsonAsync<List<PlanetCategory>>($"{IdRoute}/categories")).Data;
 
         if (categories is null)
             return;
@@ -138,14 +138,14 @@ public class Planet : Item, ISharedPlanet
 
         // Create container if needed
         if (Categories == null)
-            Categories = new List<PlanetCategoryChannel>();
+            Categories = new List<PlanetCategory>();
         else
             Categories.Clear();
 
         // Retrieve cache values (this is necessary to ensure single copies of items)
         foreach (var category in categories)
         {
-            var cCat = ValourCache.Get<PlanetCategoryChannel>(category.Id);
+            var cCat = ValourCache.Get<PlanetCategory>(category.Id);
 
             if (cCat is not null)
                 Categories.Add(cCat);
@@ -469,7 +469,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a category has been updated
     /// </summary>
-    public async ValueTask NotifyUpdateCategory(PlanetCategoryChannel category)
+    public async ValueTask NotifyUpdateCategory(PlanetCategory category)
     {
         if (Categories == null)
             await LoadCategoriesAsync();
@@ -484,7 +484,7 @@ public class Planet : Item, ISharedPlanet
     /// <summary>
     /// Ran to notify the planet that a category has been deleted
     /// </summary>
-    public async ValueTask NotifyDeleteCategory(PlanetCategoryChannel category)
+    public async ValueTask NotifyDeleteCategory(PlanetCategory category)
     {
         if (Categories == null)
             await LoadCategoriesAsync();

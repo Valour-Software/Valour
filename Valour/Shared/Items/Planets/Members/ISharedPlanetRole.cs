@@ -1,13 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-using System.Drawing;
-using System.Text.Json.Serialization;
+﻿using System.Drawing;
 using Valour.Shared.Authorization;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
 
 namespace Valour.Shared.Items.Planets.Members;
 

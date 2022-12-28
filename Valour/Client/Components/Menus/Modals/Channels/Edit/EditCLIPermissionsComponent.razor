@@ -101,7 +101,7 @@
         </div>
     }
 }
-else if (Target is PlanetCategoryChannel)
+else if (Target is PlanetCategory)
 {
     if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
     {
@@ -295,7 +295,7 @@ else
         }
 
         // Handle additional node for categories
-        if (Target is PlanetCategoryChannel)
+        if (Target is PlanetCategory)
         {
             if (needCreateCategoryNode)
             {
@@ -327,7 +327,7 @@ else
         Planet = await Target.GetPlanetAsync();
         Roles = await Planet.GetRolesAsync();
 
-        if (Target is PlanetCategoryChannel)
+        if (Target is PlanetCategory)
         {
             Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length +
             CategoryPermissions.Permissions.Length];
@@ -387,8 +387,8 @@ else
 
         Console.WriteLine($"Selected role {SelectedRole.Name}");
         
-        if (Target is PlanetCategoryChannel){
-            var category = (PlanetCategoryChannel)Target;
+        if (Target is PlanetCategory){
+            var category = (PlanetCategory)Target;
             ChannelPermissionsNode = await category.GetChannelPermissionsNodeAsync(SelectedRole.Id);
             CategoryPermissionsNode = await category.GetCategoryPermissionsNodeAsync(SelectedRole.Id);
         }
@@ -444,7 +444,7 @@ else
                     await Buttons[i].OnChangeState(bState, false);
             }
         }
-        else if (Target is PlanetCategoryChannel)
+        else if (Target is PlanetCategory)
         {
             // Setup category buttons
             for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)

@@ -63,4 +63,91 @@ public class PlanetCategoryService
         _db.PlanetCategoryChannels.Update(category);
         await _db.SaveChangesAsync();
     }
+    
+    public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
+    
+    /// <summary>
+    /// Validates that a given name is allowable
+    /// </summary>
+    public static TaskResult ValidateName(string name)
+    {
+        if (name.Length > 32)
+        {
+            return new TaskResult(false, "Planet names must be 32 characters or less.");
+        }
+
+        if (!nameRegex.IsMatch(name))
+        {
+            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Validates that a given description is allowable
+    /// </summary>
+    public static TaskResult ValidateDescription(string desc)
+    {
+        if (desc.Length > 500)
+        {
+            return new TaskResult(false, "Planet descriptions must be 500 characters or less.");
+        }
+
+        return TaskResult.SuccessResult;
+    }
+
+    /// <summary>
+    /// Validates the parent and position of this category
+    /// </summary>
+    public static async Task<TaskResult> ValidateParentAndPosition(ValourDB db, Valour.Database.PlanetCategory category)
+    {
+        if (category.ParentId != null)
+        {
+            var parent = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
+            if (parent == null) return new TaskResult(false, "Could not find parent");
+            if (parent.PlanetId != category.PlanetId) return new TaskResult(false, "Parent category belongs to a different planet");
+            if (parent.Id == category.Id) return new TaskResult(false, "Cannot be own parent");
+
+            // Automatically determine position in this case
+            if (category.Position < 0)
+            {
+                category.Position = (ushort)await db.PlanetChannels.CountAsync(x => x.ParentId == category.ParentId);
+            }
+            else
+            {
+                // Ensure position is not already taken
+                if (!await HasUniquePosition(db, category))
+                    return new TaskResult(false, "The position is already taken.");
+            }
+
+            // Ensure this category does not contain itself
+            var loop_parent = parent;
+
+            while (loop_parent.ParentId != null)
+            {
+                if (loop_parent.ParentId == category.Id)
+                {
+                    return new TaskResult(false, "Cannot create parent loop.");
+                }
+
+                loop_parent = await db.PlanetCategoryChannels.FindAsync(loop_parent.ParentId);
+            }
+        }
+        else
+        {
+            if (category.Position < 0)
+            {
+                category.Position = (ushort)await db.PlanetChannels.CountAsync(x => x.PlanetId == category.PlanetId && x.ParentId == null);
+            }
+            else
+            {
+                // Ensure position is not already taken
+                if (!await HasUniquePosition(db, category))
+                    return new TaskResult(false, "The position is already taken.");
+            }
+        }
+
+        return TaskResult.SuccessResult;
+    }
 }

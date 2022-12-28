@@ -3,7 +3,7 @@
 @using Item = Valour.Api.Items.Item
 <ContextMenu Id='list-context' CssClass='context'>
 
-    @if (SelectedItem is PlanetCategoryChannel && CanModifyCategory){
+    @if (SelectedItem is PlanetCategory && CanModifyCategory){
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
         /* Uncomment when voice is production ready
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
@@ -11,7 +11,7 @@
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
 
-    @if ((SelectedItem is PlanetCategoryChannel && CanModifyCategory) || (SelectedItem is PlanetChannel && CanModifyChannel)) {
+    @if ((SelectedItem is PlanetCategory && CanModifyCategory) || (SelectedItem is PlanetChannel && CanModifyChannel)) {
         <BlazorContextMenu.Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
         <BlazorContextMenu.Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
     }
@@ -42,7 +42,7 @@
         else {
             var selfmember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, item.PlanetId);
             var primaryrole = await selfmember.GetPrimaryRoleAsync();
-            if (item is PlanetCategoryChannel)
+            if (item is PlanetCategory)
             {
                 CanModifyCategory = await item.HasPermissionAsync(selfmember, CategoryPermissions.ManageCategory);
             }
@@ -75,7 +75,7 @@
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
 
-        if (SelectedItem is PlanetCategoryChannel){
+        if (SelectedItem is PlanetCategory){
             modalParams.Add("Parent", SelectedItem);
         }
         else{
@@ -91,7 +91,7 @@
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
 
-        if (SelectedItem is PlanetCategoryChannel)
+        if (SelectedItem is PlanetCategory)
         {
             modalParams.Add("Parent", SelectedItem);
         }
@@ -108,7 +108,7 @@
         ModalParameters modalParams = new();
         modalParams.Add("Planet", planet);
 
-        if (SelectedItem is PlanetCategoryChannel){
+        if (SelectedItem is PlanetCategory){
             modalParams.Add("Parent", SelectedItem);
         }
         else{
@@ -119,7 +119,7 @@
     }
 
     public async Task DeleteChannelListItem(){
-        if (SelectedItem is PlanetCategoryChannel){
+        if (SelectedItem is PlanetCategory){
             var planet = await SelectedItem.GetPlanetAsync();
 
             var channels = await planet.GetChannelsAsync();

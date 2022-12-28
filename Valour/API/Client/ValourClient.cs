@@ -20,10 +20,20 @@ using Valour.Shared.Items.Users;
 
 namespace Valour.Api.Client;
 
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
+/*
+     █████   █████           ████                               
+    ░░███   ░░███           ░░███                                   
+     ░███    ░███   ██████   ░███   ██████  █████ ████ ████████ 
+     ░███    ░███  ░░░░░███  ░███  ███░░███░░███ ░███ ░░███░░███
+     ░░███   ███    ███████  ░███ ░███ ░███ ░███ ░███  ░███ ░░░ 
+      ░░░█████░    ███░░███  ░███ ░███ ░███ ░███ ░███  ░███     
+        ░░███     ░░████████ █████░░██████  ░░████████ █████    
+         ░░░       ░░░░░░░░ ░░░░░  ░░░░░░    ░░░░░░░░ ░░░░░     
+                                                            
+    This is the client-side API for Valour. It is used to connect to nodes and
+    interact with the Valour network. This client is helpful for building bots,
+    but make sure you follow the platform terms of use, which should be included
+    in this repository.                
  */
 
 public static class ValourClient
@@ -731,8 +741,8 @@ public static class ValourClient
             ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdated;
             ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeleted;
 
-            ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdated;
-            ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeleted;
+            ItemObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdated;
+            ItemObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeleted;
 
             ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdated;
             ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeleted;
@@ -802,7 +812,7 @@ public static class ValourClient
                 await planet.NotifyUpdateVoiceChannel(channel);
         }
 
-        private static async Task OnCategoryUpdated(PlanetCategoryChannel category, bool newItem, int flags)
+        private static async Task OnCategoryUpdated(PlanetCategory category, bool newItem, int flags)
         {
             var planet = await Planet.FindAsync(category.PlanetId);
 
@@ -834,7 +844,7 @@ public static class ValourClient
                 await planet.NotifyDeleteVoiceChannel(channel);
         }
 
-        private static async Task OnCategoryDeleted(PlanetCategoryChannel category)
+        private static async Task OnCategoryDeleted(PlanetCategory category)
         {
             var planet = await Planet.FindAsync(category.PlanetId);
 
