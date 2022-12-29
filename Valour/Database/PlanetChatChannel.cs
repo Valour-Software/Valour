@@ -10,10 +10,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     ///////////////////////
     // Entity Properties //
     ///////////////////////
-    
-    [Column("message_count")]
-    public long MessageCount { get; set; }
-    
+
     public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
 }
 

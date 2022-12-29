@@ -11,14 +11,4 @@ public class Channel : Item
     /// The last time this channel was active
     /// </summary>
     public DateTime TimeLastActive { get; set; }
-    
-    /// <summary>
-    /// This is being deprecated
-    /// </summary>
-    public string State { get; set; }
-    
-    /// <summary>
-    /// Soft-delete flag
-    /// </summary>
-    public bool IsDeleted { get; set; }
 }

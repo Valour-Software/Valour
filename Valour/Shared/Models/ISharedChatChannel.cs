@@ -2,5 +2,5 @@
 
 public interface ISharedChatChannel : ISharedChannel
 {
-    long MessageCount { get; set; }
+    
 }
