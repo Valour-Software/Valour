@@ -29,8 +29,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     // Formatting options
     public bool Bold { get; set; }
     public bool Italics { get; set; }
-
-    [Column("name")]
+    
     public string Name { get; set; }
 
     public int GetAuthority() =>
