@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Valour.Server.Database;
+using Valour.Database.Context;
 using Valour.Web.Models;
 
 namespace Valour.Web.Controllers;
