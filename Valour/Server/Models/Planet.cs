@@ -5,24 +5,6 @@ namespace Valour.Server.Models;
 
 public class Planet : Item, ISharedPlanet
 {
-    ///////////////
-    // Constants //
-    ///////////////
-
-    /// <summary>
-    /// The maximum planets a user is allowed to have. This will increase after 
-    /// the alpha period is complete.
-    /// </summary>
-    [JsonIgnore] 
-    public const int MaxOwnedPlanets = 5;
-
-    /// <summary>
-    /// The maximum planets a user is allowed to join. This will increase after the 
-    /// alpha period is complete.
-    /// </summary>
-    [JsonIgnore] 
-    public const int MaxJoinedPlanets = 20;
-
     /// <summary>
     /// The Id of the owner of this planet
     /// </summary>

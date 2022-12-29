@@ -12,6 +12,20 @@ namespace Valour.Shared.Models;
 public interface ISharedUser : ISharedItem
 {
     const int FLAGS_TIME_UPDATE = 0x01;
+    
+    /// <summary>
+    /// The maximum planets a user is allowed to have. This will increase after 
+    /// the alpha period is complete.
+    /// </summary>
+    [JsonIgnore] 
+    public const int MaxOwnedPlanets = 5;
+
+    /// <summary>
+    /// The maximum planets a user is allowed to join. This will increase after the 
+    /// alpha period is complete.
+    /// </summary>
+    [JsonIgnore] 
+    public const int MaxJoinedPlanets = 20;
 
     /// <summary>
     /// The url for the user's profile picture

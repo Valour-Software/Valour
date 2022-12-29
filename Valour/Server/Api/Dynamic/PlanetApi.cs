@@ -1,3 +1,13 @@
+using Microsoft.AspNetCore.Mvc;
+using Valour.Database.Context;
+using Valour.Server.Database;
+using Valour.Server.EndpointFilters;
+using Valour.Server.EndpointFilters.Attributes;
+using Valour.Server.Services;
+using Valour.Shared;
+using Valour.Shared.Authorization;
+using Valour.Shared.Models;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetApi
@@ -7,9 +17,12 @@ public class PlanetApi
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRouteAsync(
         long id,
-        ValourDB db)
+        PlanetService service)
     {
-        var planet = await FindAsync<Planet>(id, db);
+        var planet = await service.GetAsync(id);
+        if (planet is null)
+            return ValourResult.NotFound("Planet not found");
+
         return Results.Json(planet);
     }
 
@@ -20,9 +33,11 @@ public class PlanetApi
         HttpContext ctx,
         ValourDB db,
         PlanetService planetService,
+        UserService userService,
         ILogger<Planet> logger)
     {
-        var token = ctx.GetToken();
+        var user = await userService.GetCurrentUser();
+        
         if (planet is null)
             return ValourResult.BadRequest("Include planet in body.");
 
@@ -36,13 +51,11 @@ public class PlanetApi
         var descValid = ValidateDescription(planet.Description);
         if (!descValid.Success)
             return ValourResult.BadRequest(descValid.Message);
-
-        var user = await FindAsync<User>(token.UserId, db);
-
+        
         if (!user.ValourStaff)
         {
-            var ownedPlanets = await db.Planets.CountAsync(x => x.OwnerId == user.Id);
-            if (ownedPlanets > MAX_OWNED_PLANETS)
+            var ownedPlanets = await userService.GetOwnedPlanetCount(user.Id);
+            if (ownedPlanets > ISharedUser.MaxOwnedPlanets)
                 return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
@@ -560,5 +573,47 @@ public class PlanetApi
             return Results.Created(result.Data.GetUri(), result.Data);
         else
             return ValourResult.Problem(result.Message);
+    }
+    
+    //////////////////////
+    // Validation Logic //
+    //////////////////////
+
+    public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
+
+    /// <summary>
+    /// Validates that a given name is allowable for a planet
+    /// </summary>
+    public static TaskResult ValidateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return new TaskResult(false, "Planet names cannot be empty.");
+        }
+
+        if (name.Length > 32)
+        {
+            return new TaskResult(false, "Planet names must be 32 characters or less.");
+        }
+
+        if (!nameRegex.IsMatch(name))
+        {
+            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
+        }
+
+        return new TaskResult(true, "The given name is valid.");
+    }
+
+    /// <summary>
+    /// Validates that a given description is alloweable for a planet
+    /// </summary>
+    public static TaskResult ValidateDescription(string description)
+    {
+        if (description is not null && description.Length > 128)
+        {
+            return new TaskResult(false, "Description must be under 128 characters.");
+        }
+
+        return TaskResult.SuccessResult;
     }
 }

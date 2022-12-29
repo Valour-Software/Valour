@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
-using Valour.Server.Database;
-using Valour.Server.Database.Items.Authorization;
+using Valour.Database.Context;
 
 namespace Valour.Server.Services;
 
@@ -9,7 +8,12 @@ public class TokenService
     private static readonly ConcurrentDictionary<string, AuthToken> QuickCache = new();
     
     private readonly ValourDB _db;
-    private IHttpContextAccessor _contextAccessor;
+    private readonly IHttpContextAccessor _contextAccessor;
+
+    /// <summary>
+    /// Stores the current token if it has already been grabbed in this context
+    /// </summary>
+    private AuthToken _currentToken;
     
     public TokenService(ValourDB db, IHttpContextAccessor contextAccessor)
     {
@@ -33,7 +37,7 @@ public class TokenService
         if (token is null)
         {
             // If the auth token is null, try to get it from the database
-            token = await _db.AuthTokens.FindAsync(key);
+            token = (await _db.AuthTokens.FindAsync(key)).ToModel();
             
             // If there was a token, add it to the cache
             if (token is not null)
@@ -45,7 +49,11 @@ public class TokenService
     
     public async ValueTask<AuthToken> GetCurrentToken()
     {
-        _contextAccessor.HttpContext.Request.Headers.TryGetValue("authorization", out var authKey);
-        return await GetAsync(authKey);
+        if (_currentToken is not null)
+            return _currentToken;
+        
+        _contextAccessor.HttpContext!.Request.Headers.TryGetValue("authorization", out var authKey);
+        _currentToken = await GetAsync(authKey);
+        return _currentToken;
     }
 }

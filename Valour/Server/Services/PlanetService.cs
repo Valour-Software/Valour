@@ -1,4 +1,5 @@
 using Valour.Database.Context;
+using Valour.Shared;
 
 namespace Valour.Server.Services;
 
@@ -24,72 +25,54 @@ public class PlanetService
     /// <summary>
     /// Returns the primary channel for the given planet
     /// </summary>
-    public async ValueTask<PlanetChatChannel> GetPrimaryChannelAsync(Planet planet) =>
+    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(Planet planet) =>
         (await _db.PlanetChatChannels.FindAsync(planet.PrimaryChannelId)).ToModel();
 
     /// <summary>
     /// Returns the default role for the given planet
     /// </summary>
-    public async ValueTask<PlanetRole> GetDefaultRole(Planet planet)
-    {
-        planet.DefaultRole ??= await _planetRoleService.GetAsync(planet.DefaultRoleId);
-        return planet.DefaultRole;
-    }
+    public async Task<PlanetRole> GetDefaultRole(Planet planet) =>
+        (await _db.PlanetRoles.FindAsync(planet.DefaultRoleId)).ToModel();
 
     /// <summary>
     /// Returns the roles for the given planet
     /// </summary>
-    public async ValueTask<ICollection<PlanetRole>> GetRolesAsync(Planet planet)
-    {
-        planet.Roles ??= await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id).ToListAsync();
-        return planet.Roles;
-    }
+    public async Task<ICollection<PlanetRole>> GetRolesAsync(Planet planet) =>
+        await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id)
+            .Select(x => x.ToModel())
+            .ToListAsync();
 
     /// <summary>
     /// Soft deletes the given planet
     /// </summary>
     public async Task DeleteAsync(Planet planet)
     {
-        planet.IsDeleted = true;
-        _db.Planets.Update(planet);
+        var entity = planet.ToDatabase();
+        entity.IsDeleted = true;
+        
+        _db.Planets.Update(entity);
         await _db.SaveChangesAsync();
     }
-    
-    [JsonIgnore] public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
 
     /// <summary>
-    /// Validates that a given name is allowable for a planet
+    /// Creates a planet or updates it if it
+    /// already exists
     /// </summary>
-    public static TaskResult ValidateName(string name)
+    public async Task CreateOrUpdateAsync(Planet planet)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        var old = await _db.Planets.FindAsync(planet.Id);
+        
+        if (old is null)
         {
-            return new TaskResult(false, "Planet names cannot be empty.");
+            _db.Planets.Add(planet.ToDatabase());
+        }
+        else
+        {
+            _db.Planets.Update(planet.ToDatabase());
         }
 
-        if (name.Length > 32)
-        {
-            return new TaskResult(false, "Planet names must be 32 characters or less.");
-        }
+        await _db.SaveChangesAsync();
 
-        if (!nameRegex.IsMatch(name))
-        {
-            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-        }
-
-        return new TaskResult(true, "The given name is valid.");
-    }
-
-    /// <summary>
-    /// Validates that a given description is alloweable for a planet
-    /// </summary>
-    public static TaskResult ValidateDescription(string description)
-    {
-        if (description is not null && description.Length > 128)
-        {
-            return new TaskResult(false, "Description must be under 128 characters.");
-        }
-
-        return TaskResult.SuccessResult;
+        _coreHub.NotifyPlanetChange(planet);
     }
 }
