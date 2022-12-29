@@ -1,19 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
-
-/*  Valour - A free and secure chat client
- *  Copyright (C) 2021 Vooper Media LLC
- *  This program is subject to the GNU Affero General Public license
- *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
- */
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Valour.Database;
 
-/// <summary>
-/// This class is being ripped from the User implementation so we
-/// don't have to remove the private info each time we use an API,
-/// greatly reducing the mental burden of ensuring security
-///  - Spike
-/// </summary>
 [Table("user_emails")]
 public class UserEmail
 {

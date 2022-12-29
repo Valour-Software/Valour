@@ -1,4 +1,5 @@
-﻿using Valour.Shared.Channels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using Valour.Shared.Channels;
 
 namespace Valour.Database;
 
