@@ -4,3 +4,5 @@ global using System.Text.Json.Serialization;
 global using System.Text.RegularExpressions;
 global using Valour.Server.Http;
 global using Valour.Server.Extensions;
+global using Valour.Server.Models;
+global using Valour.Server.Mapping;

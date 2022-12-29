@@ -5,18 +5,13 @@ namespace Valour.Server.Models;
 /// <summary>
 /// Service model for a planet member
 /// </summary>
-public class PlanetMember : ISharedPlanetMember
+public class PlanetMember : Item, ISharedPlanetMember
 {
     /// <summary>
     /// The id of the member
     /// </summary>
     public long Id { get; set; }
-    
-    /// <summary>
-    /// The name of the node that returned this object
-    /// </summary>
-    public string NodeName { get; set; }
-    
+
     /// <summary>
     /// The user id of the member
     /// </summary>

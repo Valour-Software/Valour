@@ -62,43 +62,4 @@ public class Planet : Item, ISharedPlanet
     /// The id of the main channel of the planet
     /// </summary>
     public long PrimaryChannelId { get; set; }
-
-    [JsonIgnore] public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
-
-    /// <summary>
-    /// Validates that a given name is allowable for a planet
-    /// </summary>
-    public static TaskResult ValidateName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return new TaskResult(false, "Planet names cannot be empty.");
-        }
-
-        if (name.Length > 32)
-        {
-            return new TaskResult(false, "Planet names must be 32 characters or less.");
-        }
-
-        if (!nameRegex.IsMatch(name))
-        {
-            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-        }
-
-        return new TaskResult(true, "The given name is valid.");
-    }
-
-    /// <summary>
-    /// Validates that a given description is alloweable for a planet
-    /// </summary>
-    public static TaskResult ValidateDescription(string description)
-    {
-        if (description is not null && description.Length > 128)
-        {
-            return new TaskResult(false, "Description must be under 128 characters.");
-        }
-
-        return TaskResult.SuccessResult;
-    }
-
 }
