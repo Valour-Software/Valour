@@ -1,4 +1,5 @@
 @page "/authorize"
+@using Valour.Shared.Models
 
 @inject NavigationManager navManager
 @inject IJSRuntime JS
@@ -146,7 +147,7 @@
         switch (response_type){
             case "code": {
 
-                    var model = new Valour.Shared.Items.Authorization.AuthorizeModel(){
+                    var model = new AuthorizeModel(){
                     ClientId = client_id,
                     RedirectUri = redirect_uri,
                     UserId = ValourClient.Self.Id,

@@ -2,7 +2,7 @@
 using Valour.Api.Items.Channels.Planets;
 using Valour.Api.Items.Planets.Members;
 using Valour.Api.Nodes;
-using Valour.Shared.Items.Planets;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Planets;
 

@@ -1,11 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("users")]
 public class User : Item, ISharedUser
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [InverseProperty("User")]
     public virtual UserEmail Email { get; set; }
 

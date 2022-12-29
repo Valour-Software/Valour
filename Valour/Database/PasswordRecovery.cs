@@ -9,8 +9,16 @@ namespace Valour.Database;
 [Table("password_recoveries")]
 public class PasswordRecovery
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
     
     [Key]
     [Column("code")]

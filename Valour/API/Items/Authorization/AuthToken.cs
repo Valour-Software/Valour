@@ -1,5 +1,5 @@
 ﻿using Valour.Shared.Authorization;
-using Valour.Shared.Items.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Authorization;
 

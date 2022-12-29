@@ -11,6 +11,10 @@ namespace Valour.Database;
 [JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 public class Channel : Item
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     [Column("time_last_active")]
     public DateTime TimeLastActive { get; set; }
 

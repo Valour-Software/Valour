@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Valour.Shared.Items.Planets.Members;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
@@ -11,7 +11,7 @@ namespace Valour.Database;
 public class PlanetMember : Item, ISharedPlanetMember
 {
     ///////////////////////////
-    // Relational properties //
+    // Relational Properties //
     ///////////////////////////
     
     [JsonIgnore]

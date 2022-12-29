@@ -1,4 +1,4 @@
-using Valour.Shared.Items.Planets;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 

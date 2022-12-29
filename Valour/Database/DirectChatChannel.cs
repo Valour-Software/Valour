@@ -1,11 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Channels.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("direct_chat_channels")]
 public class DirectChatChannel : Channel, ISharedDirectChatChannel
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     /// <summary>
     /// One of the users in the DM channel
     /// </summary>
@@ -17,6 +21,10 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel
     /// </summary>
     [ForeignKey("UserTwoId")]
     public virtual User UserTwo { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The id of one of the users in the DM channel

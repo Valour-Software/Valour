@@ -8,8 +8,8 @@ using Valour.Api.Nodes;
 using Valour.Api.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Channels.Planets;
+using Valour.Shared.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Channels.Planets;
 

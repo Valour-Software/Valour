@@ -1,5 +1,5 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Shared.Items;
+using Valour.Shared.Models;
 
 namespace Valour.Shared.Categories
 {

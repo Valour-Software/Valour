@@ -1,12 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Valour.Shared.Items.Planets;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planets")]
 public class Planet : Item, ISharedPlanet
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetRole> Roles { get; set; }
 
@@ -27,6 +31,10 @@ public class Planet : Item, ISharedPlanet
 
     [ForeignKey("PrimaryChannelId")]
     public virtual PlanetChatChannel PrimaryChannel { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The Id of the owner of this planet

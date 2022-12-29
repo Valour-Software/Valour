@@ -9,8 +9,16 @@ namespace Valour.Database;
 [Table("credentials")]
 public class Credential
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The ID of this credential

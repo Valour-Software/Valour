@@ -2,8 +2,8 @@
 using System.Text.Json;
 using Valour.Api.Items.Messages.Attachments;
 using Valour.Api.Items.Messages.Embeds;
-using Valour.Shared.Items.Messages;
-using Valour.Shared.Items.Messages.Mentions;
+using Valour.Shared.Models;
+using Valour.Shared.Models;
 using Valour.Api.Items.Users;
 using Valour.Shared;
 using Valour.Api.Client;

@@ -2,7 +2,7 @@
 using Valour.Api.Items.Authorization;
 using Valour.Shared.Authorization;
 using Valour.Api.Items.Planets.Members;
-using Valour.Shared.Items;
+using Valour.Shared.Models;
 using Valour.Api.Items.Channels;
 using Valour.Api.Items.Planets;
 

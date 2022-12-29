@@ -2,7 +2,7 @@
 using Valour.Api.Client;
 using Valour.Api.Items.Authorization;
 using Valour.Shared;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Users;
 

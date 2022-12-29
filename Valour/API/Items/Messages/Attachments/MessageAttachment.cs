@@ -1,4 +1,4 @@
-﻿using Valour.Shared.Items.Messages;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Messages.Attachments;
 

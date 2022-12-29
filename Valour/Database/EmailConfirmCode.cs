@@ -9,8 +9,16 @@ namespace Valour.Database;
 [Table("email_confirm_codes")]
 public class EmailConfirmCode
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The code for the email verification

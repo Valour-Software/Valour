@@ -3,7 +3,7 @@ using Valour.Api.Items.Channels.Planets;
 using Valour.Api.Items.Messages;
 using Valour.Api.Items.Planets;
 using Valour.Api.Nodes;
-using Valour.Shared.Items.Channels.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Channels.Users;
 

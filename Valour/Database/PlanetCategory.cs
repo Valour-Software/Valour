@@ -1,12 +1,16 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Channels.Planets;
+using Valour.Shared.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_category_channels")]
 public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetCategoryChannel;
 }
 

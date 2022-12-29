@@ -6,7 +6,7 @@ using Valour.Server.Database;
 using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Hubs;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Server.API
 {

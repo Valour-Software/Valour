@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Valour.Shared.Items.Authorization;
-using Valour.Shared.Items.Channels.Planets;
+using Valour.Shared.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
@@ -11,11 +11,19 @@ namespace Valour.Database;
 [JsonDerivedType(typeof(PlanetCategory), typeDiscriminator: nameof(PlanetCategory))]
 public abstract class PlanetChannel : Channel, ISharedPlanetChannel
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
     
     [ForeignKey("ParentId")]
     public PlanetCategory Parent { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
     
     [Column("planet_id")]
     public long PlanetId { get; set; }

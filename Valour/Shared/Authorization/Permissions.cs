@@ -4,7 +4,7 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-using Valour.Shared.Items.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Shared.Authorization;
 

@@ -6,6 +6,10 @@ namespace Valour.Database;
 [Table("user_channel_states")]
 public class UserChannelState : ISharedUserChannelState
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     [Column("channel_id")]
     public long ChannelId { get; set; }
 

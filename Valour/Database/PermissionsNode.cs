@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Valour.Shared.Items.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
@@ -13,11 +13,19 @@ namespace Valour.Database;
 [Table("permissions_nodes")]
 public class PermissionsNode : Item, ISharedPermissionsNode
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
 
     [ForeignKey("RoleId")]
     public virtual PlanetRole Role { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
     
     [Column("planet_id")]
     public long PlanetId { get; set; }

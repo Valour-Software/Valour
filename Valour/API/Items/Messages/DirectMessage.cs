@@ -2,7 +2,7 @@
 using Valour.Api.Items.Channels.Users;
 using Valour.Api.Nodes;
 using Valour.Shared;
-using Valour.Shared.Items.Messages;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Messages;
 

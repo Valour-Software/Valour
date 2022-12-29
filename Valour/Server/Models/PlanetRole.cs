@@ -1,6 +1,6 @@
 using System.Drawing;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items.Planets.Members;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Models;
 

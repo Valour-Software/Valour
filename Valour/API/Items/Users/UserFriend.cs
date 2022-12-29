@@ -1,4 +1,4 @@
-﻿using Valour.Shared.Items.Users;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Users;
 

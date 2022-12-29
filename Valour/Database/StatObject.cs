@@ -16,6 +16,10 @@ namespace Valour.Database;
 [Table("stat_objects")]
 public class StatObject
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     /// <summary>
     /// The Id of this object
     /// </summary>

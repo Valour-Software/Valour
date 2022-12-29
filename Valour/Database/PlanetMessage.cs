@@ -1,11 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Messages;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_messages")]
 public class PlanetMessage : Item, ISharedPlanetMessage
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
 
@@ -17,6 +21,10 @@ public class PlanetMessage : Item, ISharedPlanetMessage
 
     [ForeignKey("ReplyToId")]
     public PlanetMessage ReplyToMessage { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
     
     [Column("planet_id")]
     public long PlanetId { get; set; }

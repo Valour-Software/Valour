@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
@@ -13,6 +13,10 @@ namespace Valour.Database;
 [Table("user_friends")]
 public class UserFriend : Item, ISharedUserFriend
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     /// <summary>
     /// The user who added the friend
     /// </summary>
@@ -25,6 +29,10 @@ public class UserFriend : Item, ISharedUserFriend
     /// </summary>
     [ForeignKey("FriendId")]
     public virtual User Friend { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The id of the user who added the friend

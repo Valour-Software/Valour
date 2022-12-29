@@ -1,13 +1,21 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("oauth_apps")]
 public class OauthApp : Item, ISharedOauthApp
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("OwnerId")]
     public virtual User Owner { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The secret key for the app

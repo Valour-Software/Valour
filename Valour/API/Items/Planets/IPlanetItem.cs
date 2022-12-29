@@ -1,6 +1,6 @@
 ﻿using System;
 using Valour.Api.Client;
-using Valour.Shared.Items.Planets;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Planets
 {

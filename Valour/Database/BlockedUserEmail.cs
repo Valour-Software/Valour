@@ -9,6 +9,10 @@ namespace Valour.Database;
 [Table("blocked_user_emails")]
 public class BlockedUserEmail
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     [Key]
     [Column("email")]
     public string Email { get; set; }

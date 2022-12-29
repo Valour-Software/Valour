@@ -1,13 +1,22 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Planets.Members;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_bans")]
 public class PlanetBan : Item, ISharedPlanetBan
 {
+    
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     [Column("planet_id")]
     public long PlanetId { get; set; }

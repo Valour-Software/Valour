@@ -5,7 +5,7 @@ using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Shared.Items.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 

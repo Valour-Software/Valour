@@ -9,6 +9,10 @@ namespace Valour.Database;
 [Table("primary_node_connections")]
 public class PrimaryNodeConnection
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     /// <summary>
     /// The SignalR-generated connection id
     /// </summary>

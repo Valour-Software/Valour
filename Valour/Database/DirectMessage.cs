@@ -1,16 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Messages;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("direct_messages")]
 public class DirectMessage  : Item, ISharedMessage
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("AuthorUserId")]
     public User AuthorUser { get; set; }
 
     [ForeignKey("ReplyToId")]
     public DirectMessage ReplyToMessage { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The message (if any) this is a reply to

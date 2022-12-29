@@ -1,5 +1,5 @@
 ﻿using Valour.Api.Items.Messages;
-using Valour.Shared.Items.Channels;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Channels
 {

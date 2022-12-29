@@ -7,6 +7,10 @@ namespace Valour.Database;
 [Table("node_stats")]
 public class NodeStats : ISharedNodeStats
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     [Key]
     [Column("name")]
     public string Name { get; set; }

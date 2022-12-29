@@ -15,8 +15,8 @@ using Valour.Api.Items.Users;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Items.Channels;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Client;
 

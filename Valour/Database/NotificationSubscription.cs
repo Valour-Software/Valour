@@ -1,14 +1,22 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Notifications;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("notification_subscriptions")]
 public class NotificationSubscription : ISharedNotificationSubscription
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("UserId")]
     public User User { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     [Key]
     [Column("id")]

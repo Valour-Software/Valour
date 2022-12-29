@@ -8,7 +8,7 @@ using Valour.Server.Database.Items.Planets;
 using Valour.Server.Database.Items.Users;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;
-using Valour.Shared.Items.Channels;
+using Valour.Shared.Models;
 using DirectMessage = Valour.Server.Database.Items.Messages.DirectMessage;
 using PlanetMessage = Valour.Server.Database.Items.Messages.PlanetMessage;
 

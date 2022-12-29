@@ -8,7 +8,7 @@ using Valour.Api.Items.Messages;
 using Valour.Api.Items.Messages.Embeds;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Items.Channels;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Nodes;
 

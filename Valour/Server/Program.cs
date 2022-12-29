@@ -24,7 +24,7 @@ using Valour.Server.Hubs;
 using Valour.Server.Redis;
 using Valour.Server.Services;
 using Valour.Server.Workers;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
 using WebPush;
 
 namespace Valour.Server

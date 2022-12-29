@@ -1,5 +1,5 @@
-﻿using Valour.Shared.Items;
-using Valour.Shared.Items.Notifications;
+﻿using Valour.Shared.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Notifications;
 

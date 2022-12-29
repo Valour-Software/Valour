@@ -7,9 +7,17 @@ namespace Valour.Database;
 [Table("user_emails")]
 public class UserEmail
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("UserId")]
     [JsonIgnore]
     public virtual User User { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The user's email address

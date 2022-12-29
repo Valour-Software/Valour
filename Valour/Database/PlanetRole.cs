@@ -1,16 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Planets.Members;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("planet_roles")]
 public class PlanetRole : Item, ISharedPlanetRole
 {
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
+    
     [ForeignKey("PlanetId")]
     public Planet Planet { get; set; }
     
     [InverseProperty("Role")]
     public virtual ICollection<PermissionsNode> PermissionNodes { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
 
     /// <summary>
     /// The id of the planet this belongs to

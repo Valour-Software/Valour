@@ -1,4 +1,4 @@
-﻿using Valour.Shared.Items;
+﻿using Valour.Shared.Models;
 
 namespace Valour.Api.Items.Channels;
 public interface IChannel : ISharedItem

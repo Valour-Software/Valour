@@ -1,20 +1,26 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text.Json.Serialization;
-using Valour.Shared.Authorization;
-using Valour.Shared.Items.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("auth_tokens")]
 public class AuthToken : ISharedAuthToken
 {
-    [Key]
-    [Column("id")]
-    public string Id { get; set; }
+    ///////////////////////////
+    // Relational Properties //
+    ///////////////////////////
 
     [ForeignKey("UserId")]
     public virtual User User { get; set; }
+    
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
+    [Key]
+    [Column("id")]
+    public string Id { get; set; }
 
     /// <summary>
     /// The ID of the app that has been issued this token

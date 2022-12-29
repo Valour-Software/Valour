@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Shared.Items.Users;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
@@ -9,6 +9,10 @@ namespace Valour.Database;
 [Table("tenor_favorites")]
 public class TenorFavorite : Item, ISharedTenorFavorite
 {
+    ///////////////////////
+    // Entity Properties //
+    ///////////////////////
+    
     [Column("id")]
     public long Id { get; set; }
 
