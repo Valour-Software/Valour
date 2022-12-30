@@ -8,6 +8,7 @@ public class PlanetService
 {
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
+    private readonly TokenService _tokenService;
     private readonly ILogger<PlanetService> _logger;
     
     public PlanetService(
@@ -57,113 +58,64 @@ public class PlanetService
         _db.Planets.Update(entity);
         await _db.SaveChangesAsync();
     }
-
+    
     /// <summary>
-    /// Creates a planet or updates it if it
-    /// already exists
+    /// Creates the given planet
     /// </summary>
-    public async Task<TaskResult<Planet>> CreateOrUpdateAsync(Planet planet)
+    public async Task<TaskResult<Planet>> CreateAsync(Planet planet)
     {
-        var old = await _db.Planets.FindAsync(planet.Id);
-        
-        // Validate name
-        var nameValid = ValidateName(planet.Name);
-        if (!nameValid.Success)
-            return new TaskResult<Planet>(false, nameValid.Message);
-
-        // Validate description
-        var descValid = ValidateDescription(planet.Description);
-        if (!descValid.Success)
-            return new TaskResult<Planet>(false, descValid.Message);
-        
-        // Validate owner
-        var owner = await _db.Users.FindAsync(planet.OwnerId);
-        if (owner is null)
-            return new TaskResult<Planet>(false, "Owner does not exist.");
+        var baseValid = await ValidateBasic(planet);
+        if (!baseValid.Success)
+            return new TaskResult<Planet>(false, baseValid.Message);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
         {
-            /////////////////////////////////////
-            // Logic for creating a new planet //
-            /////////////////////////////////////
-            if (old is null)
+            // Create general category
+            var category = new Valour.Database.PlanetCategory()
             {
-                // Create general category
-                var category = new Valour.Database.PlanetCategory()
-                {
-                    Id = IdManager.Generate(),
-                    Name = "General",
-                    ParentId = null,
-                    PlanetId = planet.Id,
-                    Description = "General category",
-                    Position = 0
-                };
+                Id = IdManager.Generate(),
+                Name = "General",
+                ParentId = null,
+                PlanetId = planet.Id,
+                Description = "General category",
+                Position = 0
+            };
 
-                // Create general chat channel
-                var channel = new Valour.Database.PlanetChatChannel()
-                {
-                    Id = IdManager.Generate(),
-                    PlanetId = planet.Id,
-                    Name = "General",
-                    Description = "General chat channel",
-                    ParentId = category.Id,
-                    Position = 0
-                };
-
-                // Create default role
-                var defaultRole = new Valour.Database.PlanetRole()
-                {
-                    Id = IdManager.Generate(),
-                    PlanetId = planet.Id,
-                    Position = int.MaxValue,
-                    Blue = 255,
-                    Green = 255,
-                    Red = 255,
-                    Name = "everyone"
-                };
-
-                await _db.PlanetCategoryChannels.AddAsync(category);
-                await _db.PlanetChatChannels.AddAsync(channel);
-                await _db.PlanetRoles.AddAsync(defaultRole);
-
-                await _db.SaveChangesAsync();
-
-                planet.PrimaryChannelId = channel.Id;
-                planet.DefaultRoleId = defaultRole.Id;
-
-                _db.Planets.Add(planet.ToDatabase());
-            }
-            //////////////////////////////////////////
-            // Logic for editing an existing planet //
-            //////////////////////////////////////////
-            else
+            // Create general chat channel
+            var channel = new Valour.Database.PlanetChatChannel()
             {
-                // Validate default role
-                if (planet.DefaultRoleId != old.DefaultRoleId)
-                {
-                    var defaultRole = await _db.PlanetRoles.FindAsync(planet.DefaultRoleId);
-                    if (defaultRole is null)
-                        return new TaskResult<Planet>(false, "Default role does not exist.");
+                Id = IdManager.Generate(),
+                PlanetId = planet.Id,
+                Name = "General",
+                Description = "General chat channel",
+                ParentId = category.Id,
+                Position = 0
+            };
 
-                    if (defaultRole.PlanetId != planet.Id)
-                        return new TaskResult<Planet>(false, "Default role belongs to a different planet.");
-                }
+            // Create default role
+            var defaultRole = new Valour.Database.PlanetRole()
+            {
+                Id = IdManager.Generate(),
+                PlanetId = planet.Id,
+                Position = int.MaxValue,
+                Blue = 255,
+                Green = 255,
+                Red = 255,
+                Name = "everyone"
+            };
 
-                // Validate primary channel
-                if (planet.PrimaryChannelId != old.PrimaryChannelId)
-                {
-                    var primaryChannel = await _db.PlanetChatChannels.FindAsync(planet.PrimaryChannelId);
-                    if (primaryChannel is null)
-                        return new TaskResult<Planet>(false, "Primary channel does not exist.");
+            await _db.PlanetCategoryChannels.AddAsync(category);
+            await _db.PlanetChatChannels.AddAsync(channel);
+            await _db.PlanetRoles.AddAsync(defaultRole);
 
-                    if (primaryChannel.PlanetId != planet.Id)
-                        return new TaskResult<Planet>(false, "Primary channel belongs to a different planet.");
-                }
+            await _db.SaveChangesAsync();
 
-                _db.Planets.Update(planet.ToDatabase());
-            }
+            planet.PrimaryChannelId = channel.Id;
+            planet.DefaultRoleId = defaultRole.Id;
+
+            _db.Planets.Add(planet.ToDatabase());
 
             await _db.SaveChangesAsync();
 
@@ -171,14 +123,76 @@ public class PlanetService
         }
         catch (Exception e)
         {
+            _logger.LogError(e, "Failed to create planet");
+            await tran.RollbackAsync();
+            return new TaskResult<Planet>(false, "Failed to create planet");
+        }
+        
+        _coreHub.NotifyPlanetChange(planet);
+        
+        return new TaskResult<Planet>(true, "Planet created successfully", planet);
+    }
+
+    /// <summary>
+    /// Updates the given planet
+    /// </summary>
+    public async Task<TaskResult<Planet>> UpdateAsync(Planet planet)
+    {
+        var baseValid = await ValidateBasic(planet);
+        if (!baseValid.Success)
+            return new TaskResult<Planet>(false, baseValid.Message);
+        
+        var old = await _db.Planets.FindAsync(planet.Id);
+        if (old is null)
+            return new TaskResult<Planet>(false, "Planet not found.");
+        
+        if (old.IconUrl != planet.IconUrl)
+            return new TaskResult<Planet>(false, "Use the upload API to change the planet icon.");
+        
+        // Validate default role
+        if (planet.DefaultRoleId != old.DefaultRoleId)
+        {
+            var defaultRole = await _db.PlanetRoles.FindAsync(planet.DefaultRoleId);
+            if (defaultRole is null)
+                return new TaskResult<Planet>(false, "Default role does not exist.");
+
+            if (defaultRole.PlanetId != planet.Id)
+                return new TaskResult<Planet>(false, "Default role belongs to a different planet.");
+        }
+
+        // Validate primary channel
+        if (planet.PrimaryChannelId != old.PrimaryChannelId)
+        {
+            var primaryChannel = await _db.PlanetChatChannels.FindAsync(planet.PrimaryChannelId);
+            if (primaryChannel is null)
+                return new TaskResult<Planet>(false, "Primary channel does not exist.");
+
+            if (primaryChannel.PlanetId != planet.Id)
+                return new TaskResult<Planet>(false, "Primary channel belongs to a different planet.");
+        }
+
+        if (planet.OwnerId != old.OwnerId)
+        {
+            
+        }
+
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            _db.Planets.Update(planet.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
             await tran.RollbackAsync();
             _logger.LogError(e, e.Message);
-            return new TaskResult<Planet>(false, "Error adding planet to database.");
+            return new TaskResult<Planet>(false, "Error updating planet.");
         }
 
         _coreHub.NotifyPlanetChange(planet);
         
-        return new TaskResult<Planet>(true, "Planet added successfully.", planet);
+        return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
     }
     
     //////////////////////
@@ -188,9 +202,30 @@ public class PlanetService
     private static readonly Regex NameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
 
     /// <summary>
+    /// Common basic validation for planets
+    /// </summary>
+    private async Task<TaskResult> ValidateBasic(Planet planet)
+    {
+        // Validate name
+        var nameValid = ValidateName(planet.Name);
+        if (!nameValid.Success)
+            return new TaskResult(false, nameValid.Message);
+
+        // Validate description
+        var descValid = ValidateDescription(planet.Description);
+        if (!descValid.Success)
+            return new TaskResult(false, descValid.Message);
+        
+        // Validate owner
+        var owner = await _db.Users.FindAsync(planet.OwnerId);
+        if (owner is null)
+            return new TaskResult(false, "Owner does not exist.");
+    }
+
+    /// <summary>
     /// Validates that a given name is allowable for a planet
     /// </summary>
-    public static TaskResult ValidateName(string name)
+    private static TaskResult ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -213,7 +248,7 @@ public class PlanetService
     /// <summary>
     /// Validates that a given description is allowable for a planet
     /// </summary>
-    public static TaskResult ValidateDescription(string description)
+    private static TaskResult ValidateDescription(string description)
     {
         if (description is not null && description.Length > 500)
         {

@@ -57,47 +57,38 @@ public class PlanetApi
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
 
-        var result = await planetService.CreateOrUpdateAsync(planet);
+        var result = await planetService.CreateAsync(planet);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
         return Results.Created($"api/planets/{planet.Id}", planet);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired]
+    [ValourRoute(HttpVerbs.Put, "api/planets/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] Planet planet,
-        long id, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        PlanetMemberService memberService,
-        PermissionsService permService,
-        ILogger<Planet> logger)
+        long id,
+        PlanetService planetService,
+        UserService userService,
+        PlanetMemberService memberService)
     {
-        var member = ctx.GetMember();
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var old = await FindAsync<Planet>(id, db);
-
-        if (!await member.HasPermissionAsync(PlanetPermissions.Manage, permService))
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
             return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
         if (planet is null)
             return Results.BadRequest("Include planet in body.");
 
-        if (planet.Id != id)
-            return Results.BadRequest("Id cannot be changed.");
+        // Ensure id matches route
+        planet.Id = id;
 
-        var nameValid = ValidateName(planet.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
-
-        var descValid = ValidateDescription(planet.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
-
+        // We need to get the old planet to check special case for owner change
+        var old = await planetService.GetAsync(planet.Id);
+        
         // Owner change check
         if (old.OwnerId != planet.OwnerId)
         {
@@ -108,40 +99,16 @@ public class PlanetApi
             // Ensure new owner is a member of the planet
             if (!await memberService.ExistsAsync(planet.OwnerId, planet.Id))
                 return Results.BadRequest("You cannot transfer ownership to a non-member.");
-
-            var ownedPlanets = await db.Planets.CountAsync(x => x.OwnerId == planet.OwnerId);
-            if (ownedPlanets >= MAX_OWNED_PLANETS)
-                return Results.BadRequest("That user has the maximum owned planets!");
+            
+            var ownedPlanets = await userService.GetOwnedPlanetCount((await userService.GetCurrentUserId())!.Value);
+            if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
+                return Results.BadRequest("That new owner has the maximum owned planets!");
         }
 
-        if (old.DefaultRoleId != planet.DefaultRoleId)
-            return Results.BadRequest("You cannot change the default role. Change the permissions on it instead.");
+        var result = await planetService.UpdateAsync(planet);
 
-        if (old.PrimaryChannelId != planet.PrimaryChannelId)
-        {
-            // Ensure new channel exists and belongs to the planet
-            var newChannel = await db.PlanetChatChannels.FirstOrDefaultAsync(x => x.PlanetId == id && x.Id == planet.PrimaryChannelId);
-
-            if (newChannel is null)
-                return ValourResult.NotFound<PlanetChatChannel>();
-        }
-
-        if (old.IconUrl != planet.IconUrl)
-            return Results.BadRequest("Use the upload API to change the planet icon.");
-
-        try
-        {
-            db.Entry(old).State = EntityState.Detached;
-            db.Planets.Update(planet);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-        
-        hubService.NotifyPlanetChange(planet);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
         
         return Results.Json(planet);
     }

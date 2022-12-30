@@ -27,7 +27,7 @@ public class UserService
 
 
     /// <summary>
-    /// Returns the auth token for the current context
+    /// Returns the user for the current context
     /// </summary>
 
     public async Task<User> GetCurrentUser()
@@ -35,6 +35,16 @@ public class UserService
         var token = await _tokenService.GetCurrentToken();
         _currentUser = await GetAsync(token.UserId);
         return _currentUser;
+    }
+    
+    /// <summary>
+    /// Returns the user id for the current context
+    /// </summary>
+
+    public async Task<long?> GetCurrentUserId()
+    {
+        var token = await _tokenService.GetCurrentToken();
+        return token?.UserId;
     }
     
     /// <summary>
