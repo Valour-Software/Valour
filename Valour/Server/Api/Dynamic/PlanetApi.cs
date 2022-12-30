@@ -117,7 +117,6 @@ public class PlanetApi
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> DeleteRouteAsync(
         long id,
-        CoreHubService hubService,
         PlanetService planetService,
         UserService userService)
     {

@@ -221,6 +221,8 @@ public class PlanetService
         var owner = await _db.Users.FindAsync(planet.OwnerId);
         if (owner is null)
             return new TaskResult(false, "Owner does not exist.");
+
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
