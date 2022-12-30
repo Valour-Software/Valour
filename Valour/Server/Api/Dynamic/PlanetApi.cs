@@ -12,45 +12,37 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetApi
 {
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRouteAsync(
         long id,
-        PlanetService service)
+        PlanetService service,
+        PlanetMemberService memberService)
     {
+        // Ensure membership
+        if ((await memberService.GetCurrentAsync(id)) is null)
+            return ValourResult.NotPlanetMember();
+        
+        // Get the planet
         var planet = await service.GetAsync(id);
         if (planet is null)
             return ValourResult.NotFound("Planet not found");
 
+        // Return json
         return Results.Json(planet);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [ValourRoute(HttpVerbs.Post, "api/planets")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
-        [FromBody] Planet planet, 
-        HttpContext ctx,
-        ValourDB db,
+        [FromBody] Planet planet,
         PlanetService planetService,
-        UserService userService,
-        ILogger<Planet> logger)
+        UserService userService)
     {
         var user = await userService.GetCurrentUser();
         
         if (planet is null)
             return ValourResult.BadRequest("Include planet in body.");
-
-        var nameValid = ValidateName(planet.Name);
-        if (!nameValid.Success)
-            return ValourResult.BadRequest(nameValid.Message);
-
-        if (planet.Description is null)
-            planet.Description = String.Empty;
-
-        var descValid = ValidateDescription(planet.Description);
-        if (!descValid.Success)
-            return ValourResult.BadRequest(descValid.Message);
         
         if (!user.ValourStaff)
         {
@@ -65,73 +57,15 @@ public class PlanetApi
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
 
-        // Create general category
-        var category = new PlanetCategoryChannel()
-        {
-            Id = IdManager.Generate(),
-            Name = "General",
-            ParentId = null,
-            PlanetId = planet.Id,
-            Description = "General category",
-            Position = 0
-        };
-
-        // Create general chat channel
-        var channel = new PlanetChatChannel()
-        {
-            Id = IdManager.Generate(),
-            PlanetId = planet.Id,
-            Name = "General",
-            MessageCount = 0,
-            Description = "General chat channel",
-            ParentId = category.Id
-        };
-
-        // Create default role
-        var defaultRole = new PlanetRole()
-        {
-            Id = IdManager.Generate(),
-            PlanetId = planet.Id,
-            Position = int.MaxValue,
-            Blue = 255,
-            Green = 255,
-            Red = 255,
-            Name = "@everyone"
-        };
-
-        using var tran = await db.Database.BeginTransactionAsync();
-
-        try
-        {
-            await db.PlanetCategoryChannels.AddAsync(category);
-            await db.PlanetChatChannels.AddAsync(channel);
-            await db.PlanetRoles.AddAsync(defaultRole);
-
-            await db.SaveChangesAsync();
-                        
-            planet.PrimaryChannelId = channel.Id;
-            planet.DefaultRoleId = defaultRole.Id;
-            
-            await db.Planets.AddAsync(planet);
-
-            await db.SaveChangesAsync();
-
-            await planet.AddMemberAsync(user, planetService, false);
-        }
-        catch (Exception e)
-        {
-            await tran.RollbackAsync();
-            logger.LogError(e.Message);
-            return ValourResult.Problem("Sorry! We had an issue creating your planet. Try again?");
-        }
-
-        await tran.CommitAsync();
-
-        return Results.Created(planet.GetUri(), planet);
+        var result = await planetService.CreateOrUpdateAsync(planet);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        return Results.Created($"api/planets/{planet.Id}", planet);
     }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] Planet planet,
@@ -213,7 +147,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> DeleteRouteAsync(
         long id, 
@@ -234,7 +168,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/channels"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelsRouteAsync(
         long id, 
@@ -275,7 +209,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/chatchannels"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelsRouteAsync(
         long id, 
@@ -299,7 +233,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/voicechannels"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetVoiceChannelsRouteAsync(
         long id, 
@@ -323,7 +257,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/categories"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoriesRouteAsync(
         long id, 
@@ -346,7 +280,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/channelids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelIdsRouteAsync(
         long id, 
@@ -358,7 +292,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/chatchannelids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelIdsRouteAsync(
         long id,
@@ -369,7 +303,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/voicechannelids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetVoiceChannelIdsRouteAsync(
         long id,
@@ -380,7 +314,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/categoryids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoryIdsRouteAsync(
         long id,
@@ -391,7 +325,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/memberinfo"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetMemberInfoRouteAsync(
         long id, 
@@ -419,7 +353,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRolesRouteAsync(
         long id, 
@@ -430,7 +364,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/roleids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRoleIdsRouteAsync(
         long id, 
@@ -441,7 +375,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Post, "/{id}/roleorder"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> SetRoleOrderRouteAsync(
         [FromBody] long[] order, 
@@ -511,7 +445,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/invites"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> GetInvitesRouteAsync(
         long id, 
@@ -522,7 +456,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "/{id}/inviteids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> GetInviteIdsRouteAsync(
         long id, 
@@ -544,7 +478,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Post, "/{id}/discover"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Invites)]
+    [UserRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> JoinDiscoverable(
         long id, 
         HttpContext ctx,
@@ -575,45 +509,5 @@ public class PlanetApi
             return ValourResult.Problem(result.Message);
     }
     
-    //////////////////////
-    // Validation Logic //
-    //////////////////////
-
-    public static Regex nameRegex = new Regex(@"^[\.a-zA-Z0-9 _-]+$");
-
-    /// <summary>
-    /// Validates that a given name is allowable for a planet
-    /// </summary>
-    public static TaskResult ValidateName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return new TaskResult(false, "Planet names cannot be empty.");
-        }
-
-        if (name.Length > 32)
-        {
-            return new TaskResult(false, "Planet names must be 32 characters or less.");
-        }
-
-        if (!nameRegex.IsMatch(name))
-        {
-            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-        }
-
-        return new TaskResult(true, "The given name is valid.");
-    }
-
-    /// <summary>
-    /// Validates that a given description is alloweable for a planet
-    /// </summary>
-    public static TaskResult ValidateDescription(string description)
-    {
-        if (description is not null && description.Length > 128)
-        {
-            return new TaskResult(false, "Description must be under 128 characters.");
-        }
-
-        return TaskResult.SuccessResult;
-    }
+    
 }

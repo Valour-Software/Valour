@@ -9,7 +9,7 @@ namespace Valour.Server.Api.Dynamic;
 public class OauthAppAPI
 {
     [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.FullControl)]
+    [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] OauthApp app, 
         HttpContext ctx,

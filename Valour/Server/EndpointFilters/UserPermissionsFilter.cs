@@ -1,20 +1,27 @@
-using Valour.Server.Database;
-using Valour.Server.Database.Items.Authorization;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.EndpointFilters;
 
 public class UserPermissionsRequiredFilter : IEndpointFilter
 {
+    private readonly TokenService _tokenService;
+    
+    public UserPermissionsRequiredFilter(TokenService tokenService)
+    {
+        _tokenService = tokenService;
+    }
+    
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext ctx, EndpointFilterDelegate next)
     {
-        var token = ctx.HttpContext.GetToken();
-        if (token is null)
-            throw new Exception("UserPermissionRequired attribute requires a TokenRequired attribute.");
+        var token = await _tokenService.GetCurrentToken();
 
-        var userPermAttr = (UserPermissionsRequiredAttribute)ctx.HttpContext.Items[nameof(UserPermissionsRequiredAttribute)];
+        if (token is null)
+            return ValourResult.InvalidToken();
         
-        foreach (var permEnum in userPermAttr.permissions)
+        var userPermAttr = (UserRequiredAttribute)ctx.HttpContext.Items[nameof(UserRequiredAttribute)];
+
+        foreach (var permEnum in userPermAttr.Permissions)
         {
             var permission = UserPermissions.Permissions[(int)permEnum];
             if (!token.HasScope(permission))
@@ -26,12 +33,12 @@ public class UserPermissionsRequiredFilter : IEndpointFilter
 }
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-public class UserPermissionsRequiredAttribute : Attribute
+public class UserRequiredAttribute : Attribute
 {
-    public readonly UserPermissionsEnum[] permissions;
+    public readonly UserPermissionsEnum[] Permissions;
 
-    public UserPermissionsRequiredAttribute(params UserPermissionsEnum[] permissions)
+    public UserRequiredAttribute(params UserPermissionsEnum[] permissions)
     {
-        this.permissions = permissions;
+        this.Permissions = permissions;
     }
 }

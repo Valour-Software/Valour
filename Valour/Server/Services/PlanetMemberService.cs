@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Database.Context;
-using Valour.Server.Models;
-using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -12,18 +10,17 @@ namespace Valour.Server.Services;
 public class PlanetMemberService
 {
     private readonly ValourDB _db;
-    private readonly PlanetService _planetService;
-    private readonly PlanetCategoryService _categoryService;
     private readonly CoreHubService _coreHub;
+    private readonly TokenService _tokenService;
 
     public PlanetMemberService(
         ValourDB db,
-        PlanetCategoryService categoryService,
-        PlanetService planetService)
+        CoreHubService coreHub,
+        TokenService tokenService)
     {
         _db = db;
-        _categoryService = categoryService;
-        _planetService = planetService;
+        _coreHub = coreHub;
+        _tokenService = tokenService;
     }
     
     /// <summary>
@@ -31,6 +28,12 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetAsync(long id) =>
         (await _db.PlanetMembers.FindAsync(id)).ToModel();
+    
+    /// <summary>
+    /// Returns the current user's PlanetMember for the given planet id
+    /// </summary>
+    public async Task<PlanetMember> GetCurrentAsync(long planetId) => 
+        (await _db.PlanetMembers.FindAsync(planetId, (await _tokenService.GetCurrentToken()).Id)).ToModel();
 
     /// <summary>
     /// Returns if the PlanetMember with the given id exists
@@ -57,7 +60,7 @@ public class PlanetMemberService
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
-            .Select(x => x.Role)
+            .Select(x => x.Role.ToModel())
             .ToListAsync();
 
     /// <summary>
@@ -75,10 +78,8 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the primary (top) role for the given PlanetMember id
     /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMember member)
-    {
-        return (await GetRolesAsync(member)).FirstOrDefault();
-    }
+    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMember member) =>
+        (await GetRolesAsync(member)).FirstOrDefault();
 
     /// <summary>
     /// Returns the authority of a planet member
@@ -105,7 +106,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns if a member has the given permission
     /// </summary>
-    public async ValueTask<bool> HasPermissionAsync(Models.PlanetMember member, PlanetPermission permission)
+    public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetPermission permission)
     {
         if (member is null)
             return false;
@@ -117,8 +118,12 @@ public class PlanetMemberService
             return true;
         }
         
-        var planet = await _planetService.GetAsync(member.PlanetId);
+        var planet = await _db.Planets.FindAsync(member.PlanetId);
 
+        // This should never happen, but we will still check
+        if (planet is null)
+            return false;
+        
         // Owner has all permissions
         if (member.UserId == planet.OwnerId)
             return true;
