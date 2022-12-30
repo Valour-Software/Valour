@@ -20,7 +20,7 @@ public static class PlanetCategoryMapper
         };
     }
     
-    public static Valour.Database.PlanetCategory ToDatabase(this Valour.Database.PlanetCategory category)
+    public static Valour.Database.PlanetCategory ToDatabase(this PlanetCategory category)
     {
         if (category is null)
             return null;

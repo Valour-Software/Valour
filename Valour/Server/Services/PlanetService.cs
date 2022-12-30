@@ -39,10 +39,42 @@ public class PlanetService
         (await _db.PlanetRoles.FindAsync(planet.DefaultRoleId)).ToModel();
 
     /// <summary>
-    /// Returns the roles for the given planet
+    /// Returns the roles for the given planet id
     /// </summary>
-    public async Task<ICollection<PlanetRole>> GetRolesAsync(Planet planet) =>
-        await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id)
+    public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
+        await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+    /// <summary>
+    /// Returns the channels for the given planet
+    /// </summary>
+    public async Task<List<PlanetChannel>> GetChannelsAsync(long planetId) =>
+        await _db.PlanetChannels.Where(x => x.PlanetId == planetId)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the chat channels for the given planet
+    /// </summary>
+    public async Task<List<PlanetChatChannel>> GetChatChannelsAsync(long planetId) =>
+        await _db.PlanetChatChannels.Where(x => x.PlanetId == planetId)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the categories for the given planet
+    /// </summary>
+    public async Task<List<PlanetCategory>> GetCategoriesAsync(long planetId) =>
+        await _db.PlanetCategories.Where(x => x.PlanetId == planetId)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the voice channels for the given planet
+    /// </summary>
+    public async Task<List<PlanetVoiceChannel>> GetVoiceChannelsAsync(long planetId) =>
+        await _db.PlanetVoiceChannels.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
 
@@ -107,7 +139,7 @@ public class PlanetService
                 Name = "everyone"
             };
 
-            await _db.PlanetCategoryChannels.AddAsync(category);
+            await _db.PlanetCategories.AddAsync(category);
             await _db.PlanetChatChannels.AddAsync(channel);
             await _db.PlanetRoles.AddAsync(defaultRole);
 

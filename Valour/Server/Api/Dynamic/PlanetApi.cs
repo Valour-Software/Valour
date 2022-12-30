@@ -232,7 +232,7 @@ public class PlanetApi
         ValourDB db)
     {
         var member = ctx.GetMember();
-        var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).ToListAsync();
+        var categories = await db.PlanetCategories.Where(x => x.PlanetId == id).ToListAsync();
         var allowedCategories = new List<PlanetCategoryChannel>();
 
         foreach (var category in categories)
@@ -287,7 +287,7 @@ public class PlanetApi
         long id,
         ValourDB db)
     {
-        var categories = await db.PlanetCategoryChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
+        var categories = await db.PlanetCategories.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
         return Results.Json(categories);
     }
 
