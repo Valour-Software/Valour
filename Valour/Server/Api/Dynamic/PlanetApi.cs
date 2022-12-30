@@ -113,24 +113,25 @@ public class PlanetApi
         return Results.Json(planet);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
+    [ValourRoute(HttpVerbs.Delete, "api/planets/{id}")]
     [UserRequired(UserPermissionsEnum.FullControl)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> DeleteRouteAsync(
-        long id, 
-        HttpContext ctx,
+        long id,
         CoreHubService hubService,
-        PlanetService planetService)
+        PlanetService planetService,
+        UserService userService)
     {
-        var authMember = ctx.GetMember();
         var planet = await planetService.GetAsync(id);
+        if (planet is null)
+            return ValourResult.NotFound("Planet not found");
+        
+        var userId = await userService.GetCurrentUserId();
 
-        if (authMember.UserId != planet.OwnerId)
+        if (userId != planet.OwnerId)
             return ValourResult.Forbid("You are not the owner of this planet.");
 
         await planetService.DeleteAsync(planet);
-        hubService.NotifyPlanetDelete(planet);
-        
+
         return Results.NoContent();
     }
 

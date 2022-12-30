@@ -8,7 +8,6 @@ public class PlanetService
 {
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
-    private readonly TokenService _tokenService;
     private readonly ILogger<PlanetService> _logger;
     
     public PlanetService(
@@ -57,6 +56,8 @@ public class PlanetService
         
         _db.Planets.Update(entity);
         await _db.SaveChangesAsync();
+        
+        _coreHub.NotifyPlanetDelete(planet);
     }
     
     /// <summary>
