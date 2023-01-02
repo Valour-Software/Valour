@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Database.Context;
 using Valour.Server.Database;
-using Valour.Server.EndpointFilters;
-using Valour.Server.EndpointFilters.Attributes;
 using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;

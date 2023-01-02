@@ -1,68 +1,80 @@
+using Valour.Shared.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using IdGen;
+using Valour.Server.Database;
+using Pipelines.Sockets.Unofficial.Arenas;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetChatChannelApi
 {
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired, ChatChannelPermsRequired(ChatChannelPermissionsEnum.View)]
-    public static IResult GetRoute(HttpContext ctx, long id) =>
-        Results.Json(ctx.GetItem<PlanetChatChannel>(id));
+	[ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}")]
+	[UserRequired(UserPermissionsEnum.Membership)]
+	public static async Task<IResult> GetRouteAsync(
+		long id,
+		PlanetChatChannelService service,
+		PlanetMemberService memberService)
+	{
+		// Get the channel
+		var channel = await service.GetAsync(id);
+		if (channel is null)
+			return ValourResult.NotFound("Channel not found");
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
+		if (member is null)
+			return ValourResult.NotPlanetMember();
+
+		// Ensure member has permission to view this channel
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+			return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+		// Return json
+		return Results.Json(channel);
+	}
+
+	[ValourRoute(HttpVerbs.Post, "api/planetchatchannels")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
-        [FromBody] PlanetChatChannel channel, 
-        long planetId, 
-        HttpContext ctx,
+        [FromBody] PlanetChatChannel channel,
         ValourDB db,
-        CoreHubService hubService,
-        PermissionsService permService,
-        ILogger<PlanetChatChannel> logger)
+		PlanetChatChannelService service,
+		PlanetCategoryService categoryService,
+		PlanetMemberService memberService,
+        PlanetService planetService)
     {
-        // Get resources
-        var member = ctx.GetMember();
 
-        if (channel.PlanetId != planetId)
-            return Results.BadRequest("PlanetId mismatch.");
+        if (channel is null)
+            return ValourResult.BadRequest("Include planetchatchannel in body.");
 
-        var nameValid = ValidateName(channel.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
+		channel.Id = IdManager.Generate();
 
-        var descValid = ValidateDescription(channel.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
+		if (member is null)
+			return ValourResult.NotPlanetMember();
 
-        var positionValid = await ValidateParentAndPosition(db, channel);
-        if (!positionValid.Success)
-            return Results.BadRequest(positionValid.Message);
+        var planet = await planetService.GetAsync(channel.PlanetId);
 
-        // Ensure user has permission for parent category management
         if (channel.ParentId is not null)
         {
-            var parent = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
-            if (!await parent.HasPermissionAsync(member, CategoryPermissions.ManageCategory, permService))
-                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-        }
-
-        channel.Id = IdManager.Generate();
-
-        try
+			// Ensure user has permission for parent category management
+			var parent = await categoryService.GetAsync((long)channel.ParentId);
+			if (!await memberService.HasPermissionAsync(member, parent, CategoryPermissions.ManageCategory))
+				return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+		}
+		else
         {
-            await db.PlanetChatChannels.AddAsync(channel);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
+			if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+				return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+		}
 
-        hubService.NotifyPlanetItemChange(channel);
+		var result = await service.CreateAsync(channel);
+		if (!result.Success)
+			return ValourResult.Problem(result.Message);
 
-        return Results.Created(channel.GetUri(), channel);
-    }
+		return Results.Created($"api/planetchatchannels/{channel.Id}", channel);
+	}
 
     [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
