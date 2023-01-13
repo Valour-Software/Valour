@@ -1,16 +1,9 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
-using Valour.Api.Items.Messages;
-using Valour.Api.Items.Messages.Embeds;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Users;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;
 using Valour.Shared.Models;
-using DirectMessage = Valour.Server.Database.Items.Messages.DirectMessage;
-using PlanetMessage = Valour.Server.Database.Items.Messages.PlanetMessage;
 
 namespace Valour.Server.Services;
 
