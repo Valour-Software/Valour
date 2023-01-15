@@ -38,12 +38,22 @@ public class PlanetService
     public async Task<PlanetRole> GetDefaultRole(Planet planet) =>
         (await _db.PlanetRoles.FindAsync(planet.DefaultRoleId)).ToModel();
 
+    #region Channel Retrieval
+    
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
     public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the roles for the given planet id
+    /// </summary>
+    public async Task<List<long>> GetRoleIdsAsync(long planetId) =>
+        await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+            .Select(x => x.Id)
             .ToListAsync();
 
     /// <summary>
@@ -61,7 +71,7 @@ public class PlanetService
         await _db.PlanetChatChannels.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
-    
+
     /// <summary>
     /// Returns the categories for the given planet
     /// </summary>
@@ -77,6 +87,36 @@ public class PlanetService
         await _db.PlanetVoiceChannels.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
+    
+    #endregion
+
+    /// <summary>
+    /// Returns member info for the given planet, paged by the page index
+    /// </summary>
+    public async Task<PlanetMemberInfo> GetMemberInfoAsync(long planetId, int page = 0)
+    {
+        var members = _db.PlanetMembers
+            .Where(x => x.PlanetId == planetId)
+            .OrderBy(x => x.Id);
+
+        var totalCount = await members.CountAsync();
+
+        var roleInfo = await members.Select(x => new PlanetMemberData()
+            {
+                Member = x.ToModel(),
+                User = x.User.ToModel(),
+                RoleIds = x.RoleMembership.Select(rm => rm.RoleId).ToList()
+            })
+            .Skip(page * 100)
+            .Take(100)
+            .ToListAsync();
+        
+        return new PlanetMemberInfo()
+        {
+            Members = roleInfo,
+            TotalCount = totalCount
+        };
+    }
 
     /// <summary>
     /// Soft deletes the given planet

@@ -17,8 +17,8 @@ public class PlanetApi
         PlanetService service,
         PlanetMemberService memberService)
     {
-        // Ensure membership
-        if ((await memberService.GetCurrentAsync(id)) is null)
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
             return ValourResult.NotPlanetMember();
         
         // Get the planet
@@ -132,211 +132,176 @@ public class PlanetApi
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/channels"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChannelsRouteAsync(
-        long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        long id,
+        PlanetService planetService,
+        PlanetMemberService memberService)
     {
-        var member = ctx.GetMember();
+        // Get current member for planet
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var channels = await db.PlanetChannels.Where(x => x.PlanetId == id).ToListAsync();
-        var allowedChannels = new List<PlanetChannel>();
+        // Get all planet channels
+        var channels = await planetService.GetChannelsAsync(id);
         
+        // Collection for channels that member can see
+        var allowedChannels = new List<PlanetChannel>();
+
         foreach (var channel in channels)
         {
-            if (channel is PlanetChatChannel)
+            switch (channel)
             {
-                if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
+                case PlanetChatChannel:
                 {
-                    allowedChannels.Add(channel);
+                    if (await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+                        allowedChannels.Add(channel);
+
+                    break;
                 }
-            }
-            else if (channel is PlanetVoiceChannel)
-            {
-                if (await channel.HasPermissionAsync(member, VoiceChannelPermissions.View, db))
+                case PlanetVoiceChannel:
                 {
-                    allowedChannels.Add(channel);
+                    if (await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.View))
+                        allowedChannels.Add(channel);
+
+                    break;
                 }
-            }
-            else if (channel is PlanetCategoryChannel)
-            {
-                if (await channel.HasPermissionAsync(member, CategoryPermissions.View, db))
+                case PlanetCategory:
                 {
-                    allowedChannels.Add(channel);
+                    if (await memberService.HasPermissionAsync(member, channel, CategoryPermissions.View))
+                        allowedChannels.Add(channel);
+                    
+                    break;
                 }
+                default:
+                    throw new NotImplementedException($"Case for Permission with type {channel.PermissionsTargetType} not implemented");
             }
         }
 
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannels"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/chat")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetChatChannelsRouteAsync(
-        long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        long id,
+        PlanetService planetService,
+        PlanetMemberService memberService)
     {
-        var member = ctx.GetMember();
-        var chatChannels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).ToListAsync();
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        var chatChannels = await planetService.GetChatChannelsAsync(id);
 
         var allowedChannels = new List<PlanetChatChannel>();
 
         foreach (var channel in chatChannels)
         {
-            if (await channel.HasPermissionAsync(member, ChatChannelPermissions.View, db))
-            {
+            if (await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View));
                 allowedChannels.Add(channel);
-            }
         }
         
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannels"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/channels/voice")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetVoiceChannelsRouteAsync(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        PlanetService planetService,
+        PlanetMemberService memberService)
     {
-        var member = ctx.GetMember();
-        var voiceChannels = await db.PlanetVoiceChannels.Where(x => x.PlanetId == id).ToListAsync();
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        var voiceChannels = await planetService.GetVoiceChannelsAsync(id);
 
         var allowedChannels = new List<PlanetVoiceChannel>();
 
         foreach (var channel in voiceChannels)
         {
-            if (await channel.HasPermissionAsync(member, VoiceChannelPermissions.View, db))
-            {
+            if (await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.View))
                 allowedChannels.Add(channel);
-            }
         }
 
         return Results.Json(allowedChannels);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/categories"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/categories")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetCategoriesRouteAsync(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        PlanetService planetService,
+        PlanetMemberService memberService)
     {
-        var member = ctx.GetMember();
-        var categories = await db.PlanetCategories.Where(x => x.PlanetId == id).ToListAsync();
-        var allowedCategories = new List<PlanetCategoryChannel>();
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        var categories = await planetService.GetCategoriesAsync(id);
+
+        var allowedCategories = new List<PlanetCategory>();
 
         foreach (var category in categories)
         {
-            if (await category.HasPermissionAsync(member, CategoryPermissions.View, db))
-            {
+            if (await memberService.HasPermissionAsync(member, category, CategoryPermissions.View))
                 allowedCategories.Add(category);
-            }
         }
 
         return Results.Json(allowedCategories);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/channelids"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/memberinfo")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChannelIdsRouteAsync(
-        long id, 
-        HttpContext ctx, 
-        ValourDB db)
-    {
-        var channels = await db.PlanetChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-        return Results.Json(channels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "/{id}/chatchannelids"), TokenRequired]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetChatChannelIdsRouteAsync(
-        long id,
-        ValourDB db)
-    {
-        var chatChannels = await db.PlanetChatChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-        return Results.Json(chatChannels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "/{id}/voicechannelids"), TokenRequired]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetVoiceChannelIdsRouteAsync(
-        long id,
-        ValourDB db)
-    {
-        var voiceChannels = await db.PlanetVoiceChannels.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-        return Results.Json(voiceChannels);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "/{id}/categoryids"), TokenRequired]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
-    public static async Task<IResult> GetCategoryIdsRouteAsync(
-        long id,
-        ValourDB db)
-    {
-        var categories = await db.PlanetCategories.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-        return Results.Json(categories);
-    }
-
-    [ValourRoute(HttpVerbs.Get, "/{id}/memberinfo"), TokenRequired]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetMemberInfoRouteAsync(
         long id, 
-        ValourDB db, 
+        PlanetMemberService memberService,
+        PlanetService planetService,
         int page = 0)
     {
-        var members = db.PlanetMembers
-            .Where(x => x.PlanetId == id)
-            .OrderBy(x => x.Id);
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var totalCount = await members.CountAsync();
+        var memberInfo = await planetService.GetMemberInfoAsync(id, page);
 
-        var roleInfo = await members.Select(x => new
-        {
-            member = x,
-            user = x.User,
-            roleIds = x.RoleMembership.Select(x => x.RoleId)
-        })
-            .Where(x => !x.user.Disabled)
-            .Skip(page * 100)
-            .Take(100)
-            .ToListAsync();
-
-        return Results.Json(new { members = roleInfo, totalCount = totalCount });
+        return Results.Json(memberInfo);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRolesRouteAsync(
         long id, 
-        ValourDB db)
+        PlanetMemberService memberService,
+        PlanetService planetService)
     {
-        var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).ToListAsync();
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var roles = await planetService.GetRolesAsync(id);
         return Results.Json(roles);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roleids"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/roles/ids")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id")]
     public static async Task<IResult> GetRoleIdsRouteAsync(
-        long id, 
+        long id,
+        PlanetMemberService memberService,
+        PlanetService planetService,
         ValourDB db)
     {
-        var roles = await db.PlanetRoles.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-        return Results.Json(roles);
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var roleIds = await planetService.GetRoleIdsAsync(id);
+        
+        return Results.Json(roleIds);
     }
 
     [ValourRoute(HttpVerbs.Post, "/{id}/roleorder"), TokenRequired]

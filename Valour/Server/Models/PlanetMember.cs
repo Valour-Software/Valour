@@ -8,11 +8,6 @@ namespace Valour.Server.Models;
 public class PlanetMember : Item, ISharedPlanetMember
 {
     /// <summary>
-    /// The id of the member
-    /// </summary>
-    public long Id { get; set; }
-
-    /// <summary>
     /// The user id of the member
     /// </summary>
     public long UserId { get; set; }
