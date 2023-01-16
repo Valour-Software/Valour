@@ -290,6 +290,7 @@ namespace Valour.Server
             services.AddScoped<PlanetMemberService>();
             services.AddScoped<PlanetCategoryService>();
             services.AddScoped<PlanetChatChannelService>();
+            services.AddScoped<PlanetMessageService>();
             
             services.AddScoped<UserOnlineService>();
             services.AddScoped<CoreHubService>();
