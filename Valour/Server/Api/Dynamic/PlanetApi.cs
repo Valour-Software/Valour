@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Valour.Database.Context;
 using Valour.Server.Database;
-using Valour.Server.Services;
-using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -37,7 +34,7 @@ public class PlanetApi
         PlanetService planetService,
         UserService userService)
     {
-        var user = await userService.GetCurrentUser();
+        var user = await userService.GetCurrentUserAsync();
         
         if (planet is null)
             return ValourResult.BadRequest("Include planet in body.");
@@ -306,8 +303,51 @@ public class PlanetApi
     [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetRoleOrderRouteAsync(
-        [FromBody] long[] order, 
-        long id, 
+        [FromBody] List<long> order,
+        long id,
+        PlanetMemberService memberService,
+        PlanetService planetService,
+        PlanetRoleService roleService)
+    {
+        // Remove duplicates
+        order = order.Distinct().ToList();
+
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var authority = await memberService.GetAuthorityAsync(member);
+
+        List<PlanetRole> newList = new();
+
+        // Make sure that there is permission for any changes
+        var pos = 0;
+        foreach (var roleId in order)
+        {
+            var role = await roleService.GetAsync(roleId);
+            if (role is null)
+                return ValourResult.BadRequest("One or more of the given roles does not exist.");
+
+            // Only need to check permission if the position is being changed
+            if (pos != role.Position && role.GetAuthority() >= authority)
+                return ValourResult.Forbid($"The role {role.Name} does not have a lower authority than you.");
+
+            newList.Add(role);
+
+            pos++;
+        }
+
+        var result = await planetService.SetRoleOrderAsync(id, newList);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/invites")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetInvitesRouteAsync(
+        long id,
         PlanetMemberService memberService,
         PlanetService planetService)
     {
@@ -315,76 +355,48 @@ public class PlanetApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        var authority = await memberService.GetAuthorityAsync(member);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+            return ValourResult.Forbid("You do not have permission for invites.");
 
-        // Remove duplicates
-        order = order.Distinct().ToArray();
-
-        // Ensure every role is accounted for
-        var totalRoles = await db.PlanetRoles.CountAsync(x => x.PlanetId == id);
-
-        if (totalRoles != order.Length)
-            return Results.BadRequest("Your order does not contain all the planet roles.");
-
-        using var tran = await db.Database.BeginTransactionAsync();
-
-        List<PlanetRole> roles = new();
-
-        
-
-        return Results.NoContent();
-    }
-
-    [ValourRoute(HttpVerbs.Get, "/{id}/invites")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
-    public static async Task<IResult> GetInvitesRouteAsync(
-        long id, 
-        ValourDB db)
-    {
-        var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).ToListAsync();
+        var invites = await planetService.GetInvitesAsync(id);
         return Results.Json(invites);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/inviteids"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/invites/ids")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> GetInviteIdsRouteAsync(
-        long id, 
-        ValourDB db)
+        long id,
+        PlanetMemberService memberService,
+        PlanetService planetService)
     {
-        var invites = await db.PlanetInvites.Where(x => x.PlanetId == id).Select(x => x.Id).ToListAsync();
-        return Results.Json(invites);
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+            return ValourResult.Forbid("You do not have permission for invites.");
+
+        var inviteIds = await planetService.GetInviteIdsAsync(id);
+        return Results.Json(inviteIds);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/discoverable"), TokenRequired]
-    public static async Task<IResult> GetDiscoverables(ValourDB db)
+    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/discoverable")]
+    public static async Task<IResult> GetDiscoverables(PlanetService planetService)
     {
-        var planets = await db.Planets.Include(x => x.Members)
-                                      .Where(x => x.Public && x.Discoverable)
-                                      .OrderByDescending(x => x.Members.Count())
-                                      .ToListAsync();
-
+        var planets = await planetService.GetDiscoverablesAsync();
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/discover"), TokenRequired]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/discover")]
     [UserRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> JoinDiscoverable(
         long id, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService)
+        UserService userService,
+        PlanetMemberService memberService,
+        PlanetService planetService)
     {
-        long userId = ctx.GetToken().UserId;
-
-        if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == id))
-            return Results.BadRequest("User is banned from the planet");
-
-        if (await db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == id))
-            return Results.BadRequest("User is already a member");
-
-        var planet = await FindAsync(id, db);
+        var user = await userService.GetCurrentUserAsync();
+        var planet = await planetService.GetAsync(id);
 
         if (!planet.Public)
             return Results.BadRequest("Planet is set to private");
@@ -392,10 +404,11 @@ public class PlanetApi
         if (!planet.Discoverable)
             return Results.BadRequest("Planet is not discoverable");
 
-        TaskResult<PlanetMember> result = await planet.AddMemberAsync(await FindAsync<User>(userId, db), db, hubService);
+
+        var result = await memberService.AddMemberAsync(planet, user);
 
         if (result.Success)
-            return Results.Created(result.Data.GetUri(), result.Data);
+            return Results.Created($"api/members/{result.Data.Id}", result.Data);
         else
             return ValourResult.Problem(result.Message);
     }

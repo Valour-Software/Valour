@@ -55,9 +55,34 @@ public class PlanetService
             .ToListAsync();
 
     /// <summary>
+    /// Returns the invites for a given planet id
+    /// </summary>
+    public async Task<List<PlanetInvite>> GetInvitesAsync(long planetId) => 
+        await _db.PlanetInvites.Where(x => x.PlanetId == planetId)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+
+    /// <summary>
+    /// Returns the invites ids for a given planet id
+    /// </summary>
+    public async Task<List<long>> GetInviteIdsAsync(long planetId) =>
+        await _db.PlanetInvites.Where(x => x.PlanetId == planetId)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+    /// <summary>
+    /// Returns discoverable planets
+    /// </summary>
+    public async Task<List<Planet>> GetDiscoverablesAsync() =>
+        await _db.Planets.Where(x => x.Discoverable && x.Public)
+                         .OrderByDescending(x => x.Members.Count())
+                         .Select(x => x.ToModel())       
+                         .ToListAsync();
+
+    /// <summary>
     /// Sets the order of planet roles to the order in which role ids are provided
     /// </summary>
-    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<long> order)
+    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<PlanetRole> order)
     {
         var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
         if (totalRoles != order.Count)
@@ -71,19 +96,15 @@ public class PlanetService
         {
             var pos = 0;
 
-            foreach (var roleId in order)
+            foreach (var role in order)
             {
-                var role = await _db.PlanetRoles.FindAsync(roleId);
-                if (role is null)
-                    return new TaskResult(false, "");
-
                 if (role.PlanetId != planetId)
                     return new TaskResult(false, $"Role {role.Id} does not belong to planet {planetId}");
 
                 role.Position = pos;
 
-                _db.PlanetRoles.Update(role);
-                roles.Add(role.ToModel());
+                _db.PlanetRoles.Update(role.ToDatabase());
+                roles.Add(role);
 
                 pos++;
             }

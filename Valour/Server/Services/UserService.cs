@@ -30,7 +30,7 @@ public class UserService
     /// Returns the user for the current context
     /// </summary>
 
-    public async Task<User> GetCurrentUser()
+    public async Task<User> GetCurrentUserAsync()
     {
         var token = await _tokenService.GetCurrentToken();
         _currentUser = await GetAsync(token.UserId);

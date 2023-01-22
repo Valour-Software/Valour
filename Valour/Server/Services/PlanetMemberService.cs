@@ -214,8 +214,14 @@ public class PlanetMemberService
     /// <summary>
     /// Adds the given user to the given planet as a member
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> AddMemberAsync(Planet planet, User user, bool doTransaction)
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(Planet planet, User user)
     {
+        if (planet is null)
+            return new TaskResult<PlanetMember>(false, "Planet not found.");
+
+        if (user is null)
+            return new TaskResult<PlanetMember>(false, "User not found.");
+
         if (await _db.PlanetBans.AnyAsync(x => x.TargetId == user.Id && x.PlanetId == planet.Id &&
             (x.TimeExpires != null && x.TimeExpires > DateTime.UtcNow)))
         {
@@ -270,8 +276,7 @@ public class PlanetMemberService
         
         IDbContextTransaction trans = null;
 
-        if (doTransaction)
-            trans = await _db.Database.BeginTransactionAsync();
+        trans = await _db.Database.BeginTransactionAsync();
 
         try
         {
@@ -288,14 +293,13 @@ public class PlanetMemberService
             await _db.PlanetRoleMembers.AddAsync(roleMember);
             await _db.SaveChangesAsync();
         }
-        catch (System.Exception e)
+        catch (Exception e)
         {
             await trans.RollbackAsync();
             return new TaskResult<PlanetMember>(false, e.Message);
         }
 
-        if (doTransaction)
-            await trans.CommitAsync();
+        await trans.CommitAsync();
 
         var model = member.ToModel();
 
