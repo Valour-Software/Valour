@@ -277,9 +277,9 @@ public class PlanetChatChannelApi
     public static async Task<IResult> GetMessageRouteAsync(
         long id, 
         long messageId,
-		ValourDB db,
 		PlanetChatChannelService channelService,
-		PlanetMemberService memberService)
+		PlanetMemberService memberService,
+        PlanetMessageService messageService)
     {
 		// Get the channel
 		var channel = await channelService.GetAsync(id);
@@ -297,9 +297,7 @@ public class PlanetChatChannelApi
 		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ViewMessages))
 			return ValourResult.LacksPermission(ChatChannelPermissions.ViewMessages);
 
-		var message = await db.PlanetMessages.FindAsync(messageId);
-        if (message is null)
-            message = PlanetMessageWorker.GetStagedMessage(messageId);
+        var message = await messageService.GetAsync(messageId);
 
         if (message is null)
             return ValourResult.NotFound("Message not found.");
