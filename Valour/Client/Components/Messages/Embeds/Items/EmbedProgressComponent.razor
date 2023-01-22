@@ -1,0 +1,50 @@
+﻿@implements IDisposable
+@inject IJSRuntime JS
+
+<div style="@item.GetStyle()">
+	@if (item.NameItem is not null)
+	{
+		<EmbedTextItemComponent _item="@item.NameItem"></EmbedTextItemComponent>
+	}
+	<div class="@item.GetClasses()">
+		@foreach(EmbedProgressBar baritem in item.Children.Select(x => (EmbedProgressBar)x))
+		{
+			<div class="@baritem.GetClasses()" role="progressbar" style="@baritem.GetStyle()" aria-valuenow="@baritem.Value" aria-valuemin="0" aria-valuemax="100">
+				@if (baritem.ShowLabel)
+				{
+					<span>@baritem.Value%</span>
+				}
+			</div>
+		}
+	</div>
+</div>
+
+@code {
+	[Parameter]
+	public EmbedItem _item { get; set; }
+
+	public EmbedProgress item { get; set; }
+
+	[CascadingParameter]
+	public EmbedComponent embedComponent { get; set; }
+
+	[CascadingParameter]
+    public IModalService Modal { get; set; }
+
+	protected override void OnInitialized()
+	{
+		item = (EmbedProgress)_item;
+		embedComponent.RefreshItemComponents += Refresh;
+	}
+
+	public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+    }
+
+	public void Refresh()
+	{
+		item = (EmbedProgress)_item;
+		StateHasChanged();
+	}
+}

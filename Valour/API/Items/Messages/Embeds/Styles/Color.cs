@@ -16,6 +16,8 @@ public class Color
     [JsonPropertyName("a")]
     public float Alpha { get; set; }
 
+    internal Color() { }
+
     /// <summary>
     /// </summary>
     /// <param name="hex">Must be in #xxxxxx or xxxxxx format!</param>
@@ -30,7 +32,6 @@ public class Color
         Alpha = 1f;
 	}
 
-    [JsonConstructor]
 	public Color(byte red, byte green, byte blue, float alpha = 1f)
     {
         Red = red;

@@ -13,6 +13,8 @@ public class Width : StyleBase
     [JsonPropertyName("s")]
     public Size Size { get; set; }
 
+    internal Width() { }
+
     public Width(Size size)
     {
         Size = size;
@@ -35,6 +37,8 @@ public class MaxWidth : StyleBase
     [JsonPropertyName("s")]
     public Size Size { get; set; }
 
+    internal MaxWidth() { }
+
     public MaxWidth(Size size)
     {
         Size = size;
@@ -56,6 +60,8 @@ public class MinWidth : StyleBase
 
     [JsonPropertyName("s")]
     public Size Size { get; set; }
+
+    internal MinWidth() { }
 
     public MinWidth(Size size)
     {

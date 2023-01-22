@@ -19,8 +19,7 @@ public class BorderRadius : StyleBase
     [JsonPropertyName("o")]
     public Size Only { get; set; }
 
-    [JsonConstructor]
-    public BorderRadius() { }
+    internal BorderRadius() { }
 
 	public BorderRadius(Size size)
     {

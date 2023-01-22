@@ -17,6 +17,9 @@
 	case EmbedItemType.DropDownMenu:
 		<EmbedDropDownComponent _item="@item"></EmbedDropDownComponent>
 		break; 
+	case EmbedItemType.Progress:
+		<EmbedProgressComponent _item="@item"></EmbedProgressComponent>
+		break; 
 	case EmbedItemType.EmbedRow:
 		<EmbedRowComponent Row="(EmbedRow)item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedRowComponent>
 		break;

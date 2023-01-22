@@ -7,7 +7,8 @@ public class BackgroundColor : StyleBase
     [JsonPropertyName("c")]
     public Color Color { get; set; }
 
-	[JsonConstructor]
+	internal BackgroundColor() { }
+
 	public BackgroundColor(Color color)
     {
         Color = color;

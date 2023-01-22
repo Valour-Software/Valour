@@ -13,6 +13,8 @@ public class Height : StyleBase
     [JsonPropertyName("s")]
     public Size Size { get; set; }
 
+    internal Height() { }
+
     public Height(Size size)
     {
         Size = size;
@@ -35,6 +37,8 @@ public class MaxHeight : StyleBase
     [JsonPropertyName("s")]
     public Size Size { get; set; }
 
+    internal MaxHeight() { }
+
     public MaxHeight(Size size)
     {
         Size = size;
@@ -56,6 +60,8 @@ public class MinHeight : StyleBase
 
     [JsonPropertyName("s")]
     public Size Size { get; set; }
+
+    internal MinHeight() { }
 
     public MinHeight(Size size)
     {

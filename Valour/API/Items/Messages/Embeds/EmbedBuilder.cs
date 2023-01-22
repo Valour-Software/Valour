@@ -7,6 +7,7 @@ using Valour.Api.Items.Messages.Embeds.Styles;
 using Valour.Api.Nodes;
 using Valour.Api.Items.Messages.Embeds.Styles.Basic;
 using Valour.Api.Items.Messages.Embeds.Styles.Flex;
+using Valour.Api.Items.Messages.Embeds.Styles.Bootstrap;
 
 namespace Valour.Api.Items.Messages.Embeds;
 
@@ -20,10 +21,14 @@ public class EmbedBuilder
 
     public EmbedFormItem formItem;
 
-    /// <summary>
-    /// The current item that we are "in"
-    /// </summary>
-    public IParentItem CurrentParent;
+    public EmbedProgressBar progressBar;
+
+	public EmbedProgress progress;
+
+	/// <summary>
+	/// The current item that we are "in"
+	/// </summary>
+	public IParentItem CurrentParent;
 
     public EmbedBuilder()
     {
@@ -114,6 +119,7 @@ public class EmbedBuilder
         item.Parent = CurrentParent;
         CurrentParent.Children.Add(item);
 		LastItem = item;
+        progressBar = null;
 	}
 
     /// <summary>
@@ -234,6 +240,65 @@ public class EmbedBuilder
 
 		return this;
 	}
+
+    public EmbedBuilder AddProgress()
+    {
+        var item = new EmbedProgress()
+        {
+            Children = new()
+        };
+
+        progress = item;
+		AddItem(item);
+        CurrentParent = item;
+        return this;
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="value">A number between 0 and 100</param>
+    /// <returns></returns>
+    public EmbedBuilder WithProgressBar(int value, bool showLabel = false)
+    {
+        var item = new EmbedProgressBar()
+        {
+            Value = value,
+            ShowLabel = showLabel
+        };
+
+		CurrentParent.Children.Add(item);
+        item.Parent = CurrentParent;
+		LastItem = item;
+
+        progressBar = item;
+        return this;
+    }
+
+    public EmbedBuilder WithStripes()
+    {
+        if (progressBar is null)
+            throw new ArgumentException("You can not add stripes to an item which is not a progress bar!");
+        progressBar.IsStriped = true;
+        return this;
+    }
+
+    public EmbedBuilder WithAnimatedStripes()
+    {
+        if (progressBar is null)
+            throw new ArgumentException("You can not add animated stripes to an item which is not a progress bar!");
+        progressBar.IsAnimatedStriped = true;
+        progressBar.IsStriped = true;
+        return this;
+    }
+
+    public EmbedBuilder WithBootStrapClasses(params BootstrapClass[] classes)
+    {
+        if (LastItem.Classes is null)
+            LastItem.Classes = new();
+        foreach(var _class in classes)
+            LastItem.Classes.Add(_class);
+        return this;
+    }
 
 	public EmbedBuilder AddDropDownMenu(string id, string name = null, string value = "")
 	{

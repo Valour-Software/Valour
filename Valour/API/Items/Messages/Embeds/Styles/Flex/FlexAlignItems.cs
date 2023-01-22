@@ -19,7 +19,19 @@ public enum AlignItem
 
 public class FlexAlignItems : StyleBase
 {
-    private readonly string[] _strings = new string[]
+	public static readonly FlexAlignItems Stretch = new(AlignItem.Stretch);
+	public static readonly FlexAlignItems FlexStart = new(AlignItem.FlexStart);
+	public static readonly FlexAlignItems FlexEnd = new(AlignItem.FlexEnd);
+	public static readonly FlexAlignItems Center = new(AlignItem.Center);
+	public static readonly FlexAlignItems Baseline = new(AlignItem.Baseline);
+	public static readonly FlexAlignItems FirstBaseline = new(AlignItem.FirstBaseline);
+	public static readonly FlexAlignItems LastBaseline = new(AlignItem.LastBaseline);
+	public static readonly FlexAlignItems Start = new(AlignItem.Start);
+	public static readonly FlexAlignItems End = new(AlignItem.End);
+	public static readonly FlexAlignItems SelfStart = new(AlignItem.SelfStart);
+	public static readonly FlexAlignItems SelfEnd = new(AlignItem.SelfEnd);
+
+	private readonly string[] _strings = new string[]
     {
         "align-items: stretch;",
         "align-items: flex-start;",

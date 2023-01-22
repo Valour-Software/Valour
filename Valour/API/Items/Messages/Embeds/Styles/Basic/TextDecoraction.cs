@@ -51,7 +51,8 @@ public class TextDecoration : StyleBase
 	[JsonPropertyName("th")]
 	public Size Thickness { get; set; }
 
-	[JsonConstructor]
+	internal TextDecoration() { }
+	
 	public TextDecoration(DecoractionType type)
     {
         Type = type;

@@ -14,7 +14,14 @@ public enum AlignSelf
 
 public class FlexAlignSelf : StyleBase
 {
-    private readonly string[] _strings = new string[]
+	public static readonly FlexAlignSelf Auto = new(AlignSelf.Auto);
+	public static readonly FlexAlignSelf FlexStart = new(AlignSelf.FlexStart);
+	public static readonly FlexAlignSelf FlexEnd = new(AlignSelf.FlexEnd);
+	public static readonly FlexAlignSelf Center = new(AlignSelf.Center);
+	public static readonly FlexAlignSelf Baseline = new(AlignSelf.Baseline);
+	public static readonly FlexAlignSelf Stretch = new(AlignSelf.Stretch);
+
+	private readonly string[] _strings = new string[]
     {
         "align-self: auto;",
         "align-self: flex-start;",

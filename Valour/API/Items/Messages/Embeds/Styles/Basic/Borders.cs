@@ -68,9 +68,9 @@ public class Borders : StyleBase
 
     public Border Only { get; set; }
 
-    public Borders() { }
+	internal Borders() { }
 
-    public Borders(Border left, Border right, Border top, Border bottom)
+    public Borders(Border left = null, Border right = null, Border top = null, Border bottom = null)
     {
         Left = left;
         Right = right;
@@ -78,7 +78,6 @@ public class Borders : StyleBase
         Bottom = bottom;
     }
 
-    [JsonConstructor]
     public Borders(Border border)
     {
         Only = border;
@@ -86,9 +85,17 @@ public class Borders : StyleBase
 
     public override string ToString()
     {
-        return @$"border-left: {Left};
-                  border-right: {Right};
-                  border-top: {Top};
-                  border-bottom: {Bottom};";
+        if (Only is not null)
+            return $@"border: {Only};";
+		var s = "";
+		if (Left is not null)
+			s += $"border-left: {Left};";
+		if (Right is not null)
+			s += $"border-right: {Right};";
+		if (Top is not null)
+			s += $"border-top: {Top};";
+		if (Bottom is not null)
+			s += $"border-bottom: {Bottom};";
+		return s;
     }
 }
