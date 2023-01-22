@@ -22,7 +22,7 @@ public static class PlanetRoleMapper
         };
     }
     
-    public static Valour.Database.PlanetRole ToDatabase(this Valour.Database.PlanetRole role)
+    public static Valour.Database.PlanetRole ToDatabase(this PlanetRole role)
     {
         if (role is null)
             return null;
