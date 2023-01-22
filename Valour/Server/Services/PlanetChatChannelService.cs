@@ -52,9 +52,12 @@ public class PlanetChatChannelService
     /// </summary>
     public async Task DeleteAsync(PlanetChatChannel channel)
     {
-        channel.IsDeleted = true;
-        _db.PlanetChatChannels.Update(channel);
+        var dbchannel = channel.ToDatabase();
+		dbchannel.IsDeleted = true;
+        _db.PlanetChatChannels.Update(dbchannel);
         await _db.SaveChangesAsync();
+
+		_coreHub.NotifyPlanetItemDelete(channel);
     }
 
     /// <summary>

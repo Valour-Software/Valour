@@ -3,6 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using IdGen;
 using Valour.Server.Database;
 using Pipelines.Sockets.Unofficial.Arenas;
+using Valour.Server.Workers;
+using Valour.Server.Cdn;
+using System.Text.Json;
+using Valour.Shared.Models;
+using Valour.Server.Notifications;
+using Valour.Server.Services;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -37,7 +43,6 @@ public class PlanetChatChannelApi
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetChatChannel channel,
-        ValourDB db,
 		PlanetChatChannelService service,
 		PlanetCategoryService categoryService,
 		PlanetMemberService memberService,
@@ -213,22 +218,35 @@ public class PlanetChatChannelApi
         return Results.Ok(channel);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ManageChannel)]
-    public static async Task<IResult> DeleteRouteAsync(
+	[ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}")]
+	[UserRequired(UserPermissionsEnum.PlanetManagement)]
+	public static async Task<IResult> DeleteRouteAsync(
         long id,
-        HttpContext ctx,
-        CoreHubService hubService,
-        PlanetChatChannelService channelService)
+        PlanetChatChannelService channelService,
+		PlanetMemberService memberService,
+		PlanetService planetService,
+		CoreHubService hubService)
     {
-        var channel = ctx.GetItem<PlanetChatChannel>(id);
-        await channelService.DeleteAsync(channel);
-        hubService.NotifyPlanetItemDelete(channel);
+        // Get the channel
+        var channel = await channelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
 
-        return Results.NoContent();
-    }
+        // Get member
+        var member = await memberService.GetCurrentAsync(channel.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+		if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+			return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+
+        if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageChannel))
+			return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
+
+		await channelService.DeleteAsync(channel);
+
+		return Results.NoContent();
+	}
 
     [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired]
     [PlanetMembershipRequired]
@@ -254,19 +272,32 @@ public class PlanetChatChannelApi
 
     // Message routes
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/message/{messageId}"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    [PlanetMembershipRequired]
-    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}/message/{messageId}")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetMessageRouteAsync(
         long id, 
-        long messageId, 
-        HttpContext ctx,
-        ValourDB db)
+        long messageId,
+		PlanetChatChannelService channelService,
+		PlanetMemberService memberService,
+        PlanetMessageService messageService)
     {
-        var message = await db.PlanetMessages.FindAsync(messageId);
-        if (message is null)
-            message = PlanetMessageWorker.GetStagedMessage(messageId);
+		// Get the channel
+		var channel = await channelService.GetAsync(id);
+		if (channel is null)
+			return ValourResult.NotFound("Channel not found");
+
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
+		if (member is null)
+			return ValourResult.NotPlanetMember();
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+			return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ViewMessages))
+			return ValourResult.LacksPermission(ChatChannelPermissions.ViewMessages);
+
+        var message = await messageService.GetAsync(messageId);
 
         if (message is null)
             return ValourResult.NotFound("Message not found.");
@@ -274,16 +305,32 @@ public class PlanetChatChannelApi
         return Results.Json(message);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    [PlanetMembershipRequired]
-    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetMessagesRouteAsync(
         long id,
-        ValourDB db, 
-        [FromQuery] long index = long.MaxValue, 
+        ValourDB db,
+		PlanetChatChannelService channelService,
+		PlanetMemberService memberService,
+		[FromQuery] long index = long.MaxValue, 
         [FromQuery] int count = 10)
-    {
+	{
+		// Get the channel
+		var channel = await channelService.GetAsync(id);
+		if (channel is null)
+			return ValourResult.NotFound("Channel not found");
+
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
+		if (member is null)
+			return ValourResult.NotPlanetMember();
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+			return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+        if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ViewMessages))
+            return ValourResult.LacksPermission(ChatChannelPermissions.ViewMessages);
+
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
         
@@ -309,24 +356,37 @@ public class PlanetChatChannelApi
 
     public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    [PlanetMembershipRequired]
-    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
-                              ChatChannelPermissionsEnum.PostMessages)]
+    [ValourRoute(HttpVerbs.Post, "api/planetchatchannels/{id}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostMessageRouteAsync(
         [FromBody] PlanetMessage message,
         long id,
-        HttpContext ctx, 
         HttpClient client, 
         ValourDB valourDb, 
         CdnDb db,
-        UserOnlineService onlineService)
+        UserOnlineService onlineService,
+		PlanetChatChannelService channelService,
+		PlanetMemberService memberService,
+		UserService userService,
+        PlanetService planetService)
     {
-        var member = ctx.GetMember();
-        var channel = ctx.GetItem<PlanetChatChannel>(id);
+		// Get the channel
+		var channel = await channelService.GetAsync(id);
+		if (channel is null)
+			return ValourResult.NotFound("Channel not found");
 
-        if (message is null)
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
+		if (member is null)
+			return ValourResult.NotPlanetMember();
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+			return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
+			return ValourResult.LacksPermission(ChatChannelPermissions.PostMessages);
+
+		if (message is null)
             return Results.BadRequest("Include message in body.");
 
         if (string.IsNullOrEmpty(message.Content) &&
@@ -389,9 +449,9 @@ public class PlanetChatChannelApi
                 {
                     if (mention.Type == MentionType.Member)
                     {
-                        var targetMember = await Item.FindAsync<PlanetMember>(mention.TargetId, valourDb);
-                        var sendingUser = await Item.FindAsync<User>(member.UserId, valourDb);
-                        var planet = await Item.FindAsync<Planet>(message.PlanetId, valourDb);
+                        var targetMember = await memberService.GetAsync(mention.TargetId);
+                        var sendingUser = await userService.GetAsync(member.UserId);
+                        var planet = await planetService.GetAsync(message.PlanetId);
 
                         var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
 
@@ -408,23 +468,34 @@ public class PlanetChatChannelApi
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    [PlanetMembershipRequired]
-    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages)]
+    [ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}/messages/{message_id}")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> DeleteMessageRouteAsync(
         long id, 
         long message_id, 
         HttpContext ctx,
         ValourDB db,
         CoreHubService hubService,
-        PermissionsService permService,
-        ILogger<PlanetChatChannel> logger)
+		PlanetChatChannelService channelService,
+		PlanetMemberService memberService)
     {
-        var member = ctx.GetMember();
-        var channel = ctx.GetItem<PlanetChatChannel>(id);
+		// Get the channel
+		var channel = await channelService.GetAsync(id);
+		if (channel is null)
+			return ValourResult.NotFound("Channel not found");
 
-        var message = await FindAsync<PlanetMessage>(message_id, db);
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
+		if (member is null)
+			return ValourResult.NotPlanetMember();
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+			return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ViewMessages))
+			return ValourResult.LacksPermission(ChatChannelPermissions.ViewMessages);
+
+		var message = await FindAsync<PlanetMessage>(message_id, db);
 
         var inDb = true;
 
@@ -470,21 +541,31 @@ public class PlanetChatChannelApi
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/typing"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-    [PlanetMembershipRequired]
-    [ChatChannelPermsRequired(ChatChannelPermissionsEnum.ViewMessages,
-                              ChatChannelPermissionsEnum.PostMessages)]
+    [ValourRoute(HttpVerbs.Post, "api/planetchatchannels{id}/typing")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostTypingAsync(
         long id, 
-        HttpContext ctx,
-        CurrentlyTypingService typingService)
-    {
-        var member = ctx.GetMember();
+        CurrentlyTypingService typingService,
+		PlanetChatChannelService channelService,
+		PlanetMemberService memberService)
+	{
+		// Get the channel
+		var channel = await channelService.GetAsync(id);
+		if (channel is null)
+			return ValourResult.NotFound("Channel not found");
+
+		// Get member
+		var member = await memberService.GetCurrentAsync(channel.PlanetId);
         if (member is null)
-            return ValourResult.Forbid("Member not found");
-        
-        typingService.AddCurrentlyTyping(id, member.UserId);
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+			return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+		if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
+			return ValourResult.LacksPermission(ChatChannelPermissions.PostMessages);
+
+		typingService.AddCurrentlyTyping(id, member.UserId);
         
         return Results.Ok();
     }
