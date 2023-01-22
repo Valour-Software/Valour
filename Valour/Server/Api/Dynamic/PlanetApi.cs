@@ -292,8 +292,7 @@ public class PlanetApi
     public static async Task<IResult> GetRoleIdsRouteAsync(
         long id,
         PlanetMemberService memberService,
-        PlanetService planetService,
-        ValourDB db)
+        PlanetService planetService)
     {
         var member = await memberService.GetCurrentAsync(id);
         if (member is null)
@@ -304,20 +303,19 @@ public class PlanetApi
         return Results.Json(roleIds);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/roleorder"), TokenRequired]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/roles/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired("id", PlanetPermissionsEnum.ManageRoles)]
     public static async Task<IResult> SetRoleOrderRouteAsync(
         [FromBody] long[] order, 
         long id, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<Planet> logger)
+        PlanetMemberService memberService,
+        PlanetService planetService)
     {
-        var member = ctx.GetMember();
+        var member = await memberService.GetCurrentAsync(id);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var authority = await member.GetAuthorityAsync(db);
+        var authority = await memberService.GetAuthorityAsync(member);
 
         // Remove duplicates
         order = order.Distinct().ToArray();
@@ -332,49 +330,12 @@ public class PlanetApi
 
         List<PlanetRole> roles = new();
 
-        try
-        {
-            int pos = 0;
-
-            foreach (var roleId in order)
-            {
-                var role = await FindAsync<PlanetRole>(roleId, db);
-
-                if (role is null)
-                    return ValourResult.NotFound<PlanetRole>();
-
-                if (role.PlanetId != id)
-                    return Results.BadRequest($"Role {role.Id} does not belong to planet {id}");
-
-                role.Position = pos;
-
-                db.PlanetRoles.Update(role);
-
-                roles.Add(role);
-
-                pos++;
-            }
-
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            await tran.RollbackAsync();
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        await tran.CommitAsync();
-
-        foreach (var role in roles)
-        {
-            hubService.NotifyPlanetItemChange(role);
-        }
+        
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/invites"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "/{id}/invites")]
     [UserRequired(UserPermissionsEnum.Membership)]
     [PlanetMembershipRequired("id", PlanetPermissionsEnum.Invite)]
     public static async Task<IResult> GetInvitesRouteAsync(

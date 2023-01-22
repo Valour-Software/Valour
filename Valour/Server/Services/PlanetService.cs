@@ -38,8 +38,6 @@ public class PlanetService
     public async Task<PlanetRole> GetDefaultRole(Planet planet) =>
         (await _db.PlanetRoles.FindAsync(planet.DefaultRoleId)).ToModel();
 
-    #region Channel Retrieval
-    
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
@@ -55,6 +53,59 @@ public class PlanetService
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
             .Select(x => x.Id)
             .ToListAsync();
+
+    /// <summary>
+    /// Sets the order of planet roles to the order in which role ids are provided
+    /// </summary>
+    public async Task<TaskResult> SetRoleOrderAsync(long planetId, List<long> order)
+    {
+        var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
+        if (totalRoles != order.Count)
+            return new TaskResult(false, "Your order does not contain all the planet roles.");
+        
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        List<PlanetRole> roles = new();
+        
+        try
+        {
+            var pos = 0;
+
+            foreach (var roleId in order)
+            {
+                var role = await _db.PlanetRoles.FindAsync(roleId);
+                if (role is null)
+                    return new TaskResult(false, "");
+
+                if (role.PlanetId != planetId)
+                    return new TaskResult(false, $"Role {role.Id} does not belong to planet {planetId}");
+
+                role.Position = pos;
+
+                _db.PlanetRoles.Update(role);
+                roles.Add(role.ToModel());
+
+                pos++;
+            }
+
+            await _db.SaveChangesAsync();
+            await tran.CommitAsync();
+        }
+        catch (System.Exception e)
+        {
+            await tran.RollbackAsync();
+            return new TaskResult(false, "An unexpected error occured while saving the database changes.");
+        }
+
+        foreach (var role in roles)
+        {
+            _coreHub.NotifyPlanetItemChange(role);
+        }
+
+        return TaskResult.SuccessResult;
+    }
+    
+    #region Channel Retrieval
 
     /// <summary>
     /// Returns the channels for the given planet
