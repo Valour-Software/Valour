@@ -12,6 +12,13 @@ namespace Valour.Api.Models;
  */
 public class Planet : Item, ISharedPlanet
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/planets";
+
+    #endregion
+
     // Cached values
     private List<PlanetChatChannel> Channels { get; set; }
     private List<PlanetVoiceChannel> VoiceChannels { get; set; }
@@ -88,7 +95,7 @@ public class Planet : Item, ISharedPlanet
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(id);
-        var item = (await node.GetJsonAsync<Planet>($"api/{nameof(Planet)}/{id}")).Data;
+        var item = (await node.GetJsonAsync<Planet>($"api/planets/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();
@@ -172,7 +179,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadChannelsAsync()
     {
-        var channels = (await Node.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/chatchannels")).Data;
+        var channels = (await Node.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/channels/chat")).Data;
 
         if (channels is null)
             return;
@@ -220,7 +227,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadVoiceChannelsAsync()
     {
-        var channels = (await Node.GetJsonAsync<List<PlanetVoiceChannel>>($"{IdRoute}/voicechannels")).Data;
+        var channels = (await Node.GetJsonAsync<List<PlanetVoiceChannel>>($"{IdRoute}/channels/voice")).Data;
 
         if (channels is null)
             return;

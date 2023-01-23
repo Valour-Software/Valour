@@ -21,7 +21,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMember)}";
+            $"api/planetmembers";
 
     #endregion
 

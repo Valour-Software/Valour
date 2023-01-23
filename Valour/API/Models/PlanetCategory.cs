@@ -19,7 +19,7 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
     #region IPlanetItem implementation
 
     public override string BaseRoute =>
-            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetCategory)}";
+            $"api/planetcategories";
 
     #endregion
 
