@@ -1,4 +1,4 @@
-@using System.Net.Http.Headers
+@    using System.Net.Http.Headers
 @inject HttpClient http
 @inject IJSRuntime JS
 
@@ -60,7 +60,7 @@
     };
 
     [Parameter]
-    public Api.Items.Authorization.OauthApp App { get; set; }
+    public OauthApp App { get; set; }
 
     [Parameter]
     public ViewAppsComponent ViewComponent { get; set;}

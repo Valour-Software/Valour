@@ -1,5 +1,5 @@
 @page "/authorize"
-@using Valour.Shared.Models
+@    using Valour.Shared.Models
 
 @inject NavigationManager navManager
 @inject IJSRuntime JS
@@ -130,7 +130,7 @@
 
         response_type = response_type.ToLower();
 
-        App = await Api.Items.Authorization.OauthApp.FindPublicDataAsync(client_id);
+        App = await OauthApp.FindPublicDataAsync(client_id);
 
         if (App is null){
             isError = true;

@@ -1,7 +1,7 @@
 ﻿using Markdig.Helpers;
 using System.Diagnostics;
 using System.Text.Json;
-using Valour.Api.Items.Messages;
+using Valour.Api.Models;
 using Valour.Client.Components.Messages;
 using Valour.Shared.Models;
 
