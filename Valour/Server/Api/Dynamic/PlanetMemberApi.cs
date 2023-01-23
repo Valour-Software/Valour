@@ -12,23 +12,38 @@ namespace Valour.Server.Api.Dynamic;
 public class PlanetMemberApi
 {
      // Helpful route to return the member for the authorizing user
-    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static void GetSelfRoute(HttpContext ctx) =>
-        Results.Json(ctx.GetMember());
-
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(long id, PlanetMemberService service)
+    [ValourRoute(HttpVerbs.Get, "api/members/self/{planetId}")]
+    public static async Task<IResult> GetSelfRouteAsync(
+        long planetId, 
+        PlanetMemberService memberService)
     {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotFound("Member not found");
+
+        return Results.Json(member);
+    }
+        
+
+    [ValourRoute(HttpVerbs.Get, "api/members/{id}")]
+    public static async Task<IResult> GetRouteAsync(
+        long id, 
+        PlanetMemberService service)
+    {
+        // Need to be a member to see other members
+        var self = await service.GetCurrentAsync(id);
+        if (self is null)
+            return ValourResult.NotPlanetMember();
+
+        // Get other member
         var member = await service.GetAsync(id);
         if (member is null)
-            return ValourResult.NotFound<Models.PlanetMember>();
+            return ValourResult.NotFound("Member not found");
         
         return Results.Json(member);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "/{id}/authority")]
     [PlanetMembershipRequired]
     public static async Task<IResult> GetAuthorityRouteAsync(long id, PlanetMemberService memberService)
     {
