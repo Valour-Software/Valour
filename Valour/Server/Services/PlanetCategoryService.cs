@@ -12,17 +12,20 @@ public class PlanetCategoryService
     private readonly PlanetService _planetService;
     private readonly PlanetMemberService _planetMemberService;
     private readonly CoreHubService _coreHub;
-    
+    private readonly ILogger<PlanetChatChannelService> _logger;
+
     public PlanetCategoryService(
         ValourDB db, 
         PlanetService planetService, 
         PlanetMemberService planetMemberService,
-        CoreHubService coreHub)
+        CoreHubService coreHub,
+        ILogger<PlanetChatChannelService> logger)
     {
         _db = db;
         _planetService = planetService;
         _planetMemberService = planetMemberService;
         _coreHub = coreHub;
+        _logger = logger;
     }
 
     /// <summary>
@@ -32,10 +35,46 @@ public class PlanetCategoryService
         (await _db.PlanetCategories.FindAsync(id)).ToModel();
 
     /// <summary>
+    /// Creates the given planet category
+    /// </summary>
+    public async Task<TaskResult<PlanetCategory>> CreateAsync(PlanetCategory category)
+    {
+        var baseValid = await ValidateBasic(category);
+        if (!baseValid.Success)
+            return new(false, baseValid.Message);
+
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            await _db.PlanetCategories.AddAsync(category.ToDatabase());
+            await _db.SaveChangesAsync();
+
+            await tran.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to create planet category");
+            await tran.RollbackAsync();
+            return new(false, "Failed to create category");
+        }
+
+        _coreHub.NotifyPlanetItemChange(category);
+
+        return new(true, "PlanetCategory created successfully", category);
+    }
+
+    /// <summary>
     /// Returns the children of the category with the given id
     /// </summary>
     public async Task<List<PlanetChannel>> GetChildrenAsync(long id) =>
-        await _db.PlanetChannels.Where(x => x.Id == id).ToListAsync();
+        await _db.PlanetChannels.Where(x => x.ParentId == id).ToListAsync();
+
+    /// <summary>
+    /// Returns the ids of the children of the category with the given id
+    /// </summary>
+    public async Task<List<long>> GetChildrenIdsAsync(long id) =>
+        await _db.PlanetChannels.Where(x => x.ParentId == id).Select(x => x.Id).ToListAsync();
 
     /// <summary>
     /// Returns the children of the category with the given id
