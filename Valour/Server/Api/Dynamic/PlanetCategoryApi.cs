@@ -1,12 +1,33 @@
+using Valour.Shared.Authorization;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetCategoryApi
 {
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired, CategoryChannelPermsRequired(CategoryPermissionsEnum.View)]
-    public static IResult GetRoute(long id, HttpContext ctx) =>
-        Results.Json(ctx.GetItem<PlanetCategoryChannel>(id));
+    [ValourRoute(HttpVerbs.Get, "api/planetcategories/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetRouteAsync(
+        long id,
+        PlanetCategoryService service,
+        PlanetMemberService memberService)
+    {
+        // Get the category
+        var category = await service.GetAsync(id);
+        if (category is null)
+            return ValourResult.NotFound("Category not found");
+
+        // Get member
+        var member = await memberService.GetCurrentAsync(category.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        // Ensure member has permission to view this category
+        if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.View))
+            return ValourResult.LacksPermission(CategoryPermissions.View);
+
+        // Return json
+        return Results.Json(category);
+    }
 
     [ValourRoute(HttpVerbs.Put), TokenRequired]
     [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]

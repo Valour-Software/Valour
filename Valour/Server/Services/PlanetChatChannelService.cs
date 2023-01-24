@@ -1,9 +1,6 @@
 using IdGen;
 using StackExchange.Redis;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels.Planets;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
 using Valour.Server.Hubs;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -17,7 +14,6 @@ public class PlanetChatChannelService
     private readonly PlanetService _planetService;
     private readonly PlanetCategoryService _categoryService;
     private readonly PlanetMemberService _memberService;
-    private readonly PermissionsService _permissionsService;
 	private readonly ILogger<PlanetChatChannelService> _logger;
     private readonly CoreHubService _coreHub;
 
@@ -26,7 +22,6 @@ public class PlanetChatChannelService
         PlanetService planetService,
         PlanetCategoryService categoryService,
         PlanetMemberService memberService,
-        PermissionsService permissionsService,
         CoreHubService coreHubService,
 		ILogger<PlanetChatChannelService> logger)
     {
@@ -34,7 +29,6 @@ public class PlanetChatChannelService
         _planetService = planetService;
         _categoryService = categoryService;
         _memberService = memberService;
-        _permissionsService = permissionsService;
         _logger = logger;
         _coreHub = coreHubService;
 
@@ -44,7 +38,7 @@ public class PlanetChatChannelService
     /// Returns the chat channel with the given id
     /// </summary>
     public async ValueTask<PlanetChatChannel> GetAsync(long id) =>
-        (await _db.Planets.FindAsync(id)).ToModel();
+        (await _db.PlanetChatChannels.FindAsync(id)).ToModel();
 
 
     /// <summary>
