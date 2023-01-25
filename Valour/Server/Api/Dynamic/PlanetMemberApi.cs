@@ -90,7 +90,6 @@ public class PlanetMemberApi
         UserService userService)
     {
         var selfId = await userService.GetCurrentUserId();
-        
         if (selfId != member.UserId)
             return Results.BadRequest("You can only modify your own membership.");
 
@@ -128,18 +127,21 @@ public class PlanetMemberApi
 
         return Results.NoContent();
     }
+    
 
-    private static TaskResult ValidateName(PlanetMember member)
+    [ValourRoute(HttpVerbs.Get, "api/member/{id}/roles")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetAllRolesForMember(
+        long id,
+        PlanetMemberService memberService)
     {
-        // Ensure nickname is valid
-        return member.Nickname.Length > 32 ? new TaskResult(false, "Maximum nickname is 32 characters.") : 
-            TaskResult.SuccessResult;
-    }
+        var targetMember = await memberService.GetAsync(id);
+        if (targetMember is null)
+            return ValourResult.NotFound("Target member not found.");
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> GetAllRolesForMember(long id, long planetId, ValourDB db)
-    {
+        if (!await memberService.CurrentExistsAsync(targetMember.PlanetId))
+            return ValourResult.NotPlanetMember();
+        
         var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                                            .ThenInclude(x => x.Role)
                                            .FirstOrDefaultAsync(x => x.Id == id && x.PlanetId == planetId);

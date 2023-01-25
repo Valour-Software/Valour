@@ -27,12 +27,20 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetAsync(long id) =>
         (await _db.PlanetMembers.FindAsync(id)).ToModel();
-    
+
     /// <summary>
     /// Returns the current user's PlanetMember for the given planet id
     /// </summary>
-    public async Task<PlanetMember> GetCurrentAsync(long planetId) => 
-        (await _db.PlanetMembers.FindAsync(planetId, (await _tokenService.GetCurrentToken()).Id)).ToModel();
+    public async Task<PlanetMember> GetCurrentAsync(long planetId)
+    {
+        var token = await _tokenService.GetCurrentToken();
+        if (token is null)
+            return null;
+        
+        return (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && 
+                                                                             x.UserId == token.UserId))
+            .ToModel();
+    }
 
     /// <summary>
     /// Returns if the PlanetMember with the given id exists
@@ -47,19 +55,41 @@ public class PlanetMemberService
         await _db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == planetId);
 
     /// <summary>
+    /// Returns if the member exists for the current user context and planet id
+    /// </summary>
+    public async Task<bool> CurrentExistsAsync(long planetId)
+    {
+        var token = await _tokenService.GetCurrentToken();
+        if (token is null)
+            return false;
+        
+        return await _db.PlanetMembers.AnyAsync(x => x.UserId == token.UserId && x.PlanetId == planetId);
+    }
+
+    /// <summary>
     /// Returns the PlanetMember for a given user id and planet id
     /// </summary>
     public async Task<Models.PlanetMember> GetByUserAsync(long userId, long planetId) =>
         (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId)).ToModel();
 
     /// <summary>
-    /// Returns the roles for the given PlanetMember id
+    /// Returns the roles for the given member id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(PlanetMember member) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+    public async Task<List<PlanetRole>> GetRolesAsync(long memberId) =>
+        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the role ids for the given member id
+    /// </summary>
+    public async Task<List<long>> GetRoleIdsAsync(long memberId) =>
+        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
+            .Include(x => x.Role)
+            .OrderBy(x => x.Role.Position)
+            .Select(x => x.Role.Id)
             .ToListAsync();
 
     
