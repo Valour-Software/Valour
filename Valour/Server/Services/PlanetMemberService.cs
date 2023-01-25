@@ -311,6 +311,45 @@ public class PlanetMemberService
     }
 
     /// <summary>
+    /// Updates the given member in the database
+    /// </summary>
+    /// <returns></returns>
+    public async Task<TaskResult<PlanetMember>> UpdateAsync(PlanetMember member)
+    {
+        var old = await _db.PlanetMembers.FindAsync(member.Id);
+        if (old is null)
+            return new TaskResult<PlanetMember>(false, "Member not found.");
+        
+        if (old.PlanetId != member.PlanetId)
+            return new TaskResult<PlanetMember>(false, "Cannot change planet of member.");
+        
+        if (old.UserId != member.UserId)
+            return new TaskResult<PlanetMember>(false, "Cannot change user of member.");
+
+        if (old.MemberPfp != member.MemberPfp)
+            return new TaskResult<PlanetMember>(false, "Profile image can only be changed via cdn.");
+
+        var nameValid = ISharedPlanetMember.ValidateName(member);
+        if (!nameValid.Success)
+            return new TaskResult<PlanetMember>(false, nameValid.Message);
+
+        try
+        {
+            _db.Entry(old).CurrentValues.SetValues(member);
+            _db.PlanetMembers.Update(old);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return new TaskResult<PlanetMember>(false, "An unexpected error occurred.");
+        }
+        
+        _coreHub.NotifyPlanetItemChange(member);
+
+        return new TaskResult<PlanetMember>(true, "Success", member);
+    }
+
+    /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
     public async Task DeleteAsync(PlanetMember member)
@@ -327,5 +366,7 @@ public class PlanetMemberService
         
         _db.PlanetMembers.Update(dbMember);
         await _db.SaveChangesAsync();
+        
+        _coreHub.NotifyPlanetItemDelete(member);
     }
 }
