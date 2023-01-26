@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
+using Valour.Server.Requests;
 using Valour.Shared.Authorization;
+using Valour.TenorTwo.Models;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -49,8 +51,6 @@ public class PlanetCategoryApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        var planet = await planetService.GetAsync(category.PlanetId);
-
         if (category.ParentId is not null)
         {
             // Ensure user has permission for parent category management
@@ -72,142 +72,73 @@ public class PlanetCategoryApi
 
     }
 
-    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
+    [ValourRoute(HttpVerbs.Post, "api/planetcategories/detailed")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteWithDetailsAsync(
         [FromBody] CreatePlanetCategoryChannelRequest request,
-        long planetId,
         HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        PermissionsService permService,
         PlanetMemberService memberService,
-         ILogger<PlanetCategoryChannel> logger)
+        PlanetCategoryService categoryService,
+        PlanetService planetService)
     {
-        // Get resources
-        var member = ctx.GetMember();
+        if (request is null)
+            return ValourResult.BadRequest("Include request in body.");
 
-        var category = request.Category;
+        request.Category.Id = IdManager.Generate();
 
-        if (category.PlanetId != planetId)
-            return Results.BadRequest("PlanetId mismatch.");
+        // Get member
+        var member = await memberService.GetCurrentAsync(request.Category.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var nameValid = ValidateName(category.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
+        var planet = await planetService.GetAsync(request.Category.PlanetId);
 
-        var descValid = ValidateDescription(category.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
-
-        var positionValid = await ValidateParentAndPosition(db, category);
-        if (!positionValid.Success)
-            return Results.BadRequest(positionValid.Message);
-
-        // Ensure user has permission for parent category management
-        if (category.ParentId is not null)
+        if (request.Category.ParentId is not null)
         {
-            var parent = await db.PlanetCategoryChannels.FindAsync(category.ParentId);
-            if (!await parent.HasPermissionAsync(member, CategoryPermissions.ManageCategory, permService))
+            // Ensure user has permission for parent category management
+            var parent = await categoryService.GetAsync((long)request.Category.ParentId);
+            if (!await memberService.HasPermissionAsync(member, parent, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
-
-        category.Id = IdManager.Generate();
-
-        List<PermissionsNode> nodes = new();
-
-        // Create nodes
-        foreach (var nodeReq in request.Nodes)
+        else
         {
-            var node = nodeReq;
-            node.TargetId = category.Id;
-            node.PlanetId = planetId;
-
-            var role = await FindAsync<PlanetRole>(node.RoleId, db);
-            if (role.GetAuthority() > await member.GetAuthorityAsync(memberService))
-                return ValourResult.Forbid("A permission node's role has higher authority than you.");
-
-            node.Id = IdManager.Generate();
-
-            nodes.Add(node);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
         }
 
-        var tran = await db.Database.BeginTransactionAsync();
+        var result = await categoryService.CreateDetailedAsync(request, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        try
-        {
-            await db.PlanetCategoryChannels.AddAsync(category);
-            await db.SaveChangesAsync();
-
-            await db.PermissionsNodes.AddRangeAsync(nodes);
-            await db.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            await tran.RollbackAsync();
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        await tran.CommitAsync();
-
-        hubService.NotifyPlanetItemChange(category);
-
-        return Results.Created(category.GetUri(), category);
+        return Results.Created($"api/planetcategories/{request.Category.Id}", request.Category);
     }
 
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories)]
-    [CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
+    [ValourRoute(HttpVerbs.Put, "api/planetcategories/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
-        [FromBody] PlanetCategoryChannel category,
+        [FromBody] PlanetCategory category,
         long id,
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetCategoryChannel> logger)
+        PlanetMemberService memberService,
+        PlanetCategoryService categoryService)
     {
-        // Get resources
-        var old = ctx.GetItem<PlanetCategoryChannel>(id);
+        // Get the category
+        var old = await categoryService.GetAsync(id);
+        if (old is null)
+            return ValourResult.NotFound("Category not found");
 
-        // Validation
-        if (old.Id != category.Id)
-            return Results.BadRequest("Cannot change Id.");
-        if (old.PlanetId != category.PlanetId)
-            return Results.BadRequest("Cannot change PlanetId.");
+        // Get member
+        var member = await memberService.GetCurrentAsync(category.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var nameValid = ValidateName(category.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
 
-        var descValid = ValidateDescription(category.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
+        if (!await memberService.HasPermissionAsync(member, old, CategoryPermissions.ManageCategory))
+            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
-        var positionValid = await ValidateParentAndPosition(db, category);
-        if (!positionValid.Success)
-            return Results.BadRequest(positionValid.Message);
-
-        // Update
-        try
-        {
-            db.Entry(old).State = EntityState.Detached;
-            db.PlanetCategoryChannels.Update(category);
-            await db.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        hubService.NotifyPlanetItemChange(category);
-
-        // Response
-        return Results.Ok(category);
+        return await categoryService.PutAsync(old, category);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetcategories/{id}")]
@@ -272,78 +203,33 @@ public class PlanetCategoryApi
         return Results.Json(await categoryService.GetChildrenIdsAsync(category.Id));
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/children/order"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageCategories),
-     CategoryChannelPermsRequired(CategoryPermissionsEnum.ManageCategory)]
+    [ValourRoute(HttpVerbs.Post, "api/planetcategories/{id}/children/order")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetChildOrderRouteAsync(
         [FromBody] long[] order, 
         long id, 
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
         CoreHubService hubService,
-        ILogger<PlanetCategoryChannel> logger)
+        PlanetCategoryService categoryService,
+        PlanetMemberService memberService)
     {
-        var category = ctx.GetItem<PlanetCategoryChannel>(id);
+        // Get the category
+        var category = await categoryService.GetAsync(id);
+        if (category is null)
+            return ValourResult.NotFound("Category not found");
 
-        if (category.PlanetId != planetId)
-            return Results.BadRequest("ParentId mismatch.");
+        // Get member
+        var member = await memberService.GetCurrentAsync(category.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+
+        if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
+            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
         order = order.Distinct().ToArray();
 
-        var totalChildren = await db.PlanetChannels.CountAsync(x => x.ParentId == id);
-
-        if (totalChildren != order.Length)
-            return Results.BadRequest("Your order does not contain all the children.");
-
-        // Use transaction so we can stop at any failure
-        await using var tran = await db.Database.BeginTransactionAsync();
-
-        List<PlanetChannel> children = new();
-
-        try
-        {
-            var pos = 0;
-            foreach (var child_id in order)
-            {
-                var child = await FindAsync<PlanetChannel>(child_id, db);
-                if (child is null)
-                {
-                    return ValourResult.NotFound<PlanetChannel>();
-                }
-
-                if (child.ParentId != category.Id)
-                    return Results.BadRequest($"Category {child_id} is not a child of {category.Id}.");
-
-                child.Position = pos;
-
-                // child.TimeLastActive = DateTime.SpecifyKind(child.TimeLastActive, DateTimeKind.Utc);
-
-                db.PlanetChannels.Update(child);
-
-                children.Add(child);
-
-                pos++;
-            }
-
-            await db.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            await tran.RollbackAsync();
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        await tran.CommitAsync();
-
-        foreach (var child in children)
-        {
-            hubService.NotifyPlanetItemChange(child);
-        }
-
-        return Results.NoContent();
-
+        return await categoryService.SetChildrensOrderAsync(category, order);
     }
 }

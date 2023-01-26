@@ -19,7 +19,7 @@ public static class PermissionsNodeMapper
         };
     }
     
-    public static Valour.Database.PermissionsNode ToDatabase(this Valour.Database.PermissionsNode node)
+    public static Valour.Database.PermissionsNode ToDatabase(this PermissionsNode node)
     {
         if (node is null)
             return null;
