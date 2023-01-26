@@ -128,7 +128,7 @@ public class PlanetCategoryApi
             return ValourResult.NotFound("Category not found");
 
         // Get member
-        var member = await memberService.GetCurrentAsync(category.PlanetId);
+        var member = await memberService.GetCurrentAsync(old.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
