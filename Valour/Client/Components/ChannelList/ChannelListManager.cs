@@ -2,7 +2,7 @@
 using Valour.Shared.Categories;
 using Valour.Api.Client;
 using Valour.Api.Items;
-using Valour.Api.Items.Channels.Planets;
+using Valour.Api.Models;
 
 namespace Valour.Client.Components.ChannelList
 {

@@ -1,4 +1,4 @@
-﻿using Valour.Api.Items.Channels.Planets;
+﻿using Valour.Api.Models;
 using Valour.Client.Components.Windows.ChannelWindows.Voice.PlanetVoiceChannels;
 using Valour.Client.Windows.ChatWindows;
 

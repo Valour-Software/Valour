@@ -1,22 +1,22 @@
-﻿@using Valour.Shared
-@using Valour.Api.Items.Users
-@using Valour.Api.Client
-@using Valour.Client.Device
-@using Valour.Client.Components.Utility
-@using Valour.Client.Notifications
-@using Valour.Client.Blazor.Layout
-@using Valour.Client.Messages;
-@using Valour.Shared.Models;
-@using Microsoft.JSInterop
-@using Microsoft.AspNetCore.Components.Routing
-@using Blazored.LocalStorage
-@using Blazored.Modal
-@using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.AspNetCore.Components.Web
-@using Microsoft.AspNetCore.Components.WebAssembly.Http
-@using Valour.Client.Components.Sounds
-@using Valour.Client.Components
-@using Valour.Client.Utility
+﻿@    using Valour.Shared
+@    using Valour.Api.Items.Users
+@    using Valour.Api.Client
+@    using Valour.Client.Device
+@    using Valour.Client.Components.Utility
+@    using Valour.Client.Notifications
+@    using Valour.Client.Blazor.Layout
+@    using Valour.Client.Messages;
+@    using Valour.Shared.Models;
+@    using Microsoft.JSInterop
+@    using Microsoft.AspNetCore.Components.Routing
+@    using Blazored.LocalStorage
+@    using Blazored.Modal
+@    using Microsoft.AspNetCore.Components.Forms
+@    using Microsoft.AspNetCore.Components.Web
+@    using Microsoft.AspNetCore.Components.WebAssembly.Http
+@    using Valour.Client.Components.Sounds
+@    using Valour.Client.Components
+@    using Valour.Client.Utility
 
 
 @inject HttpClient Http
@@ -157,7 +157,7 @@ else
         Console.WriteLine(key);
         Console.WriteLine(auth);
 
-        Api.Items.Notifications.NotificationSubscription not = new()
+        Api.Models.NotificationSubscription not = new()
         {
             Endpoint = endpoint,
             Auth = auth,
