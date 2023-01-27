@@ -59,7 +59,7 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
                 return cached;
         }
 
-        var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>($"api/{nameof(PlanetInvite)}/{code}")).Data;
+        var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>($"api/invites/{code}")).Data;
 
         if (invResult is not null)
             await invResult.AddToCache();

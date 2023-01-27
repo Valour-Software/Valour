@@ -95,7 +95,7 @@ public class PlanetApi
             if (!await memberService.ExistsAsync(planet.OwnerId, planet.Id))
                 return Results.BadRequest("You cannot transfer ownership to a non-member.");
             
-            var ownedPlanets = await userService.GetOwnedPlanetCount((await userService.GetCurrentUserId())!.Value);
+            var ownedPlanets = await userService.GetOwnedPlanetCount(await userService.GetCurrentUserId());
             if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
                 return Results.BadRequest("That new owner has the maximum owned planets!");
         }

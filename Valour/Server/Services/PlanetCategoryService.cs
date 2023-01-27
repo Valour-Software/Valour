@@ -158,7 +158,21 @@ public class PlanetCategoryService
     /// Returns the children of the category with the given id
     /// </summary>
     public async Task<List<PlanetChannel>> GetChildrenAsync(long id) =>
-    await _db.PlanetChannels.Where(x => x.ParentId == id).ToListAsync();
+        await _db.PlanetChannels.Where(x => x.ParentId == id)
+            .Select(x => x.ToModel()).ToListAsync();
+    
+    /// <summary>
+    /// Returns the number of children in the category with the given id
+    /// </summary>
+    public async Task<int> GetChildCountAsync(long id) =>
+        await _db.PlanetChannels.Where(x => x.ParentId == id)
+            .CountAsync();
+
+    /// <summary>
+    /// Returns if a category is the last category in a planet
+    /// </summary>
+    public async Task<bool> IsLastCategory(PlanetCategory category) =>
+        (await _db.PlanetCategories.Where(x => x.PlanetId == category.PlanetId).CountAsync()) < 2;
 
     /// <summary>
     /// Returns the ids of the children of the category with the given id
