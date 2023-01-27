@@ -43,7 +43,11 @@ public class PlanetRoleApi
         if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("You cannot create roles with higher authority than your own.");
 
-        return await roleService.CreateAsync(role);
+        var result = await roleService.CreateAsync(role);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Created($"api/planetroles/{role.Id}", role);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planetroles/{id}")]

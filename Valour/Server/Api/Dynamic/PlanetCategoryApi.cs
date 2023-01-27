@@ -138,7 +138,11 @@ public class PlanetCategoryApi
         if (!await memberService.HasPermissionAsync(member, old, CategoryPermissions.ManageCategory))
             return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
-        return await categoryService.PutAsync(old, category);
+        var result = await categoryService.PutAsync(old, category);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok(category)
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetcategories/{id}")]
@@ -188,7 +192,7 @@ public class PlanetCategoryApi
         PlanetMemberService memberService)
     {
         // Get the channel
-		var category = await categoryService.GetAsync(id);
+        var category = await categoryService.GetAsync(id);
         if (category is null)
             return ValourResult.NotFound("Category not found");
 
@@ -206,8 +210,8 @@ public class PlanetCategoryApi
     [ValourRoute(HttpVerbs.Post, "api/planetcategories/{id}/children/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetChildOrderRouteAsync(
-        [FromBody] long[] order, 
-        long id, 
+        [FromBody] long[] order,
+        long id,
         CoreHubService hubService,
         PlanetCategoryService categoryService,
         PlanetMemberService memberService)
@@ -230,6 +234,10 @@ public class PlanetCategoryApi
 
         order = order.Distinct().ToArray();
 
-        return await categoryService.SetChildrensOrderAsync(category, order);
+        var result = await categoryService.SetChildrensOrderAsync(category, order);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok();
     }
 }

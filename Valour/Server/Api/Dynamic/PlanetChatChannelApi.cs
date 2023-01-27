@@ -119,7 +119,11 @@ public class PlanetChatChannelApi
                 return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
         }
 
-        return await channelService.CreateDetailedAsync(request, member);
+        var result = await channelService.CreateDetailedAsync(request, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Created($"api/planetchatchannels/{request.Channel.Id}", request.Channel);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planetchatchannels/{id}")]
@@ -146,10 +150,14 @@ public class PlanetChatChannelApi
         if (!await memberService.HasPermissionAsync(member, old, ChatChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
 
-        return await channelService.PutAsync(old, channel);
+        var result = await channelService.PutAsync(old, channel);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok(channel);
     }
 
-	[ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}")]
 	[UserRequired(UserPermissionsEnum.PlanetManagement)]
 	public static async Task<IResult> DeleteRouteAsync(
         long id,

@@ -64,7 +64,7 @@ public class PlanetChatChannelService
     {
         var baseValid = await ValidateBasic(channel);
         if (!baseValid.Success)
-            return new TaskResult<PlanetChatChannel>(false, baseValid.Message);
+            return new(false, baseValid.Message);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -79,18 +79,18 @@ public class PlanetChatChannelService
         {
             _logger.LogError(e, "Failed to create planet chat channel");
             await tran.RollbackAsync();
-            return new TaskResult<PlanetChatChannel>(false, "Failed to create channel");
+            return new(false, "Failed to create channel");
         }
 
         _coreHub.NotifyPlanetItemChange(channel);
 
-        return new TaskResult<PlanetChatChannel>(true, "PlanetChatChannel created successfully", channel);
+        return new(true, "PlanetChatChannel created successfully", channel);
     }
 
     /// <summary>
     /// Creates the given planet chat channel
     /// </summary>
-    public async Task<IResult> CreateDetailedAsync(CreatePlanetChatChannelRequest request, PlanetMember member)
+    public async Task<TaskResult<PlanetChatChannel>> CreateDetailedAsync(CreatePlanetChatChannelRequest request, PlanetMember member)
     {
         var channel = request.Channel;
         List<PermissionsNode> nodes = new();
@@ -104,7 +104,7 @@ public class PlanetChatChannelService
 
             var role = await _planetRoleService.GetAsync(node.RoleId);
             if (role.GetAuthority() > await _memberService.GetAuthorityAsync(member))
-                return ValourResult.Forbid("A permission node's role has higher authority than you.");
+                return new(true, "A permission node's role has higher authority than you.");
 
             node.Id = IdManager.Generate();
 
@@ -125,27 +125,27 @@ public class PlanetChatChannelService
         {
             await tran.RollbackAsync();
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(true, e.Message);
         }
 
         await tran.CommitAsync();
 
         _coreHub.NotifyPlanetItemChange(channel);
 
-        return Results.Created($"api/planetchatchannels/{channel.Id}", channel);
+        return new(true, "Success", channel);
     }
 
-    public async Task<IResult> PutAsync(PlanetChatChannel old, PlanetChatChannel updatedchannel)
+    public async Task<TaskResult<PlanetChatChannel>> PutAsync(PlanetChatChannel old, PlanetChatChannel updatedchannel)
     {
         // Validation
         if (old.Id != updatedchannel.Id)
-            return Results.BadRequest("Cannot change Id.");
+            return new(false, "Cannot change Id.");
         if (old.PlanetId != updatedchannel.PlanetId)
-            return Results.BadRequest("Cannot change PlanetId.");
+            return new(false, "Cannot change PlanetId.");
 
         var baseValid = await ValidateBasic(updatedchannel);
         if (!baseValid.Success)
-            return Results.BadRequest(baseValid.Message);
+            return new(false, baseValid.Message);
 
         // Update
         try
@@ -157,13 +157,13 @@ public class PlanetChatChannelService
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
         _coreHub.NotifyPlanetItemChange(updatedchannel);
 
         // Response
-        return Results.Ok(updatedchannel);
+        return new(true, "Success", updatedchannel);
     }
 
     /// <summary>

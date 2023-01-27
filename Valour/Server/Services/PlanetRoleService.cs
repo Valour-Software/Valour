@@ -2,6 +2,7 @@ using IdGen;
 using StackExchange.Redis;
 using Valour.Database.Context;
 using Valour.Server.Database;
+using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
@@ -29,7 +30,7 @@ public class PlanetRoleService
     public async ValueTask<PlanetRole> GetAsync(long id) =>
         (await _db.PlanetRoles.FindAsync(id)).ToModel();
 
-    public async Task<IResult> CreateAsync(PlanetRole role)
+    public async Task<TaskResult<PlanetRole>> CreateAsync(PlanetRole role)
     {
         role.Position = await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
         role.Id = IdManager.Generate();
@@ -42,15 +43,15 @@ public class PlanetRoleService
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(true, e.Message);
         }
 
         _coreHub.NotifyPlanetItemChange(role);
 
-        return Results.Created($"api/planetroles/{role.Id}", role);
+        return new(true, "Success", role);
     }
 
-    public async Task<IResult> PutAsync(PlanetRole oldRole, PlanetRole updatedRole)
+    public async Task<TaskResult<PlanetRole>> PutAsync(PlanetRole oldRole, PlanetRole updatedRole)
     {
         if (updatedRole.PlanetId != oldRole.PlanetId)
             return Results.BadRequest("You cannot change what planet.");
@@ -106,18 +107,31 @@ public class PlanetRoleService
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.RoleId == role.Id && x.TargetId == channelId)).GetPermissionState(permission);
 
-    public async Task DeleteAsync(PlanetRole role)
+    public async Task<TaskResult> DeleteAsync(PlanetRole role)
     {
-        // Remove all members
-        var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
-        _db.PlanetRoleMembers.RemoveRange(members);
+        try
+        {
+            // Remove all members
+            var members = _db.PlanetRoleMembers.Where(x => x.RoleId == role.Id);
+            _db.PlanetRoleMembers.RemoveRange(members);
 
-        // Remove role nodes
-        var nodes = await GetNodesAsync(role);
+            // Remove role nodes
+            var nodes = await GetNodesAsync(role);
 
-        _db.PermissionsNodes.RemoveRange(nodes.Select(x => x.ToDatabase());
+            _db.PermissionsNodes.RemoveRange(nodes.Select(x => x.ToDatabase());
 
-        // Remove the role
-        _db.PlanetRoles.Remove(role.ToDatabase());
+            // Remove the role
+            _db.PlanetRoles.Remove(role.ToDatabase());
+
+            await _db.SaveChangesAsync();
+            _coreHub.NotifyPlanetItemDelete(role);
+        }
+        catch (System.Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        return new(true, "Success");
     }
 }

@@ -52,7 +52,20 @@ public class PlanetBanApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
             return ValourResult.LacksPermission(PlanetPermissions.Ban);
 
-        return await banService.CreateAsync(ban, member);
+        // Ensure user has more authority than the user being banned
+        var target = await memberService.GetByUserAsync(ban.TargetId, ban.PlanetId);
+
+        if (target is null)
+            return ValourResult.NotFound<PlanetMember>();
+
+        if (await memberService.GetAuthorityAsync(target) >= await memberService.GetAuthorityAsync(member))
+            return ValourResult.Forbid("The target has a higher authority than you.");
+
+        var result = await banService.CreateAsync(ban, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Created($"api/planetbans/{ban.Id}", ban);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planetbans/{id}")]
@@ -79,7 +92,11 @@ public class PlanetBanApi
         if (old is null)
             return ValourResult.NotFound<PlanetBan>();
 
-        return await banService.PutAsync(old, ban);
+        var result = await banService.PutAsync(old, ban);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok(ban);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetbans/{id}")]
@@ -100,6 +117,10 @@ public class PlanetBanApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
             return ValourResult.LacksPermission(PlanetPermissions.Ban);
 
-        return await banService.DeleteAsync(ban, member);
+        var result = await banService.DeleteAsync(ban, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.NoContent();
     }
 }

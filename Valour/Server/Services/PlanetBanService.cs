@@ -37,26 +37,19 @@ public class PlanetBanService
     /// <summary>
     /// Creates the given planetban
     /// </summary>
-    public async Task<IResult> CreateAsync(PlanetBan ban, PlanetMember member)
+    public async Task<TaskResult<PlanetBan>> CreateAsync(PlanetBan ban, PlanetMember member)
     {
         if (ban.IssuerId != member.UserId)
-            return Results.BadRequest("IssuerId should match user Id.");
+            return new(false, "IssuerId should match user Id.");
 
         if (ban.TargetId == member.Id)
-            return Results.BadRequest("You cannot ban yourself.");
+            return new(false, "You cannot ban yourself.");
 
         // Ensure it doesn't already exist
-        if (await db.PlanetBans.AnyAsync(x => x.PlanetId == ban.PlanetId && x.TargetId == ban.TargetId))
-            return Results.BadRequest("Ban already exists for user.");
+        if (await _db.PlanetBans.AnyAsync(x => x.PlanetId == ban.PlanetId && x.TargetId == ban.TargetId))
+            return new(false, "Ban already exists for user.");
 
-        // Ensure user has more authority than the user being banned
-        var target = await _memberService.GetByUserAsync(ban.TargetId, ban.PlanetId);
-
-        if (target is null)
-            return ValourResult.NotFound<PlanetMember>();
-
-        if (await _memberService.GetAuthorityAsync(target) >= await _memberService.GetAuthorityAsync(member))
-            return ValourResult.Forbid("The target has a higher authority than you.");
+        var target = await _memberService.GetAsync(ban.TargetId);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
@@ -80,7 +73,7 @@ public class PlanetBanService
         {
             _logger.LogError(e.Message);
             await tran.RollbackAsync();
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
         await tran.CommitAsync();
@@ -89,22 +82,22 @@ public class PlanetBanService
         _coreHub.NotifyPlanetItemChange(ban);
         _coreHub.NotifyPlanetItemDelete(target);
 
-        return Results.Created($"api/planetbans/{ban.Id}", ban);
+        return new(true, "Success", ban);
     }
 
-    public async Task<IResult> PutAsync(PlanetBan old, PlanetBan updatedban)
+    public async Task<TaskResult<PlanetBan>> PutAsync(PlanetBan old, PlanetBan updatedban)
     {
         if (updatedban.PlanetId != old.PlanetId)
-            return Results.BadRequest("You cannot change the PlanetId.");
+            return new(false, "You cannot change the PlanetId.");
 
         if (updatedban.TargetId != old.TargetId)
-            return Results.BadRequest("You cannot change who was banned.");
+            return new(false, "You cannot change who was banned.");
 
         if (updatedban.IssuerId != old.IssuerId)
-            return Results.BadRequest("You cannot change who banned the user.");
+            return new(false, "You cannot change who banned the user.");
 
         if (updatedban.TimeCreated != old.TimeCreated)
-            return Results.BadRequest("You cannot change the creation time");
+            return new(false, "You cannot change the creation time");
 
         try
         {
@@ -115,19 +108,19 @@ public class PlanetBanService
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
         // Notify of changes
         _coreHub.NotifyPlanetItemChange(updatedban);
 
-        return Results.Ok(updatedban);
+        return new(true, "Success", updatedban);
     }
 
     /// <summary>
     /// Deletes the ban
     /// </summary>
-    public async Task<IResult> DeleteAsync(PlanetBan ban, PlanetMember member)
+    public async Task<TaskResult> DeleteAsync(PlanetBan ban, PlanetMember member)
     {
         // Ensure the user unbanning is either the user that made the ban, or someone
         // with equal or higher authority to them
@@ -137,7 +130,7 @@ public class PlanetBanService
             var banner = await _memberService.GetAsync(ban.IssuerId);
 
             if (await _memberService.GetAuthorityAsync(banner) > await _memberService.GetAuthorityAsync(member))
-                return ValourResult.Forbid("The banner of this user has higher authority than you.");
+                return new(false, "The banner of this user has higher authority than you.");
         }
 
         try
@@ -148,13 +141,13 @@ public class PlanetBanService
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
 
         // Notify of changes
         _coreHub.NotifyPlanetItemDelete(ban);
 
-        return Results.NoContent();
+        return new(true, "Success");
     }
 }
