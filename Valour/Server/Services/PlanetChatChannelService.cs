@@ -3,6 +3,7 @@ using StackExchange.Redis;
 using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Server.Requests;
+using Valour.Server.Workers;
 using Valour.Shared;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -250,4 +251,27 @@ public class PlanetChatChannelService
         !await _db.PlanetChannels.AnyAsync(x => x.ParentId == channel.ParentId && // Same parent
                                                 x.Position == channel.Position && // Same position
                                                 x.Id != channel.Id); // Not self
+
+    public async Task<List<PlanetMessage>> GetMessagesAsync(PlanetChatChannel channel, int count, long index)
+    {
+        List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
+
+        if (count > 0)
+        {
+            var messages = await _db.PlanetMessages.Where(x => x.ChannelId == channel.Id && x.Id < index)
+                                                  .OrderByDescending(x => x.TimeSent)
+                                                  .Take(count)
+                                                  .Reverse()
+                                                  .Select(x => x.ToModel())
+                                                  .ToListAsync();
+
+            messages.AddRange(staged);
+
+            return messages;
+        }
+        else
+        {
+            return staged;
+        }
+    }
 }

@@ -24,7 +24,7 @@ public static class PlanetMessageMapper
         };
     }
     
-    public static Valour.Database.PlanetMessage ToDatabase(this Valour.Database.PlanetMessage message)
+    public static Valour.Database.PlanetMessage ToDatabase(this PlanetMessage message)
     {
         if (message is null)
             return null;
