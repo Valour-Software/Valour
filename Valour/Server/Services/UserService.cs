@@ -41,10 +41,10 @@ public class UserService
     /// Returns the user id for the current context
     /// </summary>
 
-    public async Task<long?> GetCurrentUserId()
+    public async Task<long> GetCurrentUserId()
     {
         var token = await _tokenService.GetCurrentToken();
-        return token?.UserId;
+        return token?.UserId ?? long.MinValue;
     }
     
     /// <summary>

@@ -345,7 +345,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/invites")]
-    [UserRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> GetInvitesRouteAsync(
         long id,
         PlanetMemberService memberService,
@@ -363,7 +363,7 @@ public class PlanetApi
     }
 
     [ValourRoute(HttpVerbs.Get, "api/planets/{id}/invites/ids")]
-    [UserRequired(UserPermissionsEnum.Membership)]
+    [UserRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> GetInviteIdsRouteAsync(
         long id,
         PlanetMemberService memberService,
@@ -411,6 +411,41 @@ public class PlanetApi
             return Results.Created($"api/members/{result.Data.Id}", result.Data);
         else
             return ValourResult.Problem(result.Message);
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/planets/{id}/join")]
+    [UserRequired(UserPermissionsEnum.Invites)]
+    public static async Task<IResult> Join(
+        long id, 
+        UserService userService,
+        PlanetMemberService memberService,
+        PlanetService planetService,
+        PlanetInviteService inviteService,
+        string inviteCode = null)
+    {
+        var user = await userService.GetCurrentUserAsync();
+        var planet = await planetService.GetAsync(id);
+
+        if (!planet.Public)
+            return Results.BadRequest("Planet is set to private");
+
+        if (!planet.Public)
+        {
+            if (inviteCode is null)
+                return ValourResult.Forbid("The planet is not public. Please include inviteCode.");
+
+            var invite = await inviteService.GetAsync(inviteCode, id);
+            if (invite is null || (invite.TimeExpires is not null && invite.TimeExpires < DateTime.UtcNow))
+                return ValourResult.Forbid("The invite code is invalid or expired.");
+        }
+
+
+        var result = await memberService.AddMemberAsync(planet, user);
+
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+        
+        return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }
     
     

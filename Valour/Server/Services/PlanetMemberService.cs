@@ -27,12 +27,20 @@ public class PlanetMemberService
     /// </summary>
     public async Task<PlanetMember> GetAsync(long id) =>
         (await _db.PlanetMembers.FindAsync(id)).ToModel();
-    
+
     /// <summary>
     /// Returns the current user's PlanetMember for the given planet id
     /// </summary>
-    public async Task<PlanetMember> GetCurrentAsync(long planetId) => 
-        (await _db.PlanetMembers.FindAsync(planetId, (await _tokenService.GetCurrentToken()).Id)).ToModel();
+    public async Task<PlanetMember> GetCurrentAsync(long planetId)
+    {
+        var token = await _tokenService.GetCurrentToken();
+        if (token is null)
+            return null;
+        
+        return (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && 
+                                                                             x.UserId == token.UserId))
+            .ToModel();
+    }
 
     /// <summary>
     /// Returns if the PlanetMember with the given id exists
@@ -47,19 +55,41 @@ public class PlanetMemberService
         await _db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == planetId);
 
     /// <summary>
+    /// Returns if the member exists for the current user context and planet id
+    /// </summary>
+    public async Task<bool> CurrentExistsAsync(long planetId)
+    {
+        var token = await _tokenService.GetCurrentToken();
+        if (token is null)
+            return false;
+        
+        return await _db.PlanetMembers.AnyAsync(x => x.UserId == token.UserId && x.PlanetId == planetId);
+    }
+
+    /// <summary>
     /// Returns the PlanetMember for a given user id and planet id
     /// </summary>
     public async Task<Models.PlanetMember> GetByUserAsync(long userId, long planetId) =>
         (await _db.PlanetMembers.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.UserId == userId)).ToModel();
 
     /// <summary>
-    /// Returns the roles for the given PlanetMember id
+    /// Returns the roles for the given member id
     /// </summary>
-    public async Task<List<PlanetRole>> GetRolesAsync(PlanetMember member) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+    public async Task<List<PlanetRole>> GetRolesAsync(long memberId) =>
+        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
             .Include(x => x.Role)
             .OrderBy(x => x.Role.Position)
             .Select(x => x.Role.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the role ids for the given member id
+    /// </summary>
+    public async Task<List<long>> GetRoleIdsAsync(long memberId) =>
+        await _db.PlanetRoleMembers.Where(x => x.MemberId == memberId)
+            .Include(x => x.Role)
+            .OrderBy(x => x.Role.Position)
+            .Select(x => x.Role.Id)
             .ToListAsync();
 
     
@@ -311,6 +341,45 @@ public class PlanetMemberService
     }
 
     /// <summary>
+    /// Updates the given member in the database
+    /// </summary>
+    /// <returns></returns>
+    public async Task<TaskResult<PlanetMember>> UpdateAsync(PlanetMember member)
+    {
+        var old = await _db.PlanetMembers.FindAsync(member.Id);
+        if (old is null)
+            return new TaskResult<PlanetMember>(false, "Member not found.");
+        
+        if (old.PlanetId != member.PlanetId)
+            return new TaskResult<PlanetMember>(false, "Cannot change planet of member.");
+        
+        if (old.UserId != member.UserId)
+            return new TaskResult<PlanetMember>(false, "Cannot change user of member.");
+
+        if (old.MemberPfp != member.MemberPfp)
+            return new TaskResult<PlanetMember>(false, "Profile image can only be changed via cdn.");
+
+        var nameValid = ISharedPlanetMember.ValidateName(member);
+        if (!nameValid.Success)
+            return new TaskResult<PlanetMember>(false, nameValid.Message);
+
+        try
+        {
+            _db.Entry(old).CurrentValues.SetValues(member);
+            _db.PlanetMembers.Update(old);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return new TaskResult<PlanetMember>(false, "An unexpected error occurred.");
+        }
+        
+        _coreHub.NotifyPlanetItemChange(member);
+
+        return new TaskResult<PlanetMember>(true, "Success", member);
+    }
+
+    /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
     public async Task DeleteAsync(PlanetMember member)
@@ -327,5 +396,7 @@ public class PlanetMemberService
         
         _db.PlanetMembers.Update(dbMember);
         await _db.SaveChangesAsync();
+        
+        _coreHub.NotifyPlanetItemDelete(member);
     }
 }

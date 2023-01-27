@@ -1,205 +1,147 @@
 using Microsoft.AspNetCore.Mvc;
-using Valour.Database;
-using Valour.Server.Database;
-using Valour.Server.EndpointFilters;
-using Valour.Server.EndpointFilters.Attributes;
-using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Server.Models;
 
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetMemberApi
 {
      // Helpful route to return the member for the authorizing user
-    [ValourRoute(HttpVerbs.Get, "/self"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static void GetSelfRoute(HttpContext ctx) =>
-        Results.Json(ctx.GetMember());
-
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> GetRouteAsync(long id, PlanetMemberService service)
+    [ValourRoute(HttpVerbs.Get, "api/members/self/{planetId}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetSelfRouteAsync(
+        long planetId, 
+        PlanetMemberService memberService)
     {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotFound("Member not found");
+
+        return Results.Json(member);
+    }
+        
+
+    [ValourRoute(HttpVerbs.Get, "api/members/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetRouteAsync(
+        long id, 
+        PlanetMemberService service)
+    {
+        // Get other member
         var member = await service.GetAsync(id);
         if (member is null)
-            return ValourResult.NotFound<Models.PlanetMember>();
+            return ValourResult.NotFound("Member not found");
+        
+        // Need to be a member to see other members
+        var self = await service.GetCurrentAsync(member.PlanetId);
+        if (self is null)
+            return ValourResult.NotPlanetMember();
         
         return Results.Json(member);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/authority"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> GetAuthorityRouteAsync(long id, PlanetMemberService memberService)
+    [ValourRoute(HttpVerbs.Get, "api/members/{id}/authority")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetAuthorityRouteAsync(
+        long id, 
+        PlanetMemberService service)
     {
-        var member = await memberService.GetAsync(id);
+        // Get other member
+        var member = await service.GetAsync(id);
         if (member is null)
-            return ValourResult.NotFound<Models.PlanetMember>();
+            return ValourResult.NotFound("Member not found");
+        
+        // Need to be a member to see other members
+        var self = await service.GetCurrentAsync(member.PlanetId);
+        if (self is null)
+            return ValourResult.NotPlanetMember();
 
-        var authority = await memberService.GetAuthorityAsync(member);
+        var authority = await service.GetAuthorityAsync(member);
         
         return Results.Json(authority);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/byuser/{userId}"), TokenRequired]
-    [PlanetMembershipRequired]
+    [ValourRoute(HttpVerbs.Get, "api/members/byuser/{planetId}/{userId}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRoute(
         long planetId, 
         long userId,
-        PlanetMemberService memberService)
+        PlanetMemberService service)
     {
-        var member = await memberService.GetByUserAsync(userId, planetId);
+        var member = await service.GetByUserAsync(userId, planetId);
         if (member is null)
-            return ValourResult.NotFound<Models.PlanetMember>();
+            return ValourResult.NotFound("Member not found");
+        
+        // Need to be a member to see other members
+        var self = await service.GetCurrentAsync(planetId);
+        if (self is null)
+            return ValourResult.NotPlanetMember();
 
         return Results.Json(member);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    public static async Task<IResult> PostRouteAsync(
-        [FromBody] Models.PlanetMember member, 
-        long planetId, 
-        string inviteCode, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetMember> logger)
-    {
-        var token = ctx.GetToken();
-
-        if (member.PlanetId != planetId)
-            return Results.BadRequest("PlanetId does not match.");
-        if (member.UserId != token.UserId)
-            return Results.BadRequest("UserId does not match.");
-
-        var nameValid = ValidateName(member);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
-
-        // Clear out pfp, it *must* be done through VMPS
-        member.MemberPfp = null;
-
-        // Ensure member does not already exist
-        if (await db.PlanetMembers.AnyAsync(x => x.PlanetId == planetId && x.UserId == token.UserId))
-            return Results.BadRequest("Planet member already exists.");
-
-        var planet = await FindAsync<Planet>(planetId, db);
-
-        if (!planet.Public)
-        {
-            if (inviteCode is null)
-                return ValourResult.Forbid("The planet is not public. Please include inviteCode.");
-
-            if (!await db.PlanetInvites.AnyAsync(x => x.Code == inviteCode && x.PlanetId == planetId && DateTime.UtcNow > x.TimeCreated))
-                return ValourResult.Forbid("The invite code is invalid or expired.");
-        }
-
-        try
-        {
-            await db.AddAsync(member);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        hubService.NotifyPlanetItemChange(member);
-
-        return Results.Created(member.GetUri(), member);
-    }
-
-    [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [PlanetMembershipRequired]
+    [ValourRoute(HttpVerbs.Put, "api/members/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetMember member, 
         long id, 
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetMember> logger)
+        PlanetMemberService service,
+        UserService userService)
     {
-        var token = ctx.GetToken();
-
-        var old = await FindAsync<PlanetMember>(id, db);
-
-        if (old is null)
-            return ValourResult.NotFound<PlanetMember>();
-
-        if (old.Id != member.Id)
-            return Results.BadRequest("Cannot change Id.");
-
-        if (token.UserId != member.UserId)
+        var selfId = await userService.GetCurrentUserId();
+        if (selfId != member.UserId)
             return Results.BadRequest("You can only modify your own membership.");
 
-        if (member.PlanetId != planetId)
-            return Results.BadRequest("Cannot change PlanetId.");
-
-        if (old.MemberPfp != member.MemberPfp)
-            return Results.BadRequest("Cannot directly change pfp. Use VMPS.");
-
-        var nameValid = ValidateName(member);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
-
-        try
-        {
-            db.Entry(old).State = EntityState.Detached;
-            db.PlanetMembers.Update(member);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-        
-        hubService.NotifyPlanetItemChange(member);
+        await service.UpdateAsync(member);
 
         return Results.Ok(member);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [PlanetMembershipRequired]
+    [ValourRoute(HttpVerbs.Delete, "api/members/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> DeleteRouteAsync(
-        long id, 
-        HttpContext ctx,
-        CoreHubService hubService,
+        long id,
         PlanetMemberService memberService)
     {
-        var authMember = ctx.GetMember();
         var targetMember = await memberService.GetAsync(id);
+        if (targetMember is null)
+            return ValourResult.NotFound("Target member not found.");
+        
+        var selfMember = await memberService.GetCurrentAsync(targetMember.PlanetId);
+        if (selfMember is null)
+            return ValourResult.NotPlanetMember();
 
         // You can always delete your own membership, so we only check permissions
         // if you are not the same as the target
-        if (authMember.Id != id)
+        if (selfMember.UserId != targetMember.Id)
         {
-            if (!await memberService.HasPermissionAsync(authMember, PlanetPermissions.Kick))
+            if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.Kick))
                 return ValourResult.LacksPermission(PlanetPermissions.Kick);
 
-            if (await memberService.GetAuthorityAsync(authMember) < await memberService.GetAuthorityAsync(targetMember))
+            if (await memberService.GetAuthorityAsync(selfMember) < await memberService.GetAuthorityAsync(targetMember))
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
 
         await memberService.DeleteAsync(targetMember);
-        hubService.NotifyPlanetItemDelete(targetMember);
 
         return Results.NoContent();
     }
+    
 
-    private static TaskResult ValidateName(PlanetMember member)
+    [ValourRoute(HttpVerbs.Get, "api/member/{id}/roles")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetAllRolesForMember(
+        long id,
+        PlanetMemberService memberService)
     {
-        // Ensure nickname is valid
-        return member.Nickname.Length > 32 ? new TaskResult(false, "Maximum nickname is 32 characters.") : 
-            TaskResult.SuccessResult;
-    }
+        var targetMember = await memberService.GetAsync(id);
+        if (targetMember is null)
+            return ValourResult.NotFound("Target member not found.");
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/roles"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> GetAllRolesForMember(long id, long planetId, ValourDB db)
-    {
+        if (!await memberService.CurrentExistsAsync(targetMember.PlanetId))
+            return ValourResult.NotPlanetMember();
+        
         var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
                                            .ThenInclude(x => x.Role)
                                            .FirstOrDefaultAsync(x => x.Id == id && x.PlanetId == planetId);

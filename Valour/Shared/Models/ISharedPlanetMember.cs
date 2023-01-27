@@ -31,5 +31,12 @@ public interface ISharedPlanetMember : ISharedPlanetItem
     /// The pfp to be used within the planet
     /// </summary>
     string MemberPfp { get; set; }
+    
+    public static TaskResult ValidateName(ISharedPlanetMember member)
+    {
+        // Ensure nickname is valid
+        return member.Nickname.Length > 32 ? new TaskResult(false, "Maximum nickname is 32 characters.") : 
+            TaskResult.SuccessResult;
+    }
 }
 
