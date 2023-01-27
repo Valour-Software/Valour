@@ -9,7 +9,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetInviteApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/planetinvites/{inviteCode}")]
+    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}")]
     public static async Task<IResult> GetRouteAsync(
         string inviteCode, 
         PlanetInviteService inviteService)
@@ -22,7 +22,7 @@ public class PlanetInviteApi
         return Results.Json(invite);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetinvites")]
+    [ValourRoute(HttpVerbs.Post, "api/invites")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetInvite invite,
@@ -47,7 +47,7 @@ public class PlanetInviteApi
         return Results.Created($"api/planetinvites/{invite.Id}", invite);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/planetinvites/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/invites/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetInvite invite,
@@ -74,7 +74,7 @@ public class PlanetInviteApi
         return Results.Json(invite);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetinvites/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/invites/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long id,
@@ -117,7 +117,7 @@ public class PlanetInviteApi
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "api/planetinvites/{inviteCode}/planetname")]
+    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/name")]
     public static async Task<IResult> GetPlanetName(
         string inviteCode, 
         ValourDB db)
@@ -127,7 +127,7 @@ public class PlanetInviteApi
         return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/planetinvites/{inviteCode}/planeticon")]
+    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/icon")]
     public static async Task<IResult> GetPlanetIconUrl(
         string inviteCode, 
         ValourDB db)
@@ -135,36 +135,5 @@ public class PlanetInviteApi
         var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
 
         return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.IconUrl);
-    }
-
-    [ValourRoute(HttpVerbs.Post, "api/planetinvites/{inviteCode}/join")]
-    [UserRequired(UserPermissionsEnum.Invites)]
-    public static async Task<IResult> Join(
-        string inviteCode,
-        ValourDB db,
-        PlanetMemberService memberService,
-        PlanetInviteService inviteService,
-        UserService userService,
-        PlanetService planetService)
-    {
-        Valour.Database.PlanetInvite invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
-        if (invite == null)
-            return ValourResult.NotFound<PlanetInvite>();
-
-        var user = await userService.GetCurrentUserAsync();
-        var userId = user.Id;
-
-        if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == invite.PlanetId))
-            return Results.BadRequest("User is banned from the planet");
-
-        if (await db.PlanetMembers.AnyAsync(x => x.UserId == userId && x.PlanetId == invite.PlanetId))
-            return Results.BadRequest("User is already a member");
-
-        if (!invite.Planet.Public)
-            return Results.BadRequest("Planet is set to private"); // TODO: Support invites w/ specific users
-
-        var result = await memberService.AddMemberAsync(invite.Planet.ToModel(), user);
-
-        return result.Success ? Results.Created($"api/members/{result.Data.Id}", result.Data) : Results.Problem(result.Message);
     }
 }

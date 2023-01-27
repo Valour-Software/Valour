@@ -8,7 +8,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetCategoryApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/planetcategories/{id}")]
+    [ValourRoute(HttpVerbs.Get, "api/categories/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRouteAsync(
         long id,
@@ -33,16 +33,15 @@ public class PlanetCategoryApi
         return Results.Json(category);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetcategories")]
+    [ValourRoute(HttpVerbs.Post, "api/categories")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetCategory category,
         PlanetCategoryService categoryService,
-        PlanetMemberService memberService,
-        PlanetService planetService)
+        PlanetMemberService memberService)
     {
         if (category is null)
-            return ValourResult.BadRequest("Include planetcategory in body.");
+            return ValourResult.BadRequest("Include category in body.");
 
         category.Id = IdManager.Generate();
 
@@ -68,15 +67,14 @@ public class PlanetCategoryApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetcategories/{category.Id}", category);
+        return Results.Created($"api/categories/{result.Data.Id}", result.Data);
 
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetcategories/detailed")]
+    [ValourRoute(HttpVerbs.Post, "api/categories/detailed")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteWithDetailsAsync(
         [FromBody] CreatePlanetCategoryChannelRequest request,
-        HttpContext ctx,
         PlanetMemberService memberService,
         PlanetCategoryService categoryService,
         PlanetService planetService)
@@ -110,11 +108,11 @@ public class PlanetCategoryApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetcategories/{request.Category.Id}", request.Category);
+        return Results.Created($"api/categories/{result.Data.Id}", result.Data);
     }
 
 
-    [ValourRoute(HttpVerbs.Put, "api/planetcategories/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/categories/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetCategory category,
@@ -142,18 +140,15 @@ public class PlanetCategoryApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Ok(category)
+        return Results.Json(category);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetcategories/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/categories/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long id,
         PlanetCategoryService categoryService,
-        PlanetMemberService memberService,
-        PlanetService planetService,
-        CoreHubService hubService,
-        ValourDB db)
+        PlanetMemberService memberService)
     {
         // Get the category
         var category = await categoryService.GetAsync(id);
@@ -171,10 +166,10 @@ public class PlanetCategoryApi
         if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
             return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
-        if (await db.PlanetCategories.CountAsync(x => x.PlanetId == category.PlanetId) < 2)
+        if (await categoryService.IsLastCategory(category))
             return Results.BadRequest("Last category cannot be deleted.");
 
-        var childCount = await db.PlanetChannels.CountAsync(x => x.ParentId == id);
+        var childCount = await categoryService.GetChildCountAsync(id);
 
         if (childCount > 0)
             return Results.BadRequest("Category must be empty.");
@@ -184,7 +179,7 @@ public class PlanetCategoryApi
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/planetcategories/{id}/children")]
+    [ValourRoute(HttpVerbs.Get, "api/categories/{id}/children")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetChildrenRouteAsync(
         long id,
@@ -207,12 +202,11 @@ public class PlanetCategoryApi
         return Results.Json(await categoryService.GetChildrenIdsAsync(category.Id));
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetcategories/{id}/children/order")]
+    [ValourRoute(HttpVerbs.Post, "api/categories/{id}/children/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetChildOrderRouteAsync(
         [FromBody] long[] order,
         long id,
-        CoreHubService hubService,
         PlanetCategoryService categoryService,
         PlanetMemberService memberService)
     {
@@ -238,6 +232,6 @@ public class PlanetCategoryApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Ok();
+        return Results.NoContent();
     }
 }
