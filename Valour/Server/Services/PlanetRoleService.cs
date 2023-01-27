@@ -54,10 +54,10 @@ public class PlanetRoleService
     public async Task<TaskResult<PlanetRole>> PutAsync(PlanetRole oldRole, PlanetRole updatedRole)
     {
         if (updatedRole.PlanetId != oldRole.PlanetId)
-            return Results.BadRequest("You cannot change what planet.");
+            return new(false, "You cannot change what planet.");
 
         if (updatedRole.Position != oldRole.Position)
-            return Results.BadRequest("Position cannot be changed directly.");
+            return new(false, "Position cannot be changed directly.");
         try
         {
             _db.Entry(oldRole).State = EntityState.Detached;
@@ -67,12 +67,12 @@ public class PlanetRoleService
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
         _coreHub.NotifyPlanetItemChange(updatedRole);
 
-        return Results.Json(updatedRole);
+        return new(true, "Success");
     }
 
     public async Task<List<PermissionsNode>> GetNodesAsync(PlanetRole role) =>
@@ -118,7 +118,7 @@ public class PlanetRoleService
             // Remove role nodes
             var nodes = await GetNodesAsync(role);
 
-            _db.PermissionsNodes.RemoveRange(nodes.Select(x => x.ToDatabase());
+            _db.PermissionsNodes.RemoveRange(nodes.Select(x => x.ToDatabase()));
 
             // Remove the role
             _db.PlanetRoles.Remove(role.ToDatabase());
