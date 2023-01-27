@@ -129,8 +129,14 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the primary (top) role for the given PlanetMember id
     /// </summary>
-    public async Task<PlanetRole> GetPrimaryRoleAsync(PlanetMember member) =>
-        (await GetRolesAsync(member)).FirstOrDefault();
+    public async Task<PlanetRole> GetPrimaryRoleAsync(long memberId) =>
+        (await GetRolesAsync(memberId)).FirstOrDefault();
+    
+    /// <summary>
+    /// Returns if the given memberid has the given role
+    /// </summary>
+    public async Task<bool> HasRoleAsync(long memberId, long roleId) =>
+        await _db.PlanetRoleMembers.AnyAsync(x => x.MemberId == memberId && x.RoleId == roleId);
 
     /// <summary>
     /// Returns the authority of a planet member
@@ -180,7 +186,7 @@ public class PlanetMemberService
             return true;
 
         // Get user main role
-        var mainRole = await GetPrimaryRoleAsync(member);
+        var mainRole = await GetPrimaryRoleAsync(member.Id);
 
         // Return permission state
         return mainRole.HasPermission(permission);
@@ -377,6 +383,74 @@ public class PlanetMemberService
         _coreHub.NotifyPlanetItemChange(member);
 
         return new TaskResult<PlanetMember>(true, "Success", member);
+    }
+
+    public async Task<TaskResult<PlanetRoleMember>> AddRoleAsync(PlanetMember member, PlanetRole role)
+    {
+        if (member is null)
+            return new TaskResult<PlanetRoleMember>(false, "Member is null.");
+        
+        if (role is null)
+            return new TaskResult<PlanetRoleMember>(false, "Role is null.");
+        
+        if (member.PlanetId != role.PlanetId)
+            return new TaskResult<PlanetRoleMember>(false, "Role and member are not in the same planet.");
+        
+        if (await HasRoleAsync(member.Id, role.Id))
+            return new TaskResult<PlanetRoleMember>(false, "Member already has this role.");
+        
+        Valour.Database.PlanetRoleMember newRoleMember = new()
+        {
+            Id = IdManager.Generate(),
+            MemberId = member.Id,
+            RoleId = role.Id,
+            UserId = member.UserId,
+            PlanetId = member.PlanetId
+        };
+        
+        try
+        {
+            await _db.PlanetRoleMembers.AddAsync(newRoleMember);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return new TaskResult<PlanetRoleMember>(false, "An unexpected error occurred.");
+        }
+
+        var newMemberModel = newRoleMember.ToModel();
+        
+        _coreHub.NotifyPlanetItemChange(newMemberModel);
+
+        return new TaskResult<PlanetRoleMember>(true, "Success", newMemberModel);
+    }
+    
+    public async Task<TaskResult> RemoveRoleAsync(PlanetMember member, PlanetRole role)
+    {
+        if (member is null)
+            return new TaskResult(false, "Member is null.");
+        
+        if (role is null)
+            return new TaskResult(false, "Role is null.");
+
+        var roleMember = await _db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == member.Id && x.RoleId == role.Id);
+        
+        if (roleMember is null)
+            return new TaskResult(false, "Member does not have this role.");
+        
+        try
+        {
+            _db.PlanetRoleMembers.Remove(roleMember);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return new TaskResult(false, "An unexpected error occurred.");
+        }
+
+        _coreHub.NotifyPlanetItemDelete(roleMember.ToModel());
+
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>

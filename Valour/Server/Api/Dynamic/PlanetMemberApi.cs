@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Valour.Shared;
 using Valour.Shared.Authorization;
-using Valour.Server.Models;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -95,7 +93,7 @@ public class PlanetMemberApi
 
         await service.UpdateAsync(member);
 
-        return Results.Ok(member);
+        return Results.Json(member);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/members/{id}")]
@@ -129,7 +127,7 @@ public class PlanetMemberApi
     }
     
 
-    [ValourRoute(HttpVerbs.Get, "api/member/{id}/roles")]
+    [ValourRoute(HttpVerbs.Get, "api/members/{id}/roles")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetAllRolesForMember(
         long id,
@@ -142,126 +140,76 @@ public class PlanetMemberApi
         if (!await memberService.CurrentExistsAsync(targetMember.PlanetId))
             return ValourResult.NotPlanetMember();
         
-        var member = await db.PlanetMembers.Include(x => x.RoleMembership.OrderBy(x => x.Role.Position))
-                                           .ThenInclude(x => x.Role)
-                                           .FirstOrDefaultAsync(x => x.Id == id && x.PlanetId == planetId);
-        
-        return member is null ? ValourResult.NotFound<PlanetMember>() : 
-            Results.Json(member.RoleMembership.Select(r => r.RoleId));
+        return Results.Json(await memberService.GetRoleIdsAsync(targetMember.Id));
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{id}/roles/{roleId}"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> AddRoleToMember(
-        long id, 
-        long planetId, 
-        long roleId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
+    [ValourRoute(HttpVerbs.Post, "api/members/{id}/roles/{roleId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> AddRoleToMemberRouteAsync(
+        long id,
+        long roleId,
         PlanetMemberService memberService,
-        PermissionsService permService,
-        ILogger<PlanetMember> logger)
+        PlanetRoleService roleService)
     {
-        var authMember = ctx.GetMember();
-
-        var member = await FindAsync<PlanetMember>(id, db);
-        if (member is null)
-            return ValourResult.NotFound<PlanetMember>();
-
-        if (member.PlanetId != planetId)
-            return ValourResult.NotFound<PlanetMember>();
+        var targetMember = await memberService.GetAsync(id);
+        if (targetMember is null)
+            return ValourResult.NotFound("Target member not found.");
         
-        if (!await memberService.HasPermissionAsync(authMember, PlanetPermissions.ManageRoles))
+        var selfMember = await memberService.GetCurrentAsync(targetMember.PlanetId);
+        if (selfMember is null)
+            return ValourResult.NotPlanetMember();
+        
+        if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        if (await db.PlanetRoleMembers.AnyAsync(x => x.MemberId == member.Id && x.RoleId == roleId))
-            return Results.BadRequest("The member already has this role");
-
-        var role = await db.PlanetRoles.FindAsync(roleId);
+        var role = await roleService.GetAsync(roleId);
         if (role is null)
-            return ValourResult.NotFound<PlanetRole>();
+            return ValourResult.NotFound("Role not found.");
 
-        var authAuthority = await memberService.GetAuthorityAsync(authMember);
-        if (role.GetAuthority() > authAuthority)
-            return ValourResult.Forbid("You have lower authority than the role you are trying to add");
+        var selfAuthority = await memberService.GetAuthorityAsync(selfMember);
+        if (role.GetAuthority() >= selfAuthority)
+            return ValourResult.Forbid("You can only add roles with a lower authority than your own.");
 
-        PlanetRoleMember newRoleMember = new()
-        {
-            Id = IdManager.Generate(),
-            MemberId = member.Id,
-            RoleId = roleId,
-            UserId = member.UserId,
-            PlanetId = member.PlanetId
-        };
+        
+        var result = await memberService.AddRoleAsync(targetMember, role);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
 
-        try
-        {
-            await db.PlanetRoleMembers.AddAsync(newRoleMember);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        hubService.NotifyPlanetItemChange(newRoleMember);
-
-        return Results.Created(newRoleMember.GetUri(), newRoleMember);
+        return Results.Json(result.Data);
     }
 
 
-    [ValourRoute(HttpVerbs.Delete, "/{id}/roles/{roleId}"), TokenRequired]
-    [PlanetMembershipRequired]
-    public static async Task<IResult> RemoveRoleFromMember(
-        long id, 
-        long planetId, 
-        long roleId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        PermissionsService permService,
+    [ValourRoute(HttpVerbs.Delete, "api/members/{id}/roles/{roleId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> RemoveRoleFromMemberRouteAsync(
+        long id,
+        long roleId,
         PlanetMemberService memberService,
-        ILogger<PlanetMember> logger)
+        PlanetRoleService roleService)
     {
-        var authMember = ctx.GetMember();
-
-        var member = await FindAsync<PlanetMember>(id, db);
-        if (member is null)
-            return ValourResult.NotFound<PlanetMember>();
-
-        if (member.PlanetId != planetId)
-            return ValourResult.NotFound<PlanetMember>();
-
-        if (!await authMember.HasPermissionAsync(PlanetPermissions.ManageRoles, permService))
+        var targetMember = await memberService.GetAsync(id);
+        if (targetMember is null)
+            return ValourResult.NotFound("Target member not found.");
+        
+        var selfMember = await memberService.GetCurrentAsync(targetMember.PlanetId);
+        if (selfMember is null)
+            return ValourResult.NotPlanetMember();
+        
+        if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var oldRoleMember = await db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == member.Id && x.RoleId == roleId);
-
-        if (oldRoleMember is null)
-            return Results.BadRequest("The member does not have this role");
-
-        var role = await db.PlanetRoles.FindAsync(roleId);
+        var role = await roleService.GetAsync(roleId);
         if (role is null)
-            return ValourResult.NotFound<PlanetRole>();
+            return ValourResult.NotFound("Role not found.");
 
-        var authAuthority = await authMember.GetAuthorityAsync(memberService);
-        if (role.GetAuthority() > authAuthority)
-            return ValourResult.Forbid("You have less authority than the role you are trying to remove"); ;
+        var selfAuthority = await memberService.GetAuthorityAsync(selfMember);
+        if (role.GetAuthority() >= selfAuthority)
+            return ValourResult.Forbid("You can only remove roles with a lower authority than your own.");
 
-        try
-        {
-            db.PlanetRoleMembers.Remove(oldRoleMember);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        hubService.NotifyPlanetItemDelete(oldRoleMember);
+        
+        var result = await memberService.RemoveRoleAsync(targetMember, role);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
 
         return Results.NoContent();
     }
