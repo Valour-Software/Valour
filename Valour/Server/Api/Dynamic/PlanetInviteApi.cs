@@ -165,6 +165,6 @@ public class PlanetInviteApi
 
         var result = await memberService.AddMemberAsync(invite.Planet.ToModel(), user);
 
-        return result.Success ? Results.Created(result.Data.GetUri(), result.Data) : Results.Problem(result.Message);
+        return result.Success ? Results.Created($"api/members/{result.Data.Id}", result.Data) : Results.Problem(result.Message);
     }
 }
