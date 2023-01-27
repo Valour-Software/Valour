@@ -97,24 +97,6 @@ public class PlanetInviteApi
         return Results.NoContent();
 
     }
-    
-    private Random random = new();
-    private const string inviteChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-    private async Task<string> GenerateCode(ValourDB db)
-    {
-        
-        string code;
-        bool exists;
-
-        do
-        {
-            code = new string(Enumerable.Repeat(inviteChars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-            exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
-        }
-        while (exists);
-        return code;
-    }
 
     // Custom routes
 
