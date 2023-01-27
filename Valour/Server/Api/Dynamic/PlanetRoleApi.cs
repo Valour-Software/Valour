@@ -10,8 +10,7 @@ public class PlanetRoleApi
     public static async Task<IResult> GetRouteAsync(
         long id, 
         PlanetRoleService roleService,
-        PlanetMemberService memberService,
-        PlanetChatChannelService channelService)
+        PlanetMemberService memberService)
     {
         // Get the role
         var role = await roleService.GetAsync(id);
@@ -35,6 +34,8 @@ public class PlanetRoleApi
         PlanetRoleService roleService,
         PlanetMemberService memberService)
     {
+        if (role is null)
+            return ValourResult.BadRequest("Include role in body.");
         // Get member
         var member = await memberService.GetCurrentAsync(role.PlanetId);
         if (member is null)

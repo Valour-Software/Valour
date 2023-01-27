@@ -49,7 +49,6 @@ public class PlanetChatChannelApi
 		PlanetMemberService memberService,
         PlanetService planetService)
     {
-
         if (channel is null)
             return ValourResult.BadRequest("Include planetchatchannel in body.");
 
