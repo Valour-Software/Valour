@@ -21,7 +21,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"api/planetmembers";
+            $"api/members";
 
     #endregion
 
@@ -60,7 +60,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/{id}")).Data;
+        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/{id}")).Data;
 
         if (member is not null)
             await member.AddToCache();
@@ -87,7 +87,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetMember)}/byuser/{userId}")).Data;
+        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/byuser/{planetId}/{userId}")).Data;
 
         if (member is not null)
         {
