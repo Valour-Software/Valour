@@ -125,21 +125,36 @@ public class PlanetBanService
     }
 
     /// <summary>
-    /// Soft deletes the PlanetMember (and member roles)
+    /// Deletes the ban
     /// </summary>
-    public async Task DeleteAsync(PlanetMember member)
+    public async Task<IResult> DeleteAsync(PlanetBan ban, PlanetMember member)
     {
-        // Remove roles
-        var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id);
-        _db.PlanetRoleMembers.RemoveRange(roles);
+        // Ensure the user unbanning is either the user that made the ban, or someone
+        // with equal or higher authority to them
 
-        // Convert to db 
-        var dbMember = member.ToDatabase();
-        
-        // Soft delete member
-        dbMember.IsDeleted = true;
-        
-        _db.PlanetMembers.Update(dbMember);
-        await _db.SaveChangesAsync();
+        if (ban.IssuerId != member.Id)
+        {
+            var banner = await _memberService.GetAsync(ban.IssuerId);
+
+            if (await _memberService.GetAuthorityAsync(banner) > await _memberService.GetAuthorityAsync(member))
+                return ValourResult.Forbid("The banner of this user has higher authority than you.");
+        }
+
+        try
+        {
+            _db.PlanetBans.Remove(ban.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            _logger.LogError(e.Message);
+            return Results.Problem(e.Message);
+        }
+
+
+        // Notify of changes
+        _coreHub.NotifyPlanetItemDelete(ban);
+
+        return Results.NoContent();
     }
 }
