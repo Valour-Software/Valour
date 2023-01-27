@@ -135,15 +135,15 @@ public class PlanetChatChannelService
         return Results.Created($"api/planetchatchannels/{channel.Id}", channel);
     }
 
-    public async Task<IResult> PutAsync(PlanetChatChannel old, PlanetChatChannel newchannel)
+    public async Task<IResult> PutAsync(PlanetChatChannel old, PlanetChatChannel updatedchannel)
     {
         // Validation
-        if (old.Id != newchannel.Id)
+        if (old.Id != updatedchannel.Id)
             return Results.BadRequest("Cannot change Id.");
-        if (old.PlanetId != newchannel.PlanetId)
+        if (old.PlanetId != updatedchannel.PlanetId)
             return Results.BadRequest("Cannot change PlanetId.");
 
-        var baseValid = await ValidateBasic(newchannel);
+        var baseValid = await ValidateBasic(updatedchannel);
         if (!baseValid.Success)
             return Results.BadRequest(baseValid.Message);
 
@@ -151,7 +151,7 @@ public class PlanetChatChannelService
         try
         {
             _db.Entry(old).State = EntityState.Detached;
-            _db.PlanetChatChannels.Update(newchannel.ToDatabase());
+            _db.PlanetChatChannels.Update(updatedchannel.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -160,10 +160,10 @@ public class PlanetChatChannelService
             return Results.Problem(e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(newchannel);
+        _coreHub.NotifyPlanetItemChange(updatedchannel);
 
         // Response
-        return Results.Ok(newchannel);
+        return Results.Ok(updatedchannel);
     }
 
     /// <summary>

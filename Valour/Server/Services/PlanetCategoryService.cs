@@ -123,16 +123,16 @@ public class PlanetCategoryService
         return new(true, "");
     }
 
-    public async Task<IResult> PutAsync(PlanetCategory old, PlanetCategory newcategory)
+    public async Task<IResult> PutAsync(PlanetCategory old, PlanetCategory updatedcategory)
     {
         // Validation
-        if (old.Id != newcategory.Id)
+        if (old.Id != updatedcategory.Id)
             return Results.BadRequest("Cannot change Id.");
 
-        if (old.PlanetId != newcategory.PlanetId)
+        if (old.PlanetId != updatedcategory.PlanetId)
             return Results.BadRequest("Cannot change PlanetId.");
 
-        var baseValid = await ValidateBasic(newcategory);
+        var baseValid = await ValidateBasic(updatedcategory);
         if (!baseValid.Success)
             return Results.BadRequest(baseValid.Message);
 
@@ -140,7 +140,7 @@ public class PlanetCategoryService
         try
         {
             _db.Entry(old).State = EntityState.Detached;
-            _db.PlanetCategories.Update(newcategory.ToDatabase());
+            _db.PlanetCategories.Update(updatedcategory.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
@@ -149,9 +149,9 @@ public class PlanetCategoryService
             return Results.Problem(e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(newcategory);
+        _coreHub.NotifyPlanetItemChange(updatedcategory);
 
-        return Results.Ok(newcategory);
+        return Results.Ok(updatedcategory);
     }
 
     /// <summary>
