@@ -23,7 +23,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetRole)}";
+            $"api/planetroles";
 
     #endregion
 
@@ -101,7 +101,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetRole>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetRole)}/{id}")).Data;
+        var item = (await node.GetJsonAsync<PlanetRole>($"api/planetroles/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();

@@ -1,192 +1,125 @@
+using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Authorization;
+using Valour.TenorTwo.Models;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetBanApi
 {
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [PlanetMembershipRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planetbans/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
     public static async Task<IResult> GetRoute(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        PlanetBanService banService,
+        PlanetMemberService memberService)
     {
-        var ban = await FindAsync<PlanetBan>(id, db);
-        var member = ctx.GetMember();
+        var ban = await banService.GetAsync(id);
 
         if (ban is null)
             return ValourResult.NotFound<PlanetBan>();
 
+        // Get member
+        var member = await memberService.GetCurrentAsync(ban.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
         // You can retrieve your own ban
         if (ban.TargetId != member.Id)
         {
-            if (!await member.HasPermissionAsync(PlanetPermissions.Ban, db))
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
                 return ValourResult.LacksPermission(PlanetPermissions.Ban);
         }
 
         return Results.Json(ban);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
+    [ValourRoute(HttpVerbs.Post, "api/planetbans")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRoute(
         [FromBody] PlanetBan ban, 
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetBan> logger)
+        PlanetMemberService memberService,
+        PlanetBanService banService)
     {
-        var member = ctx.GetMember();
-
         if (ban is null)
             return Results.BadRequest("Include ban in body.");
 
-        if (ban.PlanetId != planetId)
-            return Results.BadRequest("PlanetId mismatch.");
+        // Get member
+        var member = await memberService.GetCurrentAsync(ban.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        if (ban.IssuerId != member.UserId)
-            return Results.BadRequest("IssuerId should match user Id.");
-
-        if (ban.TargetId == member.Id)
-            return Results.BadRequest("You cannot ban yourself.");
-
-        // Ensure it doesn't already exist
-        if (await db.PlanetBans.AnyAsync(x => x.PlanetId == ban.PlanetId && x.TargetId == ban.TargetId))
-            return Results.BadRequest("Ban already exists for user.");
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
+            return ValourResult.LacksPermission(PlanetPermissions.Ban);
 
         // Ensure user has more authority than the user being banned
-        var target = await PlanetMember.FindAsyncByUser(ban.TargetId, ban.PlanetId, db);
+        var target = await memberService.GetByUserAsync(ban.TargetId, ban.PlanetId);
 
         if (target is null)
             return ValourResult.NotFound<PlanetMember>();
 
-        if (await target.GetAuthorityAsync(db) >= await member.GetAuthorityAsync(db))
+        if (await memberService.GetAuthorityAsync(target) >= await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("The target has a higher authority than you.");
 
-        await using var tran = await db.Database.BeginTransactionAsync();
+        var result = await banService.CreateAsync(ban, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        try
-        {
-            ban.Id = IdManager.Generate();
-
-            // Add ban
-            await db.PlanetBans.AddAsync(ban);
-
-            // Save changes
-            await db.SaveChangesAsync();
-
-            // Delete target member
-            await target.DeleteAsync(db);
-
-            // Save changes
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            await tran.RollbackAsync();
-            return Results.Problem(e.Message);
-        }
-
-        await tran.CommitAsync();
-
-        // Notify of changes
-        hubService.NotifyPlanetItemChange(ban);
-        hubService.NotifyPlanetItemDelete(target);
-
-        return Results.Created(ban.GetUri(), ban);
+        return Results.Created($"api/planetbans/{ban.Id}", ban);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
+    [ValourRoute(HttpVerbs.Put, "api/planetbans/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRoute(
         [FromBody] PlanetBan ban, 
-        long id, 
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetBan> logger)
+        long id,
+        PlanetMemberService memberService,
+        PlanetBanService banService)
     {
-        var member = ctx.GetMember();
-
         if (ban is null)
             return Results.BadRequest("Include updated ban in body.");
 
-        var old = await FindAsync<PlanetBan>(id, db);
+        // Get member
+        var member = await memberService.GetCurrentAsync(ban.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
+            return ValourResult.LacksPermission(PlanetPermissions.Ban);
+
+        var old = await banService.GetAsync(id);
 
         if (old is null)
             return ValourResult.NotFound<PlanetBan>();
 
-        if (ban.PlanetId != old.PlanetId)
-            return Results.BadRequest("You cannot change the PlanetId.");
-
-        if (ban.TargetId != old.TargetId)
-            return Results.BadRequest("You cannot change who was banned.");
-
-        if (ban.IssuerId != old.IssuerId)
-            return Results.BadRequest("You cannot change who banned the user.");
-
-        if (ban.TimeCreated != old.TimeCreated)
-            return Results.BadRequest("You cannot change the creation time");
-
-        try
-        {
-            db.Entry(old).State = EntityState.Detached;
-            db.PlanetBans.Update(ban);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        // Notify of changes
-        hubService.NotifyPlanetItemChange(ban);
+        var result = await banService.PutAsync(old, ban);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.Ok(ban);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Ban)]
+    [ValourRoute(HttpVerbs.Delete, "api/planetbans/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRoute(
         long id, 
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetBan> logger)
+        PlanetMemberService memberService,
+        PlanetBanService banService)
     {
-        var member = ctx.GetMember();
+        // Get ban
+        var ban = await banService.GetAsync(id);
 
-        var ban = await FindAsync<PlanetBan>(id, db);
+        // Get member
+        var member = await memberService.GetCurrentAsync(ban.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        // Ensure the user unbanning is either the user that made the ban, or someone
-        // with equal or higher authority to them
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Ban))
+            return ValourResult.LacksPermission(PlanetPermissions.Ban);
 
-        if (ban.IssuerId != member.Id)
-        {
-            var banner = await FindAsync<PlanetMember>(ban.IssuerId, db);
-
-            if (await banner.GetAuthorityAsync(db) > await member.GetAuthorityAsync(db))
-                return ValourResult.Forbid("The banner of this user has higher authority than you.");
-        }
-
-        try
-        {
-            db.PlanetBans.Remove(ban);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-
-        // Notify of changes
-        hubService.NotifyPlanetItemDelete(ban);
+        var result = await banService.DeleteAsync(ban, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.NoContent();
     }

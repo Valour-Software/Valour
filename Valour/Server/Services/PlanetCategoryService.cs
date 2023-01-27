@@ -120,38 +120,38 @@ public class PlanetCategoryService
 
         _coreHub.NotifyPlanetItemChange(category);
 
-        return new(true, "");
+        return new(true, "Success");
     }
 
-    public async Task<IResult> PutAsync(PlanetCategory old, PlanetCategory newcategory)
+    public async Task<TaskResult<PlanetCategory>> PutAsync(PlanetCategory old, PlanetCategory updatedcategory)
     {
         // Validation
-        if (old.Id != newcategory.Id)
-            return Results.BadRequest("Cannot change Id.");
+        if (old.Id != updatedcategory.Id)
+            return new(false, "Cannot change Id.");
 
-        if (old.PlanetId != newcategory.PlanetId)
-            return Results.BadRequest("Cannot change PlanetId.");
+        if (old.PlanetId != updatedcategory.PlanetId)
+            return new(false, "Cannot change PlanetId.");
 
-        var baseValid = await ValidateBasic(newcategory);
+        var baseValid = await ValidateBasic(updatedcategory);
         if (!baseValid.Success)
-            return Results.BadRequest(baseValid.Message);
+            return new(false, baseValid.Message);
 
         // Update
         try
         {
             _db.Entry(old).State = EntityState.Detached;
-            _db.PlanetCategories.Update(newcategory.ToDatabase());
+            _db.PlanetCategories.Update(updatedcategory.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
         {
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(newcategory);
+        _coreHub.NotifyPlanetItemChange(updatedcategory);
 
-        return Results.Ok(newcategory);
+        return new(true, "Success", updatedcategory);
     }
 
     /// <summary>
@@ -250,12 +250,12 @@ public class PlanetCategoryService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<IResult> SetChildrensOrderAsync(PlanetCategory category, long[] order)
+    public async Task<TaskResult> SetChildrensOrderAsync(PlanetCategory category, long[] order)
     {
         var totalChildren = await _db.PlanetChannels.CountAsync(x => x.ParentId == category.Id);
 
         if (totalChildren != order.Length)
-            return Results.BadRequest("Your order does not contain all the children.");
+            return new(false, "Your order does not contain all the children.");
 
         // Use transaction so we can stop at any failure
         await using var tran = await _db.Database.BeginTransactionAsync();
@@ -270,11 +270,11 @@ public class PlanetCategoryService
                 var child = await _planetChatChannelService.GetAsync(child_id);
                 if (child is null)
                 {
-                    return ValourResult.NotFound<PlanetChannel>();
+                    return new(false, $"Child with id {child_id} does not exist!");
                 }
 
                 if (child.ParentId != category.Id)
-                    return Results.BadRequest($"Category {child_id} is not a child of {category.Id}.");
+                    return new(false, $"Category {child_id} is not a child of {category.Id}.");
 
                 child.Position = pos;
 
@@ -293,7 +293,7 @@ public class PlanetCategoryService
         {
             await tran.RollbackAsync();
             _logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            return new(false, e.Message);
         }
 
         await tran.CommitAsync();
@@ -303,7 +303,7 @@ public class PlanetCategoryService
             _coreHub.NotifyPlanetItemChange(child);
         }
 
-        return Results.NoContent();
+        return new(true, "Success");
     }
 
     /// <summary>

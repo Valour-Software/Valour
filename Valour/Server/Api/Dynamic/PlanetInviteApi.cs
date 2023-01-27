@@ -1,13 +1,20 @@
+using Microsoft.AspNetCore.Mvc;
+using StackExchange.Redis;
+using System.Data;
+using Valour.Client.Pages;
+using Valour.Server.Database;
+using Valour.Shared.Authorization;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetInviteApi
 {
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}", $"api/{nameof(PlanetInvite)}"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/planetinvites/{inviteCode}")]
     public static async Task<IResult> GetRouteAsync(
-        [FromRoute] string inviteCode, 
-        ValourDB db)
+        string inviteCode, 
+        PlanetInviteService inviteService)
     {
-        var invite = await db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == inviteCode);
+        var invite = await inviteService.GetAsync(inviteCode);
 
         if (invite is null)
             return ValourResult.NotFound<PlanetInvite>();
@@ -15,102 +22,76 @@ public class PlanetInviteApi
         return Results.Json(invite);
     }
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Invite)]
+    [ValourRoute(HttpVerbs.Post, "api/planetinvites")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetInvite invite,
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetInvite> logger)
+        PlanetMemberService memberService,
+        PlanetInviteService inviteService)
     {
-        var authMember = ctx.GetMember();
+        if (invite is null)
+            return ValourResult.BadRequest("Include invite in body.");
 
-        invite.Id = IdManager.Generate();
-        invite.IssuerId = authMember.UserId;
-        invite.TimeCreated = DateTime.UtcNow;
-        invite.Code = await invite.GenerateCode(db);
+        // Get member
+        var member = await memberService.GetCurrentAsync(invite.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        try
-        {
-            await db.AddAsync(invite);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Invite))
+            return ValourResult.LacksPermission(PlanetPermissions.Invite);
 
-        hubService.NotifyPlanetItemChange(invite);
-        
-        return Results.Created(invite.GetUri(), invite);
+        var result = await inviteService.CreateAsync(invite, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
+        return Results.Created($"api/planetinvites/{invite.Id}", invite);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Manage)]
+    [ValourRoute(HttpVerbs.Put, "api/planetinvites/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
-        [FromBody] PlanetInvite invite, 
-        long id, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetInvite> logger)
+        [FromBody] PlanetInvite invite,
+        PlanetMemberService memberService,
+        PlanetInviteService inviteService)
     {
-        var oldInvite = await FindAsync<PlanetInvite>(id, db);
+        if (invite is null)
+            return ValourResult.BadRequest("Include invite in body.");
 
-        if (invite.Code != oldInvite.Code)
-            return Results.BadRequest("You cannot change the code.");
-        if (invite.IssuerId != oldInvite.IssuerId)
-            return Results.BadRequest("You cannot change who issued.");
-        if (invite.TimeCreated != oldInvite.TimeCreated)
-            return Results.BadRequest("You cannot change the creation time.");
-        if (invite.PlanetId != oldInvite.PlanetId)
-            return Results.BadRequest("You cannot change what planet.");
-        try
-        {
-            db.Entry(oldInvite).State = EntityState.Detached;
-            db.PlanetInvites.Update(invite);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-        
-        hubService.NotifyPlanetItemChange(invite);
-        
+        // Get member
+        var member = await memberService.GetCurrentAsync(invite.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        var oldInvite = await inviteService.GetAsync(invite.Id);
+
+        var result = await inviteService.UpdateAsync(oldInvite, invite);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
         return Results.Json(invite);
-
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.Manage)]
+    [ValourRoute(HttpVerbs.Delete, "api/planetinvites/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long id,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetInvite> logger)
+        PlanetMemberService memberService,
+        PlanetInviteService inviteService)
     {
-        var invite = await FindAsync<PlanetInvite>(id, db);
+        var invite = await inviteService.GetAsync(id);
 
-        try
-        {
-            await invite.DeleteAsync(db);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-        
-        hubService.NotifyPlanetItemDelete(invite);
+        // Get member
+        var member = await memberService.GetCurrentAsync(invite.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+            return ValourResult.LacksPermission(PlanetPermissions.Manage);
+
+        await inviteService.DeleteAsync(invite);
         
         return Results.NoContent();
 
@@ -136,7 +117,7 @@ public class PlanetInviteApi
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planetname", $"api/{nameof(PlanetInvite)}")]
+    [ValourRoute(HttpVerbs.Get, "api/planetinvites/{inviteCode}/planetname")]
     public static async Task<IResult> GetPlanetName(
         string inviteCode, 
         ValourDB db)
@@ -146,7 +127,7 @@ public class PlanetInviteApi
         return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{inviteCode}/planeticon", $"api/{nameof(PlanetInvite)}")]
+    [ValourRoute(HttpVerbs.Get, "api/planetinvites/{inviteCode}/planeticon")]
     public static async Task<IResult> GetPlanetIconUrl(
         string inviteCode, 
         ValourDB db)
@@ -156,19 +137,22 @@ public class PlanetInviteApi
         return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.IconUrl);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/{inviteCode}/join", $"api/{nameof(PlanetInvite)}"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Invites)]
+    [ValourRoute(HttpVerbs.Post, "api/planetinvites/{inviteCode}/join")]
+    [UserRequired(UserPermissionsEnum.Invites)]
     public static async Task<IResult> Join(
-        string inviteCode, 
-        HttpContext ctx, 
+        string inviteCode,
         ValourDB db,
-        CoreHubService hubService)
+        PlanetMemberService memberService,
+        PlanetInviteService inviteService,
+        UserService userService,
+        PlanetService planetService)
     {
-        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
+        Valour.Database.PlanetInvite invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
         if (invite == null)
             return ValourResult.NotFound<PlanetInvite>();
 
-        var userId = ctx.GetToken().UserId;
+        var user = await userService.GetCurrentUserAsync();
+        var userId = user.Id;
 
         if (await db.PlanetBans.AnyAsync(x => x.TargetId == userId && x.PlanetId == invite.PlanetId))
             return Results.BadRequest("User is banned from the planet");
@@ -179,8 +163,8 @@ public class PlanetInviteApi
         if (!invite.Planet.Public)
             return Results.BadRequest("Planet is set to private"); // TODO: Support invites w/ specific users
 
-        var result = await invite.Planet.AddMemberAsync(await User.FindAsync<User>(userId, db), db, hubService);
+        var result = await memberService.AddMemberAsync(invite.Planet.ToModel(), user);
 
-        return result.Success ? Results.Created(result.Data.GetUri(), result.Data) : Results.Problem(result.Message);
+        return result.Success ? Results.Created($"api/members/{result.Data.Id}", result.Data) : Results.Problem(result.Message);
     }
 }
