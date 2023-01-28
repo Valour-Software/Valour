@@ -52,14 +52,10 @@ public class PlanetChatChannelApi
         if (channel is null)
             return ValourResult.BadRequest("Include planetchatchannel in body.");
 
-		channel.Id = IdManager.Generate();
-
 		// Get member
 		var member = await memberService.GetCurrentAsync(channel.PlanetId);
 		if (member is null)
 			return ValourResult.NotPlanetMember();
-
-        var planet = await planetService.GetAsync(channel.PlanetId);
 
         if (channel.ParentId is not null)
         {
@@ -95,8 +91,6 @@ public class PlanetChatChannelApi
 
         if (request.Channel is null)
             return ValourResult.BadRequest("Include Channel in CreatePlanetChatChannelRequest.");
-
-        request.Channel.Id = IdManager.Generate();
 
         // Get member
         var member = await memberService.GetCurrentAsync(request.Channel.PlanetId);
@@ -136,7 +130,7 @@ public class PlanetChatChannelApi
         // Get the category
         var old = await channelService.GetAsync(id);
         if (old is null)
-            return ValourResult.NotFound("Category not found");
+            return ValourResult.NotFound("Channel not found");
 
         // Get member
         var member = await memberService.GetCurrentAsync(old.PlanetId);
@@ -153,7 +147,7 @@ public class PlanetChatChannelApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Json(channel);
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}")]

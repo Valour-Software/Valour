@@ -1,255 +1,209 @@
+using IdGen;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using Valour.Server.Database;
+using Valour.Server.Requests;
+using Valour.Shared.Authorization;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PlanetVoiceChannelApi
 {
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-    [PlanetMembershipRequired, VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.View)]
-    public static IResult GetRoute(HttpContext ctx, long id) =>
-        Results.Json(ctx.GetItem<PlanetVoiceChannel>(id));
+    [ValourRoute(HttpVerbs.Get, "api/planetvoicechannels/{id}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetRouteAsync(
+        long id,
+        PlanetVoiceChannelService voiceChannelService,
+        PlanetMemberService memberService)
+    {
+        // Get the channel
+        var channel = await voiceChannelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
 
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+        // Get member
+        var member = await memberService.GetCurrentAsync(channel.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        // Ensure member has permission to view this channel
+        if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+            return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+        // Return json
+        return Results.Json(channel);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/planetvoicechannels")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetVoiceChannel channel,
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetVoiceChannel> logger)
+        PlanetMemberService memberService,
+        PlanetService planetService,
+        PlanetVoiceChannelService voiceChannelService,
+        PlanetCategoryService categoryService)
     {
-        // Get resources
-        var member = ctx.GetMember();
+        if (channel is null)
+            return ValourResult.BadRequest("Include planetvoicechannel in body.");
 
-        if (channel.PlanetId != planetId)
-            return Results.BadRequest("PlanetId mismatch.");
+        // Get member
+        var member = await memberService.GetCurrentAsync(channel.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var nameValid = ValidateName(channel.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
-
-        var descValid = ValidateDescription(channel.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
-
-        var positionValid = await ValidateParentAndPosition(db, channel);
-        if (!positionValid.Success)
-            return Results.BadRequest(positionValid.Message);
-
-        // Ensure user has permission for parent category management
         if (channel.ParentId is not null)
         {
-            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
-            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            // Ensure user has permission for parent category management
+            var parent = await categoryService.GetAsync((long)channel.ParentId);
+            if (!await memberService.HasPermissionAsync(member, parent, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
-
-        channel.Id = IdManager.Generate();
-
-        try
+        else
         {
-            await db.PlanetVoiceChannels.AddAsync(channel);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
         }
 
-        hubService.NotifyPlanetItemChange(channel);
+        var result = await voiceChannelService.CreateAsync(channel);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        return Results.Created(channel.GetUri(), channel);
+        return Results.Created($"api/planetvoicechannels/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Post, "/detailed"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
+    [ValourRoute(HttpVerbs.Post, "api/planetvoicechannels/detailed")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteWithDetailsAsync(
         [FromBody] CreatePlanetVoiceChannelRequest request,
-        long planetId,
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetVoiceChannel> logger)
+        PlanetMemberService memberService,
+        PlanetService planetService,
+        PlanetVoiceChannelService voiceChannelService,
+        PlanetCategoryService categoryService)
     {
-        // Get resources
-        var member = ctx.GetMember();
+        if (request is null)
+            return ValourResult.BadRequest("Include CreatePlanetChatChannelRequest in body.");
 
-        var channel = request.Channel;
+        if (request.Channel is null)
+            return ValourResult.BadRequest("Include Channel in CreatePlanetChatChannelRequest.");
 
-        if (channel.PlanetId != planetId)
-            return Results.BadRequest("PlanetId mismatch.");
+        request.Channel.Id = IdManager.Generate();
 
-        var nameValid = ValidateName(channel.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
+        // Get member
+        var member = await memberService.GetCurrentAsync(request.Channel.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var descValid = ValidateDescription(channel.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
+        var planet = await planetService.GetAsync(request.Channel.PlanetId);
 
-        var positionValid = await ValidateParentAndPosition(db, channel);
-        if (!positionValid.Success)
-            return Results.BadRequest(positionValid.Message);
-
-        // Ensure user has permission for parent category management
-        if (channel.ParentId is not null)
+        if (request.Channel.ParentId is not null)
         {
-            var parent_cat = await db.PlanetCategoryChannels.FindAsync(channel.ParentId);
-            if (!await parent_cat.HasPermissionAsync(member, CategoryPermissions.ManageCategory, db))
+            // Ensure user has permission for parent category management
+            var parent = await categoryService.GetAsync((long)request.Channel.ParentId);
+            if (!await memberService.HasPermissionAsync(member, parent, CategoryPermissions.ManageCategory))
                 return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
         }
-
-        channel.Id = IdManager.Generate();
-
-        List<PermissionsNode> nodes = new();
-
-        // Create nodes
-        foreach (var nodeReq in request.Nodes)
+        else
         {
-            var node = nodeReq;
-            node.TargetId = channel.Id;
-            node.PlanetId = planetId;
-
-            var role = await FindAsync<PlanetRole>(node.RoleId, db);
-            if (role.GetAuthority() > await member.GetAuthorityAsync(db))
-                return ValourResult.Forbid("A permission node's role has higher authority than you.");
-
-            node.Id = IdManager.Generate();
-
-            nodes.Add(node);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
         }
 
-        var tran = await db.Database.BeginTransactionAsync();
+        var result = await voiceChannelService.CreateDetailedAsync(request, member);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        try
-        {
-            await db.PlanetVoiceChannels.AddAsync(channel);
-            await db.SaveChangesAsync();
-
-            await db.PermissionsNodes.AddRangeAsync(nodes);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            await tran.RollbackAsync();
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        await tran.CommitAsync();
-
-        hubService.NotifyPlanetItemChange(channel);
-
-        return Results.Created(channel.GetUri(), channel);
+        return Results.Created($"api/planetvoicechannels/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    [VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.ManageChannel)]
+    [ValourRoute(HttpVerbs.Put, "api/planetvoicechannels/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetVoiceChannel channel, 
-        long id, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetChatChannel> logger)
+        long id,
+        PlanetMemberService memberService,
+        PlanetVoiceChannelService voiceChannelService)
     {
-        // Get resources
-        var old = ctx.GetItem<PlanetVoiceChannel>(id);
+        // Get the category
+        var old = await voiceChannelService.GetAsync(id);
+        if (old is null)
+            return ValourResult.NotFound("Channel not found");
 
-        // Validation
-        if (old.Id != channel.Id)
-            return Results.BadRequest("Cannot change Id.");
-        if (old.PlanetId != channel.PlanetId)
-            return Results.BadRequest("Cannot change PlanetId.");
+        // Get member
+        var member = await memberService.GetCurrentAsync(old.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        var nameValid = ValidateName(channel.Name);
-        if (!nameValid.Success)
-            return Results.BadRequest(nameValid.Message);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageChannels))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageChannels);
 
-        var descValid = ValidateDescription(channel.Description);
-        if (!descValid.Success)
-            return Results.BadRequest(descValid.Message);
+        if (!await memberService.HasPermissionAsync(member, old, VoiceChannelPermissions.ManageChannel))
+            return ValourResult.LacksPermission(VoiceChannelPermissions.ManageChannel);
 
-        var positionValid = await ValidateParentAndPosition(db, channel);
-        if (!positionValid.Success)
-            return Results.BadRequest(positionValid.Message);
+        var result = await voiceChannelService.PutAsync(old, channel);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        // Update
-        try
-        {
-            db.Entry(old).State = EntityState.Detached;
-            db.PlanetVoiceChannels.Update(channel);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        hubService.NotifyPlanetItemChange(channel);
-
-        // Response
-        return Results.Ok(channel);
+        return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.PlanetManagement)]
-    [PlanetMembershipRequired(permissions: PlanetPermissionsEnum.ManageChannels)]
-    [VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.ManageChannel)]
+    [ValourRoute(HttpVerbs.Delete, "api/planetvoicechannels/{id}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long id, 
-        long planetId, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PlanetVoiceChannel> logger)
+        PlanetVoiceChannelService voiceChannelService,
+        PlanetMemberService memberService)
     {
-        var channel = ctx.GetItem<PlanetVoiceChannel>(id);
+        // Get the channel
+        var channel = await voiceChannelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
 
-        // Always use transaction for multi-step DB operations
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        // Get member
+        var member = await memberService.GetCurrentAsync(channel.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
 
-        try
-        {
-            channel.Delete(db);
-            await db.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            await transaction.RollbackAsync();
-            return Results.Problem(e.Message);
-        }
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageChannels))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageChannels);
 
-        hubService.NotifyPlanetItemDelete(channel);
+        if (!await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.ManageChannel))
+            return ValourResult.LacksPermission(VoiceChannelPermissions.ManageChannel);
+
+        var result = await voiceChannelService.DeleteAsync(channel);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/checkperm/{memberId}/{value}"), TokenRequired]
-    [PlanetMembershipRequired]
-    [VoiceChannelPermsRequired(VoiceChannelPermissionsEnum.View)]
+    [ValourRoute(HttpVerbs.Get, "api/planetvoicechannels/{id}/checkperm/{memberId}/{value}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> HasPermissionRouteAsync(
         long id, 
         long memberId, 
-        long value, 
-        HttpContext ctx, 
-        ValourDB db)
+        long value,
+        PlanetMemberService memberService,
+        PlanetVoiceChannelService voiceChannelService)
     {
-        var channel = ctx.GetItem<PlanetVoiceChannel>(id);
+        // Get the channel
+        var channel = await voiceChannelService.GetAsync(id);
+        if (channel is null)
+            return ValourResult.NotFound("Channel not found");
 
-        var targetMember = await FindAsync<PlanetMember>(memberId, db);
+        // Get member
+        var member = await memberService.GetCurrentAsync(channel.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        // Ensure member has permission to view this channel
+        if (!await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.View))
+            return ValourResult.LacksPermission(VoiceChannelPermissions.View);
+
+        var targetMember = await memberService.GetAsync(memberId);
         if (targetMember is null)
             return ValourResult.NotFound<PlanetMember>();
 
-        var hasPerm = await channel.HasPermissionAsync(targetMember, new Permission(value, "", ""), db);
+        var hasPerm = await memberService.HasPermissionAsync(targetMember, channel, new VoiceChannelPermission(value, "", ""));
 
         return Results.Json(hasPerm);
     }

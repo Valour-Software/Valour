@@ -67,6 +67,8 @@ public class PlanetChatChannelService
         if (!baseValid.Success)
             return new(false, baseValid.Message);
 
+        channel.Id = IdManager.Generate();
+
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
@@ -111,6 +113,8 @@ public class PlanetChatChannelService
 
             nodes.Add(node);
         }
+
+        channel.Id = IdManager.Generate();
 
         var tran = await _db.Database.BeginTransactionAsync();
 
