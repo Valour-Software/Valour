@@ -34,6 +34,6 @@ public class OauthAppService
             return new(false, e.Message);
         }
 
-        return new(true, "Success");
+        return new(true, "Success", newApp);
     }
 }
