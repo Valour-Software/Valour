@@ -173,7 +173,7 @@ public class DirectChatChannelService
             else
             {
                 // Inter-node communications
-                await _httpClient.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
+                await _httpClient.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/directchatchannels/relaydelete?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
             }
         }
 
