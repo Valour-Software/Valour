@@ -22,7 +22,7 @@ public static class DirectMessageMapper
         };
     }
     
-    public static Valour.Database.DirectMessage ToDatabase(this Valour.Database.DirectMessage message)
+    public static Valour.Database.DirectMessage ToDatabase(this DirectMessage message)
     {
         if (message is null)
             return null;
