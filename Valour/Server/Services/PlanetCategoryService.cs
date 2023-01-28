@@ -15,7 +15,7 @@ public class PlanetCategoryService
     private readonly PlanetChatChannelService _planetChatChannelService;
     private readonly PlanetRoleService _planetRoleService;
     private readonly CoreHubService _coreHub;
-    private readonly ILogger<PlanetChatChannelService> _logger;
+    private readonly ILogger<PlanetCategoryService> _logger;
 
     public PlanetCategoryService(
         ValourDB db, 
@@ -24,7 +24,7 @@ public class PlanetCategoryService
         CoreHubService coreHub,
         PlanetChatChannelService planetChatChannelService,
         PlanetRoleService planetRoleService,
-        ILogger<PlanetChatChannelService> logger)
+        ILogger<PlanetCategoryService> logger)
     {
         _db = db;
         _planetService = planetService;

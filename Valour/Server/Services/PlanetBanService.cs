@@ -12,14 +12,14 @@ public class PlanetBanService
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly PlanetMemberService _memberService;
-    private readonly ILogger<PlanetChatChannelService> _logger;
+    private readonly ILogger<PlanetBanService> _logger;
 
     public PlanetBanService(
         ValourDB db,
         CoreHubService coreHub,
         TokenService tokenService,
         PlanetMemberService memberService,
-        ILogger<PlanetChatChannelService> logger)
+        ILogger<PlanetBanService> logger)
     {
         _db = db;
         _coreHub = coreHub;

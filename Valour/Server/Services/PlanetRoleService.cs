@@ -11,12 +11,12 @@ namespace Valour.Server.Services;
 public class PlanetRoleService
 {
     private readonly ValourDB _db;
-    private readonly ILogger<PlanetChatChannelService> _logger;
+    private readonly ILogger<PlanetRoleService> _logger;
     private readonly CoreHubService _coreHub;
 
     public PlanetRoleService(
         ValourDB db, 
-        ILogger<PlanetChatChannelService> logger, 
+        ILogger<PlanetRoleService> logger, 
         CoreHubService coreHub)
     {
         _db = db;
