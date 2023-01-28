@@ -19,9 +19,9 @@ public class OauthAppService
     public async Task<OauthApp> GetAsync(long id) =>
         (await _db.OauthApps.FindAsync(id)).ToModel();
 
-    public async Task<TaskResult<OauthApp>> PutAsync(OauthApp old, OauthApp newApp)
+    public async Task<TaskResult<OauthApp>> PutAsync(OauthApp old, OauthApp updatedApp)
     {
-        old.RedirectUrl = newApp.RedirectUrl;
+        old.RedirectUrl = updatedApp.RedirectUrl;
 
         try
         {
@@ -34,6 +34,6 @@ public class OauthAppService
             return new(false, e.Message);
         }
 
-        return new(true, "Success", newApp);
+        return new(true, "Success", old);
     }
 }

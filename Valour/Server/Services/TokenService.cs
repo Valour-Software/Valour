@@ -21,6 +21,11 @@ public class TokenService
         _contextAccessor = contextAccessor;
     }
 
+    public void RemoveFromQuickCache(string id)
+    {
+        QuickCache.Remove(id, out _);
+    }
+
     /// <summary>
     /// Will return the auth object for a valid token.
     /// A null response means the key was invalid.

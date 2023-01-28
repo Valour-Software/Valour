@@ -1,5 +1,13 @@
 using IdGen;
+using Newtonsoft.Json.Linq;
+using SendGrid;
 using Valour.Database.Context;
+using Valour.Server.Database;
+using Valour.Server.Email;
+using Valour.Server.Users;
+using Valour.Shared;
+using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -7,16 +15,24 @@ public class UserService
 {
     private readonly ValourDB _db;
     private readonly TokenService _tokenService;
+    private readonly ILogger<UserService> _logger;
+    private readonly CoreHubService _coreHub;
 
     /// <summary>
     /// The stored user for the current request
     /// </summary>
     private User _currentUser;
 
-    public UserService(ValourDB db, TokenService tokenService)
+    public UserService(
+        ValourDB db, 
+        TokenService tokenService,
+        ILogger<UserService> logger,
+        CoreHubService coreHub)
     {
         _db = db;
         _tokenService = tokenService;
+        _logger = logger;
+        _coreHub = coreHub;
     }
 
     /// <summary>
@@ -24,6 +40,296 @@ public class UserService
     /// </summary>
     public async Task<User> GetAsync(long id) =>
         (await _db.Users.FindAsync(id)).ToModel();
+
+    public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
+        (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
+
+    public async Task<UserEmail> GetUserEmailAsync(string email) =>
+        (await _db.UserEmails.FindAsync(email)).ToModel();
+
+    public async Task<PasswordRecovery> GetPasswordRecoveryAsync(string code) =>
+        (await _db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
+
+    public async Task<Valour.Database.Credential> GetCredentialAsync(long userId) =>
+        await _db.Credentials.FirstOrDefaultAsync(x => x.UserId == userId);
+
+    public async Task<IEnumerable<UserChannelState>> GetUserChannelStatesAsync(long userId) =>
+        await _db.UserChannelStates.Where(x => x.UserId == userId).AsAsyncEnumerable();
+
+    public async Task<TaskResult> RecoveryUserAsync(PasswordRecoveryRequest request, PasswordRecovery recovery, Valour.Database.Credential cred)
+    {
+        using var tran = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            _db.PasswordRecoveries.Remove(recovery.ToDatabase());
+
+            byte[] salt = PasswordManager.GenerateSalt();
+            byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
+
+            cred.Salt = salt;
+            cred.Secret = hash;
+
+            _db.Credentials.Update(cred);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, "We're sorry. Something unexpected occured. Try again?");
+        }
+
+        await tran.CommitAsync();
+
+        return new(true, "Success");
+    }
+
+    public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx)
+    {
+        if (await _db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
+            return new(false, "Username is taken");
+
+        if (await _db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
+            return new(false, "This email has already been used");
+
+        var emailValid = UserUtils.TestEmail(request.Email);
+        if (!emailValid.Success)
+            return new(false, emailValid.Message);
+
+        // Check for whole blocked emails
+        if (await _db.BlockedUserEmails.AnyAsync(x => x.Email.ToLower() == request.Email.ToLower()))
+            return new(false, "Include request in body"); // Vague on purpose
+
+        var host = request.Email.Split('@')[1];
+
+        // Check for blocked host
+        if (await _db.BlockedUserEmails.AnyAsync(x => x.Email.ToLower() == host.ToLower()))
+            return new(false, "Include request in body"); // Vague on purpose
+
+
+        var usernameValid = UserUtils.TestUsername(request.Username);
+        if (!usernameValid.Success)
+            return new(false, usernameValid.Message);
+
+        var passwordValid = UserUtils.TestPasswordComplexity(request.Password);
+        if (!passwordValid.Success)
+            return new(false, passwordValid.Message);
+
+        Valour.Database.Referral refer = null;
+        if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
+        {
+            request.Referrer = request.Referrer.Trim();
+            var referUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
+            if (referUser is null)
+                return new(false, "Referrer not found");
+
+            refer = new Referral()
+            {
+                ReferrerId = referUser.Id
+            };
+        }
+
+        byte[] salt = PasswordManager.GenerateSalt();
+        byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
+
+        using var tran = await _db.Database.BeginTransactionAsync();
+
+        User user = null;
+
+        try
+        {
+            user = new()
+            {
+                Id = IdManager.Generate(),
+                Name = request.Username,
+                TimeJoined = DateTime.UtcNow,
+                TimeLastActive = DateTime.UtcNow,
+            };
+
+            _db.Users.Add(user.ToDatabase());
+            await _db.SaveChangesAsync();
+
+            if (refer != null)
+            {
+                refer.UserId = user.Id;
+                await _db.Referrals.AddAsync(refer);
+            }
+
+            UserEmail userEmail = new()
+            {
+                Email = request.Email,
+                Verified = false,
+                UserId = user.Id
+            };
+
+            _db.UserEmails.Add(userEmail.ToDatabase());
+
+            Valour.Database.Credential cred = new()
+            {
+                Id = IdManager.Generate(),
+                CredentialType = Valour.Database.CredentialType.PASSWORD,
+                Identifier = request.Email,
+                Salt = salt,
+                Secret = hash,
+                UserId = user.Id
+            };
+
+            _db.Credentials.Add(cred);
+
+            var emailCode = Guid.NewGuid().ToString();
+            EmailConfirmCode confirmCode = new()
+            {
+                Code = emailCode,
+                UserId = user.Id
+            };
+
+            _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
+            await _db.SaveChangesAsync();
+
+            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
+                await tran.RollbackAsync();
+                return new(false, "Sorry! We had an issue emailing your confirmation. Try again?");
+            }
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e.Message);
+            return new(false, "Sorry! An unexpected error occured. Try again?");
+        }
+
+        await tran.CommitAsync();
+
+        return new(true, "Success");
+    }
+
+    public async Task<TaskResult> ResendRegistrationEmail(UserEmail userEmail, HttpContext ctx, RegisterUserRequest request)
+    {
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            _db.EmailConfirmCodes.RemoveRange(_db.EmailConfirmCodes.Where(x => x.UserId == userEmail.UserId));
+
+            var emailCode = Guid.NewGuid().ToString();
+            EmailConfirmCode confirmCode = new()
+            {
+                Code = emailCode,
+                UserId = userEmail.UserId
+            };
+
+            _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
+            await _db.SaveChangesAsync();
+
+            Response result = await SendRegistrationEmail(ctx.Request, request.Email, emailCode);
+            if (!result.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Issue sending email to {request.Email}. Error code {result.StatusCode}.");
+                await tran.RollbackAsync();
+                return new(false, "Sorry! We had an issue emailing your confirmation. Try again?");
+            }
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e.Message);
+            return new(false, "Sorry! An unexpected error occured. Try again?");
+        }
+
+        await tran.CommitAsync();
+
+        return new(true, "Success");
+    }
+
+    private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
+    {
+        var host = request.Host.ToUriComponent();
+        string link = $"{request.Scheme}://{host}/api/user/verify/{code}";
+
+        string emsg = $@"<body>
+                                  <h2 style='font-family:Helvetica;'>
+                                    Welcome to Valour!
+                                  </h2>
+                                  <p style='font-family:Helvetica;>
+                                    To verify your new account, please use the following link: 
+                                  </p>
+                                  <p style='font-family:Helvetica;'>
+                                    <a href='{link}'>Verify</a>
+                                  </p>
+                                </body>";
+
+        string rawmsg = $"Welcome to Valour!\nTo verify your new account, please go to the following link:\n{link}";
+
+        var result = await EmailManager.SendEmailAsync(email, "Valour Registration", rawmsg, emsg);
+        return result;
+    }
+
+    public async Task<TaskResult<User>> UpdateAsync(User updatedUser)
+    {
+        var old = await GetAsync(updatedUser.Id);
+
+        old.Status = updatedUser.Status;
+
+        old.UserStateCode = updatedUser.UserStateCode;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        await _coreHub.NotifyUserChange(old);
+
+        return new(true, "Success", old);
+    }
+
+    public async Task<TaskResult> VerifyAsync(EmailConfirmCode confirmCode)
+    {
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            var email = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
+            email.Verified = true;
+            _db.EmailConfirmCodes.Remove(confirmCode.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        await tran.CommitAsync();
+
+        return new(true, "Success");
+    }
+
+    public async Task<TaskResult> Logout(AuthToken token)
+    {
+        try
+        {
+            _db.Entry(token).State = EntityState.Deleted;
+            _tokenService.RemoveFromQuickCache(token.Id);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        return new(true, "Success");
+    }
 
 
     /// <summary>
@@ -58,6 +364,82 @@ public class UserService
     /// </summary>
     public Task<int> GetJoinedPlanetCount(long userId) => 
         _db.PlanetMembers.CountAsync(x => x.UserId == userId);
+
+    public async Task<TaskResult<User>> ValidateAsync(string credential_type, string identifier, string secret)
+    {
+        // Find the credential that matches the identifier and type
+        Valour.Database.Credential credential = await _db.Credentials.FirstOrDefaultAsync(
+            x => string.Equals(credential_type.ToUpper(), x.CredentialType.ToUpper()) &&
+                    string.Equals(identifier.ToUpper(), x.Identifier.ToUpper()));
+
+        if (credential == null || string.IsNullOrWhiteSpace(secret))
+        {
+            return new TaskResult<User>(false, "The credentials were incorrect.", null);
+        }
+
+        // Use salt to validate secret hash
+        byte[] hash = PasswordManager.GetHashForPassword(secret, credential.Salt);
+
+        // Spike needs to remember how reference types work 
+        if (!hash.SequenceEqual(credential.Secret))
+        {
+            return new TaskResult<User>(false, "The credentials were incorrect.", null);
+        }
+
+        User user = await _db.Users.FindAsync(credential.UserId);
+
+        if (user.Disabled)
+        {
+            return new TaskResult<User>(false, "This account has been disabled", null);
+        }
+
+        return new TaskResult<User>(true, "Succeeded", user);
+    }
+
+    public async Task<TaskResult<AuthToken>> GetTokenAfterLoginAsync(HttpContext ctx, long userId)
+    {
+        // Check for an old token
+        var token = await _db.AuthTokens
+            .FirstOrDefaultAsync(x => x.AppId == "VALOUR" &&
+                                      x.UserId == userId &&
+                                      x.Scope == UserPermissions.FullControl.Value).ToModel();
+
+        try
+        {
+            if (token is null)
+            {
+                // We now have to create a token for the user
+                token = new AuthToken()
+                {
+                    AppId = "VALOUR",
+                    Id = "val-" + Guid.NewGuid().ToString(),
+                    TimeCreated = DateTime.UtcNow,
+                    TimeExpires = DateTime.UtcNow.AddDays(7),
+                    Scope = UserPermissions.FullControl.Value,
+                    UserId = userId,
+                    IssuedAddress = ctx.Connection.RemoteIpAddress.ToString()
+                };
+
+                await _db.AuthTokens.AddAsync(token);
+                await _db.SaveChangesAsync();
+            }
+            else
+            {
+                token.TimeCreated = DateTime.UtcNow;
+                token.TimeExpires = DateTime.UtcNow.AddDays(7);
+
+                _db.AuthTokens.Update(token);
+                await _db.SaveChangesAsync();
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, e.Message);
+        }
+
+        return new(true, "Success", token);
+    }
 
     /// <summary>
     /// Nuke it.
