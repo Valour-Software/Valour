@@ -19,7 +19,7 @@ public static class OauthAppMapper
         };
     }
     
-    public static Valour.Database.OauthApp ToDatabase(this Valour.Database.OauthApp app)
+    public static Valour.Database.OauthApp ToDatabase(this OauthApp app)
     {
         if (app is null)
             return null;
