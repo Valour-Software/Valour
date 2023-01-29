@@ -42,7 +42,7 @@ public class PermissionsNodeService
     {
         try
         {
-            _db.Entry(oldNode).State = EntityState.Detached;
+            _db.Entry(oldNode.ToDatabase()).State = EntityState.Detached;
             _db.PermissionsNodes.Update(newNode.ToDatabase());
             await _db.SaveChangesAsync();
         }

@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Api.Items;
+using Valour.Api.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;

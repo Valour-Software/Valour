@@ -4,7 +4,6 @@ using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Config;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Authorization;
 using Valour.Server.Database.Nodes;
 using Valour.Server.Redis;
 using Valour.Shared;
@@ -32,7 +31,7 @@ public class ConnectionTracker
 
     // Map of connection id to user id
     // This specifically stores primary user connections
-    public static readonly ConcurrentDictionary<string, PrimaryNodeConnection> PrimaryConnections = new();
+    public static readonly ConcurrentDictionary<string, Valour.Database.PrimaryNodeConnection> PrimaryConnections = new();
 
     public static AuthToken GetToken(string connectionId)
     {
@@ -134,7 +133,7 @@ public class ConnectionTracker
 
     public static async Task AddPrimaryConnection(long userId, HubCallerContext context, IConnectionMultiplexer redis)
     {
-        var conn = new PrimaryNodeConnection()
+        var conn = new Valour.Database.PrimaryNodeConnection()
         {
             ConnectionId = context.ConnectionId,
             UserId = userId,

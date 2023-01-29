@@ -24,8 +24,8 @@ public class PlanetInviteService
         (await _db.PlanetInvites.FindAsync(id)).ToModel();
 
     public async Task<PlanetInvite> GetAsync(string code) =>
-        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code)
-        .ToModel());
+        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code))
+        .ToModel();
 
     public async Task<PlanetInvite> GetAsync(string code, long planetId) => 
         (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code 
@@ -67,7 +67,7 @@ public class PlanetInviteService
             return new(false, "You cannot change what planet.");
         try
         {
-            _db.Entry(oldInvite).State = EntityState.Detached;
+            _db.Entry(oldInvite.ToDatabase()).State = EntityState.Detached;
             _db.PlanetInvites.Update(updatedInvite.ToDatabase());
             await _db.SaveChangesAsync();
         }
@@ -86,7 +86,7 @@ public class PlanetInviteService
     {
         try
         {
-            await _db.PlanetInvites.Remove(invite.ToDatabase());
+            _db.PlanetInvites.Remove(invite.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

@@ -2,8 +2,8 @@
 @implements IAsyncDisposable
 
 @inject TenorService TenorService
-@    using Valour.TenorTwo.Models
-@    using Valour.TenorTwo.Responses
+@using Valour.TenorTwo.Models
+@using Valour.TenorTwo.Responses
 
 <div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg" class="tenor-bg">
     <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Tenor..." />

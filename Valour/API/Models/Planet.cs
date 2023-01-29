@@ -1,5 +1,5 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Items;
+using Valour.Api.Models;
 using Valour.Api.Nodes;
 using Valour.Shared.Models;
 
@@ -335,7 +335,7 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async Task LoadInvitesAsync()
     {
-        var invites = (await Node.GetJsonAsync<List<PlanetInvite>>($"api/Planet/{Id}/invites")).Data;
+        var invites = (await Node.GetJsonAsync<List<PlanetInvite>>($"api/planets/{Id}/invites")).Data;
 
         if (invites is null)
             return;

@@ -101,7 +101,7 @@ public class PlanetBanService
 
         try
         {
-            _db.Entry(old).State = EntityState.Detached;
+            _db.Entry(old.ToDatabase()).State = EntityState.Detached;
             _db.PlanetBans.Update(updatedban.ToDatabase());
             await _db.SaveChangesAsync();
         }

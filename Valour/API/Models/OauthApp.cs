@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Api.Items;
+using Valour.Api.Models;
 using Valour.Api.Nodes;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -12,6 +12,12 @@ namespace Valour.Api.Models;
 
 public class OauthApp : Item, ISharedOauthApp
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/oauthapps";
+
+    #endregion
 
     /// <summary>
     /// The secret key for the app

@@ -1,7 +1,6 @@
 ﻿@inject HttpClient http
 @inject NavigationManager navManager
-@    using Valour.Shared
-@    using Valour.Api.Items.Planets
+@using Valour.Shared
 @inject HttpClient Http
 
 <br />
@@ -55,7 +54,7 @@
             invite.TimeExpires = null;
         }
 
-        var response = await Planet.Node.PostAsyncWithResponse<PlanetInvite>($"api/planet/{Planet.Id}/planetinvite", invite);
+        var response = await Planet.Node.PostAsyncWithResponse<PlanetInvite>($"api/planetinvites", invite);
 
         if (!response.Success)
         {

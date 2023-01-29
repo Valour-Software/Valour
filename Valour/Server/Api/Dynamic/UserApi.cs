@@ -100,7 +100,7 @@ public class UserApi
     public static async Task<IResult> ChannelStatesRouteAsync(
         UserService userService)
     {
-        var channelStates = userService.GetUserChannelStatesAsync(await userService.GetCurrentUserId());
+        var channelStates = await userService.GetUserChannelStatesAsync(await userService.GetCurrentUserId());
 
         return Results.Json(channelStates);
     }
@@ -295,6 +295,6 @@ public class UserApi
     {
         var userId = await userService.GetCurrentUserId();
 
-        return Results.Json(userService.GetTenorFavoritesAsync(userId));
+        return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
 }

@@ -1,11 +1,9 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Items.Channels.Planets;
-using Valour.Api.Items.Planets;
 using Valour.Api.Models;
 using Valour.Api.Nodes;
 using Valour.Shared.Models;
 
-namespace Valour.Api.Items.Channels.Users;
+namespace Valour.Api.Models;
 
 /*  Valour - A free and secure chat client
 *  Copyright (C) 2021 Vooper Media LLC
@@ -16,6 +14,13 @@ namespace Valour.Api.Items.Channels.Users;
 
 public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/directchatchannels";
+
+    #endregion
+
     /// <summary>
     /// One of the users in the DM channel
     /// </summary>
@@ -39,7 +44,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
             if (cached is not null)
                 return cached;
         }
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/{nameof(DirectChatChannel)}/{id}")).Data;
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/directchatchannels/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();
@@ -73,7 +78,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
             if (cached is not null)
                 return cached;
         }
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/{nameof(DirectChatChannel)}/byuser/{otherUserId}")).Data;
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/directchatchannels/byuser/{otherUserId}")).Data;
 
         if (item is not null)
             await item.AddToCache();

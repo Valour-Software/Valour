@@ -1,5 +1,5 @@
 using Valour.Api.Client;
-using Valour.Api.Items;
+using Valour.Api.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -7,6 +7,12 @@ namespace Valour.Api.Models;
 
 public class TenorFavorite : Item, ISharedTenorFavorite
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/tenorfavorites";
+
+    #endregion
     /// <summary>
     /// The Tenor Id of this favorite
     /// </summary>

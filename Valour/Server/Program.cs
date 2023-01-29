@@ -13,12 +13,6 @@ using Valour.Server.Cdn.Api;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Config;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Channels.Planets;
-using Valour.Server.Database.Items.Channels.Users;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
 using Valour.Server.Email;
 using Valour.Server.Hubs;
 using Valour.Server.Redis;
@@ -26,12 +20,16 @@ using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Models;
 using WebPush;
+using Valour.Database.Config;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Valour.Server.Api.Dynamic;
 
 namespace Valour.Server
 {
     public class Program
     {
         public static List<object> ItemApis { get; set; }
+        public static List<object> DynamicApis { get; set; }
 
         public static NodeAPI NodeAPI { get; set; }
 
@@ -100,7 +98,7 @@ namespace Valour.Server
                 new ItemAPI<Planet>()                   .RegisterRoutes(app),
                 new ItemAPI<PlanetChatChannel>()        .RegisterRoutes(app),
                 new ItemAPI<PlanetVoiceChannel>()       .RegisterRoutes(app),
-                new ItemAPI<PlanetCategoryChannel>()    .RegisterRoutes(app),
+                new ItemAPI<PlanetCategory>()           .RegisterRoutes(app),
                 new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
                 new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
                 new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
@@ -110,6 +108,23 @@ namespace Valour.Server
                 new ItemAPI<DirectChatChannel>()        .RegisterRoutes(app),
                 new ItemAPI<OauthApp>()                 .RegisterRoutes(app),
                 new ItemAPI<TenorFavorite>()            .RegisterRoutes(app)
+            };
+
+            DynamicApis = new() {
+                new DynamicAPI<UserApi>()                     .RegisterRoutes(app),
+                new DynamicAPI<PlanetApi>()                   .RegisterRoutes(app),
+                new DynamicAPI<PlanetChatChannelApi>()        .RegisterRoutes(app),
+                new DynamicAPI<PlanetVoiceChannelApi>()       .RegisterRoutes(app),
+                new DynamicAPI<PlanetCategoryApi>()           .RegisterRoutes(app),
+                new DynamicAPI<PlanetMemberApi>()             .RegisterRoutes(app),
+                new DynamicAPI<PlanetRoleApi>()               .RegisterRoutes(app),
+                new DynamicAPI<PlanetInviteApi>()             .RegisterRoutes(app),
+                new DynamicAPI<PlanetBanApi>()                .RegisterRoutes(app),
+                new DynamicAPI<PermissionsNodeApi>()          .RegisterRoutes(app),
+                new DynamicAPI<UserFriendApi>()               .RegisterRoutes(app),
+                new DynamicAPI<DirectChatChannelApi>()        .RegisterRoutes(app),
+                new DynamicAPI<OauthAppAPI>()                 .RegisterRoutes(app),
+                new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app)
             };
 
             NodeAPI = new NodeAPI(NodeConfig.Instance);
@@ -283,18 +298,31 @@ namespace Valour.Server
             services.AddRazorPages();
 
             services.AddSingleton<CdnMemoryCache>();
+            services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
-            services.AddScoped<UserService>();
-            services.AddScoped<PermissionsService>();
-            services.AddScoped<PlanetService>();
-            services.AddScoped<PlanetMemberService>();
-            services.AddScoped<PlanetCategoryService>();
-            services.AddScoped<PlanetChatChannelService>();
-            services.AddScoped<PlanetMessageService>();
-            
             services.AddScoped<UserOnlineService>();
             services.AddScoped<CoreHubService>();
             services.AddScoped<CurrentlyTypingService>();
+            services.AddScoped<OauthAppService>();
+            services.AddScoped<PermissionsNodeService>();
+
+            services.AddScoped<DirectChatChannelService>();
+            services.AddScoped<OauthAppService>();
+            services.AddScoped<PlanetBanService>();
+            services.AddScoped<PlanetCategoryService>();
+            services.AddScoped<PlanetChannelService>();
+            services.AddScoped<PlanetChatChannelService>();
+            services.AddScoped<PlanetInviteService>();
+            services.AddScoped<PlanetMemberService>();
+            services.AddScoped<PlanetMessageService>();
+            services.AddScoped<PlanetRoleService>();
+            services.AddScoped<PlanetService>();
+            services.AddScoped<PlanetVoiceChannelService>();
+            services.AddScoped<TenorFavoriteService>();
+            services.AddScoped<TokenService>();
+            services.AddScoped<UserFriendService>();
+            services.AddScoped<UserOnlineService>();
+            services.AddScoped<UserService>();
 
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();

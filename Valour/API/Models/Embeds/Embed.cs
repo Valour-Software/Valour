@@ -1,8 +1,8 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds.Styles;
+using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds.Styles;
 
-namespace Valour.Api.Items.Messages.Embeds;
+namespace Valour.Api.Models.Messages.Embeds;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC

@@ -32,7 +32,7 @@ public class UserOnlineService
             UserTimeCache[user.Id] = user.TimeLastActive;
             
             // Notify of user activity change
-            await _hubService.NotifyUserChange(user);
+            await _hubService.NotifyUserChange(user.ToModel());
             await _db.SaveChangesAsync();
         }
     }

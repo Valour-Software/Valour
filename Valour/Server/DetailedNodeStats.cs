@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Server.Database.Items.Authorization;
+using Valour.Database;
 
 namespace Valour.Server.Database.Nodes
 {

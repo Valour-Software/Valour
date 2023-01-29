@@ -1,7 +1,4 @@
-﻿using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Channels.Planets;
-
-namespace Valour.Server.Requests;
+﻿namespace Valour.Server.Requests;
 
 public class CreatePlanetVoiceChannelRequest
 {

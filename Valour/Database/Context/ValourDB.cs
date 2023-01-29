@@ -29,11 +29,13 @@ public class ValourDB : DbContext
         // Soft delete
         modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
-        modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        
+        // can only add query filters to root enities
+       // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        //modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        //modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
+       // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
+        //modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false);
         
 
         // Time fixes

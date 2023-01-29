@@ -1,7 +1,7 @@
 @inject HttpClient Http
 @inject NavigationManager navManager
 @inject IJSRuntime JS
-@    using Valour.Shared.Categories
+@using Valour.Shared.Categories
 
 <section>
     <img class="escape-button" src="_content/Valour.Client/media/escape-button-icon.svg" @onclick="ClickEscape">
@@ -163,7 +163,7 @@
             {
                 TargetId = 0,
                 PlanetId = Planet.Id,
-                RoleId = Planet.DefaultRoleId.Value,
+                RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = PermissionsTargetType.PlanetChatChannel

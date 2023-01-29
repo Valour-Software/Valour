@@ -343,7 +343,7 @@ public class PlanetChatChannelApi
         // Handle attachments
         if (message.AttachmentsData is not null)
         {
-            var attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(message.AttachmentsData);
+            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)

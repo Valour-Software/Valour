@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using Valour.Api.Items;
+using Valour.Api.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;

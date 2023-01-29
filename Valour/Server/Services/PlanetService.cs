@@ -372,7 +372,7 @@ public class PlanetService
     /// <summary>
     /// Validates that a given name is allowable for a planet
     /// </summary>
-    private static TaskResult ValidateName(string name)
+    public static TaskResult ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -395,7 +395,7 @@ public class PlanetService
     /// <summary>
     /// Validates that a given description is allowable for a planet
     /// </summary>
-    private static TaskResult ValidateDescription(string description)
+    public static TaskResult ValidateDescription(string description)
     {
         if (description is not null && description.Length > 500)
         {

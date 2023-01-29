@@ -2,17 +2,15 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Api.Items.Users;
-using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models;
 using System.ComponentModel.DataAnnotations.Schema;
-using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Nodes;
-using Valour.Api.Items.Messages.Attachments;
 
 namespace Valour.Api.Models;
 
@@ -32,7 +30,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetMessage)}";
+            $"api/planetchatchannels/{ChannelId}/messages/";
 
     #endregion
 
@@ -68,7 +66,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var response = await node.GetJsonAsync<PlanetMessage>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetChatChannel)}/{channelId}/message/{id}");
+        var response = await node.GetJsonAsync<PlanetMessage>($"api/planetchatchannels/{channelId}/message/{id}");
         var item = response.Data;
 
         if (item is not null)
@@ -82,7 +80,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
     public override async Task<TaskResult> PostMessageAsync()
     {
         var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
-        return await node.PostAsync($"api/planet/{PlanetId}/{nameof(PlanetChatChannel)}/{ChannelId}/messages", this);
+        return await node.PostAsync($"api/planetchatchannels/{ChannelId}/messages", this);
     }
 
     /// <summary> 
@@ -101,7 +99,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
     /// Attempts to delete this message
     /// </summary>
     public override Task<TaskResult> DeleteAsync() =>
-        Node.DeleteAsync($"api/planet/{PlanetId}/PlanetChatChannel/{ChannelId}/messages/{Id}");
+        Node.DeleteAsync($"api/planetchatchannels/{ChannelId}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in

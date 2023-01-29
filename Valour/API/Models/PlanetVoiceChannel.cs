@@ -18,7 +18,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
     #region IPlanetItem implementation
 
     public override string BaseRoute =>
-            $"api/{nameof(Planet)}/{PlanetId}/{nameof(PlanetVoiceChannel)}";
+            $"api/planetvoicechannels";
 
     #endregion
 
@@ -53,7 +53,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetVoiceChannel>($"api/{nameof(Planet)}/{planetId}/{nameof(PlanetVoiceChannel)}/{id}")).Data;
+        var item = (await node.GetJsonAsync<PlanetVoiceChannel>($"api/planetvoicechannels/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();

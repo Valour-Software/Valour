@@ -1,4 +1,4 @@
-﻿using Valour.Api.Items.Channels.Users;
+﻿using Valour.Api.Models;
 using Valour.Client.Components.Windows.ChannelWindows.DirectChatChannels;
 
 namespace Valour.Client.Windows.ChatWindows;

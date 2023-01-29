@@ -12,7 +12,7 @@ public class PlanetCategoryService
     private readonly ValourDB _db;
     private readonly PlanetService _planetService;
     private readonly PlanetMemberService _planetMemberService;
-    private readonly PlanetChatChannelService _planetChatChannelService;
+    private readonly PlanetChannelService _planetChannelService;
     private readonly PlanetRoleService _planetRoleService;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetCategoryService> _logger;
@@ -22,7 +22,7 @@ public class PlanetCategoryService
         PlanetService planetService, 
         PlanetMemberService planetMemberService,
         CoreHubService coreHub,
-        PlanetChatChannelService planetChatChannelService,
+        PlanetChannelService planetChannelService,
         PlanetRoleService planetRoleService,
         ILogger<PlanetCategoryService> logger)
     {
@@ -31,7 +31,7 @@ public class PlanetCategoryService
         _planetMemberService = planetMemberService;
         _coreHub = coreHub;
         _logger = logger;
-        _planetChatChannelService = planetChatChannelService;
+        _planetChannelService = planetChannelService;
         _planetRoleService = planetRoleService;
     }
 
@@ -88,7 +88,7 @@ public class PlanetCategoryService
         {
             var node = nodeReq;
             node.TargetId = category.Id;
-            node.PlanetId = category.planetId;
+            node.PlanetId = category.PlanetId;
 
             var role = await _planetRoleService.GetAsync(node.RoleId);
             if (role.GetAuthority() > await _planetMemberService.GetAuthorityAsync(member))
@@ -103,7 +103,7 @@ public class PlanetCategoryService
 
         try
         {
-            await _db.PlanetCategories.AddAsync(category);
+            await _db.PlanetCategories.AddAsync(category.ToDatabase());
             await _db.SaveChangesAsync();
 
             await _db.PermissionsNodes.AddRangeAsync(nodes.Select(x => x.ToDatabase()));
@@ -139,7 +139,7 @@ public class PlanetCategoryService
         // Update
         try
         {
-            _db.Entry(old).State = EntityState.Detached;
+            _db.Entry(old.ToDatabase()).State = EntityState.Detached;
             _db.PlanetCategories.Update(updatedcategory.ToDatabase());
             await _db.SaveChangesAsync();
         }
@@ -281,7 +281,7 @@ public class PlanetCategoryService
             var pos = 0;
             foreach (var child_id in order)
             {
-                var child = await _planetChatChannelService.GetAsync(child_id);
+                var child = await _planetChannelService.GetAsync(child_id);
                 if (child is null)
                 {
                     return new(false, $"Child with id {child_id} does not exist!");

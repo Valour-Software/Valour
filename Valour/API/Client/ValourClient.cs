@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Valour.Api.Extensions;
-using Valour.Api.Items;
-using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Models;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models;
 using Valour.Api.Nodes;
 using Valour.Shared;
@@ -265,7 +265,7 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<PlanetMember>> JoinPlanetAsync(Planet planet)
     {
-        var result = await PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planet/{planet.Id}/discover");
+        var result = await PrimaryNode.PostAsyncWithResponse<PlanetMember>($"api/planets/{planet.Id}/discover");
 
         if (result.Success)
         {
@@ -335,7 +335,7 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username)
     {
-        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/{nameof(UserFriend)}/add/{username}");
+        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{username}");
 
         if (result.Success)
         {
@@ -368,7 +368,7 @@ public static class ValourClient
 	/// </summary>
 	public static async Task<TaskResult> DeclineFriendAsync(string username)
 	{
-		var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/decline/{username}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{username}", null);
 
         if (result.Success)
         {
@@ -385,7 +385,7 @@ public static class ValourClient
 	/// </summary>
 	public static async Task<TaskResult> RemoveFriendAsync(string username)
     {
-        var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/remove/{username}", null);
+        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{username}", null);
 
         if (result.Success)
         {
@@ -412,7 +412,7 @@ public static class ValourClient
 	/// </summary>
 	public static async Task<TaskResult> CancelFriendAsync(string username)
 	{
-		var result = await PrimaryNode.PostAsync($"api/{nameof(UserFriend)}/cancel/{username}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{username}", null);
 
 		if (result.Success)
 		{
@@ -869,7 +869,7 @@ public static class ValourClient
             Password = password
         };
 
-        var response = await PostAsyncWithResponse<AuthToken>($"api/user/token", request);
+        var response = await PostAsyncWithResponse<AuthToken>($"api/users/token", request);
 
         if (!response.Success)
         {
@@ -901,7 +901,7 @@ public static class ValourClient
     {
         await Logger.Log("Doing user ping...", "lime");
 
-        var pingResult = await PrimaryNode.GetAsync("api/user/ping");
+        var pingResult = await PrimaryNode.GetAsync("api/users/ping");
         if (!pingResult.Success)
             await Logger.Log("Failed to ping server for online state", "salmon");
     }
@@ -924,7 +924,7 @@ public static class ValourClient
 
         // Get user
 
-        var response = await GetJsonAsync<User>($"api/user/self");
+        var response = await GetJsonAsync<User>($"api/users/self");
 
         if (!response.Success)
             return response;
@@ -976,7 +976,7 @@ public static class ValourClient
 
         // Get user
 
-        var response = await GetJsonAsync<User>($"api/user/self");
+        var response = await GetJsonAsync<User>($"api/users/self");
 
         if (!response.Success)
             return response;
@@ -1012,7 +1012,7 @@ public static class ValourClient
     public static async Task JoinAllChannelsAsync()
     {
         // Get all joined planets
-        var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/user/self/planets")).Data;
+        var planets = (await PrimaryNode.GetJsonAsync<List<Planet>>("api/users/self/planets")).Data;
 
         // Add to cache
         foreach (var planet in planets)
@@ -1043,7 +1043,7 @@ public static class ValourClient
 
     public static async Task LoadTenorFavoritesAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/user/self/tenorfavorites");
+        var response = await PrimaryNode.GetJsonAsync<List<TenorFavorite>>("api/users/self/tenorfavorites");
         if (!response.Success)
         {
             await Logger.Log("** Failed to load Tenor favorites **", "red");
@@ -1059,7 +1059,7 @@ public static class ValourClient
     
     public static async Task LoadChannelStatesAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<UserChannelState>>($"api/user/self/channelstates");
+        var response = await PrimaryNode.GetJsonAsync<List<UserChannelState>>($"api/users/self/channelstates");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load channel states **");
@@ -1081,7 +1081,7 @@ public static class ValourClient
     /// </summary>
     public static async Task LoadJoinedPlanetsAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/user/self/planets");
+        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/users/self/planets");
 
         if (!response.Success)
             return;
@@ -1144,7 +1144,7 @@ public static class ValourClient
 
     public static async Task<List<Planet>> GetDiscoverablePlanetsAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/planet/discoverable");
+        var response = await PrimaryNode.GetJsonAsync<List<Planet>>($"api/planets/discoverable");
         if (!response.Success)
             return new List<Planet>();
 
@@ -1161,7 +1161,7 @@ public static class ValourClient
     /// </summary>
     public static async Task RefreshJoinedPlanetsAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<long>>($"api/user/self/planetIds");
+        var response = await PrimaryNode.GetJsonAsync<List<long>>($"api/users/self/planetIds");
 
         if (!response.Success)
             return;

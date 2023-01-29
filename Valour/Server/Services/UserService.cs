@@ -56,19 +56,19 @@ public class UserService
     public async Task<Valour.Database.Credential> GetCredentialAsync(long userId) =>
         await _db.Credentials.FirstOrDefaultAsync(x => x.UserId == userId);
 
-    public async Task<IEnumerable<UserChannelState>> GetUserChannelStatesAsync(long userId) =>
-        await _db.UserChannelStates.Where(x => x.UserId == userId).AsAsyncEnumerable();
+    public async Task<List<UserChannelState>> GetUserChannelStatesAsync(long userId) =>
+        await _db.UserChannelStates.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<List<TenorFavorite>> GetTenorFavoritesAsync(long userId) =>
-        await _db.TenorFavorites.Where(x => x.UserId == userId).ToListAsync();
+        await _db.TenorFavorites.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<(List<User> added, List<User> addedBy)> GetFriendsDataAsync(long userId)
     {
         // Users added by this user as a friend (user -> other)
-        var added = await _db.UserFriends.Include(x => x.Friend).Where(x => x.UserId == userId).Select(x => x.Friend).ToListAsync();
+        var added = await _db.UserFriends.Include(x => x.Friend).Where(x => x.UserId == userId).Select(x => x.Friend.ToModel()).ToListAsync();
 
         // Users who added this user as a friend (other -> user)
-        var addedBy = await _db.UserFriends.Include(x => x.User).Where(x => x.FriendId == userId).Select(x => x.User).ToListAsync();
+        var addedBy = await _db.UserFriends.Include(x => x.User).Where(x => x.FriendId == userId).Select(x => x.User.ToModel()).ToListAsync();
 
         return (added, addedBy);
     }
@@ -84,7 +84,7 @@ public class UserService
         // Mutual friendships
         var mutual = added.Select(x => x.FriendId).Intersect(addedBy.Select(x => x.UserId));
 
-        var friends = await _db.Users.Where(x => mutual.Contains(x.Id)).ToListAsync();
+        var friends = await _db.Users.Where(x => mutual.Contains(x.Id)).Select(x => x.ToModel()).ToListAsync();
 
         return friends;
     }
@@ -92,7 +92,7 @@ public class UserService
     public async Task<UserEmail> GetUserEmailAsync(string email, bool makelowercase = true)
     {
         if (!makelowercase)
-            return await _db.UserEmails.FindAsync(email).ToModel();
+            return (await _db.UserEmails.FindAsync(email)).ToModel();
         else
             return (await _db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
     }
@@ -213,7 +213,7 @@ public class UserService
         if (!passwordValid.Success)
             return new(false, passwordValid.Message);
 
-        Valour.Database.Referral refer = null;
+        Referral refer = null;
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             request.Referrer = request.Referrer.Trim();
@@ -250,7 +250,7 @@ public class UserService
             if (refer != null)
             {
                 refer.UserId = user.Id;
-                await _db.Referrals.AddAsync(refer);
+                await _db.Referrals.AddAsync(refer.ToDatabase());
             }
 
             UserEmail userEmail = new()
@@ -346,7 +346,7 @@ public class UserService
     private static async Task<Response> SendRegistrationEmail(HttpRequest request, string email, string code)
     {
         var host = request.Host.ToUriComponent();
-        string link = $"{request.Scheme}://{host}/api/user/verify/{code}";
+        string link = $"{request.Scheme}://{host}/api/users/verify/{code}";
 
         string emsg = $@"<body>
                                   <h2 style='font-family:Helvetica;'>
@@ -416,7 +416,7 @@ public class UserService
     {
         try
         {
-            _db.Entry(token).State = EntityState.Deleted;
+            _db.Entry(token.ToDatabase()).State = EntityState.Deleted;
             _tokenService.RemoveFromQuickCache(token.Id);
             await _db.SaveChangesAsync();
         }
@@ -484,7 +484,7 @@ public class UserService
             return new TaskResult<User>(false, "The credentials were incorrect.", null);
         }
 
-        User user = await _db.Users.FindAsync(credential.UserId);
+        User user = await GetAsync(credential.UserId);
 
         if (user.Disabled)
         {
@@ -500,7 +500,7 @@ public class UserService
         var token = await _db.AuthTokens
             .FirstOrDefaultAsync(x => x.AppId == "VALOUR" &&
                                       x.UserId == userId &&
-                                      x.Scope == UserPermissions.FullControl.Value).ToModel();
+                                      x.Scope == UserPermissions.FullControl.Value);
 
         try
         {
@@ -516,7 +516,7 @@ public class UserService
                     Scope = UserPermissions.FullControl.Value,
                     UserId = userId,
                     IssuedAddress = ctx.Connection.RemoteIpAddress.ToString()
-                };
+                }.ToDatabase();
 
                 await _db.AuthTokens.AddAsync(token);
                 await _db.SaveChangesAsync();
@@ -526,6 +526,7 @@ public class UserService
                 token.TimeCreated = DateTime.UtcNow;
                 token.TimeExpires = DateTime.UtcNow.AddDays(7);
 
+                _db.Entry(token).State = EntityState.Detached;
                 _db.AuthTokens.Update(token);
                 await _db.SaveChangesAsync();
             }
@@ -536,7 +537,7 @@ public class UserService
             return new(false, e.Message);
         }
 
-        return new(true, "Success", token);
+        return new(true, "Success", token.ToModel());
     }
 
     /// <summary>

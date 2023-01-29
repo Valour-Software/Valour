@@ -1,9 +1,5 @@
-using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels;
-using Valour.Server.Database.Items.Messages;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Users;
 using Valour.Shared;
 
 namespace Valour.Server.Hubs;
@@ -34,8 +30,8 @@ public interface ICoreHub
     void NotifyUserDelete(User user);
     void NotifyUserChannelStateUpdate(long userId, UserChannelState state);
 
-    void NotifyPlanetItemChange(IPlanetItem item, int flags = 0);
-    void NotifyPlanetItemDelete(IPlanetItem item);
+    void NotifyPlanetItemChange(Valour.Api.Models.IPlanetItem item, int flags = 0);
+    void NotifyPlanetItemDelete(Valour.Api.Models.IPlanetItem item);
 
     void NotifyPlanetChange(Planet item, int flags = 0);
     void NotifyPlanetDelete(Planet item);

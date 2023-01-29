@@ -1,9 +1,9 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds.Styles.Basic;
-using Valour.Api.Items.Messages.Embeds.Styles.Flex;
+using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds.Styles.Basic;
+using Valour.Api.Models.Messages.Embeds.Styles.Flex;
 
-namespace Valour.Api.Items.Messages.Embeds.Styles;
+namespace Valour.Api.Models.Messages.Embeds.Styles;
 
 [JsonDerivedType(typeof(BackgroundColor), typeDiscriminator: 1)]
 [JsonDerivedType(typeof(BorderRadius), typeDiscriminator: 2)]
