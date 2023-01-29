@@ -155,7 +155,7 @@ public class PlanetChatChannelService
         // Update
         try
         {
-            _db.Entry(old.ToDatabase()).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetChatChannel>(old.Id)).State = EntityState.Detached;
             _db.PlanetChatChannels.Update(updatedchannel.ToDatabase());
             await _db.SaveChangesAsync();
         }

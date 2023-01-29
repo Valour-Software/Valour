@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Valour.Client.Pages;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -67,7 +68,7 @@ public class PlanetInviteService
             return new(false, "You cannot change what planet.");
         try
         {
-            _db.Entry(oldInvite.ToDatabase()).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetInvite>(oldInvite.Id)).State = EntityState.Detached;
             _db.PlanetInvites.Update(updatedInvite.ToDatabase());
             await _db.SaveChangesAsync();
         }

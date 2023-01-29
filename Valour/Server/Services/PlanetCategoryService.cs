@@ -139,7 +139,7 @@ public class PlanetCategoryService
         // Update
         try
         {
-            _db.Entry(old.ToDatabase()).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetCategory>(old.Id)).State = EntityState.Detached;
             _db.PlanetCategories.Update(updatedcategory.ToDatabase());
             await _db.SaveChangesAsync();
         }

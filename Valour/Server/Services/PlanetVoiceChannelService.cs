@@ -130,7 +130,7 @@ public class PlanetVoiceChannelService
         // Update
         try
         {
-            _db.Entry(old.ToDatabase()).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetVoiceChannel>(old.Id)).State = EntityState.Detached;
             _db.PlanetVoiceChannels.Update(updatedchannel.ToDatabase());
             await _db.SaveChangesAsync();
         }

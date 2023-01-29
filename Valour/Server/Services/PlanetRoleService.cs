@@ -1,5 +1,6 @@
 using IdGen;
 using StackExchange.Redis;
+using System.Security.Cryptography;
 using Valour.Database.Context;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -60,7 +61,7 @@ public class PlanetRoleService
             return new(false, "Position cannot be changed directly.");
         try
         {
-            _db.Entry(oldRole.ToDatabase()).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetRole>(oldRole.Id)).State = EntityState.Detached;
             _db.PlanetRoles.Update(updatedRole.ToDatabase());
             await _db.SaveChangesAsync();
         }

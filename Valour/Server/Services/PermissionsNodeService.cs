@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage;
+using System.Security.Cryptography;
 using Valour.Api.Nodes;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -42,7 +43,7 @@ public class PermissionsNodeService
     {
         try
         {
-            _db.Entry(oldNode.ToDatabase()).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PermissionsNode>(oldNode.Id)).State = EntityState.Detached;
             _db.PermissionsNodes.Update(newNode.ToDatabase());
             await _db.SaveChangesAsync();
         }
