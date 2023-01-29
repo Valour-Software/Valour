@@ -24,7 +24,7 @@ public class UserService
     private User _currentUser;
 
     public UserService(
-        ValourDB db, 
+        ValourDB db,
         TokenService tokenService,
         ILogger<UserService> logger,
         CoreHubService coreHub)
@@ -43,9 +43,12 @@ public class UserService
 
     public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
         (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
-
-    public async Task<UserEmail> GetUserEmailAsync(string email) =>
-        (await _db.UserEmails.FindAsync(email)).ToModel();
+    public async Task<List<Planet>> GetPlanetsUserIn(long userId) =>
+        await _db.PlanetMembers
+            .Where(x => x.UserId == userId)
+            .Include(x => x.Planet)
+            .Select(x => x.Planet.ToModel())
+            .ToListAsync();
 
     public async Task<PasswordRecovery> GetPasswordRecoveryAsync(string code) =>
         (await _db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
@@ -55,6 +58,101 @@ public class UserService
 
     public async Task<IEnumerable<UserChannelState>> GetUserChannelStatesAsync(long userId) =>
         await _db.UserChannelStates.Where(x => x.UserId == userId).AsAsyncEnumerable();
+
+    public async Task<List<TenorFavorite>> GetTenorFavoritesAsync(long userId) =>
+        await _db.TenorFavorites.Where(x => x.UserId == userId).ToListAsync();
+
+    public async Task<(List<User> added, List<User> addedBy)> GetFriendsDataAsync(long userId)
+    {
+        // Users added by this user as a friend (user -> other)
+        var added = await _db.UserFriends.Include(x => x.Friend).Where(x => x.UserId == userId).Select(x => x.Friend).ToListAsync();
+
+        // Users who added this user as a friend (other -> user)
+        var addedBy = await _db.UserFriends.Include(x => x.User).Where(x => x.FriendId == userId).Select(x => x.User).ToListAsync();
+
+        return (added, addedBy);
+    }
+
+    public async Task<List<User>> GetFriends(long userId)
+    {
+        // Users added by this user as a friend (user -> other)
+        var added = _db.UserFriends.Where(x => x.UserId == userId);
+
+        // Users who added this user as a friend (other -> user)
+        var addedBy = _db.UserFriends.Where(x => x.FriendId == userId);
+
+        // Mutual friendships
+        var mutual = added.Select(x => x.FriendId).Intersect(addedBy.Select(x => x.UserId));
+
+        var friends = await _db.Users.Where(x => mutual.Contains(x.Id)).ToListAsync();
+
+        return friends;
+    }
+
+    public async Task<UserEmail> GetUserEmailAsync(string email, bool makelowercase = true)
+    {
+        if (!makelowercase)
+            return await _db.UserEmails.FindAsync(email).ToModel();
+        else
+            return (await _db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
+    }
+
+    public async Task<TaskResult> SendPasswordResetEmail(UserEmail userEmail, string email, HttpContext ctx)
+    {
+        try
+        {
+            var oldRecoveries = _db.PasswordRecoveries.Where(x => x.UserId == userEmail.UserId);
+            if (oldRecoveries.Any())
+            {
+                _db.PasswordRecoveries.RemoveRange(oldRecoveries);
+                await _db.SaveChangesAsync();
+            }
+
+            string recoveryCode = Guid.NewGuid().ToString();
+
+            PasswordRecovery recovery = new()
+            {
+                Code = recoveryCode,
+                UserId = userEmail.UserId
+            };
+
+            await _db.PasswordRecoveries.AddAsync(recovery.ToDatabase());
+            await _db.SaveChangesAsync();
+
+            var host = ctx.Request.Host.ToUriComponent();
+            string link = $"{ctx.Request.Scheme}://{host}/RecoverPassword/{recoveryCode}";
+
+            string emsg = $@"<body>
+                              <h2 style='font-family:Helvetica;'>
+                                Valour Password Recovery
+                              </h2>
+                              <p style='font-family:Helvetica;>
+                                If you did not request this email, please ignore it.
+                                To reset your password, please use the following link: 
+                              </p>
+                              <p style='font-family:Helvetica;'>
+                                <a href='{link}'>Click here to recover</a>
+                              </p>
+                            </body>";
+
+            string rawmsg = $"To reset your password, please go to the following link:\n{link}";
+
+            var result = await EmailManager.SendEmailAsync(email, "Valour Password Recovery", rawmsg, emsg);
+
+            if (!result.IsSuccessStatusCode)
+            {
+                _logger.LogError($"Error issuing password reset email to {email}. Status code {result.StatusCode}.");
+                return new(false, "Sorry! There was an issue sending the email. Try again?");
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e.Message);
+            return new(false, "Sorry! An unexpected error occured. Try again?");
+        }
+
+        return new(true, "Success");
+    }
 
     public async Task<TaskResult> RecoveryUserAsync(PasswordRecoveryRequest request, PasswordRecovery recovery, Valour.Database.Credential cred)
     {

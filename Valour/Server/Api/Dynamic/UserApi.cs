@@ -187,7 +187,7 @@ public class UserApi
         return Results.Ok("Your confirmation email has been sent!");
     }
 
-    [ValourRoute(HttpVerbs.Post, "/resendemail")]
+    [ValourRoute(HttpVerbs.Post, "api/users/resendemail")]
     public static async Task<IResult> ResendRegistrationEmail(
         [FromBody] RegisterUserRequest request,
         UserService userService,
@@ -211,175 +211,90 @@ public class UserApi
         return ValourResult.Ok("Confirmation email has been resent!");
     }
 
-    [ValourRoute(HttpVerbs.Post, "/resetpassword")]
+    [ValourRoute(HttpVerbs.Post, "api/users/resetpassword")]
     public static async Task<IResult> ResetPasswordRouteAsync(
         [FromBody] string email,
-        HttpContext ctx, 
-        ValourDB db,
-        ILogger<User> logger)
+        UserService userService,
+        HttpContext ctx)
     {
-        var userEmail = await db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
+        var userEmail = await userService.GetUserEmailAsync(email, true);
 
         if (userEmail is null)
             return ValourResult.NotFound<UserEmail>();
 
-        try
-        {
-            var oldRecoveries = db.PasswordRecoveries.Where(x => x.UserId == userEmail.UserId);
-            if (oldRecoveries.Any())
-            {
-                db.PasswordRecoveries.RemoveRange(oldRecoveries);
-                await db.SaveChangesAsync();
-            }
-
-            string recoveryCode = Guid.NewGuid().ToString();
-
-            PasswordRecovery recovery = new()
-            {
-                Code = recoveryCode,
-                UserId = userEmail.UserId
-            };
-
-            await db.PasswordRecoveries.AddAsync(recovery);
-            await db.SaveChangesAsync();
-
-            var host = ctx.Request.Host.ToUriComponent();
-            string link = $"{ctx.Request.Scheme}://{host}/RecoverPassword/{recoveryCode}";
-
-            string emsg = $@"<body>
-                              <h2 style='font-family:Helvetica;'>
-                                Valour Password Recovery
-                              </h2>
-                              <p style='font-family:Helvetica;>
-                                If you did not request this email, please ignore it.
-                                To reset your password, please use the following link: 
-                              </p>
-                              <p style='font-family:Helvetica;'>
-                                <a href='{link}'>Click here to recover</a>
-                              </p>
-                            </body>";
-
-            string rawmsg = $"To reset your password, please go to the following link:\n{link}";
-
-            var result = await EmailManager.SendEmailAsync(email, "Valour Password Recovery", rawmsg, emsg);
-
-            if (!result.IsSuccessStatusCode)
-            {
-                logger.LogError($"Error issuing password reset email to {email}. Status code {result.StatusCode}.");
-                return ValourResult.Problem("Sorry! There was an issue sending the email. Try again?");
-            }
-        }
-        catch (Exception e)
-        {
-            logger.LogError(e.Message);
-            return ValourResult.Problem("Sorry! An unexpected error occured. Try again?");
-        }
+        var result = await userService.SendPasswordResetEmail(userEmail, email, ctx);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self/planets"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
-
+    [ValourRoute(HttpVerbs.Get, "api/users/self/planets"),]
+    [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetPlanetsRouteAsync(
-        HttpContext ctx, 
-        ValourDB db)
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var userId = await userService.GetCurrentUserId();
 
-        var planets = await db.PlanetMembers
-            .Where(x => x.UserId == token.UserId)
-            .Include(x => x.Planet)
-            .Select(x => x.Planet)
-            .ToListAsync();
+        var planets = await userService.GetPlanetsUserIn(userId);
 
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/self/planetids"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Membership)]
+    [ValourRoute(HttpVerbs.Get, "api/users/self/planetids")]
+    [UserRequired(UserPermissionsEnum.Membership)]
 
     public static async Task<IResult> GetPlanetIdsRouteAsync(
-        HttpContext ctx, 
-        ValourDB db)
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var userId = await userService.GetCurrentUserId();
 
-        var planets = await db.PlanetMembers
-            .Where(x => x.UserId == token.UserId)
-            .Select(x => x.PlanetId)
-            .ToListAsync();
+        var planets = (await userService.GetPlanetsUserIn(userId)).Select(x => x.Id).ToList();
 
         return Results.Json(planets);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/friends"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    [ValourRoute(HttpVerbs.Get, "api/users/{id}/friends")]
+    [UserRequired(UserPermissionsEnum.Friends)]
     public static async Task<IResult> GetFriendsRouteAsync(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var userId = await userService.GetCurrentUserId();
 
-        if (id != token.UserId)
+        if (id != userId)
             return ValourResult.Forbid("You cannot currently view another user's friends.");
 
-        // Users added by this user as a friend (user -> other)
-        var added = db.UserFriends.Where(x => x.UserId == id);
-
-        // Users who added this user as a friend (other -> user)
-        var addedBy = db.UserFriends.Where(x => x.FriendId == id);
-
-        // Mutual friendships
-        var mutual = added.Select(x => x.FriendId).Intersect(addedBy.Select(x => x.UserId));
-
-        var friends = await db.Users.Where(x => mutual.Contains(x.Id)).ToListAsync();
-
-        return Results.Json(friends);
+        return Results.Json(await userService.GetFriends(id));
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/frienddata"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Friends)]
+    [ValourRoute(HttpVerbs.Get, "api/users/{id}/frienddata")]
+    [UserRequired(UserPermissionsEnum.Friends)]
     public static async Task<IResult> GetFriendDataRouteAsync(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var userId = await userService.GetCurrentUserId();
 
-        if (id != token.UserId)
+        if (id != userId)
             return ValourResult.Forbid("You cannot currently view another user's friend data.");
 
-        // Users added by this user as a friend (user -> other)
-        var added = await db.UserFriends.Include(x => x.Friend).Where(x => x.UserId == id).Select(x => x.Friend).ToListAsync();
-
-        // Users who added this user as a friend (other -> user)
-        var addedBy = await db.UserFriends.Include(x => x.User).Where(x => x.FriendId == id).Select(x => x.User).ToListAsync();
-
-        List<User> usersAdded = new();
-        List<User> usersAddedBy = new();
+        var result = await userService.GetFriendsDataAsync(userId);
 
         return Results.Json(new
         {
-            added = added,
-            addedBy = addedBy
+            added = result.added,
+            addedBy = result.addedBy
         });
     }
     
-    [ValourRoute(HttpVerbs.Get, "/self/tenorfavorites"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
-
+    [ValourRoute(HttpVerbs.Get, "api/users/self/tenorfavorites")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetTenorFavoritesRouteAsync(
-        HttpContext ctx, 
-        ValourDB db)
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var userId = await userService.GetCurrentUserId();
 
-        var favorites = await db.TenorFavorites
-            .Where(x => x.UserId == token.UserId)
-            .ToListAsync();
-
-        return Results.Json(favorites);
+        return Results.Json(userService.GetTenorFavoritesAsync(userId));
     }
 }
