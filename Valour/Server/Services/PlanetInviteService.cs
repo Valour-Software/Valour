@@ -68,8 +68,9 @@ public class PlanetInviteService
             return new(false, "You cannot change what planet.");
         try
         {
-            _db.Entry(_db.Find<Valour.Database.PlanetInvite>(oldInvite.Id)).State = EntityState.Detached;
-            _db.PlanetInvites.Update(updatedInvite.ToDatabase());
+            var _old = await _db.PlanetInvites.FindAsync(updatedInvite.Id);
+            if (_old is null) return new(false, $"PlanetInvite not found");
+            _db.Entry(_old).CurrentValues.SetValues(updatedInvite);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

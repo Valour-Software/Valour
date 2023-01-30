@@ -130,8 +130,9 @@ public class PlanetVoiceChannelService
         // Update
         try
         {
-            _db.Entry(_db.Find<Valour.Database.PlanetVoiceChannel>(old.Id)).State = EntityState.Detached;
-            _db.PlanetVoiceChannels.Update(updatedchannel.ToDatabase());
+            var _old = await _db.PlanetVoiceChannels.FindAsync(updatedchannel.Id);
+            if (_old is null) return new(false, $"PlanetVoiceChannel not found");
+            _db.Entry(_old).CurrentValues.SetValues(updatedchannel);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

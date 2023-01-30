@@ -139,8 +139,9 @@ public class PlanetCategoryService
         // Update
         try
         {
-            _db.Entry(_db.Find<Valour.Database.PlanetCategory>(old.Id)).State = EntityState.Detached;
-            _db.PlanetCategories.Update(updatedcategory.ToDatabase());
+            var _old = await _db.PlanetCategories.FindAsync(updatedcategory.Id);
+            if (_old is null) return new(false, $"PlanetCategory not found");
+            _db.Entry(_old).CurrentValues.SetValues(updatedcategory);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
