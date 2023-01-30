@@ -33,7 +33,7 @@ public class PlanetMessageService
     /// </summary>
     public async ValueTask<PlanetMessage> GetAsync(long id)
     {
-        var message = (await _db.PlanetMembers.FindAsync(id)).ToModel();
+        var message = (await _db.PlanetMessages.FindAsync(id)).ToModel();
         if (message is null)
             message = PlanetMessageWorker.GetStagedMessage(id);
         return message;
@@ -44,7 +44,7 @@ public class PlanetMessageService
 	/// </summary>
 	public async Task<IResult> DeleteAsync(PlanetChatChannel channel, PlanetMember member, long message_id)
 	{
-        var message = await _db.PlanetMessages.FindAsync(message_id);
+        var message = (await _db.PlanetMessages.FindAsync(message_id)).ToModel();
 
         var inDb = true;
 
@@ -75,7 +75,7 @@ public class PlanetMessageService
         {
             try
             {
-                _db.PlanetMessages.Remove(message);
+                _db.PlanetMessages.Remove(message.ToDatabase());
                 await _db.SaveChangesAsync();
             }
             catch (System.Exception e)

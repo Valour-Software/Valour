@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Api.Items;
-using Valour.Api.Items.Messages;
+using Valour.Api.Models;
+using Valour.Api.Models.Messages;
 using Valour.Shared.Models;
 using Valour.Shared.Models;
 
@@ -21,6 +21,8 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
         IPlanetItem.GetPlanetAsync(this, refresh);
+
+    public override string BaseRoute => $"api/planetinvites";
 
     #endregion
 
@@ -73,7 +75,6 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";
-    public override string BaseRoute => $"api/{nameof(PlanetInvite)}";
 
     /// <summary>
     /// Returns the name of the invite's planet

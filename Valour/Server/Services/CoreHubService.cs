@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;

@@ -1,4 +1,5 @@
-﻿using Valour.Server.Database;
+﻿using Valour.Database;
+using Valour.Server.Database;
 
 namespace Valour.Server.Workers;
 
@@ -46,7 +47,7 @@ public class StatWorker : IHostedService, IDisposable
             stats.PlanetCount = await context.Planets.CountAsync();
             stats.PlanetMemberCount = await context.PlanetMembers.CountAsync();
             stats.ChannelCount = await context.PlanetChatChannels.CountAsync();
-            stats.CategoryCount = await context.PlanetCategoryChannels.CountAsync();
+            stats.CategoryCount = await context.PlanetCategories.CountAsync();
             stats.MessageDayCount = await context.PlanetMessages.CountAsync();
             stats.MessagesSent = _messageCount;
             _messageCount = 0;

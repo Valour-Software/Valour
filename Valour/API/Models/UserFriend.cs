@@ -1,4 +1,4 @@
-﻿using Valour.Api.Items;
+﻿using Valour.Api.Models;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
@@ -17,6 +17,12 @@ namespace Valour.Api.Models;
 /// </summary>
 public class UserFriend : Item, ISharedUserFriend
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/userfriends";
+
+    #endregion
     /// <summary>
     /// The id of the user who added the friend
     /// </summary>

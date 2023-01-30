@@ -3,7 +3,7 @@ using Valour.Client.Components.Windows;
 using Valour.Api.Items;
 using Valour.Shared;
 using Valour.Api.Nodes;
-using Valour.Api.Items.Channels.Planets;
+using Valour.Api.Models;
 using Valour.Client.Windows.ChatWindows;
 using Valour.Api.Models;
 

@@ -1,7 +1,4 @@
-﻿using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
-
-namespace Valour.Server.Planets.Members;
+﻿namespace Valour.Server.Planets.Members;
 
 /// <summary>
 /// For getting data to the client.  Must match!

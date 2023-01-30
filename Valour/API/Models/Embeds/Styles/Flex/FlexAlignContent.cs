@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Valour.Api.Items.Messages.Embeds.Styles.Flex;
+namespace Valour.Api.Models.Messages.Embeds.Styles.Flex;
 
 public enum AlignContent
 {

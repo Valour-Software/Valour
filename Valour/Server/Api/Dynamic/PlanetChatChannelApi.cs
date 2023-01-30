@@ -52,14 +52,10 @@ public class PlanetChatChannelApi
         if (channel is null)
             return ValourResult.BadRequest("Include planetchatchannel in body.");
 
-		channel.Id = IdManager.Generate();
-
 		// Get member
 		var member = await memberService.GetCurrentAsync(channel.PlanetId);
 		if (member is null)
 			return ValourResult.NotPlanetMember();
-
-        var planet = await planetService.GetAsync(channel.PlanetId);
 
         if (channel.ParentId is not null)
         {
@@ -78,7 +74,7 @@ public class PlanetChatChannelApi
 		if (!result.Success)
 			return ValourResult.Problem(result.Message);
 
-		return Results.Created($"api/planetchatchannels/{channel.Id}", channel);
+		return Results.Created($"api/planetchatchannels/{result.Data.Id}", result.Data);
 	}
 
     [ValourRoute(HttpVerbs.Post, "api/planetchatchannels/detailed")]
@@ -95,8 +91,6 @@ public class PlanetChatChannelApi
 
         if (request.Channel is null)
             return ValourResult.BadRequest("Include Channel in CreatePlanetChatChannelRequest.");
-
-        request.Channel.Id = IdManager.Generate();
 
         // Get member
         var member = await memberService.GetCurrentAsync(request.Channel.PlanetId);
@@ -122,7 +116,7 @@ public class PlanetChatChannelApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetchatchannels/{request.Channel.Id}", request.Channel);
+        return Results.Created($"api/planetchatchannels/{result.Data.Id}", result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planetchatchannels/{id}")]
@@ -136,7 +130,7 @@ public class PlanetChatChannelApi
         // Get the category
         var old = await channelService.GetAsync(id);
         if (old is null)
-            return ValourResult.NotFound("Category not found");
+            return ValourResult.NotFound("Channel not found");
 
         // Get member
         var member = await memberService.GetCurrentAsync(old.PlanetId);
@@ -153,7 +147,7 @@ public class PlanetChatChannelApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Ok(channel);
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}")]
@@ -161,9 +155,7 @@ public class PlanetChatChannelApi
 	public static async Task<IResult> DeleteRouteAsync(
         long id,
         PlanetChatChannelService channelService,
-		PlanetMemberService memberService,
-		PlanetService planetService,
-		CoreHubService hubService)
+		PlanetMemberService memberService)
     {
         // Get the channel
         var channel = await channelService.GetAsync(id);
@@ -193,8 +185,7 @@ public class PlanetChatChannelApi
         long memberId, 
         long value,
         PlanetMemberService memberService,
-        PlanetChatChannelService channelService,
-        ValourDB db)
+        PlanetChatChannelService channelService)
     {
         // Get the channel
         var channel = await channelService.GetAsync(id);
@@ -258,7 +249,6 @@ public class PlanetChatChannelApi
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetMessagesRouteAsync(
         long id,
-        ValourDB db,
 		PlanetChatChannelService channelService,
 		PlanetMemberService memberService,
 		[FromQuery] long index = long.MaxValue, 
@@ -282,25 +272,8 @@ public class PlanetChatChannelApi
 
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
-        
-        List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(id);
-        
-        if (count > 0)
-        {
-            var messages = await db.PlanetMessages.Where(x => x.ChannelId == id && x.Id < index)
-                                                  .OrderByDescending(x => x.TimeSent)
-                                                  .Take(count)
-                                                  .Reverse()
-                                                  .ToListAsync();
 
-            messages.AddRange(staged);
-
-            return Results.Json(messages);
-        }
-        else
-        {
-            return Results.Json(staged);
-        }
+        return Results.Json(await channelService.GetMessagesAsync(channel, count, index));
     }
 
     public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
@@ -313,7 +286,6 @@ public class PlanetChatChannelApi
         HttpClient client, 
         ValourDB valourDb, 
         CdnDb db,
-        UserOnlineService onlineService,
 		PlanetChatChannelService channelService,
 		PlanetMemberService memberService,
 		UserService userService,
@@ -371,7 +343,7 @@ public class PlanetChatChannelApi
         // Handle attachments
         if (message.AttachmentsData is not null)
         {
-            var attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(message.AttachmentsData);
+            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)

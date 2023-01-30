@@ -1,5 +1,4 @@
 ﻿using Valour.Api.Client;
-using Valour.Api.Items.Channels.Users;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -8,6 +7,12 @@ namespace Valour.Api.Models;
 
 public class DirectMessage : Message, ISharedDirectMessage
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/directchatchannels/{ChannelId}/messages";
+
+    #endregion
     public static async ValueTask<DirectMessage> FindAsync(long id, long channelId, bool refresh = false)
     {
         if (!refresh)
@@ -16,7 +21,7 @@ public class DirectMessage : Message, ISharedDirectMessage
             if (cached is not null)
                 return cached;
         }
-        var response = await ValourClient.PrimaryNode.GetJsonAsync<DirectMessage>($"api/{nameof(DirectChatChannel)}/{channelId}/message/{id}");
+        var response = await ValourClient.PrimaryNode.GetJsonAsync<DirectMessage>($"api/directchatchannels/{channelId}/message/{id}");
         var item = response.Data;
 
         if (item is not null)
@@ -28,7 +33,7 @@ public class DirectMessage : Message, ISharedDirectMessage
     }
 
     public override Task<TaskResult> DeleteAsync() =>
-        Node.DeleteAsync($"api/{nameof(DirectChatChannel)}/{ChannelId}/messages/{Id}");
+        Node.DeleteAsync($"api/directchatchannels/{ChannelId}/messages/{Id}");
 
     public override async ValueTask<string> GetAuthorColorAsync()
     {
@@ -69,5 +74,5 @@ public class DirectMessage : Message, ISharedDirectMessage
     }
 
     public override Task<TaskResult> PostMessageAsync() =>
-        ValourClient.PrimaryNode.PostAsync($"api/{nameof(DirectChatChannel)}/{ChannelId}/messages", this);
+        ValourClient.PrimaryNode.PostAsync($"api/directchatchannels/{ChannelId}/messages", this);
 }

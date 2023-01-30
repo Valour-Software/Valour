@@ -140,7 +140,7 @@ else
              "Cancel", 
              async () =>
              {
-				 var result = Member.Node.DeleteAsync($"api/{nameof(Planet)}/{Member.PlanetId}/{nameof(PlanetMember)}/{Member.Id}");
+				 var result = Member.Node.DeleteAsync($"api/members/{Member.Id}");
                  Console.WriteLine(result);
              },
              async () =>

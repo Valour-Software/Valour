@@ -380,7 +380,7 @@ public class PlanetApi
         return Results.Json(inviteIds);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/planets/{id}/discoverable")]
+    [ValourRoute(HttpVerbs.Get, "api/planets/discoverable")]
     public static async Task<IResult> GetDiscoverables(PlanetService planetService)
     {
         var planets = await planetService.GetDiscoverablesAsync();

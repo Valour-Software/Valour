@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
-namespace Valour.Api.Items.Messages.Embeds.Items;
+namespace Valour.Api.Models.Messages.Embeds.Items;
 
 public class EmbedFormItem : EmbedItem
 {

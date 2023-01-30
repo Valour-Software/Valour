@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
-using Valour.Api.Items.Messages.Embeds.Styles;
+using Valour.Api.Models.Messages.Embeds.Styles;
 
-namespace Valour.Api.Items.Messages.Embeds.Items;
+namespace Valour.Api.Models.Messages.Embeds.Items;
 
 public class EmbedInputBoxItem : EmbedItem, IEmbedFormItem, INameable
 {

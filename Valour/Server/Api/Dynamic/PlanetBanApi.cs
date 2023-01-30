@@ -65,7 +65,7 @@ public class PlanetBanApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetbans/{ban.Id}", ban);
+        return Results.Created($"api/planetbans/{result.Data.Id}", result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planetbans/{id}")]
@@ -96,7 +96,7 @@ public class PlanetBanApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Ok(ban);
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetbans/{id}")]

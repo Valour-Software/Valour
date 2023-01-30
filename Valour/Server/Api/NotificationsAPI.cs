@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Valour.Api.Models;
 using Valour.Server.Database;
-using Valour.Server.Database.Items;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Notifications;
-using Valour.Server.Database.Items.Users;
 
 namespace Valour.Server.API;
 
@@ -18,18 +15,18 @@ public class NotificationsAPI : BaseAPI
         app.MapPost("api/notification/unsubscribe", Unsubscribe);
     }
 
-    public static async Task<IResult> Subscribe(ValourDB db, [FromBody] NotificationSubscription subscription, [FromHeader] string authorization)
+    public static async Task<IResult> Subscribe(ValourDB db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();
 
-        var auth = await AuthToken.TryAuthorize(authorization, db);
+        var userId = await userService.GetCurrentUserId();
 
-        if (auth is null)
+        if (userId is long.MinValue)
             return ValourResult.InvalidToken();
 
         // Force subscription to use auth token's user id
-        subscription.UserId = auth.UserId;
+        subscription.UserId = userId;
 
         // Ensure subscription data is there
         if (string.IsNullOrWhiteSpace(subscription.Endpoint)
@@ -59,20 +56,20 @@ public class NotificationsAPI : BaseAPI
 
         subscription.Id = IdManager.Generate();
 
-        await db.NotificationSubscriptions.AddAsync(subscription);
+        await db.NotificationSubscriptions.AddAsync(subscription.ToDatabase());
         await db.SaveChangesAsync();
 
         return Results.Ok("Subscription was accepted.");
     }
 
-    public static async Task<IResult> Unsubscribe(ValourDB db, [FromBody] NotificationSubscription subscription, [FromHeader] string authorization)
+    public static async Task<IResult> Unsubscribe(ValourDB db, [FromBody] NotificationSubscription subscription, UserService userService, [FromHeader] string authorization)
     {
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();
 
-        var auth = await AuthToken.TryAuthorize(authorization, db);
+        var userId = await userService.GetCurrentUserId();
 
-        if (auth is null)
+        if (userId is long.MinValue)
             return ValourResult.InvalidToken();
 
         // Look for old subscription

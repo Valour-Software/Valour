@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Channels;
-using Valour.Server.Database.Items.Planets.Members;
 using Valour.Shared.Authorization;
 using Valour.Shared;
 using Valour.Server.Hubs;
@@ -23,24 +20,30 @@ namespace Valour.Server.Database
         private readonly ValourDB _db;
         private readonly CoreHubService _hubService;
         private readonly UserOnlineService _onlineService;
+        private readonly PlanetMemberService _memberService;
+        private readonly TokenService _tokenService;
         private readonly IConnectionMultiplexer _redis;
 
         public CoreHub(
             ValourDB db, 
             CoreHubService hubService, 
             UserOnlineService onlineService,
+            PlanetMemberService memberService,
+            TokenService tokenService,
             IConnectionMultiplexer redis)
         {
             _db = db;
             _hubService = hubService;
             _onlineService = onlineService;
             _redis = redis;
+            _memberService = memberService;
+            _tokenService = tokenService;
         }
 
         public async Task<TaskResult> Authorize(string token)
         {
             // Authenticate user
-            AuthToken authToken = await AuthToken.TryAuthorize(token, _db);
+            AuthToken authToken = await _tokenService.GetAsync(token);
 
             if (authToken is null)
                 return new TaskResult(false, "Failed to authenticate connection.");
@@ -94,8 +97,7 @@ namespace Valour.Server.Database
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to Planet: SignalR was not authenticated.");
 
-            PlanetMember member = await _db.PlanetMembers.FirstOrDefaultAsync(
-                x => x.UserId == authToken.UserId && x.PlanetId == planetId);
+            PlanetMember member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
 
             // If the user is not a member, cancel
             if (member == null)
@@ -130,10 +132,10 @@ namespace Valour.Server.Database
             if (channel is null)
                 return new TaskResult(false, "Failed to connect to Channel: Channel was not found.");
             
-            PlanetMember member = await _db.PlanetMembers.FirstOrDefaultAsync(
-                x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId);
+            PlanetMember member = (await _db.PlanetMembers.FirstOrDefaultAsync(
+                x => x.UserId == authToken.UserId && x.PlanetId == channel.PlanetId)).ToModel();
 
-            if (!await channel.HasPermissionAsync(member, ChatChannelPermissions.ViewMessages, _db))
+            if (!await _memberService.HasPermissionAsync(member, channel.ToModel(), ChatChannelPermissions.ViewMessages))
                 return new TaskResult(false, "Failed to connect to Channel: Member lacks view permissions.");
 
             var groupId = $"c-{channelId}";
@@ -141,7 +143,7 @@ namespace Valour.Server.Database
             ConnectionTracker.TrackGroupMembership(groupId, Context);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
             
-            var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
+            var channelState = (await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id)).ToModel();
 
             if (channelState is null)
             {
@@ -151,7 +153,7 @@ namespace Valour.Server.Database
                     ChannelId = channelId
                 };
 
-                _db.UserChannelStates.Add(channelState);
+                _db.UserChannelStates.Add(channelState.ToDatabase());
             }
             
             channelState.LastViewedTime = DateTime.UtcNow;
@@ -174,8 +176,7 @@ namespace Valour.Server.Database
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return;
 
-            PlanetMember member = await _db.PlanetMembers.FirstOrDefaultAsync(
-                x => x.UserId == authToken.UserId && x.PlanetId == planetId);
+            PlanetMember member = await _memberService.GetByUserAsync(authToken.UserId, planetId);
 
             // If the user is not a member, cancel
             if (member == null)

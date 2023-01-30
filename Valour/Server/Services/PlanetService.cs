@@ -168,6 +168,8 @@ public class PlanetService
     public async Task<PlanetMemberInfo> GetMemberInfoAsync(long planetId, int page = 0)
     {
         var members = _db.PlanetMembers
+            .Include(x => x.RoleMembership)
+            .ThenInclude(x => x.Role)
             .Where(x => x.PlanetId == planetId)
             .OrderBy(x => x.Id);
 
@@ -177,7 +179,7 @@ public class PlanetService
             {
                 Member = x.ToModel(),
                 User = x.User.ToModel(),
-                RoleIds = x.RoleMembership.Select(rm => rm.RoleId).ToList()
+                RoleIds = x.RoleMembership.OrderBy(x => x.Role.Position).Select(rm => rm.RoleId).ToList()
             })
             .Skip(page * 100)
             .Take(100)
@@ -372,7 +374,7 @@ public class PlanetService
     /// <summary>
     /// Validates that a given name is allowable for a planet
     /// </summary>
-    private static TaskResult ValidateName(string name)
+    public static TaskResult ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -395,7 +397,7 @@ public class PlanetService
     /// <summary>
     /// Validates that a given description is allowable for a planet
     /// </summary>
-    private static TaskResult ValidateDescription(string description)
+    public static TaskResult ValidateDescription(string description)
     {
         if (description is not null && description.Length > 500)
         {

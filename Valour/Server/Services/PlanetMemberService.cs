@@ -223,6 +223,8 @@ public class PlanetMemberService
         // If we get an undecided, we continue to the next role down
         foreach (var node in nodes)
         {
+            if (node is null)
+                continue;
             // If there is no view permission, there can't be any other permissions
             // View is always 0x01 for chanel permissions, so it is safe to use ChatChannelPermission.View for
             // all cases.

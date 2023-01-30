@@ -1,144 +1,119 @@
+using IdGen;
+using Microsoft.AspNetCore.Mvc;
+using Valour.Server.API;
+using Valour.Server.Cdn;
+using Valour.Server.Config;
+using Valour.Server.Database;
+using Valour.Server.Redis;
+using Valour.Shared.Authorization;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class DirectChatChannelApi
 {
         
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/directchatchannels/{id}")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetRoute(
         long id, 
-        ValourDB db)
+        DirectChatChannelService directService)
     {
         // id is the id of the channel
-        var channel = await FindAsync(id, db);
+        var channel = await directService.GetAsync(id);
 
         return channel is null ? ValourResult.NotFound<DirectChatChannel>() : 
             Results.Json(channel);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/byuser/{id}", $"api/{nameof(DirectChatChannel)}"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/directchatchannels/byuser/{id}")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetViaTargetRoute(
-        long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        long id,
+        DirectChatChannelService directService,
+        UserService userService)
     {
         // id is the id of the target user, not the channel!
-        var token = ctx.GetToken();
+        var requesterUserId = await userService.GetCurrentUserId();//ctx.GetToken();
 
         // Ensure target user exists
-        if (!await db.Users.AnyAsync(x => x.Id == id))
+        var targetuser = await userService.GetAsync(id);
+        if (targetuser is null)
             return ValourResult.NotFound("Target user not found");
 
-        var channel = await FindAsync(token.UserId, id, db);
+        var channel = await directService.GetAsync(requesterUserId, id);
         
         if (channel is not null) return Results.Json(channel);
-        
-        // If there is no dm channel yet, we create it
-        // TODO: Prevent if one of the users is blocking the other
-        channel = new()
-        {
-            Id = IdManager.Generate(),
-            UserOneId = token.UserId,
-            UserTwoId = id,
-            TimeLastActive = DateTime.UtcNow,
-            MessageCount = 0
-        };
 
-        await db.AddAsync(channel);
-        await db.SaveChangesAsync();
+        var result = await directService.CreateAsync(requesterUserId, id);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        return Results.Json(channel);
+        return Results.Json(result.Data);
     }
 
     // Message routes
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/message/{messageId}"), TokenRequired,]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/directchatchannels/{id}/message/{messageId}")]
+    [UserRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetMessagesRouteAsync(
         long id, 
-        long messageId, 
-        HttpContext ctx,
-        ValourDB db)
+        long messageId,
+        DirectChatChannelService directService,
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var requesterUserId = await userService.GetCurrentUserId();
 
-        var channel = await FindAsync(id, db);
+        var channel = await directService.GetAsync(id);
 
         if (channel is null)
             return ValourResult.NotFound("Direct chat channel not found");
 
-        if ((channel.UserOneId != token.UserId) &&
-            (channel.UserTwoId != token.UserId))
+        if ((channel.UserOneId != requesterUserId) &&
+            (channel.UserTwoId != requesterUserId))
             return ValourResult.Forbid("You do not have access to this direct chat channel");
 
-        return Results.Json(await db.DirectMessages.FindAsync(messageId));
+        return Results.Json(await directService.GetDirectMessageAsync(messageId));
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{id}/messages"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Get, "api/directchatchannels/{id}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> GetMessagesRouteAsync(
-        long id, 
-        HttpContext ctx,
-        ValourDB db,
+        long id,
+        DirectChatChannelService directService,
+        UserService userService,
         [FromQuery] long index = long.MaxValue, 
         [FromQuery] int count = 10)
     {
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
-        
-        var token = ctx.GetToken();
-        var channel = await FindAsync(id, db);
+
+        var requesterUserId = await userService.GetCurrentUserId();
+
+        var channel = await directService.GetAsync(id);
 
         if (channel is null)
             return ValourResult.NotFound("Direct chat channel not found");
 
-        if ((channel.UserOneId != token.UserId) &&
-            (channel.UserTwoId != token.UserId))
+        if ((channel.UserOneId != requesterUserId) &&
+            (channel.UserTwoId != requesterUserId))
             return ValourResult.Forbid("You do not have access to this direct chat channel");
 
 
-        var messages = await db.DirectMessages.Where(x => x.ChannelId == id && x.Id <= index)
-                                              .OrderByDescending(x => x.Id)
-                                              .Take(count)
-                                              .Reverse()
-                                              .ToListAsync();
-        var state = await db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
-        if (state is null)
-        {
-            db.UserChannelStates.Add(new UserChannelState()
-            {
-                UserId = token.UserId,
-                ChannelId = channel.Id,
-                LastViewedTime = DateTime.UtcNow
-            });
+        var messages = await directService.GetDirectMessagesAsync(channel, index, count);
 
-            await db.SaveChangesAsync();
-        }
-
-        else
-        {
-            state.LastViewedTime = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-        }
+        await directService.UpdateUserStateAsync(channel, requesterUserId);
 
         return Results.Json(messages);
     }
 
-    public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
-
-    [ValourRoute(HttpVerbs.Post, "/{id}/messages"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Post, "api/directchatchannels/{id}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> PostMessageRouteAsync(
-        [FromBody] DirectMessage message, 
-        HttpContext ctx, 
-        HttpClient client, 
-        ValourDB valourDb, 
-        CdnDb db,
-        CoreHubService hubService,
-        IConnectionMultiplexer redis)
+        [FromBody] DirectMessage message,
+        DirectChatChannelService directService,
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var requesterUserId = await userService.GetCurrentUserId();
 
         if (message is null)
             return Results.BadRequest("Include message in body.");
@@ -151,7 +126,7 @@ public class DirectChatChannelApi
         if (message.Fingerprint is null)
             return Results.BadRequest("Please include a Fingerprint.");
 
-        if (message.AuthorUserId != token.UserId)
+        if (message.AuthorUserId != requesterUserId)
             return Results.BadRequest("UserId must match sender.");
 
         if (message.Content != null && message.Content.Length > 2048)
@@ -161,212 +136,57 @@ public class DirectChatChannelApi
         if (message.EmbedData != null && message.EmbedData.Length > 65535)
             return Results.BadRequest("EmbedData must be under 65535 chars");
 
-        var channel = await DirectChatChannel.FindAsync(message.ChannelId, valourDb);
+        var channel = await directService.GetAsync(message.ChannelId);
 
         if (channel is null)
             return ValourResult.NotFound("Direct chat channel not found");
 
-        if ((channel.UserOneId != token.UserId) &&
-            (channel.UserTwoId != token.UserId))
+        if ((channel.UserOneId != requesterUserId) &&
+            (channel.UserTwoId != requesterUserId))
             return ValourResult.Forbid("You do not have access to this direct chat channel");
 
-        if (message.Content is null)
-            message.Content = "";
-
-        // Handle URL content
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
-
-        message.Id = IdManager.Generate();
-
-        // Handle attachments
-        if (message.AttachmentsData is not null)
-        {
-            var attachments = JsonSerializer.Deserialize<List<MessageAttachment>>(message.AttachmentsData);
-            if (attachments is not null)
-            {
-                foreach (var at in attachments)
-                {
-                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
-                    {
-                        return Results.BadRequest("Attachments must be from https://cdn.valour.gg...");
-                    }
-                    if (_attachmentRejectRegex.IsMatch(at.Location))
-                    {
-                        return Results.BadRequest("Attachment location contains invalid characters");
-                    }
-                }
-            }
-        }
-
-        if (message.MentionsData is not null)
-        {
-            var mentions = JsonSerializer.Deserialize<List<Mention>>(message.MentionsData);
-            if (mentions is not null)
-            {
-                foreach (var mention in mentions)
-                {
-                    if (mention.Type == MentionType.User)
-                    {
-                        var mentionTargetUser = await Item.FindAsync<User>(mention.TargetId, valourDb);
-                        var sendingUser = await Item.FindAsync<User>(token.UserId, valourDb);
-
-                        var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
-
-                        await NotificationManager.SendNotificationAsync(valourDb, mentionTargetUser.Id, sendingUser.PfpUrl, sendingUser.Name + " in DMs", content);
-                    }
-                }
-            }
-        }
-
-        User targetUser;
-
-        // Get the user that is NOT the token user
-        if (channel.UserOneId == token.UserId)
-        {
-            targetUser = await Item.FindAsync<User>(channel.UserTwoId, valourDb);
-        }
-        else
-        {
-            targetUser = await Item.FindAsync<User>(channel.UserOneId, valourDb);
-        }
-
-        if (targetUser is null)
-            return ValourResult.NotFound("Target user not found.");
-        
-        
-        var state = await valourDb.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == token.UserId && x.ChannelId == channel.Id);
-        if (state is null)
-        {
-            valourDb.UserChannelStates.Add(new UserChannelState()
-            {
-                UserId = token.UserId,
-                ChannelId = channel.Id,
-                LastViewedTime = DateTime.UtcNow
-            });
-        }
-
-        else
-        {
-            state.LastViewedTime = DateTime.UtcNow;
-        }
-
-        await valourDb.DirectMessages.AddAsync(message);
-        await valourDb.SaveChangesAsync();
-
-        // Relay to nodes where sending user or target user is connected
-        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
-
-        var nodeTargets = new List<(string nodeId, long userId)>();
-        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))
-        {
-            var split = conn.ToString().Split(':');
-            var nodeId = split[0];
-            nodeTargets.Add((nodeId, channel.UserOneId));
-        }
-        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserTwoId}"))
-        {
-            var split = conn.ToString().Split(':');
-            var nodeId = split[0];
-            nodeTargets.Add((nodeId, channel.UserTwoId));
-        }
-
-        foreach (var target in nodeTargets.Distinct())
-        {
-            // Case for same name
-            if (target.nodeId == NodeAPI.Node.Name)
-            {
-                // Just fire event in this node
-                hubService.RelayDirectMessage(message, target.userId);
-            }
-            else
-            {
-                // Inter-node communications
-                await client.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relay?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
-            }
-        }
-
-        StatWorker.IncreaseMessageCount();
+        var result = await directService.PostMessageAsync(channel, message, requesterUserId);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Delete, "/{id}/messages/{message_id}"), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
+    [ValourRoute(HttpVerbs.Delete, "api/directchatchannels/{id}/messages/{message_id}")]
+    [UserRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
     public static async Task<IResult> DeleteMessageRouteAsync(
         long id, 
-        long message_id, 
-        HttpContext ctx, 
-        HttpClient client,
-        ValourDB db,
-        CoreHubService hubService,
-        UserOnlineService onlineService,
-        ILogger<DirectChatChannel> logger,
-        IConnectionMultiplexer redis)
+        long message_id,
+        DirectChatChannelService directService,
+        UserService userService)
     {
-        var token = ctx.GetToken();
+        var requesterUserId = await userService.GetCurrentUserId();
 
-        var channel = await DirectChatChannel.FindAsync(id, db);
+        var channel = await directService.GetAsync(id);
+
         if (channel is null)
-            return ValourResult.NotFound("Channel not found");
+            return ValourResult.NotFound("Direct chat channel not found");
 
-        var message = await FindAsync<DirectMessage>(message_id, db);
+        if ((channel.UserOneId != requesterUserId) &&
+            (channel.UserTwoId != requesterUserId))
+            return ValourResult.Forbid("You do not have access to this direct chat channel");
+
+        var message = await directService.GetDirectMessageAsync(message_id);
 
         if (message.ChannelId != id)
             return ValourResult.NotFound<PlanetMessage>();
 
-        if (token.UserId != message.AuthorUserId)
-        {
+        if (requesterUserId != message.AuthorUserId)
             return ValourResult.Forbid("You cannot delete another user's direct messages");
-        }
 
-        try
-        {
-            db.DirectMessages.Remove(message);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-        
-        // Relay to nodes where sending user or target user is connected
-        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
+        var result = await directService.DeleteMessageAsync(channel, message);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        var nodeTargets = new List<(string nodeId, long userId)>();
-        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))
-        {
-            var split = conn.ToString().Split(':');
-            var nodeId = split[0];
-            nodeTargets.Add((nodeId, channel.UserOneId));
-        }
-        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserTwoId}"))
-        {
-            var split = conn.ToString().Split(':');
-            var nodeId = split[0];
-            nodeTargets.Add((nodeId, channel.UserTwoId));
-        }
-
-        foreach (var target in nodeTargets.Distinct())
-        {
-            // Case for same name
-            if (target.nodeId == NodeAPI.Node.Name)
-            {
-                // Just fire event in this node
-                hubService.NotifyDirectMessageDeletion(message, target.userId);
-            }
-            else
-            {
-                // Inter-node communications
-                await client.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/{nameof(DirectChatChannel)}/relaydelete?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
-            }
-        }
-        
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/relay", $"api/{nameof(DirectChatChannel)}")]
+    [ValourRoute(HttpVerbs.Post, "api/directchatchannels/relay")]
     public static async Task<IResult> RelayDirectMessageAsync(
         [FromBody] DirectMessage message, 
         [FromQuery] string auth, 
@@ -381,7 +201,7 @@ public class DirectChatChannelApi
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Post, "/relaydelete", $"api/{nameof(DirectChatChannel)}")]
+    [ValourRoute(HttpVerbs.Post, "api/directchatchannels/relaydelete")]
     public static async Task<IResult> RelayDeleteDirectMessageAsync(
         [FromBody] DirectMessage message, 
         [FromQuery] string auth, 

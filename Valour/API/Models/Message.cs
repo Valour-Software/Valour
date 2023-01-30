@@ -1,11 +1,11 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text.Json;
-using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared.Models;
 using Valour.Shared;
 using Valour.Api.Client;
-using Valour.Api.Items;
+using Valour.Api.Models;
 
 namespace Valour.Api.Models;
 public abstract class Message : Item, ISharedMessage

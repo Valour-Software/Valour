@@ -1,5 +1,6 @@
 using IdGen;
 using StackExchange.Redis;
+using System.Security.Cryptography;
 using Valour.Database.Context;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -11,12 +12,12 @@ namespace Valour.Server.Services;
 public class PlanetRoleService
 {
     private readonly ValourDB _db;
-    private readonly ILogger<PlanetChatChannelService> _logger;
+    private readonly ILogger<PlanetRoleService> _logger;
     private readonly CoreHubService _coreHub;
 
     public PlanetRoleService(
         ValourDB db, 
-        ILogger<PlanetChatChannelService> logger, 
+        ILogger<PlanetRoleService> logger, 
         CoreHubService coreHub)
     {
         _db = db;
@@ -60,7 +61,7 @@ public class PlanetRoleService
             return new(false, "Position cannot be changed directly.");
         try
         {
-            _db.Entry(oldRole).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetRole>(oldRole.Id)).State = EntityState.Detached;
             _db.PlanetRoles.Update(updatedRole.ToDatabase());
             await _db.SaveChangesAsync();
         }
@@ -80,32 +81,32 @@ public class PlanetRoleService
 
     public async Task<List<PermissionsNode>> GetChannelNodesAsync(PlanetRole role) =>
         await _db.PermissionsNodes.Where(x => x.TargetType == PermissionsTargetType.PlanetChatChannel &&
-                                          x.RoleId == role.Id).ToListAsync();
+                                          x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<List<PermissionsNode>> GetCategoryNodesAsync(PlanetRole role) =>
         await _db.PermissionsNodes.Where(x => x.TargetType == PermissionsTargetType.PlanetCategoryChannel &&
-                                          x.RoleId == role.Id).ToListAsync();
+                                          x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetChatChannel channel, PlanetRole role) =>
-        await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
+        (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
                                                            x.TargetType == PermissionsTargetType.PlanetChatChannel &&
-                                                           x.RoleId == role.Id);
+                                                           x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetCategory category, PlanetRole role) =>
-        await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
+        (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
                                                            x.TargetType == PermissionsTargetType.PlanetChatChannel &&
-                                                           x.RoleId == role.Id);
+                                                           x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionsNode> GetCategoryNodeAsync(PlanetCategory category, PlanetRole role) =>
-        await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
+        (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
                                                            x.TargetType == PermissionsTargetType.PlanetCategoryChannel &&
-                                                           x.RoleId == role.Id);
+                                                           x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel, PlanetRole role) =>
         await GetPermissionStateAsync(permission, channel, role);
 
-    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, PlanetRole role) =>
-        (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.RoleId == role.Id && x.TargetId == channelId)).GetPermissionState(permission);
+    //public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, PlanetRole role) =>
+    //    (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.RoleId == role.Id && x.TargetId == channelId)).GetPermissionState(permission);
 
     public async Task<TaskResult> DeleteAsync(PlanetRole role)
     {

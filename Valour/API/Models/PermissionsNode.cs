@@ -73,7 +73,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
 
     public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
 
-    public override string BaseRoute => $"api/{nameof(PermissionsNode)}";
+    public override string BaseRoute => $"api/permissionsnodes";
 
 
     /// <summary>
@@ -88,7 +88,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
                 return cached;
         }
 
-        var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/{nameof(PermissionsNode)}/{type}/{targetId}/{roleId}", true)).Data;
+        var permNode = (await ValourClient.PrimaryNode.GetJsonAsync<PermissionsNode>($"api/permissionsnodes/{type}/{targetId}/{roleId}", true)).Data;
 
         if (permNode is not null)
             await permNode.AddToCache();

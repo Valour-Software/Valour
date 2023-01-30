@@ -3,6 +3,7 @@ using StackExchange.Redis;
 using System.Data;
 using Valour.Client.Pages;
 using Valour.Server.Database;
+using Valour.Server.Services;
 using Valour.Shared.Authorization;
 
 namespace Valour.Server.Api.Dynamic;
@@ -44,7 +45,7 @@ public class PlanetInviteApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetinvites/{invite.Id}", invite);
+        return Results.Created($"api/planetinvites/{result.Data.Id}", result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/invites/{id}")]
@@ -71,7 +72,7 @@ public class PlanetInviteApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Json(invite);
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/invites/{id}")]
@@ -96,44 +97,28 @@ public class PlanetInviteApi
         return Results.NoContent();
 
     }
-    
-    private Random random = new();
-    private const string inviteChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-    private async Task<string> GenerateCode(ValourDB db)
-    {
-        
-        string code;
-        bool exists;
-
-        do
-        {
-            code = new string(Enumerable.Repeat(inviteChars, 8).Select(s => s[random.Next(s.Length)]).ToArray());
-            exists = await db.PlanetInvites.AnyAsync(x => x.Code == code);
-        }
-        while (exists);
-        return code;
-    }
 
     // Custom routes
 
     [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/name")]
     public static async Task<IResult> GetPlanetName(
         string inviteCode, 
-        ValourDB db)
+        PlanetInviteService inviteService,
+        PlanetService planetService)
     {
-        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
+        var invite = await inviteService.GetAsync(inviteCode);
 
-        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.Name);
+        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json((await planetService.GetAsync(invite.PlanetId)).Name);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/icon")]
     public static async Task<IResult> GetPlanetIconUrl(
         string inviteCode, 
-        ValourDB db)
+        PlanetInviteService inviteService,
+        PlanetService planetService)
     {
-        var invite = await db.PlanetInvites.Include(x => x.Planet).FirstOrDefaultAsync(x => x.Code == inviteCode);
+        var invite = await inviteService.GetAsync(inviteCode);
 
-        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json(invite.Planet.IconUrl);
+        return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json((await planetService.GetAsync(invite.PlanetId)).IconUrl);
     }
 }

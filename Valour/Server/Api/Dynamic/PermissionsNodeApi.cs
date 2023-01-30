@@ -1,35 +1,40 @@
+using IdGen;
+using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Authorization;
+using Valour.Shared.Models;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class PermissionsNodeApi
 {
-    [ValourRoute(HttpVerbs.Get), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{id}")]
     public static async Task<IResult> GetNodeRouteAsync(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        PermissionsNodeService permissionsNodeService)
     {
-        var node = await FindAsync<PermissionsNode>(id, db);
+        var node = await permissionsNodeService.GetAsync(id);
         if (node is null)
             return ValourResult.NotFound<PermissionsNode>();
 
         return Results.Json(node);
     }
 
-    [ValourRoute(HttpVerbs.Get, "/{type}/{targetId}/{roleId}", $"/api/{nameof(PermissionsNode)}"), TokenRequired]
+    [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{type}/{targetId}/{roleId}")]
     public static async Task<IResult> GetNodeForTargetRouteAsync(
         PermissionsTargetType type, 
         long targetId, 
-        long roleId, 
-        ValourDB db)
+        long roleId,
+        PermissionsNodeService permissionsNodeService)
     {
-        var node = await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == targetId && x.RoleId == roleId && x.TargetType == type);
+        var node = await permissionsNodeService.GetAsync(targetId, roleId, type);
         if (node is null)
             return ValourResult.NotFound<PermissionsNode>();
 
         return Results.Json(node);
     }
 
-    [ValourRoute(HttpVerbs.Put, "/{type}/{targetId}/{roleId}", $"/api/{nameof(PermissionsNode)}"), TokenRequired]
+    [ValourRoute(HttpVerbs.Put, "api/permissionsnodes/{type}/{targetId}/{roleId}")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     // Planet permissions are not required in attribute because
     // There will be more permissions than just planet permissions!
     public static async Task<IResult> PutRouteAsync(
@@ -37,12 +42,13 @@ public class PermissionsNodeApi
         PermissionsTargetType type,
         long targetId, 
         long roleId,
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PermissionsNode> logger)
+        PermissionsNodeService permissionsNodeService,
+        PlanetMemberService memberService,
+        TokenService tokenService,
+        PlanetService planetService,
+        PlanetRoleService roleService)
     {
-        var token = ctx.GetToken();
+        var token = await tokenService.GetCurrentToken();
 
         if (node.TargetId != targetId)
             return Results.BadRequest("TargetId mismatch");
@@ -51,22 +57,19 @@ public class PermissionsNodeApi
         if (node.TargetType != type)
             return Results.BadRequest("Type mismatch");
 
-        if (!token.HasScope(UserPermissions.PlanetManagement))
-            return ValourResult.LacksPermission(UserPermissions.PlanetManagement);
-
         // Unfortunately we have to do the permissions in here
-        var planet = await FindAsync<Planet>(node.PlanetId, db);
+        var planet = await planetService.GetAsync(node.PlanetId);
         if (planet is null)
             return ValourResult.NotFound<Planet>();
 
-        var member = await PlanetMember.FindAsyncByUser(token.UserId, planet.Id, db);
+        var member = await memberService.GetByUserAsync(token.UserId, planet.Id);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var oldNode = await db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == targetId && x.RoleId == roleId && x.TargetType == type);
+        var oldNode = await permissionsNodeService.GetAsync(targetId, roleId, type);
         if (oldNode is null)
             return ValourResult.NotFound<PermissionsNode>();
 
@@ -79,61 +82,52 @@ public class PermissionsNodeApi
         if (oldNode.TargetType != node.TargetType)
             return Results.BadRequest("Cannot change TargetType");
 
-        var role = await FindAsync<PlanetRole>(node.RoleId, db);
+        var role = await roleService.GetAsync(node.RoleId);
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        if (role.GetAuthority() > await member.GetAuthorityAsync(db))
+        if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("The target node's role has higher authority than you.");
-        try
-        {
-            db.Entry(oldNode).State = EntityState.Detached;
-            db.PermissionsNodes.Update(node);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
 
-        hubService.NotifyPlanetItemChange(node);
+        var result = await permissionsNodeService.PutAsync(oldNode, node);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        return Results.Json(node);
+        return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Post, prefix: $"/api/{nameof(PermissionsNode)}"), TokenRequired]
+    [ValourRoute(HttpVerbs.Post, $"api/permissionsnodes")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
     // Planet permissions are not required in attribute because
     // There will be more permissions than just planet permissions!
     public static async Task<IResult> PostRouteAsync(
-        [FromBody] PermissionsNode node, 
-        HttpContext ctx,
-        ValourDB db,
-        CoreHubService hubService,
-        ILogger<PermissionsNode> logger)
+        [FromBody] PermissionsNode node,
+        PermissionsNodeService permissionsNodeService,
+        UserService userService,
+        PlanetService planetService,
+        PlanetMemberService memberService,
+        PlanetRoleService roleService,
+        PlanetChannelService channelService)
     {
-        var token = ctx.GetToken();
-
-        if (!token.HasScope(UserPermissions.PlanetManagement))
-            return ValourResult.LacksPermission(UserPermissions.PlanetManagement);
+        var userId = await userService.GetCurrentUserId();
 
         // Unfortunately we have to do the permissions in here
-        var planet = await FindAsync<Planet>(node.PlanetId, db);
+        var planet = await planetService.GetAsync(node.PlanetId);
         if (planet is null)
             return ValourResult.NotFound<Planet>();
 
-        var member = await PlanetMember.FindAsyncByUser(token.UserId, planet.Id, db);
+        var member = await memberService.GetByUserAsync(userId, planet.Id);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await planet.HasPermissionAsync(member, PlanetPermissions.ManageRoles, db))
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var role = await FindAsync<PlanetRole>(node.RoleId, db);
+        var role = await roleService.GetAsync(node.RoleId);
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var target = await node.GetTargetAsync(db);
+        var target = await channelService.GetAsync(node.TargetId);
         if (target is null)
             return ValourResult.NotFound<PlanetChannel>();
 
@@ -147,27 +141,16 @@ public class PermissionsNodeApi
             }
         }
 
-        if (role.GetAuthority() > await member.GetAuthorityAsync(db))
+        if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("The target node's role has higher authority than you.");
 
-        if (await db.PermissionsNodes.AnyAsync(x => x.TargetId == node.TargetId && x.RoleId == node.RoleId && x.TargetType == node.TargetType))
+        if (await permissionsNodeService.GetAsync(node.TargetId, node.RoleId, node.TargetType) is not null)
             return Results.BadRequest("A node already exists for this role and target.");
 
-        node.Id = IdManager.Generate();
+        var result = await permissionsNodeService.CreateAsync(node);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
-        try
-        {
-            await db.PermissionsNodes.AddAsync(node);
-            await db.SaveChangesAsync();
-        }
-        catch (System.Exception e)
-        {
-            logger.LogError(e.Message);
-            return Results.Problem(e.Message);
-        }
-
-        hubService.NotifyPlanetItemChange(node);
-
-        return Results.Created(node.GetUri(), node);
+        return Results.Created($"api/permissionsnodes/{result.Data.Id}", result.Data);
     }
 }

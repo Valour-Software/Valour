@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Api.Items;
+using Valour.Api.Models;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -8,6 +8,13 @@ namespace Valour.Api.Models;
 
 public class User : Item, ISharedUser
 {
+    #region IPlanetItem implementation
+
+    public override string BaseRoute =>
+            $"api/users";
+
+    #endregion
+
     [JsonIgnore]
     public static User Victor = new User()
     {
@@ -82,7 +89,7 @@ public class User : Item, ISharedUser
     }
 
     public async Task<List<OauthApp>> GetOauthAppAsync() =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"api/user/{Id}/apps")).Data;
+        (await ValourClient.PrimaryNode.GetJsonAsync<List<OauthApp>>($"api/users/{Id}/apps")).Data;
 
     public static async ValueTask<User> FindAsync(long id, bool force_refresh = false)
     {
@@ -93,7 +100,7 @@ public class User : Item, ISharedUser
                 return cached;
         }
 
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"api/{nameof(User)}/{id}")).Data;
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<User>($"api/users/{id}")).Data;
 
         if (item is not null)
         {
@@ -104,9 +111,9 @@ public class User : Item, ISharedUser
     }
 
     public async Task<TaskResult<List<User>>> GetFriendsAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/{nameof(User)}/{Id}/friends");
+        => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/users/{Id}/friends");
 
     public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
-        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/{nameof(User)}/{Id}/frienddata");
+        => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/users/{Id}/frienddata");
 }
 

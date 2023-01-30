@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Valour.Client.Pages;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -7,12 +8,12 @@ namespace Valour.Server.Services;
 public class PlanetInviteService
 {
     private readonly ValourDB _db;
-    private readonly ILogger<PlanetChatChannelService> _logger;
+    private readonly ILogger<PlanetInviteService> _logger;
     private readonly CoreHubService _coreHub;
 
     public PlanetInviteService(
         ValourDB db,
-        ILogger<PlanetChatChannelService> logger,
+        ILogger<PlanetInviteService> logger,
         CoreHubService coreHub)
     {
         _db = db;
@@ -24,8 +25,8 @@ public class PlanetInviteService
         (await _db.PlanetInvites.FindAsync(id)).ToModel();
 
     public async Task<PlanetInvite> GetAsync(string code) =>
-        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code)
-        .ToModel());
+        (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code))
+        .ToModel();
 
     public async Task<PlanetInvite> GetAsync(string code, long planetId) => 
         (await _db.PlanetInvites.FirstOrDefaultAsync(x => x.Code == code 
@@ -67,7 +68,7 @@ public class PlanetInviteService
             return new(false, "You cannot change what planet.");
         try
         {
-            _db.Entry(oldInvite).State = EntityState.Detached;
+            _db.Entry(_db.Find<Valour.Database.PlanetInvite>(oldInvite.Id)).State = EntityState.Detached;
             _db.PlanetInvites.Update(updatedInvite.ToDatabase());
             await _db.SaveChangesAsync();
         }
@@ -86,7 +87,7 @@ public class PlanetInviteService
     {
         try
         {
-            await _db.PlanetInvites.Remove(invite.ToDatabase());
+            _db.PlanetInvites.Remove(invite.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

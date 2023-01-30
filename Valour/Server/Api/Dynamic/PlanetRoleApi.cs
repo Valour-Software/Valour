@@ -48,7 +48,7 @@ public class PlanetRoleApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetroles/{role.Id}", role);
+        return Results.Created($"api/planetroles/{result.Data.Id}", result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planetroles/{id}")]
@@ -73,7 +73,7 @@ public class PlanetRoleApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Ok();
+        return Results.Json(result.Data);
     }
 
     [ValourRoute(HttpVerbs.Delete, "api/planetroles/{id}")]

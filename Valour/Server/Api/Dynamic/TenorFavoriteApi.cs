@@ -1,37 +1,38 @@
+using Microsoft.AspNetCore.Mvc;
+using Valour.Shared.Authorization;
+
 namespace Valour.Server.Api.Dynamic;
 
 public class TenorFavoriteApi
 {
-    [ValourRoute(HttpVerbs.Post), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
+    [ValourRoute(HttpVerbs.Post, "api/tenorfavorites")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostAsync(
         [FromBody] TenorFavorite favorite, 
-        HttpContext ctx, 
-        ValourDB db)
+        TenorFavoriteService tenorFavoriteService,
+        UserService userService)
     {
-        var token = ctx.GetToken();
-        var user = await User.FindAsync(token.UserId, db);
+        var user = await userService.GetCurrentUserAsync();
 
         favorite.UserId = user.Id;
-        favorite.Id = IdManager.Generate();
-        
-        db.TenorFavorites.Add(favorite);
-        await db.SaveChangesAsync();
 
-        return Results.Json(favorite);
+        var result = await tenorFavoriteService.CreateAsync(favorite);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Created($"api/tenorfavorites/{result.Data.Id}", result.Data);
     }
     
-    [ValourRoute(HttpVerbs.Delete), TokenRequired]
-    [UserPermissionsRequired(UserPermissionsEnum.Messages)]
+    [ValourRoute(HttpVerbs.Delete, "api/tenorfavorites/{id}")]
+    [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostAsync(
         long id, 
-        HttpContext ctx, 
-        ValourDB db)
+        TenorFavoriteService tenorFavoriteService,
+        UserService userService)
     {
-        var token = ctx.GetToken();
-        var user = await User.FindAsync(token.UserId, db);
+        var user = await userService.GetCurrentUserAsync();
 
-        var favorite = await FindAsync<TenorFavorite>(id, db);
+        var favorite = await tenorFavoriteService.GetAsync(id);
 
         if (favorite is null)
             return ValourResult.NotFound("Tenor favorite not found.");
@@ -39,8 +40,9 @@ public class TenorFavoriteApi
         if (favorite.UserId != user.Id)
             return ValourResult.Forbid("You do not own this resource.");
 
-        db.TenorFavorites.Remove(favorite);
-        await db.SaveChangesAsync();
+        var result = await tenorFavoriteService.DeleteAsync(favorite);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
 
         return ValourResult.Ok("Deleted");
     }

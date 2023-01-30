@@ -56,10 +56,10 @@
 	{
 		if (value)
 			// Add role
-			await Member.Node.PostAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}", null);
+			await Member.Node.PostAsync($"api/members{Member.Id}/roles/{role.Id}", null);
 		else
 			// Remove role
-			await Member.Node.DeleteAsync($"api/planet/{Member.PlanetId}/PlanetMember/{Member.Id}/roles/{role.Id}");
+			await Member.Node.DeleteAsync($"api/members/{Member.Id}/roles/{role.Id}");
 
 
 		StateHasChanged();

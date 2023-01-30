@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using Valour.Shared.Models;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets;
 using Valour.Shared;
 using System.Collections.Concurrent;
 using Valour.Shared.Authorization;
@@ -23,7 +21,7 @@ public class OauthAPI : BaseAPI
         app.MapDelete("api/oauth/app/{app_id}", DeleteApp);
         app.MapGet("api/oauth/app/public/{app_id}", GetAppPublic);
 
-        app.MapGet("api/user/{userId}/apps", GetApps);
+        app.MapGet("api/users/{userId}/apps", GetApps);
 
         app.MapPost("api/oauth/authorize", Authorize);
         app.MapGet("api/oauth/token", Token);
@@ -34,10 +32,11 @@ public class OauthAPI : BaseAPI
 
     public static async Task<object> Authorize(
         ValourDB db, HttpContext context,
+        TokenService tokenService,
         [FromBody] AuthorizeModel model,
         [FromHeader] string authorization)
     {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        var authToken = await tokenService.GetCurrentToken();
         if (authToken is null || model.UserId != authToken.UserId)
             return ValourResult.InvalidToken();
 
@@ -93,7 +92,7 @@ public class OauthAPI : BaseAPI
                         IssuedAddress = "Oauth Internal"
                     };
 
-                    await db.AuthTokens.AddAsync(newToken);
+                    await db.AuthTokens.AddAsync(newToken.ToDatabase());
                     await db.SaveChangesAsync();
 
                     return Results.Json(newToken);
@@ -105,9 +104,9 @@ public class OauthAPI : BaseAPI
 
     }
 
-    public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, [FromHeader] string authorization)
+    public static async Task DeleteApp(HttpContext context, ValourDB db, ulong app_id, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        var authToken = await tokenService.GetCurrentToken();
 
         if (authToken is null)
         {
@@ -127,9 +126,9 @@ public class OauthAPI : BaseAPI
         await db.SaveChangesAsync();
     }
 
-    public static async Task GetApps(HttpContext context, ValourDB db, [FromHeader] string authorization)
+    public static async Task GetApps(HttpContext context, ValourDB db, TokenService tokenService, [FromHeader] string authorization)
     {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        var authToken = await tokenService.GetCurrentToken();
 
         if (authToken is null)
         {
@@ -152,10 +151,10 @@ public class OauthAPI : BaseAPI
         await context.Response.WriteAsJsonAsync(apps);
     }
 
-    public static async Task<IResult> GetApp(HttpContext context, ValourDB db, long app_id,
+    public static async Task<IResult> GetApp(HttpContext context, ValourDB db, TokenService tokenService, long app_id,
     [FromHeader] string authorization)
     {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        var authToken = await tokenService.GetCurrentToken();
         if (authToken is null)
             return ValourResult.InvalidToken();
 
@@ -170,10 +169,10 @@ public class OauthAPI : BaseAPI
         return Results.Json(app);
     }
 
-    public static async Task<IResult> GetAppPublic(HttpContext context, ValourDB db, long app_id,
+    public static async Task<IResult> GetAppPublic(HttpContext context, ValourDB db, TokenService tokenService, long app_id,
     [FromHeader] string authorization)
     {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        var authToken = await tokenService.GetCurrentToken();
         if (authToken is null)
             return ValourResult.InvalidToken();
 
@@ -192,9 +191,9 @@ public class OauthAPI : BaseAPI
         return Results.Json(publicData);
     }
 
-    public static async Task<IResult> CreateApp(HttpContext context, ValourDB db, [FromBody] OauthApp app, [FromHeader] string authorization)
+    public static async Task<IResult> CreateApp(HttpContext context, ValourDB db, TokenService tokenService, [FromBody] OauthApp app, [FromHeader] string authorization)
     {
-        var authToken = await AuthToken.TryAuthorize(authorization, db);
+        var authToken = await tokenService.GetCurrentToken();
         if (authToken is null)
             return ValourResult.NoToken();
 
@@ -213,7 +212,7 @@ public class OauthAPI : BaseAPI
         app.ImageUrl = "../_content/Valour.Client/media/logo/logo-512.png";
 
         // Make name conform to server rules
-        var nameValid = Planet.ValidateName(app.Name);
+        var nameValid = PlanetService.ValidateName(app.Name);
 
         if (!nameValid.Success)
             return ValourResult.BadRequest(nameValid.Message);
@@ -226,7 +225,7 @@ public class OauthAPI : BaseAPI
 
         app.Id = IdManager.Generate();
 
-        db.OauthApps.Add(app);
+        db.OauthApps.Add(app.ToDatabase());
         await db.SaveChangesAsync();
 
         return ValourResult.Ok(app.Id.ToString());

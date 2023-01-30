@@ -1,5 +1,5 @@
-﻿using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds;
+﻿using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Client.Components.Messages.Embeds;
 using Valour.Api.Client;
 using System.Net.Http.Json;

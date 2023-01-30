@@ -2,13 +2,13 @@
 using System.Text.Json.Nodes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds.Styles;
+using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds.Styles;
 using Valour.Api.Nodes;
-using Valour.Api.Items.Messages.Embeds.Styles.Basic;
-using Valour.Api.Items.Messages.Embeds.Styles.Flex;
+using Valour.Api.Models.Messages.Embeds.Styles.Basic;
+using Valour.Api.Models.Messages.Embeds.Styles.Flex;
 
-namespace Valour.Api.Items.Messages.Embeds;
+namespace Valour.Api.Models.Messages.Embeds;
 
 public class EmbedBuilder
 {
