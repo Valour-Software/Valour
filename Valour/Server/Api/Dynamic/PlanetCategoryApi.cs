@@ -136,7 +136,7 @@ public class PlanetCategoryApi
         if (!await memberService.HasPermissionAsync(member, old, CategoryPermissions.ManageCategory))
             return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
-        var result = await categoryService.PutAsync(old, category);
+        var result = await categoryService.PutAsync(category);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

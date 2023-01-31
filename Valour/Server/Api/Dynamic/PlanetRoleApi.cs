@@ -69,7 +69,7 @@ public class PlanetRoleApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
 
-        var result = await roleService.PutAsync(oldRole, role);
+        var result = await roleService.PutAsync(role);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

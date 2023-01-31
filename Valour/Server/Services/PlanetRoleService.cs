@@ -52,8 +52,11 @@ public class PlanetRoleService
         return new(true, "Success", role);
     }
 
-    public async Task<TaskResult<PlanetRole>> PutAsync(PlanetRole oldRole, PlanetRole updatedRole)
+    public async Task<TaskResult<PlanetRole>> PutAsync(PlanetRole updatedRole)
     {
+        var oldRole = await _db.PlanetRoles.FindAsync(updatedRole.Id);
+        if (oldRole is null) return new(false, $"PlanetRole not found");
+
         if (updatedRole.PlanetId != oldRole.PlanetId)
             return new(false, "You cannot change what planet.");
 
@@ -61,9 +64,7 @@ public class PlanetRoleService
             return new(false, "Position cannot be changed directly.");
         try
         {
-            var _old = await _db.PlanetRoles.FindAsync(updatedRole.Id);
-            if (_old is null) return new(false, $"PlanetRole not found");
-            _db.Entry(_old).CurrentValues.SetValues(updatedRole);
+            _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -123,7 +124,7 @@ public class PlanetRoleService
             _db.PermissionsNodes.RemoveRange(nodes.Select(x => x.ToDatabase()));
 
             // Remove the role
-            _db.PlanetRoles.Remove(role.ToDatabase());
+            _db.PlanetRoles.Remove(await _db.PlanetRoles.FindAsync(role.Id));
 
             await _db.SaveChangesAsync();
             _coreHub.NotifyPlanetItemDelete(role);

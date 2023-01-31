@@ -85,8 +85,11 @@ public class PlanetBanService
         return new(true, "Success", ban);
     }
 
-    public async Task<TaskResult<PlanetBan>> PutAsync(PlanetBan old, PlanetBan updatedban)
+    public async Task<TaskResult<PlanetBan>> PutAsync(PlanetBan updatedban)
     {
+        var old = await _db.PlanetBans.FindAsync(updatedban.Id);
+        if (old is null) return new(false, $"PlanetBan not found");
+
         if (updatedban.PlanetId != old.PlanetId)
             return new(false, "You cannot change the PlanetId.");
 
@@ -101,9 +104,7 @@ public class PlanetBanService
 
         try
         {
-            var _old = await _db.PlanetBans.FindAsync(updatedban.Id);
-            if (_old is null) return new(false, $"PlanetBan not found");
-            _db.Entry(_old).CurrentValues.SetValues(updatedban);
+            _db.Entry(old).CurrentValues.SetValues(updatedban);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -136,7 +137,9 @@ public class PlanetBanService
 
         try
         {
-            _db.PlanetBans.Remove(ban.ToDatabase());
+            var _old = await _db.PlanetBans.FindAsync(ban.Id);
+            if (_old is null) return new(false, $"PlanetBan not found");
+            _db.PlanetBans.Remove(_old);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

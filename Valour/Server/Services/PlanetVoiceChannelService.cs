@@ -115,8 +115,11 @@ public class PlanetVoiceChannelService
         return new(true, "Success", channel);
     }
 
-    public async Task<TaskResult<PlanetVoiceChannel>> PutAsync(PlanetVoiceChannel old, PlanetVoiceChannel updatedchannel)
+    public async Task<TaskResult<PlanetVoiceChannel>> PutAsync(PlanetVoiceChannel updatedchannel)
     {
+        var old = await _db.PlanetVoiceChannels.FindAsync(updatedchannel.Id);
+        if (old is null) return new(false, $"PlanetVoiceChannel not found");
+
         // Validation
         if (old.Id != updatedchannel.Id)
             return new(false, "Cannot change Id.");
@@ -130,9 +133,7 @@ public class PlanetVoiceChannelService
         // Update
         try
         {
-            var _old = await _db.PlanetVoiceChannels.FindAsync(updatedchannel.Id);
-            if (_old is null) return new(false, $"PlanetVoiceChannel not found");
-            _db.Entry(_old).CurrentValues.SetValues(updatedchannel);
+            _db.Entry(old).CurrentValues.SetValues(updatedchannel);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -160,7 +161,7 @@ public class PlanetVoiceChannelService
             );
 
             // Remove channel
-            _db.PlanetVoiceChannels.Remove(channel.ToDatabase());
+            _db.PlanetVoiceChannels.Remove(await _db.PlanetVoiceChannels.FindAsync(channel.Id));
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
         }

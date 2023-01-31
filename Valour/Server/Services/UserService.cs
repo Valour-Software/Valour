@@ -160,7 +160,7 @@ public class UserService
 
         try
         {
-            _db.PasswordRecoveries.Remove(recovery.ToDatabase());
+            _db.PasswordRecoveries.Remove(await _db.PasswordRecoveries.FindAsync(recovery.Code));
 
             byte[] salt = PasswordManager.GenerateSalt();
             byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
@@ -416,7 +416,7 @@ public class UserService
     {
         try
         {
-            _db.Entry(token.ToDatabase()).State = EntityState.Deleted;
+            _db.Entry(await _db.AuthTokens.FindAsync(token.Id)).State = EntityState.Deleted;
             _tokenService.RemoveFromQuickCache(token.Id);
             await _db.SaveChangesAsync();
         }

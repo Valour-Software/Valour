@@ -143,7 +143,7 @@ public class PlanetChatChannelApi
         if (!await memberService.HasPermissionAsync(member, old, ChatChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
 
-        var result = await channelService.PutAsync(old, channel);
+        var result = await channelService.PutAsync(channel);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

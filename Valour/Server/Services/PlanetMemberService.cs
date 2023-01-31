@@ -355,6 +355,7 @@ public class PlanetMemberService
     public async Task<TaskResult<PlanetMember>> UpdateAsync(PlanetMember member)
     {
         var old = await _db.PlanetMembers.FindAsync(member.Id);
+
         if (old is null)
             return new TaskResult<PlanetMember>(false, "Member not found.");
         
@@ -465,7 +466,7 @@ public class PlanetMemberService
         _db.PlanetRoleMembers.RemoveRange(roles);
 
         // Convert to db 
-        var dbMember = member.ToDatabase();
+        var dbMember = await _db.PlanetMembers.FindAsync(member.Id);
         
         // Soft delete member
         dbMember.IsDeleted = true;

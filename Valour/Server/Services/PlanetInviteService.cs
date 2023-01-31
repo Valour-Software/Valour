@@ -56,21 +56,22 @@ public class PlanetInviteService
         return new(true, "Success", invite);
     }
 
-    public async Task<TaskResult<PlanetInvite>> UpdateAsync(PlanetInvite oldInvite, PlanetInvite updatedInvite)
+    public async Task<TaskResult<PlanetInvite>> UpdateAsync(PlanetInvite updatedInvite)
     {
-        if (updatedInvite.Code != oldInvite.Code)
+        var old = await _db.PlanetInvites.FindAsync(updatedInvite.Id);
+        if (old is null) return new(false, $"PlanetInvite not found");
+
+        if (updatedInvite.Code != old.Code)
             return new(false, "You cannot change the code.");
-        if (updatedInvite.IssuerId != oldInvite.IssuerId)
+        if (updatedInvite.IssuerId != old.IssuerId)
             return new(false, "You cannot change who issued.");
-        if (updatedInvite.TimeCreated != oldInvite.TimeCreated)
+        if (updatedInvite.TimeCreated != old.TimeCreated)
             return new(false, "You cannot change the creation time.");
-        if (updatedInvite.PlanetId != oldInvite.PlanetId)
+        if (updatedInvite.PlanetId != old.PlanetId)
             return new(false, "You cannot change what planet.");
         try
         {
-            var _old = await _db.PlanetInvites.FindAsync(updatedInvite.Id);
-            if (_old is null) return new(false, $"PlanetInvite not found");
-            _db.Entry(_old).CurrentValues.SetValues(updatedInvite);
+            _db.Entry(old).CurrentValues.SetValues(updatedInvite);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -88,7 +89,8 @@ public class PlanetInviteService
     {
         try
         {
-            _db.PlanetInvites.Remove(invite.ToDatabase());
+            var dbinvite = await _db.PlanetInvites.FindAsync(invite.Id);
+            _db.PlanetInvites.Remove(dbinvite);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

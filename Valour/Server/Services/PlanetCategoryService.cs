@@ -123,8 +123,11 @@ public class PlanetCategoryService
         return new(true, "Success");
     }
 
-    public async Task<TaskResult<PlanetCategory>> PutAsync(PlanetCategory old, PlanetCategory updatedcategory)
+    public async Task<TaskResult<PlanetCategory>> PutAsync(PlanetCategory updatedcategory)
     {
+        var old = await _db.PlanetCategories.FindAsync(updatedcategory.Id);
+        if (old is null) return new(false, $"PlanetCategory not found");
+
         // Validation
         if (old.Id != updatedcategory.Id)
             return new(false, "Cannot change Id.");
@@ -139,9 +142,7 @@ public class PlanetCategoryService
         // Update
         try
         {
-            var _old = await _db.PlanetCategories.FindAsync(updatedcategory.Id);
-            if (_old is null) return new(false, $"PlanetCategory not found");
-            _db.Entry(_old).CurrentValues.SetValues(updatedcategory);
+            _db.Entry(old).CurrentValues.SetValues(updatedcategory);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
@@ -204,7 +205,7 @@ public class PlanetCategoryService
     /// </summary>
     public async Task DeleteAsync(PlanetCategory category)
     {
-        var dbcategory = category.ToDatabase();
+        var dbcategory = await _db.PlanetCategories.FindAsync(category.Id);
         dbcategory.IsDeleted = true;
         _db.PlanetCategories.Update(dbcategory);
         await _db.SaveChangesAsync();
