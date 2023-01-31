@@ -21,7 +21,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     #region IPlanetItem implementation
 
     public override string BaseRoute =>
-            $"api/planetchatchannels";
+            $"api/chatchannels";
 
     #endregion
 
@@ -207,7 +207,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetChatChannel>($"api/planetchatchannels/{id}")).Data;
+        var item = (await node.GetJsonAsync<PlanetChatChannel>($"api/chatchannels/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();

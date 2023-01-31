@@ -6,7 +6,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetBanApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/planetbans/{id}")]
+    [ValourRoute(HttpVerbs.Get, "api/bans/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     //[PlanetPermsRequired(PlanetPermissionsEnum.Ban)] (There is an exception to this!)
     public static async Task<IResult> GetRoute(
@@ -34,7 +34,7 @@ public class PlanetBanApi
         return Results.Json(ban);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetbans")]
+    [ValourRoute(HttpVerbs.Post, "api/bans")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRoute(
         [FromBody] PlanetBan ban, 
@@ -65,10 +65,10 @@ public class PlanetBanApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetbans/{result.Data.Id}", result.Data);
+        return Results.Created($"api/bans/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/planetbans/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/bans/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRoute(
         [FromBody] PlanetBan ban, 
@@ -99,7 +99,7 @@ public class PlanetBanApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetbans/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/bans/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRoute(
         long id, 

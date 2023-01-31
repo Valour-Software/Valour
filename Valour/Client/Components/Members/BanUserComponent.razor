@@ -81,7 +81,7 @@
             ban.TimeExpires = DateTime.UtcNow.AddDays(time);
         }
 
-        var response = await Member.Node.PostAsync($"api/planetbans", ban);
+        var response = await Member.Node.PostAsync($"api/bans", ban);
 
         if (response.Success)
         {

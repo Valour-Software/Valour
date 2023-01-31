@@ -9,7 +9,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetVoiceChannelApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/planetvoicechannels/{id}")]
+    [ValourRoute(HttpVerbs.Get, "api/voicechannels/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRouteAsync(
         long id,
@@ -34,7 +34,7 @@ public class PlanetVoiceChannelApi
         return Results.Json(channel);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetvoicechannels")]
+    [ValourRoute(HttpVerbs.Post, "api/voicechannels")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetVoiceChannel channel,
@@ -68,10 +68,10 @@ public class PlanetVoiceChannelApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetvoicechannels/{result.Data.Id}", result.Data);
+        return Results.Created($"api/voicechannels/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetvoicechannels/detailed")]
+    [ValourRoute(HttpVerbs.Post, "api/voicechannels/detailed")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteWithDetailsAsync(
         [FromBody] CreatePlanetVoiceChannelRequest request,
@@ -112,10 +112,10 @@ public class PlanetVoiceChannelApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetvoicechannels/{result.Data.Id}", result.Data);
+        return Results.Created($"api/voicechannels/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/planetvoicechannels/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/voicechannels/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetVoiceChannel channel, 
@@ -146,7 +146,7 @@ public class PlanetVoiceChannelApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetvoicechannels/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/voicechannels/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long id, 
@@ -176,7 +176,7 @@ public class PlanetVoiceChannelApi
         return Results.NoContent();
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/planetvoicechannels/{id}/checkperm/{memberId}/{value}")]
+    [ValourRoute(HttpVerbs.Get, "api/voicechannels/{id}/checkperm/{memberId}/{value}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> HasPermissionRouteAsync(
         long id, 

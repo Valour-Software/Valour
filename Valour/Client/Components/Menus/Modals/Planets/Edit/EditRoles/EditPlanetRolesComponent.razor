@@ -314,7 +314,7 @@
             "Confirm",
             "Cancel",
             async () => {
-                var response = await Selected.Node.DeleteAsync($"api/planetroles/{role.Id.ToString()}");
+                var response = await Selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
 
                 if (!response.Success)
                 {

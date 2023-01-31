@@ -45,7 +45,7 @@ public class PlanetInviteApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetinvites/{result.Data.Id}", result.Data);
+        return Results.Created($"api/invites/{result.Data.Id}", result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/invites/{id}")]

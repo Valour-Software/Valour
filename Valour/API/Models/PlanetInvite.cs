@@ -22,7 +22,7 @@ public class PlanetInvite : Item, IPlanetItem, ISharedPlanetInvite
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
         IPlanetItem.GetPlanetAsync(this, refresh);
 
-    public override string BaseRoute => $"api/planetinvites";
+    public override string BaseRoute => $"api/invites";
 
     #endregion
 

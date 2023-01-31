@@ -30,7 +30,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"api/planetchatchannels/{ChannelId}/messages/";
+            $"api/chatchannels/{ChannelId}/messages/";
 
     #endregion
 
@@ -66,7 +66,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var response = await node.GetJsonAsync<PlanetMessage>($"api/planetchatchannels/{channelId}/message/{id}");
+        var response = await node.GetJsonAsync<PlanetMessage>($"api/chatchannels/{channelId}/message/{id}");
         var item = response.Data;
 
         if (item is not null)
@@ -80,7 +80,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
     public override async Task<TaskResult> PostMessageAsync()
     {
         var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
-        return await node.PostAsync($"api/planetchatchannels/{ChannelId}/messages", this);
+        return await node.PostAsync($"api/chatchannels/{ChannelId}/messages", this);
     }
 
     /// <summary> 
@@ -99,7 +99,7 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
     /// Attempts to delete this message
     /// </summary>
     public override Task<TaskResult> DeleteAsync() =>
-        Node.DeleteAsync($"api/planetchatchannels/{ChannelId}/messages/{Id}");
+        Node.DeleteAsync($"api/chatchannels/{ChannelId}/messages/{Id}");
 
     /// <summary>
     /// Sends a message to the channel this message was sent in

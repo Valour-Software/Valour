@@ -54,7 +54,7 @@
             invite.TimeExpires = null;
         }
 
-        var response = await Planet.Node.PostAsyncWithResponse<PlanetInvite>($"api/planetinvites", invite);
+        var response = await Planet.Node.PostAsyncWithResponse<PlanetInvite>($"api/invites", invite);
 
         if (!response.Success)
         {
