@@ -75,7 +75,9 @@ public class PlanetMessageService
         {
             try
             {
-                _db.PlanetMessages.Remove(message.ToDatabase());
+                var _old = await _db.PlanetMessages.FindAsync(message_id);
+                if (_old is null) return ValourResult.Problem($"PlanetMessage not found");
+                _db.PlanetMessages.Remove(_old);
                 await _db.SaveChangesAsync();
             }
             catch (System.Exception e)
