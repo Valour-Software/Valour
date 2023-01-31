@@ -76,6 +76,6 @@ public class PermissionsNodeService
 
         _coreHub.NotifyPlanetItemChange(node);
 
-        return new(true, "Success");
+        return new(true, "Success", node);
     }
 }

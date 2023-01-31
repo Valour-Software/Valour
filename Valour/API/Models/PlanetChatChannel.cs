@@ -79,6 +79,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     public async ValueTask<PermissionsNode> GetMemberPermissionsAsync(long memberId, long planetId, bool force_refresh = false)
     {
         var member = await PlanetMember.FindAsync(memberId, planetId);
+
         var roles = await member.GetRolesAsync();
 
         // Start with no permissions
@@ -108,11 +109,17 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         for (int i = roles.Count - 1; i >= 0; i--)
         {
             var role = roles[i];
-            var node = await GetChannelPermissionsNodeAsync(role.Id, force_refresh);
+            PermissionsNode node;
+            // If true, we grab the parent's permission node
+            if (InheritsPerms)
+                node = await (await GetParentAsync()).GetPermissionsNodeAsync(role.Id, force_refresh);
+            else
+                node = await GetChannelPermissionsNodeAsync(role.Id, force_refresh);
+
             if (node is null)
-            {
                 continue;
-            }
+
+            //Console.WriteLine($"{role.Name}: {node.Mask} {node.Code}");
 
             foreach (var perm in ChatChannelPermissions.Permissions)
             {
