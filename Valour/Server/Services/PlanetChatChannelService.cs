@@ -50,7 +50,7 @@ public class PlanetChatChannelService
     /// </summary>
     public async Task DeleteAsync(PlanetChatChannel channel)
     {
-        var dbchannel = channel.ToDatabase();
+        var dbchannel = await _db.PlanetChatChannels.FindAsync(channel.Id);
         dbchannel.IsDeleted = true;
         _db.PlanetChatChannels.Update(dbchannel);
         await _db.SaveChangesAsync();
@@ -140,8 +140,10 @@ public class PlanetChatChannelService
         return new(true, "Success", channel);
     }
 
-    public async Task<TaskResult<PlanetChatChannel>> PutAsync(PlanetChatChannel old, PlanetChatChannel updatedchannel)
+    public async Task<TaskResult<PlanetChatChannel>> PutAsync(PlanetChatChannel updatedchannel)
     {
+        var old = await _db.PlanetChatChannels.FindAsync(updatedchannel.Id);
+        if (old is null) return new(false, $"PlanetChatChannel not found");
         // Validation
         if (old.Id != updatedchannel.Id)
             return new(false, "Cannot change Id.");
@@ -155,9 +157,7 @@ public class PlanetChatChannelService
         // Update
         try
         {
-            var _old = await _db.PlanetChatChannels.FindAsync(updatedchannel.Id);
-            if (_old is null) return new(false, $"PlanetChatChannel not found");
-            _db.Entry(_old).CurrentValues.SetValues(updatedchannel);
+            _db.Entry(old).CurrentValues.SetValues(updatedchannel);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

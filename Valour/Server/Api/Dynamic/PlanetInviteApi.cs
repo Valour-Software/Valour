@@ -68,7 +68,7 @@ public class PlanetInviteApi
 
         var oldInvite = await inviteService.GetAsync(invite.Id);
 
-        var result = await inviteService.UpdateAsync(oldInvite, invite);
+        var result = await inviteService.UpdateAsync(invite);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

@@ -139,7 +139,7 @@ public class PlanetVoiceChannelApi
         if (!await memberService.HasPermissionAsync(member, old, VoiceChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(VoiceChannelPermissions.ManageChannel);
 
-        var result = await voiceChannelService.PutAsync(old, channel);
+        var result = await voiceChannelService.PutAsync(channel);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

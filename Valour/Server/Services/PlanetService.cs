@@ -197,7 +197,7 @@ public class PlanetService
     /// </summary>
     public async Task DeleteAsync(Planet planet)
     {
-        var entity = planet.ToDatabase();
+        var entity = await _db.Planets.FindAsync(planet.Id);
         entity.IsDeleted = true;
         
         _db.Planets.Update(entity);

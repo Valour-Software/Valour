@@ -136,7 +136,9 @@ public class DirectChatChannelService
     {
         try
         {
-            _db.DirectMessages.Remove(message.ToDatabase());
+            var _old = await _db.DirectMessages.FindAsync(message.Id);
+            if (_old is null) return new(false, $"DirectMessage not found");
+            _db.DirectMessages.Remove(_old);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
