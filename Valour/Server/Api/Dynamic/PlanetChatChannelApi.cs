@@ -15,7 +15,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetChatChannelApi
 {
-	[ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}")]
+	[ValourRoute(HttpVerbs.Get, "api/chatchannels/{id}")]
 	[UserRequired(UserPermissionsEnum.Membership)]
 	public static async Task<IResult> GetRouteAsync(
 		long id,
@@ -40,7 +40,7 @@ public class PlanetChatChannelApi
 		return Results.Json(channel);
 	}
 
-	[ValourRoute(HttpVerbs.Post, "api/planetchatchannels")]
+	[ValourRoute(HttpVerbs.Post, "api/chatchannels")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetChatChannel channel,
@@ -74,10 +74,10 @@ public class PlanetChatChannelApi
 		if (!result.Success)
 			return ValourResult.Problem(result.Message);
 
-		return Results.Created($"api/planetchatchannels/{result.Data.Id}", result.Data);
+		return Results.Created($"api/chatchannels/{result.Data.Id}", result.Data);
 	}
 
-    [ValourRoute(HttpVerbs.Post, "api/planetchatchannels/detailed")]
+    [ValourRoute(HttpVerbs.Post, "api/chatchannels/detailed")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteWithDetailsAsync(
         [FromBody] CreatePlanetChatChannelRequest request,
@@ -116,10 +116,10 @@ public class PlanetChatChannelApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetchatchannels/{result.Data.Id}", result.Data);
+        return Results.Created($"api/chatchannels/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/planetchatchannels/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/chatchannels/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetChatChannel channel,
@@ -150,7 +150,7 @@ public class PlanetChatChannelApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/chatchannels/{id}")]
 	[UserRequired(UserPermissionsEnum.PlanetManagement)]
 	public static async Task<IResult> DeleteRouteAsync(
         long id,
@@ -178,7 +178,7 @@ public class PlanetChatChannelApi
 		return Results.NoContent();
 	}
 
-    [ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}/checkperm/{memberId}/{value}")]
+    [ValourRoute(HttpVerbs.Get, "api/chatchannels/{id}/checkperm/{memberId}/{value}")]
     [UserRequired(UserPermissionsEnum.View)]
     public static async Task<IResult> HasPermissionRouteAsync(
         long id, 
@@ -212,7 +212,7 @@ public class PlanetChatChannelApi
 
     // Message routes
 
-    [ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}/message/{messageId}")]
+    [ValourRoute(HttpVerbs.Get, "api/chatchannels/{id}/message/{messageId}")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetMessageRouteAsync(
         long id, 
@@ -245,7 +245,7 @@ public class PlanetChatChannelApi
         return Results.Json(message);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/planetchatchannels/{id}/messages")]
+    [ValourRoute(HttpVerbs.Get, "api/chatchannels/{id}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> GetMessagesRouteAsync(
         long id,
@@ -278,7 +278,7 @@ public class PlanetChatChannelApi
 
     public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
 
-    [ValourRoute(HttpVerbs.Post, "api/planetchatchannels/{id}/messages")]
+    [ValourRoute(HttpVerbs.Post, "api/chatchannels/{id}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostMessageRouteAsync(
         [FromBody] PlanetMessage message,
@@ -389,7 +389,7 @@ public class PlanetChatChannelApi
         return Results.Ok();
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetchatchannels/{id}/messages/{message_id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/chatchannels/{id}/messages/{message_id}")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> DeleteMessageRouteAsync(
         long id, 
@@ -417,7 +417,7 @@ public class PlanetChatChannelApi
         return await messageService.DeleteAsync(channel, member, message_id);
     }
 
-    [ValourRoute(HttpVerbs.Post, "api/planetchatchannels/{id}/typing")]
+    [ValourRoute(HttpVerbs.Post, "api/chatchannels/{id}/typing")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostTypingAsync(
         long id, 

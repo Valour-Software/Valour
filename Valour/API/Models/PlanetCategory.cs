@@ -19,7 +19,7 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
     #region IPlanetItem implementation
 
     public override string BaseRoute =>
-            $"api/planetcategories";
+            $"api/categories";
 
     #endregion
 
@@ -45,7 +45,7 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<PlanetCategory>($"api/planetcategories/{id}")).Data;
+        var item = (await node.GetJsonAsync<PlanetCategory>($"api/categories/{id}")).Data;
 
         if (item is not null)
             await item.AddToCache();

@@ -5,7 +5,7 @@ namespace Valour.Server.Api.Dynamic;
 
 public class PlanetRoleApi
 {
-    [ValourRoute(HttpVerbs.Get, "api/planetroles/{id}")]
+    [ValourRoute(HttpVerbs.Get, "api/roles/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetRouteAsync(
         long id, 
@@ -27,7 +27,7 @@ public class PlanetRoleApi
     }
 
 
-    [ValourRoute(HttpVerbs.Post, "api/planetroles")]
+    [ValourRoute(HttpVerbs.Post, "api/roles")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetRole role,
@@ -48,10 +48,10 @@ public class PlanetRoleApi
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
-        return Results.Created($"api/planetroles/{result.Data.Id}", result.Data);
+        return Results.Created($"api/roles/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/planetroles/{id}")]
+    [ValourRoute(HttpVerbs.Put, "api/roles/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PlanetRole role, 
@@ -76,7 +76,7 @@ public class PlanetRoleApi
         return Results.Json(result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Delete, "api/planetroles/{id}")]
+    [ValourRoute(HttpVerbs.Delete, "api/roles/{id}")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> DeleteRouteAsync(
         long id,

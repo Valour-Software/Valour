@@ -43,8 +43,9 @@ public class PermissionsNodeService
     {
         try
         {
-            _db.Entry(_db.Find<Valour.Database.PermissionsNode>(oldNode.Id)).State = EntityState.Detached;
-            _db.PermissionsNodes.Update(newNode.ToDatabase());
+            var _old = await _db.PermissionsNodes.FindAsync(newNode.Id);
+            if (_old is null) return new(false, $"PermissionNode not found");
+            _db.Entry(_old).CurrentValues.SetValues(newNode);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -75,6 +76,6 @@ public class PermissionsNodeService
 
         _coreHub.NotifyPlanetItemChange(node);
 
-        return new(true, "Success");
+        return new(true, "Success", node);
     }
 }

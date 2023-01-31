@@ -68,7 +68,7 @@
 			Description = desc
 		};
 
-		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planet", new_planet);
+		var response = await ValourClient.PrimaryNode.PostAsyncWithResponse<Planet>($"api/planets", new_planet);
 
 		if (!response.Success)
 		{

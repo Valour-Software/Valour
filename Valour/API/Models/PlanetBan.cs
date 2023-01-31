@@ -8,7 +8,7 @@ public class PlanetBan : Item, ISharedPlanetBan
 {
     #region IPlanetItem implementation
 
-    public override string BaseRoute => "api/planetbans";
+    public override string BaseRoute => "api/bans";
 
     #endregion
 

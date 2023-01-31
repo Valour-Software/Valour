@@ -17,7 +17,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem
         IPlanetItem.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
-            $"api/planetchannels";
+            $"api/channels";
 
     #endregion
 

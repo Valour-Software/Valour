@@ -101,8 +101,9 @@ public class PlanetBanService
 
         try
         {
-            _db.Entry(_db.Find<Valour.Database.PlanetBan>(old.Id)).State = EntityState.Detached;
-            _db.PlanetBans.Update(updatedban.ToDatabase());
+            var _old = await _db.PlanetBans.FindAsync(updatedban.Id);
+            if (_old is null) return new(false, $"PlanetBan not found");
+            _db.Entry(_old).CurrentValues.SetValues(updatedban);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)

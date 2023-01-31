@@ -61,8 +61,9 @@ public class PlanetRoleService
             return new(false, "Position cannot be changed directly.");
         try
         {
-            _db.Entry(_db.Find<Valour.Database.PlanetRole>(oldRole.Id)).State = EntityState.Detached;
-            _db.PlanetRoles.Update(updatedRole.ToDatabase());
+            var _old = await _db.PlanetRoles.FindAsync(updatedRole.Id);
+            if (_old is null) return new(false, $"PlanetRole not found");
+            _db.Entry(_old).CurrentValues.SetValues(updatedRole);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
