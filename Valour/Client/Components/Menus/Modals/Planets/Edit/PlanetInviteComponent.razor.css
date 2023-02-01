@@ -1,0 +1,57 @@
+td, th {
+    border: 0px;
+}
+
+tr {
+}
+
+role-name-div {
+    display: inline-block;
+}
+
+.role-member-count-div {
+    display: inline-block;
+    height: 22px;
+    opacity: 0.75;
+    margin-right: 33px;
+}
+
+.role-list-div-help-text {
+    display: flex;
+    justify-content: space-between;
+}
+
+.roles-row {
+    background-color: var(--main-4);
+    cursor: pointer;
+    user-select: none;
+    border: 0px solid;
+    width: 94%;
+    display: flex;
+    justify-content: space-between;
+}
+
+    .roles-row:hover {
+        border: 1px solid;
+    }
+
+    .roles-row:active {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .roles-row:first-child {
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+
+    .roles-row:last-child {
+        border-bottom-left-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+
+.roles-name {
+    margin: 0;
+    line-height: 32px;
+    margin-left: 10px;
+    user-select: none;
+}

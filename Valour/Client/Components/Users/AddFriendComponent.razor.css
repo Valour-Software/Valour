@@ -1,9 +1,23 @@
-﻿.inner-scroll-box {
+﻿button {
+    width: 97px;
+    height: 34px;
+    background-color: var(--main-5);
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.button-danger {
+    background-color: var(--v2-danger-dark);
+}
+
+.inner-scroll-box {
     border: solid 2px var(--main-4);
     border-radius: 5px;
     height: 120px;
     padding: 10px;
     overflow-y: auto;
+    background-color: var(--main-4)
 }
 
 .pfp {
