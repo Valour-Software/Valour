@@ -60,6 +60,8 @@ public class PlanetRoleApi
         PlanetRoleService roleService)
     {
         var oldRole = await roleService.GetAsync(id);
+        if (oldRole is null)
+            return ValourResult.NotFound("Role not found.");
 
         // Get member
         var member = await memberService.GetCurrentAsync(oldRole.PlanetId);
@@ -68,6 +70,9 @@ public class PlanetRoleApi
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
+
+        if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
+            return ValourResult.Forbid("You can only edit roles under your own.");
 
         var result = await roleService.PutAsync(role);
         if (!result.Success)
@@ -84,6 +89,8 @@ public class PlanetRoleApi
         PlanetRoleService roleService)
     {
         var role = await roleService.GetAsync(id);
+        if (role is null)
+            return ValourResult.NotFound("Role not found.");
 
         // Get member
         var member = await memberService.GetCurrentAsync(role.PlanetId);
@@ -92,6 +99,9 @@ public class PlanetRoleApi
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageRoles))
             return ValourResult.LacksPermission(PlanetPermissions.ManageRoles);
+
+        if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
+            return ValourResult.Forbid("You can only delete roles under your own.");
 
         var result = await roleService.DeleteAsync(role);
         if (!result.Success)
