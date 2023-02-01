@@ -50,9 +50,10 @@ public class PermissionsNode : Item, ISharedPermissionsNode
 
     /// <summary>
     /// The id of the object this node applies to
+    /// If this is null, it is a base permission
     /// </summary>
     [Column("target_id")]
-    public long TargetId { get; set; }
+    public long? TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to

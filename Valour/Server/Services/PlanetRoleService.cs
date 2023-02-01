@@ -104,11 +104,12 @@ public class PlanetRoleService
                                                            x.TargetType == PermissionsTargetType.PlanetCategoryChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
-    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, PlanetChatChannel channel, PlanetRole role) =>
-        await GetPermissionStateAsync(permission, channel, role);
+    public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, long roleId) =>
+        (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == channelId).Select(x => x.ToModel()).FirstOrDefaultAsync())
+            .GetPermissionState(permission);
 
-    //public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, PlanetRole role) =>
-    //    (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.RoleId == role.Id && x.TargetId == channelId)).GetPermissionState(permission);
+    public async Task<List<PermissionsNode>> GetBasePermissionNodesAsync(long roleId) =>
+        (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == null).Select(x => x.ToModel()).ToListAsync());
 
     public async Task<TaskResult> DeleteAsync(PlanetRole role)
     {

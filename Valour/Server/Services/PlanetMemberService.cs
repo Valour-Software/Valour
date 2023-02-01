@@ -226,7 +226,7 @@ public class PlanetMemberService
             if (node is null)
                 continue;
             // If there is no view permission, there can't be any other permissions
-            // View is always 0x01 for chanel permissions, so it is safe to use ChatChannelPermission.View for
+            // View is always 0x01 for channel permissions, so it is safe to use ChatChannelPermission.View for
             // all cases.
             if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
                 return false;

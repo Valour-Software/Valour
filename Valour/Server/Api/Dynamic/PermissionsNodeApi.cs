@@ -127,17 +127,20 @@ public class PermissionsNodeApi
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        var target = await channelService.GetAsync(node.TargetId);
-        if (target is null)
-            return ValourResult.NotFound<PlanetChannel>();
-
-        if (target.PermissionsTargetType != node.TargetType)
+        if (node.TargetId is not null)
         {
-            // Special case: Categories have a sub-node with PlanetChatChannel type!
-            if (!(target.PermissionsTargetType == PermissionsTargetType.PlanetCategoryChannel &&
-                node.TargetType == PermissionsTargetType.PlanetChatChannel))
+            var target = await channelService.GetAsync(node.TargetId.Value);
+            if (target is null)
+                return ValourResult.NotFound<PlanetChannel>();
+
+            if (target.PermissionsTargetType != node.TargetType)
             {
-                return Results.BadRequest("TargetType mismatch.");
+                // Special case: Categories have a sub-node with PlanetChatChannel type!
+                if (!(target.PermissionsTargetType == PermissionsTargetType.PlanetCategoryChannel &&
+                    node.TargetType == PermissionsTargetType.PlanetChatChannel))
+                {
+                    return Results.BadRequest("TargetType mismatch.");
+                }
             }
         }
 
