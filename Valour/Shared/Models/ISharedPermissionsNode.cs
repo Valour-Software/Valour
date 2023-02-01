@@ -51,7 +51,7 @@ public interface ISharedPermissionsNode : ISharedPlanetItem
     /// <summary>
     /// The id of the object this node applies to
     /// </summary>
-    public long TargetId { get; set; }
+    public long? TargetId { get; set; }
 
     /// <summary>
     /// The type of object this node applies to

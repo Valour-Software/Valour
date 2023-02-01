@@ -131,9 +131,9 @@ public class PlanetRoleApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        var nodes = await 
+        var nodes = await roleService.GetBasePermissionNodesAsync(id);
 
         // Return json
-        return Results.Json(role);
+        return Results.Json(nodes);
     }
 }

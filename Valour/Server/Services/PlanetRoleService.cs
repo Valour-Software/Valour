@@ -108,6 +108,9 @@ public class PlanetRoleService
         (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == channelId).Select(x => x.ToModel()).FirstOrDefaultAsync())
             .GetPermissionState(permission);
 
+    public async Task<List<PermissionsNode>> GetBasePermissionNodesAsync(long roleId) =>
+        (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == null).Select(x => x.ToModel()).ToListAsync());
+
     public async Task<TaskResult> DeleteAsync(PlanetRole role)
     {
         try
