@@ -32,6 +32,16 @@ namespace Valour.Api.Client;
 
 public static class ValourClient
 {
+
+    // If things aren't working and you don't know why in dev...
+    // this is probably why.
+
+#if (!DEBUG)
+    public static string BaseAddress = "https://app.valour.gg/";
+#else
+    public static string BaseAddress = "https://localhost:44331/";
+#endif
+
     /// <summary>
     /// The user for this client instance
     /// </summary>
@@ -185,12 +195,6 @@ public static class ValourClient
     /// Run when a channel embed update is received
     /// </summary>
     public static event Func<ChannelEmbedUpdate, Task> OnChannelEmbedUpdate;
-
-#if (!DEBUG)
-    public static string BaseAddress = "https://app.valour.gg/";
-#else
-    public static string BaseAddress = "http://localhost:5000/";
-#endif
 
     /// <summary>
     /// Run when the user logs in
