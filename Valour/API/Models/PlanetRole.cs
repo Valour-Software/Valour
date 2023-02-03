@@ -109,5 +109,11 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         return item;
     }
 
+    public async Task<List<PermissionsNode>> GetBasePermissionsAsync()
+    {
+        var result = await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/permissions");
+        return result.Data;
+    }
+
 
 }

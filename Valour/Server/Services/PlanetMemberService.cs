@@ -98,6 +98,12 @@ public class PlanetMemberService
         public PlanetRole Role { get; set; }
         public PermissionsNode Node { get; set; }
     }
+
+    public class PlanetRoleIdAndNode
+    {
+        public long RoleId { get; set; }
+        public PermissionsNode Node { get; set;  }
+    }
     
     /// <summary>
     /// Returns the roles for the given PlanetMember id,
@@ -111,6 +117,23 @@ public class PlanetMemberService
             .Select(x => new PlanetRoleAndNode()
             {
                 Role = x.Role.ToModel(),
+                Node = x.Role.PermissionNodes.FirstOrDefault().ToModel()
+            })
+            .ToListAsync();
+
+    /// <summary>
+    /// Returns the role ids for the given PlanetMember id,
+    /// including the permissions node for a specific target channel
+    /// this will return role ids that no node
+    /// </summary>
+    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, PermissionsTargetType type) =>
+        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+            .Include(x => x.Role)
+            .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
+            .OrderBy(x => x.Role.Position)
+            .Select(x => new PlanetRoleIdAndNode()
+            {
+                RoleId = x.Role.Id,
                 Node = x.Role.PermissionNodes.FirstOrDefault().ToModel()
             })
             .ToListAsync();
@@ -217,12 +240,14 @@ public class PlanetMemberService
         }
         
         // Get permission nodes in order of role position
-        var nodes = await GetPermNodesAsync(member, channel.Id, permission.TargetType);
+        var rolePermData = await GetRoleIdsAndNodesAsync(member, channel.Id, permission.TargetType);
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
-        foreach (var node in nodes)
+        foreach (var rolePerm in rolePermData)
         {
+            var node = rolePerm.Node;
+
             if (node is null)
                 continue;
             // If there is no view permission, there can't be any other permissions
@@ -245,7 +270,18 @@ public class PlanetMemberService
             }
         }
 
-        // Fallback to default permissions
+        // Fallback to base permissions
+        var basePerm = await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.PlanetId == target.PlanetId && 
+                                                                           x.TargetType == target.PermissionsTargetType && 
+                                                                           x.TargetId == null && 
+                                                                           x.RoleId == rolePermData[0].RoleId);
+
+        if (basePerm is not null)
+        {
+            return Permission.HasPermission(basePerm.Code, permission);
+        }
+
+        // If there is no base permission, fallback to default permissions
         return Permission.HasPermission(permission.GetDefault(), permission);
     }
     

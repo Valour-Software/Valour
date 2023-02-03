@@ -116,7 +116,7 @@ public class PlanetRoleApi
     /// </summary>
     [ValourRoute(HttpVerbs.Get, "api/roles/{id}/permissions")]
     [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetPermissionsAsync(
+    public static async Task<IResult> GetBasePermissionsAsync(
         long id,
         PlanetRoleService roleService,
         PlanetMemberService memberService)

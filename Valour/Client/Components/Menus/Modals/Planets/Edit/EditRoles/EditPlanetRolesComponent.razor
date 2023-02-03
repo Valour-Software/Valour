@@ -49,6 +49,8 @@
         <h5 style="display: inline-block">Role Permissions</h5>
         <h7 style="float: right">Code for nerds: @role.Permissions &nbsp;</h7>
 
+        <h6>Planet Permissions</h6>
+        <br />
         @for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
         {
             PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
@@ -143,6 +145,8 @@
     public Planet Planet { get; set; }
 
     public List<PlanetRole> Roles = new();
+
+    public List<PermissionsNode> BasePermissionsNodes = new();
 
     public Dictionary<long, int> RoleMemberCounts = new();
 
