@@ -240,7 +240,7 @@ public class PlanetMemberService
         }
         
         // Get permission nodes in order of role position
-        var rolePermData = await GetRoleIdsAndNodesAsync(member, channel.Id, permission.TargetType);
+        var rolePermData = await GetRolesAndNodesAsync(member, channel.Id, permission.TargetType);
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
@@ -270,19 +270,20 @@ public class PlanetMemberService
             }
         }
 
+        var topRole = rolePermData.FirstOrDefault()?.Role ?? PlanetRole.DefaultRole;
+
         // Fallback to base permissions
-        var basePerm = await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.PlanetId == target.PlanetId && 
-                                                                           x.TargetType == target.PermissionsTargetType && 
-                                                                           x.TargetId == null && 
-                                                                           x.RoleId == rolePermData[0].RoleId);
-
-        if (basePerm is not null)
+        switch (permission)
         {
-            return Permission.HasPermission(basePerm.Code, permission);
+            case ChatChannelPermission:
+                return Permission.HasPermission(topRole.ChatPermissions, permission);
+            case CategoryPermission:
+                return Permission.HasPermission(topRole.CategoryPermissions, permission);
+            case VoiceChannelPermission:
+                return Permission.HasPermission(topRole.VoicePermissions, permission);
+            default:
+                throw new Exception("Unexpected permission type: " + permission.GetType().Name);
         }
-
-        // If there is no base permission, fallback to default permissions
-        return Permission.HasPermission(permission.GetDefault(), permission);
     }
     
     /// <summary>

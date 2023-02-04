@@ -6,6 +6,21 @@ namespace Valour.Server.Models;
 
 public class PlanetRole : Item, ISharedPlanetRole
 {
+    public static PlanetRole DefaultRole = new PlanetRole()
+    {
+        Name = "Default",
+        Id = long.MaxValue,
+        Position = int.MaxValue,
+        PlanetId = 0,
+        Red = 255,
+        Green = 255,
+        Blue = 255,
+        Permissions = PlanetPermissions.Default,
+        ChatPermissions = ChatChannelPermissions.Default,
+        CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
+        VoicePermissions = VoiceChannelPermissions.Default
+    };
+
     /// <summary>
     /// The id of the planet this belongs to
     /// </summary>
