@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Drawing;
 using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Nodes;
@@ -49,6 +50,21 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
     /// The planet permissions for the role
     /// </summary>
     public long Permissions { get; set; }
+
+    /// <summary>
+    /// The chat channel permissions for the role
+    /// </summary>
+    public long ChatPermissions { get; set; }
+
+    /// <summary>
+    /// The category permissions for the role
+    /// </summary>
+    public long CategoryPermissions { get; set; }
+
+    /// <summary>
+    /// The voice channel permissions for the role
+    /// </summary>
+    public long VoicePermissions { get; set; }
 
     /// <summary>
     /// The name of this role
@@ -108,6 +124,4 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
 
         return item;
     }
-
-
 }

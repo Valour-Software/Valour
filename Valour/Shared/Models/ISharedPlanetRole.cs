@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Drawing;
 using Valour.Shared.Authorization;
 
 
@@ -15,6 +16,21 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// The planet permissions for the role
     /// </summary>
     long Permissions { get; set; }
+
+    /// <summary>
+    /// The chat channel permissions for the role
+    /// </summary>
+    public long ChatPermissions { get; set; }
+
+    /// <summary>
+    /// The category permissions for the role
+    /// </summary>
+    public long CategoryPermissions { get; set; }
+
+    /// <summary>
+    /// The voice channel permissions for the role
+    /// </summary>
+    public long VoicePermissions { get; set; }
 
     // RGB Components for role color
     byte Red { get; set; }

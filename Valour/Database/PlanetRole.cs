@@ -38,6 +38,24 @@ public class PlanetRole : Item, ISharedPlanetRole
     [Column("permissions")]
     public long Permissions { get; set; }
 
+    /// <summary>
+    /// The chat channel permissions for the role
+    /// </summary>
+    [Column("chat_perms")]
+    public long ChatPermissions { get; set; }
+
+    /// <summary>
+    /// The category permissions for the role
+    /// </summary>
+    [Column("cat_perms")]
+    public long CategoryPermissions { get; set; }
+
+    /// <summary>
+    /// The voice channel permissions for the role
+    /// </summary>
+    [Column("voice_perms")]
+    public long VoicePermissions { get; set; }
+
     // RGB Components for role color
     [Column("red")]
     public byte Red { get; set; }

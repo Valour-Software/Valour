@@ -44,12 +44,9 @@ public class PermissionsNodeApi
         long roleId,
         PermissionsNodeService permissionsNodeService,
         PlanetMemberService memberService,
-        TokenService tokenService,
         PlanetService planetService,
         PlanetRoleService roleService)
     {
-        var token = await tokenService.GetCurrentToken();
-
         if (node.TargetId != targetId)
             return Results.BadRequest("TargetId mismatch");
         if (node.RoleId != roleId)
@@ -62,7 +59,7 @@ public class PermissionsNodeApi
         if (planet is null)
             return ValourResult.NotFound<Planet>();
 
-        var member = await memberService.GetByUserAsync(token.UserId, planet.Id);
+        var member = await memberService.GetCurrentAsync(planet.Id);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
@@ -86,8 +83,8 @@ public class PermissionsNodeApi
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
-            return ValourResult.Forbid("The target node's role has higher authority than you.");
+        if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
+            return ValourResult.Forbid("You can only modify permissions for roles below your own.");
 
         var result = await permissionsNodeService.PutAsync(oldNode, node);
         if (!result.Success)
@@ -127,22 +124,19 @@ public class PermissionsNodeApi
         if (role is null)
             return ValourResult.NotFound<PlanetRole>();
 
-        if (node.TargetId is not null)
-        {
-            var target = await channelService.GetAsync(node.TargetId.Value);
-            if (target is null)
-                return ValourResult.NotFound<PlanetChannel>();
+        var target = await channelService.GetAsync(node.TargetId);
+        if (target is null)
+            return ValourResult.NotFound<PlanetChannel>();
 
-            if (target.PermissionsTargetType != node.TargetType)
+        if (target.PermissionsTargetType != node.TargetType)
+        {
+            // Special case: Categories have a sub-node with PlanetChatChannel type!
+            if (!(target.PermissionsTargetType == PermissionsTargetType.PlanetCategoryChannel &&
+                node.TargetType == PermissionsTargetType.PlanetChatChannel))
             {
-                // Special case: Categories have a sub-node with PlanetChatChannel type!
-                if (!(target.PermissionsTargetType == PermissionsTargetType.PlanetCategoryChannel &&
-                    node.TargetType == PermissionsTargetType.PlanetChatChannel))
-                {
-                    return Results.BadRequest("TargetType mismatch.");
-                }
+                return Results.BadRequest("TargetType mismatch.");
             }
-        }
+        }  
 
         if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("The target node's role has higher authority than you.");
