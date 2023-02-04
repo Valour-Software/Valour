@@ -275,6 +275,9 @@ CREATE TABLE IF NOT EXISTS planet_roles (
     bold BOOLEAN NOT NULL DEFAULT false,
     italics BOOLEAN NOT NULL DEFAULT false,
     permissions BIGINT NOT NULL DEFAULT 0,
+    chat_perms BIGINT NOT NULL DEFAULT 7,
+    cat_perms BIGINT NOT NULL DEFAULT 1,
+    voice_perms BIGINT NOT NULL DEFAULT 7,
 
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
 );

@@ -108,23 +108,23 @@ button {
     justify-content: space-between;
 }
 
-    .roles-row:hover {
-        border: 1px solid;
-    }
+.roles-row:hover {
+    border: 1px solid;
+}
 
-    .roles-row:active {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
+.roles-row:active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
 
-    .roles-row:first-child {
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-    }
+.roles-row:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
 
-    .roles-row:last-child {
-        border-bottom-left-radius: 8px;
-        border-bottom-right-radius: 8px;
-    }
+.roles-row:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
 
 .roles-name {
     margin: 0;
@@ -166,27 +166,27 @@ button {
     border-radius: 5px 0px 0px 5px;
 }
 
-    .btn-role-edit.edit:hover {
-        color: var(--v-blue);
-    }
+.btn-role-edit.edit:hover {
+    color: var(--v-blue);
+}
 
-    .btn-role-edit.edit:active {
-        color: #fff;
-        background-color: var(--v-blue);
-    }
+.btn-role-edit.edit:active {
+    color: #fff;
+    background-color: var(--v-blue);
+}
 
 .btn-role-edit.delete {
     border-radius: 0px 5px 5px 0px;
 }
 
-    .btn-role-edit.delete:hover {
-        color: var(--v-purple);
-    }
+.btn-role-edit.delete:hover {
+    color: var(--v-purple);
+}
 
-    .btn-role-edit.delete:active {
-        color: #fff;
-        background-color: var(--v-purple);
-    }
+.btn-role-edit.delete:active {
+    color: #fff;
+    background-color: var(--v-purple);
+}
 
 .btn-role-edit.create {
     background-color: rgba(0, 255, 0, 0.4);
@@ -196,13 +196,13 @@ button {
     min-width: 55px;
 }
 
-    .btn-role-edit.create:hover {
-        background-color: rgba(0, 255, 0, 0.6);
-    }
+.btn-role-edit.create:hover {
+    background-color: rgba(0, 255, 0, 0.6);
+}
 
-    .btn-role-edit.create:active {
-        background-color: rgba(0, 255, 0, 0.8);
-    }
+.btn-role-edit.create:active {
+    background-color: rgba(0, 255, 0, 0.8);
+}
 
 
 .role-edit-delete:hover {
@@ -223,4 +223,48 @@ button {
 .v-button.danger {
     width: 113px;
     margin-bottom: 17px;
+}
+
+.picker-holder {
+    margin: 5px;
+}
+
+.rolecreate-cont {
+    display: flex;
+}
+
+.perm-list-item {
+    padding: 8px;
+    border-bottom: none;
+    background-color: var(--main-4);
+}
+
+.perm-list-item:nth-child(2n) {
+    background-color: var(--main-5);
+}
+
+.perm-list-item:first-child {
+    border-radius: 10px 10px 0 0 ;
+}
+
+.perm-list-item:last-child {
+    border-radius: 0 0 10px 10px;
+}
+
+.perm-list-name {
+    display: inline-block;
+    line-height: 12px;
+}
+
+.perm-list-desc {
+    font-size: 14px;
+}
+
+.perm-section {
+    margin-bottom: 24px;
+}
+
+.perm-switch {
+    float: right;
+    margin-top: 12px;
 }

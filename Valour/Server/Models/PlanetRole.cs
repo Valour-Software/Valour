@@ -21,6 +21,21 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// </summary>
     public long Permissions { get; set; }
 
+    /// <summary>
+    /// The chat channel permissions for the role
+    /// </summary>
+    public long ChatPermissions { get; set; }
+
+    /// <summary>
+    /// The category permissions for the role
+    /// </summary>
+    public long CategoryPermissions { get; set; }
+
+    /// <summary>
+    /// The voice channel permissions for the role
+    /// </summary>
+    public long VoicePermissions { get; set; }
+
     // RGB Components for role color
     public byte Red { get; set; }
     public byte Green { get; set; }

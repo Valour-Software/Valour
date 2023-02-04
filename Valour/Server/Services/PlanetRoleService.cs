@@ -58,10 +58,11 @@ public class PlanetRoleService
         if (oldRole is null) return new(false, $"PlanetRole not found");
 
         if (updatedRole.PlanetId != oldRole.PlanetId)
-            return new(false, "You cannot change what planet.");
+            return new(false, "You cannot change the planet.");
 
         if (updatedRole.Position != oldRole.Position)
             return new(false, "Position cannot be changed directly.");
+
         try
         {
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
@@ -75,7 +76,7 @@ public class PlanetRoleService
 
         _coreHub.NotifyPlanetItemChange(updatedRole);
 
-        return new(true, "Success");
+        return new(true, "Success", updatedRole);
     }
 
     public async Task<List<PermissionsNode>> GetNodesAsync(PlanetRole role) =>
@@ -106,10 +107,7 @@ public class PlanetRoleService
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, long roleId) =>
         (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == channelId).Select(x => x.ToModel()).FirstOrDefaultAsync())
-            .GetPermissionState(permission);
-
-    public async Task<List<PermissionsNode>> GetBasePermissionNodesAsync(long roleId) =>
-        (await _db.PermissionsNodes.Where(x => x.RoleId == roleId && x.TargetId == null).Select(x => x.ToModel()).ToListAsync());
+            .GetPermissionState(permission); 
 
     public async Task<TaskResult> DeleteAsync(PlanetRole role)
     {

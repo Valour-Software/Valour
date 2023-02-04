@@ -732,29 +732,6 @@ td, th {
 
 }
 
-.picker-holder {
-    margin: 5px;
-}
-
-.rolecreate-cont {
-    display: flex;
-}
-
-.perm-list-item {
-    padding: 5px;
-    border-top: solid 1px rgba(255, 255, 255, 0.3);
-    margin-top: 10px;
-    margin-bottom: 10px;
-}
-
-.perm-list-name {
-    display: inline-block;
-}
-
-.perm-list-desc {
-    font-size: 14px;
-}
-
 /* Slider stuff */
 
 /* The switch - the box around the slider */

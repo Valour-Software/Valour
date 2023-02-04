@@ -110,30 +110,4 @@ public class PlanetRoleApi
         return Results.NoContent();
 
     }
-
-    /// <summary>
-    /// This returns the base permission nodes for this role, if they exist
-    /// </summary>
-    [ValourRoute(HttpVerbs.Get, "api/roles/{id}/permissions")]
-    [UserRequired(UserPermissionsEnum.Membership)]
-    public static async Task<IResult> GetBasePermissionsAsync(
-        long id,
-        PlanetRoleService roleService,
-        PlanetMemberService memberService)
-    {
-        // Get the role
-        var role = await roleService.GetAsync(id);
-        if (role is null)
-            return ValourResult.NotFound("Role not found");
-
-        // Get member
-        var member = await memberService.GetCurrentAsync(role.PlanetId);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-
-        var nodes = await roleService.GetBasePermissionNodesAsync(id);
-
-        // Return json
-        return Results.Json(nodes);
-    }
 }

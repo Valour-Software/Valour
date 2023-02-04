@@ -46,32 +46,112 @@
         <hr/>
         <br/>
 
-        <h5 style="display: inline-block">Role Permissions</h5>
-        <h7 style="float: right">Code for nerds: @role.Permissions &nbsp;</h7>
 
-        <h6>Planet Permissions</h6>
-        <br />
-        @for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
-        {
-            PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
+        <!-- Note: We start at one for all the permissions to skip the 'full control' permission  -->
 
-            int val = i; // You have to do this for wacky binding reasons
+        <p class="subtitle">PLANET PERMISSIONS</p>
+        <div class="perm-section">
+            @for (int i = 1; i < PlanetPermissions.Permissions.Length; i++)
+            {
+                PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
 
-            <div class="perm-list-item">
-                <div class="perm-list-name mb-1">
-                    @planetPerm.Name
+                <div class="perm-list-item">
+                    <div class="perm-list-name mb-1">
+                        @planetPerm.Name
+                    </div>
+                    <div type="button" class="perm-switch">
+                        <label class="switch">
+                            <input 
+                                type="checkbox" 
+                                @onclick="(e => PermClick(planetPerm.Value, ref rolePlanetPerms))" 
+                                checked="@((rolePlanetPerms & planetPerm.Value) != 0)"
+                            />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="perm-list-desc mt-1">
+                        @planetPerm.Description
+                    </div>
                 </div>
-                <div type="button" style="float: right">
-                    <label class="switch">
-                        <input type="checkbox" @onclick="(e => PermClick(val))" checked="@rolePermValues[i]">
-                        <span class="slider round"></span>
-                    </label>
+            }
+        </div>
+
+        <p class="subtitle">CATEGORY PERMISSIONS</p>
+        <div class="perm-section">
+            @for (int i = 1; i < CategoryPermissions.Permissions.Length; i++)
+            {
+                CategoryPermission categoryPerm = CategoryPermissions.Permissions[i];
+
+                <div class="perm-list-item">
+                    <div class="perm-list-name mb-1">
+                        @categoryPerm.Name
+                    </div>
+                    <div type="button" class="perm-switch">
+                        <label class="switch">
+                            <input type="checkbox"
+                               @onclick="(e => PermClick(categoryPerm.Value, ref roleCategoryPerms))"
+                                   checked="@((roleCategoryPerms & categoryPerm.Value) != 0)" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="perm-list-desc mt-1">
+                        @categoryPerm.Description
+                    </div>
                 </div>
-                <div class="perm-list-desc mt-1">
-                    @planetPerm.Description
+            }
+        </div>
+
+        <p class="subtitle">CHAT CHANNEL PERMISSIONS</p>
+        <div class="perm-section">
+            @for (int i = 1; i < ChatChannelPermissions.Permissions.Length; i++)
+            {
+                ChatChannelPermission chatPerm = ChatChannelPermissions.Permissions[i];
+
+                <div class="perm-list-item">
+                    <div class="perm-list-name mb-1">
+                        @chatPerm.Name
+                    </div>
+                    <div type="button" class="perm-switch">
+                        <label class="switch">
+                            <input 
+                                type="checkbox" 
+                                @onclick="(e => PermClick(chatPerm.Value, ref rolePlanetPerms))" 
+                                checked="@((roleChatPerms & chatPerm.Value) != 0)"
+                            />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="perm-list-desc mt-1">
+                        @chatPerm.Description
+                    </div>
                 </div>
-            </div>
-        }
+            }
+        </div>
+
+        <p class="subtitle">VOICE CHANNEL PERMISSIONS</p>
+        <div class="perm-section">
+            @for (int i = 1; i < VoiceChannelPermissions.Permissions.Length; i++)
+            {
+                VoiceChannelPermission voicePerm = VoiceChannelPermissions.Permissions[i];
+
+                <div class="perm-list-item">
+                    <div class="perm-list-name mb-1">
+                        @voicePerm.Name
+                    </div>
+                    <div type="button" class="perm-switch">
+                        <label class="switch">
+                            <input type="checkbox"
+                               @onclick="(e => PermClick(voicePerm.Value, ref roleVoicePerms))"
+                                   checked="@((roleVoicePerms & voicePerm.Value) != 0)" />
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="perm-list-desc mt-1">
+                        @voicePerm.Description
+                    </div>
+                </div>
+            }
+        </div>
 
         <button @onclick='() => DeleteRole(Selected)' class="mt-4 btn v-button danger">Delete this role</button>
     </div>
@@ -146,8 +226,6 @@
 
     public List<PlanetRole> Roles = new();
 
-    public List<PermissionsNode> BasePermissionsNodes = new();
-
     public Dictionary<long, int> RoleMemberCounts = new();
 
     // Stuff for role creation //
@@ -170,7 +248,10 @@
 
     public string searchRolesValue = "";
 
-    public bool[] rolePermValues = new bool[PlanetPermissions.Permissions.Length];
+    private long rolePlanetPerms;
+    private long roleChatPerms;
+    private long roleCategoryPerms;
+    public long roleVoicePerms;
 
     // Stuff for role editing //
 
@@ -210,26 +291,10 @@
         dragging_role = role;
     }
 
-    public void PermClick(int id)
+    public void PermClick(long value, ref long perms)
     {
-        rolePermValues[id] = !rolePermValues[id];
-        Console.WriteLine($"Toggled value for permission {id}");
-        UpdatePermCode();
-    }
-
-    public void UpdatePermCode()
-    {
-        role.Permissions = 0x00;
-
-        for (int i = 0; i < rolePermValues.Length; i++)
-        {
-            if (rolePermValues[i])
-            {
-                role.Permissions |= PlanetPermissions.Permissions[i].Value;
-            }
-        }
-
-        //StateHasChanged();
+        perms ^= value;
+        Console.WriteLine($"Toggled value for permission {value}");
     }
 
     protected override async Task OnInitializedAsync()
@@ -296,13 +361,10 @@
         role = editRole;
         editMode = true;
 
-        rolePermValues = new bool[PlanetPermissions.Permissions.Length];
-
-        for (int i = 0; i < PlanetPermissions.Permissions.Length; i++)
-        {
-            rolePermValues[i] = ((editRole.Permissions & PlanetPermissions.Permissions[i].Value)
-                                 == PlanetPermissions.Permissions[i].Value);
-        }
+        rolePlanetPerms = editRole.Permissions;
+        roleChatPerms = editRole.ChatPermissions;
+        roleCategoryPerms = editRole.CategoryPermissions;
+        roleVoicePerms = editRole.VoicePermissions;
 
         await JS.InvokeVoidAsync("SetColorPickerColor", role.GetColorHex());
 
@@ -346,10 +408,19 @@
             Name = "New Role",
             Bold = false,
             Italics = false,
-            PlanetId = Planet.Id
+            PlanetId = Planet.Id,
+
+            Permissions = PlanetPermissions.Default,
+            ChatPermissions = ChatChannelPermissions.Default,
+            CategoryPermissions = CategoryPermissions.Default,
+            VoicePermissions = VoiceChannelPermissions.Default
         };
 
-        rolePermValues = new bool[PlanetPermissions.Permissions.Length];
+        rolePlanetPerms = PlanetPermissions.Default;
+        roleChatPerms = ChatChannelPermissions.Default;
+        roleCategoryPerms = CategoryPermissions.Default;
+        roleVoicePerms = VoiceChannelPermissions.Default;
+
         editMode = true;
 
         StateHasChanged();
@@ -367,6 +438,11 @@
         role.Red = (byte) Math.Round(color[0]);
         role.Green = (byte) Math.Round(color[1]);
         role.Blue = (byte) Math.Round(color[2]);
+
+        role.Permissions = rolePlanetPerms;
+        role.ChatPermissions = roleChatPerms;
+        role.CategoryPermissions = roleCategoryPerms;
+        role.VoicePermissions = roleVoicePerms;
 
         Console.WriteLine($"Chosen color: rgb({role.Red.ToString()}, {role.Green.ToString()}, {role.Blue.ToString()})");
 
