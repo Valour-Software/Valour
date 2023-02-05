@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
-using Valour.Api.Items.Messages.Embeds.Styles.Basic;
+using Valour.Api.Models.Messages.Embeds.Styles.Basic;
 
-namespace Valour.Api.Items.Messages.Embeds.Styles.Bootstrap;
+namespace Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
 
 public enum BackgroundColorType
 {
