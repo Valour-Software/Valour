@@ -5,5 +5,5 @@ namespace Valour.Server.Models;
 
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChannel
 {
-    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+    public override PermChannelType PermType => PermChannelType.PlanetChatChannel;
 }

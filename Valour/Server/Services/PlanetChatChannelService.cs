@@ -135,24 +135,26 @@ public class PlanetChatChannelService
         return new(true, "Success", channel);
     }
 
-    public async Task<TaskResult<PlanetChatChannel>> PutAsync(PlanetChatChannel updatedchannel)
+    public async Task<TaskResult<PlanetChatChannel>> UpdateAsync(PlanetChatChannel updated)
     {
-        var old = await _db.PlanetChatChannels.FindAsync(updatedchannel.Id);
+        var old = await _db.PlanetChatChannels.FindAsync(updated.Id);
         if (old is null) return new(false, $"PlanetChatChannel not found");
         // Validation
-        if (old.Id != updatedchannel.Id)
+        if (old.Id != updated.Id)
             return new(false, "Cannot change Id.");
-        if (old.PlanetId != updatedchannel.PlanetId)
+        if (old.PlanetId != updated.PlanetId)
             return new(false, "Cannot change PlanetId.");
 
-        var baseValid = await ValidateBasic(updatedchannel);
+        updated.TimeLastActive = old.TimeLastActive;
+
+        var baseValid = await ValidateBasic(updated);
         if (!baseValid.Success)
             return new(false, baseValid.Message);
 
         // Update
         try
         {
-            _db.Entry(old).CurrentValues.SetValues(updatedchannel);
+            _db.Entry(old).CurrentValues.SetValues(updated);
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
@@ -161,10 +163,10 @@ public class PlanetChatChannelService
             return new(false, e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(updatedchannel);
+        _coreHub.NotifyPlanetItemChange(updated);
 
         // Response
-        return new(true, "Success", updatedchannel);
+        return new(true, "Success", updated);
     }
 
     /// <summary>

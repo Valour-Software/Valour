@@ -31,16 +31,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     public long MessageCount { get; set; }
 
     /// <summary>
-    /// True if this channel inherits permissions from its parent
-    /// </summary>
-    public bool InheritsPerms { get; set; }
-
-    /// <summary>
     /// Returns the name of the item type
     /// </summary>
     public override string GetHumanReadableName() => "Chat Channel";
 
-    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+    public override PermChannelType PermType => PermChannelType.PlanetChatChannel;
 
     public override async Task Open() =>
         await ValourClient.OpenPlanetChannel(this);
@@ -59,18 +54,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
         return lastRead < TimeLastActive;
     }
-
-    /// <summary>
-    /// Returns the permissions node for the given role id
-    /// </summary>
-    public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await GetChannelPermissionsNodeAsync(roleId, refresh);
-
-    /// <summary>
-    /// Returns the channel permissions node for the given role id
-    /// </summary>
-    public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetChatChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
@@ -92,7 +75,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermissionsTargetType.PlanetChatChannel
+            TargetType = PermChannelType.PlanetChatChannel
         };
 
         var planet = await GetPlanetAsync();
@@ -112,9 +95,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
             PermissionsNode node;
             // If true, we grab the parent's permission node
             if (InheritsPerms)
-                node = await (await GetParentAsync()).GetPermissionsNodeAsync(role.Id, force_refresh);
+                node = await (await GetParentAsync()).GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel, force_refresh);
             else
-                node = await GetChannelPermissionsNodeAsync(role.Id, force_refresh);
+                node = await GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel, force_refresh);
 
             if (node is null)
                 continue;
@@ -139,66 +122,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         }
 
         return dummy_node;
-    }
-
-    /// <summary>
-    /// Returns if the member has the given permission in this channel
-    /// </summary>
-    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
-    {
-        Planet planet = await member.GetPlanetAsync();
-
-        if (planet.OwnerId == member.UserId)
-        {
-            return true;
-        }
-
-        // If true, we ask the parent
-        if (InheritsPerms)
-        {
-            return await (await GetParentAsync()).HasPermissionAsync(member, permission);
-        }
-
-        var roles = await member.GetRolesAsync();
-
-        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
-        // If we get an undecided, we continue to the next role down
-        foreach (var role in roles.OrderBy(x => x.Position))
-        {
-            PermissionsNode node = null;
-
-            node = await GetPermissionsNodeAsync(role.Id);
-
-            // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
-            if (node == null)
-            {
-                if (role.Id == planet.DefaultRoleId)
-                {
-                    return Permission.HasPermission(ChatChannelPermissions.Default, permission);
-                }
-                continue;
-            }
-
-            PermissionState state = PermissionState.Undefined;
-
-            state = node.GetPermissionState(permission);
-
-            if (state == PermissionState.Undefined)
-            {
-                continue;
-            }
-            else if (state == PermissionState.True)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        // No roles ever defined behavior: resort to false.
-        return false;
     }
 
     /// <summary>

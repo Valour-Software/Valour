@@ -6,5 +6,5 @@ namespace Valour.Server.Models;
 
 public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 {
-    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetCategoryChannel;
+    public override PermChannelType PermType => PermChannelType.PlanetCategoryChannel;
 }

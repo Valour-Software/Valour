@@ -167,7 +167,7 @@
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermissionsTargetType.PlanetCategoryChannel
+                TargetType = PermChannelType.PlanetCategoryChannel
             };
 
             node.SetPermission(CategoryPermissions.View, PermissionState.False);
@@ -189,7 +189,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermissionsTargetType.PlanetCategoryChannel
+                    TargetType = PermChannelType.PlanetCategoryChannel
                 };
 
                 node.SetPermission(CategoryPermissions.View, PermissionState.True);

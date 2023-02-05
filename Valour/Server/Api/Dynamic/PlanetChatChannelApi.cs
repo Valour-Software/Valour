@@ -66,8 +66,8 @@ public class PlanetChatChannelApi
 		}
 		else
         {
-			if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-				return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+			if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+				return ValourResult.LacksPermission(PlanetPermissions.CreateChannels);
 		}
 
 		var result = await service.CreateAsync(channel);
@@ -108,8 +108,8 @@ public class PlanetChatChannelApi
         }
         else
         {
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+                return ValourResult.LacksPermission(PlanetPermissions.CreateChannels);
         }
 
         var result = await channelService.CreateDetailedAsync(request, member);
@@ -127,7 +127,7 @@ public class PlanetChatChannelApi
         PlanetMemberService memberService,
         PlanetChatChannelService channelService)
     {
-        // Get the category
+        // Get the channel
         var old = await channelService.GetAsync(id);
         if (old is null)
             return ValourResult.NotFound("Channel not found");
@@ -137,13 +137,10 @@ public class PlanetChatChannelApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
-
         if (!await memberService.HasPermissionAsync(member, old, ChatChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
 
-        var result = await channelService.PutAsync(channel);
+        var result = await channelService.UpdateAsync(channel);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -166,9 +163,6 @@ public class PlanetChatChannelApi
         var member = await memberService.GetCurrentAsync(channel.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
-
-		if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-			return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
 
         if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageChannel))
 			return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
@@ -444,5 +438,12 @@ public class PlanetChatChannelApi
 		typingService.AddCurrentlyTyping(id, member.UserId);
         
         return Results.Ok();
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/chatchannels/{id}/nodes")]
+    [UserRequired]
+    public static async Task<IResult> GetNodesRouteAsync(long id, PlanetChannelService service)
+    {
+        return Results.Json(await service.GetPermNodesAsync(id));
     }
 }

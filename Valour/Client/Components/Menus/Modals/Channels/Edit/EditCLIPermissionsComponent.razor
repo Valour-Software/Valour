@@ -3,8 +3,20 @@
     <h4>Loading details...</h4>
     return;
 }
+@if (!HasTargetManagePerm)
+{
+    <h4>You do not have permission to manage this @Target.GetHumanReadableName()!</h4>
+    return;
+}
+@if (!HasTargetPermissionPerm)
+{
+    <h4>You do not have permission to manage this @Target.GetHumanReadableName()'s permissions!</h4>
+    return;
+}
 
 <h3>@Target.GetHumanReadableName() Permissions</h3>
+<p class="subtitle">CHOOSE ROLE</p>
+
 
 <select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.GetColorHex();
         background-color: var(--main-1)">
@@ -44,23 +56,14 @@
 
 <!-- If there's a role selected we show possible permissions that role can have
      for the channel or category -->
-
-@if (Target is PlanetChatChannel)
-{
-    PlanetChatChannel channel = Target as PlanetChatChannel;
-
-    if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageChannels))
-    {
-        <h4>You do not have permission to manage chat channels!</h4>
-        return;
-    }
+<div class="perm-section">
     <div class="perm-list-item">
         <div class="perm-list-name mb-1">
             Inherit Category Permissions
         </div>
         <div type="button" style="float:right">
             <label class="switch">
-                <input type="checkbox" @onclick="SwitchInherit" checked="@channel.InheritsPerms">
+                <input type="checkbox" @onclick="SwitchInherit" checked="@Target.InheritsPerms">
                 <span class="slider round"></span>
             </label>
         </div>
@@ -68,101 +71,45 @@
             While true, the channel will inherit permissions from its parent category.
         </div>
     </div>
+</div>
 
-    // If the channel inherits the permissions, we do not give the option to edit them
-    @if (channel.InheritsPerms)
-    {
-        return;
-    }
-
-    // We need logic to grab the permission node for the specific role-channel combination
-    // from the server
-
-    for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
-    {
-        int i2 = i;
-
-        ChatChannelPermission permission = ChatChannelPermissions.Permissions[i];
-
-        <div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        @permission.Name
-    </div>
-    <div style="float:right">
-        @{
-                    var t_perm = permission;
-                }
-                <TriButtonComponent @ref="Buttons[i2]" OnStateChange="(async (state) => SwitchPermission(state, t_perm, false))">
-                </TriButtonComponent>
-            </div>
-            <div class="perm-list-desc mt-1">
-                @permission.Description
-            </div>
-        </div>
-    }
-}
-else if (Target is PlanetCategory)
+<!-- If the channel inherits the permissions, we do not give the option to edit them -->
+@if (Target.InheritsPerms)
 {
-    if ((Planet.OwnerId != SelfMember.UserId) && !SelfPrimaryRole.HasPermission(PlanetPermissions.ManageCategories))
-    {
-        <h4>You do not have permission to manage categories!</h4>
-        return;
-    }
+    return;
+}
 
-    for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
-    {
-        int i2 = i;
+@foreach (var channelType in ChannelPermissions.ChannelTypes.OrderBy(x => x.TargetType.ToString()))
+{
+    // Only show if we should
+    if (!ShowStates[(int)channelType.TargetType])
+        continue;
 
-        CategoryPermission permission = CategoryPermissions.Permissions[i];
-
-        <div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        @permission.Name
-    </div>
-    <div style="float:right">
-        @{
-                    var t_perm = permission;
-                }
-                <TriButtonComponent @ref="Buttons[i2]" OnStateChange="(async (state) => SwitchPermission(state, t_perm, true))">
-                </TriButtonComponent>
-            </div>
-            <div class="perm-list-desc mt-1">
-                @permission.Description
-            </div>
-        </div>
-    }
-
-    <h3>Chat Channel Permissions</h3>
     <br />
 
-    for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
-    {
-        int i2 = i;
+    <p class="subtitle">@channelType.Permissions[0].ReadableName.ToUpper() PERMISSIONS</p>
+    
+    <div class="perm-section">
+        <!-- Start at one to skip 'full control' -->
+        @for (int i = 1; i < channelType.Permissions.Length; i++)
+        {
+            int i2 = i; // Prevent odd razor bug
+            Permission perm = channelType.Permissions[i2];
 
-        ChatChannelPermission permission = ChatChannelPermissions.Permissions[i];
-
-        <div class="perm-list-item">
-    <div class="perm-list-name mb-1">
-        @permission.Name
-    </div>
-    <div style="float:right">
-        @{
-            var t_perm = permission;
-        }
-        <TriButtonComponent @ref="Buttons[i2 + CategoryPermissions.Permissions.Length]"
-            OnStateChange="(async (state) => SwitchPermission(state, t_perm, false))"></TriButtonComponent>
-        </div>
-            <div class="perm-list-desc mt-1">
-                @permission.Description
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    @perm.Name
+                </div>
+                <div class="perm-switch">
+                    <TriButtonComponent @ref="ButtonGroups[(int)channelType.TargetType][i2]" OnStateChange="(async (state) => SwitchPermission(state, perm, channelType.TargetType))">
+                    </TriButtonComponent>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    @perm.Description
+                </div>
             </div>
-        </div>
-    }
-
-    // We'll have VC permissions as well down here at some point
-}
-else
-{
-    <h4>This isn't implemented? (Blame Jacob I guess)</h4>
+        }
+    </div>
 }
 
 @if (changed)
@@ -172,15 +119,25 @@ else
 
 @code {
 
-    public TriButtonComponent[] Buttons;
+    // For permission checking
+    public bool HasTargetManagePerm { get; set; }
+    public bool HasTargetPermissionPerm { get; set; }
 
-    // The permissions node that represents channel permissions
-    // Both categories and channels have this!
-    public PermissionsNode ChannelPermissionsNode { get; set; }
+    // Show states for permission sections
+    public bool[] ShowStates { get; set; } = new bool[ChannelPermissions.ChannelTypes.Length];
 
-    // The permissions node that represents category permissions
-    // Only categories have this
-    public PermissionsNode CategoryPermissionsNode { get; set; }
+    // Available buttons
+    public TriButtonComponent[][] ButtonGroups { get; set; } = new TriButtonComponent[ChannelPermissions.ChannelTypes.Length][];
+
+    // Permission nodes
+    public PermissionsNode[] Nodes { get; set; } = new PermissionsNode[ChannelPermissions.ChannelTypes.Length];
+
+    public bool[] NeedCreate { get; set; } = new bool[ChannelPermissions.ChannelTypes.Length];
+    public bool[] NeedUpdate { get; set; } = new bool[ChannelPermissions.ChannelTypes.Length];
+
+
+    /////////////////////////////////////////////////////////////////////
+
 
     public PlanetRole SelectedRole { get; set; }
 
@@ -203,70 +160,66 @@ else
 
     public bool loading = true;
 
-    public bool needCreateChannelNode = false;
-
-    public bool needCreateCategoryNode = false;
-
     public async Task SwitchInherit()
     {
-        PlanetChatChannel channel = Target as PlanetChatChannel;
+        if (Target is null)
+            return;
 
-        if (channel is not null)
+        Target.InheritsPerms = !Target.InheritsPerms;
+
+        // TODO: Make this prettier. Json deserialization freaks out for PlanetChannel.UpdateAsync
+        switch (Target)
         {
-            channel.InheritsPerms = !channel.InheritsPerms;
-            await PlanetChatChannel.UpdateAsync(channel);
-
-            StateHasChanged();
+            case PlanetChatChannel chat: 
+                {
+                    await PlanetChatChannel.UpdateAsync(chat);
+                    break;
+                }
+            case PlanetCategory cat:
+                {
+                    await PlanetCategory.UpdateAsync(cat);
+                    break;
+                }
+            case PlanetVoiceChannel voice:
+                {
+                    await PlanetVoiceChannel.UpdateAsync(voice);
+                    break;
+                }
+            default:
+                throw new Exception("Invalid channel type.");
         }
+
+        StateHasChanged();
     }
 
-    public void SwitchPermission(TriButtonComponent.TriButtonState state, Permission permission, bool isCategory)
+    public void SwitchPermission(TriButtonComponent.TriButtonState state, Permission permission, PermChannelType type)
     {
-        // Always create channel node if needed
-        if (ChannelPermissionsNode is null){
-            // Create channel node
-            // If there's no node, create a dummy one
-            ChannelPermissionsNode = new()
-            {
-                TargetId = Target.Id,
-                PlanetId = Target.PlanetId,
-                RoleId = SelectedRole.Id,
-                Mask = 0x00,
-                Code = 0x00,
-                TargetType = PermissionsTargetType.PlanetChatChannel
-            };
-
-            needCreateChannelNode = true;
-        }
-
-        // Only create category node if target is category
-        if (isCategory && CategoryPermissionsNode is null)
+        // If the node for the type is null, we create it and set a flag that it
+        // needs to be created on the server
+        if (Nodes[(int)type] is null)
         {
-            CategoryPermissionsNode = new()
+            Nodes[(int)type] = new()
             {
                 TargetId = Target.Id,
                 PlanetId = Target.PlanetId,
                 RoleId = SelectedRole.Id,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermissionsTargetType.PlanetCategoryChannel
+                TargetType = type
             };
 
-            needCreateCategoryNode = true;
+            NeedCreate[(int)type] = true;
+        }
+        else
+        {
+            NeedUpdate[(int)type] = true;
         }
 
         PermissionState newState = PermissionState.Undefined;
         if (state == TriButtonComponent.TriButtonState.Yes) newState = PermissionState.True;
         else if (state == TriButtonComponent.TriButtonState.No) newState = PermissionState.False;
 
-        if (isCategory)
-        {
-            CategoryPermissionsNode.SetPermission(permission, newState);
-        }
-        else
-        {
-            ChannelPermissionsNode.SetPermission(permission, newState);
-        }
+        Nodes[(int)type].SetPermission(permission, newState);
 
         changed = true;
 
@@ -275,43 +228,23 @@ else
 
     public async Task OnSaveChanges()
     {
-        if (needCreateChannelNode)
+        for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
-            var result = await PermissionsNode.CreateAsync(ChannelPermissionsNode);
-            if (!result.Success)
+            if (NeedCreate[i])
             {
-                Console.WriteLine("Error in channel permission node creation!");
-                Console.WriteLine(result.Message);
-            }
-        }
-        else if (ChannelPermissionsNode is not null)
-        {
-            var result = await PermissionsNode.UpdateAsync(ChannelPermissionsNode);
-            if (!result.Success)
-            {
-                Console.WriteLine("Error in channel permission node update!");
-                Console.WriteLine(result.Message);
-            }
-        }
-
-        // Handle additional node for categories
-        if (Target is PlanetCategory)
-        {
-            if (needCreateCategoryNode)
-            {
-                var result = await PermissionsNode.CreateAsync(CategoryPermissionsNode);
+                var result = await PermissionsNode.CreateAsync(Nodes[i]);
                 if (!result.Success)
                 {
-                    Console.WriteLine("Error in category permission node creation!");
+                    Console.WriteLine("Error in channel permission node creation!");
                     Console.WriteLine(result.Message);
                 }
             }
-            else if (CategoryPermissionsNode is not null)
+            else if (NeedUpdate[i])
             {
-                var result = await PermissionsNode.UpdateAsync(CategoryPermissionsNode);
+                var result = await PermissionsNode.UpdateAsync(Nodes[i]);
                 if (!result.Success)
                 {
-                    Console.WriteLine("Error in category permission node update!");
+                    Console.WriteLine("Error in channel permission node update!");
                     Console.WriteLine(result.Message);
                 }
             }
@@ -327,14 +260,9 @@ else
         Planet = await Target.GetPlanetAsync();
         Roles = await Planet.GetRolesAsync();
 
-        if (Target is PlanetCategory)
+        for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
-            Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length +
-            CategoryPermissions.Permissions.Length];
-        }
-        else
-        {
-            Buttons = new TriButtonComponent[ChatChannelPermissions.Permissions.Length];
+            ButtonGroups[i] = new TriButtonComponent[ChannelPermissions.ChannelTypes[i].Permissions.Length];
         }
 
         if (Roles.Count > 0)
@@ -344,6 +272,37 @@ else
         SelfMember = await ValourClient.GetSelfMember(Planet);
         SelfAuthority = await SelfMember.GetAuthorityAsync();
         SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
+
+
+        Permission managePerm;
+        Permission permissionsPerm;
+
+        switch (Target)
+        {
+            case PlanetChatChannel:
+                {
+                    managePerm = ChatChannelPermissions.ManageChannel;
+                    permissionsPerm = ChatChannelPermissions.ManagePermissions;
+                    break;
+                }
+            case PlanetCategory:
+                {
+                    managePerm = CategoryPermissions.ManageCategory;
+                    permissionsPerm = CategoryPermissions.ManagePermissions;
+                    break;
+                }
+            case PlanetVoiceChannel:
+                {
+                    managePerm = VoiceChannelPermissions.ManageChannel;
+                    permissionsPerm = VoiceChannelPermissions.ManagePermissions;
+                    break;
+                }
+            default:
+                throw new NotImplementedException($"Unexpected target type {Target.GetType().Name}");
+        }
+
+        HasTargetManagePerm = await Target.HasPermissionAsync(SelfMember, managePerm);
+        HasTargetPermissionPerm = await Target.HasPermissionAsync(SelfMember, permissionsPerm);
 
         loading = false;
 
@@ -377,25 +336,42 @@ else
     {
         if (_lastRole == role)
             return;
-        
+
         _lastRole = role;
-        
-        needCreateChannelNode = false;
-        needCreateCategoryNode = false;
+
+        for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
+        {
+            NeedCreate[i] = false;
+            NeedUpdate[i] = false;
+        }
 
         SelectedRole = role;
 
         Console.WriteLine($"Selected role {SelectedRole.Name}");
-        
-        if (Target is PlanetCategory){
-            var category = (PlanetCategory)Target;
-            ChannelPermissionsNode = await category.GetChannelPermissionsNodeAsync(SelectedRole.Id);
-            CategoryPermissionsNode = await category.GetCategoryPermissionsNodeAsync(SelectedRole.Id);
-        }
-        else
+
+        switch (Target)
         {
-            var channel = (PlanetChatChannel)Target;
-            ChannelPermissionsNode = await channel.GetPermissionsNodeAsync(SelectedRole.Id);
+            // Special case for PlanetCategory, which has multiple nodes
+            case PlanetCategory category:
+                {
+                    foreach (var type in ChannelPermissions.ChannelTypes){
+                        Nodes[(int)type.TargetType] = await category.GetPermNodeAsync(SelectedRole.Id, type.TargetType);
+                        ShowStates[(int)type.TargetType] = true;
+                    }
+
+                    break;
+                }
+            default:
+                {
+                    foreach (var type in ChannelPermissions.ChannelTypes)
+                    {
+                        ShowStates[(int)type.TargetType] = false;
+                    }
+
+                    Nodes[(int)Target.PermType] = await Target.GetPermNodeAsync(SelectedRole.Id, Target.PermType);
+                    ShowStates[(int)Target.PermType] = true;
+                    break;
+                }
         }
 
         changed = false;
@@ -424,60 +400,33 @@ else
 
     public async Task RefreshButtons()
     {
-        if (Buttons == null || Buttons.Length == 0)
+
+        var egg = ChannelPermissions.ChannelTypes;
+
+        if (ButtonGroups == null || ButtonGroups.Length == 0)
             return;
 
-        if (Target is PlanetChatChannel)
+        for (int i = 0; i < ChannelPermissions.ChannelTypes.Length; i++)
         {
-            // Setup buttons
-            for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
+            // Only set up buttons for visible
+            if (ShowStates[i])
             {
-                TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
-                if (ChannelPermissionsNode != null)
+                var perms = ChannelPermissions.ChannelTypes[i].Permissions;
+                for (int j = 1; j < perms.Length; j++)
                 {
-                    var pState = GetPermissionStateForViewing(ChannelPermissionsNode, ChatChannelPermissions.Permissions[i]);
-                    if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
-                    else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
+                    if (ButtonGroups[i][j] is null)
+                        continue;
+
+                    TriButtonComponent.TriButtonState buttonState = TriButtonComponent.TriButtonState.Disabled;
+                    if(Nodes[i] is not null)
+                    {
+                        var state = GetPermissionStateForViewing(Nodes[i], perms[j]);
+                        if (state == PermissionState.True) buttonState = TriButtonComponent.TriButtonState.Yes;
+                        else if (state == PermissionState.False) buttonState = TriButtonComponent.TriButtonState.No;
+                    }
+
+                    await ButtonGroups[i][j].OnChangeState(buttonState, false);
                 }
-
-                if (Buttons[i] != null)
-                    await Buttons[i].OnChangeState(bState, false);
-            }
-        }
-        else if (Target is PlanetCategory)
-        {
-            // Setup category buttons
-            for (int i = 0; i < CategoryPermissions.Permissions.Length; i++)
-            {
-                if (Buttons[i] == null)
-                    continue;
-
-                TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
-                if (CategoryPermissionsNode != null)
-                {
-                    var pState = GetPermissionStateForViewing(CategoryPermissionsNode, CategoryPermissions.Permissions[i]);
-                    if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
-                    else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
-                }
-
-                await Buttons[i].OnChangeState(bState, false);
-            }
-
-            // Setup chat channel buttons
-            for (int i = 0; i < ChatChannelPermissions.Permissions.Length; i++)
-            {
-                if (Buttons[i] == null)
-                    continue;
-
-                TriButtonComponent.TriButtonState bState = TriButtonComponent.TriButtonState.Disabled;
-                if (ChannelPermissionsNode != null)
-                {
-                    var pState = GetPermissionStateForViewing(ChannelPermissionsNode, ChatChannelPermissions.Permissions[i]);
-                    if (pState == PermissionState.True) bState = TriButtonComponent.TriButtonState.Yes;
-                    else if (pState == PermissionState.False) bState = TriButtonComponent.TriButtonState.No;
-                }
-
-                await Buttons[i + CategoryPermissions.Permissions.Length].OnChangeState(bState, false);
             }
         }
 

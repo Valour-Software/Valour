@@ -59,6 +59,6 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// The type of object this node applies to
     /// </summary>
     [Column("target_type")]
-    public PermissionsTargetType TargetType { get; set; }
+    public PermChannelType TargetType { get; set; }
 }
 

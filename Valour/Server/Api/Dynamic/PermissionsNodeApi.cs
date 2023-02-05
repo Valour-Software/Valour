@@ -21,7 +21,7 @@ public class PermissionsNodeApi
 
     [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{type}/{targetId}/{roleId}")]
     public static async Task<IResult> GetNodeForTargetRouteAsync(
-        PermissionsTargetType type, 
+        PermChannelType type, 
         long targetId, 
         long roleId,
         PermissionsNodeService permissionsNodeService)
@@ -39,7 +39,7 @@ public class PermissionsNodeApi
     // There will be more permissions than just planet permissions!
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PermissionsNode node,
-        PermissionsTargetType type,
+        PermChannelType type,
         long targetId, 
         long roleId,
         PermissionsNodeService permissionsNodeService,
@@ -128,11 +128,16 @@ public class PermissionsNodeApi
         if (target is null)
             return ValourResult.NotFound<PlanetChannel>();
 
-        if (target.PermissionsTargetType != node.TargetType)
+        if (target.PermType != node.TargetType)
         {
-            // Special case: Categories have a sub-node with PlanetChatChannel type!
-            if (!(target.PermissionsTargetType == PermissionsTargetType.PlanetCategoryChannel &&
-                node.TargetType == PermissionsTargetType.PlanetChatChannel))
+            if (target.PermType == PermChannelType.PlanetCategoryChannel)
+            {
+                if ((int)node.TargetType < 0 || (int)node.TargetType > (ChannelPermissions.ChannelTypes.Length - 1))
+                {
+                    return Results.BadRequest($"TargetType unknown ({node.TargetType}).");
+                }
+            }
+            else 
             {
                 return Results.BadRequest("TargetType mismatch.");
             }

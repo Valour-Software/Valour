@@ -110,4 +110,26 @@ public class PlanetRoleApi
         return Results.NoContent();
 
     }
+
+    [ValourRoute(HttpVerbs.Get, "api/roles/{id}/nodes")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetNodesRouteAsync(
+        long id,
+        PlanetMemberService memberService,
+        PlanetRoleService roleService)
+    {
+        var role = await roleService.GetAsync(id);
+        if (role is null)
+            return ValourResult.NotFound("Role not found.");
+
+        // Get member
+        var member = await memberService.GetCurrentAsync(role.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        var nodes = await roleService.GetNodesAsync(role);
+
+        return Results.Json(nodes);
+
+    }
 }

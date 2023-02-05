@@ -41,6 +41,24 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         Blue = 255
     };
 
+    public static PlanetRole DefaultRole = new PlanetRole()
+    {
+        Name = "Default",
+        Id = long.MaxValue,
+        Position = int.MaxValue,
+        PlanetId = 0,
+        Red = 255,
+        Green = 255,
+        Blue = 255,
+        Permissions = PlanetPermissions.Default,
+        ChatPermissions = ChatChannelPermissions.Default,
+        CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
+        VoicePermissions = VoiceChannelPermissions.Default
+    };
+
+    // Cached values
+    private List<PermissionsNode> PermissionsNodes { get; set; }
+
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
@@ -123,5 +141,48 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
             await item.AddToCache();
 
         return item;
+    }
+
+    /// <summary>
+    /// Requests and caches nodes from the server
+    /// </summary>
+    public async Task LoadPermissionNodesAsync()
+    {
+        var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
+        if (nodes is null)
+            return;
+
+        // Update cache values
+        foreach (var node in nodes)
+        {
+            // Skip event for bulk loading
+            await ValourCache.Put(node.Id, node, true);
+        }
+
+        // Create container if needed
+        if (PermissionsNodes == null)
+            PermissionsNodes = new List<PermissionsNode>();
+        else
+            PermissionsNodes.Clear();
+
+        // Retrieve cache values (this is necessary to ensure single copies of items)
+        foreach (var node in nodes)
+        {
+            var cNode = ValourCache.Get<PermissionsNode>(node.Id);
+
+            if (cNode is not null)
+                PermissionsNodes.Add(cNode);
+        }
+    }
+
+    /// <summary>
+    /// Returns the permission node for the given channel id
+    /// </summary>
+    public async Task<PermissionsNode> GetPermissionNode(long targetId)
+    {
+        if (PermissionsNodes is null)
+            await LoadPermissionNodesAsync();
+
+        return PermissionsNodes.FirstOrDefault(x => x.TargetId == targetId);
     }
 }

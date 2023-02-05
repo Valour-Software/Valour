@@ -19,6 +19,6 @@ public abstract class PlanetChannel : Channel, ISharedPlanetChannel
     
     public bool InheritsPerms { get; set; }
 
-    public abstract PermissionsTargetType PermissionsTargetType { get; }
+    public abstract PermChannelType PermType { get; }
 }
 

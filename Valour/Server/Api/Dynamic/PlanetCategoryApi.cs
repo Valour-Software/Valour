@@ -59,8 +59,8 @@ public class PlanetCategoryApi
         }
         else
         {
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+                return ValourResult.LacksPermission(PlanetPermissions.CreateChannels);
         }
 
         var result = await categoryService.CreateAsync(category);
@@ -100,8 +100,8 @@ public class PlanetCategoryApi
         }
         else
         {
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+                return ValourResult.LacksPermission(PlanetPermissions.CreateChannels);
         }
 
         var result = await categoryService.CreateDetailedAsync(request, member);
@@ -130,9 +130,6 @@ public class PlanetCategoryApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
-
         if (!await memberService.HasPermissionAsync(member, old, CategoryPermissions.ManageCategory))
             return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
@@ -159,9 +156,6 @@ public class PlanetCategoryApi
         var member = await memberService.GetCurrentAsync(category.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
-
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
 
         if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
             return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
@@ -220,9 +214,6 @@ public class PlanetCategoryApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
-
         if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
             return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
 
@@ -233,5 +224,12 @@ public class PlanetCategoryApi
             return ValourResult.Problem(result.Message);
 
         return Results.NoContent();
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/categories/{id}/nodes")]
+    [UserRequired]
+    public static async Task<IResult> GetNodesRouteAsync(long id, PlanetChannelService service)
+    {
+        return Results.Json(await service.GetPermNodesAsync(id));
     }
 }
