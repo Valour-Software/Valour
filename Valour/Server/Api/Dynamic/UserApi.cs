@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using Valour.Server.Services;
 using Valour.Server.Users;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
@@ -74,12 +76,9 @@ public class UserApi
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/self/logout")]
-    public static async Task<IResult> LogOutRouteAsync(
-        TokenService tokenService,
-        UserService userService)
+    public static async Task<IResult> LogOutRouteAsync(UserService userService)
     {
-        var result = userService.Logout(await tokenService.GetCurrentToken());
-
+        var result = userService.Logout();
         return Results.Ok("Come back soon!");
     }
 
