@@ -3,6 +3,7 @@ using System;
 using System.Text.Json.Serialization;
 using Valour.Api.Models.Messages.Embeds.Styles.Flex;
 using Valour.Api.Models.Messages.Embeds.Styles;
+using Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
 
 namespace Valour.Api.Models.Messages.Embeds.Items;
 
@@ -18,7 +19,8 @@ public enum EmbedItemType
     DropDownItem = 8,
     DropDownMenu = 9,
     EmbedRow = 10,
-    EmbedPage = 11
+    EmbedPage = 11,
+    Progress = 12
 }
 
 public interface IEmbedFormItem
@@ -70,6 +72,8 @@ public class EmbedItem : IParentItem
 	[JsonIgnore]
     public Embed Embed { get; set; }
 
+    public List<BootstrapClass> Classes { get; set; }
+
     public virtual List<EmbedItem> GetAllItems()
 	{
         List<EmbedItem> items = new();
@@ -107,12 +111,12 @@ public class EmbedItem : IParentItem
 		}
     }
 
-	public string GetStyle()
+    public virtual string GetStyle()
     {
         string style = "";
         if (Styles is not null)
         {
-            foreach(var _style in Styles)
+            foreach (var _style in Styles)
             {
                 style += _style;
             }
@@ -130,6 +134,23 @@ public class EmbedItem : IParentItem
         if (ItemType == EmbedItemType.Button && !style.Contains("align-self"))
             style += "align-self: end;display: flex;";
 
-		return style;
+        if (ItemType == EmbedItemType.Progress && !style.Contains("width"))
+            style += "width: 150px";
+
+        return style;
+    }
+
+    public virtual string GetClasses()
+    {
+        string classes = "";
+        if (Classes is not null)
+        {
+            foreach (var _class in Classes)
+            {
+                classes += _class + " ";
+            }
+        }
+
+        return classes;
     }
 }
