@@ -60,8 +60,8 @@ public class PlanetVoiceChannelApi
         }
         else
         {
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+                return ValourResult.LacksPermission(PlanetPermissions.CreateChannels);
         }
 
         var result = await voiceChannelService.CreateAsync(channel);
@@ -104,8 +104,8 @@ public class PlanetVoiceChannelApi
         }
         else
         {
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageCategories))
-                return ValourResult.LacksPermission(PlanetPermissions.ManageCategories);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.CreateChannels))
+                return ValourResult.LacksPermission(PlanetPermissions.CreateChannels);
         }
 
         var result = await voiceChannelService.CreateDetailedAsync(request, member);
@@ -133,9 +133,6 @@ public class PlanetVoiceChannelApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageChannels))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageChannels);
-
         if (!await memberService.HasPermissionAsync(member, old, VoiceChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(VoiceChannelPermissions.ManageChannel);
 
@@ -162,9 +159,6 @@ public class PlanetVoiceChannelApi
         var member = await memberService.GetCurrentAsync(channel.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
-
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageChannels))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageChannels);
 
         if (!await memberService.HasPermissionAsync(member, channel, VoiceChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(VoiceChannelPermissions.ManageChannel);
@@ -206,5 +200,12 @@ public class PlanetVoiceChannelApi
         var hasPerm = await memberService.HasPermissionAsync(targetMember, channel, new VoiceChannelPermission(value, "", ""));
 
         return Results.Json(hasPerm);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/voicechannels/{id}/nodes")]
+    [UserRequired]
+    public static async Task<IResult> GetNodesRouteAsync(long id, PlanetChannelService service)
+    {
+        return Results.Json(await service.GetPermNodesAsync(id));
     }
 }

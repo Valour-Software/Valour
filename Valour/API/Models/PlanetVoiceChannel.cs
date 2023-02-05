@@ -23,16 +23,11 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
     #endregion
 
     /// <summary>
-    /// True if this channel inherits permissions from its parent
-    /// </summary>
-    public bool InheritsPerms { get; set; }
-
-    /// <summary>
     /// Returns the name of the item type
     /// </summary>
     public override string GetHumanReadableName() => "Voice Channel";
 
-    public PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetVoiceChannel;
+    public override PermChannelType PermType => PermChannelType.PlanetVoiceChannel;
 
     public override async Task Open() =>
         await Task.CompletedTask;
@@ -62,16 +57,10 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
     }
 
     /// <summary>
-    /// Returns the permissions node for the given role id
-    /// </summary>
-    public override async Task<PermissionsNode> GetPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await GetChannelPermissionsNodeAsync(roleId, refresh);
-
-    /// <summary>
     /// Returns the voice channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermissionsTargetType.PlanetVoiceChannel, refresh);
+        await PermissionsNode.FindAsync(Id, roleId, PermChannelType.PlanetVoiceChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
@@ -92,7 +81,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermissionsTargetType.PlanetVoiceChannel
+            TargetType = PermChannelType.PlanetVoiceChannel
         };
 
         var planet = await GetPlanetAsync();
@@ -134,67 +123,6 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
 
         return dummy_node;
     }
-
-    /// <summary>
-    /// Returns if the member has the given permission in this voice channel
-    /// </summary>
-    public override async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
-    {
-        Planet planet = await member.GetPlanetAsync();
-
-        if (planet.OwnerId == member.UserId)
-        {
-            return true;
-        }
-
-        // If true, we ask the parent
-        if (InheritsPerms)
-        {
-            return await (await GetParentAsync()).HasPermissionAsync(member, permission);
-        }
-
-        var roles = await member.GetRolesAsync();
-
-        // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
-        // If we get an undecided, we continue to the next role down
-        foreach (var role in roles.OrderBy(x => x.Position))
-        {
-            PermissionsNode node = null;
-
-            node = await GetPermissionsNodeAsync(role.Id);
-
-            // If we are dealing with the default role and the behavior is undefined, we fall back to the default permissions
-            if (node == null)
-            {
-                if (role.Id == planet.DefaultRoleId)
-                {
-                    return Permission.HasPermission(VoiceChannelPermissions.Default, permission);
-                }
-                continue;
-            }
-
-            PermissionState state = PermissionState.Undefined;
-
-            state = node.GetPermissionState(permission);
-
-            if (state == PermissionState.Undefined)
-            {
-                continue;
-            }
-            else if (state == PermissionState.True)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        // No roles ever defined behavior: resort to false.
-        return false;
-    }
-
     public static async Task<TaskResult<PlanetVoiceChannel>> CreateWithDetails(CreatePlanetVoiceChannelRequest request)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId);

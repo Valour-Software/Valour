@@ -11,6 +11,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel
     // Entity Properties //
     ///////////////////////
 
-    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetChatChannel;
+    public override PermChannelType PermType => PermChannelType.PlanetChatChannel;
 }
 

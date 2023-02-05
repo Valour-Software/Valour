@@ -10,7 +10,6 @@ namespace Valour.Server.Services;
 public class PlanetCategoryService
 {
     private readonly ValourDB _db;
-    private readonly PlanetService _planetService;
     private readonly PlanetMemberService _planetMemberService;
     private readonly PlanetChannelService _planetChannelService;
     private readonly PlanetRoleService _planetRoleService;
@@ -19,7 +18,6 @@ public class PlanetCategoryService
 
     public PlanetCategoryService(
         ValourDB db, 
-        PlanetService planetService, 
         PlanetMemberService planetMemberService,
         CoreHubService coreHub,
         PlanetChannelService planetChannelService,
@@ -27,7 +25,6 @@ public class PlanetCategoryService
         ILogger<PlanetCategoryService> logger)
     {
         _db = db;
-        _planetService = planetService;
         _planetMemberService = planetMemberService;
         _coreHub = coreHub;
         _logger = logger;

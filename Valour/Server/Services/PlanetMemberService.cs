@@ -109,7 +109,7 @@ public class PlanetMemberService
     /// Returns the roles for the given PlanetMember id,
     /// including the permissions node for a specific target channel
     /// </summary>
-    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermissionsTargetType type) =>
+    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -126,7 +126,7 @@ public class PlanetMemberService
     /// including the permissions node for a specific target channel
     /// this will return role ids that no node
     /// </summary>
-    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, PermissionsTargetType type) =>
+    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -141,7 +141,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the permission nodes for the given target in order of role position
     /// </summary>
-    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, PermissionsTargetType type) =>
+    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -214,7 +214,7 @@ public class PlanetMemberService
         // Return permission state
         return mainRole.HasPermission(permission);
     }
-    
+
     /// <summary>
     /// Returns if the member has the given channel permission
     /// </summary>
@@ -228,19 +228,17 @@ public class PlanetMemberService
         if (planet.OwnerId == member.UserId)
             return true;
 
-        // Change target into database form
-        var channel = target.ToDatabase();
-        if (channel is null)
+        if (target is null)
             return false;
 
         // If the channel inherits from its parent, move up until it does not
-        while (channel.InheritsPerms)
+        while (target.InheritsPerms && target.ParentId is not null)
         {
-            channel = await _db.PlanetCategories.FindAsync(channel.ParentId.Value);
+            target = (await _db.PlanetCategories.FindAsync(target.ParentId.Value)).ToModel();
         }
         
         // Get permission nodes in order of role position
-        var rolePermData = await GetRolesAndNodesAsync(member, channel.Id, permission.TargetType);
+        var rolePermData = await GetRolesAndNodesAsync(member, target.Id, permission.TargetType);
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down

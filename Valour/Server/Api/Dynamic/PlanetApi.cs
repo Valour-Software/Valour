@@ -173,7 +173,7 @@ public class PlanetApi
                     break;
                 }
                 default:
-                    throw new NotImplementedException($"Case for Permission with type {channel.PermissionsTargetType} not implemented");
+                    throw new NotImplementedException($"Case for Permission with type {channel.PermType} not implemented");
             }
         }
 

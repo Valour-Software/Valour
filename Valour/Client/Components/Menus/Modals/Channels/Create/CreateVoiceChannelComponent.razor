@@ -170,7 +170,7 @@
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermissionsTargetType.PlanetVoiceChannel
+                TargetType = PermChannelType.PlanetVoiceChannel
             };
 
             defaultNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.False);
@@ -194,7 +194,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermissionsTargetType.PlanetVoiceChannel
+                    TargetType = PermChannelType.PlanetVoiceChannel
                 };
 
                 roleNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.True);

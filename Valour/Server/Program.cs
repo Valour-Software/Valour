@@ -28,7 +28,6 @@ namespace Valour.Server
 {
     public class Program
     {
-        public static List<object> ItemApis { get; set; }
         public static List<object> DynamicApis { get; set; }
 
         public static NodeAPI NodeAPI { get; set; }
@@ -93,29 +92,13 @@ namespace Valour.Server
             AmazonS3Client client = new(cred, config);
             BucketManager.Client = client;
 
-            ItemApis = new() {
-                new ItemAPI<User>()                     .RegisterRoutes(app),
-                new ItemAPI<Planet>()                   .RegisterRoutes(app),
-                new ItemAPI<PlanetChatChannel>()        .RegisterRoutes(app),
-                new ItemAPI<PlanetVoiceChannel>()       .RegisterRoutes(app),
-                new ItemAPI<PlanetCategory>()           .RegisterRoutes(app),
-                new ItemAPI<PlanetMember>()             .RegisterRoutes(app),
-                new ItemAPI<PlanetRole>()               .RegisterRoutes(app),
-                new ItemAPI<PlanetInvite>()             .RegisterRoutes(app),
-                new ItemAPI<PlanetBan>()                .RegisterRoutes(app),
-                new ItemAPI<PermissionsNode>()          .RegisterRoutes(app),
-                new ItemAPI<UserFriend>()               .RegisterRoutes(app),
-                new ItemAPI<DirectChatChannel>()        .RegisterRoutes(app),
-                new ItemAPI<OauthApp>()                 .RegisterRoutes(app),
-                new ItemAPI<TenorFavorite>()            .RegisterRoutes(app)
-            };
-
             DynamicApis = new() {
                 new DynamicAPI<UserApi>()                     .RegisterRoutes(app),
                 new DynamicAPI<PlanetApi>()                   .RegisterRoutes(app),
                 new DynamicAPI<PlanetChatChannelApi>()        .RegisterRoutes(app),
                 new DynamicAPI<PlanetVoiceChannelApi>()       .RegisterRoutes(app),
                 new DynamicAPI<PlanetCategoryApi>()           .RegisterRoutes(app),
+                new DynamicAPI<PlanetChannelApi>()            .RegisterRoutes(app),
                 new DynamicAPI<PlanetMemberApi>()             .RegisterRoutes(app),
                 new DynamicAPI<PlanetRoleApi>()               .RegisterRoutes(app),
                 new DynamicAPI<PlanetInviteApi>()             .RegisterRoutes(app),
@@ -124,7 +107,7 @@ namespace Valour.Server
                 new DynamicAPI<UserFriendApi>()               .RegisterRoutes(app),
                 new DynamicAPI<DirectChatChannelApi>()        .RegisterRoutes(app),
                 new DynamicAPI<OauthAppAPI>()                 .RegisterRoutes(app),
-                new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app)
+                new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI(NodeConfig.Instance);

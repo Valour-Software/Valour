@@ -1,6 +1,7 @@
 ﻿using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Nodes;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
@@ -151,6 +152,12 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     /// </summary>
     public async Task<int> GetAuthorityAsync() =>
         (await Node.GetJsonAsync<int>($"{IdRoute}/authority")).Data;
+
+    /// <summary>
+    /// Returns if the member has the given permission
+    /// </summary>
+    public async Task<bool> HasPermissionAsync(PlanetChannel channel, Permission permission) =>
+        await channel.HasPermissionAsync(this, permission);
 
     /// <summary>
     /// Loads all role Ids from the server

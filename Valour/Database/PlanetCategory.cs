@@ -11,6 +11,6 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
     // Entity Properties //
     ///////////////////////
     
-    public override PermissionsTargetType PermissionsTargetType => PermissionsTargetType.PlanetCategoryChannel;
+    public override PermChannelType PermType => PermChannelType.PlanetCategoryChannel;
 }
 
