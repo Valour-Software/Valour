@@ -78,7 +78,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public PlanetCategoryChannel Parent { get; set; }
+    public PlanetCategory Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -163,10 +163,10 @@
             {
                 TargetId = 0,
                 PlanetId = Planet.Id,
-                RoleId = Planet.DefaultRoleId.Value,
+                RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermissionsTargetType.PlanetChatChannel
+                TargetType = PermChannelType.PlanetChatChannel
             };
 
             defaultNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.False);
@@ -190,7 +190,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermissionsTargetType.PlanetChatChannel
+                    TargetType = PermChannelType.PlanetChatChannel
                 };
 
                 roleNode.SetPermission(ChatChannelPermissions.PostMessages, PermissionState.True);

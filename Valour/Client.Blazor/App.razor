@@ -1,12 +1,12 @@
 ﻿@using Valour.Shared
-@using Valour.Api.Items.Users
+@using Valour.Api.Models;
 @using Valour.Api.Client
 @using Valour.Client.Device
 @using Valour.Client.Components.Utility
 @using Valour.Client.Notifications
 @using Valour.Client.Blazor.Layout
 @using Valour.Client.Messages;
-@using Valour.Shared.Items.Users
+@using Valour.Shared.Models;
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Components.Routing
 @using Blazored.LocalStorage
@@ -131,7 +131,7 @@ else
 
     public async Task RequestNotificationSubscriptionAsync()
     {
-        var subscription = await JS.InvokeAsync<NotificationSubscription>("blazorPushNotifications.requestSubscription");
+        var subscription = await JS.InvokeAsync<Valour.Client.Notifications.NotificationSubscription>("blazorPushNotifications.requestSubscription");
         if (subscription != null)
         {
             try
@@ -157,7 +157,7 @@ else
         Console.WriteLine(key);
         Console.WriteLine(auth);
 
-        Api.Items.Notifications.NotificationSubscription not = new()
+        Api.Models.NotificationSubscription not = new()
         {
             Endpoint = endpoint,
             Auth = auth,

@@ -2,13 +2,12 @@
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Valour.Api.Client;
-using Valour.Api.Items;
-using Valour.Api.Items.Channels;
-using Valour.Api.Items.Messages;
-using Valour.Api.Items.Messages.Embeds;
+using Valour.Api.Models;
+using Valour.Api.Models.Messages.Embeds;
+using Valour.Api.Models;
 using Valour.Shared;
 using Valour.Shared.Channels;
-using Valour.Shared.Items.Channels;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Nodes;
 

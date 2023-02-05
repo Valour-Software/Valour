@@ -1,7 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Channels;
-using Valour.Server.Database.Items.Messages;
 using Valour.Server.Services;
 
 namespace Valour.Server.Workers
@@ -115,10 +113,10 @@ namespace Valour.Server.Workers
                     TimeLastActive = DateTime.UtcNow
                 };
 
-                db.Channels.Attach(updated).Property(x => x.TimeLastActive).IsModified = true;
+                db.Channels.Attach(updated.ToDatabase()).Property(x => x.TimeLastActive).IsModified = true;
             }
             
-            await db.PlanetMessages.AddRangeAsync(StagedMessages.Values);
+            await db.PlanetMessages.AddRangeAsync(StagedMessages.Values.Select(x => x.ToDatabase()));
             await db.SaveChangesAsync();
             BlockSet.Clear();
             StagedMessages.Clear();

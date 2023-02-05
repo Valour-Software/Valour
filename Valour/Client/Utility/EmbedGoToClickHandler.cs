@@ -1,8 +1,6 @@
-﻿using Valour.Api.Items.Messages.Embeds.Items;
-using Valour.Api.Items.Messages.Embeds;
+﻿using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds;
 using Valour.Client.Components.Messages.Embeds;
-using Valour.Api.Items.Messages;
-using Valour.Api.Items.Planets.Members;
 using Valour.Api.Client;
 using System.Net.Http.Json;
 using Blazored.Modal.Services;
@@ -10,6 +8,7 @@ using Valour.Client.Modals;
 using Microsoft.JSInterop;
 using Blazored.Modal;
 using Valour.Client.Components.Menus.Modals;
+using Valour.Api.Models;
 
 namespace Valour.Client.Utility;
 

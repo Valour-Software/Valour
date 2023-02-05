@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using Valour.Api.Items.Channels.Planets;
+using Valour.Api.Models;
 
 namespace Valour.Client.Categories
 {
@@ -7,7 +7,7 @@ namespace Valour.Client.Categories
     {
         private ConcurrentDictionary<long, bool> CategoryOpenStates = new ConcurrentDictionary<long, bool>();
 
-        public bool IsOpen(PlanetCategoryChannel category)
+        public bool IsOpen(PlanetCategory category)
         {
             return IsOpen(category.Id);
         }
@@ -22,7 +22,7 @@ namespace Valour.Client.Categories
             return CategoryOpenStates[categoryId];
         }
 
-        public void SetOpen(PlanetCategoryChannel category, bool value)
+        public void SetOpen(PlanetCategory category, bool value)
         {
             SetOpen(category.Id, value);
         }

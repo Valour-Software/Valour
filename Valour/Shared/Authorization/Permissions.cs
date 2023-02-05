@@ -4,6 +4,8 @@
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
+using Valour.Shared.Models;
+
 namespace Valour.Shared.Authorization;
 
 /// <summary>
@@ -42,7 +44,11 @@ public class Permission
     /// </summary>
     const string Mixed_Description = "A mix of several permissions";
 
-    public virtual string PermissionType => "Base";
+    public virtual string ReadableName => "Base";
+    
+    public virtual PermChannelType TargetType => PermChannelType.Undefined;
+
+    public virtual long GetDefault() => 0;
 
     /// <summary>
     /// Initializes the permission
@@ -104,9 +110,47 @@ public class Permission
     }
 }
 
+public class ChannelPermissionGroup
+{
+    public PermChannelType TargetType { get; set; }
+    public Permission[] Permissions { get; set; }
+}
+
+public static class ChannelPermissions
+{
+    public static readonly ChannelPermissionGroup[] ChannelTypes = new ChannelPermissionGroup[3];
+
+    public const long ViewValue = 0x01;
+    // There is a gap here in values! 0x01 -> 0x08
+    public const long ManageValue = 0x08;
+    public const long PermissionsValue = 0x10;
+
+    static ChannelPermissions() 
+    {
+
+    }
+    
+    public static Permission[] GetChannelPermissionSet(PermChannelType type)
+    {
+        switch (type)
+        {
+            case PermChannelType.PlanetChatChannel:
+                return ChatChannelPermissions.Permissions;
+            case PermChannelType.PlanetCategoryChannel:
+                return CategoryPermissions.Permissions;
+            case PermChannelType.PlanetVoiceChannel:
+                return VoiceChannelPermissions.Permissions;
+            default:
+                throw new Exception($"Invalid channel type {type}");
+        }
+    }
+}
+
 public class ChatChannelPermission : Permission
 {
-    public override string PermissionType => "Chat Channel";
+    public override PermChannelType TargetType => PermChannelType.PlanetChatChannel;
+    public override string ReadableName => "Chat Channel";
+    public override long GetDefault() => ChatChannelPermissions.Default;
     public ChatChannelPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -114,7 +158,9 @@ public class ChatChannelPermission : Permission
 
 public class CategoryPermission : Permission
 {
-    public override string PermissionType => "Category";
+    public override PermChannelType TargetType => PermChannelType.PlanetCategoryChannel;
+    public override string ReadableName => "Category";
+    public override long GetDefault() => CategoryPermissions.Default;
     public CategoryPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -122,7 +168,9 @@ public class CategoryPermission : Permission
 
 public class VoiceChannelPermission : Permission
 {
-    public override string PermissionType => "Voice Channel";
+    public override PermChannelType TargetType => PermChannelType.PlanetVoiceChannel;
+    public override string ReadableName => "Voice Channel";
+    public override long GetDefault() => VoiceChannelPermissions.Default;
     public VoiceChannelPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -130,7 +178,7 @@ public class VoiceChannelPermission : Permission
 
 public class UserPermission : Permission
 {
-    public override string PermissionType => "User";
+    public override string ReadableName => "User";
     public UserPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -138,7 +186,7 @@ public class UserPermission : Permission
 
 public class PlanetPermission : Permission
 {
-    public override string PermissionType => "Planet";
+    public override string ReadableName => "Planet";
     public PlanetPermission(long value, string name, string description) : base(value, name, description)
     {
     }
@@ -243,14 +291,14 @@ public static class ChatChannelPermissions
     static ChatChannelPermissions()
     {
         FullControl = new ChatChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
-        View = new ChatChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
-        ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within this channel.");
-        PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to this channel.");
-        ManageChannel = new ChatChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
-        ManagePermissions = new ChatChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
-        Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to this channel.");
-        AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to this channel.");
-        ManageMessages = new ChatChannelPermission(0x80, "Manage Messages", "Allow members to delete and manage messages in this channel.");
+        View = new ChatChannelPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel in the channel list.");
+        ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within the channel.");
+        PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to the channel.");
+        ManageChannel = new ChatChannelPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the channel's details.");
+        ManagePermissions = new ChatChannelPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel.");
+        Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to the channel.");
+        AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to the channel.");
+        ManageMessages = new ChatChannelPermission(0x80, "Manage Messages", "Allow members to delete and manage messages in the channel.");
 
         Permissions = new ChatChannelPermission[]
         {
@@ -266,6 +314,12 @@ public static class ChatChannelPermissions
         };
 
         Default = Permission.CreateCode(View, ViewMessages, PostMessages);
+
+        ChannelPermissions.ChannelTypes[0] = new ChannelPermissionGroup()
+        {
+            TargetType = PermChannelType.PlanetChatChannel,
+            Permissions = ChatChannelPermissions.Permissions
+        };
     }
 }
 
@@ -302,9 +356,9 @@ public static class CategoryPermissions
     static CategoryPermissions()
     {
         FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the category");
-        View = new CategoryPermission(0x01, "View", "Allow members to view this category in the channel list.");
-        ManageCategory = new CategoryPermission(0x08, "Manage", "Allow members to manage this category's details.");
-        ManagePermissions = new CategoryPermission(0x10, "Permissions", "Allow members to manage permissions for this category.");
+        View = new CategoryPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the category in the channel list.");
+        ManageCategory = new CategoryPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the category's details.");
+        ManagePermissions = new CategoryPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the category.");
 
         Permissions = new CategoryPermission[]
         {
@@ -315,6 +369,12 @@ public static class CategoryPermissions
         };
 
         Default = Permission.CreateCode(View);
+
+        ChannelPermissions.ChannelTypes[1] = new ChannelPermissionGroup()
+        {
+            TargetType = PermChannelType.PlanetCategoryChannel,
+            Permissions = CategoryPermissions.Permissions
+        };
     }
 }
 
@@ -355,11 +415,11 @@ public static class VoiceChannelPermissions
     static VoiceChannelPermissions()
     {
         FullControl = new VoiceChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
-        View = new VoiceChannelPermission(0x01, "View", "Allow members to view this channel in the channel list.");
-        Join = new VoiceChannelPermission(0x02, "Join Channel", "Allow members to connect to this voice channel.");
-        Speak = new VoiceChannelPermission(0x04, "Speak", "Allow members to speak in this channel.");
-        ManageChannel = new VoiceChannelPermission(0x08, "Manage", "Allow members to manage this channel's details.");
-        ManagePermissions = new VoiceChannelPermission(0x10, "Permissions", "Allow members to manage permissions for this channel.");
+        View = new VoiceChannelPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel in the channel list.");
+        Join = new VoiceChannelPermission(0x02, "Join Channel", "Allow members to connect to the voice channel.");
+        Speak = new VoiceChannelPermission(0x04, "Speak", "Allow members to speak in the channel.");
+        ManageChannel = new VoiceChannelPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the channel's details.");
+        ManagePermissions = new VoiceChannelPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel.");
 
         Permissions = new VoiceChannelPermission[]
         {
@@ -372,6 +432,12 @@ public static class VoiceChannelPermissions
         };
 
         Default = Permission.CreateCode(View, Join, Speak);
+
+        ChannelPermissions.ChannelTypes[2] = new ChannelPermissionGroup()
+        {
+            TargetType = PermChannelType.PlanetVoiceChannel,
+            Permissions = VoiceChannelPermissions.Permissions
+        };
     }
 }
 
@@ -414,8 +480,7 @@ public static class PlanetPermissions
                 Manage,
                 Kick,
                 Ban,
-                ManageCategories,
-                ManageChannels,
+                CreateChannels,
                 ManageRoles
         };
     }
@@ -429,9 +494,8 @@ public static class PlanetPermissions
     public static readonly PlanetPermission Manage = new PlanetPermission(0x08, "Manage Planet", "Allow members to modify base planet settings.");
     public static readonly PlanetPermission Kick = new PlanetPermission(0x10, "Kick Members", "Allow members to kick other members.");
     public static readonly PlanetPermission Ban = new PlanetPermission(0x20, "Ban Members", "Allow members to ban other members.");
-    public static readonly PlanetPermission ManageCategories = new PlanetPermission(0x40, "Manage Categories", "Allow members to manage categories.");
-    public static readonly PlanetPermission ManageChannels = new PlanetPermission(0x80, "Manage Channels", "Allow members to manage channels.");
-    public static readonly PlanetPermission ManageRoles = new PlanetPermission(0x100, "Manage Roles", "Allow members to manage roles.");
+    public static readonly PlanetPermission CreateChannels = new PlanetPermission(0x40, "Create Channels", "Allow members to create channels. They must have permission in the parent category.");
+    public static readonly PlanetPermission ManageRoles = new PlanetPermission(0x80, "Manage Roles", "Allow members to manage roles.");
 
 }
 

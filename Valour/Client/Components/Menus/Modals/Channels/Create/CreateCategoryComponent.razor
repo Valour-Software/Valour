@@ -88,7 +88,7 @@
     public Planet Planet { get; set; }
 
     [Parameter]
-    public PlanetCategoryChannel Parent { get; set; }
+    public PlanetCategory Parent { get; set; }
 
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
@@ -164,10 +164,10 @@
             {
                 TargetId = 0,
                 PlanetId = planetId,
-                RoleId = Planet.DefaultRoleId.Value,
+                RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermissionsTargetType.PlanetCategoryChannel
+                TargetType = PermChannelType.PlanetCategoryChannel
             };
 
             node.SetPermission(CategoryPermissions.View, PermissionState.False);
@@ -189,14 +189,14 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermissionsTargetType.PlanetCategoryChannel
+                    TargetType = PermChannelType.PlanetCategoryChannel
                 };
 
                 node.SetPermission(CategoryPermissions.View, PermissionState.True);
             }
         }
 
-        var result = await PlanetCategoryChannel.CreateWithDetails(createRequest);
+        var result = await PlanetCategory.CreateWithDetails(createRequest);
 
         if (!result.Success)
         {

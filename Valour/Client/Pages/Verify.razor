@@ -37,7 +37,7 @@
 
         StringContent content = new StringContent(code);
 
-        var response = await Http.PostAsync($"api/user/verify", content);
+        var response = await Http.PostAsync($"api/users/verify", content);
 
         result = await response.Content.ReadAsStringAsync();
 

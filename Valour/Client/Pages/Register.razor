@@ -158,7 +158,7 @@
             Referrer = referral
         };
 
-        TaskResult result = await ValourClient.PostAsync("api/user/register", registerRequest);
+        TaskResult result = await ValourClient.PostAsync("api/users/register", registerRequest);
 
         if (!result.Success)
         {

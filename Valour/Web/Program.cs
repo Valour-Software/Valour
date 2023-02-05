@@ -1,16 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Net;
-using Valour.Server.Config;
-using Valour.Server.Database;
-using Valour.Web.Controllers;
+using Valour.Database.Config;
+using Valour.Database.Context;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Configuration.GetSection("CDN").Get<CdnConfig>();
 builder.Configuration.GetSection("Database").Get<DbConfig>();
-builder.Configuration.GetSection("Email").Get<EmailConfig>();
-builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
-builder.Configuration.GetSection("Node").Get<NodeConfig>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
