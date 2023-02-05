@@ -1,0 +1,8 @@
+﻿button {
+    width: 116.4px;
+    height: 40.8px;
+    background-color: var(--main-5);
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+}

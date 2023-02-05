@@ -32,27 +32,28 @@
     {
         <span class="text-info mb-4">@discoverableInfoSpan</span>
     }
-
-    <div class="invite-tab-holder mt-4">
-        <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
-        <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
-    </div>
-    <div class="invite-list">
-        @if (linksChosen)
-        {
-            <table>
-                <tr>
-                    <th style="width: 110px;">Invite Code</th>
-                    <th style="width: 300px;">Created By</th>
-                    <th style="width: 125px;">Created</th>
-                    <th style="width: 125px;">Expires</th>
-                </tr>
-                @foreach (var invite in Invites)
-                {
-                    <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
-                }
-            </table>
-        }
+    <div class="invite-table"
+        <div class="invite-tab-holder mt-4">
+            <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
+            <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
+        </div>
+        <div class="invite-list">
+            @if (linksChosen)
+            {
+                <table>
+                    <tr>
+                        <th style="width: 110px;">Invite Code</th>
+                        <th style="width: 300px;">Created By</th>
+                        <th style="width: 125px;">Created</th>
+                        <th style="width: 125px;">Expires</th>
+                    </tr>
+                    @foreach (var invite in Invites)
+                    {
+                        <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
+                    }
+                </table>
+            }
+        </div>
     </div>
 
     <CreateInviteLink Planet="Planet"></CreateInviteLink>
