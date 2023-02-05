@@ -10,6 +10,7 @@ namespace Valour.Server.Api.Dynamic;
 public class UserApi
 {
     [ValourRoute(HttpVerbs.Get, "api/users/ping")]
+    [UserRequired]
     public static async Task PingOnlineAsync(
         UserOnlineService onlineService, 
         UserService userService,

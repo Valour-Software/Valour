@@ -27,6 +27,9 @@ public class UserOnlineService
         if (lastActive.AddSeconds(30) < DateTime.UtcNow)
         {
             var user = await _db.Users.FindAsync(userId);
+            if (user is null)
+                return;
+
             user.TimeLastActive = DateTime.UtcNow;
             user.IsMobile = isMobile;
             UserTimeCache[user.Id] = user.TimeLastActive;
