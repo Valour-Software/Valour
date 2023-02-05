@@ -412,11 +412,12 @@ public class UserService
         return new(true, "Success");
     }
 
-    public async Task<TaskResult> Logout(AuthToken token)
+    public async Task<TaskResult> Logout()
     {
         try
         {
-            _db.Entry(await _db.AuthTokens.FindAsync(token.Id)).State = EntityState.Deleted;
+            var token = await _tokenService.GetCurrentToken();
+            _db.AuthTokens.Remove(token.ToDatabase());
             _tokenService.RemoveFromQuickCache(token.Id);
             await _db.SaveChangesAsync();
         }
@@ -437,6 +438,7 @@ public class UserService
     public async Task<User> GetCurrentUserAsync()
     {
         var token = await _tokenService.GetCurrentToken();
+        if (token is null) return null;
         _currentUser = await GetAsync(token.UserId);
         return _currentUser;
     }
