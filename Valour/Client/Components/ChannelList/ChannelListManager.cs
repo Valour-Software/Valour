@@ -2,7 +2,7 @@
 using Valour.Shared.Categories;
 using Valour.Api.Client;
 using Valour.Api.Items;
-using Valour.Api.Items.Channels.Planets;
+using Valour.Api.Models;
 
 namespace Valour.Client.Components.ChannelList
 {
@@ -80,7 +80,7 @@ namespace Valour.Client.Components.ChannelList
                 return;
 
             // Only categories can be put under a planet
-            if (currentDragItem is not PlanetCategoryChannel)
+            if (currentDragItem is not PlanetCategory)
                 return;
 
             // Already parent
@@ -121,9 +121,9 @@ namespace Valour.Client.Components.ChannelList
 
             // Add current item to target category
 
-            if (currentDragItem is PlanetCategoryChannel)
+            if (currentDragItem is PlanetCategory)
             {
-                var response = await PlanetCategoryChannel.UpdateAsync((PlanetCategoryChannel)currentDragItem);
+                var response = await PlanetCategory.UpdateAsync((PlanetCategory)currentDragItem);
                 Console.WriteLine($"Inserting category {currentDragItem.Id} into {target.Category.Id}");
                 Console.WriteLine(response.Message);
             }

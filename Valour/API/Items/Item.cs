@@ -1,9 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 using Valour.Api.Client;
-using Valour.Api.Items.Planets;
+using Valour.Api.Models;
 using Valour.Api.Nodes;
 using Valour.Shared;
-using Valour.Shared.Items;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Items
 {

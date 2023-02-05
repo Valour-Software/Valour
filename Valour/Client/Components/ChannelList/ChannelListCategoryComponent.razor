@@ -46,9 +46,9 @@
                             }
                         }
                         */
-                        else if (item is PlanetCategoryChannel)
+                        else if (item is PlanetCategory)
                         {
-                            PlanetCategoryChannel planetcategory = item as PlanetCategoryChannel;
+                            PlanetCategory planetcategory = item as PlanetCategory;
                             @if (planetcategory.ParentId == Category.Id)
                             {
                                 <ChannelListCategoryComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" VoiceChannels="VoiceChannels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
@@ -67,7 +67,7 @@
     public bool IsTopLevel { get; set; }
 
     [Parameter]
-    public PlanetCategoryChannel Category { get; set; }
+    public PlanetCategory Category { get; set; }
 
     [Parameter]
     public List<PlanetChatChannel> Channels { get; set; }
@@ -76,7 +76,7 @@
     public List<PlanetVoiceChannel> VoiceChannels { get; set; }
 
     [Parameter]
-    public List<PlanetCategoryChannel> Categories { get; set; }
+    public List<PlanetCategory> Categories { get; set; }
 
     [Parameter]
     public ChatChannelWindow ChannelWindow { get; set; }
@@ -86,7 +86,7 @@
 
     public List<PlanetChatChannel> ChildChannels { get; set; }
     public List<PlanetVoiceChannel> ChildVoiceChannels { get; set; }
-    public List<PlanetCategoryChannel> ChildCategories { get; set; }
+    public List<PlanetCategory> ChildCategories { get; set; }
 
     public bool IsOpen { get; set; } = true;
 
@@ -96,12 +96,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdate;
+        ItemObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
         ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
         ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
 
         // Handle Deletions
-        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeletion;
+        ItemObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
         ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
         ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
 
@@ -134,11 +134,11 @@
 
     public void Dispose()
     {
-        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated -= OnCategoryUpdate;
+        ItemObserver<PlanetCategory>.OnAnyUpdated -= OnCategoryUpdate;
         ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
         ItemObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
 
-        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted -= OnCategoryDeletion;
+        ItemObserver<PlanetCategory>.OnAnyDeleted -= OnCategoryDeletion;
         ItemObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
         ItemObserver<PlanetVoiceChannel>.OnAnyDeleted -= OnVoiceChannelDeletion;
     }
@@ -195,7 +195,7 @@
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
-    public async Task OnCategoryDeletion(PlanetCategoryChannel category)
+    public async Task OnCategoryDeletion(PlanetCategory category)
     {
 
         var old = ChildCategories.FirstOrDefault(x => x.Id == category.Id);
@@ -209,7 +209,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategoryChannel category, bool newItem, int flags)
+    public async Task OnCategoryUpdate(PlanetCategory category, bool newItem, int flags)
     {
         if (Category.Id == category.Id)
         {

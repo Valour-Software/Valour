@@ -1,4 +1,4 @@
-using Valour.Api.Items.Channels;
+using Valour.Api.Models;
 using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows.ChatWindows;

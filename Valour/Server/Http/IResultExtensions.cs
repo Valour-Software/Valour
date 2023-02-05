@@ -75,7 +75,7 @@ namespace Valour.Server.Http
             public async Task ExecuteAsync(HttpContext httpContext)
             {
                 httpContext.Response.StatusCode = 403;
-                await httpContext.Response.WriteAsync($"User lacks " + _perm.PermissionType + " Permission " + _perm.Name);
+                await httpContext.Response.WriteAsync($"User lacks " + _perm.ReadableName + " Permission " + _perm.Name);
             }
         }
 

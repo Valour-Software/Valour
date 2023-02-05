@@ -1,5 +1,5 @@
 @implements IDisposable
-@using Valour.Api.Items.Messages
+@using Valour.Api.Models.Messages
 
 @if (embed is null)
 {
@@ -109,8 +109,8 @@
 			try
 			{
 				int currentpage = embed.currentPage;
-				//Console.WriteLine(update.NewEmbedContent);
 				MessageWrapper.Message.EmbedData = update.NewEmbedContent;
+				//Console.WriteLine(update.NewEmbedContent);
 				MessageWrapper.Message.embedParsed = false;
 				embed = MessageWrapper.Message.Embed;
 				if (!embed.KeepPageOnUpdate)

@@ -20,7 +20,7 @@
                 <!-- The Modal -->
                 @if (Open)
                 {
-                    @foreach (PlanetCategoryChannel category in TopCategories)
+                    @foreach (PlanetCategory category in TopCategories)
                     {
                         <ChannelListCategoryComponent Categories="Categories"
                                                       Channels="Channels"
@@ -43,26 +43,26 @@
 
     public bool Open { get; set; } = true;
 
-    public List<PlanetCategoryChannel> TopCategories;
-    public List<PlanetCategoryChannel> Categories { get; set; }
+    public List<PlanetCategory> TopCategories;
+    public List<PlanetCategory> Categories { get; set; }
     public List<PlanetChatChannel> Channels { get; set; }
     public List<PlanetVoiceChannel> VoiceChannels { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         // Initialize collections
-        Categories = new List<PlanetCategoryChannel>();
+        Categories = new List<PlanetCategory>();
         Channels = new List<PlanetChatChannel>();
         VoiceChannels = new List<PlanetVoiceChannel>();
-        TopCategories = new List<PlanetCategoryChannel>();
+        TopCategories = new List<PlanetCategory>();
 
         // Handle list change
-        ItemObserver<PlanetCategoryChannel>.OnAnyUpdated += OnCategoryUpdate;
+        ItemObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
         ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
         ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
 
         // Handle Deletions
-        ItemObserver<PlanetCategoryChannel>.OnAnyDeleted += OnCategoryDeletion;
+        ItemObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
         ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
         ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
 
@@ -132,7 +132,7 @@
         }
     }
 
-    public async Task OnCategoryDeletion(PlanetCategoryChannel category)
+    public async Task OnCategoryDeletion(PlanetCategory category)
     {
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
@@ -144,7 +144,7 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategoryChannel category, bool newItem, int flags)
+    public async Task OnCategoryUpdate(PlanetCategory category, bool newItem, int flags)
     {
         // If we contain the category and its position or category changed we need to factor for that
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);

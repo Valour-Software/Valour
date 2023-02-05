@@ -9,10 +9,6 @@ using System.Security.Cryptography;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Cdn.Objects;
 using Valour.Server.Database;
-using Valour.Server.Database.Items.Authorization;
-using Valour.Server.Database.Items.Planets;
-using Valour.Server.Database.Items.Planets.Members;
-using Valour.Server.Database.Items.Users;
 using Valour.Server.Services;
 using Valour.Shared;
 using Valour.Shared.Authorization;
@@ -80,9 +76,9 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, [FromHeader] string authorization)
+        private static async Task<IResult> ImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
         {
-            var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
+            var authToken = await tokenService.GetCurrentToken();
             if (authToken is null) return ValourResult.InvalidToken();
 
             var file = ctx.Request.Form.Files.FirstOrDefault();
@@ -111,9 +107,9 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, [FromHeader] string authorization)
+        private static async Task<IResult> ProfileImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, TokenService tokenService, [FromHeader] string authorization)
         {
-            var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
+            var authToken = await tokenService.GetCurrentToken();
             if (authToken is null) return ValourResult.InvalidToken();
 
             var file = ctx.Request.Form.Files.FirstOrDefault();
@@ -136,7 +132,7 @@ namespace Valour.Server.Cdn.Api
                 user.PfpUrl = bucketResult.Message;
                 await valourDb.SaveChangesAsync();
 
-                await hubService.NotifyUserChange(user);
+                await hubService.NotifyUserChange(user.ToModel());
 
                 return ValourResult.Ok(bucketResult.Message);
             }
@@ -148,16 +144,25 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> PlanetImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, CoreHubService hubService, long planetId, [FromHeader] string authorization)
+        private static async Task<IResult> PlanetImageRoute(
+            HttpContext ctx, 
+            ValourDB valourDb, 
+            CdnDb db, 
+            CoreHubService hubService, 
+            TokenService tokenService, 
+            PlanetService planetService,
+            PlanetMemberService memberService, 
+            long planetId, 
+            [FromHeader] string authorization)
         {
-            var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
+            var authToken = await tokenService.GetCurrentToken();
             if (authToken is null) return ValourResult.InvalidToken();
 
-            var member = await PlanetMember.FindAsyncByUser(authToken.UserId, planetId, valourDb);
+            var member = await memberService.GetByUserAsync(authToken.UserId, planetId);
             if (member is null)
                 return ValourResult.NotPlanetMember();
 
-            if (!await member.HasPermissionAsync(PlanetPermissions.Manage, valourDb))
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
                 return ValourResult.LacksPermission(PlanetPermissions.Manage);
 
             var file = ctx.Request.Form.Files.FirstOrDefault();
@@ -176,7 +181,7 @@ namespace Valour.Server.Cdn.Api
 
             if (bucketResult.Success)
             {
-                var planet = await Planet.FindAsync(planetId, valourDb);
+                var planet = await planetService.GetAsync(planetId);
                 planet.IconUrl = bucketResult.Message;
                 await valourDb.SaveChangesAsync();
 
@@ -192,9 +197,9 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, long appId, [FromHeader] string authorization)
+        private static async Task<IResult> AppImageRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, long appId, [FromHeader] string authorization)
         {
-            var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
+            var authToken = await tokenService.GetCurrentToken();
             if (authToken is null) return ValourResult.InvalidToken();
 
             var app = await valourDb.OauthApps.FindAsync(appId);
@@ -233,9 +238,9 @@ namespace Valour.Server.Cdn.Api
 
         [FileUploadOperation.FileContentType]
         [RequestSizeLimit(10240000)]
-        private static async Task<IResult> FileRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, [FromHeader] string authorization)
+        private static async Task<IResult> FileRoute(HttpContext ctx, ValourDB valourDb, CdnDb db, TokenService tokenService, [FromHeader] string authorization)
         {
-            var authToken = await AuthToken.TryAuthorize(authorization, valourDb);
+            var authToken = await tokenService.GetCurrentToken();
             if (authToken is null) return ValourResult.InvalidToken();
 
             var file = ctx.Request.Form.Files.FirstOrDefault();

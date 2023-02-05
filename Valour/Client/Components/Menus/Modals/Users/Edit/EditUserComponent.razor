@@ -115,7 +115,7 @@
 
     public async Task LogOut()
     {
-        var response = await ValourClient.PrimaryNode.PostAsync($"api/user/self/logout", null);
+        var response = await ValourClient.PrimaryNode.PostAsync($"api/users/self/logout", null);
 
         Console.WriteLine(response.Message);
 

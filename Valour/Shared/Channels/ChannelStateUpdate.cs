@@ -1,4 +1,4 @@
-﻿namespace Valour.Shared.Items.Channels;
+﻿namespace Valour.Shared.Models;
 
 public struct ChannelStateUpdate
 {

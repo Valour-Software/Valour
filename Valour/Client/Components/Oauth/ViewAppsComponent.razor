@@ -26,7 +26,7 @@
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public List<Api.Items.Authorization.OauthApp> Apps { get; set; }
+    public List<OauthApp> Apps { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -37,7 +37,7 @@
         StateHasChanged();
     }
 
-    public async Task OpenEditApp(Api.Items.Authorization.OauthApp app)
+    public async Task OpenEditApp(OauthApp app)
     {
         ModalParameters modParams = new();
 

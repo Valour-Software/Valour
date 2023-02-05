@@ -1,6 +1,6 @@
 ﻿@inject IJSRuntime JS
 @implements IAsyncDisposable
-@using Valour.Api.Items.Messages
+@using Valour.Api.Models.Messages
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
     <CascadingValue Value="this">

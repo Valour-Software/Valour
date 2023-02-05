@@ -1,0 +1,85 @@
+﻿td, th {
+    border: 0px;
+}
+
+.invite-list {
+    border: 0px;
+    margin-top: 0px;
+    width: 100%;
+}
+
+.invite-table {
+    border-radius: 8px;
+    background-color: var(--main-4);
+    width: 525px;
+}
+
+.invite-tab-holder {
+    width: 525px;
+}
+
+tr {
+}
+
+.invite-tab-holder .settings-button {
+    margin-top: 0px;
+    width: 50%;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.invite-tab-holder .settings-button.right {
+    border-top-right-radius: 8px;
+}
+
+.settings-button {
+    background-color: var(--main-2);
+    width: 95%;
+    height: 35px;
+    line-height: 27px;
+    color: white;
+    cursor: pointer;
+    border-radius: 5px;
+    padding: 4px;
+    padding-left: 8px;
+    margin-top: 2px;
+    text-align: left;
+    vertical-align: central;
+}
+
+    .settings-button:active {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+
+    .invite-tab-holder .settings-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .invite-tab-holder .settings-button:active {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .invite-tab-holder .settings-button.active {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .invite-tab-holder .settings-button:hover.active {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .invite-tab-holder .settings-button.left {
+        border-radius: 5px 0px 0px 0px;
+        margin-right: 0px;
+        float: left;
+    }
+
+    .invite-tab-holder .settings-button.right {
+        border-radius: 0px 5px 0px 0px;
+        margin-left: 0px;
+        float: left;
+    }
+
+.invite-list {
+    height: 60%;
+    overflow-y: scroll;
+}

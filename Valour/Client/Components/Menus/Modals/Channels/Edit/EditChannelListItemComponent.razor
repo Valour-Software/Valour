@@ -30,7 +30,7 @@
 
     public bool isChannel;
     public PlanetChatChannel Channel;
-    public PlanetCategoryChannel Category;
+    public PlanetCategory Category;
 
     public BigMenuComponent bigMenuComponent { get; set; }
 
@@ -78,7 +78,7 @@
         else
         {
             isChannel = false;
-            Category = (PlanetCategoryChannel)ChannelListItem;
+            Category = (PlanetCategory)ChannelListItem;
             Channel = null;
         }
     }
