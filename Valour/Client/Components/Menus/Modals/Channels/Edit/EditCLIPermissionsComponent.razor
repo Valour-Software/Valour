@@ -273,8 +273,36 @@
         SelfAuthority = await SelfMember.GetAuthorityAsync();
         SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
 
-        HasTargetManagePerm = await Target.HasPermissionAsync(SelfMember, ChannelPermissions.Manage);
-        HasTargetPermissionPerm = await Target.HasPermissionAsync(SelfMember, ChannelPermissions.Permissions);
+
+        Permission managePerm;
+        Permission permissionsPerm;
+
+        switch (Target)
+        {
+            case PlanetChatChannel:
+                {
+                    managePerm = ChatChannelPermissions.ManageChannel;
+                    permissionsPerm = ChatChannelPermissions.ManagePermissions;
+                    break;
+                }
+            case PlanetCategory:
+                {
+                    managePerm = CategoryPermissions.ManageCategory;
+                    permissionsPerm = CategoryPermissions.ManagePermissions;
+                    break;
+                }
+            case PlanetVoiceChannel:
+                {
+                    managePerm = VoiceChannelPermissions.ManageChannel;
+                    permissionsPerm = VoiceChannelPermissions.ManagePermissions;
+                    break;
+                }
+            default:
+                throw new NotImplementedException($"Unexpected target type {Target.GetType().Name}");
+        }
+
+        HasTargetManagePerm = await Target.HasPermissionAsync(SelfMember, managePerm);
+        HasTargetPermissionPerm = await Target.HasPermissionAsync(SelfMember, permissionsPerm);
 
         loading = false;
 

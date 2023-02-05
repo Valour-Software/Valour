@@ -120,16 +120,14 @@ public static class ChannelPermissions
 {
     public static readonly ChannelPermissionGroup[] ChannelTypes = new ChannelPermissionGroup[3];
 
-    public static readonly Permission View;
+    public const long ViewValue = 0x01;
     // There is a gap here in values! 0x01 -> 0x08
-    public static readonly Permission Manage;
-    public static readonly Permission Permissions;
+    public const long ManageValue = 0x08;
+    public const long PermissionsValue = 0x10;
 
     static ChannelPermissions() 
     {
-        View = new Permission(0x01, "View", "Allow members to view the channel in the channel list.");
-        Manage = new Permission(0x08, "Manage", "Allow members to manage the channel's details.");
-        Permissions = new Permission(0x10, "Permissions", "Allow members to manage permissions for the channel.");
+
     }
     
     public static Permission[] GetChannelPermissionSet(PermChannelType type)
@@ -293,11 +291,11 @@ public static class ChatChannelPermissions
     static ChatChannelPermissions()
     {
         FullControl = new ChatChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
-        View = new ChatChannelPermission(ChannelPermissions.View.Value, "View", "Allow members to view the channel in the channel list.");
+        View = new ChatChannelPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel in the channel list.");
         ViewMessages = new ChatChannelPermission(0x02, "View Messages", "Allow members to view the messages within the channel.");
         PostMessages = new ChatChannelPermission(0x04, "Post", "Allow members to post messages to the channel.");
-        ManageChannel = new ChatChannelPermission(ChannelPermissions.Manage.Value, "Manage", "Allow members to manage the channel's details.");
-        ManagePermissions = new ChatChannelPermission(ChannelPermissions.Permissions.Value, "Permissions", "Allow members to manage permissions for the channel.");
+        ManageChannel = new ChatChannelPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the channel's details.");
+        ManagePermissions = new ChatChannelPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel.");
         Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to the channel.");
         AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to the channel.");
         ManageMessages = new ChatChannelPermission(0x80, "Manage Messages", "Allow members to delete and manage messages in the channel.");
@@ -358,9 +356,9 @@ public static class CategoryPermissions
     static CategoryPermissions()
     {
         FullControl = new CategoryPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the category");
-        View = new CategoryPermission(ChannelPermissions.View.Value, "View", "Allow members to view the category in the channel list.");
-        ManageCategory = new CategoryPermission(ChannelPermissions.Manage.Value, "Manage", "Allow members to manage the category's details.");
-        ManagePermissions = new CategoryPermission(ChannelPermissions.Permissions.Value, "Permissions", "Allow members to manage permissions for the category.");
+        View = new CategoryPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the category in the channel list.");
+        ManageCategory = new CategoryPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the category's details.");
+        ManagePermissions = new CategoryPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the category.");
 
         Permissions = new CategoryPermission[]
         {
@@ -417,11 +415,11 @@ public static class VoiceChannelPermissions
     static VoiceChannelPermissions()
     {
         FullControl = new VoiceChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
-        View = new VoiceChannelPermission(ChannelPermissions.View.Value, "View", "Allow members to view the channel in the channel list.");
+        View = new VoiceChannelPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel in the channel list.");
         Join = new VoiceChannelPermission(0x02, "Join Channel", "Allow members to connect to the voice channel.");
         Speak = new VoiceChannelPermission(0x04, "Speak", "Allow members to speak in the channel.");
-        ManageChannel = new VoiceChannelPermission(ChannelPermissions.Manage.Value, "Manage", "Allow members to manage the channel's details.");
-        ManagePermissions = new VoiceChannelPermission(ChannelPermissions.Permissions.Value, "Permissions", "Allow members to manage permissions for the channel.");
+        ManageChannel = new VoiceChannelPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the channel's details.");
+        ManagePermissions = new VoiceChannelPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel.");
 
         Permissions = new VoiceChannelPermission[]
         {
@@ -497,7 +495,7 @@ public static class PlanetPermissions
     public static readonly PlanetPermission Kick = new PlanetPermission(0x10, "Kick Members", "Allow members to kick other members.");
     public static readonly PlanetPermission Ban = new PlanetPermission(0x20, "Ban Members", "Allow members to ban other members.");
     public static readonly PlanetPermission CreateChannels = new PlanetPermission(0x40, "Create Channels", "Allow members to create channels. They must have permission in the parent category.");
-    public static readonly PlanetPermission ManageRoles = new PlanetPermission(0x40, "Manage Roles", "Allow members to manage roles.");
+    public static readonly PlanetPermission ManageRoles = new PlanetPermission(0x80, "Manage Roles", "Allow members to manage roles.");
 
 }
 

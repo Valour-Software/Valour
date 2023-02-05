@@ -94,7 +94,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
         if (planet.OwnerId == member.UserId)
             return true;
         
-        var roles = await member.GetRolesAsync();
+        var memberRoles = await member.GetRolesAsync();
 
         var target = this;
 
@@ -103,7 +103,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
             target = await target.GetParentAsync();
 
         // Go through roles in order
-        foreach (var role in roles)
+        foreach (var role in memberRoles)
         {
             var node = await GetPermNodeAsync(role.Id, permission.TargetType);
             if (node is null)
@@ -131,7 +131,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
             }
         }
 
-        var topRole = roles.FirstOrDefault() ?? PlanetRole.DefaultRole;
+        var topRole = memberRoles.FirstOrDefault() ?? PlanetRole.DefaultRole;
 
         // Fallback to base permissions
         switch (permission)
