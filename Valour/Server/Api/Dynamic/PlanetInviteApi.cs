@@ -100,7 +100,7 @@ public class PlanetInviteApi
 
     // Custom routes
 
-    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/name")]
+    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/planetname")]
     public static async Task<IResult> GetPlanetName(
         string inviteCode, 
         PlanetInviteService inviteService,
@@ -111,7 +111,7 @@ public class PlanetInviteApi
         return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json((await planetService.GetAsync(invite.PlanetId)).Name);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/icon")]
+    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/planeticon")]
     public static async Task<IResult> GetPlanetIconUrl(
         string inviteCode, 
         PlanetInviteService inviteService,

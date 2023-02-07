@@ -18,7 +18,7 @@
     <br/>
 
     <p>Description</p>
-    <input class="form-control" type="text" @bind-value="@descValue"/>
+    <textarea class="form-control" type="text" @bind="@descValue" @bind:event="oninput"></textarea>
     <span id="result-span" class="text-info">@descSpan</span>
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>

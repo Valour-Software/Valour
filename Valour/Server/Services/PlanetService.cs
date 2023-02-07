@@ -46,7 +46,7 @@ public class PlanetService
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
-    
+
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
@@ -354,15 +354,17 @@ public class PlanetService
 
         if (planet.OwnerId != old.OwnerId)
         {
-            
+            return new TaskResult<Planet>(false, "You cannot change the planet owner.");
         }
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
         {
-            _db.Planets.Update(planet.ToDatabase());
+            _db.Entry(old).CurrentValues.SetValues(planet);
+            _db.Planets.Update(old);
             await _db.SaveChangesAsync();
+            await tran.CommitAsync();
         }
         catch (Exception e)
         {
