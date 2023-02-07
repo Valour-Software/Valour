@@ -293,8 +293,7 @@ body {
 
 .channel-and-topbar {
     display: flex;
-    margin: 0px;
-    background: #040D14;
+    margin: 0;
     flex: 1;
     background-color: var(--main-1);
     flex-direction: column;
@@ -303,9 +302,9 @@ body {
 }
 
 .channel-and-topbar-mobile {
-    transform: translateX(-358px);
     flex: 0;
     min-width: 100vw;
+    position: absolute;
 }
 
 .sidebar-2 .channel-name {
