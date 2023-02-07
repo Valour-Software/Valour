@@ -110,7 +110,7 @@
 
         foreach (PlanetRole item in roleResponse)
         {
-            if (item.GetAuthority() >= SelfAuthority)
+            if (item.GetAuthority() > SelfAuthority)
                 continue;
             Roles.Add(item);
             SelectedRoles.Add(item, false);
