@@ -17,7 +17,7 @@ public static class PlanetMapper
             Public = planet.Public,
             Discoverable = planet.Discoverable,
             DefaultRoleId = (long)planet.DefaultRoleId,
-            PrimaryChannelId = (long)planet.PrimaryChannelId
+            PrimaryChannelId = (long)planet.PrimaryChannelId,
         };
     }
     

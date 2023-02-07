@@ -955,7 +955,8 @@ img.emoji {
     color: rgba(255, 255, 255, 0.75);
 }
 
-.new-input-style input {
+.new-input-style input,
+.new-input-style textarea{
     background: var(--main-4);
     border: 1px solid #030B11;
     border-radius: 8px;

@@ -362,7 +362,9 @@ public class PlanetService
         try
         {
             _db.Entry(old).CurrentValues.SetValues(planet);
+            _db.Planets.Update(old);
             await _db.SaveChangesAsync();
+            await tran.CommitAsync();
         }
         catch (Exception e)
         {

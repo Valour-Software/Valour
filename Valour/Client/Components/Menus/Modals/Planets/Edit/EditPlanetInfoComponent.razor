@@ -17,7 +17,7 @@
 
 <div class="form-group mt-2 new-input-style">
     <label>Description </label>
-    <input class="form-control" placeholder="Description" @bind-value="@descValue" />
+    <textarea class="form-control" placeholder="Description" @bind="@descValue" @bind:event="oninput"></textarea>
 </div>
 
 <br />
