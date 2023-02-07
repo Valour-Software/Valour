@@ -209,7 +209,7 @@ public class PlanetService
     /// <summary>
     /// Creates the given planet
     /// </summary>
-    public async Task<TaskResult<Planet>> CreateAsync(Planet planet)
+    public async Task<TaskResult<Planet>> CreateAsync(Planet planet, User user)
     {
         var baseValid = await ValidateBasic(planet);
         if (!baseValid.Success)
@@ -217,6 +217,7 @@ public class PlanetService
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
+        Valour.Database.Planet dbplanet = null;
         try
         {
             // Create general category
@@ -253,16 +254,44 @@ public class PlanetService
                 Name = "everyone"
             };
 
+            dbplanet = planet.ToDatabase();
+            dbplanet.DefaultRoleId = null;
+            dbplanet.PrimaryChannelId = null;
+
+            _db.Planets.Add(dbplanet);
+
+            await _db.SaveChangesAsync();
+
             await _db.PlanetCategories.AddAsync(category);
             await _db.PlanetChatChannels.AddAsync(channel);
             await _db.PlanetRoles.AddAsync(defaultRole);
 
             await _db.SaveChangesAsync();
 
-            planet.PrimaryChannelId = channel.Id;
-            planet.DefaultRoleId = defaultRole.Id;
+            dbplanet.PrimaryChannelId = channel.Id;
+            dbplanet.DefaultRoleId = defaultRole.Id;
 
-            _db.Planets.Add(planet.ToDatabase());
+            await _db.SaveChangesAsync();
+
+            var member = new Valour.Database.PlanetMember()
+            {
+                Id = IdManager.Generate(),
+                Nickname = user.Name,
+                PlanetId = planet.Id,
+                UserId = user.Id
+            };
+
+            var roleMember = new Valour.Database.PlanetRoleMember()
+            {
+                Id = IdManager.Generate(),
+                PlanetId = planet.Id,
+                UserId = user.Id,
+                RoleId = (long)dbplanet.DefaultRoleId,
+                MemberId = member.Id
+            };
+
+            await _db.PlanetMembers.AddAsync(member);
+            await _db.PlanetRoleMembers.AddAsync(roleMember);
 
             await _db.SaveChangesAsync();
 
@@ -275,9 +304,9 @@ public class PlanetService
             return new TaskResult<Planet>(false, "Failed to create planet");
         }
         
-        _coreHub.NotifyPlanetChange(planet);
+        _coreHub.NotifyPlanetChange(dbplanet.ToModel());
         
-        return new TaskResult<Planet>(true, "Planet created successfully", planet);
+        return new TaskResult<Planet>(true, "Planet created successfully", dbplanet.ToModel());
     }
 
     /// <summary>
