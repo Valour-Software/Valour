@@ -83,7 +83,7 @@ public class DirectChatChannelService
                 TimeLastActive = DateTime.UtcNow
             };
 
-            await _db.AddAsync(channel);
+            await _db.AddAsync(channel.ToDatabase());
             await _db.SaveChangesAsync();
         }
 
