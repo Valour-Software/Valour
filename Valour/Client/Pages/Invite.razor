@@ -114,7 +114,7 @@
 
     public async Task Joined()
     {
-        var response = await CurrentInvite.Node.PostAsyncWithResponse<PlanetMember>($"api/invite/{InviteCode}/join");
+        var response = await CurrentInvite.Node.PostAsyncWithResponse<PlanetMember>($"api/planets/{CurrentInvite.PlanetId}/join?inviteCode={CurrentInvite.Code}");
 
         if (!response.Success)
         {
