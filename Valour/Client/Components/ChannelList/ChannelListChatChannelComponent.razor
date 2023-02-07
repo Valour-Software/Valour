@@ -10,7 +10,14 @@
             @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
             @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id">
             <div class="chat-icon">
-                <ChatChannelIconComponent Filled="AnyUnread"></ChatChannelIconComponent>
+                @if (AnyUnread)
+                {
+                    <img src="_content/Valour.Client/media/Channel-Filled-Icon.svg" alt="Chat channel with unread messages" />
+                }
+                else
+                {
+                    <img src="_content/Valour.Client/media/Channel-Icon.svg" alt="Chat channel without unread messages" />
+                }
             </div>
             <p class="channel-name">
                 @Channel.Name
