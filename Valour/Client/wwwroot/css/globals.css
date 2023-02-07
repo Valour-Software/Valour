@@ -1,0 +1,45 @@
+/* Headings and titles */
+.subtitle {
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 17px;
+    color: #FFFFFF;
+    opacity: 0.75;
+}
+
+/* Permission switches and display */
+.perm-list-item {
+    padding: 8px;
+    border-bottom: none;
+    background-color: var(--main-4);
+}
+
+.perm-list-item:nth-child(2n) {
+    background-color: var(--main-5);
+}
+
+.perm-list-item:first-child {
+    border-radius: 10px 10px 0 0 ;
+}
+
+.perm-list-item:last-child {
+    border-radius: 0 0 10px 10px;
+}
+
+.perm-list-name {
+    display: inline-block;
+    line-height: 12px;
+}
+
+.perm-list-desc {
+    font-size: 14px;
+}
+
+.perm-section {
+    margin-bottom: 24px;
+}
+
+.perm-switch {
+    float: right;
+    margin-top: 12px;
+}
