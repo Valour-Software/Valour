@@ -46,7 +46,7 @@ public class PlanetService
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
             .Select(x => x.ToModel())
             .ToListAsync();
-    
+
     /// <summary>
     /// Returns the roles for the given planet id
     /// </summary>
@@ -361,7 +361,7 @@ public class PlanetService
 
         try
         {
-            _db.Planets.Update(planet.ToDatabase());
+            _db.Entry(old).CurrentValues.SetValues(planet);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)

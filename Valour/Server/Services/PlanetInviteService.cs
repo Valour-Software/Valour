@@ -42,7 +42,7 @@ public class PlanetInviteService
 
         try
         {
-            await _db.AddAsync(invite);
+            await _db.AddAsync(invite.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
