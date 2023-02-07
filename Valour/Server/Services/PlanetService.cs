@@ -1,6 +1,7 @@
 using Valour.Database.Context;
 using Valour.Server.Database;
 using Valour.Shared;
+using Valour.Shared.Authorization;
 
 namespace Valour.Server.Services;
 
@@ -251,7 +252,11 @@ public class PlanetService
                 Blue = 255,
                 Green = 255,
                 Red = 255,
-                Name = "everyone"
+                Name = "everyone",
+                Permissions = PlanetPermissions.Default,
+                ChatPermissions = ChatChannelPermissions.Default,
+                CategoryPermissions = CategoryPermissions.Default,
+                VoicePermissions = VoiceChannelPermissions.Default
             };
 
             dbplanet = planet.ToDatabase();
