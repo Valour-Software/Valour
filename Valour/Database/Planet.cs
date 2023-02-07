@@ -76,17 +76,19 @@ public class Planet : Item, ISharedPlanet
     /// The default role for the planet
     /// </summary>
     [Column("default_role_id")]
-    public long DefaultRoleId { get; set; }
+    public long? DefaultRoleId { get; set; }
 
     /// <summary>
     /// The id of the main channel of the planet
     /// </summary>
     [Column("primary_channel_id")]
-    public long PrimaryChannelId { get; set; }
+    public long? PrimaryChannelId { get; set; }
     
     /// <summary>
     /// Soft-delete flag
     /// </summary>
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
+    long ISharedPlanet.DefaultRoleId { get => (long)DefaultRoleId; set => DefaultRoleId = value; }
+    long ISharedPlanet.PrimaryChannelId { get => (long)PrimaryChannelId; set => PrimaryChannelId = value; }
 }

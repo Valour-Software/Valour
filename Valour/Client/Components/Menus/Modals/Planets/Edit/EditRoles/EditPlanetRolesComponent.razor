@@ -30,11 +30,21 @@
 
         </div>
         <div class="mt-2" style="display: block">
-            <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
-                <p class="center-t">
-                    Save
-                </p>
-            </div>
+            @if (role.Id == 0)
+            {
+                <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
+                    <p class="center-t">
+                        Create
+                    </p>
+                </div>
+            }
+            else {
+                <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
+                    <p class="center-t">
+                        Save
+                    </p>
+                </div>
+            }
 
             <div class="mt-2">
                 <span id="result-span" class="text-info">@resultSpan</span>
@@ -455,28 +465,37 @@
 
         JsonContent content = JsonContent.Create(role);
 
+        bool Creating = false;
+
         // If the id is not set, this is a new role to be created
         if (role.Id == 0)
+        {
             response = await Api.Items.Item.CreateAsync(role);
+            Creating = true;
+        }
         // Otherwise we are editing a prior role
         else
             response = await Api.Items.Item.UpdateAsync(role);
 
         if (response.Success)
         {
-            resultSpan = response.Message;
+            if (Creating)
+                resultSpan = "Successfully created role";
+            else
+                resultSpan = response.Message;
+
+            // get new role
+            role = await PlanetRole.FindAsync(response.Data.Id, Planet.Id);
 
             // If creating, send back to role list afterwards
-            if (role.Id == 0)
+            if (Creating)
             {
                 editMode = false;
+                RoleMemberCounts[role.Id] = 0;
             }
         }
         else
-        {
             errorSpan = response.Message;
-        }
-
 
         StateHasChanged();
 
