@@ -389,16 +389,22 @@ public class UserService
         return new(true, "Success", old);
     }
 
-    public async Task<TaskResult> VerifyAsync(EmailConfirmCode confirmCode)
+    public async Task<TaskResult> VerifyAsync(string code)
     {
         await using var tran = await _db.Database.BeginTransactionAsync();
-
+        var confirmCode = await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code);
+        if (confirmCode is null)
+            return new TaskResult(false, "Code not found.");
+        
         try
         {
             var email = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
             email.Verified = true;
-            _db.EmailConfirmCodes.Remove(confirmCode.ToDatabase());
+            
+            _db.EmailConfirmCodes.Remove(confirmCode);
             await _db.SaveChangesAsync();
+            
+            await tran.CommitAsync();
         }
         catch (Exception e)
         {
@@ -406,9 +412,7 @@ public class UserService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
-
-        await tran.CommitAsync();
-
+        
         return new(true, "Success");
     }
 
