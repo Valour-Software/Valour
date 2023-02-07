@@ -10,6 +10,7 @@ namespace Valour.Server.Api.Dynamic;
 public class UserApi
 {
     [ValourRoute(HttpVerbs.Get, "api/users/ping")]
+    [UserRequired]
     public static async Task PingOnlineAsync(
         UserOnlineService onlineService, 
         UserService userService,
@@ -62,13 +63,7 @@ public class UserApi
         string code,
         UserService userService)
     {
-
-        var confirmCode = await userService.GetEmailConfirmCode(code);
-
-        if (confirmCode is null)
-            return ValourResult.NotFound<EmailConfirmCode>();
-
-        var result = await userService.VerifyAsync(confirmCode);
+        var result = await userService.VerifyAsync(code);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

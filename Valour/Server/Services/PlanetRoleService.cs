@@ -38,13 +38,13 @@ public class PlanetRoleService
 
         try
         {
-            await _db.AddAsync(role);
+            await _db.AddAsync(role.ToDatabase());
             await _db.SaveChangesAsync();
         }
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
-            return new(true, e.Message);
+            return new(false, e.Message);
         }
 
         _coreHub.NotifyPlanetItemChange(role);

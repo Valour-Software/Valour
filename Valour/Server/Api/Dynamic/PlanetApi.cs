@@ -52,11 +52,11 @@ public class PlanetApi
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
 
-        var result = await planetService.CreateAsync(planet);
+        var result = await planetService.CreateAsync(planet, user);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
         
-        return Results.Created($"api/planets/{planet.Id}", planet);
+        return Results.Created($"api/planets/{result.Data.Id}", result.Data);
     }
 
     [ValourRoute(HttpVerbs.Put, "api/planets/{id}")]
