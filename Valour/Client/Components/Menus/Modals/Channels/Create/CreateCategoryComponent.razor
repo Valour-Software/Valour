@@ -120,8 +120,6 @@
     private void SwitchRole(PlanetRole role)
     {
         SelectedRoles[role] = !SelectedRoles[role];
-        Console.WriteLine(role.Id);
-        Console.WriteLine(SelectedRoles[role]);
     }
     private void PrivateSwitch() {
         isprivate = !isprivate;
@@ -181,7 +179,6 @@
             {
                 if (!SelectedRoles[role])
                 {
-                    Console.WriteLine(role.Id);
                     continue;
                 }
 
