@@ -117,7 +117,7 @@ public class PlanetCategoryService
 
         _coreHub.NotifyPlanetItemChange(category);
 
-        return new(true, "Success");
+        return new(true, "Success", category);
     }
 
     public async Task<TaskResult<PlanetCategory>> PutAsync(PlanetCategory updatedcategory)

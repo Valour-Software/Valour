@@ -43,7 +43,7 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                    <input type="checkbox" @onclick="@(x => {SwitchRole(role);})" checked="@SelectedRoles[role]">
                                     <span class="slider round"></span>
                                 </label>
                             </div> 
@@ -117,8 +117,11 @@
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(PlanetRole role)
+    {
         SelectedRoles[role] = !SelectedRoles[role];
+        Console.WriteLine(role.Id);
+        Console.WriteLine(SelectedRoles[role]);
     }
     private void PrivateSwitch() {
         isprivate = !isprivate;
@@ -167,7 +170,7 @@
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermChannelType.PlanetCategoryChannel
+                TargetType = PermChannelType.PlanetCategoryChannel,
             };
 
             node.SetPermission(CategoryPermissions.View, PermissionState.False);
@@ -176,13 +179,13 @@
 
             foreach (PlanetRole role in Roles)
             {
-
                 if (!SelectedRoles[role])
                 {
+                    Console.WriteLine(role.Id);
                     continue;
                 }
 
-                node = new()
+                PermissionsNode _node = new()
                 {
                     TargetId = 0,
                     PlanetId = planetId,
@@ -192,7 +195,8 @@
                     TargetType = PermChannelType.PlanetCategoryChannel
                 };
 
-                node.SetPermission(CategoryPermissions.View, PermissionState.True);
+                _node.SetPermission(CategoryPermissions.View, PermissionState.True);
+                createRequest.Nodes.Add(_node);
             }
         }
 
