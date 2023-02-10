@@ -1,44 +1,62 @@
 @inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 
-<div class="sidebar-container @ActiveClass">
+<div class="sidebar-container @ActiveClass @FlipClass">
 	<div class="sidebar-menu">
-		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active"></SidebarOpenTab>
+		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
 
 		<div class="sidebar-2" id="sidebar2">
-			<CurrentPlanetComponent></CurrentPlanetComponent>
+			@if (!Flip)
+			{
+				<SidebarTop>
+					<CurrentPlanetComponent></CurrentPlanetComponent>
+				</SidebarTop>
+				<div class="top-bar">
+				</div>
+			}
 
-			<div class="top-bar">
-			</div>
-			<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
-
-			<div class="tab-container">
-				@switch (_selectedTab)
+			<div class="sidebar-content">
+				@if (!Flip)
+                {
+                	<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
+                }
+				else
 				{
-					case "Channels":
-					{
-						<ChannelListComponent></ChannelListComponent>
-						break;
-					}
-					case "Friends":
-					{
-						<FriendListComponent></FriendListComponent>
-						break;
-					}
-					case "Members":
-					{
-						<MemberListComponent></MemberListComponent>
-						break;
-					}
+					<br/>
 				}
+    
+				<div class="tab-container">
+					@switch (_selectedTab)
+					{
+						case "Channels":
+						{
+							<ChannelListComponent></ChannelListComponent>
+							break;
+						}
+						case "Friends":
+						{
+							<FriendListComponent></FriendListComponent>
+							break;
+						}
+						case "Members":
+						{
+							<MemberListComponent></MemberListComponent>
+							break;
+						}
+					}
+				</div>
+				<SidebarTabstrip OnSelected="OnSelected" Flip="Flip"></SidebarTabstrip>
 			</div>
-
-			<SidebarTabstrip OnSelected="OnSelected"></SidebarTabstrip>
 		</div>
 	</div>
 </div>
 
 @code {
+	
+	[Parameter]
+	public bool Flip { get; set; }
+	public string FlipClass => Flip ? "flip" : "";
+	
     private string _selectedTab = "Friends";
 	private bool _active = !DeviceInfo.IsMobile;
 	

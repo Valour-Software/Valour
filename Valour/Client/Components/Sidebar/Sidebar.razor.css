@@ -1,9 +1,21 @@
+.sidebar-content {
+    display: flex;
+    flex: auto;
+    flex-direction: column;
+    max-height: calc(100vh - 118px);
+}
+
+.flip .sidebar-content {
+    max-height: 100vh;
+}
+
 .tab-container {
-    max-height: calc(100% - 234px);
-    padding-bottom: 20px;
-    overflow: auto;
+    overflow-anchor: none;
+    flex: auto;
+    overflow-y: auto;
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
+    padding-bottom: 24px;
 }
 
 .tab-container::-webkit-scrollbar {

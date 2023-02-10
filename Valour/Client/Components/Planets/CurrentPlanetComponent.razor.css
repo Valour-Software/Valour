@@ -1,9 +1,3 @@
-.current-planet-info {
-    padding-top: 16px;
-    min-height: 115px;
-    position: relative;
-}
-
 .planet-name {
     display: inline-block;
 }

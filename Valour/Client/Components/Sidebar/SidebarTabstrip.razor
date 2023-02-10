@@ -24,7 +24,12 @@
 @code {
     
     [Parameter]
+    public bool Flip { get; set; }
+    
+    [Parameter]
     public Func<TabStripItem, Task> OnSelected { get; set; }
+
+    private bool _first = true;
 
     private static TabStripItem _friendsItem = new()
     {
@@ -52,9 +57,10 @@
     
     private int _selectedTab = 0;
 
-    protected override void OnInitialized()
+    protected override Task OnInitializedAsync()
     {
         WindowManager.OnPlanetFocused += OnPlanetFocused;
+        return Task.CompletedTask;
     }
     
     void IDisposable.Dispose()
@@ -64,6 +70,13 @@
     
     private async Task OnPlanetFocused(Planet planet)
     {
+        if (_first)
+        {
+            _first = false;
+            if (Flip)
+                _selectedTab = 1;
+        }
+        
         StateHasChanged();
 
         if (planet is null)

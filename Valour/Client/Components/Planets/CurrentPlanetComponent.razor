@@ -10,7 +10,7 @@
     }
 }
 
-<div @key="key" class="current-planet-info">
+<div @key="key">
 
     @if (Planet is not null)
     {
@@ -18,7 +18,7 @@
 
         @if (canEdit)
         {
-                <img class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
+            <img class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
         }
 
         <p class="planet-desc">@Planet.Description</p>

@@ -173,8 +173,8 @@ body {
 }
 
 .topbar {
-    height: 115px;
-    min-height: 115px;
+    height: 61px;
+    min-height: 61px;
     background-color: var(--main-4);
 }
 
@@ -289,12 +289,13 @@ body {
 }
 
 .sidebar-2 {
-    float: left;
     margin: 0px;
     background-color: var(--main-2);
     z-index: 1;
-    position: relative;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 
 .channel-and-topbar {
@@ -395,12 +396,17 @@ body {
 }
 
 .sidebar-menu {
+    position: relative;
     height: 100%;
     display: flex;
     align-items: stretch;
     transition: transform 0.5s ease-in-out;
     width: 300px;
     transform: translate(-100%);
+}
+
+.flip .sidebar-menu {
+    transform: none !important;
 }
 
 .mobile .sidebar-menu {
@@ -632,7 +638,6 @@ app {
 }
 
 .category-list {
-    max-height: calc(90% - 90px);
     overflow-y: scroll;
 }
 
