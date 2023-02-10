@@ -157,6 +157,11 @@ body {
     line-height: NORMAL;
 }
 
+.mobile-holder {
+    height: 100%;
+    width: 100%;
+}
+
 .chat-holder {
     padding-right: 0.5rem;
 }

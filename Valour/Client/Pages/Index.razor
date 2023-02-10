@@ -1,10 +1,5 @@
 ﻿@page "/"
 
-@using Valour.Shared
-@using Valour.Shared.Categories;
-@inject HttpClient Http
-@inject NavigationManager navManager
-@using Microsoft.AspNetCore.SignalR.Client;
 @inject IJSRuntime JS
 @inject WindowManager windowManager
 
@@ -18,20 +13,24 @@
 <MediaSoupWrapper></MediaSoupWrapper>
 
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-<body class="mainrow @MobileClass">
-	<Sidebar></Sidebar>
-	<div class="channel-and-topbar" id="mainwindow">
-		<div class="topbar">
-		</div>
-		<div class="topline">
-		</div>
+<div class="mobile-holder @MobileClass">
+	<!-- Modal management -->
+	<CascadingBlazoredModal Size="ModalSize.Automatic" HideHeader='true' HideCloseButton='true'>
+		<body class="mainrow">
+			<Sidebar></Sidebar>
+			<div class="channel-and-topbar" id="mainwindow">
+				<div class="topbar">
+				</div>
+				<div class="topline">
+				</div>
 
-		<!-- It's so nice when it's hidden away, just like my fears -->
-		<MainWindowsComponent></MainWindowsComponent>
-	</div>
-
-<ContextMenuHolderComponent></ContextMenuHolderComponent>
-</body>
+				<!-- It's so nice when it's hidden away, just like my fears -->
+				<MainWindowsComponent></MainWindowsComponent>
+			</div>
+		<ContextMenuHolderComponent></ContextMenuHolderComponent>
+		</body>
+	</CascadingBlazoredModal>
+</div>
 
 
 @code {
@@ -60,6 +59,9 @@
 	{
 		await JS.InvokeVoidAsync("FixClip");
 		await JS.InvokeVoidAsync("FitMobile");
+		
+		if (firstRender)
+			StateHasChanged();
 	}
 
 	public async Task OnPlanetChange(Planet planet)
