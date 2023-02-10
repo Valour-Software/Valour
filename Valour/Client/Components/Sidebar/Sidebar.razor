@@ -3,7 +3,7 @@
 
 <div class="sidebar-container @ActiveClass">
 	<div class="sidebar-menu">
-		<ChannelListOpenTabComponent></ChannelListOpenTabComponent>
+		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active"></SidebarOpenTab>
 
 		<div class="sidebar-2" id="sidebar2">
 			<CurrentPlanetComponent></CurrentPlanetComponent>
@@ -77,6 +77,13 @@
 			_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
 			await _jsModule.InvokeVoidAsync("init", _thisRef);
 		}
+	}
+
+	private Task OnOpenTabClicked()
+	{
+		_active = !_active;
+		StateHasChanged();
+		return Task.CompletedTask;
 	}
 
 	[JSInvokable]

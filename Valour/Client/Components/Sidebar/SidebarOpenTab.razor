@@ -1,0 +1,28 @@
+﻿@inject IJSRuntime JS
+
+<div class="open-tab" @onclick="OnClickAsync">
+    @GetText()
+</div>
+
+
+@code {
+    
+    [Parameter]
+    public bool Open { get; set; }
+    
+    [Parameter]
+    public Func<Task> OnClicked { get; set; }
+    
+    const string OpenText = "\u2190";
+    const string ClosedText = "\u2192";
+
+    string GetText() => Open ? OpenText : ClosedText;
+
+    public async Task OnClickAsync()
+    {
+        StateHasChanged();
+
+        if (OnClicked is not null)
+            await OnClicked.Invoke();
+    }
+}
