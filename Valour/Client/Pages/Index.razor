@@ -18,38 +18,8 @@
 <MediaSoupWrapper></MediaSoupWrapper>
 
 <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
-<body class="mainrow">
-	<div class="sidebar-menu">
-		<div class="sidebar" id="sidebar1">
-
-			<div style="width: 250px; height: 64px">
-				<LogoComponent></LogoComponent>					
-
-				<div style="display:inline-block; vertical-align: middle">
-					<p class="valour-name">
-						Valour
-					</p>
-					<p class="valour-version">
-						Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
-					</p>
-				</div>
-			</div>
-			<FriendListComponent></FriendListComponent>
-			<MemberListComponent></MemberListComponent>
-		</div>
-
-		<ChannelListOpenTabComponent></ChannelListOpenTabComponent>
-
-		<div class="sidebar-2" id="sidebar2">
-			<CurrentPlanetComponent></CurrentPlanetComponent>
-
-			<div class="top-bar">
-			</div>
-			<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
-
-			<ChannelListComponent></ChannelListComponent>
-		</div>
-	</div>
+<body class="mainrow @MobileClass">
+	<Sidebar></Sidebar>
 	<div class="channel-and-topbar" id="mainwindow">
 		<div class="topbar">
 		</div>
@@ -60,11 +30,13 @@
 		<MainWindowsComponent></MainWindowsComponent>
 	</div>
 
-	<ContextMenuHolderComponent></ContextMenuHolderComponent>
+<ContextMenuHolderComponent></ContextMenuHolderComponent>
 </body>
 
 
 @code {
+	
+	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
 
 	protected override async Task OnInitializedAsync()
 	{

@@ -1,62 +1,42 @@
-﻿@inject WindowManager windowManager
-
-@if (Show)
-{
+﻿<div class="friend-container">
+    <p class="subtitle text-center mb-2">Friends</p>
     <div>
-        <p class="friend-title">Friends</p>
-        <div>
-
-            @{
-                var friends = ValourClient.Friends.OrderByDescending(x => x.TimeLastActive).ToList();
-                int count = 0;
-            }
-
-            <Virtualize Items="@friends">
-
+        @{
+            var firstId = _friends.FirstOrDefault()?.Id;
+            var lastId = _friends.LastOrDefault()?.Id;
+            
+            
+            <Virtualize Items="@_friends">
                 @{
                     string classList = "";
 
-                    if (count == 0)
+                    if (context.Id == firstId)
                         classList += " top";
 
-                    if (count == friends.Count() - 1)
+                    if (context.Id == lastId)
                         classList += " bottom";
 
-                    count++;
+                    <FriendComponent User="@context" PositionClass="@classList" @key="context.Id"></FriendComponent>
                 }
-
-                <FriendComponent User="@context" Class="@classList" @key="context.Id"></FriendComponent>  
             </Virtualize>
-        </div>
+        }
     </div>
-}
+</div>
 
 @code {
-    public bool Show { get; set; }
 
+    private List<User> _friends;
+    
     protected override async Task OnInitializedAsync()
     {
-        Show = true;
-
-        windowManager.OnPlanetFocused += OnPlanetFocus;
-
+        _friends = ValourClient.Friends;
         ValourClient.OnFriendsUpdate += OnFriendsListUpdate;
-
         await base.OnInitializedAsync();
-    }
-
-    public async Task OnPlanetFocus(Planet planet)
-    {
-        var oldShow = Show;
-        Show = (planet is null);
-
-        if (oldShow != Show)
-            StateHasChanged();
     }
 
     public async Task OnFriendsListUpdate()
     {
-        if (Show)
-            StateHasChanged();
+        _friends = ValourClient.Friends;
+        StateHasChanged();
     }
 }

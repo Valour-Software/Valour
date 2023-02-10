@@ -1,0 +1,104 @@
+@inject WindowManager WindowManager
+@implements IDisposable
+
+<div class="tabstrip">
+    @{
+        var items = GetCurrentItems();
+    }
+    
+    @for (var i = 0; i < items.Length; i++)
+    {
+        var item = items[i];
+        var index = i;
+
+        <div @key="@item" class="@GetItemClass(index)" @onclick="@(async () => await OnClick(index, item))">
+            <BasicTooltipComponent Placement="top" Title="@item.Name">
+                <div class="icon-holder">
+                    <img style="scale: @item.IconScale" class="icon" src="_content/Valour.Client/media/@item.IconUrl" alt="@item"/>
+                </div>
+            </BasicTooltipComponent>
+        </div>
+    }
+</div>
+
+@code {
+    
+    [Parameter]
+    public Func<TabStripItem, Task> OnSelected { get; set; }
+
+    private static TabStripItem _friendsItem = new()
+    {
+        Name = "Friends",
+        IconUrl = "tabstrip-friends-icon.svg",
+        IconScale = 1.5f
+    };
+    
+    private static TabStripItem _membersItem = new()
+    {
+        Name = "Members",
+        IconUrl = "tabstrip-members-icon.svg",
+        IconScale = 1.7f
+    };
+    
+    private static TabStripItem _channelsItem = new()
+    {
+        Name = "Channels",
+        IconUrl = "tabstrip-channels-icon.svg",
+        IconScale = 1.1f
+    };
+    
+    private TabStripItem[] _homeItems = { _friendsItem };
+    private TabStripItem[] _planetItems = { _channelsItem, _membersItem, _friendsItem };
+    
+    private int _selectedTab = 0;
+
+    protected override void OnInitialized()
+    {
+        WindowManager.OnPlanetFocused += OnPlanetFocused;
+    }
+    
+    void IDisposable.Dispose()
+    {
+        WindowManager.OnPlanetFocused -= OnPlanetFocused;
+    }
+    
+    private async Task OnPlanetFocused(Planet planet)
+    {
+        StateHasChanged();
+
+        if (planet is null)
+        {
+            if (OnSelected is not null)
+                await OnSelected.Invoke(_homeItems[_selectedTab]);
+        }
+        else
+        {   
+            if (OnSelected is not null)
+                await OnSelected.Invoke(_planetItems[_selectedTab]);
+        }
+    }
+
+    private async Task OnClick(int index, TabStripItem item)
+    {
+        _selectedTab = index;
+        
+        if (OnSelected is not null)
+            await OnSelected.Invoke(item);
+        
+        StateHasChanged();
+    }
+
+    private TabStripItem[] GetCurrentItems()
+    {
+        if (WindowManager.FocusedPlanet is null)
+            return _homeItems;
+
+        return _planetItems;
+    }
+
+    private string GetItemClass(int index)
+    {
+        return index == _selectedTab ? "item selected" : "item";
+    }
+
+}

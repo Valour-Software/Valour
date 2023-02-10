@@ -1,6 +1,9 @@
-﻿<div class="friend-card @Class">
+﻿<div class="friend-card @PositionClass @ActiveClass" @onclick="OnClick">
     <img class="pfp" src="@pfpurl" @onerror="OnPfpError" style="@pfpStyle">
-    <div class="user-info">
+    <!-- State bubble -->
+    <div class="state-circle @User.UserState.CssClassName">
+    </div>
+    <div class="friend-info">
 
         <div class="name-line">
 
@@ -33,11 +36,6 @@
         </div>
 
         <div class="status-holder">
-
-            <!-- State bubble -->
-            <div class="state-circle @User.UserState.CssClassName">
-            </div>
-
             <p class="status-text">
                 @User.Status
             </p>
@@ -52,7 +50,10 @@
     public User User { get; set; }
 
     [Parameter]
-    public string Class { get; set; }
+    public string PositionClass { get; set; }
+
+    private bool _active = false;
+    private string ActiveClass => _active ? "active" : "";
 
     public string nameColor = "#ffffff";
 
@@ -77,6 +78,12 @@
         };
 
         await RefreshAsync();
+    }
+
+    private void OnClick()
+    {
+        _active = !_active;
+        StateHasChanged();
     }
 
     public async Task RefreshAsync()

@@ -23,6 +23,20 @@
 
         <p class="planet-desc">@Planet.Description</p>
     }
+    else
+    {
+        <div class="logo-container">
+            <LogoComponent></LogoComponent>
+            <div style="display:inline-block; vertical-align: middle">
+                <p class="valour-name">
+                    Valour
+                </p>
+                <p class="valour-version">
+                    Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
+                </p>
+            </div>
+        </div>
+    }
 </div>
 
 @code {

@@ -27,13 +27,8 @@ function FixClip() {
     $("body").addClass("full-screen");
 }
 
-var swipeState = 0;
-
 function FitMobile() {
-    var sidebar1 = $(".sidebar");
-    var sidebar2 = $(".sidebar-2");
     var sidebarMenu = $(".sidebar-menu");
-
     var channel = $(".channel-and-topbar");
     var topbar = $(".topbar");
     
@@ -49,20 +44,8 @@ function FitMobile() {
     console.log("Detected mobile.");
 
     //sidebar1.toggle(false);
-
-    $("body").addClass('mobile')
-
+    
     $(".add-window-button").toggle(false);
-
-    sidebarMenu.removeClass("sidebar-menu");
-    sidebarMenu.addClass("sidebar-menu-mobile");
-
-    sidebar1.removeClass("sidebar");
-    sidebar1.addClass("sidebar-mobile");
-
-    if (embedded) {
-        sidebar1.addClass("sidebar-embedded");
-    }
 
     channel.addClass("channel-and-topbar-mobile");
 
@@ -78,109 +61,6 @@ function IsEmbedded() {
     return embedded;
 }
 
-function OpenSidebar() {
-    swipeState = 1;
-    HandleSwipeState();
-}
-
-function CloseSidebar() {
-    swipeState = 0;
-    HandleSwipeState();
-}
-
-function HandleSwipeState() {
-
-    var sidebar1 = $(".sidebar-mobile");
-    var sidebarMenu = $(".sidebar-menu-mobile");
-
-    console.log("Swipe state is now " + swipeState);
-
-    if (swipeState === 0) {
-        sidebarMenu.removeClass("sidebar-menu-mobile-active");
-    }
-    else if (swipeState === 1) {
-        sidebar1.removeClass("sidebar-mobile-expanded");
-        sidebarMenu.addClass("sidebar-menu-mobile-active");
-
-    }
-    else if (swipeState === 2) {
-        sidebar1.addClass("sidebar-mobile-expanded");
-    }
-}
-
-function OnRightSwipe() {
-    if (mobile) {
-
-        swipeState++;
-        if (swipeState > 2) {
-            swipeState = 2;
-        }
-
-        HandleSwipeState();
-    }
-}
-
-function OnLeftSwipe() {
-
-    swipeState--;
-    if (swipeState < 0) {
-        swipeState = 0;
-    }
-
-    if (mobile) {
-        HandleSwipeState();
-    }
-}
-
-/* SWIPE HANDLER */
-document.addEventListener('touchstart', handleTouchStart, false);
-document.addEventListener('touchmove', handleTouchMove, false);
-
-var xDown = null;
-var yDown = null;
-
-function getTouches(evt) {
-    return evt.touches ||             // browser API
-        evt.originalEvent.touches; // jQuery
-}
-
-function handleTouchStart(evt) {
-    const firstTouch = getTouches(evt)[0];
-    xDown = firstTouch.clientX;
-    yDown = firstTouch.clientY;
-};
-
-function handleTouchMove(evt) {
-    if (!xDown || !yDown) {
-        return;
-    }
-
-    var xUp = evt.touches[0].clientX;
-    var yUp = evt.touches[0].clientY;
-
-    var xDiff = xDown - xUp;
-    var yDiff = yDown - yUp;
-
-    if (Math.abs(xDiff) > Math.abs(yDiff)) {/*most significant*/
-        if (xDiff > 5) {
-            /* left swipe */
-            OnLeftSwipe();
-        }
-        else if (xDiff < -5) {
-            /* right swipe */
-            OnRightSwipe();
-        }
-    } else {
-        if (yDiff > 0) {
-            /* up swipe */
-        } else {
-            /* down swipe */
-        }
-    }
-    /* reset values */
-    xDown = null;
-    yDown = null;
-};
 
 // Set the name of the hidden property and the change event for visibility
 var hidden, visibilityChange;

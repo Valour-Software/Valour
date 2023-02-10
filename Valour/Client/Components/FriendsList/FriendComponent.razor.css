@@ -1,20 +1,33 @@
 ﻿.friend-card {
-    width: 240px;
-    background-color: var(--main-2);
+    width: 90%;
+    background-color: var(--main-4);
+    margin-left: auto;
     margin-right: auto;
+    position: relative;
+    padding-top: 6px;
+    height: 63px;
+    cursor: pointer;
+}
+
+.friend-card:hover {
+    background-color: var(--main-5);
+}
+
+.friend-card.active {
+    height: auto;
 }
 
 .friend-card.top {
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
 }
 
 .friend-card.bottom {
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
 }
 
-.user-info {
+.friend-info {
     display: inline-block;
     vertical-align: top;
     width: 180px;
@@ -22,21 +35,21 @@
 
 .status-text {
     display: inline-block;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: normal;
     font-size: 14px;
     color: #7A7A7A;
     vertical-align: middle;
-    max-width: 160px;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: clip;
     text-overflow: ellipsis;
+    margin-left: 5px;
 }
 
-.status-text:hover {
-    white-space: pre-wrap;
+.active .status-text {
+    white-space: normal;
 }
 
 .staff-tag {
@@ -49,7 +62,7 @@
 }
 
 .staff-tag p {
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: bold;
     font-size: 7px;
@@ -88,15 +101,13 @@
 }
 
 .state-circle {
-    display: inline-block;
-    width: 5px;
-    height: 5px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
-    margin: 0px;
-    margin-bottom: 7px;
-    margin-left: 4px;
-    margin-top: 6px;
-    vertical-align: top;
+    position: absolute;
+    left: 36px;
+    top: 36px;
+    border: 2px solid var(--main-1);
 }
 
 .status-holder {

@@ -1,0 +1,11 @@
+.tab-container {
+    max-height: calc(100% - 234px);
+    padding-bottom: 20px;
+    overflow: auto;
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.tab-container::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+}

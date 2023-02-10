@@ -1,7 +1,7 @@
 ﻿@inject NavigationManager navManager
 @inject WindowManager windowManager
 
-<div class="home-window" @onclick="@OnClickWindow">
+<div class="home-window">
     <div class="channel-info">
         <h3 class="title">
             Planets and friends
@@ -203,9 +203,6 @@
     {
         StateHasChanged();
     }
-
-    public virtual async Task OnClickWindow()
-        => await windowManager.SetFocusedPlanet(null);
 
     public void Refresh()
     {
