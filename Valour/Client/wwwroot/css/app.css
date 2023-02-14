@@ -384,7 +384,7 @@ body {
 .sidebar-container {
     width: 0;
     transition: width 0.5s ease-in-out;
-    z-index: 1;
+    z-index: 5;
 }
 
 .sidebar-container.active {

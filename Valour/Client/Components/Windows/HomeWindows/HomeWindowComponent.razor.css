@@ -61,24 +61,10 @@
     margin: 20px;
 }
 
-.mobile .icon-container {
-    grid-template-columns: repeat(auto-fill, 179px);
-    padding-left: 0px;
-    padding-bottom: 0px;
-    padding-right: 4px;
-    padding-top: 20px;
-}
-
 /* New icon CSS */
 
 ::deep .flipper {
     display: inline-block;
-}
-
-::deep .mobile .flipper {
-    scale: 0.8;
-    margin-right: 150px;
-    margin-top: -23px;
 }
 
 ::deep .outer-circle {
@@ -95,8 +81,8 @@
 ::deep .outer-circle .icon {
     border-radius: 50%;
     position: absolute;
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    height: 100%;
     left: 0px;
     top: 0;
     z-index: 1;
@@ -110,11 +96,11 @@
 ::deep .outer-circle .noti {
     border-radius: 50%;
     position: absolute;
-    width: 24px;
-    height: 24px;
+    width: 30%;
+    height: 30%;
     background-color: rgba(255, 255, 255, 1);
-    left: 55px;
-    top: 0px;
+    left: 68.75%;
+    top: 0;
     border: solid 3px #040d14;
     text-align: center;
     z-index: 1;
@@ -131,22 +117,16 @@
 
 ::deep .rect-slide {
     position: absolute;
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    height: 100%;
     background-color: var(--main-1);
     z-index: 0;
-    border-radius: 80px 80px 80px 80px;
+    border-radius: 9999px;
     pointer-events: none;
     
     opacity: 0;
 
     transition: width 0.2s ease-in-out, opacity 0.1s ease-in-out;
-}
-
-::deep .mobile .rect-slide {
-    pointer-events: all;
-    width: 220px;
-    opacity: 1;
 }
 
 ::deep .outer-circle:hover .rect-slide {
@@ -159,7 +139,7 @@
 
 ::deep .outer-circle:hover .rect-slide {
     opacity: 1;
-    width: 220px;
+    width: 240px;
     box-shadow: cyan 0px 0px 10px;
 }
 
@@ -176,50 +156,48 @@
 
 ::deep .outer-circle .planet-name {
     color: lightgrey;
-    width: 90px;
     float: right;
-    margin-right: 40px;
     overflow-wrap: break-word;
     text-align: center;
+    width: 120px;
 }
 
 ::deep .flipper.flip .outer-circle .planet-name {
-    margin-right: 92px;
+    margin-right: 115px;
 }
 
 ::deep .outer-circle .friend-name {
     color: lightgrey;
-    width: 90px;
     float: right;
-    margin-right: 40px;
     overflow-wrap: break-word;
     text-align: center;
+    width: 120px;
 }
 
 ::deep .flipper.flip .outer-circle .friend-name {
-    margin-right: 92px;
+    margin-right: 115px;
 }
 
 ::deep .text-flex {
-    height: 80px;
+    height: 100%;
+    width: 110px;
     display: flex;
     float: right;
-    margin-right: 40px;
+    margin-right: 22%;
     align-items: center;
     justify-content: center;
 }
 
 ::deep .text-wrapper {
-    height: 80px;
+    height: 100%;
     overflow: hidden;
-    margin-left: 40px;
-    margin-right: 40px;
+    padding-left: 33%;
     width: 100%;
 }
 
 ::deep .text-hide-circle {
-    width: 80px;
-    height: 80px;
+    width: 100%;
+    height: 100%;
     background-color: black;
     position: absolute;
     border-radius: 100%;
