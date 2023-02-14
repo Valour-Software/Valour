@@ -112,7 +112,11 @@ export function buildMasonry(rootId) {
     root.element.style.maxHeight = masonryHeight + 17 + 'px';
 }
 
+export var dotnet = null;
+
 export function setupHide(elementId, dotnetRef) {
+    dotnet = dotnetRef;
+    
     const handler = function(e){
         // Allow tenor button
         if (e.target.classList.contains('tenor')) {
@@ -125,14 +129,14 @@ export function setupHide(elementId, dotnetRef) {
         // the given element. If target is outside of the given
         // element, it will continue. Otherwise, it will halt.
         do {
-            if (targetEl.id == elementId)
+            if (targetEl.id === elementId)
                 return;
             targetEl = targetEl.parentElement;
         } while (targetEl);
 
         // Close the menu if the target was not us or the upload
         // button
-        dotnetRef.invokeMethodAsync('Hide').catch((err) => {
+        dotnet.invokeMethodAsync('Hide').catch((err) => {
             document.removeEventListener('click', handler);
             console.log("Cleaning up old Tenor Menu event");
         });
