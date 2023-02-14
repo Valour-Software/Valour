@@ -183,9 +183,9 @@ namespace Valour.Server.Cdn.Api
 
             if (bucketResult.Success)
             {
-                var planet = await valourDb.Planets.FindAsync(planetId);
-                planet.IconUrl = bucketResult.Message;
-                valourDb.Planets.Update(planet);
+                var planet = new Valour.Database.Planet() { Id = planetId, IconUrl = bucketResult.Message };
+                valourDb.Planets.Attach(planet);
+                valourDb.Entry(planet).Property(x => x.IconUrl).IsModified = true;
                 await valourDb.SaveChangesAsync();
 
                 hubService.NotifyPlanetChange(planet.ToModel());
