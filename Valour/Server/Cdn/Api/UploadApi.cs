@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
 using System.Security.Cryptography;
+using Valour.Database;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Cdn.Objects;
 using Valour.Server.Database;
@@ -128,9 +129,9 @@ namespace Valour.Server.Cdn.Api
 
             if (bucketResult.Success)
             {
-                var user = await valourDb.Users.FindAsync(authToken.UserId);
-                user.PfpUrl = bucketResult.Message;
-                valourDb.Users.Update(user);
+                var user = new Valour.Database.User() { Id = authToken.UserId, PfpUrl = bucketResult.Message };
+                valourDb.Users.Attach(user);
+                valourDb.Entry(user).Property(x => x.PfpUrl).IsModified = true;
                 await valourDb.SaveChangesAsync();
 
                 await hubService.NotifyUserChange(user.ToModel());
