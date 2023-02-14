@@ -120,26 +120,34 @@ public class PlanetCategoryService
         return new(true, "Success");
     }
 
-    public async Task<TaskResult<PlanetCategory>> PutAsync(PlanetCategory updatedcategory)
+    public async Task<TaskResult<PlanetCategory>> UpdateAsync(PlanetCategory updated)
     {
-        var old = await _db.PlanetCategories.FindAsync(updatedcategory.Id);
+        var old = await _db.PlanetCategories.FindAsync(updated.Id);
         if (old is null) return new(false, $"PlanetCategory not found");
 
         // Validation
-        if (old.Id != updatedcategory.Id)
+        if (old.Id != updated.Id)
             return new(false, "Cannot change Id.");
 
-        if (old.PlanetId != updatedcategory.PlanetId)
+        if (old.PlanetId != updated.PlanetId)
             return new(false, "Cannot change PlanetId.");
 
-        var baseValid = await ValidateBasic(updatedcategory);
+        var baseValid = await ValidateBasic(updated);
         if (!baseValid.Success)
             return new(false, baseValid.Message);
+
+        if (updated.ParentId != old.ParentId ||
+            updated.Position != old.Position)
+        {
+            var positionValid = await ValidateParentAndPosition(updated);
+            if (!positionValid.Success)
+                return new (false, positionValid.Message);
+        }
 
         // Update
         try
         {
-            _db.Entry(old).CurrentValues.SetValues(updatedcategory);
+            _db.Entry(old).CurrentValues.SetValues(updated);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
@@ -148,9 +156,9 @@ public class PlanetCategoryService
             return new(false, e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(updatedcategory);
+        _coreHub.NotifyPlanetItemChange(updated);
 
-        return new(true, "Success", updatedcategory);
+        return new(true, "Success", updated);
     }
 
     /// <summary>
@@ -210,8 +218,6 @@ public class PlanetCategoryService
         _coreHub.NotifyPlanetItemDelete(category);
     }
     
-    public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
     /// <summary>
     /// Common basic validation for categories
     /// </summary>
@@ -223,11 +229,7 @@ public class PlanetCategoryService
 
         var descValid = ValidateDescription(category.Description);
         if (!descValid.Success)
-            return new TaskResult(false, nameValid.Message);
-
-        var positionValid = await ValidateParentAndPosition(category);
-        if (!positionValid.Success)
-            return new TaskResult(false, nameValid.Message);
+            return new TaskResult(false, descValid.Message);
 
         return TaskResult.SuccessResult;
     }
@@ -241,12 +243,7 @@ public class PlanetCategoryService
         {
             return new TaskResult(false, "Planet names must be 32 characters or less.");
         }
-
-        if (!nameRegex.IsMatch(name))
-        {
-            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-        }
-
+        
         return TaskResult.SuccessResult;
     }
 

@@ -70,11 +70,15 @@
     
     private async Task OnPlanetFocused(Planet planet)
     {
-        if (_first)
+        if (_first && planet is not null)
         {
             _first = false;
             if (Flip)
                 _selectedTab = 1;
+        }
+        else
+        {
+            _selectedTab = 0;
         }
         
         StateHasChanged();
