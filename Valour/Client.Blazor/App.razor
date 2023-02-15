@@ -18,10 +18,6 @@
 @using Valour.Client.Components
 @using Valour.Client.Utility
 
-
-@inject HttpClient Http
-@inject NavigationManager navManager
-@inject ILocalStorageService storage
 @inject IJSRuntime JS
 
 <!-- Enable app sounds -->
@@ -32,21 +28,17 @@
 
 @if (triedInitialLogin)
 {
-    <!-- Modal management -->
-    <CascadingBlazoredModal Size="ModalSize.Automatic" HideHeader='true' HideCloseButton='true'>
-
-        <!-- Main routing component -->
-        <Router AppAssembly="@typeof(Valour.Client.Pages.Index).Assembly">
-            <Found Context="routeData">
-                <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
-            </Found>
-            <NotFound>
-                <LayoutView Layout="@typeof(MainLayout)">
-                    <p>Sorry, there's nothing at this address.</p>
-                </LayoutView>
-            </NotFound>
-        </Router>
-    </CascadingBlazoredModal>
+    <!-- Main routing component -->
+    <Router AppAssembly="@typeof(Valour.Client.Pages.Index).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p>Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
 }
 else
 {

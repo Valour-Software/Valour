@@ -157,6 +157,11 @@ body {
     line-height: NORMAL;
 }
 
+.mobile-holder {
+    height: 100%;
+    width: 100%;
+}
+
 .chat-holder {
     padding-right: 0.5rem;
 }
@@ -168,8 +173,8 @@ body {
 }
 
 .topbar {
-    height: 115px;
-    min-height: 115px;
+    height: 61px;
+    min-height: 61px;
     background-color: var(--main-4);
 }
 
@@ -226,7 +231,7 @@ body {
 
 .sidebar-2 .user-info {
     width: 269px;
-    height: 44.53px;
+    height: 44px;
     background: rgba(255, 255, 255, 0.07);
     border-radius: 5px;
     margin: 0px;
@@ -284,11 +289,13 @@ body {
 }
 
 .sidebar-2 {
-    float: left;
-    max-width: 294px;
     margin: 0px;
     background-color: var(--main-2);
     z-index: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 
 .channel-and-topbar {
@@ -298,7 +305,6 @@ body {
     background-color: var(--main-1);
     flex-direction: column;
     height: 100%;
-    max-width: calc(100% - (64px + 294px));
 }
 
 .channel-and-topbar-mobile {
@@ -321,8 +327,12 @@ body {
 }
 
 .sidebar-2 .top-bar {
-    width: 294px;
+    width: 100%;
     border-top: 3px solid var(--main-3);
+}
+
+.mobile .sidebar-2 .top-bar {
+    width: 100vw;
 }
 
 .sidebar-2 .channel-description {
@@ -371,32 +381,40 @@ body {
     transition: width ease-in-out .2s;
 }
 
-.sidebar-menu {
-    height: 100%;
-    display: flex;
-    align-items: stretch;
-}
-
-.sidebar-menu-mobile {
-    height: 100%;
-    display: flex;
-    align-items: stretch;
-    transform: translateX(-358px);
-    transition: transform 0.5s ease-in-out;
-    z-index: 1;
-}
-
-.sidebar-menu-mobile-active {
-    transform: translate(0px);
-}
-
-.sidebar-mobile {
-    float: left;
-    width: 64px;
-    padding: 5px;
-    background-color: var(--main-1);
-    z-index: 1;
+.sidebar-container {
+    width: 0;
     transition: width 0.5s ease-in-out;
+    z-index: 5;
+}
+
+.sidebar-container.active {
+    width: 300px;
+}
+
+.mobile .sidebar-container.active {
+    width: 100vw;
+}
+
+.sidebar-menu {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    transition: transform 0.5s ease-in-out;
+    width: 300px;
+    transform: translate(-100%);
+}
+
+.flip .sidebar-menu {
+    transform: none !important;
+}
+
+.mobile .sidebar-menu {
+    width: 100vw;
+}
+
+.sidebar-container.active .sidebar-menu {
+    transform: translate(0px);
 }
 
 .sidebar-embedded {
@@ -417,16 +435,25 @@ body {
 }
 
 .valour-version {
-    margin: 0px;
+    /* margin: 0px; */
     margin-left: 10px;
     margin-right: 10px;
-    font-family: Ubuntu;
+    margin-top: 5px;
+    margin-bottom: 4px;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: normal;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 7px;
     text-align: center;
     color: #00FAFF;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    margin-left: 18px;
+    margin-top: 12px;
 }
 
 .valour-name {
@@ -434,10 +461,10 @@ body {
     margin-top: 6px;
     margin-left: 10px;
     margin-right: 10px;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 28px;
     line-height: 28px;
     text-align: center;
     color: #00FAFF;
@@ -611,7 +638,6 @@ app {
 }
 
 .category-list {
-    max-height: calc(90% - 90px);
     overflow-y: scroll;
 }
 
