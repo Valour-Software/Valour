@@ -11,7 +11,6 @@ public class PlanetCategoryService
 {
     private readonly ValourDB _db;
     private readonly PlanetMemberService _planetMemberService;
-    private readonly PlanetChannelService _planetChannelService;
     private readonly PlanetRoleService _planetRoleService;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetCategoryService> _logger;
@@ -20,7 +19,6 @@ public class PlanetCategoryService
         ValourDB db, 
         PlanetMemberService planetMemberService,
         CoreHubService coreHub,
-        PlanetChannelService planetChannelService,
         PlanetRoleService planetRoleService,
         ILogger<PlanetCategoryService> logger)
     {
@@ -28,7 +26,6 @@ public class PlanetCategoryService
         _planetMemberService = planetMemberService;
         _coreHub = coreHub;
         _logger = logger;
-        _planetChannelService = planetChannelService;
         _planetRoleService = planetRoleService;
     }
 
@@ -210,9 +207,8 @@ public class PlanetCategoryService
     /// </summary>
     public async Task DeleteAsync(PlanetCategory category)
     {
-        var dbcategory = await _db.PlanetCategories.FindAsync(category.Id);
-        dbcategory.IsDeleted = true;
-        _db.PlanetCategories.Update(dbcategory);
+        var update = new Valour.Database.PlanetCategory(){ Id = category.Id, IsDeleted = true };
+        _db.PlanetCategories.Attach(update).Property(x => x.IsDeleted).IsModified = true;
         await _db.SaveChangesAsync();
 
         _coreHub.NotifyPlanetItemDelete(category);
@@ -260,7 +256,7 @@ public class PlanetCategoryService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> SetChildrensOrderAsync(PlanetCategory category, long[] order)
+    public async Task<TaskResult> SetChildOrderAsync(PlanetCategory category, long[] order)
     {
         var totalChildren = await _db.PlanetChannels.CountAsync(x => x.ParentId == category.Id);
 
@@ -270,27 +266,21 @@ public class PlanetCategoryService
         // Use transaction so we can stop at any failure
         await using var tran = await _db.Database.BeginTransactionAsync();
 
-        List<PlanetChannel> children = new();
+        List<Valour.Database.PlanetChannel> children = new();
 
         try
         {
             var pos = 0;
-            foreach (var child_id in order)
+            foreach (var childId in order)
             {
-                var child = await _planetChannelService.GetAsync(child_id);
+                var child = await _db.PlanetChannels.FindAsync(childId);
                 if (child is null)
-                {
-                    return new(false, $"Child with id {child_id} does not exist!");
-                }
+                    return new(false, $"Child with id {childId} does not exist!");
 
                 if (child.ParentId != category.Id)
-                    return new(false, $"Category {child_id} is not a child of {category.Id}.");
+                    return new(false, $"Category {childId} is not a child of {category.Id}.");
 
                 child.Position = pos;
-
-                // child.TimeLastActive = DateTime.SpecifyKind(child.TimeLastActive, DateTimeKind.Utc);
-
-                _db.PlanetChannels.Update(child.ToDatabase());
 
                 children.Add(child);
 
@@ -298,6 +288,7 @@ public class PlanetCategoryService
             }
 
             await _db.SaveChangesAsync();
+            await tran.CommitAsync();
         }
         catch (Exception e)
         {
@@ -306,11 +297,9 @@ public class PlanetCategoryService
             return new(false, e.Message);
         }
 
-        await tran.CommitAsync();
-
         foreach (var child in children)
         {
-            _coreHub.NotifyPlanetItemChange(child);
+            _coreHub.NotifyPlanetItemChange(child.ToModel());
         }
 
         return new(true, "Success");

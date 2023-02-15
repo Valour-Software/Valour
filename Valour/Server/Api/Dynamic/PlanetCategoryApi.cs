@@ -219,7 +219,7 @@ public class PlanetCategoryApi
 
         order = order.Distinct().ToArray();
 
-        var result = await categoryService.SetChildrensOrderAsync(category, order);
+        var result = await categoryService.SetChildOrderAsync(category, order);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
