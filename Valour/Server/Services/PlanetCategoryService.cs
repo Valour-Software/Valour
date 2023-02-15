@@ -11,7 +11,6 @@ public class PlanetCategoryService
 {
     private readonly ValourDB _db;
     private readonly PlanetMemberService _planetMemberService;
-    private readonly PlanetRoleService _planetRoleService;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetCategoryService> _logger;
 
@@ -19,14 +18,12 @@ public class PlanetCategoryService
         ValourDB db, 
         PlanetMemberService planetMemberService,
         CoreHubService coreHub,
-        PlanetRoleService planetRoleService,
         ILogger<PlanetCategoryService> logger)
     {
         _db = db;
         _planetMemberService = planetMemberService;
         _coreHub = coreHub;
         _logger = logger;
-        _planetRoleService = planetRoleService;
     }
 
     /// <summary>
@@ -84,7 +81,10 @@ public class PlanetCategoryService
             node.TargetId = category.Id;
             node.PlanetId = category.PlanetId;
 
-            var role = await _planetRoleService.GetAsync(node.RoleId);
+            var role = await _db.PlanetRoles.FindAsync(node.RoleId);
+            if (role is null)
+                return new(false, "Role not found.");
+            
             if (role.GetAuthority() > await _planetMemberService.GetAuthorityAsync(member))
                 return new(false, "A permission node's role has higher authority than you.");
 
