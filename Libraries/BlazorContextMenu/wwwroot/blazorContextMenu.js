@@ -253,6 +253,9 @@ var blazorContextMenu = function (blazorContextMenu) {
         // Disable inner input on mobile
         if (mobile) {
             var input = document.querySelector('.textbox-inner');
+            if (!input)
+                return;
+            
             input.classList.add('block-input');
         }
 

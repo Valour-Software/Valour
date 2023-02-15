@@ -1,6 +1,4 @@
-﻿@inject HttpClient http
-
-<h3>Basic Details</h3>
+﻿<h3>Basic Details</h3>
 <hr />
 <br />
 
@@ -49,7 +47,6 @@
 
     public async Task OnSaveChanges()
     {
-
         if (nameValue != Channel.Name || descValue != Channel.Description)
         {
             Channel.Name = nameValue;

@@ -1,7 +1,7 @@
 @inject WindowManager windowManager
 @inject IJSRuntime JS
 
-<div id="flipper-planet-@Planet.Id-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 220)" @onclick="OnClick"> 
+<div id="flipper-planet-@Planet.Id-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-@Planet.Id-@Window.Id', 240)" @onclick="OnClick"> 
     <ContextMenuTrigger style="display: inline-block;" MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='planet-context' @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
         
         <div class="outer-circle">

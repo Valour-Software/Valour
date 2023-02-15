@@ -1,6 +1,6 @@
 ﻿<section>
     <p class="channel-name">@ChannelListItem.Name</p>
-    <p class="channel-settings">@SettingTitle</p>
+    <p class="channel-settings">@ChannelListItem.GetHumanReadableName().ToUpper() SETTINGS</p>
 
     <div class="menu">
         <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
@@ -12,21 +12,4 @@
 @code {
     [Parameter]
     public PlanetChannel ChannelListItem { get; set; }
-
-    [Parameter]
-    public bool isChannel { get; set; }
-
-    public string SettingTitle
-    { 
-        get {
-            if (isChannel)
-            {
-                return "CHANNEL SETTINGS";
-            }
-            else
-            {
-                return "CATEGORY SETTINGS";
-            }
-        }
-    }
 }

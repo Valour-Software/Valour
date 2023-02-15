@@ -1,7 +1,7 @@
 ﻿@inject NavigationManager navManager
 @inject WindowManager windowManager
 
-<div class="home-window" @onclick="@OnClickWindow">
+<div class="home-window">
     <div class="channel-info">
         <h3 class="title">
             Planets and friends
@@ -19,7 +19,7 @@
                 <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window'></PlanetCardComponent>
             }
         
-            <div id="flipper-planet-create-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 220)" @onclick="OnClickCreatePlanet">
+            <div id="flipper-planet-create-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-create-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 240)" @onclick="OnClickCreatePlanet">
                 <div class="outer-circle">
                     <div class="text-hide-circle"></div>
                     <svg class="icon create" style="border-radius: 0; transform: scale(0.7)" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500">
@@ -65,7 +65,7 @@
                 <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" Window="Window" homeWindowComponent="this"></FriendCardComponent>
             }
             
-            <div id="flipper-friend-add-@Window.Id" class="flipper" onmouseover="determineFlip('flipper-friend-add-@Window.Id', 220)" @onclick="OnClickAddFriend">
+            <div id="flipper-friend-add-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-add-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-add-@Window.Id', 240)" @onclick="OnClickAddFriend">
                 <div class="outer-circle">
                     <div class="text-hide-circle" />
                     @if (ValourClient.FriendRequests.Count > 0)
@@ -203,9 +203,6 @@
     {
         StateHasChanged();
     }
-
-    public virtual async Task OnClickWindow()
-        => await windowManager.SetFocusedPlanet(null);
 
     public void Refresh()
     {

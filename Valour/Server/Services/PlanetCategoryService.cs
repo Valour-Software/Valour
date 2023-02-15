@@ -11,8 +11,6 @@ public class PlanetCategoryService
 {
     private readonly ValourDB _db;
     private readonly PlanetMemberService _planetMemberService;
-    private readonly PlanetChannelService _planetChannelService;
-    private readonly PlanetRoleService _planetRoleService;
     private readonly CoreHubService _coreHub;
     private readonly ILogger<PlanetCategoryService> _logger;
 
@@ -20,16 +18,12 @@ public class PlanetCategoryService
         ValourDB db, 
         PlanetMemberService planetMemberService,
         CoreHubService coreHub,
-        PlanetChannelService planetChannelService,
-        PlanetRoleService planetRoleService,
         ILogger<PlanetCategoryService> logger)
     {
         _db = db;
         _planetMemberService = planetMemberService;
         _coreHub = coreHub;
         _logger = logger;
-        _planetChannelService = planetChannelService;
-        _planetRoleService = planetRoleService;
     }
 
     /// <summary>
@@ -87,7 +81,10 @@ public class PlanetCategoryService
             node.TargetId = category.Id;
             node.PlanetId = category.PlanetId;
 
-            var role = await _planetRoleService.GetAsync(node.RoleId);
+            var role = await _db.PlanetRoles.FindAsync(node.RoleId);
+            if (role is null)
+                return new(false, "Role not found.");
+            
             if (role.GetAuthority() > await _planetMemberService.GetAuthorityAsync(member))
                 return new(false, "A permission node's role has higher authority than you.");
 
@@ -120,26 +117,34 @@ public class PlanetCategoryService
         return new(true, "Success");
     }
 
-    public async Task<TaskResult<PlanetCategory>> PutAsync(PlanetCategory updatedcategory)
+    public async Task<TaskResult<PlanetCategory>> UpdateAsync(PlanetCategory updated)
     {
-        var old = await _db.PlanetCategories.FindAsync(updatedcategory.Id);
+        var old = await _db.PlanetCategories.FindAsync(updated.Id);
         if (old is null) return new(false, $"PlanetCategory not found");
 
         // Validation
-        if (old.Id != updatedcategory.Id)
+        if (old.Id != updated.Id)
             return new(false, "Cannot change Id.");
 
-        if (old.PlanetId != updatedcategory.PlanetId)
+        if (old.PlanetId != updated.PlanetId)
             return new(false, "Cannot change PlanetId.");
 
-        var baseValid = await ValidateBasic(updatedcategory);
+        var baseValid = await ValidateBasic(updated);
         if (!baseValid.Success)
             return new(false, baseValid.Message);
+
+        if (updated.ParentId != old.ParentId ||
+            updated.Position != old.Position)
+        {
+            var positionValid = await ValidateParentAndPosition(updated);
+            if (!positionValid.Success)
+                return new (false, positionValid.Message);
+        }
 
         // Update
         try
         {
-            _db.Entry(old).CurrentValues.SetValues(updatedcategory);
+            _db.Entry(old).CurrentValues.SetValues(updated);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)
@@ -148,9 +153,9 @@ public class PlanetCategoryService
             return new(false, e.Message);
         }
 
-        _coreHub.NotifyPlanetItemChange(updatedcategory);
+        _coreHub.NotifyPlanetItemChange(updated);
 
-        return new(true, "Success", updatedcategory);
+        return new(true, "Success", updated);
     }
 
     /// <summary>
@@ -202,16 +207,13 @@ public class PlanetCategoryService
     /// </summary>
     public async Task DeleteAsync(PlanetCategory category)
     {
-        var dbcategory = await _db.PlanetCategories.FindAsync(category.Id);
-        dbcategory.IsDeleted = true;
-        _db.PlanetCategories.Update(dbcategory);
+        var update = new Valour.Database.PlanetCategory(){ Id = category.Id, IsDeleted = true };
+        _db.PlanetCategories.Attach(update).Property(x => x.IsDeleted).IsModified = true;
         await _db.SaveChangesAsync();
 
         _coreHub.NotifyPlanetItemDelete(category);
     }
     
-    public static readonly Regex nameRegex = new Regex(@"^[a-zA-Z0-9 _-]+$");
-
     /// <summary>
     /// Common basic validation for categories
     /// </summary>
@@ -223,11 +225,7 @@ public class PlanetCategoryService
 
         var descValid = ValidateDescription(category.Description);
         if (!descValid.Success)
-            return new TaskResult(false, nameValid.Message);
-
-        var positionValid = await ValidateParentAndPosition(category);
-        if (!positionValid.Success)
-            return new TaskResult(false, nameValid.Message);
+            return new TaskResult(false, descValid.Message);
 
         return TaskResult.SuccessResult;
     }
@@ -241,12 +239,7 @@ public class PlanetCategoryService
         {
             return new TaskResult(false, "Planet names must be 32 characters or less.");
         }
-
-        if (!nameRegex.IsMatch(name))
-        {
-            return new TaskResult(false, "Planet names may only include letters, numbers, dashes, and underscores.");
-        }
-
+        
         return TaskResult.SuccessResult;
     }
 
@@ -263,7 +256,7 @@ public class PlanetCategoryService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> SetChildrensOrderAsync(PlanetCategory category, long[] order)
+    public async Task<TaskResult> SetChildOrderAsync(PlanetCategory category, long[] order)
     {
         var totalChildren = await _db.PlanetChannels.CountAsync(x => x.ParentId == category.Id);
 
@@ -273,27 +266,21 @@ public class PlanetCategoryService
         // Use transaction so we can stop at any failure
         await using var tran = await _db.Database.BeginTransactionAsync();
 
-        List<PlanetChannel> children = new();
+        List<Valour.Database.PlanetChannel> children = new();
 
         try
         {
             var pos = 0;
-            foreach (var child_id in order)
+            foreach (var childId in order)
             {
-                var child = await _planetChannelService.GetAsync(child_id);
+                var child = await _db.PlanetChannels.FindAsync(childId);
                 if (child is null)
-                {
-                    return new(false, $"Child with id {child_id} does not exist!");
-                }
+                    return new(false, $"Child with id {childId} does not exist!");
 
                 if (child.ParentId != category.Id)
-                    return new(false, $"Category {child_id} is not a child of {category.Id}.");
+                    return new(false, $"Category {childId} is not a child of {category.Id}.");
 
                 child.Position = pos;
-
-                // child.TimeLastActive = DateTime.SpecifyKind(child.TimeLastActive, DateTimeKind.Utc);
-
-                _db.PlanetChannels.Update(child.ToDatabase());
 
                 children.Add(child);
 
@@ -301,6 +288,7 @@ public class PlanetCategoryService
             }
 
             await _db.SaveChangesAsync();
+            await tran.CommitAsync();
         }
         catch (Exception e)
         {
@@ -309,11 +297,9 @@ public class PlanetCategoryService
             return new(false, e.Message);
         }
 
-        await tran.CommitAsync();
-
         foreach (var child in children)
         {
-            _coreHub.NotifyPlanetItemChange(child);
+            _coreHub.NotifyPlanetItemChange(child.ToModel());
         }
 
         return new(true, "Success");
