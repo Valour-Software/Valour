@@ -131,7 +131,7 @@ namespace Valour.Server
 
             int c = 0;
 
-            using (ValourDB db = new ValourDB(ValourDB.DBOptions)){
+            using (ValourDB db = new ValourDB(ValourDB.DbOptions)){
                 foreach (var user in db.Users){
                     if (!db.PlanetMembers.Any(x => x.PlanetId == 735703679107072 &&
                          user.Id == x.UserId)){
@@ -158,7 +158,7 @@ namespace Valour.Server
 
             // Run
 
-            //using (ValourDB db = new(ValourDB.DBOptions))
+            //using (ValourDB db = new(ValourDB.DbOptions))
             //{
             //    foreach (User user in await db.Users.ToListAsync())
             //    {

@@ -13,7 +13,7 @@ namespace Valour.Database.Context;
 
 public class ValourDB : DbContext
 {
-    public static string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
+    public static readonly string ConnectionString = $"Host={DbConfig.Instance.Host};Database={DbConfig.Instance.Database};Username={DbConfig.Instance.Username};Password={DbConfig.Instance.Password};SslMode=Prefer;";
 
     protected override void OnConfiguring(DbContextOptionsBuilder options)
     {
@@ -48,13 +48,7 @@ public class ValourDB : DbContext
 
     // These are the database sets we can access
     //public DbSet<ClientPlanetMessage> Messages { get; set; }
-
-    /// <summary>
-    /// This is only here to fulfill the need of the constructor.
-    /// It does literally nothing at all.
-    /// </summary>
-    public static DbContextOptions DBOptions = new DbContextOptionsBuilder().UseNpgsql(ConnectionString).UseExceptionProcessor().Options;
-
+    
     /// <summary>
     /// Table for message cache
     /// </summary>

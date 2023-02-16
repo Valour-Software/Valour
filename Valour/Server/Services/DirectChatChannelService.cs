@@ -65,10 +65,17 @@ public class DirectChatChannelService
             (x.UserOneId == userTwoId && x.UserTwoId == userOneId)
         )).ToModel();
     }
+    
+    /// <summary>
+    /// Returns all of the direct chat channels for the given user id
+    /// </summary>
+    public async Task<List<DirectChatChannel>> GetChannelsForUserAsync(long userId) =>
+        (await _db.DirectChatChannels.Where(x => x.UserOneId == userId || x.UserTwoId == userId)
+            .Select(x => x.ToModel()).ToListAsync());
 
     public async Task<TaskResult<DirectChatChannel>> CreateAsync(long userOneId, long userTwoId)
     {
-        DirectChatChannel channel = null;
+        Valour.Database.DirectChatChannel channel = null;
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
@@ -85,18 +92,17 @@ public class DirectChatChannelService
 
             await _db.AddAsync(channel);
             await _db.SaveChangesAsync();
+            await tran.CommitAsync();
         }
 
         catch (System.Exception e)
         {
             _logger.LogError(e.Message);
             await tran.RollbackAsync();
-            return new(false, e.Message);
+            return new(false, "Failed to create channel. An unexpected error occurred.");
         }
 
-        await tran.CommitAsync();
-
-        return new(true, "Success", channel);
+        return new(true, "Success", channel.ToModel());
     }
 
     public async Task<DirectMessage> GetDirectMessageAsync(long msgId) =>

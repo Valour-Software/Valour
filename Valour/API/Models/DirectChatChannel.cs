@@ -52,7 +52,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
         return item;
     }
 
-    public static async ValueTask<DirectChatChannel> FindAsyncByUser(long otherUserId, bool refresh = false)
+    public static async ValueTask<DirectChatChannel> FindAsyncByUser(long otherUserId, bool create = false, bool refresh = false)
     {
         if (!refresh)
         {
@@ -78,7 +78,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
             if (cached is not null)
                 return cached;
         }
-        var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/directchatchannels/byuser/{otherUserId}")).Data;
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<DirectChatChannel>($"api/directchatchannels/byuser/{otherUserId}?create={create}")).Data;
 
         if (item is not null)
             await item.AddToCache();

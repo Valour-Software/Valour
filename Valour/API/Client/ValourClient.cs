@@ -115,6 +115,11 @@ public static class ValourClient
     public static List<User> FriendsRequested { get; set; }
     
     /// <summary>
+    /// The direct chat channels (dms) of this user
+    /// </summary>
+    public static List<DirectChatChannel> DirectChatChannels { get; set; }
+    
+    /// <summary>
     /// The Tenor favorites of this user
     /// </summary>
     public static List<TenorFavorite> TenorFavorites { get; set; }
@@ -949,7 +954,8 @@ public static class ValourClient
             LoadChannelStatesAsync(),
             LoadFriendsAsync(),
             LoadJoinedPlanetsAsync(),
-            LoadTenorFavoritesAsync()
+            LoadTenorFavoritesAsync(),
+            LoadDirectChatChannelsAsync()
         };
 
         // Load user data concurrently
@@ -1059,6 +1065,35 @@ public static class ValourClient
         TenorFavorites = response.Data;
         
         Console.WriteLine($"Loaded {TenorFavorites.Count} Tenor favorites");
+    }
+
+    public static async Task LoadDirectChatChannelsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<DirectChatChannel>>("api/directchatchannels/self");
+        if (!response.Success)
+        {
+            Console.WriteLine("** Failed to load direct chat channels **");
+            Console.WriteLine(response.Message);
+
+            return;
+        }
+        
+        foreach (var channel in response.Data)
+        {
+            // Custom cache insert behavior
+            await channel.AddToCache();
+        }
+
+        if (DirectChatChannels is null)
+            DirectChatChannels = new();
+        else
+            DirectChatChannels.Clear();
+
+        // This second step is necessary because we need to ensure we only use the cache objects
+        foreach (var channel in response.Data)
+        {
+            DirectChatChannels.Add(ValourCache.Get<DirectChatChannel>(channel.Id));
+        }
     }
     
     public static async Task LoadChannelStatesAsync()
