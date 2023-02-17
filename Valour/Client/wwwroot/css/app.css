@@ -387,11 +387,11 @@ body {
     z-index: 5;
 }
 
-.sidebar-container.active {
+.sidebar-container.sidebar-active {
     width: 300px;
 }
 
-.mobile .sidebar-container.active {
+.mobile .sidebar-container.sidebar-active {
     width: 100vw;
 }
 
@@ -413,7 +413,7 @@ body {
     width: 100vw;
 }
 
-.sidebar-container.active .sidebar-menu {
+.sidebar-container.sidebar-active .sidebar-menu {
     transform: translate(0px);
 }
 

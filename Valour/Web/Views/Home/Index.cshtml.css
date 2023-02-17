@@ -12,3 +12,43 @@
     font-family: monaco;
     background-color: rgba(0, 0, 0, 0.4);
 }
+
+.title-gradient {
+    background: #00FFEE;
+    background: linear-gradient(to right, #00FFEE 20%, #FF00EE 89%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 5.5em;
+    font-weight: 700;
+}
+
+.subtitle-text {
+    
+}
+
+.img-lg {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.svg-shadow {
+    filter: drop-shadow(0px 0px 20px rgb(0 0 0 / 1));
+}
+
+.image-text {
+    font-weight: 800;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0px 0px 10px black) drop-shadow(0px 0px 10px black);
+}
+
+.image-text.blue {
+    background: #00FFFF;
+    background: linear-gradient(to right, #00FFEE 35%, #FF00EE 110%)
+}
+
+.image-text.purple {
+    background: #FF00FF;
+    background: linear-gradient(to right, #00FFEE -63%, #FF00EE 89%);
+}
