@@ -30,7 +30,8 @@ public class DirectChatChannelApi
     public static async Task<IResult> GetViaTargetRoute(
         long id,
         DirectChatChannelService directService,
-        UserService userService)
+        UserService userService,
+        bool create = false) // True if the channel should be created if it doesn't exist
     {
         // id is the id of the target user, not the channel!
         var requesterUserId = await userService.GetCurrentUserId();//ctx.GetToken();
@@ -49,6 +50,17 @@ public class DirectChatChannelApi
             return ValourResult.Problem(result.Message);
 
         return Results.Json(result.Data);
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/directchatchannels/self")]
+    [UserRequired(UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> GetAllSelfRoute(
+        DirectChatChannelService directService,
+        UserService userService)
+    {
+        var userId = await userService.GetCurrentUserId();
+        var results = await directService.GetChannelsForUserAsync(userId);
+        return Results.Json(results);
     }
 
     // Message routes

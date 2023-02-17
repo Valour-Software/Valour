@@ -11,15 +11,18 @@ public class PlanetMemberService
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
+    private readonly ILogger<PlanetMemberService> _logger;
 
     public PlanetMemberService(
         ValourDB db,
         CoreHubService coreHub,
-        TokenService tokenService)
+        TokenService tokenService,
+        ILogger<PlanetMemberService> logger)
     {
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
+        _logger = logger;
     }
     
     /// <summary>
@@ -220,6 +223,9 @@ public class PlanetMemberService
     /// </summary>
     public async ValueTask<bool> HasPermissionAsync(PlanetMember member, PlanetChannel target, Permission permission)
     {
+        if (target is null)
+            return false;
+        
         var planet = await _db.Planets.FindAsync(target.PlanetId);
         // Fail if the planet does not exist
         if (planet is null)
@@ -227,9 +233,6 @@ public class PlanetMemberService
 
         if (planet.OwnerId == member.UserId)
             return true;
-
-        if (target is null)
-            return false;
 
         // If the channel inherits from its parent, move up until it does not
         while (target.InheritsPerms && target.ParentId is not null)
@@ -475,6 +478,9 @@ public class PlanetMemberService
         
         if (roleMember is null)
             return new TaskResult(false, "Member does not have this role.");
+
+        if (await _db.Planets.AnyAsync(x => x.DefaultRoleId == role.Id))
+            return new TaskResult(false, "Cannot remove the default role from members.");
         
         try
         {
@@ -494,21 +500,31 @@ public class PlanetMemberService
     /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
-    public async Task DeleteAsync(PlanetMember member)
+    public async Task<TaskResult> DeleteAsync(PlanetMember member)
     {
-        // Remove roles
-        var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id);
-        _db.PlanetRoleMembers.RemoveRange(roles);
+        await using var trans = await _db.Database.BeginTransactionAsync();
 
-        // Convert to db 
-        var dbMember = await _db.PlanetMembers.FindAsync(member.Id);
-        
-        // Soft delete member
-        dbMember.IsDeleted = true;
-        
-        _db.PlanetMembers.Update(dbMember);
-        await _db.SaveChangesAsync();
-        
+        try
+        {
+            // Remove roles
+            var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id);
+            _db.PlanetRoleMembers.RemoveRange(roles);
+
+            Valour.Database.PlanetMember dbMember = new() { Id = member.Id, IsDeleted = true };
+            _db.PlanetMembers.Attach(dbMember).Property(x => x.IsDeleted).IsModified = true;
+
+            await _db.SaveChangesAsync();
+            await trans.CommitAsync();
+        }
+        catch (System.Exception e)
+        {
+            _logger.LogError("Critical error deleting member.", e);
+            await trans.RollbackAsync();
+            return new(false, "An unexpected error occurred.");
+        }
+
         _coreHub.NotifyPlanetItemDelete(member);
+
+        return TaskResult.SuccessResult;
     }
 }

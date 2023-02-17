@@ -32,5 +32,9 @@
 	  <ProjectReference Include="..\Database\Valour.Database.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="wwwroot\media\images" />
+	</ItemGroup>
+
 
 </Project>

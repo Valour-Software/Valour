@@ -86,16 +86,37 @@ hr {
     border-color: #1861ac;
 }
 
+.v-btn-wrapper {
+    display: inline-block;
+    padding: 4px;
+    border-radius: 8px;
+    background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
+}
+
 .v-button {
     color: #fff;
-    border-color: #fff;
-    background-color: rgba(0, 0, 0, 0);
-    opacity: 90%;
+    border: none;
+    background-color: #111122;
+    transition: all 0.3s ease-in-out;
+}
+
+.v-button a {
+    color: #111122;
+    font-weight: 700;
+    text-decoration: none;
+    background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: all 0.3s ease-in-out;
 }
 
 .v-button:hover {
-    color: var(--v-cyan);
-    border-color: var(--v-cyan);
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.v-button:hover a {
+    color: #111122;
+    -webkit-text-fill-color: #111122;
 }
 
 .v-button.danger {
