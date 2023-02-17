@@ -18,6 +18,10 @@
     padding-bottom: 24px;
 }
 
+.flip .tab-container {
+    padding-bottom: 0;
+}
+
 .tab-container::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
 }
