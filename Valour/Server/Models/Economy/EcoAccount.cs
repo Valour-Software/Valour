@@ -11,12 +11,12 @@ namespace Valour.Server.Models.Economy;
 /// their own integrations, as debt allows the money cap to grow
 /// in unexpected ways.
 /// 
-/// Also note that accounts internall handle rounding issues by forcing all
+/// Also note that accounts internally handle rounding issues by forcing all
 /// transactions to the number of decimal places defined in the currency.
 /// If you have a currency with two decimal places, and you attempt to 
 /// subtract 0.333... from cash, it will end up subtracting 0.33.
 /// </summary>
-public class Account : ISharedAccount
+public class EcoAccount : ISharedEcoAccount
 {
     /// <summary>
     /// The database id of this economy account
@@ -47,14 +47,8 @@ public class Account : ISharedAccount
 
     /// <summary>
     /// The value of the balance of this account
-    /// This should *not* be used in code. Use Balance instead.
+    /// This should *not* be used in code. Use the service's GetBalance instead.
     /// This is just for mapping to the database.
     /// </summary>
     public decimal BalanceValue { get; set; }
-
-    /// <summary>
-    /// The balance of the account
-    /// </summary>
-    public Cash Balance => ISharedAccount.GetBalance(this);
-
 }

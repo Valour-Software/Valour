@@ -3,7 +3,7 @@
 /// <summary>
 /// A transaction represents a *completed* transaction between two accounts.
 /// </summary>
-public class Transaction
+public interface ISharedTransaction
 {
     /// <summary>
     /// Unlike most ids in Valour, transactions do not use a snowflake.
@@ -11,47 +11,51 @@ public class Transaction
     /// could potentially hit our snowflake id-per-second limit.
     /// Instead we use a Guid
     /// </summary>
-    public string Id { get; set; }
+    string Id { get; set; }
 
     /// <summary>
     /// The planet the transaction belongs to
     /// </summary>
-    public long PlanetId { get; set; }
-
+    long PlanetId { get; set; }
 
     /// <summary>
     /// The id of the owner of the sending account
     /// </summary>
-    public long UserFromId { get; set; }
+    long UserFromId { get; set; }
 
     /// <summary>
     /// The id of the sending account
     /// </summary>
-    public long AccountFromId { get; set; }
+    long AccountFromId { get; set; }
 
     /// <summary>
     /// The id of the owner of the receiving account
     /// </summary>
-    public long UserToId { get; set; }
+    long UserToId { get; set; }
 
     /// <summary>
     /// The id of the receiving account
     /// </summary>
-    public long AccountToId { get; set; }
+    long AccountToId { get; set; }
 
     /// <summary>
     /// The time this transaction was completed
     /// </summary>
-    public DateTime TimeStamp { get; set; }
+    DateTime TimeStamp { get; set; }
 
     /// <summary>
     /// A description of the transaction
     /// </summary>
-    public string Description { get; set; }
+    string Description { get; set; }
+    
+    /// <summary>
+    /// Additional data that can be attached to a transaction
+    /// </summary>
+    string Data { get; set; }
 
     /// <summary>
     /// A value that can be used to identify a transaction completing.
     /// It should match the request fingerprint.
     /// </summary>
-    public string Fingerprint { get; set; }
+    string Fingerprint { get; set; }
 }

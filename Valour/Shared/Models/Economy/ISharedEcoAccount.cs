@@ -1,6 +1,6 @@
 ﻿namespace Valour.Shared.Models.Economy;
 
-public interface ISharedAccount
+public interface ISharedEcoAccount
 {
     /// <summary>
     /// The database id of this economy account
@@ -35,16 +35,4 @@ public interface ISharedAccount
     /// This is just for mapping to the database.
     /// </summary>
     decimal BalanceValue { get; set; }
-
-    /// <summary>
-    /// Returns the balance of an account
-    /// </summary>
-    public static Cash GetBalance(ISharedAccount account)
-        => new Cash(account.BalanceValue);
-
-    /// <summary>
-    /// Sets the balance of an account
-    /// </summary>
-    public static void SetBalance(ISharedAccount account, Cash balance)
-        => account.BalanceValue = balance.Value;
 }
