@@ -517,9 +517,9 @@ app {
 }
 
 *::-webkit-scrollbar-thumb {
-    background-color: white;
+    background-color: var(--main-1);
     border-radius: 20px;
-    border: 3px solid black;
+    border: 3px solid var(--main-2);
 }
 
 .login-background {

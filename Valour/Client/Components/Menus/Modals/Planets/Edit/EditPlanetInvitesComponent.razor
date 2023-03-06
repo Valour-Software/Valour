@@ -32,7 +32,7 @@
     {
         <span class="text-info mb-4">@discoverableInfoSpan</span>
     }
-    <div class="invite-table"
+    <div class="invite-table">
         <div class="invite-tab-holder mt-4">
             <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
             <div class="@usersButtonStyle" @onclick="(async () => await OnSwitchTab(false))">Invited Users</div>
@@ -41,12 +41,14 @@
             @if (linksChosen)
             {
                 <table>
-                    <tr>
-                        <th style="width: 110px;">Invite Code</th>
-                        <th style="width: 300px;">Created By</th>
-                        <th style="width: 125px;">Created</th>
-                        <th style="width: 125px;">Expires</th>
-                    </tr>
+                    <thead>
+                        <tr>
+                            <th style="width: 20%;">Invite Code</th>
+                            <th style="width: 40%;">Created By</th>
+                            <th style="width: 20%;">Created</th>
+                            <th style="width: 20%;">Expires</th>
+                        </tr>
+                    </thead>
                     @foreach (var invite in Invites)
                     {
                         <PlanetInviteComponent invite="@invite"></PlanetInviteComponent>
