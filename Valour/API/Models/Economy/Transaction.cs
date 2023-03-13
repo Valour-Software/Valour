@@ -1,6 +1,6 @@
 using Valour.Shared.Models.Economy;
 
-namespace Valour.Server.Models.Economy;
+namespace Valour.Api.Models.Economy;
 
 /// <summary>
 /// A transaction represents a *completed* transaction between two accounts.

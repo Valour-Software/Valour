@@ -5,6 +5,7 @@ global using System.Text.RegularExpressions;
 global using Valour.Server.Http;
 global using Valour.Server.Extensions;
 global using Valour.Server.Models;
+global using Valour.Server.Models.Economy;
 global using Valour.Server.Mapping;
 global using Valour.Server.EndpointFilters;
 global using Valour.Server.EndpointFilters.Attributes;

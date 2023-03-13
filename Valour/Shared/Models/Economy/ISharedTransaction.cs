@@ -58,4 +58,9 @@ public interface ISharedTransaction
     /// It should match the request fingerprint.
     /// </summary>
     string Fingerprint { get; set; }
+    
+    /// <summary>
+    /// If this transaction was forced by an Eco Admin, this is the id of the user who forced it.
+    /// </summary>
+    long? ForcedBy { get; set; }
 }
