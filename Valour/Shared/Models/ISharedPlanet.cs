@@ -9,6 +9,11 @@ namespace Valour.Shared.Models;
 public interface ISharedPlanet : ISharedItem
 {
     /// <summary>
+    /// The Id of Valour Central, used for some platform-wide features
+    /// </summary>
+    const long ValourCentralId = 12215159187308544;
+
+    /// <summary>
     /// The Id of the owner of this planet
     /// </summary>
     long OwnerId { get; set; }

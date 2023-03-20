@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Valour.Database.Config;
+using Valour.Database.Economy;
 
 /*  Valour - A free and secure chat client
  *  Copyright (C) 2021 Vooper Media LLC
@@ -188,6 +189,14 @@ public class ValourDB : DbContext
     public DbSet<UserChannelState> UserChannelStates { get; set; }
 
     public DbSet<NodeStats> NodeStats { get; set; }
+
+    ////////////////
+    // Eco System //
+    ////////////////
+
+    public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<Currency> Currencies { get; set; }
+    public DbSet<EcoAccount> EcoAccounts { get; set; }
 
     public ValourDB(DbContextOptions options)
     {
