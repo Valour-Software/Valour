@@ -79,8 +79,8 @@ public interface ISharedPermissionsNode : ISharedPlanetItem
     public static PermissionNodeCode GetNodeCode(ISharedPermissionsNode node) =>
         new PermissionNodeCode(node.Code, node.Mask);
 
-    public static PermissionState GetPermissionState(ISharedPermissionsNode node, Permission perm) =>
-        node.GetNodeCode().GetState(perm);
+    public static PermissionState GetPermissionState(ISharedPermissionsNode node, Permission perm, bool ignoreviewperm = false) =>
+        node.GetNodeCode().GetState(perm, ignoreviewperm);
 
     public static void SetPermission(ISharedPermissionsNode node, Permission perm, PermissionState state)
     {

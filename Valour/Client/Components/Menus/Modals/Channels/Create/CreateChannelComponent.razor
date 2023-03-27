@@ -45,8 +45,16 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
-                                    <span class="slider round"></span>
+                                    @if (role.GetAuthority() == SelfAuthority)
+                                    {
+                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]" disabled>
+                                        <span class="slider round" cursor: not-allowed;></span>
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                        <span class="slider round"></span>
+                                    }
                                 </label>
                             </div>
                         </div>
@@ -83,6 +91,8 @@
     [CascadingParameter]
     public BlazoredModalInstance ModalInstance { get; set; }
 
+    public int SelfAuthority { get; set; }
+
     // Input fields
     string name;
 
@@ -104,7 +114,7 @@
 
         PlanetMember SelfMember = await ValourClient.GetSelfMember(Planet);
 
-        int SelfAuthority = await SelfMember.GetAuthorityAsync();
+        SelfAuthority = await SelfMember.GetAuthorityAsync();
 
         var roleResponse = await Planet.GetRolesAsync();
 
@@ -112,8 +122,12 @@
         {
             if (item.GetAuthority() > SelfAuthority)
                 continue;
+                
             Roles.Add(item);
-            SelectedRoles.Add(item, false);
+            if (item.GetAuthority() == SelfAuthority)
+                SelectedRoles.Add(item, true);
+            else
+                SelectedRoles.Add(item, false);
         }
         StateHasChanged();
     }

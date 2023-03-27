@@ -32,7 +32,8 @@ public class PlanetRoleApi
     public static async Task<IResult> PostRouteAsync(
         [FromBody] PlanetRole role,
         PlanetRoleService roleService,
-        PlanetMemberService memberService)
+        PlanetMemberService memberService,
+        PlanetService planetService)
     {
         if (role is null)
             return ValourResult.BadRequest("Include role in body.");
@@ -40,6 +41,10 @@ public class PlanetRoleApi
         var member = await memberService.GetCurrentAsync(role.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
+
+        if (role.Position == 0) {
+            role.Position = (await planetService.GetRoleIdsAsync(role.PlanetId)).Count;
+        }
 
         if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("You cannot create roles with higher authority than your own.");

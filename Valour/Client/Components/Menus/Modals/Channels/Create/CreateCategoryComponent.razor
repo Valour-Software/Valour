@@ -43,8 +43,16 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    <input type="checkbox" @onclick="@(x => {SwitchRole(role);})" checked="@SelectedRoles[role]">
-                                    <span class="slider round"></span>
+                                    @if (role.GetAuthority() == SelfAuthority)
+                                    {
+                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]" disabled>
+                                        <span class="slider round" cursor: not-allowed;></span>
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                        <span class="slider round"></span>
+                                    }
                                 </label>
                             </div> 
                         </div>
@@ -84,6 +92,8 @@
     List<PlanetRole> Roles = new();
     bool isprivate = false;
 
+    int SelfAuthority { get; set; }
+
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
 
@@ -106,13 +116,18 @@
 
         var roles = await Planet.GetRolesAsync();
 
-        int SelfAuthority = await SelfMember.GetAuthorityAsync();
+        SelfAuthority = await SelfMember.GetAuthorityAsync();
         foreach (PlanetRole item in roles)
         {
             if (item.GetAuthority() > SelfAuthority)
                 continue;
+
             Roles.Add(item);
-            SelectedRoles.Add(item, false);
+
+            if (item.GetAuthority() == SelfAuthority)
+                SelectedRoles.Add(item, true);
+            else
+                SelectedRoles.Add(item, false);
         }
         StateHasChanged();
     }
