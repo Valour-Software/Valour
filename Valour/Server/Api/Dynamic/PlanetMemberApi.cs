@@ -122,7 +122,9 @@ public class PlanetMemberApi
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
 
-        await memberService.DeleteAsync(targetMember);
+        var result = await memberService.DeleteAsync(targetMember);
+        if (!result.Success)
+            return ValourResult.Problem("Failed to remove member. An unexpected error occured.");
 
         return Results.NoContent();
     }

@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.Drawing;
+using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Database;
@@ -75,4 +77,16 @@ public class PlanetRole : Item, ISharedPlanetRole
 
     [Column("name")]
     public string Name { get; set; }
+    
+    public int GetAuthority() =>
+        ISharedPlanetRole.GetAuthority(this);
+
+    public Color GetColor() =>
+        ISharedPlanetRole.GetColor(this);
+
+    public string GetColorHex() =>
+        ISharedPlanetRole.GetColorHex(this);
+
+    public bool HasPermission(PlanetPermission perm) =>
+        ISharedPlanetRole.HasPermission(this, perm);
 }

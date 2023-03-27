@@ -64,7 +64,9 @@ public class PlanetBanService
             await _db.SaveChangesAsync();
 
             // Delete target member
-            await _memberService.DeleteAsync(target);
+            var memberResult = await _memberService.DeleteAsync(target);
+            if (!memberResult.Success)
+                throw new Exception("Failed to delete member.");
 
             // Save changes
             await _db.SaveChangesAsync();
@@ -73,7 +75,7 @@ public class PlanetBanService
         {
             _logger.LogError(e.Message);
             await tran.RollbackAsync();
-            return new(false, e.Message);
+            return new(false, "Failed to create ban. An unexpected error occured.");
         }
 
         await tran.CommitAsync();

@@ -1,0 +1,120 @@
+@inject IJSRuntime JsRuntime
+@implements IAsyncDisposable
+
+<div class="sidebar-container @ActiveClass @FlipClass">
+	<div class="sidebar-menu">
+		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
+
+		<div class="sidebar-2" id="sidebar2">
+			@if (!Flip)
+			{
+				<SidebarTop>
+					<CurrentPlanetComponent></CurrentPlanetComponent>
+				</SidebarTop>
+				<div class="top-bar">
+				</div>
+			}
+
+			<div class="sidebar-content">
+				@if (!Flip)
+                {
+                	<UserInfoComponent User="@ValourClient.Self"></UserInfoComponent>
+                }
+				else
+				{
+					<br/>
+				}
+    
+				<div class="tab-container">
+					@switch (_selectedTab)
+					{
+						case "Channels":
+						{
+							<ChannelListComponent></ChannelListComponent>
+							break;
+						}
+						case "Friends":
+						{
+							<FriendListComponent></FriendListComponent>
+							break;
+						}
+						case "Members":
+						{
+							<MemberListComponent></MemberListComponent>
+							break;
+						}
+					}
+				</div>
+				<SidebarTabstrip OnSelected="OnSelected" Flip="Flip"></SidebarTabstrip>
+			</div>
+		</div>
+	</div>
+</div>
+
+@code {
+	
+	[Parameter]
+	public bool Flip { get; set; }
+	public string FlipClass => Flip ? "flip" : "";
+	
+    private string _selectedTab = "Friends";
+	private bool _active = !DeviceInfo.IsMobile;
+	
+	private string ActiveClass => _active ? "sidebar-active" : "";
+	
+	/// <summary>
+	/// Dotnet object reference for use in Javascript
+	/// </summary>
+	private DotNetObjectReference<Sidebar> _thisRef;
+
+	/// <summary>
+	/// Module for calling Javascript functions
+	/// </summary>
+	private IJSInProcessObjectReference _jsModule;
+
+	private Task OnSelected(TabStripItem tab)
+	{
+		_selectedTab = tab.Name;
+		StateHasChanged();
+
+		return Task.CompletedTask;
+	}
+	
+	async ValueTask IAsyncDisposable.DisposeAsync()
+	{
+		await _jsModule.InvokeVoidAsync("cleanup");
+		await _jsModule.DisposeAsync();
+		_thisRef.Dispose();
+	}
+	
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_thisRef = DotNetObjectReference.Create(this);
+			_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
+			await _jsModule.InvokeVoidAsync("init", _thisRef);
+		}
+	}
+
+	private Task OnOpenTabClicked()
+	{
+		_active = !_active;
+		StateHasChanged();
+		return Task.CompletedTask;
+	}
+
+	[JSInvokable]
+	public void OnLeftSwipe()
+	{
+		_active = false;
+		StateHasChanged();
+	}
+
+	[JSInvokable]
+	public void OnRightSwipe()
+	{
+		_active = true;
+		StateHasChanged();
+	}
+}

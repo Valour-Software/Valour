@@ -1,16 +1,14 @@
-﻿@inject HttpClient Http
-@inject NavigationManager navManager
-@implements IDisposable
+﻿@implements IDisposable
 
-<BigMenuComponent @ref="bigMenuComponent">
+<BigMenuComponent @ref="BigMenu">
     <LeftSide>
-        <EditChannelListItemMenuComponent ChannelListItem="ChannelListItem" isChannel="isChannel"></EditChannelListItemMenuComponent>
+        <EditChannelListItemMenuComponent ChannelListItem="ChannelListItem"></EditChannelListItemMenuComponent>
     </LeftSide>
     <RightSide>
-        @switch (bigMenuComponent.SelectedTopLevelMenu?.Name)
+        @switch (BigMenu.SelectedTopLevelMenu?.Name)
         {
             case "General Settings":
-                switch (bigMenuComponent.SelectedSubMenu.Name)
+                switch (BigMenu.SelectedSubMenu.Name)
                 {
                     case "Info":
                         <EditCLIDetailsComponent Channel="ChannelListItem"></EditCLIDetailsComponent>
@@ -28,15 +26,11 @@
     [Parameter]
     public PlanetChannel ChannelListItem { get; set; }
 
-    public bool isChannel;
-    public PlanetChatChannel Channel;
-    public PlanetCategory Category;
-
-    public BigMenuComponent bigMenuComponent { get; set; }
+    private BigMenuComponent BigMenu { get; set; }
 
     public void Dispose()
     {
-        bigMenuComponent.RefreshRightSide -= Refresh;
+        BigMenu.RefreshRightSide -= Refresh;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -44,7 +38,7 @@
 
         if (firstRender)
         {
-            bigMenuComponent.RefreshRightSide += Refresh;
+            BigMenu.RefreshRightSide += Refresh;
         }
         return base.OnAfterRenderAsync(firstRender);
     }
@@ -53,33 +47,5 @@
     {
         StateHasChanged();
     }
-
-    public string GetTitle()
-    {
-        if (isChannel)
-        {
-            return $"Channel: {Channel.Name}";
-        }
-        else
-        {
-            return $"Category: {Category.Name}";
-        }
-    }
-
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (ChannelListItem is PlanetChatChannel)
-        {
-            isChannel = true;
-            Channel = (PlanetChatChannel)ChannelListItem;
-            Category = null;
-        }
-        else
-        {
-            isChannel = false;
-            Category = (PlanetCategory)ChannelListItem;
-            Channel = null;
-        }
-    }
+    
 }

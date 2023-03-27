@@ -1,6 +1,6 @@
 ﻿.window-container {
     max-width: 100%;
-    max-height: calc(100% - 119px);
+    max-height: calc(100% - 64px);
     width: 100%;
     height: 100%;
     display: flex;
@@ -21,4 +21,8 @@
 
 .window-frame:last-child {
 
+}
+
+.window-man-outer {
+    
 }

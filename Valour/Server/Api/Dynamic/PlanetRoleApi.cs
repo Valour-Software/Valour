@@ -74,7 +74,7 @@ public class PlanetRoleApi
         if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
             return ValourResult.Forbid("You can only edit roles under your own.");
 
-        var result = await roleService.PutAsync(role);
+        var result = await roleService.UpdateAsync(role);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

@@ -1,64 +1,73 @@
 ﻿.friend-card {
-    width: 240px;
-    background-color: var(--main-2);
-    margin-right: auto;
+    background-color: var(--main-4);
+    position: relative;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    cursor: pointer;
+    display: flex;
+    max-width: 100%;
+}
+
+.friend-card:nth-child(2n){
+    background-color: var(--main-3);
+}
+
+.friend-card:hover {
+    background-color: var(--main-5);
+}
+
+.friend-card.active {
+    height: auto;
 }
 
 .friend-card.top {
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
 }
 
 .friend-card.bottom {
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
 }
 
-.user-info {
-    display: inline-block;
+.friend-info {
+    display: grid;
     vertical-align: top;
-    width: 180px;
+    padding: 5px 5px 5px 10px;
 }
 
 .status-text {
-    display: inline-block;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: normal;
     font-size: 14px;
     color: #7A7A7A;
     vertical-align: middle;
-    max-width: 160px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: clip;
     text-overflow: ellipsis;
+    margin: 0;
 }
 
-.status-text:hover {
-    white-space: pre-wrap;
+.active .status-text {
+    white-space: normal;
 }
 
 .staff-tag {
     display: inline-block;
     width: 25px;
-    height: 9px;
+    height: 11px;
+    margin-bottom: 7px;
     background: #00FAFF;
     border-radius: 2px;
-    vertical-align: middle;
 }
 
 .staff-tag p {
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: bold;
     font-size: 7px;
     line-height: 10px;
-    margin: 0px;
-    margin-left: 2px;
-    /* identical to box height */
-    display: flex;
-    align-items: center;
     text-align: center;
     color: #000000;
 }
@@ -67,42 +76,29 @@
     display: inline-block;
     width: 17px;
     height: 9px;
+    margin-bottom: 7px;
     background: #FF00E9;
     border-radius: 2px;
-    vertical-align: middle;
 }
 
 .bot-tag p {
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: bold;
     font-size: 7px;
     line-height: 10px;
-    margin: 0px;
-    margin-left: 1px;
-    /* identical to box height */
-    display: flex;
-    align-items: center;
     text-align: center;
-    color: #FFFFFF;
+    color: #000000;
 }
 
 .state-circle {
-    display: inline-block;
-    width: 5px;
-    height: 5px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
-    margin: 0px;
-    margin-bottom: 7px;
-    margin-left: 4px;
-    margin-top: 6px;
-    vertical-align: top;
-}
-
-.status-holder {
-    display: inline-block;
-    position: relative;
-    width: 100%;
+    position: absolute;
+    left: 37px;
+    top: 40px;
+    border: 2px solid var(--main-1);
 }
 
 .state-circle.online {
@@ -122,20 +118,21 @@
 }
 
 .name-line {
+    display: flex;
     align-items: center;
 }
 
 .username {
     display: inline-block;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: normal;
     font-size: 15px;
     line-height: 15px;
     vertical-align: top;
-    margin: 0px;
-    margin: 5px;
     opacity: 0.75;
+    margin-bottom: 0;
+    margin-right: 5px;
 }
 
 .pfp {

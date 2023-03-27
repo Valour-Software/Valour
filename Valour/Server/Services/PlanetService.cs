@@ -354,7 +354,7 @@ public class PlanetService
 
         if (planet.OwnerId != old.OwnerId)
         {
-            
+            return new TaskResult<Planet>(false, "You cannot change the planet owner.");
         }
 
         await using var tran = await _db.Database.BeginTransactionAsync();
@@ -362,7 +362,9 @@ public class PlanetService
         try
         {
             _db.Entry(old).CurrentValues.SetValues(planet);
+            _db.Planets.Update(old);
             await _db.SaveChangesAsync();
+            await tran.CommitAsync();
         }
         catch (Exception e)
         {

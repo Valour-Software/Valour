@@ -10,7 +10,7 @@ namespace Valour.Api.Models;
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 [JsonDerivedType(typeof(PlanetCategory), typeDiscriminator: nameof(PlanetCategory))]
-public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
+public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
 {
     #region IPlanetItem implementation
 
@@ -30,11 +30,21 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     public int Position { get; set; }
     public long? ParentId { get; set; }
     public bool InheritsPerms { get; set; }
-    public abstract PermChannelType PermType { get; }
+    public virtual PermChannelType PermType => PermChannelType.Undefined;
 
-    public abstract string GetHumanReadableName();
+    public virtual string GetHumanReadableName() => "UNKNOWN TYPE";
 
-    public async ValueTask<PlanetChannel> GetParentAsync()
+    public override Task Open()
+    {
+        throw new NotImplementedException();
+    }
+
+    public override Task Close()
+    {
+        throw new NotImplementedException();
+    }
+
+    public virtual async ValueTask<PlanetChannel> GetParentAsync()
     {
         if (ParentId is null)
         {
@@ -46,7 +56,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>
-    public async Task LoadPermissionNodesAsync()
+    public virtual async Task LoadPermissionNodesAsync()
     {
         var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
         if (nodes is null)
@@ -75,7 +85,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
         }
     }
 
-    public async Task<PermissionsNode> GetPermNodeAsync(long roleId, PermChannelType? type = null, bool force_refresh = false)
+    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, PermChannelType? type = null, bool force_refresh = false)
     {
         if (type is null)
             type = PermType;
@@ -86,7 +96,7 @@ public abstract class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
         return PermissionsNodes.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);
     }
 
-    public async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
+    public virtual async Task<bool> HasPermissionAsync(PlanetMember member, Permission permission)
     {
         var planet = await member.GetPlanetAsync();
 

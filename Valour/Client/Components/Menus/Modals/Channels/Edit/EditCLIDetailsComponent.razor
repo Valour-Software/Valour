@@ -1,6 +1,4 @@
-﻿@inject HttpClient http
-
-<h3>Basic Details</h3>
+﻿<h3>Basic Details</h3>
 <hr />
 <br />
 
@@ -18,7 +16,7 @@
     <br/>
 
     <p>Description</p>
-    <input class="form-control" type="text" @bind-value="@descValue"/>
+    <textarea class="form-control" type="text" @bind="@descValue" @bind:event="oninput"></textarea>
     <span id="result-span" class="text-info">@descSpan</span>
 
     <div class="btn btn-outline-primary settings-save-button" @onclick="OnSaveChanges">Save</div>
@@ -49,7 +47,6 @@
 
     public async Task OnSaveChanges()
     {
-
         if (nameValue != Channel.Name || descValue != Channel.Description)
         {
             Channel.Name = nameValue;

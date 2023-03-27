@@ -4,19 +4,33 @@
     ViewData["Title"] = "Valour";
 }
 <div class='index-back'>
-    <div class="text-center mt-4">
-        <h1 class="display-4">Valour is coming.</h1>
-        <p class="m-2">Join the movement for a more flexible, transparent, and open platform made by communities for communities.</p>
-        <a class='v-link' href="#">What is Valour?</a>
-    </div>
-
-    <div class="text-center m-4">
-        <a href="https://app.valour.gg" class="btn v-button">Open the App</a>
-    </div>
-
-    <div class="stats-box">
-        <h3>Users: @Model.UserText</h3>
-        <h3>Planets: @Model.PlanetText</h3>
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center mt-4">
+                    <h1 class="title-gradient display-4">Valour is coming.</h1>
+                    <h2 class="m-5">Join the movement for a more flexible, transparent, and open platform made by communities for communities.</h2>
+                </div>
+            
+                <div class="text-center m-4">
+                    <div class="v-btn-wrapper  ">
+                        <div class="btn btn-lg v-button">
+                            <a href="https://app.valour.gg">Open the App</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6 text-center">
+                <img class="img-lg svg-shadow" alt="User icon" src="media/images/friend-icon.svg" />
+                <h3 class="image-text blue">@Model.UserText Users</h3>
+            </div>
+            <div class="col-6 text-center">
+                <img style="padding: 8%" class="img-lg svg-shadow" alt="Planet icon" src="media/images/planet-icon.svg" />
+                <h3 class="image-text purple">@Model.PlanetText Communities</h3>
+            </div>
+        </div>
     </div>
 </div>
 

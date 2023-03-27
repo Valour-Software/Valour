@@ -183,6 +183,8 @@
                 await Task.Delay(TimeSpan.FromSeconds(30), ReloadToken);
             }
         });
+
+        await OnPlanetChange(windowManager.FocusedPlanet);
     }
 
     public async Task OnMemberUserUpdate(PlanetMember member)

@@ -10,7 +10,7 @@
     }
 }
 
-<div @key="key" class="current-planet-info">
+<div @key="key">
 
     @if (Planet is not null)
     {
@@ -18,10 +18,24 @@
 
         @if (canEdit)
         {
-                <img class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
+            <img class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
         }
 
         <p class="planet-desc">@Planet.Description</p>
+    }
+    else
+    {
+        <div class="logo-container">
+            <LogoComponent></LogoComponent>
+            <div style="display:inline-block; vertical-align: middle">
+                <p class="valour-name">
+                    Valour
+                </p>
+                <p class="valour-version">
+                    Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
+                </p>
+            </div>
+        </div>
     }
 </div>
 

@@ -1,0 +1,24 @@
+.tabstrip {
+    width: 100%;
+    display: flex;
+    min-height: 48px;
+    background-color: var(--main-1);
+    bottom: 0;
+    justify-content: space-evenly;
+    align-items: center;
+}
+
+.tabstrip .item {
+    cursor:pointer;
+    text-align: center;
+}
+
+.tabstrip .item:hover .icon-holder,
+.tabstrip .item.selected .icon-holder {
+    border-bottom: 4px solid var(--main-5);
+}
+
+.tabstrip .icon {
+    height: 16px;
+    margin: 4px;
+}

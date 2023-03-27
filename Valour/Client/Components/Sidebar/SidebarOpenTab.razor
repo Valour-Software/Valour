@@ -1,0 +1,41 @@
+﻿@inject IJSRuntime JS
+
+<div class="open-tab @FlipClass" @onclick="OnClickAsync">
+    @GetText()
+</div>
+
+
+@code {
+    
+    [Parameter]
+    public bool Flip { get; set; }
+    private string FlipClass => Flip ? "flip" : "";
+    
+    [Parameter]
+    public bool Open { get; set; }
+    
+    [Parameter]
+    public Func<Task> OnClicked { get; set; }
+    
+    const string OpenText = "\u2190";
+    const string ClosedText = "\u2192";
+
+    string GetText()
+    {
+        switch (Flip)
+        {
+            case false:
+                return Open ? OpenText : ClosedText;
+            case true:
+                return Open ? ClosedText : OpenText;
+        }
+    } 
+
+    public async Task OnClickAsync()
+    {
+        StateHasChanged();
+
+        if (OnClicked is not null)
+            await OnClicked.Invoke();
+    }
+}

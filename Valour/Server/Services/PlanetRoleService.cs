@@ -52,7 +52,7 @@ public class PlanetRoleService
         return new(true, "Success", role);
     }
 
-    public async Task<TaskResult<PlanetRole>> PutAsync(PlanetRole updatedRole)
+    public async Task<TaskResult<PlanetRole>> UpdateAsync(PlanetRole updatedRole)
     {
         var oldRole = await _db.PlanetRoles.FindAsync(updatedRole.Id);
         if (oldRole is null) return new(false, $"PlanetRole not found");
@@ -111,6 +111,14 @@ public class PlanetRoleService
 
     public async Task<TaskResult> DeleteAsync(PlanetRole role)
     {
+        var dbRole = await _db.PlanetRoles.FindAsync(role.Id);
+        if (dbRole is null) return new(false, "Role not found");
+            
+        if (await _db.Planets.AnyAsync(x => x.DefaultRoleId == role.Id))
+            return new (false, "Cannot delete default roles");
+
+        await using var trans = await _db.Database.BeginTransactionAsync();
+        
         try
         {
             // Remove all members
@@ -118,21 +126,24 @@ public class PlanetRoleService
             _db.PlanetRoleMembers.RemoveRange(members);
 
             // Remove role nodes
-            var nodes = await GetNodesAsync(role);
-
-            _db.PermissionsNodes.RemoveRange(nodes.Select(x => x.ToDatabase()));
+            var nodes = _db.PermissionsNodes.Where(x => x.RoleId == role.Id);
+            _db.PermissionsNodes.RemoveRange(nodes);
 
             // Remove the role
-            _db.PlanetRoles.Remove(await _db.PlanetRoles.FindAsync(role.Id));
+            _db.PlanetRoles.Remove(dbRole);
 
             await _db.SaveChangesAsync();
-            _coreHub.NotifyPlanetItemDelete(role);
+            await trans.CommitAsync();
+
         }
         catch (System.Exception e)
         {
+            await trans.RollbackAsync();
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
+        
+        _coreHub.NotifyPlanetItemDelete(role);
 
         return new(true, "Success");
     }

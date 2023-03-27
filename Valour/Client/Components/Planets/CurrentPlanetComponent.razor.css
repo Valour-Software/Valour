@@ -1,10 +1,3 @@
-.current-planet-info {
-    padding-top: 16px;
-    margin-left: 16px;
-    min-height: 115px;
-    position: relative;
-}
-
 .planet-name {
     display: inline-block;
 }
@@ -19,19 +12,21 @@
 .planet-desc {
     text-overflow: ellipsis;
     word-wrap: break-word;
-    display: block;
-    max-height: 4em; /* a x number of line to show (ex : 2 line)  */
+    display: -webkit-box;
+    max-height: 4em;
     font-size: 16px;
     margin: 0px;
     width: 100%;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     padding-right: 12px;
+    -webkit-line-clamp: 3;
     transition: max-height ease-in-out 1s;
 }
 
 .planet-desc:hover {
     max-height: 300px;
-    overflow-y: auto;
+    display: block;
 }
 
 .planet-title {
