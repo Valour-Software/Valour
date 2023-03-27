@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -115,12 +116,12 @@ public class PlanetMemberService
     public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
-            .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
+            .ThenInclude(r => r.PermissionNodes)
             .OrderBy(x => x.Role.Position)
             .Select(x => new PlanetRoleAndNode()
             {
                 Role = x.Role.ToModel(),
-                Node = x.Role.PermissionNodes.FirstOrDefault().ToModel()
+                Node = x.Role.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type).FirstOrDefault().ToModel()
             })
             .ToListAsync();
 
@@ -137,7 +138,7 @@ public class PlanetMemberService
             .Select(x => new PlanetRoleIdAndNode()
             {
                 RoleId = x.Role.Id,
-                Node = x.Role.PermissionNodes.FirstOrDefault().ToModel()
+                Node = x.Role.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type).FirstOrDefault().ToModel()
             })
             .Where(x => x.Node.TargetId == targetId && x.Node.TargetType == type)
             .ToListAsync();
@@ -244,7 +245,27 @@ public class PlanetMemberService
         // Get permission nodes in order of role position
         var rolePermData = await GetRolesAndNodesAsync(member, target.Id, permission.TargetType);
 
-        bool cannotview = true;
+        var viewPerm = PermissionState.Undefined;
+
+        foreach (var rolePerm in rolePermData)
+        {
+            var node = rolePerm.Node;
+            if (node is null)
+                continue;
+
+            viewPerm = node.GetPermissionState(ChatChannelPermissions.View, true);
+            if (viewPerm != PermissionState.Undefined)
+                break;
+        }
+
+        if (viewPerm == PermissionState.Undefined)
+        {
+            var _topRole = rolePermData.FirstOrDefault()?.Role ?? PlanetRole.DefaultRole;
+            viewPerm = Permission.HasPermission(_topRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
+        }
+
+        if (viewPerm != PermissionState.True)
+            return false;
 
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
@@ -252,17 +273,11 @@ public class PlanetMemberService
         {
             var node = rolePerm.Node;
 
-            if (node is null || (node.TargetId == target.Id && node.TargetType == permission.TargetType))
+            if (node is null)
                 continue;
             // If there is no view permission, there can't be any other permissions
             // View is always 0x01 for channel permissions, so it is safe to use ChatChannelPermission.View for
             // all cases.
-
-            // if a role explicitly says you can view a channel, any roles under it should not matter for seeing if you can view
-            if (cannotview == true)
-                cannotview = node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False;
-            if (cannotview)
-                return false;
 
             var state = node.GetPermissionState(permission, true);
 

@@ -45,12 +45,12 @@
                                 <label class="switch">
                                     @if (role.GetAuthority() == SelfAuthority)
                                     {
-                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]" disabled>
+                                        <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@SelectedRoles[role]" disabled>
                                         <span class="slider round" cursor: not-allowed;></span>
                                     }
                                     else
                                     {
-                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                        <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@SelectedRoles[role]">
                                         <span class="slider round"></span>
                                     }
                                 </label>
@@ -176,7 +176,7 @@
         {
             // set the default role channel view perms to false
 
-            PermissionsNode node = new()
+            PermissionsNode catnode = new()
             {
                 TargetId = 0,
                 PlanetId = planetId,
@@ -186,9 +186,21 @@
                 TargetType = PermChannelType.PlanetCategoryChannel,
             };
 
-            node.SetPermission(CategoryPermissions.View, PermissionState.False);
+            PermissionsNode chatnode = new()
+            {
+                TargetId = 0,
+                PlanetId = planetId,
+                RoleId = Planet.DefaultRoleId,
+                Mask = 0x00,
+                Code = 0x00,
+                TargetType = PermChannelType.PlanetChatChannel,
+            };
 
-            createRequest.Nodes.Add(node);
+            catnode.SetPermission(CategoryPermissions.View, PermissionState.False);
+            chatnode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+
+            createRequest.Nodes.Add(catnode);
+            createRequest.Nodes.Add(chatnode);
 
             foreach (PlanetRole role in Roles)
             {
@@ -197,7 +209,7 @@
                     continue;
                 }
 
-                PermissionsNode _node = new()
+                PermissionsNode _catnode = new()
                 {
                     TargetId = 0,
                     PlanetId = planetId,
@@ -206,9 +218,21 @@
                     Code = 0x00,
                     TargetType = PermChannelType.PlanetCategoryChannel
                 };
+                PermissionsNode _chatnode = new()
+                {
+                    TargetId = 0,
+                    PlanetId = planetId,
+                    RoleId = role.Id,
+                    Mask = 0x00,
+                    Code = 0x00,
+                    TargetType = PermChannelType.PlanetChatChannel
+                };
 
-                _node.SetPermission(CategoryPermissions.View, PermissionState.True);
-                createRequest.Nodes.Add(_node);
+                _catnode.SetPermission(CategoryPermissions.View, PermissionState.True);
+                _chatnode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+
+                createRequest.Nodes.Add(_catnode);
+                createRequest.Nodes.Add(_chatnode);
             }
         }
 
