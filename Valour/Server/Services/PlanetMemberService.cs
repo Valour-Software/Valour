@@ -121,7 +121,7 @@ public class PlanetMemberService
             .Select(x => new PlanetRoleAndNode()
             {
                 Role = x.Role.ToModel(),
-                Node = x.Role.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type).FirstOrDefault().ToModel()
+                Node = x.Role.PermissionNodes.FirstOrDefault(n => n.TargetId == targetId && n.TargetType == type).ToModel()
             })
             .ToListAsync();
 
@@ -138,7 +138,7 @@ public class PlanetMemberService
             .Select(x => new PlanetRoleIdAndNode()
             {
                 RoleId = x.Role.Id,
-                Node = x.Role.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type).FirstOrDefault().ToModel()
+                Node = x.Role.PermissionNodes.FirstOrDefault(n => n.TargetId == targetId && n.TargetType == type).ToModel()
             })
             .Where(x => x.Node.TargetId == targetId && x.Node.TargetType == type)
             .ToListAsync();
