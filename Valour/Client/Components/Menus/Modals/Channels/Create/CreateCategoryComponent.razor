@@ -43,8 +43,16 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
-                                    <span class="slider round"></span>
+                                    @if (role.GetAuthority() == SelfAuthority)
+                                    {
+                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]" disabled>
+                                        <span class="slider round" cursor: not-allowed;></span>
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                        <span class="slider round"></span>
+                                    }
                                 </label>
                             </div> 
                         </div>
@@ -84,6 +92,8 @@
     List<PlanetRole> Roles = new();
     bool isprivate = false;
 
+    int SelfAuthority { get; set; }
+
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
 
@@ -106,18 +116,24 @@
 
         var roles = await Planet.GetRolesAsync();
 
-        int SelfAuthority = await SelfMember.GetAuthorityAsync();
+        SelfAuthority = await SelfMember.GetAuthorityAsync();
         foreach (PlanetRole item in roles)
         {
-            if (item.GetAuthority() >= SelfAuthority)
+            if (item.GetAuthority() > SelfAuthority)
                 continue;
+
             Roles.Add(item);
-            SelectedRoles.Add(item, false);
+
+            if (item.GetAuthority() == SelfAuthority)
+                SelectedRoles.Add(item, true);
+            else
+                SelectedRoles.Add(item, false);
         }
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(PlanetRole role)
+    {
         SelectedRoles[role] = !SelectedRoles[role];
     }
     private void PrivateSwitch() {
@@ -167,7 +183,7 @@
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermChannelType.PlanetCategoryChannel
+                TargetType = PermChannelType.PlanetCategoryChannel,
             };
 
             node.SetPermission(CategoryPermissions.View, PermissionState.False);
@@ -176,13 +192,12 @@
 
             foreach (PlanetRole role in Roles)
             {
-
                 if (!SelectedRoles[role])
                 {
                     continue;
                 }
 
-                node = new()
+                PermissionsNode _node = new()
                 {
                     TargetId = 0,
                     PlanetId = planetId,
@@ -192,7 +207,8 @@
                     TargetType = PermChannelType.PlanetCategoryChannel
                 };
 
-                node.SetPermission(CategoryPermissions.View, PermissionState.True);
+                _node.SetPermission(CategoryPermissions.View, PermissionState.True);
+                createRequest.Nodes.Add(_node);
             }
         }
 

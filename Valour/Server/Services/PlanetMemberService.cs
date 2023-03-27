@@ -113,7 +113,7 @@ public class PlanetMemberService
     /// including the permissions node for a specific target channel
     /// </summary>
     public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+       (await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
             .OrderBy(x => x.Role.Position)
@@ -122,7 +122,8 @@ public class PlanetMemberService
                 Role = x.Role.ToModel(),
                 Node = x.Role.PermissionNodes.FirstOrDefault().ToModel()
             })
-            .ToListAsync();
+            .ToListAsync())
+        .Where(x => x.Node is null || x.Node.TargetId == targetId && x.Node.TargetType == type).ToList();
 
     /// <summary>
     /// Returns the role ids for the given PlanetMember id,
@@ -130,7 +131,7 @@ public class PlanetMemberService
     /// this will return role ids that no node
     /// </summary>
     public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
-        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
+        (await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
             .OrderBy(x => x.Role.Position)
@@ -139,7 +140,9 @@ public class PlanetMemberService
                 RoleId = x.Role.Id,
                 Node = x.Role.PermissionNodes.FirstOrDefault().ToModel()
             })
-            .ToListAsync();
+            .Where(x => x.Node.TargetId == targetId && x.Node.TargetType == type)
+            .ToListAsync())
+        .Where(x => x.Node is null || x.Node.TargetId == targetId && x.Node.TargetType == type).ToList();
 
     /// <summary>
     /// Returns the permission nodes for the given target in order of role position
@@ -243,6 +246,8 @@ public class PlanetMemberService
         // Get permission nodes in order of role position
         var rolePermData = await GetRolesAndNodesAsync(member, target.Id, permission.TargetType);
 
+        bool cannotview = true;
+
         // Starting from the most important role, we stop once we hit the first clear "TRUE/FALSE".
         // If we get an undecided, we continue to the next role down
         foreach (var rolePerm in rolePermData)
@@ -254,10 +259,14 @@ public class PlanetMemberService
             // If there is no view permission, there can't be any other permissions
             // View is always 0x01 for channel permissions, so it is safe to use ChatChannelPermission.View for
             // all cases.
-            if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
+
+            // if a role explicitly says you can view a channel, any roles under it should not matter for seeing if you can view
+            if (cannotview == true)
+                cannotview = node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False;
+            if (cannotview)
                 return false;
 
-            var state = node.GetPermissionState(permission);
+            var state = node.GetPermissionState(permission, true);
 
             switch (state)
             {

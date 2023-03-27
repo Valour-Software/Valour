@@ -112,6 +112,7 @@ public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
         while (target.InheritsPerms && target.ParentId is not null)
             target = await target.GetParentAsync();
 
+        bool cannotview = true;
         // Go through roles in order
         foreach (var role in memberRoles)
         {
@@ -124,10 +125,14 @@ public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
             // If there is no view permission, there can't be any other permissions
             // View is always 0x01 for channel permissions, so it is safe to use ChatChannelPermission.View for
             // all cases.
-            if (node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False)
+
+            // if a role explicitly says you can view a channel, any roles under it should not matter for seeing if you can view
+            if (cannotview == true)
+                cannotview = node.GetPermissionState(ChatChannelPermissions.View) == PermissionState.False;
+            if (cannotview)
                 return false;
 
-            var state = node.GetPermissionState(permission);
+            var state = node.GetPermissionState(permission, true);
 
             switch (state)
             {
