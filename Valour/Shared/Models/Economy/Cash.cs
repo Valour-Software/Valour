@@ -25,7 +25,6 @@ public struct Cash
 
     /// <summary>
     /// Create a new instance of Cash with a value.
-    /// Remember this will get rounded to 2 places! 
     /// </summary>
     public Cash(ISharedCurrency currency, decimal value)
     {

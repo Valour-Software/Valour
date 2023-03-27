@@ -3,6 +3,12 @@
 public interface ISharedCurrency
 {
     /// <summary>
+    /// Constant id for Valour Credits
+    /// I would choose 0, but that's the default. So I'll choose 3, the best number.
+    /// </summary>
+    const long ValourCreditsId = 3;
+
+    /// <summary>
     /// The database id of this currency
     /// </summary>
     long Id { get; set; }

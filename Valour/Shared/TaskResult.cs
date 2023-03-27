@@ -33,6 +33,8 @@ namespace Valour.Shared
 
         public static TaskResult FromError(ITaskResult error) => new(false, error.Message);
 
+        public static TaskResult FromError(string error) => new(false, error);
+
         public override string ToString()
         {
             if (Success)
@@ -73,6 +75,8 @@ namespace Valour.Shared
         }
 
         public static TaskResult<T> FromError(ITaskResult error) => new(false, error.Message);
+
+        public static TaskResult<T> FromError(string error) => new(false, error);
 
         public bool IsSuccessful(out T value)
         {

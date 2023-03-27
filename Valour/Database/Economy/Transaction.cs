@@ -60,7 +60,13 @@ public class Transaction : ISharedTransaction
     /// </summary>
     [Column("description")]
     public string Description { get; set; }
-    
+
+    /// <summary>
+    /// The amount of currency transferred in the transaction
+    /// </summary>
+    [Column("amount")]
+    public decimal Amount { get; set; }
+
     /// <summary>
     /// Additional data that can be attached to a transaction
     /// </summary>

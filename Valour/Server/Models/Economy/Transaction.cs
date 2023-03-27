@@ -50,7 +50,12 @@ public class Transaction : ISharedTransaction
     /// A description of the transaction
     /// </summary>
     public string Description { get; set; }
-    
+
+    /// <summary>
+    /// The amount of currency transferred in the transaction
+    /// </summary>
+    public decimal Amount { get; set; }
+
     /// <summary>
     /// Additional data that can be attached to a transaction
     /// </summary>

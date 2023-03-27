@@ -47,7 +47,12 @@ public interface ISharedTransaction
     /// A description of the transaction
     /// </summary>
     string Description { get; set; }
-    
+
+    /// <summary>
+    /// The amount of currency transferred in the transaction
+    /// </summary>
+    decimal Amount { get; set; }
+
     /// <summary>
     /// Additional data that can be attached to a transaction
     /// </summary>

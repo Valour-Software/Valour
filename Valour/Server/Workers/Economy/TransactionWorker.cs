@@ -60,14 +60,11 @@ public class TransactionWorker : IHostedService, IDisposable
         // and does not interact with the database, so it should be fine.
         await using var scope = _serviceProvider.CreateAsyncScope();
         var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+        var ecoService = scope.ServiceProvider.GetRequiredService<EcoService>();
 
-        foreach (var transaction in TransactionQueue.GetConsumingEnumerable())
+        foreach (var transaction in TransactionQueue.GetConsumingEnumerable(stoppingToken))
         {
-            if (stoppingToken.IsCancellationRequested)
-                return;
-
-
-
+            await ecoService.ProcessTransactionAsync(transaction);
         }
     }
 
