@@ -11,7 +11,7 @@
     @for (int i = 0; i < DisplayData.Count; i++)
     {
         <span class="is-typing-name" style="color: @DisplayData[i].rolecolor;">@DisplayData[i].name</span>
-        @if (i != DisplayData.Count && DisplayData.Count > 1)
+        @if (i != DisplayData.Count-1 && DisplayData.Count > 1)
         {
             <span class="is-typing-name">, </span>
         }

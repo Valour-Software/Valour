@@ -56,8 +56,8 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the permission state for a given permission
     /// </summary>
-    public PermissionState GetPermissionState(Permission perm) =>
-        ISharedPermissionsNode.GetPermissionState(this, perm);
+    public PermissionState GetPermissionState(Permission perm, bool ignoreviewperm = false) =>
+        ISharedPermissionsNode.GetPermissionState(this, perm, ignoreviewperm);
 
     /// <summary>
     /// Sets a permission to the given state

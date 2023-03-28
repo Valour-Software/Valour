@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Valour.Server.Services;
 
@@ -114,7 +115,7 @@ public class PlanetCategoryService
 
         _coreHub.NotifyPlanetItemChange(category);
 
-        return new(true, "Success");
+        return new(true, "Success", category);
     }
 
     public async Task<TaskResult<PlanetCategory>> UpdateAsync(PlanetCategory updated)
@@ -207,8 +208,8 @@ public class PlanetCategoryService
     /// </summary>
     public async Task DeleteAsync(PlanetCategory category)
     {
-        var update = new Valour.Database.PlanetCategory(){ Id = category.Id, IsDeleted = true };
-        _db.PlanetCategories.Attach(update).Property(x => x.IsDeleted).IsModified = true;
+        var dbcategory = await _db.PlanetCategories.FindAsync(category.Id);
+        dbcategory.IsDeleted = true;
         await _db.SaveChangesAsync();
 
         _coreHub.NotifyPlanetItemDelete(category);
