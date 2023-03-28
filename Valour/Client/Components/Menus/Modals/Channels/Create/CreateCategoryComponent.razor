@@ -43,8 +43,16 @@
                             </div>
                             <div type="button" style="float: right">
                                 <label class="switch">
-                                    <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
-                                    <span class="slider round"></span>
+                                    @if (role.GetAuthority() == SelfAuthority)
+                                    {
+                                        <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@SelectedRoles[role]" disabled>
+                                        <span class="slider round" cursor: not-allowed;></span>
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" @onclick="() => { SwitchRole(role); }" checked="@SelectedRoles[role]">
+                                        <span class="slider round"></span>
+                                    }
                                 </label>
                             </div> 
                         </div>
@@ -84,6 +92,8 @@
     List<PlanetRole> Roles = new();
     bool isprivate = false;
 
+    int SelfAuthority { get; set; }
+
     [Parameter, EditorRequired]
     public Planet Planet { get; set; }
 
@@ -106,18 +116,24 @@
 
         var roles = await Planet.GetRolesAsync();
 
-        int SelfAuthority = await SelfMember.GetAuthorityAsync();
+        SelfAuthority = await SelfMember.GetAuthorityAsync();
         foreach (PlanetRole item in roles)
         {
-            if (item.GetAuthority() >= SelfAuthority)
+            if (item.GetAuthority() > SelfAuthority)
                 continue;
+
             Roles.Add(item);
-            SelectedRoles.Add(item, false);
+
+            if (item.GetAuthority() == SelfAuthority)
+                SelectedRoles.Add(item, true);
+            else
+                SelectedRoles.Add(item, false);
         }
         StateHasChanged();
     }
 
-    private void SwitchRole(PlanetRole role) {
+    private void SwitchRole(PlanetRole role)
+    {
         SelectedRoles[role] = !SelectedRoles[role];
     }
     private void PrivateSwitch() {
@@ -160,29 +176,40 @@
         {
             // set the default role channel view perms to false
 
-            PermissionsNode node = new()
+            PermissionsNode catnode = new()
             {
                 TargetId = 0,
                 PlanetId = planetId,
                 RoleId = Planet.DefaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermChannelType.PlanetCategoryChannel
+                TargetType = PermChannelType.PlanetCategoryChannel,
             };
 
-            node.SetPermission(CategoryPermissions.View, PermissionState.False);
+            PermissionsNode chatnode = new()
+            {
+                TargetId = 0,
+                PlanetId = planetId,
+                RoleId = Planet.DefaultRoleId,
+                Mask = 0x00,
+                Code = 0x00,
+                TargetType = PermChannelType.PlanetChatChannel,
+            };
 
-            createRequest.Nodes.Add(node);
+            catnode.SetPermission(CategoryPermissions.View, PermissionState.False);
+            chatnode.SetPermission(ChatChannelPermissions.View, PermissionState.False);
+
+            createRequest.Nodes.Add(catnode);
+            createRequest.Nodes.Add(chatnode);
 
             foreach (PlanetRole role in Roles)
             {
-
                 if (!SelectedRoles[role])
                 {
                     continue;
                 }
 
-                node = new()
+                PermissionsNode _catnode = new()
                 {
                     TargetId = 0,
                     PlanetId = planetId,
@@ -191,8 +218,21 @@
                     Code = 0x00,
                     TargetType = PermChannelType.PlanetCategoryChannel
                 };
+                PermissionsNode _chatnode = new()
+                {
+                    TargetId = 0,
+                    PlanetId = planetId,
+                    RoleId = role.Id,
+                    Mask = 0x00,
+                    Code = 0x00,
+                    TargetType = PermChannelType.PlanetChatChannel
+                };
 
-                node.SetPermission(CategoryPermissions.View, PermissionState.True);
+                _catnode.SetPermission(CategoryPermissions.View, PermissionState.True);
+                _chatnode.SetPermission(ChatChannelPermissions.View, PermissionState.True);
+
+                createRequest.Nodes.Add(_catnode);
+                createRequest.Nodes.Add(_chatnode);
             }
         }
 

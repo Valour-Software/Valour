@@ -42,6 +42,10 @@
 - Any depiction of a minor in sexual acts, including simulation or art, will be treated as underage sexual content
 - Sexual content must always be within a properly flagged NSFW channel
 
+## Terrorist Content
+- Any terrorist content or content promoting terrorist activites are not permitted on the platform and will be reported to appropriate authorities as required by international law
+- Any violent extremist content will be regarded as terrorist content for the safety of the platform, regardless of international designation
+
 # Bots and API Usage
 
 ## API Usage

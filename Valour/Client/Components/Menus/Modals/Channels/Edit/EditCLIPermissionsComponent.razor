@@ -273,6 +273,13 @@
         SelfAuthority = await SelfMember.GetAuthorityAsync();
         SelfPrimaryRole = await SelfMember.GetPrimaryRoleAsync();
 
+        int _i = 1;
+        while (SelectedRole.GetAuthority() >= SelfAuthority && _i < Roles.Count)
+        {
+            SelectedRole = Roles[_i];
+            _i += 1;
+        }
+
 
         Permission managePerm;
         Permission permissionsPerm;

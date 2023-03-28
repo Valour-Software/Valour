@@ -93,9 +93,10 @@ public class PlanetChatChannelService
         var channel = request.Channel;
         List<PermissionsNode> nodes = new();
 
+        channel.Id = IdManager.Generate();
+
         // Create nodes
-        foreach (var nodeReq in request.Nodes)
-        {
+        foreach (var nodeReq in request.Nodes) {
             var node = nodeReq;
             node.TargetId = channel.Id;
             node.PlanetId = channel.PlanetId;
@@ -108,8 +109,6 @@ public class PlanetChatChannelService
 
             nodes.Add(node);
         }
-
-        channel.Id = IdManager.Generate();
 
         var tran = await _db.Database.BeginTransactionAsync();
 
