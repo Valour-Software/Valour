@@ -14,7 +14,7 @@ public class OauthAppAPI
         OauthAppService oauthAppService,
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         var old = await oauthAppService.GetAsync(app.Id);
 

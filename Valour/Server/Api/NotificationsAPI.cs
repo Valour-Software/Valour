@@ -20,7 +20,7 @@ public class NotificationsAPI : BaseAPI
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();
 
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         if (userId is long.MinValue)
             return ValourResult.InvalidToken();
@@ -67,7 +67,7 @@ public class NotificationsAPI : BaseAPI
         if (string.IsNullOrWhiteSpace(authorization))
             return ValourResult.NoToken();
 
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         if (userId is long.MinValue)
             return ValourResult.InvalidToken();

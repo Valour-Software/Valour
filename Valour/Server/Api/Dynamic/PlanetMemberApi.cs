@@ -88,7 +88,7 @@ public class PlanetMemberApi
         PlanetMemberService service,
         UserService userService)
     {
-        var selfId = await userService.GetCurrentUserId();
+        var selfId = await userService.GetCurrentUserIdAsync();
         if (selfId != member.UserId)
             return Results.BadRequest("You can only modify your own membership.");
 

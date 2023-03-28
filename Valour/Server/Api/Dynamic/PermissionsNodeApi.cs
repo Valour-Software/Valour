@@ -106,7 +106,7 @@ public class PermissionsNodeApi
         PlanetRoleService roleService,
         PlanetChannelService channelService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         // Unfortunately we have to do the permissions in here
         var planet = await planetService.GetAsync(node.PlanetId);

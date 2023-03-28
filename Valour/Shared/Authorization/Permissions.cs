@@ -238,8 +238,8 @@ public static class UserPermissions
                 Messages,
                 Friends,
                 DirectMessages,
-                EconomyPlanetView,
-                EconomyPlanetSend,
+                EconomyViewPlanet,
+                EconomySendPlanet,
                 EconomyViewGlobal,
                 EconomySendGlobal,
         };
@@ -261,8 +261,8 @@ public static class UserPermissions
     public static readonly UserPermission DirectMessages = new UserPermission(0x80, "Direct Messages", "Allows this app to view your direct messages.");
 
     // Economy permissions
-    public static readonly UserPermission EconomyPlanetView = new UserPermission(0x100, "Economy (Planets) - View", "Allows this app to view your planet eco accounts.");
-    public static readonly UserPermission EconomyPlanetSend = new UserPermission(0x200, "Economy (Planets) - Send", "Allows this app to send money from your planet eco accounts.");
+    public static readonly UserPermission EconomyViewPlanet = new UserPermission(0x100, "Economy (Planets) - View", "Allows this app to view your planet eco accounts.");
+    public static readonly UserPermission EconomySendPlanet = new UserPermission(0x200, "Economy (Planets) - Send", "Allows this app to send money from your planet eco accounts.");
     public static readonly UserPermission EconomyViewGlobal = new UserPermission(0x400, "Economy (Global) - View", "Allows this app to view your global (Valour Credits) eco account.");
     public static readonly UserPermission EconomySendGlobal = new UserPermission(0x800, "Economy (Global) - Send", "Allows this app to send money from your global (Valour Credits) eco account.");
 }
