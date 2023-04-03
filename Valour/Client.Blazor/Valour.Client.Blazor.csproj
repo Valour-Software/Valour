@@ -5,7 +5,6 @@
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
     <PublishTrimmed>false</PublishTrimmed>
-    <DotNetJsVersion>7.0.0</DotNetJsVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
