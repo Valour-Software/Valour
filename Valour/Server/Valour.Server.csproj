@@ -7,6 +7,9 @@
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
+  <PropertyGroup>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="3.7.101.19" />
