@@ -6,7 +6,9 @@
     <DebugType>portable</DebugType>
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
-
+  <PropertyGroup>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
     <PackageReference Include="Blazored.Modal" Version="7.1.0" />
