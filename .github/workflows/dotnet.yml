@@ -1,6 +1,6 @@
 name: .NET
 
-on:
+on: 
   push:
     branches: [ "main" ]
   pull_request:
