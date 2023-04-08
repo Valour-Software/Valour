@@ -17,6 +17,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - uses: benjlevesque/short-sha@v2.2
+      id: short-sha
+      with:
+        length: 7
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
@@ -28,7 +32,6 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
-  
     - name: Publish Shared Nuget Package
       uses: alirezanet/publish-nuget@v3.0.4
       with:
@@ -61,5 +64,5 @@ jobs:
       with:
         context: .
         push: true
-        tags: '${{ steps.meta.outputs.tags }}-${GITHUB_SHA::7}'
+        tags: '${{ steps.meta.outputs.tags }}-${{ env.SHA }}'
         labels: ${{ steps.meta.outputs.labels }}
