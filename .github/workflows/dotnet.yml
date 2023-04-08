@@ -16,11 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Set short git commit SHA
-      id: vars
-      run: |
-        calculatedSha=$(git rev-parse --short ${{ github.sha }})
-        echo "::set-output name=short_sha::$calculatedSha"
     - uses: actions/checkout@v3
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
@@ -66,5 +61,5 @@ jobs:
       with:
         context: .
         push: true
-        tags: '${{ steps.meta.outputs.tags }}-${{ steps.vars.outputs.short_sha }}'
+        tags: '${{ steps.meta.outputs.tags }}-${GITHUB_SHA::7}'
         labels: ${{ steps.meta.outputs.labels }}
