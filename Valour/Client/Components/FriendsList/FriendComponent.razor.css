@@ -8,10 +8,6 @@
     max-width: 100%;
 }
 
-.friend-card:nth-child(2n){
-    background-color: var(--main-3);
-}
-
 .friend-card:hover {
     background-color: var(--main-5);
 }
@@ -33,7 +29,7 @@
 .friend-info {
     display: grid;
     vertical-align: top;
-    padding: 5px 5px 5px 10px;
+    padding: 7px 5px 5px 10px;
 }
 
 .status-text {

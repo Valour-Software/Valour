@@ -1,24 +1,17 @@
 
-<tr>
-    <td style="width: 110px;">
+<tr class="data-row">
+    <td>
         @Invite.Code
     </td>
-    <td style="width: 300px;">
+    <td>
         @IssuerName
     </td>
-    <th style="width: 125px;">
+    <td>
         @Invite.TimeCreated.ToLocalTime().ToShortDateString()
-    </th>
-    @if (Invite.TimeExpires != null) {
-        <th style="width: 125px;">
-            @Invite.TimeExpires.Value.ToLocalTime().ToShortDateString()
-        </th>
-    }
-    else {
-        <th style="width: 125px;">
-            Never Expires
-        </th>
-    }
+    </td>
+    <td>
+        @(Invite.TimeExpires?.ToLocalTime().ToShortDateString() ?? "Never")
+    </td>
 </tr>
 
 @code {

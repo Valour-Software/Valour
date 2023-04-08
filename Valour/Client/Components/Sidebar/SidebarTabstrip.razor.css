@@ -8,6 +8,10 @@
     align-items: center;
 }
 
+.mobile .tabstrip {
+    min-height: 80px;
+}
+
 .tabstrip .item {
     cursor:pointer;
     text-align: center;
@@ -21,4 +25,9 @@
 .tabstrip .icon {
     height: 16px;
     margin: 4px;
+}
+
+.mobile .tabstrip .icon {
+    height: 26px;
+    margin: 8px;
 }

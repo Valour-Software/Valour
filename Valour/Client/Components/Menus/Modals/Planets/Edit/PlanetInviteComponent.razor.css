@@ -2,5 +2,18 @@ td, th {
     border: 0px;
 }
 
-tr {
+tr:nth-child(2n+1) {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+td:nth-child(1),
+td:nth-child(3),
+td:nth-child(4) {
+    width: 20%;
+    min-width: 100px;
+}
+
+td:nth-child(2) {
+    width: 40%;
+    min-width: 150px;
 }

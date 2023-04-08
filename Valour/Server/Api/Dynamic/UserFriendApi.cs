@@ -13,7 +13,7 @@ public class UserFriendApi
 	    UserFriendService userFriendService,
         UserService userService)
     {
-        var requesteruserid = await userService.GetCurrentUserId();
+        var requesteruserid = await userService.GetCurrentUserIdAsync();
 
         /* TODO: In the future, allow users to enable other users seeing their friends */
         if (requesteruserid != userId)
@@ -34,7 +34,7 @@ public class UserFriendApi
         UserFriendService userFriendService,
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         /* TODO: Eventually ensure user is not blocked */
 
@@ -52,7 +52,7 @@ public class UserFriendApi
         UserFriendService userFriendService,
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         /* TODO: Eventually ensure user is not blocked */
 
@@ -70,7 +70,7 @@ public class UserFriendApi
         UserFriendService userFriendService,
         UserService userService)
 	{
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         var result = await userFriendService.DeclineRequestAsync(username, userId);
         if (!result.Success)
@@ -86,7 +86,7 @@ public class UserFriendApi
         UserFriendService userFriendService,
         UserService userService)
 	{
-        var userId = await userService.GetCurrentUserId(); ;
+        var userId = await userService.GetCurrentUserIdAsync(); ;
 
         var result = await userFriendService.CancelRequestAsync(username, userId);
         if (!result.Success)

@@ -332,12 +332,24 @@ namespace Valour.Server
         /// </summary>
         public static void LoadConfigsAsync(WebApplicationBuilder builder)
         {
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .AddEnvironmentVariables()
+                .Build();
+            
             builder.Configuration.GetSection("CDN").Get<CdnConfig>();
             builder.Configuration.GetSection("Database").Get<DbConfig>();
             builder.Configuration.GetSection("Email").Get<EmailConfig>();
             builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
             builder.Configuration.GetSection("Node").Get<NodeConfig>();
             builder.Configuration.GetSection("Redis").Get<RedisConfig>();
+            
+            // Override with Kubernetes node details
+            var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");
+            if (nodeName is not null)
+            {
+                NodeConfig.Instance.ApplyKubeHostname(nodeName);
+            }
         }
     }
 }

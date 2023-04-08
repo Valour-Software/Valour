@@ -1,28 +1,34 @@
 ﻿td, th {
-    border: 0px;
+    border: 0;
 }
 
 .invite-list {
-    border: 0px;
-    margin-top: 0px;
+    border: 0;
+    margin-top: 0;
     width: 100%;
+    height: 240px;
+    overflow-y: auto;
 }
 
 .invite-table {
     border-radius: 8px;
     background-color: var(--main-4);
-    width: 525px;
 }
 
 .invite-tab-holder {
-    width: 525px;
 }
 
-tr {
+table {
+    width: 100%;
+    overflow-x: auto;
+}
+
+thead {
+    background-color: var(--main-2);
 }
 
 .invite-tab-holder .settings-button {
-    margin-top: 0px;
+    margin-top: 0;
     width: 50%;
     background-color: rgba(255, 255, 255, 0.05);
 }
@@ -46,40 +52,35 @@ tr {
     vertical-align: central;
 }
 
-    .settings-button:active {
-        background-color: rgba(255, 255, 255, 0.3);
-    }
+.settings-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
 
 
-    .invite-tab-holder .settings-button:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
+.invite-tab-holder .settings-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
 
-    .invite-tab-holder .settings-button:active {
-        background-color: rgba(255, 255, 255, 0.3);
-    }
+.invite-tab-holder .settings-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
 
-    .invite-tab-holder .settings-button.active {
-        background-color: rgba(255, 255, 255, 0.1);
-    }
+.invite-tab-holder .settings-button.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
 
-    .invite-tab-holder .settings-button:hover.active {
-        background-color: rgba(255, 255, 255, 0.2);
-    }
+.invite-tab-holder .settings-button:hover.active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
 
-    .invite-tab-holder .settings-button.left {
-        border-radius: 5px 0px 0px 0px;
-        margin-right: 0px;
-        float: left;
-    }
+.invite-tab-holder .settings-button.left {
+    border-radius: 5px 0px 0px 0px;
+    margin-right: 0px;
+    float: left;
+}
 
-    .invite-tab-holder .settings-button.right {
-        border-radius: 0px 5px 0px 0px;
-        margin-left: 0px;
-        float: left;
-    }
-
-.invite-list {
-    height: 60%;
-    overflow-y: scroll;
+.invite-tab-holder .settings-button.right {
+    border-radius: 0px 5px 0px 0px;
+    margin-left: 0px;
+    float: left;
 }

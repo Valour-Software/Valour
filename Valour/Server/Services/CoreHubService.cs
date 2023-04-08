@@ -139,4 +139,25 @@ public class CoreHubService
             await _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time));
         }
 
+    ////////////////
+    // Eco Events //
+    ////////////////
+
+    public async void NotifyPlanetTransactionProcessed(Transaction transaction)
+    {
+        await _hub.Clients.Group($"p-{transaction.PlanetId}").SendAsync("Transaction-Processed", transaction);
+        await _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
+        await _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+    }
+
+    public async void NotifyGlobalTransactionProcessed(Transaction transaction)
+    {
+        // TODO: Cross-node events
+        
+        await _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
+        await _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+    }
+
+    public async void NotifyCurrencyChange(Currency item, int flags = 0) =>
+        await _hub.Clients.Group($"p-{item.Id}").SendAsync($"Currency-Update", item, flags);
 }

@@ -95,7 +95,7 @@ public class PlanetApi
             if (!await memberService.ExistsAsync(planet.OwnerId, planet.Id))
                 return Results.BadRequest("You cannot transfer ownership to a non-member.");
             
-            var ownedPlanets = await userService.GetOwnedPlanetCount(await userService.GetCurrentUserId());
+            var ownedPlanets = await userService.GetOwnedPlanetCount(await userService.GetCurrentUserIdAsync());
             if (ownedPlanets >= ISharedUser.MaxOwnedPlanets)
                 return Results.BadRequest("That new owner has the maximum owned planets!");
         }
@@ -119,7 +119,7 @@ public class PlanetApi
         if (planet is null)
             return ValourResult.NotFound("Planet not found");
         
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         if (userId != planet.OwnerId)
             return ValourResult.Forbid("You are not the owner of this planet.");

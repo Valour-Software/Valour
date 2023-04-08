@@ -202,7 +202,16 @@ public enum UserPermissionsEnum
     PlanetManagement,
     Messages,
     Friends,
-    DirectMessages
+    DirectMessages,
+
+    // A whole lot of eco permissions.
+    // We want fine-grained control for oauth
+    EconomyPlanetView,
+    EconomyPlanetSend,
+    EconomyViewGlobal,
+    EconomySendGlobal,
+    EconomyPlanetTrade,
+    EconomyGlobalTrade
 }
 
 /// <summary>
@@ -228,7 +237,11 @@ public static class UserPermissions
                 PlanetManagement,
                 Messages,
                 Friends,
-                DirectMessages
+                DirectMessages,
+                EconomyViewPlanet,
+                EconomySendPlanet,
+                EconomyViewGlobal,
+                EconomySendGlobal,
         };
     }
 
@@ -246,6 +259,12 @@ public static class UserPermissions
     public static readonly UserPermission Messages = new UserPermission(0x20, "Messages", "Allows this app to send and receive messages.");
     public static readonly UserPermission Friends = new UserPermission(0x40, "Friends", "Allows this app to view and manage your friends.");
     public static readonly UserPermission DirectMessages = new UserPermission(0x80, "Direct Messages", "Allows this app to view your direct messages.");
+
+    // Economy permissions
+    public static readonly UserPermission EconomyViewPlanet = new UserPermission(0x100, "Economy (Planets) - View", "Allows this app to view your planet eco accounts.");
+    public static readonly UserPermission EconomySendPlanet = new UserPermission(0x200, "Economy (Planets) - Send", "Allows this app to send money from your planet eco accounts.");
+    public static readonly UserPermission EconomyViewGlobal = new UserPermission(0x400, "Economy (Global) - View", "Allows this app to view your global (Valour Credits) eco account.");
+    public static readonly UserPermission EconomySendGlobal = new UserPermission(0x800, "Economy (Global) - Send", "Allows this app to send money from your global (Valour Credits) eco account.");
 }
 
 public enum ChatChannelPermissionsEnum
@@ -258,7 +277,8 @@ public enum ChatChannelPermissionsEnum
     ManagePermissions,
     Embed,
     AttachContent,
-    ManageMessages
+    ManageMessages,
+    UseEconomy,
 }
 
 /// <summary>
@@ -288,6 +308,10 @@ public static class ChatChannelPermissions
     public static readonly ChatChannelPermission AttachContent;
     public static readonly ChatChannelPermission ManageMessages;
 
+
+    // Eco permissions
+    public static readonly ChatChannelPermission UseEconomy;
+
     static ChatChannelPermissions()
     {
         FullControl = new ChatChannelPermission(Permission.FULL_CONTROL, "Full Control", "Allow members full control of the channel");
@@ -299,6 +323,7 @@ public static class ChatChannelPermissions
         Embed = new ChatChannelPermission(0x20, "Embed", "Allow members to post embedded content to the channel.");
         AttachContent = new ChatChannelPermission(0x40, "Attach Content", "Allow members to upload files to the channel.");
         ManageMessages = new ChatChannelPermission(0x80, "Manage Messages", "Allow members to delete and manage messages in the channel.");
+        UseEconomy = new ChatChannelPermission(0x100, "Use Economy", "Allow members to use economic features in this channel.");
 
         Permissions = new ChatChannelPermission[]
         {
@@ -310,7 +335,8 @@ public static class ChatChannelPermissions
                 ManagePermissions,
                 Embed,
                 AttachContent,
-                ManageMessages
+                ManageMessages,
+                UseEconomy,
         };
 
         Default = Permission.CreateCode(View, ViewMessages, PostMessages);
@@ -452,7 +478,13 @@ public enum PlanetPermissionsEnum
     Ban,
     ManageCategories,
     ManageChannels,
-    ManageRoles
+    ManageRoles,
+
+    // Eco Permissions
+    UseEconomy,
+    ManageCurrency,
+    ManageEcoAccounts,
+    ForceTransactions,
 }
 
 /// <summary>
@@ -462,7 +494,7 @@ public enum PlanetPermissionsEnum
 public static class PlanetPermissions
 {
     public static readonly long Default =
-        Permission.CreateCode(View);
+        Permission.CreateCode(View, UseEconomy);
 
     /// <summary>
     /// Contains every planet permission
@@ -481,7 +513,13 @@ public static class PlanetPermissions
                 Kick,
                 Ban,
                 CreateChannels,
-                ManageRoles
+                ManageRoles,
+
+                // Eco Permissions
+                UseEconomy,
+                ManageCurrency,
+                ManageEcoAccounts,
+                ForceTransactions,
         };
     }
 
@@ -496,6 +534,12 @@ public static class PlanetPermissions
     public static readonly PlanetPermission Ban = new PlanetPermission(0x20, "Ban Members", "Allow members to ban other members.");
     public static readonly PlanetPermission CreateChannels = new PlanetPermission(0x40, "Create Channels", "Allow members to create channels. They must have permission in the parent category.");
     public static readonly PlanetPermission ManageRoles = new PlanetPermission(0x80, "Manage Roles", "Allow members to manage roles.");
+
+    // Eco Permissions
+    public static readonly PlanetPermission UseEconomy = new PlanetPermission(0x100, "Use Economy", "Allow members to use the planet's economy.");
+    public static readonly PlanetPermission ManageCurrency = new PlanetPermission(0x200, "Manage Currency", "Allow members to manage the planet's currency.");
+    public static readonly PlanetPermission ManageEcoAccounts = new PlanetPermission(0x400, "Manage Eco Accounts", "Allow members to manage the planet's economy accounts.");
+    public static readonly PlanetPermission ForceTransactions = new PlanetPermission(0x800, "Force Transactions", "Allow members to force transactions in the planet.");
 
 }
 

@@ -34,7 +34,7 @@ public class DirectChatChannelApi
         bool create = false) // True if the channel should be created if it doesn't exist
     {
         // id is the id of the target user, not the channel!
-        var requesterUserId = await userService.GetCurrentUserId();//ctx.GetToken();
+        var requesterUserId = await userService.GetCurrentUserIdAsync();//ctx.GetToken();
 
         // Ensure target user exists
         var targetuser = await userService.GetAsync(id);
@@ -58,7 +58,7 @@ public class DirectChatChannelApi
         DirectChatChannelService directService,
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
         var results = await directService.GetChannelsForUserAsync(userId);
         return Results.Json(results);
     }
@@ -73,7 +73,7 @@ public class DirectChatChannelApi
         DirectChatChannelService directService,
         UserService userService)
     {
-        var requesterUserId = await userService.GetCurrentUserId();
+        var requesterUserId = await userService.GetCurrentUserIdAsync();
 
         var channel = await directService.GetAsync(id);
 
@@ -99,7 +99,7 @@ public class DirectChatChannelApi
         if (count > 64)
             return Results.BadRequest("Maximum count is 64.");
 
-        var requesterUserId = await userService.GetCurrentUserId();
+        var requesterUserId = await userService.GetCurrentUserIdAsync();
 
         var channel = await directService.GetAsync(id);
 
@@ -125,7 +125,7 @@ public class DirectChatChannelApi
         DirectChatChannelService directService,
         UserService userService)
     {
-        var requesterUserId = await userService.GetCurrentUserId();
+        var requesterUserId = await userService.GetCurrentUserIdAsync();
 
         if (message is null)
             return Results.BadRequest("Include message in body.");
@@ -172,7 +172,7 @@ public class DirectChatChannelApi
         DirectChatChannelService directService,
         UserService userService)
     {
-        var requesterUserId = await userService.GetCurrentUserId();
+        var requesterUserId = await userService.GetCurrentUserIdAsync();
 
         var channel = await directService.GetAsync(id);
 

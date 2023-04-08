@@ -16,7 +16,7 @@ public class UserApi
         UserService userService,
         [FromQuery] bool isMobile = false)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
         await onlineService.UpdateOnlineState(userId);
     }
 
@@ -35,7 +35,7 @@ public class UserApi
         [FromBody] User user, 
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         // Unlike most other entities, we are just copying over a few fields here and
         // ignoring the rest. There are so many things that *should not* be touched by
@@ -94,7 +94,7 @@ public class UserApi
     public static async Task<IResult> ChannelStatesRouteAsync(
         UserService userService)
     {
-        var channelStates = await userService.GetUserChannelStatesAsync(await userService.GetCurrentUserId());
+        var channelStates = await userService.GetUserChannelStatesAsync(await userService.GetCurrentUserIdAsync());
 
         return Results.Json(channelStates);
     }
@@ -228,7 +228,7 @@ public class UserApi
     public static async Task<IResult> GetPlanetsRouteAsync(
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         var planets = await userService.GetPlanetsUserIn(userId);
 
@@ -241,7 +241,7 @@ public class UserApi
     public static async Task<IResult> GetPlanetIdsRouteAsync(
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         var planets = (await userService.GetPlanetsUserIn(userId)).Select(x => x.Id).ToList();
 
@@ -254,7 +254,7 @@ public class UserApi
         long id, 
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         if (id != userId)
             return ValourResult.Forbid("You cannot currently view another user's friends.");
@@ -268,7 +268,7 @@ public class UserApi
         long id, 
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         if (id != userId)
             return ValourResult.Forbid("You cannot currently view another user's friend data.");
@@ -287,7 +287,7 @@ public class UserApi
     public static async Task<IResult> GetTenorFavoritesRouteAsync(
         UserService userService)
     {
-        var userId = await userService.GetCurrentUserId();
+        var userId = await userService.GetCurrentUserIdAsync();
 
         return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
