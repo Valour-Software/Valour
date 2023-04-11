@@ -126,7 +126,7 @@ namespace Valour.Server
                 var conIdString = split[1];
                 await rdb.SetRemoveAsync($"user:{userIdString}", $"{NodeConfig.Instance.Name}:{conIdString}", CommandFlags.FireAndForget);
             }
-            
+
             /*
 
             int c = 0;
@@ -306,10 +306,12 @@ namespace Valour.Server
             services.AddScoped<UserFriendService>();
             services.AddScoped<UserOnlineService>();
             services.AddScoped<UserService>();
+            services.AddScoped<NodeService>();
 
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
+            services.AddHostedService<NodeStateWorker>();
 
             services.AddEndpointsApiExplorer();
 
