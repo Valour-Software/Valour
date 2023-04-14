@@ -25,7 +25,7 @@ namespace Valour.Api.Nodes
         public static async ValueTask<Node> GetNodeForPlanetAsync(long planetId)
         {
 
-#if (!DEBUG)
+//#if (DEBUG)
             PlanetToNode.TryGetValue(planetId, out Node node);
 
             // Do we already have the node?
@@ -57,10 +57,10 @@ namespace Valour.Api.Nodes
             }
 
             return node;
-#else
+//#else
             // In debug, we only have one node (local)
-            return Nodes[0];
-#endif
+//            return Nodes[0];
+//#endif
         }
     }
 }
