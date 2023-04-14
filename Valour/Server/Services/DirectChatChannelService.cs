@@ -173,7 +173,7 @@ public class DirectChatChannelService
         foreach (var target in nodeTargets.Distinct())
         {
             // Case for same name
-            if (target.nodeId == NodeAPI.Node.Name)
+            if (target.nodeId == NodeConfig.Instance.Name)
             {
                 // Just fire event in this node
                 _coreHub.NotifyDirectMessageDeletion(message, target.userId);
@@ -280,7 +280,7 @@ public class DirectChatChannelService
         foreach (var target in nodeTargets.Distinct())
         {
             // Case for same name
-            if (target.nodeId == NodeAPI.Node.Name)
+            if (target.nodeId == NodeConfig.Instance.Name)
             {
                 // Just fire event in this node
                 _coreHub.RelayDirectMessage(message, target.userId);

@@ -8,9 +8,16 @@ namespace Valour.Server.Services;
 /// </summary>
 public class NodeService
 {
+    // Local node information
+    public readonly string Name;
+    public readonly string Location;
+    public readonly string Version;
+    public Dictionary<long, Planet> Planets { get; }
+    
     private readonly ValourDB _db;
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
+    private readonly ISubscriber _redisChannel;
     
     private readonly string _nodeAliveKey = $"alive:{NodeConfig.Instance.Name}";
 
@@ -19,6 +26,16 @@ public class NodeService
         _logger = logger;
         _db = db;
         _nodeRecords = redis.GetDatabase(1);
+        _redisChannel = redis.GetSubscriber();
+
+        _redisChannel.Subscribe("planet-requests", OnPlanetRequestedAsync);
+        
+        var config = NodeConfig.Instance;
+        Name = config.Name;
+        Location = config.Location;
+        Version = typeof(Valour.Shared.Models.ISharedUser).Assembly.GetName().Version.ToString();
+
+        Planets = new();
     }
 
     /// <summary>
@@ -58,6 +75,9 @@ public class NodeService
     /// </summary>
     public async Task<string> GetPlanetNodeAsync(long planetId)
     {
+        if (Planets.ContainsKey(planetId))
+            return Name; // We are hosting the planet (this is a local request)
+        
         var key = $"planet:{planetId}";
         var node = await _nodeRecords.StringGetAsync(key);
         if (node.IsNull)
@@ -68,8 +88,84 @@ public class NodeService
     /// <summary>
     /// Unlike GetPlanetNodeAsync, this method will request a node for the given planet if one is not found
     /// </summary>
-    public async Task RequestPlanetNodeAsync(long planetId)
+    public async Task<string> RequestPlanetNodeAsync(long planetId)
     {
+        // Check if planet is already hosted
+        var location = await GetPlanetNodeAsync(planetId);
+        if (location is not null)
+            return location;
+        
+        // Check if we can host the planet
+        var canHost = CanHostPlanetAsync(planetId);
+        if (canHost)
+        {
+            await AnnouncePlanetHostedAsync(planetId);
+            return Name; // Return ourselves
+        }
+        
+        // We can't host the planet, so we need to request another node
 
+        var tryNum = 1;
+        string node = null;
+        while (node is null)
+        {
+            // Put a request object in redis channel
+            await _redisChannel.PublishAsync("planet-requests", $"{Name}:{planetId.ToString()}");
+            
+            // Wait 200ms * tries for a response
+            await Task.Delay(200 * tryNum);
+            
+            // Check if planet is hosted
+            node = await GetPlanetNodeAsync(planetId);
+
+            tryNum++;
+        }
+
+        // Return node once a node has taken it
+        return node;
+    }
+
+    public void OnPlanetRequestedAsync(RedisChannel channel, RedisValue value)
+    {
+        try
+        {
+            var split = value.ToString().Split(':');
+            var planetId = long.Parse(split[1]);
+
+            Task.Run(async () =>
+            {
+                // Check if someone else already is hosting
+                var currentHost = await GetPlanetNodeAsync(planetId);
+                if (currentHost is not null)
+                    return;
+                
+                // Check if we can host the planet
+                var canHost = CanHostPlanetAsync(planetId);
+                if (canHost)
+                {
+                    await AnnouncePlanetHostedAsync(planetId);
+                }
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error handling planet request");
+        }
+    }
+
+    public async Task AnnouncePlanetHostedAsync(long planetId)
+    {
+        var key = $"planet:{planetId}";
+        await _nodeRecords.StringSetAsync(key, Name);
+    }
+    
+    /// <summary>
+    /// Returns whether this node is capable of hosting the given planet.
+    /// Used for determining where to place unhosted planets.
+    /// </summary>
+    private bool CanHostPlanetAsync(long planetId)
+    {
+        // For now we just assume we can
+        return true;
     }
 }

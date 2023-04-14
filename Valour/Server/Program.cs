@@ -110,7 +110,7 @@ namespace Valour.Server
                 new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app),
             };
 
-            NodeAPI = new NodeAPI(NodeConfig.Instance);
+            NodeAPI = new NodeAPI();
             NodeAPI.AddRoutes(app);
 
             // Migrations and tasks
@@ -306,7 +306,8 @@ namespace Valour.Server
             services.AddScoped<UserFriendService>();
             services.AddScoped<UserOnlineService>();
             services.AddScoped<UserService>();
-            services.AddScoped<NodeService>();
+            
+            services.AddSingleton<NodeService>();
 
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
