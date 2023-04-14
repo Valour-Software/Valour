@@ -14,8 +14,6 @@ namespace Valour.Api.Nodes
         public static Dictionary<long, Node> PlanetToNode { get; } = new Dictionary<long, Node>();
         public static Dictionary<string, Node> NameToNode { get; } = new Dictionary<string, Node>();
 
-        const string CoreLocation = "https://core.valour.gg";
-
         public static void AddNode(Node node)
         {
             NameToNode[node.Name] = node;
@@ -33,15 +31,15 @@ namespace Valour.Api.Nodes
             // Do we already have the node?
             if (node is null)
             {
-                //If not, ask core node where the planet is located
-                var coreResponse = await ValourClient.Http.GetAsync(CoreLocation + $"/nodes/planet/{planetId}/name");
+                // If not, ask current node where the planet is located
+                var response = await ValourClient.PrimaryNode.GetAsync($"api/node/planet/{planetId}");
 
                 // We failed to find the planet in a node
-                if (!coreResponse.IsSuccessStatusCode)
+                if (!response.Success)
                     return null;
 
                 // If we succeeded, wrap the response in a node object
-                var nodeName = await coreResponse.Content.ReadAsStringAsync();
+                var nodeName = response.Data;
 
                 NameToNode.TryGetValue(nodeName, out node);
 

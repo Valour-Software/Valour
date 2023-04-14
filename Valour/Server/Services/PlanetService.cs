@@ -20,6 +20,12 @@ public class PlanetService
         _coreHub = coreHub;
         _logger = logger;
     }
+    
+    /// <summary>
+    /// Returns whether a planet exists with the given id
+    /// </summary>
+    public async Task<bool> ExistsAsync(long id) =>
+        await _db.Planets.AnyAsync(x => x.Id == id);
 
     /// <summary>
     /// Returns the planet with the given id

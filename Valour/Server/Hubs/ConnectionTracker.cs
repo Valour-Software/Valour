@@ -138,7 +138,7 @@ public class ConnectionTracker
             ConnectionId = context.ConnectionId,
             UserId = userId,
             OpenTime = DateTime.UtcNow,
-            NodeId = NodeAPI.Node.Name
+            NodeId = NodeConfig.Instance.Name
         };
         
         // Add to collection
@@ -147,10 +147,10 @@ public class ConnectionTracker
         var rdb = redis.GetDatabase(RedisDbTypes.Connections);
 
         // Connection to node
-        rdb.SetAdd($"node:{NodeAPI.Node.Name}", $"{userId}:{context.ConnectionId}");
+        rdb.SetAdd($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
         
         // Specific connection by user
-        rdb.SetAdd($"user:{userId}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
+        rdb.SetAdd($"user:{userId.ToString()}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
     }
 
     public static async Task RemovePrimaryConnection(HubCallerContext context, IConnectionMultiplexer redis)
@@ -163,9 +163,9 @@ public class ConnectionTracker
         var rdb = redis.GetDatabase(RedisDbTypes.Connections);
         
         // Connection to node
-        rdb.SetRemove($"node:{NodeAPI.Node.Name}", $"{userId}:{context.ConnectionId}");
+        rdb.SetRemove($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
         
         // Specific connection by user
-        rdb.SetRemove($"user:{userId}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
+        rdb.SetRemove($"user:{userId.ToString()}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
     }
 }

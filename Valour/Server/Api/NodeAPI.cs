@@ -11,24 +11,6 @@ namespace Valour.Server.API
 {
     public class NodeAPI : BaseAPI
 	{
-        public readonly string Name;
-        public readonly string Address;
-
-        public readonly string Version;
-
-        public Dictionary<long, Planet> Planets { get; }
-
-        public static NodeAPI Node;
-
-        public NodeAPI(NodeConfig config)
-        {
-            Node = this;
-            Name = config.Name;
-            Address = config.Location;
-            Planets = new();
-            Version = typeof(ISharedUser).Assembly.GetName().Version.ToString();
-        }
-
 
         public class NodeHandshakeResponse
         {
@@ -47,24 +29,32 @@ namespace Valour.Server.API
         /// </summary>
         public static void AddRoutes(WebApplication app)
         {
-            app.MapGet("api/node/handshake", () => new NodeHandshakeResponse()
+            app.MapGet("api/node/handshake", (NodeService service) => new NodeHandshakeResponse()
             {
-                Version = Node.Version,
-                PlanetIds = Node.Planets.Keys
+                Version = service.Version,
+                PlanetIds = service.Planets.Keys
+            });
+            
+            app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeService service, long id) =>
+            {
+                if (!await planetService.ExistsAsync(id))
+                    return ValourResult.NotFound("Planet does not exist");
+                
+                return ValourResult.Ok(await service.RequestPlanetNodeAsync(id));
             });
 
             app.MapGet("api/nodestats", (ValourDB db) => {
                 return db.NodeStats.FirstOrDefaultAsync(x => x.Name == NodeConfig.Instance.Name);
             });
 
-            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, ValourDB db) => {
+            app.MapGet("api/nodestats/detailed", async (HttpContext ctx, NodeService service, ValourDB db) => {
 
                 DetailedNodeStats stats = new()
                 {
                     Name = NodeConfig.Instance.Name,
                     ConnectionCount = ConnectionTracker.ConnectionIdentities.Count,
                     ConnectionGroupCount = ConnectionTracker.ConnectionGroups.Count,
-                    PlanetCount = Node.Planets.Count,
+                    PlanetCount = service.Planets.Count,
 
                     GroupConnections = ConnectionTracker.GroupConnections,
                     GroupUserIds = ConnectionTracker.GroupUserIds,
@@ -83,7 +73,7 @@ namespace Valour.Server.API
                                               $"<hr/><br/>" +
                                               $"<h5>Connections: {ConnectionTracker.ConnectionIdentities.Count}</h5> \n" +
                                               $"<h5>Groups: {ConnectionTracker.ConnectionGroups.Count}</h5> \n" +
-                                              $"<h5>Planets: {Node.Planets.Count}</h5> \n" +
+                                              $"<h5>Planets: {service.Planets.Count}</h5> \n" +
                                               $"<br/>");
 
                 await ctx.Response.WriteAsync($"<h4>Group Connections:</h4> \n");
