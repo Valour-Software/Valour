@@ -14,17 +14,15 @@ public class NodeService
     public readonly string Version;
     public Dictionary<long, Planet> Planets { get; }
     
-    private readonly ValourDB _db;
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
     private readonly ISubscriber _redisChannel;
     
     private readonly string _nodeAliveKey = $"alive:{NodeConfig.Instance.Name}";
 
-    public NodeService(ValourDB db, IConnectionMultiplexer redis, ILogger<NodeService> logger)
+    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger)
     {
         _logger = logger;
-        _db = db;
         _nodeRecords = redis.GetDatabase(1);
         _redisChannel = redis.GetSubscriber();
 
