@@ -40,7 +40,7 @@ namespace Valour.Server.API
                 if (!await planetService.ExistsAsync(id))
                     return ValourResult.NotFound("Planet does not exist");
                 
-                return Results.Json(await service.RequestPlanetNodeAsync(id));
+                return ValourResult.Ok(await service.RequestPlanetNodeAsync(id));
             });
 
             app.MapGet("api/nodestats", (ValourDB db) => {
