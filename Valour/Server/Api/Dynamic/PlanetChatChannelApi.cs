@@ -6,6 +6,7 @@ using Pipelines.Sockets.Unofficial.Arenas;
 using Valour.Server.Workers;
 using Valour.Server.Cdn;
 using System.Text.Json;
+using Valour.Server.Config;
 using Valour.Shared.Models;
 using Valour.Server.Notifications;
 using Valour.Server.Services;
@@ -283,8 +284,15 @@ public class PlanetChatChannelApi
 		PlanetChatChannelService channelService,
 		PlanetMemberService memberService,
 		UserService userService,
-        PlanetService planetService)
+        PlanetService planetService,
+        NodeService nodeService)
     {
+	    if (NodeConfig.Instance.LogInfo)
+		    Console.WriteLine($"Message posted for channel {id}");
+	    
+	    if (!nodeService.Planets.ContainsKey(message.PlanetId))
+		    return ValourResult.BadRequest("Planet belongs to another node.");
+	    
 		// Get the channel
 		var channel = await channelService.GetAsync(id);
 		if (channel is null)
