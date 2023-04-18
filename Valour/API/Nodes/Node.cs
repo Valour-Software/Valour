@@ -17,6 +17,8 @@ public class Node
     /// The name of this node
     /// </summary>
     public string Name { get; set; }
+    
+    public string Location { get; set; }
 
     /// <summary>
     /// The HttpClient for this node. Should be configured to send requests only to this node
@@ -54,10 +56,12 @@ public class Node
         HttpClient = new HttpClient();
 
 #if (DEBUG)
-        HttpClient.BaseAddress = new Uri(ValourClient.BaseAddress);
+        Location = ValourClient.BaseAddress;
 #else
-        HttpClient.BaseAddress = new Uri("https://" + Name + ".nodes.valour.gg/");
+        Location = "https://" + Name + ".nodes.valour.gg/";
 #endif
+
+        HttpClient.BaseAddress = new Uri(Location);
 
         // Set header for node
         //HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
@@ -89,14 +93,14 @@ public class Node
 
     private async Task ConnectSignalRHub()
     {
-        string address = ValourClient.BaseAddress + "hubs/core";
+        string address = Location + "hubs/core";
 
         await Logger.Log("Connecting to Core hub at " + address);
 
         HubConnection = new HubConnectionBuilder()
         .WithUrl(address, options =>
         {
-            options.Headers.Add("X-Server-Select", Name);
+            //options.Headers.Add("X-Server-Select", Name);
         })
         .Build();
 

@@ -942,7 +942,10 @@ public static class ValourClient
         Self = response.Data;
         
 #if (!DEBUG)
-        Http.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
+        var scopedHttp = new HttpClient();
+        scopedHttp.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
+        Http.DefaultRequestHeaders.Add("authorization", Token);
+        SetHttpClient(scopedHttp);
 #endif
 
         // Now that we have our user, it should have node data we can use to set up our first node
@@ -999,7 +1002,10 @@ public static class ValourClient
         Self = response.Data;
 
 #if (!DEBUG)
-        Http.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
+        var scopedHttp = new HttpClient();
+        scopedHttp.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
+        Http.DefaultRequestHeaders.Add("authorization", Token);
+        SetHttpClient(scopedHttp);
 #endif
 
         // Now that we have our user, it should have node data we can use to set up our first node
