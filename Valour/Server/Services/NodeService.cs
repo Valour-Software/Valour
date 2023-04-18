@@ -13,7 +13,7 @@ public class NodeService
     public readonly string Name;
     public readonly string Location;
     public readonly string Version;
-    public Dictionary<long, Planet> Planets { get; }
+    public HashSet<long> Planets { get; }
     
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
@@ -74,7 +74,7 @@ public class NodeService
     /// </summary>
     public async Task<string> GetPlanetNodeAsync(long planetId)
     {
-        if (Planets.ContainsKey(planetId))
+        if (Planets.Contains(planetId))
             return Name; // We are hosting the planet (this is a local request)
         
         var key = $"planet:{planetId}";
@@ -160,6 +160,7 @@ public class NodeService
 
     public async Task AnnouncePlanetHostedAsync(long planetId)
     {
+        Planets.Add(planetId);
         var key = $"planet:{planetId}";
         await _nodeRecords.StringSetAsync(key, Name);
     }
