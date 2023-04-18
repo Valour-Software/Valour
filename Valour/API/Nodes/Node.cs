@@ -55,7 +55,7 @@ public class Node
 
 #if (DEBUG)
         HttpClient.BaseAddress = new Uri(ValourClient.BaseAddress);
-//#else
+#else
         HttpClient.BaseAddress = new Uri("https://" + Name + ".nodes.valour.gg/");
 #endif
 
