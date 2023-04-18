@@ -27,7 +27,7 @@ namespace Valour.Api.Nodes
 
         public static void AddNode(Node node)
         {
-            NameToNode[node.Name] = node;
+            NameToNode.Add(node.Name, node);
 
             if (!Nodes.Any(x => x.Name == node.Name))
                 Nodes.Add(node);
