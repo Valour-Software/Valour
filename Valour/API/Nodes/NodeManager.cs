@@ -13,6 +13,17 @@ namespace Valour.Api.Nodes
         public static List<Node> Nodes { get; set; } = new List<Node>();
         public static Dictionary<long, Node> PlanetToNode { get; } = new Dictionary<long, Node>();
         public static Dictionary<string, Node> NameToNode { get; } = new Dictionary<string, Node>();
+        
+        public static Node GetNodeFromName(string name)
+        {
+            // If the node is not defined, it's ok to
+            // use the primary node
+            if (string.IsNullOrWhiteSpace(name))
+                return ValourClient.PrimaryNode;
+            
+            NameToNode.TryGetValue(name, out Node node);
+            return node;
+        }
 
         public static void AddNode(Node node)
         {

@@ -14,7 +14,7 @@ namespace Valour.Api.Items
         public string NodeName { get; set; }
 
         [JsonIgnore]
-        public Node Node => NodeManager.NameToNode[NodeName];
+        public Node Node => NodeManager.GetNodeFromName(NodeName);
 
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
 

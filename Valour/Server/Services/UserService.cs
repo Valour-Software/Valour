@@ -17,6 +17,7 @@ public class UserService
     private readonly TokenService _tokenService;
     private readonly ILogger<UserService> _logger;
     private readonly CoreHubService _coreHub;
+    private readonly NodeService _nodeService;
 
     /// <summary>
     /// The stored user for the current request
@@ -27,12 +28,14 @@ public class UserService
         ValourDB db,
         TokenService tokenService,
         ILogger<UserService> logger,
-        CoreHubService coreHub)
+        CoreHubService coreHub,
+        NodeService nodeService)
     {
         _db = db;
         _tokenService = tokenService;
         _logger = logger;
         _coreHub = coreHub;
+        _nodeService = nodeService;
     }
 
     /// <summary>
@@ -43,12 +46,22 @@ public class UserService
 
     public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
         (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
-    public async Task<List<Planet>> GetPlanetsUserIn(long userId) =>
-        await _db.PlanetMembers
+
+    public async Task<List<Planet>> GetPlanetsUserIn(long userId)
+    {
+        var planets = await _db.PlanetMembers
             .Where(x => x.UserId == userId)
             .Include(x => x.Planet)
             .Select(x => x.Planet.ToModel())
             .ToListAsync();
+
+        foreach (var planet in planets)
+        {
+            planet.NodeName = await _nodeService.GetPlanetNodeAsync(planet.Id);
+        }
+
+        return planets;
+    }
 
     public async Task<PasswordRecovery> GetPasswordRecoveryAsync(string code) =>
         (await _db.PasswordRecoveries.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
