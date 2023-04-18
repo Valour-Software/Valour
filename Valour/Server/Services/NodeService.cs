@@ -80,6 +80,12 @@ public class NodeService
         var node = await _nodeRecords.StringGetAsync(key);
         if (node.IsNull)
             return null;
+        
+        // Ensure node is alive
+        var alive = await IsNodeAliveAsync(node);
+        if (!alive)
+            return null;
+        
         return node;
     }
 
