@@ -15,6 +15,7 @@ public class NodeConfig
     public string Name { get; set; }
     #endif
     
+    public bool LogInfo { get; set; }
     
     public string Location { get; set; }
 

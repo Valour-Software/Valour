@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using Valour.Api.Models.Messages.Embeds;
+using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Shared.Channels;
@@ -38,6 +39,9 @@ public class CoreHubService
             await _db.Database.ExecuteSqlRawAsync("CALL batch_user_channel_state_update({0}, {1}, {2});", 
                 viewingIds, message.ChannelId, DateTime.UtcNow);
         }
+
+        if (NodeConfig.Instance.LogInfo)
+            Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying message {message.Id} to group {groupId}");
 
         await group.SendAsync("Relay", message);
     }

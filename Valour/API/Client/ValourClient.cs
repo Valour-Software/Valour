@@ -692,7 +692,7 @@ public static class ValourClient
     /// </summary>
     public static async Task MessageRecieved(Message message)
     {
-        // Console.WriteLine("Received message " + message.Id);
+        Console.WriteLine($"[{message.NodeName}]: Received message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
         await OnMessageRecieved?.Invoke(message);
     }
