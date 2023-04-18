@@ -75,7 +75,6 @@ public class Planet : Item, ISharedPlanet
     public Planet()
     {
         ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdateAsync;
-        NodeManager.PlanetToNode.Add(this.Id, this.NodeName);
     }
 
     public async Task OnMemberUpdateAsync(PlanetMember member, bool newItem, int flags)
@@ -86,6 +85,12 @@ public class Planet : Item, ISharedPlanet
         // Ensure that we add new members to the planet cache
         if (newItem)
             Members.Add(member);
+    }
+
+    public override Task AddToCache()
+    {
+        NodeManager.PlanetToNode[Id] = NodeName;
+        return base.AddToCache();
     }
 
     /// <summary>
