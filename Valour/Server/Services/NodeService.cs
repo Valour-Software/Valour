@@ -1,5 +1,6 @@
 ﻿using StackExchange.Redis;
 using Valour.Server.Config;
+using Valour.Server.Redis;
 
 namespace Valour.Server.Services;
 
@@ -23,7 +24,7 @@ public class NodeService
     public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger)
     {
         _logger = logger;
-        _nodeRecords = redis.GetDatabase(1);
+        _nodeRecords = redis.GetDatabase(RedisDbTypes.Cluster);
         _redisChannel = redis.GetSubscriber();
 
         _redisChannel.Subscribe("planet-requests", OnPlanetRequestedAsync);
