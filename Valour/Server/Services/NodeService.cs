@@ -81,6 +81,16 @@ public class NodeService
         var node = await _nodeRecords.StringGetAsync(key);
         if (node.IsNull)
             return null;
+
+        // We used to host this node - maybe we restarted.
+        // Add back to planet list and continue hosting.
+        if (node == Name)
+        {
+            if (NodeConfig.Instance.LogInfo)
+                _logger.LogInformation($"Resuming hosting of {planetId}");
+            
+            Planets.Add(planetId);
+        }
         
         if (NodeConfig.Instance.LogInfo)
             _logger.LogInformation($"Planet {planetId} belongs to node {node}");
