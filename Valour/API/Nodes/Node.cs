@@ -53,10 +53,14 @@ public class Node
 
         HttpClient = new HttpClient();
 
+#if (DEBUG)
         HttpClient.BaseAddress = new Uri(ValourClient.BaseAddress);
+#else
+        HttpClient.BaseAddress = new Uri("https://" + Name + ".nodes.valour.gg/");
+#endif
 
         // Set header for node
-        HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
+        //HttpClient.DefaultRequestHeaders.Add("X-Server-Select", Name);
         HttpClient.DefaultRequestHeaders.Add("Authorization", Token);
 
         await Logger.Log($"[SignalR]: Setting up new hub for node '{Name}'");
