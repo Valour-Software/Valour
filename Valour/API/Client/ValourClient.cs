@@ -940,13 +940,6 @@ public static class ValourClient
 
         // Set reference to self user
         Self = response.Data;
-        
-#if (!DEBUG)
-        var scopedHttp = new HttpClient();
-        scopedHttp.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
-        Http.DefaultRequestHeaders.Add("authorization", Token);
-        SetHttpClient(scopedHttp);
-#endif
 
         // Now that we have our user, it should have node data we can use to set up our first node
         // Initialize primary node
@@ -954,7 +947,7 @@ public static class ValourClient
         await PrimaryNode.InitializeAsync(Self.NodeName, _token);
 
         // Set node to primary node for main http client
-        // Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
+        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
 
         var loadTasks = new List<Task>()
         {
@@ -1000,13 +993,6 @@ public static class ValourClient
 
         // Set reference to self user
         Self = response.Data;
-
-#if (!DEBUG)
-        var scopedHttp = new HttpClient();
-        scopedHttp.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
-        Http.DefaultRequestHeaders.Add("authorization", Token);
-        SetHttpClient(scopedHttp);
-#endif
 
         // Now that we have our user, it should have node data we can use to set up our first node
         // Initialize primary node
