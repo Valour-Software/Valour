@@ -144,7 +144,7 @@ public class ConnectionTracker
         // Add to collection
         PrimaryConnections.TryAdd(context.ConnectionId, conn);
         
-        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
+        var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
 
         // Connection to node
         rdb.SetAdd($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
@@ -160,7 +160,7 @@ public class ConnectionTracker
         
         var userId = ConnectionIdentities[context.ConnectionId].UserId;
         
-        var rdb = redis.GetDatabase(RedisDbTypes.Connections);
+        var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
         
         // Connection to node
         rdb.SetRemove($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");

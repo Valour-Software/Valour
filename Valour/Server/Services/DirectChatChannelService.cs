@@ -154,7 +154,7 @@ public class DirectChatChannelService
         }
 
         // Relay to nodes where sending user or target user is connected
-        var rdb = _redis.GetDatabase(RedisDbTypes.Connections);
+        var rdb = _redis.GetDatabase(RedisDbTypes.Cluster);
 
         var nodeTargets = new List<(string nodeId, long userId)>();
         await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))
@@ -261,7 +261,7 @@ public class DirectChatChannelService
         await _db.SaveChangesAsync();
 
         // Relay to nodes where sending user or target user is connected
-        var rdb = _redis.GetDatabase(RedisDbTypes.Connections);
+        var rdb = _redis.GetDatabase(RedisDbTypes.Cluster);
 
         var nodeTargets = new List<(string nodeId, long userId)>();
         await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))

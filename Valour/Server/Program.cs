@@ -117,7 +117,7 @@ namespace Valour.Server
             
             // Remove old connections for this node since we have restarted
             var redis = app.Services.GetRequiredService<IConnectionMultiplexer>();
-            var rdb = redis.GetDatabase(RedisDbTypes.Connections);
+            var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
 
             foreach (var con in rdb.SetScan($"node:{NodeConfig.Instance.Name}"))
             {
