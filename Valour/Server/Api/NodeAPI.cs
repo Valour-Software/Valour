@@ -32,7 +32,7 @@ namespace Valour.Server.API
             app.MapGet("api/node/handshake", (NodeService service) => new NodeHandshakeResponse()
             {
                 Version = service.Version,
-                PlanetIds = service.Planets.Keys
+                PlanetIds = service.Planets
             });
             
             app.MapGet("api/node/planet/{id}", async (PlanetService planetService, NodeService service, long id) =>
