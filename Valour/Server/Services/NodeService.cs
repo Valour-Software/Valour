@@ -82,11 +82,19 @@ public class NodeService
         if (node.IsNull)
             return null;
         
+        if (NodeConfig.Instance.LogInfo)
+            _logger.LogInformation($"Planet {planetId} belongs to node {node}");
+        
         // Ensure node is alive
         var alive = await IsNodeAliveAsync(node);
         if (!alive)
+        {
+            if (NodeConfig.Instance.LogInfo)
+                _logger.LogInformation($"Node {node} is dead...");
+            
             return null;
-        
+        }
+
         return node;
     }
 
@@ -109,6 +117,9 @@ public class NodeService
         }
         
         // We can't host the planet, so we need to request another node
+        
+        if (NodeConfig.Instance.LogInfo)
+            _logger.LogInformation($"Requesting another node to host {planetId}");
 
         var tryNum = 1;
         string node = null;
@@ -160,6 +171,9 @@ public class NodeService
 
     public async Task AnnouncePlanetHostedAsync(long planetId)
     {
+        if (NodeConfig.Instance.LogInfo)
+            _logger.LogInformation($"Taking ownership of planet {planetId}");
+        
         Planets.Add(planetId);
         var key = $"planet:{planetId}";
         await _nodeRecords.StringSetAsync(key, Name);
