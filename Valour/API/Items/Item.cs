@@ -10,11 +10,6 @@ namespace Valour.Api.Items
     public abstract class Item : ISharedItem
     {
         public long Id { get; set; }
-        
-        public string NodeName { get; set; }
-
-        [JsonIgnore]
-        public Node Node => NodeManager.GetNodeFromName(NodeName);
 
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
 
@@ -36,6 +31,25 @@ namespace Valour.Api.Items
         public virtual async Task OnUpdate(int flags)
         {
 
+        }
+
+        public Node Node
+        {
+            get
+            {
+                switch (this)
+                {
+                    case Planet planet: 
+                        // Planets have node known
+                        return NodeManager.GetNodeFromName(planet.NodeName);
+                    case IPlanetItem planetItem: 
+                        // Planet items can just check their planet
+                        return NodeManager.GetKnownByPlanet(planetItem.PlanetId);
+                    default: 
+                        // Everything else can just use the primary node
+                        return ValourClient.PrimaryNode;
+                }
+            }
         }
 
         public virtual async Task AddToCache()

@@ -36,6 +36,11 @@ public class Planet : Item, ISharedPlanet
     /// The name of this planet
     /// </summary>
     public string Name { get; set; }
+    
+    /// <summary>
+    /// The node this planet belongs to
+    /// </summary>
+    public string NodeName { get; set; }
 
     /// <summary>
     /// The image url for the planet 
@@ -70,6 +75,7 @@ public class Planet : Item, ISharedPlanet
     public Planet()
     {
         ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdateAsync;
+        NodeManager.PlanetToNode.Add(this.Id, this.NodeName);
     }
 
     public async Task OnMemberUpdateAsync(PlanetMember member, bool newItem, int flags)

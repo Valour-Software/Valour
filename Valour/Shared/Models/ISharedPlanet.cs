@@ -17,6 +17,11 @@ public interface ISharedPlanet : ISharedItem
     /// The Id of the owner of this planet
     /// </summary>
     long OwnerId { get; set; }
+    
+    /// <summary>
+    /// The node this planet belongs to
+    /// </summary>
+    string NodeName { get; set; } 
 
     /// <summary>
     /// The name of this planet

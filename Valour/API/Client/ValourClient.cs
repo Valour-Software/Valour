@@ -692,7 +692,7 @@ public static class ValourClient
     /// </summary>
     public static async Task MessageRecieved(Message message)
     {
-        Console.WriteLine($"[{message.NodeName}]: Received message {message.Id} for channel {message.ChannelId}");
+        Console.WriteLine($"[{message.Node?.Name}]: Received message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
         await OnMessageRecieved?.Invoke(message);
     }
@@ -931,6 +931,25 @@ public static class ValourClient
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
 
+        TaskResult<string> nodeName;
+
+        do
+        {
+            // Get primary node identity
+            nodeName = await GetAsync("api/node/name");
+
+            if (!nodeName.Success)
+            {
+                Console.WriteLine("Failed to get primary node name... trying again in three seconds.");
+                Console.WriteLine("(Possible network issues)");
+                await Task.Delay(3000);
+            }
+            
+        } while (!nodeName.Success);
+            
+        // Set node to primary node for main http client
+        Http.DefaultRequestHeaders.Add("X-Server-Select", nodeName.Data);
+        
         // Get user
 
         var response = await GetJsonAsync<User>($"api/users/self");
@@ -944,10 +963,7 @@ public static class ValourClient
         // Now that we have our user, it should have node data we can use to set up our first node
         // Initialize primary node
         PrimaryNode = new Node();
-        await PrimaryNode.InitializeAsync(Self.NodeName, _token);
-
-        // Set node to primary node for main http client
-        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
+        await PrimaryNode.InitializeAsync(nodeName.Data, _token);
 
         var loadTasks = new List<Task>()
         {
@@ -983,6 +999,25 @@ public static class ValourClient
 
         if (!tokenResult.Success) 
             return new TaskResult<User>(false, tokenResult.Message);
+        
+        TaskResult<string> nodeName;
+
+        do
+        {
+            // Get primary node identity
+            nodeName = await GetAsync("api/node/name");
+
+            if (!nodeName.Success)
+            {
+                Console.WriteLine("Failed to get primary node name... trying again in three seconds.");
+                Console.WriteLine("(Possible network issues)");
+                await Task.Delay(3000);
+            }
+            
+        } while (!nodeName.Success);
+        
+        // Set node to primary node for main http client
+        Http.DefaultRequestHeaders.Add("X-Server-Select", nodeName.Data);
 
         // Get user
 
@@ -997,12 +1032,10 @@ public static class ValourClient
         // Now that we have our user, it should have node data we can use to set up our first node
         // Initialize primary node
         PrimaryNode = new Node();
-        await PrimaryNode.InitializeAsync(Self.NodeName, _token);
+        await PrimaryNode.InitializeAsync(nodeName.Data, _token);
 
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);
-        // Set node to primary node for main http client
-        Http.DefaultRequestHeaders.Add("X-Server-Select", PrimaryNode.Name);
 
         Console.WriteLine($"Initialized bot {Self.Name} ({Self.Id})");
 

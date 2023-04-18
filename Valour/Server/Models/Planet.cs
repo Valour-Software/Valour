@@ -14,6 +14,11 @@ public class Planet : Item, ISharedPlanet
     /// The name of this planet
     /// </summary>
     public string Name { get; set; }
+    
+    /// <summary>
+    /// The node this planet belongs to
+    /// </summary>
+    public string NodeName { get; set; } 
 
     /// <summary>
     /// The image url for the planet 

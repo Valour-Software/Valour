@@ -29,6 +29,8 @@ namespace Valour.Server.API
         /// </summary>
         public static void AddRoutes(WebApplication app)
         {
+            app.MapGet("api/node/name", () => NodeConfig.Instance.Name);
+            
             app.MapGet("api/node/handshake", (NodeService service) => new NodeHandshakeResponse()
             {
                 Version = service.Version,
