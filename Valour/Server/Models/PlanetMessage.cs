@@ -10,6 +10,11 @@ public class PlanetMessage : Item, ISharedPlanetMessage
     public long PlanetId { get; set; }
     
     /// <summary>
+    /// The node this item belongs to
+    /// </summary>
+    public string NodeName { get; set; }
+    
+    /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
     public long? ReplyToId { get; set; }

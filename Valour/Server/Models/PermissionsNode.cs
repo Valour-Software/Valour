@@ -9,6 +9,11 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// The id of the planet this node belongs to
     /// </summary>
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The node this item belongs to
+    /// </summary>
+    public string NodeName { get; set; }
 
     /// <summary>
     /// The permission code that this node has set

@@ -10,6 +10,11 @@ public class PlanetInvite : Item, ISharedPlanetInvite
     public long PlanetId { get; set; }
     
     /// <summary>
+    /// The node this item belongs to
+    /// </summary>
+    public string NodeName { get; set; }
+    
+    /// <summary>
     /// The invite code
     /// </summary>
     public string Code { get; set; }

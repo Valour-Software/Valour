@@ -8,6 +8,11 @@ public class PlanetBan : Item, ISharedPlanetBan
     /// The id of the planet this ban is for
     /// </summary>
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The node this item belongs to
+    /// </summary>
+    public string NodeName { get; set; }
 
     /// <summary>
     /// The member that banned the user

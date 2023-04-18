@@ -13,6 +13,11 @@ public class PlanetMember : Item, ISharedPlanetMember
     public long UserId { get; set; }
     
     /// <summary>
+    /// The node this item belongs to
+    /// </summary>
+    public string NodeName { get; set; }
+    
+    /// <summary>
     /// The planet id of the member
     /// </summary>
     public long PlanetId { get; set; }
