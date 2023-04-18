@@ -947,7 +947,7 @@ public static class ValourClient
         await PrimaryNode.InitializeAsync(Self.NodeName, _token);
         
 #if (!DEBUG)
-        Http.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg")
+        Http.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
 #endif
 
         // Set node to primary node for main http client
@@ -999,7 +999,7 @@ public static class ValourClient
         Self = response.Data;
         
 #if (!DEBUG)
-        Http.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg")
+        Http.BaseAddress = new Uri($"https://{Self.NodeName}.nodes.valour.gg");
 #endif
 
         // Now that we have our user, it should have node data we can use to set up our first node
