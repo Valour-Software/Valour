@@ -1162,7 +1162,7 @@ public static class ValourClient
 
         // Add to cache
         foreach (var planet in planets)
-            await ValourCache.Put(planet.Id, planet);
+            await planet.AddToCache();
 
         JoinedPlanets = planets;
 
