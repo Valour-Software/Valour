@@ -8,12 +8,7 @@ namespace Valour.Server.Models;
 public abstract class PlanetChannel : Channel, ISharedPlanetChannel
 {
     public long PlanetId { get; set; }
-    
-    /// <summary>
-    /// The node this item belongs to
-    /// </summary>
-    public string NodeName { get; set; }
-    
+
     public string Name { get; set; }
     
     public int Position { get; set; }

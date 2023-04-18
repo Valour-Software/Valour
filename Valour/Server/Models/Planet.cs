@@ -9,11 +9,6 @@ public class Planet : Item, ISharedPlanet
     /// The Id of the owner of this planet
     /// </summary>
     public long OwnerId { get; set; }
-    
-    /// <summary>
-    /// The node this item belongs to
-    /// </summary>
-    public string NodeName { get; set; }
 
     /// <summary>
     /// The name of this planet

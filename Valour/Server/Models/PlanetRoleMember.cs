@@ -8,12 +8,7 @@ public class PlanetRoleMember : Item, ISharedPlanetRoleMember
     /// The planet id this role member belongs to
     /// </summary>
     public long PlanetId { get; set; }
-    
-    /// <summary>
-    /// The node this item belongs to
-    /// </summary>
-    public string NodeName { get; set; }
-    
+
     /// <summary>
     /// The user id this role member applies to
     /// </summary>

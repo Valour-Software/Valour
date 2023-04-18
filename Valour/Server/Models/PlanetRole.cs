@@ -25,11 +25,6 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// The id of the planet this belongs to
     /// </summary>
     public long PlanetId { get; set; }
-    
-    /// <summary>
-    /// The node this item belongs to
-    /// </summary>
-    public string NodeName { get; set; }
 
     /// <summary>
     /// The position of the role: Lower has more authority

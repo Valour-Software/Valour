@@ -8,6 +8,11 @@ namespace Valour.Shared.Models;
 public interface ISharedItem
 {
     long Id { get; set; }
+    
+    /// <summary>
+    /// Planet items belong to a specific node
+    /// </summary>
+    string NodeName { get; }
 }
 
 

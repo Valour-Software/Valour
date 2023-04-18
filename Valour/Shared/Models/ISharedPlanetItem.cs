@@ -15,9 +15,4 @@ namespace Valour.Shared.Models;
 public interface ISharedPlanetItem : ISharedItem
 {
     long PlanetId { get; set; }
-    
-    /// <summary>
-    /// Planet items belong to a specific node
-    /// </summary>
-    string NodeName { get; }
 }
