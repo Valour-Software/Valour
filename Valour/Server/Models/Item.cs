@@ -10,10 +10,5 @@ public abstract class Item : ISharedItem
     /// The id of this item
     /// </summary>
     public long Id { get; set; }
-
-    /// <summary>
-    /// Planet items belong to a specific node
-    /// </summary>
-    public string NodeName { get; set; } = NodeConfig.Instance.Name;
 }
 

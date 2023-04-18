@@ -91,4 +91,8 @@ public class Planet : Item, ISharedPlanet
     public bool IsDeleted { get; set; }
     long ISharedPlanet.DefaultRoleId { get => (long)DefaultRoleId; set => DefaultRoleId = value; }
     long ISharedPlanet.PrimaryChannelId { get => (long)PrimaryChannelId; set => PrimaryChannelId = value; }
+    
+    // Only to fulfill contract
+    [NotMapped]
+    public string NodeName { get; set; }
 }
