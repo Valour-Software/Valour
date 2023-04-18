@@ -290,7 +290,7 @@ public class PlanetChatChannelApi
 	    if (NodeConfig.Instance.LogInfo)
 		    Console.WriteLine($"Message posted for channel {id}");
 	    
-	    if (!nodeService.Planets.Contains(message.PlanetId))
+	    if (!await nodeService.IsPlanetHostedLocally(message.PlanetId))
 		    return ValourResult.BadRequest("Planet belongs to another node.");
 	    
 		// Get the channel

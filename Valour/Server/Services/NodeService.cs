@@ -38,6 +38,17 @@ public class NodeService
     }
 
     /// <summary>
+    /// Returns if the given planet is hosted on this node
+    /// </summary>
+    public async Task<bool> IsPlanetHostedLocally(long planetId)
+    {
+        if (Planets.Contains((planetId)))
+            return true;
+
+        return await GetPlanetNodeAsync(planetId) == Name;
+    }
+
+    /// <summary>
     /// Announces that a node is live and ready to receive requests
     /// </summary>
     public async Task AnnounceNode()
