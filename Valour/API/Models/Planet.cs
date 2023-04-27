@@ -87,10 +87,10 @@ public class Planet : Item, ISharedPlanet
             Members.Add(member);
     }
 
-    public override Task AddToCache()
+    public override async Task AddToCache()
     {
         NodeManager.PlanetToNode[Id] = NodeName;
-        return base.AddToCache();
+        await ValourCache.Put(this.Id, this);
     }
 
     /// <summary>
