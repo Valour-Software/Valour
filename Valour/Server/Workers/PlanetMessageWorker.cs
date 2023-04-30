@@ -110,7 +110,7 @@ namespace Valour.Server.Workers
                 var updated = new Channel()
                 {
                     Id = channelId,
-                    TimeLastActive = DateTime.UtcNow
+                    TimeLastActive = StagedChannelMessages[channelId].Max(x => x.TimeSent)
                 };
 
                 db.Channels.Attach(updated.ToDatabase()).Property(x => x.TimeLastActive).IsModified = true;

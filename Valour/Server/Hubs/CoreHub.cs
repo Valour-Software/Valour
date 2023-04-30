@@ -143,7 +143,7 @@ namespace Valour.Server.Database
             ConnectionTracker.TrackGroupMembership(groupId, Context);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
             
-            var channelState = (await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id)).ToModel();
+            var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
 
             if (channelState is null)
             {
@@ -151,15 +151,15 @@ namespace Valour.Server.Database
                 {
                     UserId = authToken.UserId,
                     ChannelId = channelId
-                };
+                }.ToDatabase();
 
-                _db.UserChannelStates.Add(channelState.ToDatabase());
+                _db.UserChannelStates.Add(channelState);
             }
             
             channelState.LastViewedTime = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             
-            _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState);
+            _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState.ToModel());
 
             return new TaskResult(true, "Connected to channel " + channelId);
         }
