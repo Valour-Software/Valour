@@ -115,7 +115,7 @@ public class EmbedBuilder
         return this;
     }
 
-    public EmbedBuilder CloseProgress()
+    public EmbedBuilder Close()
     {
         CurrentParent = CurrentParent.Parent;
         return this;
@@ -144,7 +144,7 @@ public class EmbedBuilder
     }
 
     /// <summary>
-    /// Adds a button item to the current row of the current page.
+    /// Adds a button item to the current row of the current page. Make sure you call .Close() after you are done adding items to this button!
     /// </summary>
     /// <returns></returns>
     public EmbedBuilder AddButtonWithNoText()
@@ -155,6 +155,7 @@ public class EmbedBuilder
         };
 
         AddItem(item);
+        CurrentParent = item;
         return this;
     }
 
@@ -398,7 +399,7 @@ public class EmbedBuilder
     }
 
     /// <summary>
-    /// Make sure to call .CloseProgress() after you are done adding a progressbar(s)!
+    /// Make sure to call .Close() after you are done adding a progressbar(s)!
     /// </summary>
     public EmbedBuilder AddProgress()
     {
