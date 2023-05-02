@@ -7,6 +7,7 @@ using Valour.Api.Models.Messages.Embeds.Styles;
 using Valour.Api.Nodes;
 using Valour.Api.Models.Messages.Embeds.Styles.Basic;
 using Valour.Api.Models.Messages.Embeds.Styles.Flex;
+using Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
 
 namespace Valour.Api.Models.Messages.Embeds;
 
@@ -20,6 +21,10 @@ public class EmbedBuilder
 
     public EmbedFormItem formItem;
 
+    public EmbedProgressBar progressBar;
+
+    public EmbedProgress progress;
+
     /// <summary>
     /// The current item that we are "in"
     /// </summary>
@@ -31,6 +36,7 @@ public class EmbedBuilder
         embed.Pages = new();
         embed.KeepPageOnUpdate = true;
         embed.StartPage = 0;
+        progressBar = null;
     }
 
     public EmbedPage CurrentPage
@@ -109,6 +115,12 @@ public class EmbedBuilder
         return this;
     }
 
+    public EmbedBuilder CloseProgress()
+    {
+        CurrentParent = CurrentParent.Parent;
+        return this;
+    }
+
 	internal void AddItem(EmbedItem item)
     {
         item.Parent = CurrentParent;
@@ -117,8 +129,7 @@ public class EmbedBuilder
 	}
 
     /// <summary>
-    /// Adds a button item to the current row of the current page. If FreelyBased, then
-    /// this will add a button item to the current page.
+    /// Adds a button item to the current row of the current page.
     /// </summary>
     /// <returns></returns>
     public EmbedBuilder AddButton(string text = null)
@@ -126,6 +137,21 @@ public class EmbedBuilder
         var item = new EmbedButtonItem()
         {
             Children = new() { new EmbedTextItem(text) }
+        };
+
+        AddItem(item);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a button item to the current row of the current page.
+    /// </summary>
+    /// <returns></returns>
+    public EmbedBuilder AddButtonWithNoText()
+    {
+        var item = new EmbedButtonItem()
+        {
+            Children = new()
         };
 
         AddItem(item);
@@ -369,5 +395,67 @@ public class EmbedBuilder
             LastItem.Styles = new();
         LastItem.Styles.AddRange(styles);
 		return this;
+    }
+
+    /// <summary>
+    /// Make sure to call .CloseProgress() after you are done adding a progressbar(s)!
+    /// </summary>
+    public EmbedBuilder AddProgress()
+    {
+        var item = new EmbedProgress()
+        {
+            Children = new()
+        };
+
+        progress = item;
+        AddItem(item);
+        CurrentParent = item;
+        return this;
+    }
+
+    /// <summary>
+    /// </summary>
+    /// <param name="value">A number between 0 and 100</param>
+    /// <returns></returns>
+    public EmbedBuilder WithProgressBar(int value, bool showLabel = false)
+    {
+        var item = new EmbedProgressBar()
+        {
+            Value = value,
+            ShowLabel = showLabel
+        };
+
+        CurrentParent.Children.Add(item);
+        item.Parent = CurrentParent;
+        LastItem = item;
+
+        progressBar = item;
+        return this;
+    }
+
+    public EmbedBuilder WithStripes()
+    {
+        if (progressBar is null)
+            throw new ArgumentException("You can not add stripes to an item which is not a progress bar!");
+        progressBar.IsStriped = true;
+        return this;
+    }
+
+    public EmbedBuilder WithAnimatedStripes()
+    {
+        if (progressBar is null)
+            throw new ArgumentException("You can not add animated stripes to an item which is not a progress bar!");
+        progressBar.IsAnimatedStriped = true;
+        progressBar.IsStriped = true;
+        return this;
+    }
+
+    public EmbedBuilder WithBootStrapClasses(params BootstrapClass[] classes)
+    {
+        if (LastItem.Classes is null)
+            LastItem.Classes = new();
+        foreach (var _class in classes)
+            LastItem.Classes.Add(_class);
+        return this;
     }
 }

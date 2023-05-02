@@ -4,7 +4,10 @@
 @inject IJSRuntime JS
 
 <button type="button" class="btn embed-item" style="color: #ffffff;background: #000000;@Item.GetStyle()" @onclick="(async () => {await OnEmbedButtonClick();})">
-    <EmbedItemComponent item="@Item.Children[0]"></EmbedItemComponent>
+    @foreach (var child in Item.Children)
+    {
+        <EmbedItemComponent item="@child"></EmbedItemComponent>
+    }
 </button>
 @code {
     [Parameter]
@@ -96,7 +99,7 @@
             interaction.EventType = EmbedIteractionEventType.FormSubmitted;
         }
 
-        var response = await Http.PostAsJsonAsync($"api/embed/interact", interaction);
+        var response = await embedComponent.MessageWrapper.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }

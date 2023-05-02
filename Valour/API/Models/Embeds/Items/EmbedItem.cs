@@ -57,6 +57,8 @@ public interface IParentItem
 [JsonDerivedType(typeof(EmbedDropDownMenuItem), typeDiscriminator: 6)]
 [JsonDerivedType(typeof(EmbedDropDownItem), typeDiscriminator: 7)]
 [JsonDerivedType(typeof(EmbedRow), typeDiscriminator: 8)]
+[JsonDerivedType(typeof(EmbedProgress), typeDiscriminator: 9)]
+[JsonDerivedType(typeof(EmbedProgressBar), typeDiscriminator: 10)]
 public class EmbedItem : IParentItem
 {
     [JsonIgnore]
