@@ -25,17 +25,23 @@
 
 	public void Refresh()
 	{
+		if (Row.Id is not null)
+			embedComponent.EmbedRowComponents[Row.Id] = this;
 		StateHasChanged();
 	}
 
 	public void Dispose()
 	{
 		embedComponent.RefreshRowComponents -= Refresh;
+		if (Row.Id is not null)
+            embedComponent.EmbedRowComponents.Remove(Row.Id, out var _);
 	}
 
 	protected override void OnInitialized()
 	{
 		embedComponent.RefreshRowComponents += Refresh;
+		if (Row.Id is not null)
+			embedComponent.EmbedRowComponents[Row.Id] = this;
 		StateHasChanged();
 	}
 }

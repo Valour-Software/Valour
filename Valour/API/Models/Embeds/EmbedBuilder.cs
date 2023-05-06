@@ -8,6 +8,7 @@ using Valour.Api.Nodes;
 using Valour.Api.Models.Messages.Embeds.Styles.Basic;
 using Valour.Api.Models.Messages.Embeds.Styles.Flex;
 using Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
+using System.Collections.Concurrent;
 
 namespace Valour.Api.Models.Messages.Embeds;
 
@@ -29,6 +30,7 @@ public class EmbedBuilder
     /// The current item that we are "in"
     /// </summary>
     public IParentItem CurrentParent;
+    public ConcurrentDictionary<string, object> Data { get; set; }
 
     public EmbedBuilder()
     {
@@ -37,6 +39,7 @@ public class EmbedBuilder
         embed.KeepPageOnUpdate = true;
         embed.StartPage = 0;
         progressBar = null;
+        Data = new();
     }
 
     public EmbedPage CurrentPage
@@ -59,7 +62,7 @@ public class EmbedBuilder
         CurrentParent = page;
         LastItem = page;
 
-		return this;
+        return this;
     }
 
 	/// <summary>
@@ -70,25 +73,31 @@ public class EmbedBuilder
     {
         var row = new EmbedRow()
         {
-            Children = new(),
-            Parent = CurrentParent
+            Children = new()
         };
 
         if (CurrentParent.ItemType != EmbedItemType.EmbedRow)
+        {
+            row.Parent = CurrentParent;
             CurrentParent.Children.Add(row);
+        }
         else
         {
             if (formItem is null)
+            {
+                row.Parent = CurrentPage;
                 CurrentPage.Children.Add(row);
+            }
             else
             {
+                row.Parent = formItem;
                 formItem.Children.Add(row);
             }
         }
 
 		CurrentParent = row;
         LastItem = row;
-		return this;
+        return this;
     }
 
 	public EmbedBuilder WithRow()
@@ -102,7 +111,7 @@ public class EmbedBuilder
 		CurrentParent.Children.Add(row);
         CurrentParent = row;
         LastItem = row;
-		return this;
+        return this;
 	}
 
 	/// <summary>
@@ -126,7 +135,7 @@ public class EmbedBuilder
         item.Parent = CurrentParent;
         CurrentParent.Children.Add(item);
 		LastItem = item;
-	}
+    }
 
     /// <summary>
     /// Adds a button item to the current row of the current page.
@@ -259,7 +268,7 @@ public class EmbedBuilder
 		item.Parent = LastItem;
 		LastItem = item;
 
-		return this;
+        return this;
 	}
 
 	public EmbedBuilder AddDropDownMenu(string id, string name = null, string value = "")
@@ -298,7 +307,7 @@ public class EmbedBuilder
 
 		CurrentParent.Children.Add(item);
 		LastItem = item;
-		return this;
+        return this;
 	}
 
     /// <summary>
@@ -318,7 +327,7 @@ public class EmbedBuilder
 
 		CurrentParent.Children.Add(item);
         LastItem = item;
-		return this;
+        return this;
 	}
 
     public EmbedBuilder OnClickGoToEmbedPage(int page)
@@ -426,8 +435,8 @@ public class EmbedBuilder
             ShowLabel = showLabel
         };
 
-        CurrentParent.Children.Add(item);
-        item.Parent = CurrentParent;
+        progress.Children.Add(item);
+        item.Parent = progress;
         LastItem = item;
 
         progressBar = item;

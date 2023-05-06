@@ -1,4 +1,5 @@
 ﻿@implements IDisposable
+@inherits BaseEmbedItemComponent
 
 <div style="@item.GetStyle()" class="embed-item embed-form">
 	@if (item.Children is not null)
@@ -12,16 +13,10 @@
 
 @code {
 	[Parameter]
-	public EmbedItem _item { get; set; }
-
-	[Parameter]
 	public ClientMessageWrapper Message { get; set; }
 
 	[Parameter]
 	public Embed embed { get; set; }
-
-	[CascadingParameter]
-    public EmbedComponent embedComponent { get; set; }
 
 	public EmbedFormItem item;
 
@@ -29,16 +24,22 @@
 	{
 		item = (EmbedFormItem)_item;
 		embedComponent.RefreshFormComponents += Refresh;
+		if (item.Id is not null)
+			embedComponent.EmbedFormComponents[item.Id] = this;
 	}
 
 	public void Dispose()
     {
         embedComponent.RefreshFormComponents -= Refresh;
+		if (item.Id is not null)
+            embedComponent.EmbedFormComponents.Remove(item.Id, out var _);
     }
 
-	public void Refresh()
+	public override void Refresh()
     {
 		item = (EmbedFormItem)_item;
+		if (item.Id is not null)
+			embedComponent.EmbedFormComponents[item.Id] = this;
         StateHasChanged();
     }
 }

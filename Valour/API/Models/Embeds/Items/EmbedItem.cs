@@ -76,8 +76,18 @@ public class EmbedItem : IParentItem
 
     public List<BootstrapClass> Classes { get; set; }
 
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// This is NOT sent to the client. This is meant to be used by bots and frameworks.
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<string, object> ExtraData { get; set; }
+
     public virtual List<EmbedItem> GetAllItems()
 	{
+        if (Children is null)
+            return new();
         List<EmbedItem> items = new();
         foreach(var _item in Children) 
         {

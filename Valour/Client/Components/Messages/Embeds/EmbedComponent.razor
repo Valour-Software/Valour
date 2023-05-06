@@ -63,6 +63,13 @@
 
 	public EmbedPage page { get; set; }
 
+	public ConcurrentDictionary<string, BaseEmbedItemComponent> ItemComponents { get; set; }
+	public ConcurrentDictionary<string, EmbedItemComponent> EmbedRootItemComponents { get; set; }
+	public ConcurrentDictionary<string, EmbedRowComponent> EmbedRowComponents { get; set; }
+	public ConcurrentDictionary<string, EmbedFormComponent> EmbedFormComponents { get; set; }
+	public ConcurrentDictionary<string, IParentItem> IdToParentEmbedItem { get; set; }
+	public ConcurrentDictionary<string, INameable> IdToNameItemEmbedItem { get; set; }
+
 	public void Dispose()
 	{
 		ValourClient.OnPersonalEmbedUpdate -= OnPersonalEmbedUpdate;
@@ -74,7 +81,29 @@
 		StateHasChanged();
 		ValourClient.OnPersonalEmbedUpdate += OnPersonalEmbedUpdate;
 		ValourClient.OnChannelEmbedUpdate += OnChannelEmbedUpdate;
+		ItemComponents = new();
+		EmbedRootItemComponents = new();
+		EmbedRowComponents = new();
+		EmbedFormComponents = new();
+		IdToParentEmbedItem = new();
+		IdToNameItemEmbedItem = new();
+
 		embed = MessageWrapper.Message.Embed;
+		foreach (var page in embed.Pages) {
+			foreach (var item in page.GetAllItems()) {
+				if (item.Id is not null) {
+					if (item.ItemType == EmbedItemType.Progress || item.ItemType == EmbedItemType.TextArea
+						|| item.ItemType == EmbedItemType.Text || item.ItemType == EmbedItemType.InputBox
+						|| item.ItemType == EmbedItemType.DropDownMenu)
+					{
+						var nameableitem = (INameable)item;
+						if (nameableitem.NameItem is not null && nameableitem.NameItem.Id is not null)
+							IdToNameItemEmbedItem[nameableitem.NameItem.Id] = (INameable)item;
+					}
+					IdToParentEmbedItem[item.Id] = item.Parent;
+				}
+			}
+		}
 	}
 
 	public async Task OnChannelEmbedUpdate(ChannelEmbedUpdate update)
@@ -108,25 +137,134 @@
 		{
 			try
 			{
-				int currentpage = embed.currentPage;
-				MessageWrapper.Message.EmbedData = update.NewEmbedContent;
-				//Console.WriteLine(update.NewEmbedContent);
-				MessageWrapper.Message.embedParsed = false;
-				embed = MessageWrapper.Message.Embed;
-				if (!embed.KeepPageOnUpdate)
-				{
-					embed.currentPage = embed.StartPage;
-				}
-				else
-					embed.currentPage = currentpage;
+				if (update.NewEmbedContent is not null) {
+					IdToParentEmbedItem = new();
+					int currentpage = embed.currentPage;
+					MessageWrapper.Message.EmbedData = update.NewEmbedContent;
+					//Console.WriteLine(update.NewEmbedContent);
+					MessageWrapper.Message.embedParsed = false;
+					embed = MessageWrapper.Message.Embed;
+					if (!embed.KeepPageOnUpdate)
+					{
+						embed.currentPage = embed.StartPage;
+					}
+					else
+						embed.currentPage = currentpage;
 
-				if (embed.currentPage >= embed.Pages.Count)
-					embed.currentPage = embed.StartPage;
-				ProcessPageChange = true;
-				ProcessingEmbedUpdate = true;
-				UpdateItems();
-				ProcessingEmbedUpdate = false;
-				await Holder.ScrollToBottom();
+					if (embed.currentPage >= embed.Pages.Count)
+						embed.currentPage = embed.StartPage;
+					ProcessPageChange = true;
+					ProcessingEmbedUpdate = true;
+					UpdateItems();
+					ProcessingEmbedUpdate = false;
+					await Holder.ScrollToBottom();
+					foreach (var page in embed.Pages) {
+						foreach (var item in page.GetAllItems()) {
+							if (item.Id is not null) {
+								if (item.ItemType == EmbedItemType.Progress || item.ItemType == EmbedItemType.TextArea
+									|| item.ItemType == EmbedItemType.Text || item.ItemType == EmbedItemType.InputBox
+									|| item.ItemType == EmbedItemType.DropDownMenu)
+								{
+									var nameableitem = (INameable)item;
+									if (nameableitem.NameItem is not null && nameableitem.NameItem.Id is not null)
+										IdToNameItemEmbedItem[nameableitem.NameItem.Id] = (INameable)item;
+								}
+								IdToParentEmbedItem[item.Id] = item.Parent;
+							}
+						}
+					}
+				}
+				// means we are in a targetted update
+				else {
+					// this gets super fun due to the fact that we have to update components in a certain order :sob:
+					// this also means that EmbedData will get more and more out of sync with the embed but that *should not* be an issue
+
+					var data = JsonSerializer.Deserialize<List<EmbedItem>>(update.ChangedEmbedItemsContent);
+					var embed = MessageWrapper.Message.Embed;
+
+					foreach (var item in data) {
+						if (item.ItemType == EmbedItemType.EmbedRow) {
+							// get parent of this item
+							var parent = IdToParentEmbedItem[item.Id];
+							parent.Children.Remove(parent.Children.First(x => x.Id == item.Id));
+							parent.Children.Add(item);
+							item.Init(embed, parent);
+							
+							// now rerender the item
+							if (EmbedRowComponents.ContainsKey(item.Id)) {
+								EmbedRowComponents[item.Id].Row = (EmbedRow)item;
+								EmbedRowComponents[item.Id].Refresh();
+							}
+							else
+								Console.WriteLine($"Could not find embed row with id of {item.Id}");
+						}
+					}
+					for (int i = 0; i < 3; i++) {
+						foreach (var item in data) {
+							// root item
+							if (i == 0 && item.ItemType != EmbedItemType.EmbedRow) {
+								//if (item.Id != "money-text")
+								//	Console.WriteLine($"Updating {item.ItemType} with id {item.Id}");
+								//if (item.ItemType == EmbedItemType.Text) {
+								//	var text = (EmbedTextItem)item;
+								//	Console.WriteLine($"{item.Id} with content {text.Text}");
+								//}
+								if (!IdToParentEmbedItem.ContainsKey(item.Id) || IdToParentEmbedItem[item.Id] is null) {
+									if (IdToNameItemEmbedItem.ContainsKey(item.Id))
+										IdToNameItemEmbedItem[item.Id].NameItem = (EmbedTextItem)item;
+								}
+								else {
+									var parent = IdToParentEmbedItem[item.Id];
+									if (parent.Children is null) {
+										parent.Children = new();
+										parent.Children.Add(item);
+										item.Init(embed, parent);
+									}
+									else {
+										var self = parent.Children.First(x => x.Id == item.Id);
+										parent.Children.Remove(self);
+										parent.Children.Add(item);
+										item.Init(embed, parent);
+									}
+								}
+
+								if (EmbedRootItemComponents.ContainsKey(item.Id)) {
+									EmbedRootItemComponents[item.Id].item = item;
+									EmbedRootItemComponents[item.Id].Refresh();
+								}
+								else
+									Console.WriteLine($"Could not find embed item with id of {item.Id}");
+							}
+							else if (i == 1 && item.ItemType == EmbedItemType.Form && item.ItemType != EmbedItemType.EmbedRow) {
+								if (EmbedFormComponents.ContainsKey(item.Id))
+									EmbedFormComponents[item.Id].Refresh();
+								else
+									Console.WriteLine($"Could not find embed form with id of {item.Id}");
+							}
+							else if (i == 2 && item.ItemType != EmbedItemType.EmbedRow && item.ItemType != EmbedItemType.Form) {
+								if (ItemComponents.ContainsKey(item.Id))
+									ItemComponents[item.Id].Refresh();
+								else
+									Console.WriteLine($"Could not find embed item with id of {item.Id}");
+							}
+						}
+					}
+					foreach (var page in embed.Pages) {
+						foreach (var item in page.GetAllItems()) {
+							if (item.Id is not null) {
+								if (item.ItemType == EmbedItemType.Progress || item.ItemType == EmbedItemType.TextArea
+									|| item.ItemType == EmbedItemType.Text || item.ItemType == EmbedItemType.InputBox
+									|| item.ItemType == EmbedItemType.DropDownMenu)
+								{
+									var nameableitem = (INameable)item;
+									if (nameableitem.NameItem is not null && nameableitem.NameItem.Id is not null)
+										IdToNameItemEmbedItem[nameableitem.NameItem.Id] = (INameable)item;
+								}
+								IdToParentEmbedItem[item.Id] = item.Parent;
+							}
+						}
+					}
+				}
 			}
 			catch (Exception e)
 			{
