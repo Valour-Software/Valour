@@ -6,6 +6,7 @@ using Valour.Api.Nodes;
 using Valour.Api.Models;
 using Valour.Client.Windows.ChatWindows;
 using Valour.Api.Models;
+using System.Collections.Concurrent;
 
 namespace Valour.Client.Windows;
 
@@ -65,7 +66,12 @@ public class WindowManager
     /// </summary>
     public MainWindowsComponent MainWindowsComponent { get; set; }
 
-    public WindowManager()
+	/// <summary>
+	/// channel.Id : text content
+	/// </summary>
+	public ConcurrentDictionary<long, string> NotYetSentMessages = new();
+
+	public WindowManager()
     {
         Instance = this;
         ValourClient.OnNodeReconnect += OnNodeReconnect;

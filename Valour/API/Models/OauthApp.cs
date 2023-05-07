@@ -50,8 +50,8 @@ public class OauthApp : Item, ISharedOauthApp
     public string RedirectUrl { get; set; }
 
     public static async Task<OauthApp> FindAsync(long id) =>
-        (await NodeManager.Nodes[0].GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
+        (await NodeManager.Nodes.First().GetJsonAsync<OauthApp>($"api/oauth/app/{id}")).Data;
 
     public static async Task<PublicOauthAppData> FindPublicDataAsync(long id) =>
-        (await NodeManager.Nodes[0].GetJsonAsync<PublicOauthAppData>($"api/oauth/app/public/{id}")).Data;
+        (await NodeManager.Nodes.First().GetJsonAsync<PublicOauthAppData>($"api/oauth/app/public/{id}")).Data;
 }

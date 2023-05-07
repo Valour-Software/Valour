@@ -16,15 +16,17 @@ public class Padding : StyleBase
     [JsonPropertyName("b")]
     public Size Bottom { get; set; }
 
-	[JsonPropertyName("o")]
-	public Size Only { get; set; }
+    public Padding() {}
 
-	public Padding(Size size)
+    public Padding(Size size)
     {
-        Only = size;
+        Left = size;
+        Right = size;
+        Top = size;
+        Bottom = size;
     }
 
-    public Padding(Size left, Size right, Size top, Size bottom)
+    public Padding(Size left = null, Size right = null, Size top = null, Size bottom = null)
     {
         Left = left;
         Right = right;
@@ -34,12 +36,15 @@ public class Padding : StyleBase
 
     public override string ToString()
     {
-        if (Only is null)
-            return @$"padding-left: {Left};
-                  padding-right: {Right};
-                  padding-top: {Top};
-                  padding-bottom: {Bottom};";
-        else
-			return @$"padding: {Only};";
+        var s = "";
+        if (Left is not null)
+            s += $"padding-left: {Left};";
+        if (Right is not null)
+            s += $"padding-right: {Right};";
+        if (Top is not null)
+            s += $"padding-top: {Top};";
+        if (Bottom is not null)
+            s += $"padding-bottom: {Bottom};";
+        return s;
 	}
 }

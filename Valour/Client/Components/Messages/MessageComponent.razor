@@ -17,8 +17,29 @@
                         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
                     }
                     <div class="time-container">
-                        <p class="time">
-                            @MessageData.Message.TimeSent.ToLocalTime().ToShortTimeString().Replace(' ', '\0')
+                        @{
+                            var hourssentago = (DateTime.UtcNow - MessageData.Message.TimeSent).TotalHours;
+                            var locattime = MessageData.Message.TimeSent.ToLocalTime();
+                            var titlefortime = locattime.ToShortDateString().Replace("00", "") + " " + locattime.ToShortTimeString();
+                            @if (hourssentago >= 24 && hourssentago <= 48)
+                            {
+                                titlefortime = $"Yesterday at {locattime.ToShortTimeString()}";
+                            }
+                        }
+                        <p class="time" title="@titlefortime">
+                            @if (hourssentago >= 24 && hourssentago <= 48)
+                            {
+                                @($"Yesterday")
+                            }
+                            else if (hourssentago >= 24)
+                            {
+                                @($"{locattime.ToShortDateString().Replace("00", "")}")
+                            }
+                            else
+                            {
+                                @locattime.ToShortTimeString().Replace(' ', '\0')
+                            }
+
                         </p>
                     </div>
                 </div>

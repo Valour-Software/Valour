@@ -1,4 +1,5 @@
 ﻿@inherits InputComponent
+@inject WindowManager windowManager
 @using Valour.Api.Models.Messages;
 @using Valour.Api.Models;
 
@@ -23,14 +24,27 @@
         SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetChannel.PlanetId);
 
         PreviewMessage = new(BuildNewMessage());
+
+        if (PreviewMessage.Message.Content is not null)
+        {
+            await SetInputContent(PreviewMessage.Message.Content);
+            await RefreshPreviewMessage();
+        }
+        else {
+            await SetInputContent("");
+            await RefreshPreviewMessage();
+        }
+
+        Refresh();
     }
 
     public override Message BuildNewMessage()
-    { 
+    {
+        windowManager.NotYetSentMessages.TryGetValue(PlanetChannel.Id, out var prevcontent);
         return new PlanetMessage()
         {
             AuthorUserId = ValourClient.Self.Id,
-            Content = null,
+            Content = prevcontent,
             ChannelId = Window.Channel.Id,
             AuthorMemberId = SelfMember.Id,
             TimeSent = DateTime.UtcNow,
