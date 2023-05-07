@@ -121,12 +121,12 @@ public class DirectChatChannelService
         var state = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == userId && x.ChannelId == channel.Id);
         if (state is null)
         {
-            _db.UserChannelStates.Add(new UserChannelState()
+            _db.UserChannelStates.Add(new Valour.Database.UserChannelState()
             {
                 UserId = userId,
                 ChannelId = channel.Id,
                 LastViewedTime = DateTime.UtcNow
-            }.ToDatabase());
+            });
         }
         else
         {
