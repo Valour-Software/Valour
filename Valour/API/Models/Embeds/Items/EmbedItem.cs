@@ -57,6 +57,8 @@ public interface IParentItem
 [JsonDerivedType(typeof(EmbedDropDownMenuItem), typeDiscriminator: 6)]
 [JsonDerivedType(typeof(EmbedDropDownItem), typeDiscriminator: 7)]
 [JsonDerivedType(typeof(EmbedRow), typeDiscriminator: 8)]
+[JsonDerivedType(typeof(EmbedProgress), typeDiscriminator: 9)]
+[JsonDerivedType(typeof(EmbedProgressBar), typeDiscriminator: 10)]
 public class EmbedItem : IParentItem
 {
     [JsonIgnore]
@@ -74,8 +76,18 @@ public class EmbedItem : IParentItem
 
     public List<BootstrapClass> Classes { get; set; }
 
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// This is NOT sent to the client. This is meant to be used by bots and frameworks.
+    /// </summary>
+    [JsonIgnore]
+    public Dictionary<string, object> ExtraData { get; set; }
+
     public virtual List<EmbedItem> GetAllItems()
 	{
+        if (Children is null)
+            return new();
         List<EmbedItem> items = new();
         foreach(var _item in Children) 
         {

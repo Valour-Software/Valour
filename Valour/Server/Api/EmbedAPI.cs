@@ -76,9 +76,11 @@ public class EmbedAPI : BaseAPI
     {
         var peu = await JsonSerializer.DeserializeAsync<PersonalEmbedUpdate>(ctx.Request.Body);
 
-        if (peu.NewEmbedContent.Length > 65535) {
+        if (peu.NewEmbedContent is not null && peu.NewEmbedContent.Length > 65535)
             return Results.BadRequest("EmbedData must be under 65535 chars");
-        }
+
+        if (peu.ChangedEmbedItemsContent is not null && peu.ChangedEmbedItemsContent.Length > 65535)
+            return Results.BadRequest("ChangeItemsData must be under 65535 chars");
 
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }

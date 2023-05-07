@@ -143,15 +143,15 @@ namespace Valour.Server.Database
             ConnectionTracker.TrackGroupMembership(groupId, Context);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
             
-            var channelState = (await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id));
+            var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
 
             if (channelState is null)
             {
-                channelState = new Valour.Database.UserChannelState()
+                channelState = new UserChannelState()
                 {
                     UserId = authToken.UserId,
                     ChannelId = channelId
-                };
+                }.ToDatabase();
 
                 _db.UserChannelStates.Add(channelState);
             }

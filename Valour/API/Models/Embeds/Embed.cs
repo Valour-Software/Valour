@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json.Serialization;
 using Valour.Api.Models.Messages.Embeds.Items;
 using Valour.Api.Models.Messages.Embeds.Styles;
 
@@ -41,6 +43,19 @@ public class EmbedPage : EmbedItem, IParentItem
 
     [JsonIgnore]
 	public IParentItem Parent { get; set; }
+
+    public override List<EmbedItem> GetAllItems()
+	{
+        if (Children is null)
+            return new();
+        List<EmbedItem> items = new();
+        foreach(var _item in Children) 
+        {
+            items.Add(_item);
+            items.AddRange(_item.GetAllItems());
+        }
+        return items;
+	}
 
 	public EmbedPage()
     {
@@ -124,7 +139,7 @@ public class Embed
     {
         get
         {
-            return "1.2";
+            return "1.3";
         }
     }
 

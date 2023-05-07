@@ -17,6 +17,23 @@ public class EmbedTextItem : EmbedItem, IClickable, INameable
 
 	}
 
+	public override List<EmbedItem> GetAllItems()
+	{
+        if (Children is null)
+            return new();
+        List<EmbedItem> items = new();
+		if (NameItem is not null) {
+		    items.Add(NameItem);
+		    items.AddRange(NameItem.GetAllItems());
+        }
+        foreach(var _item in Children) 
+        {
+            items.Add(_item);
+            items.AddRange(_item.GetAllItems());
+        }
+        return items;
+	}
+
 	public EmbedTextItem(string text)
 	{
 		Text = text;

@@ -6,6 +6,9 @@ namespace Valour.Api.Models.Messages.Embeds.Items;
 
 public class EmbedProgressBar : EmbedItem
 {
+    /// <summary>
+    /// Value from 0 to 100
+    /// </summary>
     public int Value { get; set; }
 
     public bool ShowLabel { get; set; }
