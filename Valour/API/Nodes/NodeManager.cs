@@ -26,7 +26,7 @@ namespace Valour.Api.Nodes
             if (!NameToNode.TryGetValue(name, out Node node))
             {
                 node = new Node();
-                node.InitializeAsync(name, ValourClient.Token).Wait();
+                Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
             }
             return node;
         }
