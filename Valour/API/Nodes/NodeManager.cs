@@ -26,6 +26,7 @@ namespace Valour.Api.Nodes
             if (!NameToNode.TryGetValue(name, out Node node))
             {
                 node = new Node();
+                NameToNode[name] = node;
                 Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
             }
             return node;
@@ -45,6 +46,8 @@ namespace Valour.Api.Nodes
             if (!NameToNode.TryGetValue(name, out Node node))
             {
                 node = new Node();
+                NameToNode[name] = node;
+                PlanetToNode[planetId] = name;
                 Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
             }
 
