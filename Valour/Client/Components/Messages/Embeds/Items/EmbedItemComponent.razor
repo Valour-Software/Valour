@@ -45,16 +45,22 @@
 
 	protected override void OnInitialized()
 	{
+		if (item.Id is not null)
+			embedComponent.EmbedRootItemComponents[item.Id] = this;
 		embedComponent.RefreshRootItemComponents += Refresh;
 	}
 
 	public void Dispose()
     {
         embedComponent.RefreshRootItemComponents -= Refresh;
+		if (item.Id is not null)
+            embedComponent.EmbedRootItemComponents.Remove(item.Id, out var _);
     }
 
 	public void Refresh()
 	{
+		if (item.Id is not null)
+			embedComponent.EmbedRootItemComponents[item.Id] = this;
 		StateHasChanged();
 	}
 }

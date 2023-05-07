@@ -39,7 +39,7 @@ public static class ValourClient
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
-    public static string BaseAddress = "http://localhost:5000/";
+    public static string BaseAddress = "https://localhost:44331/";
 #endif
 
     /// <summary>
@@ -963,7 +963,7 @@ public static class ValourClient
         // Now that we have our user, it should have node data we can use to set up our first node
         // Initialize primary node
         PrimaryNode = new Node();
-        await PrimaryNode.InitializeAsync(nodeName.Data, _token);
+        await PrimaryNode.InitializeAsync(nodeName.Data, _token, true);
 
         var loadTasks = new List<Task>()
         {
@@ -1032,7 +1032,7 @@ public static class ValourClient
         // Now that we have our user, it should have node data we can use to set up our first node
         // Initialize primary node
         PrimaryNode = new Node();
-        await PrimaryNode.InitializeAsync(nodeName.Data, _token);
+        await PrimaryNode.InitializeAsync(nodeName.Data, _token, true);
 
         // Add auth header so we never have to do that again
         Http.DefaultRequestHeaders.Add("authorization", Token);

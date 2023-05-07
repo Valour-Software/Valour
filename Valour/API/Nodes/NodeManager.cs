@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -10,7 +11,7 @@ namespace Valour.Api.Nodes
 {
     public static class NodeManager
     {
-        public static List<Node> Nodes { get; set; } = new List<Node>();
+        public static BlockingCollection<Node> Nodes { get; set; } = new(new ConcurrentQueue<Node>());
         public static Dictionary<long, string> PlanetToNode { get; } = new Dictionary<long, string>();
         public static Dictionary<string, Node> NameToNode { get; } = new Dictionary<string, Node>();
         
@@ -20,8 +21,13 @@ namespace Valour.Api.Nodes
             // use the primary node
             if (string.IsNullOrWhiteSpace(name))
                 return ValourClient.PrimaryNode;
-            
-            NameToNode.TryGetValue(name, out Node node);
+
+            // If we don't already know about this node, create it and link it
+            if (!NameToNode.TryGetValue(name, out Node node))
+            {
+                node = new Node();
+                Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
+            }
             return node;
         }
         
@@ -35,8 +41,13 @@ namespace Valour.Api.Nodes
             if (name is null)
                 return null;
 
-            NameToNode.TryGetValue(name, out Node node);
-                    
+            // If we know the node name but don't have it set up, we can set it up now
+            if (!NameToNode.TryGetValue(name, out Node node))
+            {
+                node = new Node();
+                Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
+            }
+
             return node;
         }
 
@@ -75,8 +86,6 @@ namespace Valour.Api.Nodes
 
                 node = new Node();
                 await node.InitializeAsync(name, ValourClient.Token);
-                Nodes.Add(node);
-                NameToNode[node.Name] = node;
             }
                 
             // Set planet to node

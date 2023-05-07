@@ -64,7 +64,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Primary node connection for user-wide events
         /// </summary>
-        public async Task<TaskResult> JoinUser()
+        public async Task<TaskResult> JoinUser(bool isPrimary)
         {
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to User: SignalR was not authenticated.");
@@ -72,7 +72,9 @@ namespace Valour.Server.Database
             var groupId = $"u-{authToken.UserId}";
 
             ConnectionTracker.TrackGroupMembership(groupId, Context);
-            await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _redis);
+            
+            if (isPrimary)
+                await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _redis);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
 
@@ -143,7 +145,7 @@ namespace Valour.Server.Database
             ConnectionTracker.TrackGroupMembership(groupId, Context);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
             
-            var channelState = (await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id)).ToModel();
+            var channelState = await _db.UserChannelStates.FirstOrDefaultAsync(x => x.UserId == authToken.UserId && x.ChannelId == channel.Id);
 
             if (channelState is null)
             {
@@ -151,15 +153,15 @@ namespace Valour.Server.Database
                 {
                     UserId = authToken.UserId,
                     ChannelId = channelId
-                };
+                }.ToDatabase();
 
-                _db.UserChannelStates.Add(channelState.ToDatabase());
+                _db.UserChannelStates.Add(channelState);
             }
             
             channelState.LastViewedTime = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             
-            _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState);
+            _hubService.NotifyUserChannelStateUpdate(authToken.UserId, channelState.ToModel());
 
             return new TaskResult(true, "Connected to channel " + channelId);
         }

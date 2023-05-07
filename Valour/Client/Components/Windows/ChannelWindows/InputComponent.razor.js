@@ -116,6 +116,12 @@ export function inputKeyDownHandler(e, input) {
     }
 }
 
+export function setInputContent(inputId, content) {
+    var input = inputs[inputId];
+
+    input.element.innerText = content;
+}
+
 export function submitMessage(inputId, keepOpen = false) {
     var input = inputs[inputId];
 

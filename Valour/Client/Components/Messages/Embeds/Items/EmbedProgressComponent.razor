@@ -1,5 +1,6 @@
 ﻿@implements IDisposable
 @inject IJSRuntime JS
+@inherits BaseEmbedItemComponent
 
 <div style="@item.GetStyle()">
 	@if (item.NameItem is not null)
@@ -20,13 +21,7 @@
 </div>
 
 @code {
-	[Parameter]
-	public EmbedItem _item { get; set; }
-
 	public EmbedProgress item { get; set; }
-
-	[CascadingParameter]
-	public EmbedComponent embedComponent { get; set; }
 
 	[CascadingParameter]
     public IModalService Modal { get; set; }
@@ -34,17 +29,23 @@
 	protected override void OnInitialized()
 	{
 		item = (EmbedProgress)_item;
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
 		embedComponent.RefreshItemComponents += Refresh;
 	}
 
 	public void Dispose()
     {
         embedComponent.RefreshItemComponents -= Refresh;
+		if (item.Id is not null)
+            embedComponent.ItemComponents.Remove(item.Id, out var _);
     }
 
-	public void Refresh()
+	public override void Refresh()
 	{
 		item = (EmbedProgress)_item;
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
 		StateHasChanged();
 	}
 }

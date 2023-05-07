@@ -18,7 +18,10 @@ public class PersonalEmbedUpdate
 	public long TargetMessageId { get; set; }
 
 	[JsonPropertyName("NewEmbedContent")]
-	public string NewEmbedContent { get; set; }
+	public string? NewEmbedContent { get; set; }
+
+    [JsonPropertyName("ChangedEmbedItemsContent")]
+	public string? ChangedEmbedItemsContent { get; set; }
 }
 
 public class ChannelEmbedUpdate
