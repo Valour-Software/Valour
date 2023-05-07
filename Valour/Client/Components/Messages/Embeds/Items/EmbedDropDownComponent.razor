@@ -1,4 +1,5 @@
 ﻿@implements IDisposable
+@inherits BaseEmbedItemComponent
 
 <div style="@item.GetStyle()" class="embed-item">
 	@if (item.NameItem is not null)
@@ -24,13 +25,7 @@
 </div>
 
 @code {
-	[Parameter]
-	public EmbedItem _item { get; set; }
-
 	public EmbedDropDownMenuItem item { get; set; }
-
-	[CascadingParameter]
-	public EmbedComponent embedComponent { get; set; }
 
 	private EmbedItem Tip;
 
@@ -39,6 +34,8 @@
 		item = (EmbedDropDownMenuItem)_item;
 		embedComponent.RefreshItemComponents += Refresh;
 		Tip = new EmbedTextItem(item.Value);
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
 	}
 
 	public async Task HandleSelect(EmbedDropDownItem dropdownitem)
@@ -51,9 +48,11 @@
 	public void Dispose()
     {
         embedComponent.RefreshItemComponents -= Refresh;
+		if (item.Id is not null)
+            embedComponent.ItemComponents.Remove(item.Id, out var _);
     }
 
-	public void Refresh()
+	public override void Refresh()
 	{
 		if (!embedComponent.ProcessingEmbedUpdate)
 			item = (EmbedDropDownMenuItem)_item;
@@ -63,6 +62,8 @@
 			item = (EmbedDropDownMenuItem)_item;
 			item.Value = value;
 		}
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
 		StateHasChanged();
 	}
 }

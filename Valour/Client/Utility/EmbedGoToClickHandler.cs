@@ -9,6 +9,7 @@ using Microsoft.JSInterop;
 using Blazored.Modal;
 using Valour.Client.Components.Menus.Modals;
 using Valour.Api.Models;
+using Valour.Api.Nodes;
 
 namespace Valour.Client.Utility;
 
@@ -39,7 +40,7 @@ internal static class EmbedGoToClickHandler
 				interaction.MemberId = SelfMember.Id;
 			}
 
-			var response = await ValourClient.Http.PostAsJsonAsync($"api/embed/interact", interaction);
+			var response = await embedComponent.MessageWrapper.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
 
 			Console.WriteLine(response.Content.ReadAsStringAsync());
 		}

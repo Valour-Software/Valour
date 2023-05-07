@@ -1,5 +1,6 @@
 ﻿@implements IDisposable
 @inject IJSRuntime JS
+@inherits BaseEmbedItemComponent
 
 <div style="@item.GetStyle()" class="@MainClass">
 	@if (item.NameItem is not null)
@@ -22,13 +23,7 @@
 </div>
 
 @code {
-	[Parameter]
-	public EmbedItem _item { get; set; }
-
 	public EmbedTextItem item { get; set; }
-
-	[CascadingParameter]
-	public EmbedComponent embedComponent { get; set; }
 
 	[CascadingParameter]
     public IModalService Modal { get; set; }
@@ -71,17 +66,27 @@
 	protected override void OnInitialized()
 	{
 		item = (EmbedTextItem)_item;
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
 		embedComponent.RefreshItemComponents += Refresh;
 	}
 
 	public void Dispose()
     {
         embedComponent.RefreshItemComponents -= Refresh;
+		if (item.Id is not null)
+            embedComponent.ItemComponents.Remove(item.Id, out var _);
     }
 
-	public void Refresh()
+	public override void Refresh()
 	{
 		item = (EmbedTextItem)_item;
+		if (item.Id is not null) {
+			embedComponent.ItemComponents[item.Id] = this;
+			//if (item.Id != "money-text") {
+			//	Console.WriteLine($"TextComponent: Updating {item.Id} with content {item.Text}");
+			//}
+		}
 		StateHasChanged();
 	}
 }

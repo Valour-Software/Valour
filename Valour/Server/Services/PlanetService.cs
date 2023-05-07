@@ -110,7 +110,9 @@ public class PlanetService
 
                 role.Position = pos;
 
-                _db.PlanetRoles.Update(role.ToDatabase());
+                var old = await _db.PlanetRoles.FindAsync(role.Id);
+                _db.Entry(old).CurrentValues.SetValues(role);
+                _db.PlanetRoles.Update(old);
                 roles.Add(role);
 
                 pos++;

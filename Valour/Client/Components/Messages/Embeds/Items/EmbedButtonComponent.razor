@@ -2,14 +2,15 @@
 @using Valour.Api.Models.Messages
 @implements IDisposable
 @inject IJSRuntime JS
+@inherits BaseEmbedItemComponent
 
 <button type="button" class="btn embed-item" style="color: #ffffff;background: #000000;@Item.GetStyle()" @onclick="(async () => {await OnEmbedButtonClick();})">
-    <EmbedItemComponent item="@Item.Children[0]"></EmbedItemComponent>
+    @foreach (var child in Item.Children)
+    {
+        <EmbedItemComponent item="@child"></EmbedItemComponent>
+    }
 </button>
 @code {
-    [Parameter]
-    public EmbedItem _item {get; set;}
-
     [Parameter]
     public ClientMessageWrapper Message {get; set;}
 
@@ -18,9 +19,6 @@
 
     [Parameter]
     public EmbedFormItem FormItem { get; set; }
-
-    [CascadingParameter]
-    public EmbedComponent embedComponent { get; set; }
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
@@ -33,17 +31,23 @@
     {
         Item = (EmbedButtonItem)_item;
         embedComponent.RefreshItemComponents += Refresh;
+        if (Item.Id is not null)
+			embedComponent.ItemComponents[Item.Id] = this;
     }
 
-    public void Refresh()
+    public override void Refresh()
     {
         Item = (EmbedButtonItem)_item;
+        if (Item.Id is not null)
+			embedComponent.ItemComponents[Item.Id] = this;
         StateHasChanged();
     }
 
     public void Dispose()
     {
         embedComponent.RefreshItemComponents -= Refresh;
+        if (Item.Id is not null)
+            embedComponent.ItemComponents.Remove(Item.Id, out var _);
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -96,7 +100,7 @@
             interaction.EventType = EmbedIteractionEventType.FormSubmitted;
         }
 
-        var response = await Http.PostAsJsonAsync($"api/embed/interact", interaction);
+        var response = await embedComponent.MessageWrapper.Message.Node.HttpClient.PostAsJsonAsync($"api/embed/interact", interaction);
 
         Console.WriteLine(response.Content.ReadAsStringAsync());
     }

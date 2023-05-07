@@ -1,0 +1,12 @@
+@code {
+    [Parameter]
+	public EmbedItem _item { get; set; }
+
+    [CascadingParameter]
+	public EmbedComponent embedComponent { get; set; }
+
+    public virtual void Refresh()
+    {
+
+    }
+}
