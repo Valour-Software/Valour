@@ -47,6 +47,11 @@ public class Node
     /// True if this node is ready to send and recieve requests
     /// </summary>
     public bool IsReady { get; set; }
+    
+    /// <summary>
+    /// True if this is the primary node for this client
+    /// </summary>
+    public bool IsPrimary { get; set; }
 
     public async Task<T> WaitUntilReadyThen<T>(Func<Task<T>> next)
     {
@@ -68,10 +73,11 @@ public class Node
     }
 
 
-    public async Task InitializeAsync(string name, string token)
+    public async Task InitializeAsync(string name, string token, bool isPrimary = false)
     {
         Name = name;
         Token = token;
+        IsPrimary = isPrimary;
 
         NodeManager.AddNode(this);
 
@@ -302,7 +308,7 @@ public class Node
 
     public async Task<TaskResult> ConnectToUserSignalRChannel()
     {
-        return await HubConnection.InvokeAsync<TaskResult>("JoinUser");
+        return await HubConnection.InvokeAsync<TaskResult>("JoinUser", IsPrimary);
     }
 
     #endregion

@@ -64,7 +64,7 @@ namespace Valour.Server.Database
         /// <summary>
         /// Primary node connection for user-wide events
         /// </summary>
-        public async Task<TaskResult> JoinUser()
+        public async Task<TaskResult> JoinUser(bool isPrimary)
         {
             var authToken = ConnectionTracker.GetToken(Context.ConnectionId);
             if (authToken == null) return new TaskResult(false, "Failed to connect to User: SignalR was not authenticated.");
@@ -72,7 +72,9 @@ namespace Valour.Server.Database
             var groupId = $"u-{authToken.UserId}";
 
             ConnectionTracker.TrackGroupMembership(groupId, Context);
-            await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _redis);
+            
+            if (isPrimary)
+                await ConnectionTracker.AddPrimaryConnection(authToken.UserId, Context, _redis);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
 
