@@ -26,7 +26,8 @@ namespace Valour.Api.Nodes
             if (!NameToNode.TryGetValue(name, out Node node))
             {
                 node = new Node();
-                node.InitializeAsync(name, ValourClient.Token).Wait();
+                NameToNode[name] = node;
+                Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
             }
             return node;
         }
@@ -41,11 +42,13 @@ namespace Valour.Api.Nodes
             if (name is null)
                 return null;
 
-            // If we don't already know about this node, create it and link it
+            // If we know the node name but don't have it set up, we can set it up now
             if (!NameToNode.TryGetValue(name, out Node node))
             {
                 node = new Node();
-                node.InitializeAsync(name, ValourClient.Token).Wait();
+                NameToNode[name] = node;
+                PlanetToNode[planetId] = name;
+                Task.Run(async () => node.InitializeAsync(name, ValourClient.Token));
             }
 
             return node;
