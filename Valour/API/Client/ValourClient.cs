@@ -325,11 +325,14 @@ public static class ValourClient
 
     public static bool GetPlanetUnreadState(long planetId)
     {
-        var channelStates = CurrentChannelStates.Values.Where(x => x.PlanetId == planetId);
+        var channelStates = CurrentChannelStates.Where(x => x.Value.PlanetId == planetId);
 
+        // Console.WriteLine($"[{planetId}] Checking {channelStates.Count()} channels");
+        // Console.WriteLine(JsonSerializer.Serialize(channelStates));
+        
         foreach (var state in channelStates)
         {
-            if (GetChannelUnreadState(state.ChannelId))
+            if (GetChannelUnreadState(state.Key))
                 return true;
         }
 
@@ -351,7 +354,7 @@ public static class ValourClient
             return false;
         }
         
-        Console.WriteLine($"{lastUpdate} < {lastUpdate.LastUpdateTime}");
+        // Console.WriteLine($"[{channelId}]: {lastRead} < {lastUpdate.LastUpdateTime}");
         
         return lastRead < lastUpdate.LastUpdateTime;
     }
@@ -1200,11 +1203,15 @@ public static class ValourClient
 
         foreach (var state in response.Data)
         {
-            CurrentChannelStates[state.ChannelId] = state.ChannelState;
-            ChannelsLastViewedState[state.ChannelId] = state.LastViewedState;
+            if (state.ChannelState is not null)
+                CurrentChannelStates[state.ChannelId] = state.ChannelState;
+            
+            if (state.LastViewedTime is not null)
+                ChannelsLastViewedState[state.ChannelId] = state.LastViewedTime;
         }
 
         Console.WriteLine("Loaded " + ChannelsLastViewedState.Count + " channel states.");
+        // Console.WriteLine(JsonSerializer.Serialize(response.Data));
     }
 
     /// <summary>

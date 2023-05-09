@@ -104,18 +104,23 @@ public class UserApi
         UserService userService,
         ChannelStateService channelStateService)
     {
-        var userChannelStates = await userService.GetUserChannelStatesAsync(await userService.GetCurrentUserIdAsync());
-        var channelStates = await channelStateService.GetChannelStates(userChannelStates.Select(x => x.ChannelId));
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        var userChannels = await userService.GetAccessiblePlanetChatChannelIdsAsync(userId);
+        var userChannelStates = (await userService.GetUserChannelStatesAsync(userId)).ToDictionary(x => x.ChannelId);
+        var channelStates = await channelStateService.GetChannelStates(userChannels);
 
         List<ChannelStateData> stateData = new();
 
-        foreach (var userState in userChannelStates)
+        foreach (var channelId in userChannels)
         {
+            userChannelStates.TryGetValue(channelId, out var userChannelState);
+            channelStates.TryGetValue(channelId, out var channelState);
             stateData.Add(new ChannelStateData()
             {
-                ChannelId = userState.ChannelId,
-                LastViewedTime = userState.LastViewedTime,
-                ChannelState = channelStates[userState.ChannelId].ToModel()
+                ChannelId = channelId,
+                LastViewedTime = userChannelState?.LastViewedTime ?? DateTime.MaxValue,
+                ChannelState = channelState?.ToModel(),
             });
         }
 

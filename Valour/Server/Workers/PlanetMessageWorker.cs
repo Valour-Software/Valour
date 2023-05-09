@@ -109,14 +109,23 @@ namespace Valour.Server.Workers
             {
                 var lastMessage = StagedChannelMessages[channelId].Last();
                 
-                var updated = new Valour.Database.ChannelState()
+                var channelState = await db.ChannelStates.FindAsync(channelId);
+                if (channelState is null)
                 {
-                    ChannelId = channelId,
-                    LastUpdateTime = lastMessage.TimeSent,
-                    PlanetId = lastMessage.PlanetId,
-                };
-                
-                db.ChannelStates.Update(updated);
+                    channelState = new Valour.Database.ChannelState()
+                    {
+                        ChannelId = channelId,
+                        LastUpdateTime = lastMessage.TimeSent,
+                        PlanetId = lastMessage.PlanetId,
+                    };
+
+                    db.ChannelStates.Add(channelState);
+                }
+                else
+                {
+                    channelState.LastUpdateTime = lastMessage.TimeSent;
+                    db.ChannelStates.Update(channelState);
+                }
             }
             
             await db.PlanetMessages.AddRangeAsync(StagedMessages.Values.Select(x => x.ToDatabase()));

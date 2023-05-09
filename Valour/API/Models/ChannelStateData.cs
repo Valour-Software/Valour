@@ -15,5 +15,5 @@ public class ChannelStateData
     /// <summary>
     /// The most current state viewed by the user
     /// </summary>
-    public DateTime LastViewedState { get; set; }
+    public DateTime? LastViewedTime { get; set; }
 }
