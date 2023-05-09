@@ -140,7 +140,7 @@ public class CoreHubService
 
         public async void NotifyChannelStateUpdate(long planetId, long channelId, DateTime time)
         {
-            await _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time));
+            await _hub.Clients.Group($"p-{planetId}").SendAsync("Channel-State", new ChannelStateUpdate(channelId, time, planetId));
         }
 
     ////////////////

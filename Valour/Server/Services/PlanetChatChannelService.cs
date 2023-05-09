@@ -155,8 +155,6 @@ public class PlanetChatChannelService
         if (old.PlanetId != updated.PlanetId)
             return new(false, "Cannot change PlanetId.");
 
-        updated.TimeLastActive = old.TimeLastActive;
-
         var baseValid = await ValidateBasic(updated);
         if (!baseValid.Success)
             return new(false, baseValid.Message);

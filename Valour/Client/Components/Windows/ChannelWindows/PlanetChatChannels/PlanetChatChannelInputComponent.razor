@@ -25,16 +25,6 @@
 
         PreviewMessage = new(BuildNewMessage());
 
-        if (PreviewMessage.Message.Content is not null)
-        {
-            await SetInputContent(PreviewMessage.Message.Content);
-            await RefreshPreviewMessage();
-        }
-        else {
-            await SetInputContent("");
-            await RefreshPreviewMessage();
-        }
-
         Refresh();
     }
 
@@ -53,4 +43,18 @@
             Fingerprint = Guid.NewGuid().ToString()
         };
     }
+
+    public override async Task OnAfterJsSetupAsync()
+    {
+        if (PreviewMessage.Message.Content is not null)
+        {
+            await SetInputContent(PreviewMessage.Message.Content);
+            await RefreshPreviewMessage();
+        }
+        else {
+            await SetInputContent("");
+            await RefreshPreviewMessage();
+        }
+    }
+
 }

@@ -343,14 +343,16 @@ public static class ValourClient
 
         if (!ChannelsLastViewedState.TryGetValue(channelId, out var lastRead))
         {
-            lastRead = DateTime.MaxValue;
+            return true;
         }
 
         if (!CurrentChannelStates.TryGetValue(channelId, out var lastUpdate))
         {
             return false;
         }
-
+        
+        Console.WriteLine($"{lastUpdate} < {lastUpdate.LastUpdateTime}");
+        
         return lastRead < lastUpdate.LastUpdateTime;
     }
 
@@ -659,7 +661,8 @@ public static class ValourClient
 
     public static async Task NotifyNodeReconnect(Node node)
     {
-        await OnNodeReconnect?.Invoke(node);
+        if (OnNodeReconnect is not null)
+            await OnNodeReconnect.Invoke(node);
     }
 
     public static async Task UpdateChannelState(ChannelStateUpdate update)
@@ -668,10 +671,23 @@ public static class ValourClient
         var channel = ValourCache.Get<PlanetChatChannel>(update.ChannelId);
         if (channel is null)
             return;
+        
+        if (!CurrentChannelStates.TryGetValue(channel.Id, out var state))
+        {
+            state = new ChannelState()
+            {
+                ChannelId = update.ChannelId,
+                PlanetId = update.PlanetId,
+                LastUpdateTime = update.Time
+            };
 
-        channel.TimeLastActive = update.Time;
-        CurrentChannelStates[channel.Id].LastUpdateTime = update.Time;
-
+            CurrentChannelStates[channel.Id] = state;
+        }
+        else
+        {
+            CurrentChannelStates[channel.Id].LastUpdateTime = update.Time;
+        }
+        
         await channel.OnUpdate(0x01);
         await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
     }

@@ -10,7 +10,6 @@ public static class DirectChatChannelMapper
         return new DirectChatChannel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive,
             UserOneId = channel.UserOneId,
             UserTwoId = channel.UserTwoId
         };
@@ -24,7 +23,6 @@ public static class DirectChatChannelMapper
         return new Valour.Database.DirectChatChannel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive,
             UserOneId = channel.UserOneId,
             UserTwoId = channel.UserTwoId
         };

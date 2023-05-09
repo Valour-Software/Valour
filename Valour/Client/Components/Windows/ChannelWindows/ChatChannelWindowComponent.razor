@@ -125,23 +125,6 @@
 
         MessageHolder.AddMessages(msgs);
 
-        if (msgs.Any())
-        {
-            await ValourClient.UpdateChannelState(new ChannelStateUpdate()
-            {
-                ChannelId = Channel.Id,
-                Time = msgs.Last().Message.TimeSent
-            });
-        }
-        else
-        {
-            await ValourClient.UpdateChannelState(new ChannelStateUpdate()
-            {
-                ChannelId = Channel.Id,
-                Time = DateTime.MinValue
-            });
-        }
-        
         await MessageHolder.ScrollToBottom();
     }
 
