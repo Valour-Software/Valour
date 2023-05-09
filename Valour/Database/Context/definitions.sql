@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS planets (
     id BIGINT NOT NULL PRIMARY KEY,
     owner_id BIGINT NOT NULL,
     name VARCHAR(32) NOT NULL,
-    icon_url TEXT NOT NULL,
+    icon_url TEXT,
     description TEXT NOT NULL,
     public BOOLEAN NOT NULL DEFAULT true,
     discoverable BOOLEAN NOT NULL DEFAULT true,
