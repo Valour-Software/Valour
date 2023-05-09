@@ -39,7 +39,7 @@ public static class ValourClient
 #if (!DEBUG)
     public static string BaseAddress = "https://app.valour.gg/";
 #else
-    public static string BaseAddress = "https://localhost:44331/";
+    public static string BaseAddress = "http://localhost:5000/";
 #endif
 
     /// <summary>
@@ -95,7 +95,12 @@ public static class ValourClient
     /// <summary>
     /// The state of channels this user has access to
     /// </summary>
-    public static Dictionary<long, DateTime?> ChannelStateTimes { get; private set; } = new();
+    private static readonly Dictionary<long, DateTime?> ChannelsLastViewedState = new();
+    
+    /// <summary>
+    /// The last update times of channels this user has access to
+    /// </summary>
+    private static readonly Dictionary<long, ChannelState> CurrentChannelStates = new();
 
     /// <summary>
     /// The primary node this client is connected to
@@ -311,6 +316,42 @@ public static class ValourClient
         }
 
         return result;
+    }
+    
+    public static void SetChannelLastViewedState(long channelId, DateTime lastViewed)
+    {
+        ChannelsLastViewedState[channelId] = lastViewed;
+    }
+
+    public static bool GetPlanetUnreadState(long planetId)
+    {
+        var channelStates = CurrentChannelStates.Values.Where(x => x.PlanetId == planetId);
+
+        foreach (var state in channelStates)
+        {
+            if (GetChannelUnreadState(state.ChannelId))
+                return true;
+        }
+
+        return false;
+    }
+
+    public static bool GetChannelUnreadState(long channelId)
+    {
+        if (OpenPlanetChannels.Any(x => x.Id == channelId))
+            return false;
+
+        if (!ChannelsLastViewedState.TryGetValue(channelId, out var lastRead))
+        {
+            lastRead = DateTime.MaxValue;
+        }
+
+        if (!CurrentChannelStates.TryGetValue(channelId, out var lastUpdate))
+        {
+            return false;
+        }
+
+        return lastRead < lastUpdate.LastUpdateTime;
     }
 
     /// <summary>
@@ -629,6 +670,7 @@ public static class ValourClient
             return;
 
         channel.TimeLastActive = update.Time;
+        CurrentChannelStates[channel.Id].LastUpdateTime = update.Time;
 
         await channel.OnUpdate(0x01);
         await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
@@ -967,7 +1009,7 @@ public static class ValourClient
 
         var loadTasks = new List<Task>()
         {
-            LoadChannelStatesAsync(),
+            // LoadChannelStatesAsync(), this is already done by the Home component
             LoadFriendsAsync(),
             LoadJoinedPlanetsAsync(),
             LoadTenorFavoritesAsync(),
@@ -1074,12 +1116,12 @@ public static class ValourClient
         _joinedPlanetIds = JoinedPlanets.Select(x => x.Id).ToList();
 
         if (OnJoinedPlanetsUpdate != null)
-            await OnJoinedPlanetsUpdate?.Invoke();
+            await OnJoinedPlanetsUpdate.Invoke();
     }
 
     public static async Task UpdateUserChannelState(UserChannelState channelState)
     {
-        ChannelStateTimes[channelState.ChannelId] = channelState.LastViewedTime;
+        ChannelsLastViewedState[channelState.ChannelId] = channelState.LastViewedTime;
         // Access dict again to maintain references (do not try to optimize and break everything)
         await OnUserChannelStateUpdate.Invoke(channelState);
     }
@@ -1131,7 +1173,7 @@ public static class ValourClient
     
     public static async Task LoadChannelStatesAsync()
     {
-        var response = await PrimaryNode.GetJsonAsync<List<UserChannelState>>($"api/users/self/channelstates");
+        var response = await PrimaryNode.GetJsonAsync<List<ChannelStateData>>($"api/users/self/statedata");
         if (!response.Success)
         {
             Console.WriteLine("** Failed to load channel states **");
@@ -1142,10 +1184,11 @@ public static class ValourClient
 
         foreach (var state in response.Data)
         {
-            ChannelStateTimes[state.ChannelId] = state.LastViewedTime;
+            CurrentChannelStates[state.ChannelId] = state.ChannelState;
+            ChannelsLastViewedState[state.ChannelId] = state.LastViewedState;
         }
 
-        Console.WriteLine("Loaded " + ChannelStateTimes.Count + " channel states.");
+        Console.WriteLine("Loaded " + ChannelsLastViewedState.Count + " channel states.");
     }
 
     /// <summary>

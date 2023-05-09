@@ -54,7 +54,16 @@
         
         var channel = ValourClient.DirectChatChannels.FirstOrDefault(x => x.UserOneId == Friend.Id || 
                                                                           x.UserTwoId == Friend.Id);
-        IsUnread = DetermineUnread(channel);
+
+        if (channel is null)
+        {
+            IsUnread = false;
+        }
+        else
+        {
+            IsUnread = ValourClient.GetChannelUnreadState(channel.Id);
+        }
+        
         StateHasChanged();
     }
 
@@ -62,24 +71,7 @@
     {
         homeWindowComponent.RerenderFriendCards -= Refresh;
     }
-
-    public bool DetermineUnread(DirectChatChannel chatChannel)
-    {
-        if (chatChannel is null)
-            return false;
-        
-        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == chatChannel.Id))
-            return false;
-
-        if (!ValourClient.ChannelStateTimes.ContainsKey(chatChannel.Id))
-            return true;
-
-        ValourClient.ChannelStateTimes.TryGetValue(chatChannel.Id, out var lastRead);
-        if (lastRead is null)
-            lastRead = DateTime.MaxValue;
-
-        return lastRead < chatChannel.TimeLastActive;
-    }
+    
 
     public async Task OnClick()
     {

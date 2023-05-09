@@ -107,13 +107,16 @@ namespace Valour.Server.Workers
             /* Update channel last active for all channels where we are saving message update */
             foreach (var channelId in channelIds)
             {
-                var updated = new Channel()
+                var lastMessage = StagedChannelMessages[channelId].Last();
+                
+                var updated = new Valour.Database.ChannelState()
                 {
-                    Id = channelId,
-                    TimeLastActive = StagedChannelMessages[channelId].Max(x => x.TimeSent)
+                    ChannelId = channelId,
+                    LastUpdateTime = lastMessage.TimeSent,
+                    PlanetId = lastMessage.PlanetId,
                 };
-
-                db.Channels.Attach(updated.ToDatabase()).Property(x => x.TimeLastActive).IsModified = true;
+                
+                db.ChannelStates.Update(updated);
             }
             
             await db.PlanetMessages.AddRangeAsync(StagedMessages.Values.Select(x => x.ToDatabase()));
@@ -132,32 +135,34 @@ namespace Valour.Server.Workers
         private async Task ConsumeMessageQueue()
         {
             // This scope is long-living, which is usually bad. But it's only used to send events,
-            // and does not interact with the database, so it should be fine.
+            // and does not insert into the database, so it should be fine.
             await using var scope = _serviceProvider.CreateAsyncScope();
             var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+            var stateService = scope.ServiceProvider.GetRequiredService<ChannelStateService>();
             
             // This is a stream and will run forever
-            foreach (var Message in MessageQueue.GetConsumingEnumerable())
+            foreach (var message in MessageQueue.GetConsumingEnumerable())
             {
-                if (BlockSet.Contains(Message.Id))
+                if (BlockSet.Contains(message.Id))
                     continue; // It's going to get cleared anyways
 
-                Message.TimeSent = DateTime.UtcNow;
+                message.TimeSent = DateTime.UtcNow;
                 
-                hubService.NotifyChannelStateUpdate(Message.PlanetId, Message.ChannelId, DateTime.UtcNow);
-                hubService.RelayMessage(Message);
+                stateService.SetChannelStateTime(message.ChannelId, message.TimeSent);
+                hubService.NotifyChannelStateUpdate(message.PlanetId, message.ChannelId, message.TimeSent);
+                hubService.RelayMessage(message);
 
                 // Add message to message staging
-                StagedMessages[Message.Id] = Message;
+                StagedMessages[message.Id] = message;
 
                 // Add message to channel-specific staging
-                StagedChannelMessages.TryGetValue(Message.ChannelId, out var channelStaged);
+                StagedChannelMessages.TryGetValue(message.ChannelId, out var channelStaged);
                 if (channelStaged is null)
                 {
                     channelStaged = new List<PlanetMessage>();
-                    StagedChannelMessages[Message.ChannelId] = channelStaged;
+                    StagedChannelMessages[message.ChannelId] = channelStaged;
                 }
-                channelStaged.Add(Message);
+                channelStaged.Add(message);
             }
         }
         

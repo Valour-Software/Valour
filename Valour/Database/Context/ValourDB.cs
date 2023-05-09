@@ -31,12 +31,12 @@ public class ValourDB : DbContext
         modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
         
-        // can only add query filters to root enities
-       // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        //modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
-        //modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
-       // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
-        //modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // can only add query filters to root entities
+        // modelBuilder.Entity<DirectChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false);
         
 
         // Time fixes
@@ -187,6 +187,8 @@ public class ValourDB : DbContext
     public DbSet<PlanetRole> PlanetRoles { get; set; }
 
     public DbSet<UserChannelState> UserChannelStates { get; set; }
+    
+    public DbSet<ChannelState> ChannelStates { get; set; }
 
     public DbSet<NodeStats> NodeStats { get; set; }
 

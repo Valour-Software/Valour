@@ -29,6 +29,9 @@
 
     [Parameter]
     public HomeWindow Window { get; set; }
+    
+    [Parameter]
+    public HomeWindowComponent HomeWindowComponent { get; set; }
 
     private string iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
 
@@ -41,18 +44,14 @@
         {
             iconUrl = Planet.IconUrl;
         }
-        
-        var channels = await Planet.GetChannelsAsync();
-        foreach(var channel in channels)
-        {
-            IsUnread = channel.DetermineUnread();
 
-            // no need to check the other channels if this one is unread
-            if (IsUnread)
-            {
-                break;
-            }
-        }
+        HomeWindowComponent.RerenderPlanetCards += Refresh;
+    }
+
+    public async Task Refresh()
+    {
+        IsUnread = ValourClient.GetPlanetUnreadState(Planet.Id);
+        StateHasChanged();
     }
     
     public async Task OnClick()

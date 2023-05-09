@@ -71,6 +71,17 @@ public class PlanetChatChannelService
             await _db.PlanetChatChannels.AddAsync(channel.ToDatabase());
             await _db.SaveChangesAsync();
 
+            // Add fresh channel state
+            var state = new Valour.Database.ChannelState()
+            {
+                ChannelId = channel.Id,
+                PlanetId = channel.PlanetId,
+                LastUpdateTime = DateTime.UtcNow,
+            };
+
+            await _db.ChannelStates.AddAsync(state);
+            await _db.SaveChangesAsync();
+                
             await tran.CommitAsync();
         }
         catch (Exception e)

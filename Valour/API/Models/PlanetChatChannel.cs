@@ -44,16 +44,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         await ValourClient.ClosePlanetChannel(this);
 
     public bool DetermineUnread()
-    {
-        if (ValourClient.OpenPlanetChannels.Any(x => x.Id == Id))
-            return false;
-
-        ValourClient.ChannelStateTimes.TryGetValue(Id, out var lastRead);
-        if (lastRead is null)
-            lastRead = DateTime.MaxValue;
-
-        return lastRead < TimeLastActive;
-    }
+        => ValourClient.GetChannelUnreadState(Id);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
