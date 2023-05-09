@@ -10,7 +10,6 @@ public static class PlanetChatChannelMapper
         return new PlanetChatChannel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive,
             PlanetId = channel.PlanetId,
             Name = channel.Name,
             Position = channel.Position,
@@ -28,7 +27,6 @@ public static class PlanetChatChannelMapper
         return new Valour.Database.PlanetChatChannel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive,
             PlanetId = channel.PlanetId,
             Name = channel.Name,
             Position = channel.Position,

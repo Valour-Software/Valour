@@ -10,7 +10,6 @@ public static class PlanetVoiceChannelMapper
         return new PlanetVoiceChannel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive,
             PlanetId = channel.PlanetId,
             Name = channel.Name,
             Position = channel.Position,
@@ -28,7 +27,6 @@ public static class PlanetVoiceChannelMapper
         return new Valour.Database.PlanetVoiceChannel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive,
             PlanetId = channel.PlanetId,
             Name = channel.Name,
             Position = channel.Position,

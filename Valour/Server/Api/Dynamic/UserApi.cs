@@ -98,6 +98,34 @@ public class UserApi
 
         return Results.Json(channelStates);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/users/self/statedata")]
+    public static async Task<IResult> ChannelStateDataRouteAsync(
+        UserService userService,
+        ChannelStateService channelStateService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+
+        var userChannels = await userService.GetAccessiblePlanetChatChannelIdsAsync(userId);
+        var userChannelStates = (await userService.GetUserChannelStatesAsync(userId)).ToDictionary(x => x.ChannelId);
+        var channelStates = await channelStateService.GetChannelStates(userChannels);
+
+        List<ChannelStateData> stateData = new();
+
+        foreach (var channelId in userChannels)
+        {
+            userChannelStates.TryGetValue(channelId, out var userChannelState);
+            channelStates.TryGetValue(channelId, out var channelState);
+            stateData.Add(new ChannelStateData()
+            {
+                ChannelId = channelId,
+                LastViewedTime = userChannelState?.LastViewedTime ?? DateTime.MaxValue,
+                ChannelState = channelState?.ToModel(),
+            });
+        }
+
+        return Results.Json(stateData);
+    }
 
     [ValourRoute(HttpVerbs.Post, "api/users/token")]
     public static async Task<IResult> GetTokenRouteAsync(

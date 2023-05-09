@@ -92,6 +92,18 @@ public class DirectChatChannelService
 
             await _db.AddAsync(channel);
             await _db.SaveChangesAsync();
+            
+            // Add fresh channel state
+            var state = new Valour.Database.ChannelState()
+            {
+                ChannelId = channel.Id,
+                PlanetId = null,
+                LastUpdateTime = DateTime.UtcNow,
+            };
+
+            await _db.ChannelStates.AddAsync(state);
+            await _db.SaveChangesAsync();
+            
             await tran.CommitAsync();
         }
 

@@ -125,23 +125,6 @@
 
         MessageHolder.AddMessages(msgs);
 
-        if (msgs.Any())
-        {
-            await ValourClient.UpdateChannelState(new ChannelStateUpdate()
-            {
-                ChannelId = Channel.Id,
-                Time = msgs.Last().Message.TimeSent
-            });
-        }
-        else
-        {
-            await ValourClient.UpdateChannelState(new ChannelStateUpdate()
-            {
-                ChannelId = Channel.Id,
-                Time = DateTime.MinValue
-            });
-        }
-        
         await MessageHolder.ScrollToBottom();
     }
 
@@ -210,7 +193,7 @@
         if (message.ChannelId != Channel.Id)
             return;
         
-        ValourClient.ChannelStateTimes[Channel.Id] = DateTime.UtcNow;
+        ValourClient.SetChannelLastViewedState(Channel.Id, DateTime.UtcNow);
 
         // Create client wrapper
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);

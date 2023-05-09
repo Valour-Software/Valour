@@ -9,7 +9,6 @@ public static class ChannelMapper
         
         return new Channel()
         {
-            TimeLastActive = channel.TimeLastActive,
             Id = channel.Id
         };
     }
@@ -22,7 +21,6 @@ public static class ChannelMapper
         return new Valour.Database.Channel()
         {
             Id = channel.Id,
-            TimeLastActive = channel.TimeLastActive
         };
     }
 }

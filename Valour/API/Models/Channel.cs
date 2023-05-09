@@ -15,9 +15,7 @@ public abstract class Channel : Item, IChannel, ISharedChannel
 {
     public string Name { get; set; }
     public string Description { get; set; }
-    public DateTime TimeLastActive { get; set; }
-    public string State { get; set; }
-
+    
     public abstract Task Open();
     public abstract Task Close();
 }

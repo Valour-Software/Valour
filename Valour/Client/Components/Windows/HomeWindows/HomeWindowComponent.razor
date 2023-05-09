@@ -16,7 +16,7 @@
         <div class="icon-container">
             @foreach (Planet planet in ValourClient.JoinedPlanets)
             {
-                <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window'></PlanetCardComponent>
+                <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window' HomeWindowComponent="this"></PlanetCardComponent>
             }
         
             <div id="flipper-planet-create-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-create-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 240)" @onclick="OnClickCreatePlanet">
@@ -146,6 +146,8 @@
 
     public event Func<Task> RerenderFriendCards;
 
+    public event Func<Task> RerenderPlanetCards;
+
     private string mobileTag = "";
 
     protected async override Task OnInitializedAsync()
@@ -158,7 +160,10 @@
         await ValourClient.LoadChannelStatesAsync();
 
         if (RerenderFriendCards is not null)
-            await RerenderFriendCards?.Invoke();
+            await RerenderFriendCards.Invoke();
+
+        if (RerenderPlanetCards is not null)
+            await RerenderPlanetCards.Invoke();
 
         StateHasChanged();
     }

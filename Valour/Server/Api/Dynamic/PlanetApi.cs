@@ -46,9 +46,6 @@ public class PlanetApi
                 return ValourResult.BadRequest("You have reached the maximum owned planets!");
         }
 
-        // Default image to start
-        planet.IconUrl = "_content/Valour.Client/media/logo/logo-512.png";
-
         planet.Id = IdManager.Generate();
         planet.OwnerId = user.Id;
 
