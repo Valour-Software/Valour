@@ -63,7 +63,7 @@ public class Node
         while (!IsReady)
         {
             if (tries % 10 == 0)
-                await Log($"** Node ${Name} is waiting for init to begin a request...  (try {tries})**");
+                await Log($"** Node {Name} is waiting for init to begin a request...  (try {tries})**");
                 
             await Task.Delay(200);
             tries++;

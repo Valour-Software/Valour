@@ -306,6 +306,7 @@ namespace Valour.Server
             services.AddScoped<UserFriendService>();
             services.AddScoped<UserOnlineService>();
             services.AddScoped<UserService>();
+            services.AddScoped<ChannelStateService>();
             
             services.AddSingleton<NodeService>();
 
