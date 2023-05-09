@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="svg8" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 567 567">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-2 {
+        fill: #fff;
+      }
+    </style>
+    <linearGradient id="linear-gradient" x1="82.85" y1="397.01" x2="518.12" y2="33.63" gradientTransform="translate(0 54)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#bf06fd"/>
+      <stop offset="1" stop-color="#0c06fd"/>
+    </linearGradient>
+  </defs>
+  <circle id="path980" class="cls-1" cx="283.5" cy="283.5" r="283.5"/>
+  <circle id="Star" class="cls-2" cx="48.6" cy="217.5" r="6.2"/>
+  <circle class="cls-2" cx="404.7" cy="65.7" r="6.4"/>
+  <circle class="cls-2" cx="440.6" cy="336.5" r="6.1"/>
+  <circle class="cls-2" cx="498.3" cy="252.3" r="2.4"/>
+  <circle class="cls-2" cx="91.1" cy="344.8" r="2.2"/>
+  <circle class="cls-2" cx="191" cy="35.1" r="2.5"/>
+  <circle class="cls-2" cx="306.8" cy="527.7" r="5.3"/>
+  <circle class="cls-2" cx="199" cy="515.9" r="2.2"/>
+  <circle class="cls-2" cx="478.2" cy="405.5" r="2.7"/>
+</svg>

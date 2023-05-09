@@ -71,6 +71,17 @@ public class PlanetChatChannelService
             await _db.PlanetChatChannels.AddAsync(channel.ToDatabase());
             await _db.SaveChangesAsync();
 
+            // Add fresh channel state
+            var state = new Valour.Database.ChannelState()
+            {
+                ChannelId = channel.Id,
+                PlanetId = channel.PlanetId,
+                LastUpdateTime = DateTime.UtcNow,
+            };
+
+            await _db.ChannelStates.AddAsync(state);
+            await _db.SaveChangesAsync();
+                
             await tran.CommitAsync();
         }
         catch (Exception e)
@@ -143,8 +154,6 @@ public class PlanetChatChannelService
             return new(false, "Cannot change Id.");
         if (old.PlanetId != updated.PlanetId)
             return new(false, "Cannot change PlanetId.");
-
-        updated.TimeLastActive = old.TimeLastActive;
 
         var baseValid = await ValidateBasic(updated);
         if (!baseValid.Success)

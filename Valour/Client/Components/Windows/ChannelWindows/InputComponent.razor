@@ -178,9 +178,16 @@
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/InputComponent.razor.js?version=2");
             await SetupJSAsync();
             await JsRuntime.InvokeAsync<IJSObjectReference>("initializeFileDropZone", DropZoneElement, InputFile_Ref.Element);
+
+            await OnAfterJsSetupAsync();
         }
 
         CanRenderFlag = false;
+    }
+
+    public virtual Task OnAfterJsSetupAsync()
+    {
+        return Task.CompletedTask;
     }
 
     #region File Drop System

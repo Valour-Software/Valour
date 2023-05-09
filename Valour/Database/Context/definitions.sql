@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS planets (
     id BIGINT NOT NULL PRIMARY KEY,
     owner_id BIGINT NOT NULL,
     name VARCHAR(32) NOT NULL,
-    icon_url TEXT NOT NULL,
+    icon_url TEXT,
     description TEXT NOT NULL,
     public BOOLEAN NOT NULL DEFAULT true,
     discoverable BOOLEAN NOT NULL DEFAULT true,
@@ -330,6 +330,15 @@ CREATE TABLE IF NOT EXISTS stats (
     channel_count BIGINT NOT NULL,
     category_count BIGINT NOT NULL,
     message_day_count BIGINT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS channel_states (
+    channel_id BIGINT NOT NULL PRIMARY KEY,
+    planet_id BIGINT,
+    last_update_time TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id),
+        CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
 );
 
 CREATE TABLE IF NOT EXISTS user_channel_states (

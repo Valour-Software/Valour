@@ -7,8 +7,4 @@ namespace Valour.Server.Models;
 [JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 public class Channel : Item
 {
-    /// <summary>
-    /// The last time this channel was active
-    /// </summary>
-    public DateTime TimeLastActive { get; set; }
 }

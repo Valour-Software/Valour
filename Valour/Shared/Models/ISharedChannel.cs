@@ -2,5 +2,4 @@
 
 public interface ISharedChannel : ISharedItem
 {
-    DateTime TimeLastActive { get; set; }
 }

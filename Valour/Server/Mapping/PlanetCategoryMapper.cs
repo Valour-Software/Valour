@@ -10,7 +10,6 @@ public static class PlanetCategoryMapper
         return new PlanetCategory()
         {
             Id = category.Id,
-            TimeLastActive = category.TimeLastActive,
             PlanetId = category.PlanetId,
             Name = category.Name,
             Position = category.Position,
@@ -28,7 +27,6 @@ public static class PlanetCategoryMapper
         return new Valour.Database.PlanetCategory()
         {
             Id = category.Id,
-            TimeLastActive = category.TimeLastActive,
             PlanetId = category.PlanetId,
             Name = category.Name,
             Position = category.Position,
