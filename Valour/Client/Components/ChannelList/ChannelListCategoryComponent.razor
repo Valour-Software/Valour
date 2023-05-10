@@ -15,7 +15,12 @@
                 @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
                 @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)">
                     <div>
-                        <img class="arrow" src="_content/Valour.Client/media/Category-Icon.svg" style="@ArrowStyle">
+                        @if (DetermineUnread(Category)) {
+                            <img class="arrow" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
+                        }
+                        else {
+                            <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
+                        }
                         <p class="name">
                             @Category.Name
                         </p>
@@ -368,5 +373,20 @@
     public int GetIndex(PlanetChannel item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
+    }
+
+    public bool DetermineUnread(PlanetCategory category) {
+        foreach (var child in ItemList.Where(x => x.ParentId == category.Id)) {
+            if (child.PermType == PermChannelType.PlanetChatChannel) {
+                if (((PlanetChatChannel)child).DetermineUnread()) {
+                    return true;
+                }
+            }
+            // if the child is a category, then look for unread channels & categories in that category
+            else if (DetermineUnread((PlanetCategory)child)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
