@@ -170,14 +170,14 @@
         {
             while (!ReloadToken.IsCancellationRequested)
             {
-                if (Planet != null)
-                {
-                    await BuildRoleLists();
-                }
-
                 foreach (var list in DisplayedRoleMembers.Values)
                 {
                     list.Clear();
+                }
+                
+                if (Planet != null)
+                {
+                    await BuildRoleLists();
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(30), ReloadToken);
