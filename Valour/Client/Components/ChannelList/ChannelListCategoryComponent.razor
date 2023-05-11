@@ -110,6 +110,9 @@
         ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
         ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
 
+        ValourClient.OnChannelOpen += OnChannelOpenedChange;
+        ValourClient.OnChannelClose += OnChannelOpenedChange;
+
         ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
         ChildVoiceChannels = VoiceChannels.Where(x => x.ParentId == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
@@ -125,6 +128,12 @@
         IsOpen = categoryManager.IsOpen(Category);
 
         BuildItemList();
+    }
+
+    public async Task OnChannelOpenedChange(PlanetChatChannel channel)
+    {
+        if (channel.ParentId == Category.Id)
+            StateHasChanged();
     }
 
     public void BuildItemList()
