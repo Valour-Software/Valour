@@ -19,40 +19,35 @@
         </div>
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
 
+        <div class="textbox" onclick="this.children[1].focus()" @ref="DropZoneElement">
+            <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
+            @{
+                string UploadIconStyle = CanMemberPostMessages ? "" : "display:none;";
+                string TextboxInnerStyle = CanMemberPostMessages ? "" : "width: calc(100% - 22px);color: rgba(120, 120, 120);cursor: not-allowed;height:42px;";
+                string placeholderText = CanMemberPostMessages ? PlaceholderText : "You lack permission to post messages in this channel";
+                string inputPlaceHolderStyle = CanMemberPostMessages ? "" : "left: 16px;";
+                string TextBoxInnerContentEditableString = CanMemberPostMessages ? "true" : "false";
+            }
+            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" @onclick:stopPropagation="true" alt="Upload File" style="@UploadIconStyle" />
 
-        @if (CanMemberPostMessages) {
-            <div class="textbox" onclick="this.children[1].focus()" @ref="DropZoneElement">
-                <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-                <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" @onclick:stopPropagation="true" alt="Upload File" />
+            <UploadMenuComponent @ref="UploadMenu" ChannelWindow="Window" Input="this"></UploadMenuComponent>
 
-                <UploadMenuComponent @ref="UploadMenu" ChannelWindow="Window" Input="this"></UploadMenuComponent>
+            @if (DeviceInfo.IsMobile && CanMemberPostMessages){
+                <div class="send-wrapper" @onclick="OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
+                    <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
+                </div>
+            }
 
-                @if (DeviceInfo.IsMobile){
-                    <div class="send-wrapper" @onclick="OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
-                        <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
-                    </div>
-                }
-
-                @if (PreviewMessage is null || PreviewMessage.IsEmpty)
-                {
-                    <p class="input-placeholder">@PlaceholderText</p>
-                }
-                
-                <div class="textbox-wrapper">
-                    <div @ref="InnerInputRef" contenteditable="true" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
-                    </div>
+            @if (PreviewMessage is null || PreviewMessage.IsEmpty || !CanMemberPostMessages)
+            {
+                <p class="input-placeholder" style="@inputPlaceHolderStyle">@placeholderText</p>
+            }
+            
+            <div class="textbox-wrapper">
+                <div @ref="InnerInputRef" contenteditable="@TextBoxInnerContentEditableString" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus style="@TextboxInnerStyle">
                 </div>
             </div>
-        }
-        else {
-            <div class="textbox">
-                <div class="textbox-wrapper">
-                    <div @ref="InnerInputRef" contenteditable="false" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus style="width: calc(100% - 22px);color: rgba(120, 120, 120);cursor: not-allowed;">
-                        You lack permission to send messages in this channel
-                    </div>
-                </div>
-            </div>
-        }
+        </div>
     </div>
 </div>
 
@@ -459,7 +454,7 @@
     [JSInvokable]
     public async Task OnChatboxUpdate(string input, string currentWord)
     {
-        //Console.WriteLine(currentWord);
+        Console.WriteLine(input);
 
         await UpdateMentionMenu(currentWord);
 
