@@ -1,20 +1,21 @@
 ﻿<div class="user-info">
-    <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
-    @if (User.Name != null)
-    {
-        <p class="username">
-            @if (User.Name.Length > 16)
-            {
-                @User.Name.Substring(0, 15)
-            }
-            else
-            {
-                @User.Name
-            }
-        </p>
-    }
-    <div class="active">
+    <div class="left-block">
+        <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
+        @if (User.Name != null)
+        {
+            <div class="name-status">
+                <div class="name-tag">
+                    <p class="username">@User.Name</p>
+                    <p class="tag">#@(User.Tag)</p>
+                </div>
+                <p class="status">
+                    @User.Status
+                </p>
+            </div>
+        }
+        <div class="active" />
     </div>
+
     <img id="user-edit-button" class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditUserComponent>("Edit User")'>
 </div>
 

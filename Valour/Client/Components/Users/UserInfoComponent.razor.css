@@ -1,0 +1,83 @@
+.user-info {
+    display: flex;
+    flex-direction: row;
+    max-width: 100%;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 5px;
+    margin: 13px auto 11px;
+    justify-content: space-around;
+}
+
+.left-block {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.pfp {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin: 6px;
+}
+
+.active {
+    width: 12px;
+    height: 12px;
+    background: #05FF00;
+    border-radius: 50%;
+    position: absolute;
+    left: 28px;
+    top: 26px;
+    border: 2px solid var(--main-1);
+}
+
+.settings {
+    margin-left: 10px;
+    margin-right: 5px;
+    margin-top: 5px;
+    cursor: pointer;
+    align-self: flex-start;
+    width: 16px;
+}
+
+.name-status {
+    display: flex;
+    flex-direction: column;
+}
+
+.name-tag {
+    display: flex;
+    flex-direction: row;
+}
+
+.username {
+    font-family: Ubuntu, sans-serif;
+    font-style: normal;
+    font-weight: bold;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    margin: 0;
+    vertical-align: top;
+}
+
+.user-info:hover .tag {
+    opacity: 1;
+}
+
+.tag {
+    color: #c8c8c8;
+    font-family: Ubuntu, sans-serif;
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 400;
+    margin: 0;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.status {
+    font-size: 12px;
+    color: #7A7A7A;
+    margin: 0;
+}

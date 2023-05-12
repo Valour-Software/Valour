@@ -316,7 +316,10 @@ public class UserService
 
         return new(true, "Success");
     }
-    
+
+    public async Task<User> GetUserAsync(string username, string tag)
+        => (await _db.Users.FirstOrDefaultAsync(x => x.Name == username.ToLower() && x.Tag == tag.ToUpper())).ToModel();
+
     public async Task<string> GetUniqueTag(string username)
     {
         var existing = await _db.Users.Where(x => x.Name.ToLower() == username.ToLower()).Select(x => x.Tag).ToListAsync();

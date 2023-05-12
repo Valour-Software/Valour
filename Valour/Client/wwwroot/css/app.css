@@ -229,65 +229,6 @@ body {
     margin-top: 32px;
 }
 
-.sidebar-2 .user-info {
-    width: 269px;
-    height: 44px;
-    background: rgba(255, 255, 255, 0.07);
-    border-radius: 5px;
-    margin: 0px;
-    margin-top: 13px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-bottom: 11px;
-}
-
-.sidebar-2 .user-info .pfp {
-    width: 32.72px;
-    height: 32.72px;
-    border-radius: 50%;
-    margin-top: 6.36px;
-    margin-bottom: 6.36px;
-    margin-left: 8.18px;
-}
-
-
-
-.sidebar-2 .user-info .settings {
-    display: inline-block;
-    margin: 0px;
-    margin-top: 10.96px;
-    margin-bottom: 10.96px;
-    margin-right: 10.96px;
-    margin-left: 36.4px;
-    float: right;
-    cursor: pointer;
-}
-
-.sidebar-2 .user-info .active {
-    display: inline-block;
-    width: 11.81px;
-    height: 11.81px;
-    background: #05FF00;
-    border-radius: 50%;
-    margin: 0px;
-    vertical-align: top;
-    margin-top: 17.5px;
-    margin-left: 8px;
-}
-
-.sidebar-2 .user-info .username {
-    display: inline-block;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: bold;
-    font-size: 20px;
-    line-height: 23px;
-    margin: 0px;
-    margin-left: 8.18px;
-    margin-top: 11px;
-    vertical-align: top;
-}
-
 .sidebar-2 {
     margin: 0px;
     background-color: var(--main-2);
