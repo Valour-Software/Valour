@@ -243,16 +243,15 @@ public class UserService
         byte[] salt = PasswordManager.GenerateSalt();
         byte[] hash = PasswordManager.GetHashForPassword(request.Password, salt);
 
-        using var tran = await _db.Database.BeginTransactionAsync();
-
-        User user = null;
-
+        await using var tran = await _db.Database.BeginTransactionAsync();
+        
         try
         {
-            user = new()
+            User user = new()
             {
                 Id = IdManager.Generate(),
                 Name = request.Username,
+                Tag = await GetUniqueTag(request.Username),
                 TimeJoined = DateTime.UtcNow,
                 TimeLastActive = DateTime.UtcNow,
             };
@@ -316,6 +315,27 @@ public class UserService
         await tran.CommitAsync();
 
         return new(true, "Success");
+    }
+    
+    public async Task<string> GetUniqueTag(string username)
+    {
+        var existing = await _db.Users.Where(x => x.Name.ToLower() == username.ToLower()).Select(x => x.Tag).ToListAsync();
+
+        string tag;
+        
+        do
+        {
+            tag = GenerateRandomTag();
+        } while (existing.Contains(tag));
+
+        return tag;
+    }
+    
+    // TODO: Prevent the one in 1.6 million chance that you will get the tag F***, along with other 'bad words'
+    private string GenerateRandomTag()
+    {
+        return new string(Enumerable.Repeat(ISharedUser.TagChars, 4)
+            .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
     }
 
     public async Task<TaskResult> ResendRegistrationEmail(UserEmail userEmail, HttpContext ctx, RegisterUserRequest request)

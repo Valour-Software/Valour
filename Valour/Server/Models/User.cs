@@ -18,6 +18,11 @@ public class User : Item, ISharedUser
     /// The name of this user
     /// </summary>
     public string Name { get; set; }
+    
+    /// <summary>
+    /// The tag (discriminator) of this user
+    /// </summary>
+    public string Tag { get; set; }
 
     /// <summary>
     /// True if the user is a bot
