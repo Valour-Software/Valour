@@ -506,6 +506,8 @@ public static class ValourClient
         if (OpenPlanets.Contains(planet))
             return;
 
+        planet.HookEvents();
+
         // Mark as opened
         OpenPlanets.Add(planet);
 
@@ -570,6 +572,8 @@ public static class ValourClient
 
         // Remove from list
         OpenPlanets.Remove(planet);
+
+        planet.UnHookEvents();
 
         Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 

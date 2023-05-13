@@ -174,7 +174,7 @@
                 {
                     list.Clear();
                 }
-                
+
                 if (Planet != null)
                 {
                     await BuildRoleLists();
@@ -216,6 +216,8 @@
             // Member is new - calculate their value and insert accordingly
             var roleId = await DetermineDisplayRoleId(member);
             var roleList = DisplayedRoleMembers[roleId];
+
+            MemberList.Add(member);
 
             LastMemberRoles[member.Id] = roleId;
 
