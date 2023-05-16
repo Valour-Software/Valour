@@ -6,7 +6,7 @@
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
 
-<div>
+<div class='@(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
         <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
@@ -21,30 +21,27 @@
 
         <div class="textbox" onclick="this.children[1].focus()" @ref="DropZoneElement">
             <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            @{
-                string UploadIconStyle = CanMemberPostMessages ? "" : "display:none;";
-                string TextboxInnerStyle = CanMemberPostMessages ? "" : "width: calc(100% - 22px);color: rgba(120, 120, 120);cursor: not-allowed;height:42px;";
-                string placeholderText = CanMemberPostMessages ? PlaceholderText : "You lack permission to send messages in this channel";
-                string inputPlaceHolderStyle = CanMemberPostMessages ? "" : "left: 16px;";
-                string TextBoxInnerContentEditableString = CanMemberPostMessages ? "true" : "false";
-            }
-            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" @onclick:stopPropagation="true" alt="Upload File" style="@UploadIconStyle" />
+            <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" @onclick="() => UploadMenu.Show()" @onclick:stopPropagation="true" alt="Upload File" />
 
             <UploadMenuComponent @ref="UploadMenu" ChannelWindow="Window" Input="this"></UploadMenuComponent>
 
-            @if (DeviceInfo.IsMobile && CanMemberPostMessages){
+            @if (DeviceInfo.IsMobile && CanUserPost){
                 <div class="send-wrapper" @onclick="OnSubmitClick" @onclick:stopPropagation="true" @onclick:preventDefault="true">
                     <img class='send-button' src="_content/Valour.Client/media/send-icon.svg" alt="Send Message" />
                 </div>
             }
-
-            @if (PreviewMessage is null || PreviewMessage.IsEmpty || !CanMemberPostMessages)
-            {
-                <p class="input-placeholder" style="@inputPlaceHolderStyle">@placeholderText</p>
-            }
             
+            @if (!CanUserPost)
+            {
+                <p class="input-placeholder">You lack permission to send messages in this channel</p>
+            }
+            else if (PreviewMessage is null || PreviewMessage.IsEmpty)
+            {
+                <p class="input-placeholder">@PlaceholderText</p>
+            }
+
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" contenteditable="@TextBoxInnerContentEditableString" class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus style="@TextboxInnerStyle">
+                <div @ref="InnerInputRef" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" autofocus>
                 </div>
             </div>
         </div>
@@ -119,7 +116,10 @@
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
 
-    public virtual bool CanMemberPostMessages { get; set; }
+    /// <summary>
+    /// If the current user is able to post messages using this input
+    /// </summary>
+    protected bool CanUserPost { get; set; }
 
     /// <summary>
     /// Allows this component to render when true
@@ -134,7 +134,6 @@
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-
         await SetupNewChannelAsync();
     }
 
