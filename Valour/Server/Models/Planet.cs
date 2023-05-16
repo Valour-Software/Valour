@@ -39,14 +39,4 @@ public class Planet : Item, ISharedPlanet
     /// If the server should show up on the discovery tab
     /// </summary>
     public bool Discoverable { get; set; }
-
-    /// <summary>
-    /// The default role for the planet
-    /// </summary>
-    public long DefaultRoleId { get; set; }
-
-    /// <summary>
-    /// The id of the main channel of the planet
-    /// </summary>
-    public long PrimaryChannelId { get; set; }
 }

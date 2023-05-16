@@ -162,12 +162,14 @@
         if (isprivate)
         {
             // set the default role channel view perms to false
+            
+            var defaultRoleId = (await Planet.GetDefaultRoleAsync()).Id;
 
             PermissionsNode defaultNode = new()
             {
                 TargetId = 0,
                 PlanetId = Planet.Id,
-                RoleId = Planet.DefaultRoleId,
+                RoleId = defaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = PermChannelType.PlanetVoiceChannel

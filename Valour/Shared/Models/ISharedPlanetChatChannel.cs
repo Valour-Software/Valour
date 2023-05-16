@@ -13,7 +13,7 @@ namespace Valour.Shared.Models;
 /// Represents a single chat channel within a planet
 /// </summary>
 public interface ISharedPlanetChatChannel : ISharedPlanetChannel, ISharedChatChannel, ISharedPermissionsTarget
-{
-    
+{ 
+  bool IsDefault { get; set; }
 }
 

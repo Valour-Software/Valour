@@ -174,13 +174,15 @@
 
         if (isprivate)
         {
+            var defaultRoleId = (await Planet.GetDefaultRoleAsync()).Id;
+            
             // set the default role channel view perms to false
 
             PermissionsNode catnode = new()
             {
                 TargetId = 0,
                 PlanetId = planetId,
-                RoleId = Planet.DefaultRoleId,
+                RoleId = defaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = PermChannelType.PlanetCategoryChannel,
@@ -190,7 +192,7 @@
             {
                 TargetId = 0,
                 PlanetId = planetId,
-                RoleId = Planet.DefaultRoleId,
+                RoleId = defaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
                 TargetType = PermChannelType.PlanetChatChannel,

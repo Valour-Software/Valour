@@ -42,11 +42,14 @@ public class PlanetRoleApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (role.Position == 0) {
+        if (role.Position == -1) {
             role.Position = (await planetService.GetRoleIdsAsync(role.PlanetId)).Count;
         }
 
-        if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
+        if (role.IsDefault)
+            return ValourResult.BadRequest("You cannot create another default role.");
+
+            if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("You cannot create roles with higher authority than your own.");
 
         var result = await roleService.CreateAsync(role);
