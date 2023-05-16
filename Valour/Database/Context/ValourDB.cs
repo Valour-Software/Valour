@@ -37,7 +37,7 @@ public class ValourDB : DbContext
         // modelBuilder.Entity<PlanetChannel>().HasQueryFilter(x => x.IsDeleted == false);
         // modelBuilder.Entity<PlanetChatChannel>().HasQueryFilter(x => x.IsDeleted == false);
         // modelBuilder.Entity<PlanetCategory>().HasQueryFilter(x => x.IsDeleted == false);
-        // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false);
+        // modelBuilder.Entity<PlanetVoiceChannel>().HasQueryFilter(x => x.IsDeleted == false); 
         
 
         // Time fixes
