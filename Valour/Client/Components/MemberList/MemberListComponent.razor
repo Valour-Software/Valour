@@ -170,14 +170,14 @@
         {
             while (!ReloadToken.IsCancellationRequested)
             {
-                if (Planet != null)
-                {
-                    await BuildRoleLists();
-                }
-
                 foreach (var list in DisplayedRoleMembers.Values)
                 {
                     list.Clear();
+                }
+
+                if (Planet != null)
+                {
+                    await BuildRoleLists();
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(30), ReloadToken);
@@ -216,6 +216,8 @@
             // Member is new - calculate their value and insert accordingly
             var roleId = await DetermineDisplayRoleId(member);
             var roleList = DisplayedRoleMembers[roleId];
+
+            MemberList.Add(member);
 
             LastMemberRoles[member.Id] = roleId;
 

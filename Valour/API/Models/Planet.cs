@@ -74,7 +74,17 @@ public class Planet : Item, ISharedPlanet
 
     public Planet()
     {
+        HookEvents();
+    }
+
+    public void HookEvents()
+    {
         ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdateAsync;
+    }
+
+    public void UnHookEvents()
+    {
+        ItemObserver<PlanetMember>.OnAnyUpdated -= OnMemberUpdateAsync;
     }
 
     public async Task OnMemberUpdateAsync(PlanetMember member, bool newItem, int flags)
