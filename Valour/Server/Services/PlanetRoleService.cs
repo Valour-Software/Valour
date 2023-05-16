@@ -63,6 +63,9 @@ public class PlanetRoleService
         if (updatedRole.Position != oldRole.Position)
             return new(false, "Position cannot be changed directly.");
 
+        if (updatedRole.IsDefault != oldRole.IsDefault)
+            return new TaskResult<PlanetRole>(false, "Cannot change default status of role.");
+
         try
         {
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
@@ -114,7 +117,7 @@ public class PlanetRoleService
         var dbRole = await _db.PlanetRoles.FindAsync(role.Id);
         if (dbRole is null) return new(false, "Role not found");
             
-        if (await _db.Planets.AnyAsync(x => x.DefaultRoleId == role.Id))
+        if (dbRole.IsDefault)
             return new (false, "Cannot delete default roles");
 
         await using var trans = await _db.Database.BeginTransactionAsync();

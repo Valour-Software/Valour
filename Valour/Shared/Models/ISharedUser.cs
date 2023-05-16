@@ -12,6 +12,7 @@ namespace Valour.Shared.Models;
 public interface ISharedUser : ISharedItem
 {
     const int FLAGS_TIME_UPDATE = 0x01;
+    const string TagChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     
     /// <summary>
     /// The maximum planets a user is allowed to have. This will increase after 
@@ -41,6 +42,11 @@ public interface ISharedUser : ISharedItem
     /// The name of this user
     /// </summary>
     string Name { get; set; }
+    
+    /// <summary>
+    /// The tag (discriminator) of this user
+    /// </summary>
+    string Tag { get; set; }
 
     /// <summary>
     /// True if the user is a bot

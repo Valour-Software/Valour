@@ -28,6 +28,7 @@ public class ValourDB : DbContext
         modelBuilder.Entity<UserChannelState>().HasKey(x => new { x.UserId, x.ChannelId });
 
         // Soft delete
+        modelBuilder.Entity<Planet>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<PlanetMember>().HasQueryFilter(x => x.IsDeleted == false);
         modelBuilder.Entity<Channel>().HasQueryFilter(x => x.IsDeleted == false);
         

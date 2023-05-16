@@ -12,11 +12,21 @@
             <div class="chat-icon">
                 @if (AnyUnread)
                 {
-                    <img src="_content/Valour.Client/media/Channel-Filled-Icon.svg" alt="Chat channel with unread messages" />
+                    @if (HasLock) {
+                        <img src="_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg" alt="Chat channel with unread messages" />
+                    }
+                    else {
+                        <img src="_content/Valour.Client/media/Channel-Filled-Icon.svg" alt="Chat channel with unread messages" />
+                    }
                 }
                 else
                 {
-                    <img src="_content/Valour.Client/media/Channel-Icon.svg" alt="Chat channel without unread messages" />
+                    @if (HasLock) {
+                        <img src="_content/Valour.Client/media/Channel-Icon-with-lock.svg" alt="Chat channel without unread messages" />
+                    }
+                    else {
+                        <img src="_content/Valour.Client/media/Channel-Icon.svg" alt="Chat channel without unread messages" />
+                    }
                 }
             </div>
             <p class="channel-name">
@@ -35,6 +45,8 @@
     public ChannelListCategoryComponent ParentCategory { get; set; }
 
     public bool AnyUnread { get; set; }
+
+    public bool HasLock  { get; set; }
 
     public string Chosen_CSS
     {
@@ -80,6 +92,7 @@
         if (Channel.Id == channel.Id)
         {
             AnyUnread = channel.DetermineUnread();
+            await DetermineLock();
             StateHasChanged();
         }
     }
@@ -88,6 +101,21 @@
     {
         //if (channel.Id == Channel.Id)
         StateHasChanged();
+    }
+
+    public async Task DetermineLock()
+    {
+        HasLock = false;
+        Planet planet = await Channel.GetPlanetAsync();
+
+        var role = await planet.GetDefaultRoleAsync();
+
+        var node = await Channel.GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel);
+        if (node is not null) {
+            var state = node.GetPermissionState(ChatChannelPermissions.View);
+            if (state == PermissionState.False)
+                HasLock = true;
+        }
     }
 
     protected override async Task OnInitializedAsync()
@@ -102,6 +130,8 @@
         ValourClient.OnUserChannelStateUpdate += OnChannelStateUpdate;
 
         AnyUnread = Channel.DetermineUnread();
+
+        await DetermineLock();
     }
 
     public async Task OnChannelStateUpdate(UserChannelState state)

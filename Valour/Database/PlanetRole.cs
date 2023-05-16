@@ -33,6 +33,12 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// </summary>
     [Column("position")]
     public int Position { get; set; }
+    
+    /// <summary>
+    /// True if this is the default (everyone) role
+    /// </summary>
+    [Column("is_default")]
+    public bool IsDefault { get; set; }
 
     /// <summary>
     /// The planet permissions for the role

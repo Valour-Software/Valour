@@ -30,6 +30,11 @@ public class PlanetRole : Item, ISharedPlanetRole
     /// The position of the role: Lower has more authority
     /// </summary>
     public int Position { get; set; }
+    
+    /// <summary>
+    /// True if this is the default (everyone) role
+    /// </summary>
+    public bool IsDefault { get; set; }
 
     /// <summary>
     /// The planet permissions for the role

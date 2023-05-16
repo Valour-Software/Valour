@@ -25,6 +25,8 @@
 
         PreviewMessage = new(BuildNewMessage());
 
+        CanMemberPostMessages = await PlanetChannel.HasPermissionAsync(SelfMember, ChatChannelPermissions.PostMessages);
+
         Refresh();
     }
 

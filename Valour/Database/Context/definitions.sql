@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS primary_node_connections (
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT NOT NULL PRIMARY KEY,
     name VARCHAR(32) NOT NULL,
+    tag VARCHAR(4) NOT NULL,
     time_joined TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     pfp_url TEXT,
     status TEXT,
@@ -28,7 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
     valour_staff BOOLEAN NOT NULL DEFAULT false,
     user_state_code INT NOT NULL DEFAULT 0,
     time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
-    is_mobile BOOLEAN NOT NULL DEFAULT false
+    is_mobile BOOLEAN NOT NULL DEFAULT false,
+
+    CONSTRAINT user_tag_unique UNIQUE (name, tag)
 );
 
 CREATE TABLE IF NOT EXISTS user_friends (
@@ -177,6 +180,7 @@ CREATE TABLE IF NOT EXISTS planet_category_channels (
 CREATE TABLE IF NOT EXISTS planet_chat_channels (
     id BIGINT NOT NULL PRIMARY KEY,
     message_count BIGINT NOT NULL DEFAULT 0,
+    is_default BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT fk_inherit FOREIGN KEY(id) REFERENCES planet_channels(id)
 );
@@ -278,6 +282,7 @@ CREATE TABLE IF NOT EXISTS planet_roles (
     chat_perms BIGINT NOT NULL DEFAULT 7,
     cat_perms BIGINT NOT NULL DEFAULT 1,
     voice_perms BIGINT NOT NULL DEFAULT 7,
+    is_default BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
 );

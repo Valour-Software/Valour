@@ -279,10 +279,9 @@
     public async Task OnRoleDrop(PlanetRole dropped_on){
 
         var dropped_on_index = Roles.IndexOf(dropped_on);
-
+        
         // Cannot move default role
-        if (dragging_role.Id == Planet.DefaultRoleId ||
-            dropped_on.Id == Planet.DefaultRoleId)
+        if (dragging_role.IsDefault || dropped_on.IsDefault)
             return;
 
         Roles.Remove(dragging_role);

@@ -2,6 +2,7 @@ using Valour.Database.Context;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using PlanetRoleMember = Valour.Database.PlanetRoleMember;
 
 namespace Valour.Server.Services;
 
@@ -36,14 +37,14 @@ public class PlanetService
     /// <summary>
     /// Returns the primary channel for the given planet
     /// </summary>
-    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(Planet planet) =>
-        (await _db.PlanetChatChannels.FindAsync(planet.PrimaryChannelId)).ToModel();
+    public async Task<PlanetChatChannel> GetPrimaryChannelAsync(long planetId) =>
+        (await _db.PlanetChatChannels.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.IsDefault)).ToModel();
 
     /// <summary>
     /// Returns the default role for the given planet
     /// </summary>
-    public async Task<PlanetRole> GetDefaultRole(Planet planet) =>
-        (await _db.PlanetRoles.FindAsync(planet.DefaultRoleId)).ToModel();
+    public async Task<PlanetRole> GetDefaultRole(long planetId) =>
+        (await _db.PlanetRoles.FirstOrDefaultAsync(x => x.PlanetId == planetId && x.IsDefault)).ToModel();
 
     /// <summary>
     /// Returns the roles for the given planet id
@@ -94,7 +95,7 @@ public class PlanetService
         var totalRoles = await _db.PlanetRoles.CountAsync(x => x.PlanetId == planetId);
         if (totalRoles != order.Count)
             return new TaskResult(false, "Your order does not contain all the planet roles.");
-        
+
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         List<PlanetRole> roles = new();
@@ -107,15 +108,23 @@ public class PlanetService
             {
                 if (role.PlanetId != planetId)
                     return new TaskResult(false, $"Role {role.Id} does not belong to planet {planetId}");
-
-                role.Position = pos;
-
+                
                 var old = await _db.PlanetRoles.FindAsync(role.Id);
+                if (old is null)
+                    return new TaskResult(false, $"Role {role.Id} could not be found");
+                
+                // If default (everyone), force lowest position
+                role.Position = old.IsDefault ? int.MaxValue : pos;
+                    
                 _db.Entry(old).CurrentValues.SetValues(role);
                 _db.PlanetRoles.Update(old);
                 roles.Add(role);
 
-                pos++;
+                // Don't increase position for default role
+                if (role.Position != int.MaxValue)
+                {
+                    pos++;
+                }
             }
 
             await _db.SaveChangesAsync();
@@ -218,44 +227,61 @@ public class PlanetService
     /// <summary>
     /// Creates the given planet
     /// </summary>
-    public async Task<TaskResult<Planet>> CreateAsync(Planet planet, User user)
+    public async Task<TaskResult<Planet>> CreateAsync(Planet model, User user)
     {
-        var baseValid = await ValidateBasic(planet);
+        var baseValid = await ValidateBasic(model);
         if (!baseValid.Success)
             return new TaskResult<Planet>(false, baseValid.Message);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
-        Valour.Database.Planet dbplanet = null;
+        var planet = model.ToDatabase();
+        
         try
         {
+            planet.Id = IdManager.Generate();
+
             // Create general category
             var category = new Valour.Database.PlanetCategory()
             {
+                Planet = planet,
+                
                 Id = IdManager.Generate(),
                 Name = "General",
                 ParentId = null,
-                PlanetId = planet.Id,
                 Description = "General category",
-                Position = 0
+                Position = 0,
+            };
+
+            planet.Categories = new List<Valour.Database.PlanetCategory>()
+            {
+                category
             };
 
             // Create general chat channel
-            var channel = new Valour.Database.PlanetChatChannel()
+            var chatChannel = new Valour.Database.PlanetChatChannel()
             {
+                Planet = planet,
+                Parent = category,
+                
                 Id = IdManager.Generate(),
-                PlanetId = planet.Id,
                 Name = "General",
                 Description = "General chat channel",
-                ParentId = category.Id,
-                Position = 0
+                Position = 0,
+                IsDefault = true,
+            };
+
+            planet.ChatChannels = new List<Valour.Database.PlanetChatChannel>()
+            {
+                chatChannel
             };
 
             // Create default role
             var defaultRole = new Valour.Database.PlanetRole()
             {
+                Planet = planet,
+
                 Id = IdManager.Generate(),
-                PlanetId = planet.Id,
                 Position = int.MaxValue,
                 Blue = 255,
                 Green = 255,
@@ -264,50 +290,49 @@ public class PlanetService
                 Permissions = PlanetPermissions.Default,
                 ChatPermissions = ChatChannelPermissions.Default,
                 CategoryPermissions = CategoryPermissions.Default,
-                VoicePermissions = VoiceChannelPermissions.Default
+                VoicePermissions = VoiceChannelPermissions.Default,
+                IsDefault = true,
             };
 
-            dbplanet = planet.ToDatabase();
-            dbplanet.DefaultRoleId = null;
-            dbplanet.PrimaryChannelId = null;
+            planet.Roles = new List<Valour.Database.PlanetRole>()
+            {
+                defaultRole
+            };
 
-            _db.Planets.Add(dbplanet);
-
-            await _db.SaveChangesAsync();
-
-            await _db.PlanetCategories.AddAsync(category);
-            await _db.PlanetChatChannels.AddAsync(channel);
-            await _db.PlanetRoles.AddAsync(defaultRole);
-
-            await _db.SaveChangesAsync();
-
-            dbplanet.PrimaryChannelId = channel.Id;
-            dbplanet.DefaultRoleId = defaultRole.Id;
-
-            await _db.SaveChangesAsync();
-
+            // Create owner member
             var member = new Valour.Database.PlanetMember()
             {
+                Planet = planet,
+                
                 Id = IdManager.Generate(),
                 Nickname = user.Name,
-                PlanetId = planet.Id,
                 UserId = user.Id
             };
 
-            var roleMember = new Valour.Database.PlanetRoleMember()
+            planet.Members = new List<Valour.Database.PlanetMember>()
             {
-                Id = IdManager.Generate(),
-                PlanetId = planet.Id,
-                UserId = user.Id,
-                RoleId = (long)dbplanet.DefaultRoleId,
-                MemberId = member.Id
+                member
             };
 
-            await _db.PlanetMembers.AddAsync(member);
-            await _db.PlanetRoleMembers.AddAsync(roleMember);
+            // Create owner role membership
+            var roleMember = new Valour.Database.PlanetRoleMember()
+            {
+                Planet = planet,
+                Member = member,
+                Role = defaultRole,
 
+                Id = IdManager.Generate(),
+                UserId = user.Id,
+            };
+
+            planet.RoleMembers = new List<PlanetRoleMember>()
+            {
+                roleMember,
+            };
+
+            _db.Planets.Add(planet);
             await _db.SaveChangesAsync();
-
+            
             await tran.CommitAsync();
         }
         catch (Exception e)
@@ -316,10 +341,12 @@ public class PlanetService
             await tran.RollbackAsync();
             return new TaskResult<Planet>(false, "Failed to create planet");
         }
+
+        var returnModel = planet.ToModel();
         
-        _coreHub.NotifyPlanetChange(dbplanet.ToModel());
+        _coreHub.NotifyPlanetChange(returnModel);
         
-        return new TaskResult<Planet>(true, "Planet created successfully", dbplanet.ToModel());
+        return new TaskResult<Planet>(true, "Planet created successfully", returnModel);
     }
 
     /// <summary>
@@ -337,28 +364,6 @@ public class PlanetService
         
         if (old.IconUrl != planet.IconUrl)
             return new TaskResult<Planet>(false, "Use the upload API to change the planet icon.");
-        
-        // Validate default role
-        if (planet.DefaultRoleId != old.DefaultRoleId)
-        {
-            var defaultRole = await _db.PlanetRoles.FindAsync(planet.DefaultRoleId);
-            if (defaultRole is null)
-                return new TaskResult<Planet>(false, "Default role does not exist.");
-
-            if (defaultRole.PlanetId != planet.Id)
-                return new TaskResult<Planet>(false, "Default role belongs to a different planet.");
-        }
-
-        // Validate primary channel
-        if (planet.PrimaryChannelId != old.PrimaryChannelId)
-        {
-            var primaryChannel = await _db.PlanetChatChannels.FindAsync(planet.PrimaryChannelId);
-            if (primaryChannel is null)
-                return new TaskResult<Planet>(false, "Primary channel does not exist.");
-
-            if (primaryChannel.PlanetId != planet.Id)
-                return new TaskResult<Planet>(false, "Primary channel belongs to a different planet.");
-        }
 
         if (planet.OwnerId != old.OwnerId)
         {
