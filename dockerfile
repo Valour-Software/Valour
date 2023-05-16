@@ -1,7 +1,7 @@
 # ChatGPT made the first version of this, hopefully it works!
 
 # Start with the official .NET Core 7.0 SDK image
-FROM mcr.microsoft.com/dotnet/sdk:7.0.302 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:7.0.203 AS build-env
 
 # Set the working directory to the app's source code directory
 WORKDIR /app
