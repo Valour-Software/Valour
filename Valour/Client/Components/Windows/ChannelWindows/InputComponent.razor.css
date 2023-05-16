@@ -28,6 +28,13 @@
     width: calc(100% - 90px);
 }
 
+.no-perms .textbox-inner {
+    width: calc(100% - 22px);
+    color: rgba(120, 120, 120);
+    cursor: not-allowed;
+    height:42px;
+}
+
 .upload {
     width: 24px;
     height: 24px;
@@ -40,6 +47,10 @@
     left: 12px;
     bottom: 8.5px;
     user-select: none;
+}
+
+.no-perms .upload {
+    display: none;
 }
 
 .upload:hover {
@@ -115,4 +126,8 @@
     color: rgba(255, 255, 255, 0.47);
     font-weight: 300;
     pointer-events: none;
+}
+
+.no-perms .input-placeholder {
+    left: 16px;
 }

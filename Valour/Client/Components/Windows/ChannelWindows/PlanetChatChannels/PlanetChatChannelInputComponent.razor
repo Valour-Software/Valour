@@ -1,7 +1,5 @@
 ﻿@inherits InputComponent
 @inject WindowManager windowManager
-@using Valour.Api.Models.Messages;
-@using Valour.Api.Models;
 
 @{
     // Renders the base component
@@ -24,8 +22,8 @@
         SelfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, PlanetChannel.PlanetId);
 
         PreviewMessage = new(BuildNewMessage());
-
-        CanMemberPostMessages = await PlanetChannel.HasPermissionAsync(SelfMember, ChatChannelPermissions.PostMessages);
+        
+        CanUserPost = await PlanetChannel.HasPermissionAsync(SelfMember, ChatChannelPermissions.PostMessages);
 
         Refresh();
     }

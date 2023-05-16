@@ -1,5 +1,6 @@
 ﻿@inherits InputComponent
 @using Valour.Api.Models.Messages;
+@using Valour.Api.Models;
 
 @{
     // Renders the base component
@@ -22,7 +23,7 @@
 
         PreviewMessage = new(BuildNewMessage());
 
-        CanMemberPostMessages = true;
+        Refresh();
     }
 
     public override Message BuildNewMessage()
