@@ -362,13 +362,17 @@ public class PlanetMemberService
             };
         }
 
+        var defaultRoleId = await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id && x.IsDefault)
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync();
+
         // Add to default planet role
         var roleMember = new Valour.Database.PlanetRoleMember()
         {
             Id = IdManager.Generate(),
             PlanetId = planet.Id,
             UserId = user.Id,
-            RoleId = planet.DefaultRoleId,
+            RoleId = defaultRoleId,
             MemberId = member.Id
         };
         
@@ -448,25 +452,27 @@ public class PlanetMemberService
         return new TaskResult<PlanetMember>(true, "Success", member);
     }
 
-    public async Task<TaskResult<PlanetRoleMember>> AddRoleAsync(PlanetMember member, PlanetRole role)
+    public async Task<TaskResult<PlanetRoleMember>> AddRoleAsync(long memberId, long roleId)
     {
+        var member = await _db.PlanetMembers.FindAsync(memberId);
         if (member is null)
             return new TaskResult<PlanetRoleMember>(false, "Member is null.");
-        
+
+        var role = await _db.PlanetRoles.FindAsync(roleId);
         if (role is null)
             return new TaskResult<PlanetRoleMember>(false, "Role is null.");
         
         if (member.PlanetId != role.PlanetId)
             return new TaskResult<PlanetRoleMember>(false, "Role and member are not in the same planet.");
-        
-        if (await HasRoleAsync(member.Id, role.Id))
+
+        if (await HasRoleAsync(memberId, roleId))
             return new TaskResult<PlanetRoleMember>(false, "Member already has this role.");
         
         Valour.Database.PlanetRoleMember newRoleMember = new()
         {
             Id = IdManager.Generate(),
-            MemberId = member.Id,
-            RoleId = role.Id,
+            MemberId = memberId,
+            RoleId = roleId,
             UserId = member.UserId,
             PlanetId = member.PlanetId
         };
@@ -488,20 +494,15 @@ public class PlanetMemberService
         return new TaskResult<PlanetRoleMember>(true, "Success", newMemberModel);
     }
     
-    public async Task<TaskResult> RemoveRoleAsync(PlanetMember member, PlanetRole role)
+    public async Task<TaskResult> RemoveRoleAsync(long memberId, long roleId)
     {
-        if (member is null)
-            return new TaskResult(false, "Member is null.");
-        
-        if (role is null)
-            return new TaskResult(false, "Role is null.");
-
-        var roleMember = await _db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == member.Id && x.RoleId == role.Id);
+        var roleMember = await _db.PlanetRoleMembers.FirstOrDefaultAsync(x => x.MemberId == memberId && x.RoleId == roleId);
         
         if (roleMember is null)
             return new TaskResult(false, "Member does not have this role.");
 
-        if (await _db.Planets.AnyAsync(x => x.DefaultRoleId == role.Id))
+        var isDefaultRole = await _db.PlanetRoles.AnyAsync(x => x.PlanetId == roleMember.PlanetId && x.IsDefault);
+        if (isDefaultRole)
             return new TaskResult(false, "Cannot remove the default role from members.");
         
         try

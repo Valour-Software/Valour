@@ -12,6 +12,7 @@ public static class PlanetRoleMapper
             Id = role.Id,
             PlanetId = role.PlanetId,
             Position = role.Position,
+            IsDefault = role.IsDefault,
             Permissions = role.Permissions,
             ChatPermissions = role.ChatPermissions,
             CategoryPermissions = role.CategoryPermissions,
@@ -21,7 +22,7 @@ public static class PlanetRoleMapper
             Blue = role.Blue,
             Bold = role.Bold,
             Italics = role.Italics,
-            Name = role.Name
+            Name = role.Name,
         };
     }
     
@@ -44,7 +45,8 @@ public static class PlanetRoleMapper
             Blue = role.Blue,
             Bold = role.Bold,
             Italics = role.Italics,
-            Name = role.Name
+            Name = role.Name,
+            IsDefault = role.IsDefault,
         };
     }
 }

@@ -62,16 +62,6 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public bool Discoverable { get; set; }
 
-    /// <summary>
-    /// The default role for the planet
-    /// </summary>
-    public long DefaultRoleId { get; set; }
-
-    /// <summary>
-    /// The id of the main channel of the planet
-    /// </summary>
-    public long PrimaryChannelId { get; set; }
-
     public Planet()
     {
         HookEvents();
@@ -132,7 +122,15 @@ public class Planet : Item, ISharedPlanet
         if (Channels == null || refresh)
             await LoadChannelsAsync();
 
-        return await PlanetChatChannel.FindAsync(PrimaryChannelId, Id, refresh);
+        return Channels?.FirstOrDefault(x => x.IsDefault);
+    }
+
+    public async ValueTask<PlanetRole> GetDefaultRoleAsync(bool refresh = false)
+    {
+        if (Roles == null || refresh)
+            await LoadRolesAsync();
+
+        return Roles?.FirstOrDefault(x => x.IsDefault);
     }
 
     /// <summary>

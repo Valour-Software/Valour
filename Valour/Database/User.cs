@@ -78,5 +78,11 @@ public class User : Item, ISharedUser
     /// </summary>
     [Column("is_mobile")]
     public bool IsMobile { get; set; }
+    
+    /// <summary>
+    /// The tag (discriminator) of this user
+    /// </summary>
+    [Column("tag")]
+    public string Tag { get; set; }
 }
 

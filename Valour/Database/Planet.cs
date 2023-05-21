@@ -13,6 +13,9 @@ public class Planet : Item, ISharedPlanet
     
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetRole> Roles { get; set; }
+    
+    [InverseProperty("Planet")]
+    public virtual ICollection<PlanetRoleMember> RoleMembers { get; set; }
 
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetMember> Members { get; set; }
@@ -26,12 +29,6 @@ public class Planet : Item, ISharedPlanet
     [InverseProperty("Planet")]
     public virtual ICollection<PlanetInvite> Invites { get; set; }
 
-    [ForeignKey("DefaultRoleId")]
-    public virtual PlanetRole DefaultRole { get; set; }
-
-    [ForeignKey("PrimaryChannelId")]
-    public virtual PlanetChatChannel PrimaryChannel { get; set; }
-    
     ///////////////////////
     // Entity Properties //
     ///////////////////////
@@ -73,25 +70,11 @@ public class Planet : Item, ISharedPlanet
     public bool Discoverable { get; set; }
 
     /// <summary>
-    /// The default role for the planet
-    /// </summary>
-    [Column("default_role_id")]
-    public long? DefaultRoleId { get; set; }
-
-    /// <summary>
-    /// The id of the main channel of the planet
-    /// </summary>
-    [Column("primary_channel_id")]
-    public long? PrimaryChannelId { get; set; }
-    
-    /// <summary>
     /// Soft-delete flag
     /// </summary>
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
-    long ISharedPlanet.DefaultRoleId { get => (long)DefaultRoleId; set => DefaultRoleId = value; }
-    long ISharedPlanet.PrimaryChannelId { get => (long)PrimaryChannelId; set => PrimaryChannelId = value; }
-    
+
     // Only to fulfill contract
     [NotMapped]
     public string NodeName { get; set; }

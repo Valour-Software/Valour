@@ -24,11 +24,11 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
             $"api/chatchannels";
 
     #endregion
-
+    
     /// <summary>
-    /// The total number of messages sent in this channel
+    /// True if this is the default chat channel
     /// </summary>
-    public long MessageCount { get; set; }
+    public bool IsDefault { get; set; }
 
     /// <summary>
     /// Returns the name of the item type

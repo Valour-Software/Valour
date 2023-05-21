@@ -11,6 +11,11 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// The position of the role: Lower has more authority
     /// </summary>
     int Position { get; set; }
+    
+    /// <summary>
+    /// True if this is the default (everyone) role
+    /// </summary>
+    bool IsDefault { get; set; }
 
     /// <summary>
     /// The planet permissions for the role
@@ -20,17 +25,17 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// <summary>
     /// The chat channel permissions for the role
     /// </summary>
-    public long ChatPermissions { get; set; }
+    long ChatPermissions { get; set; }
 
     /// <summary>
     /// The category permissions for the role
     /// </summary>
-    public long CategoryPermissions { get; set; }
+    long CategoryPermissions { get; set; }
 
     /// <summary>
     /// The voice channel permissions for the role
     /// </summary>
-    public long VoicePermissions { get; set; }
+    long VoicePermissions { get; set; }
 
     // RGB Components for role color
     byte Red { get; set; }

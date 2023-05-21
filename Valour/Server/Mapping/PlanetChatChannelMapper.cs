@@ -13,6 +13,7 @@ public static class PlanetChatChannelMapper
             PlanetId = channel.PlanetId,
             Name = channel.Name,
             Position = channel.Position,
+            IsDefault = channel.IsDefault,
             Description = channel.Description,
             ParentId = channel.ParentId,
             InheritsPerms = channel.InheritsPerms
@@ -30,6 +31,7 @@ public static class PlanetChatChannelMapper
             PlanetId = channel.PlanetId,
             Name = channel.Name,
             Position = channel.Position,
+            IsDefault = channel.IsDefault,
             Description = channel.Description,
             ParentId = channel.ParentId,
             InheritsPerms = channel.InheritsPerms

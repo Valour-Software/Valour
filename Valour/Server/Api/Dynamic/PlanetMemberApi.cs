@@ -174,7 +174,7 @@ public class PlanetMemberApi
             return ValourResult.Forbid("You can only add roles with a lower authority than your own.");
 
         
-        var result = await memberService.AddRoleAsync(targetMember, role);
+        var result = await memberService.AddRoleAsync(targetMember.Id, role.Id);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
@@ -210,7 +210,7 @@ public class PlanetMemberApi
             return ValourResult.Forbid("You can only remove roles with a lower authority than your own.");
 
         
-        var result = await memberService.RemoveRoleAsync(targetMember, role);
+        var result = await memberService.RemoveRoleAsync(targetMember.Id, role.Id);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 

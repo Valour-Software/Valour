@@ -107,8 +107,9 @@
     {
         HasLock = false;
         Planet planet = await Channel.GetPlanetAsync();
-        var role = await PlanetRole.FindAsync(planet.DefaultRoleId, planet.Id);
-        
+
+        var role = await planet.GetDefaultRoleAsync();
+
         var node = await Channel.GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel);
         if (node is not null) {
             var state = node.GetPermissionState(ChatChannelPermissions.View);
