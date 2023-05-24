@@ -87,8 +87,9 @@
         StateHasChanged();
     }
 
-    public async Task OnChatChannelUpdate(PlanetChatChannel channel, bool newItem, int flags)
+    public async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
     {
+        var channel = eventData.Model;
         if (Channel.Id == channel.Id)
         {
             AnyUnread = channel.DetermineUnread();
@@ -122,7 +123,7 @@
     {
         // Console.WriteLine("Init " + Channel.Name);
 
-        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
+        ModelObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
 
         ValourClient.OnChannelOpen += OnChannelOpenedChange;
         ValourClient.OnChannelClose += OnChannelOpenedChange;
@@ -147,7 +148,7 @@
     {
         // Console.WriteLine("Disposed " + Channel.Name);
 
-        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
+        ModelObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
 
         ValourClient.OnChannelOpen -= OnChannelOpenedChange;
         ValourClient.OnChannelClose -= OnChannelOpenedChange;

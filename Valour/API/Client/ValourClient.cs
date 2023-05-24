@@ -205,6 +205,11 @@ public static class ValourClient
     /// Run when a channel embed update is received
     /// </summary>
     public static event Func<ChannelEmbedUpdate, Task> OnChannelEmbedUpdate;
+    
+    /// <summary>
+    /// Run when a channel state updates
+    /// </summary>
+    public static event Func<ChannelStateUpdate, Task> OnChannelStateUpdate;
 
     /// <summary>
     /// Run when the user logs in
@@ -289,7 +294,7 @@ public static class ValourClient
                 await OnPlanetJoin.Invoke(planet);
 
             if (OnJoinedPlanetsUpdate is not null)
-                await OnJoinedPlanetsUpdate?.Invoke();
+                await OnJoinedPlanetsUpdate.Invoke();
         }
 
         return result;
@@ -506,8 +511,6 @@ public static class ValourClient
         if (OpenPlanets.Contains(planet))
             return;
 
-        planet.HookEvents();
-
         // Mark as opened
         OpenPlanets.Add(planet);
 
@@ -572,8 +575,6 @@ public static class ValourClient
 
         // Remove from list
         OpenPlanets.Remove(planet);
-
-        planet.UnHookEvents();
 
         Console.WriteLine($"Left SignalR group for planet {planet.Name} ({planet.Id})");
 
@@ -694,9 +695,9 @@ public static class ValourClient
         {
             CurrentChannelStates[channel.Id].LastUpdateTime = update.Time;
         }
-        
-        await channel.OnUpdate(0x01);
-        await ItemObserver<PlanetChatChannel>.InvokeAnyUpdated(channel, false, 0x01);
+
+        if (OnChannelStateUpdate is not null)
+            await OnChannelStateUpdate.Invoke(update);
     }
 
     /// <summary>
@@ -707,21 +708,53 @@ public static class ValourClient
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
 
+        // Create object for event data
+        var eventData = new ModelUpdateEvent<T>();
+        eventData.Flags = flags;
+
         var local = ValourCache.Get<T>(updated.Id);
 
         if (local != null)
+        {
+            // Find changed properties
+            var pInfo = local.GetType().GetProperties();
+
+            foreach (var prop in pInfo)
+            {
+                var a = prop.GetValue(local);
+                var b = prop.GetValue(updated);
+
+                if (a != b)
+                    eventData.FieldsChanged.Add(prop.Name);
+            }
+            
+            // Update local copy
             updated.CopyAllTo(local);
+        }
+        else
+        {
+            // Set new flag
+            eventData.NewToClient = true;
+        }
 
         if (!skipEvent)
         {
-            if (local != null) {
-                await local.InvokeUpdatedEventAsync(flags);
-                await ItemObserver<T>.InvokeAnyUpdated(local, false, flags);
+            // Update
+            if (local != null)
+            {
+                eventData.Model = local;
+                // Fire off local event on item
+                await local.InvokeUpdatedEventAsync(new ModelUpdateEvent(){ Flags = flags, PropsChanged = eventData.FieldsChanged});
             }
-            else {
+            // New
+            else
+            {
+                eventData.Model = updated;
                 await updated.AddToCache();
-                await ItemObserver<T>.InvokeAnyUpdated(updated, true, flags);
             }
+            
+            // Fire off global events
+            await ModelObserver<T>.InvokeAnyUpdated(eventData);
 
             // printing to console is SLOW, only turn on for debugging reasons
             //Console.WriteLine("Invoked update events for " + updated.Id);
@@ -742,13 +775,13 @@ public static class ValourClient
         {
             // Invoke static "any" delete
             await item.InvokeDeletedEventAsync();
-            await ItemObserver<T>.InvokeAnyDeleted(item);
+            await ModelObserver<T>.InvokeAnyDeleted(item);
         }
         else
         {
             // Invoke static "any" delete
             await local.InvokeDeletedEventAsync();
-            await ItemObserver<T>.InvokeAnyDeleted(local);
+            await ModelObserver<T>.InvokeAnyDeleted(local);
         }
     }
 
@@ -788,13 +821,13 @@ public static class ValourClient
     public static async Task PersonalEmbedUpdate(PersonalEmbedUpdate update)
     {
         if (OnPersonalEmbedUpdate is not null)
-            await OnPersonalEmbedUpdate?.Invoke(update);
+            await OnPersonalEmbedUpdate.Invoke(update);
     }
 
     public static async Task ChannelEmbedUpdate(ChannelEmbedUpdate update)
     {
         if (OnChannelEmbedUpdate is not null)
-            await OnChannelEmbedUpdate?.Invoke(update);
+            await OnChannelEmbedUpdate.Invoke(update);
     }
 
     #endregion
@@ -803,22 +836,12 @@ public static class ValourClient
 
         private static void HookPlanetEvents()
         {
-            ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChannelUpdated;
-            ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDeleted;
+            ModelObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleAdded;
+            ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
+            ModelObserver<PlanetRole>.OnAnyUpdated += OnPlanetRoleUpdated;
+            ModelObserver<PlanetRole>.OnAnyDeleted += OnPlanetRoleDeleted;
 
-            ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdated;
-            ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeleted;
-
-            ItemObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdated;
-            ItemObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeleted;
-
-            ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdated;
-            ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeleted;
-
-            ItemObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdated;
-            ItemObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDeleted;
-
-            ItemObserver<Planet>.OnAnyDeleted += OnPlanetDeleted;
+            ModelObserver<Planet>.OnAnyDeleted += OnPlanetDeleted;
         }
 
         private static async Task OnPlanetDeleted(Planet planet)
@@ -827,105 +850,82 @@ public static class ValourClient
             JoinedPlanets = JoinedPlanets.Where(x => x.Id != planet.Id).ToList();
             await ClosePlanetConnection(planet);
         }
-
-        private static async Task OnMemberRoleUpdated(PlanetRoleMember rolemember, bool newitem, int flags)
+        
+        private static async Task OnPlanetRoleUpdated(ModelUpdateEvent<PlanetRole> eventData)
         {
-            var planet = await Planet.FindAsync(rolemember.PlanetId);
+            // If we don't have the planet loaded, we don't need to update anything
+            var planet = ValourCache.Get<Planet>(eventData.Model.PlanetId);
+            if (planet is null)
+                return;
 
-            if (planet is not null)
+            // This is a little messy.
+            foreach (var member in await planet.GetMembersAsync())
             {
-                var member = await PlanetMember.FindAsync(rolemember.MemberId, rolemember.PlanetId);
-                if (!await member.HasRoleAsync(rolemember.RoleId))
+                // Skip if doesn't have role
+                if (!(await member.GetRolesAsync()).Contains(eventData.Model))
+                    continue;
+                
+                // If it does have the role, fire event
+                await member.NotifyRoleEventAsync(new MemberRoleEvent()
                 {
-                    var roleids = (await member.GetRolesAsync()).Select(x => x.Id).ToList();
-                    roleids.Add(rolemember.RoleId);
-                    await member.SetLocalRoleIds(roleids);
-                }
-                await ItemObserver<PlanetMember>.InvokeAnyUpdated(member, false, PlanetMember.FLAG_UPDATE_ROLES);
-                await member.InvokeUpdatedEventAsync(PlanetMember.FLAG_UPDATE_ROLES);
+                    Type = MemberRoleEventType.Added,
+                    Role = eventData.Model,
+                });
+            }
+        }
+        
+        private static async Task OnPlanetRoleDeleted(PlanetRole role)
+        {
+            // If we don't have the planet loaded, we don't need to update anything
+            var planet = ValourCache.Get<Planet>(role.PlanetId);
+            if (planet is null)
+                return;
+
+            // This is a little messy.
+            foreach (var member in await planet.GetMembersAsync())
+            {
+                // Skip if doesn't have role
+                if (!(await member.GetRolesAsync()).Contains(role))
+                    continue;
+                
+                // If it does have the role, fire event
+                await member.NotifyRoleEventAsync(new MemberRoleEvent()
+                {
+                    // Deleting the role also means removing it from everyone
+                    Type = MemberRoleEventType.Removed,
+                    Role = role,
+                });
             }
         }
 
-        private static async Task OnMemberRoleDeleted(PlanetRoleMember rolemember)
+        private static async Task OnMemberRoleAdded(ModelUpdateEvent<PlanetRoleMember> eventData)
         {
-            var planet = await Planet.FindAsync(rolemember.PlanetId);
+            // If we don't have the member loaded, we don't need to update anything
+            var member = ValourCache.Get<PlanetMember>(eventData.Model.MemberId);
+            if (member is null)
+                return;
 
-            if (planet is not null)
+            var role = await PlanetRole.FindAsync(eventData.Model.RoleId, eventData.Model.PlanetId);
+            await member.NotifyRoleEventAsync(new MemberRoleEvent()
             {
-                var member = await PlanetMember.FindAsync(rolemember.MemberId, rolemember.PlanetId);
-                if (await member.HasRoleAsync(rolemember.RoleId))
-                {
-                    var roleids = (await member.GetRolesAsync()).Select(x => x.Id).ToList();
-                    roleids.Remove(rolemember.RoleId);
-                    await member.SetLocalRoleIds(roleids);
-                }
-                await ItemObserver<PlanetMember>.InvokeAnyUpdated(member, false, PlanetMember.FLAG_UPDATE_ROLES);
-                await member.InvokeUpdatedEventAsync(PlanetMember.FLAG_UPDATE_ROLES);
-            }
+                Type = MemberRoleEventType.Added,
+                Role = role,
+            });
         }
 
-        private static async Task OnChannelUpdated(PlanetChatChannel channel, bool newItem, int flags)
+        private static async Task OnMemberRoleDeleted(PlanetRoleMember roleMember)
         {
-            var planet = await Planet.FindAsync(channel.PlanetId);
+            // If we don't have the member loaded, we don't need to update anything
+            var member = ValourCache.Get<PlanetMember>(roleMember.MemberId);
+            if (member is null)
+                return;
 
-            if (planet is not null)
-                await planet.NotifyUpdateChannel(channel);
-        }
-
-        private static async Task OnVoiceChannelUpdated(PlanetVoiceChannel channel, bool newItem, int flags)
-        {
-            var planet = await Planet.FindAsync(channel.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyUpdateVoiceChannel(channel);
-        }
-
-        private static async Task OnCategoryUpdated(PlanetCategory category, bool newItem, int flags)
-        {
-            var planet = await Planet.FindAsync(category.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyUpdateCategory(category);
-        }
-
-        private static async Task OnRoleUpdated(PlanetRole role, bool newItem, int flags)
-        {
-            var planet = await Planet.FindAsync(role.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyUpdateRole(role);
-        }
-
-        private static async Task OnChannelDeleted(PlanetChatChannel channel)
-        {
-            var planet = await Planet.FindAsync(channel.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyDeleteChannel(channel);
-        }
-
-        private static async Task OnVoiceChannelDeleted(PlanetVoiceChannel channel)
-        {
-            var planet = await Planet.FindAsync(channel.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyDeleteVoiceChannel(channel);
-        }
-
-        private static async Task OnCategoryDeleted(PlanetCategory category)
-        {
-            var planet = await Planet.FindAsync(category.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyDeleteCategory(category);
-        }
-
-        private static async Task OnRoleDeleted(PlanetRole role)
-        {
-            var planet = await Planet.FindAsync(role.PlanetId);
-
-            if (planet is not null)
-                await planet.NotifyDeleteRole(role);
+            var role = await PlanetRole.FindAsync(roleMember.RoleId, roleMember.PlanetId);
+            await member.NotifyRoleEventAsync(new MemberRoleEvent()
+            {
+                Type = MemberRoleEventType.Removed,
+                Role = role,
+            });
         }
 
     #endregion

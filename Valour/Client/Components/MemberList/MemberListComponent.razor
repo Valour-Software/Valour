@@ -161,10 +161,10 @@
         // Events
         windowManager.OnPlanetFocused += OnPlanetChange;
         ValourClient.OnPlanetClose += OnPlanetClose;
-        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
-        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
-        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
-        ItemObserver<PlanetMember>.OnAnyDeleted += OnMemberDelete;
+        ModelObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+        ModelObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+        ModelObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
+        ModelObserver<PlanetMember>.OnAnyDeleted += OnMemberDelete;
 
         var reloadTask = Task.Run(async () =>
         {
@@ -187,11 +187,6 @@
         await OnPlanetChange(windowManager.FocusedPlanet);
     }
 
-    public async Task OnMemberUserUpdate(PlanetMember member)
-    {
-        await OnMemberUpdate(member, false, 0);
-    }
-
     public async Task OnMemberDelete(PlanetMember member)
     {
         if (member.PlanetId != windowManager.FocusedPlanet.Id)
@@ -202,9 +197,31 @@
         UserCache.Remove(member.Id);
         StateHasChanged();
     }
-
-    public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
+    
+    public async Task OnRoleModified(PlanetMember member)
     {
+        var lastRole = LastMemberRoles[member.Id];
+        var newRole = await DetermineDisplayRoleId(member);
+
+        if (lastRole != newRole)
+        {
+            DisplayedRoleMembers[lastRole].Remove(member);
+
+            var newRoleMembers = DisplayedRoleMembers[newRole];
+            newRoleMembers.Add(member);
+            newRoleMembers.Sort(comparer);
+
+            LastMemberRoles[member.Id] = newRole;
+
+            StateHasChanged();
+        }
+    }
+
+    public async Task OnMemberUpdate(ModelUpdateEvent<PlanetMember> eventData)
+    {
+        var member = eventData.Model;
+        var newItem = eventData.NewToClient;
+        
         if (member.PlanetId != windowManager.FocusedPlanet.Id)
             return;
 
@@ -224,28 +241,6 @@
             roleList.Add(member);
             roleList.Sort(comparer);
 
-        }
-        else
-        {
-            // Check if roles changed
-            if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
-            {
-                var lastRole = LastMemberRoles[member.Id];
-                var newRole = await DetermineDisplayRoleId(member);
-
-                if (lastRole != newRole)
-                {
-                    DisplayedRoleMembers[lastRole].Remove(member);
-
-                    var newRoleMembers = DisplayedRoleMembers[newRole];
-                    newRoleMembers.Add(member);
-                    newRoleMembers.Sort(comparer);
-
-                    LastMemberRoles[member.Id] = newRole;
-
-                    StateHasChanged();
-                }
-            }
         }
 
     }
@@ -277,8 +272,11 @@
         StateHasChanged();
     }
 
-    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+    public async Task OnRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
     {
+        var role = eventData.Model;
+        var newItem = eventData.NewToClient;
+        
         if (role.PlanetId != windowManager.FocusedPlanet.Id)
             return;
 

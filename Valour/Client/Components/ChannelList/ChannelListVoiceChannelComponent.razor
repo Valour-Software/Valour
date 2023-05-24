@@ -56,8 +56,10 @@
         StateHasChanged();
     }
 
-    public async Task OnVoiceChannelUpdate(PlanetVoiceChannel channel, bool newItem, int flags)
+    public async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
     {
+        var channel = eventData.Model;
+        
         if (Channel.Id == channel.Id)
         {
             StateHasChanged();
@@ -66,11 +68,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
     }
 
     public void Dispose()
     {
-        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
     }
 }

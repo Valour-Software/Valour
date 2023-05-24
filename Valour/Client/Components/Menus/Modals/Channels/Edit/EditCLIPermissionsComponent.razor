@@ -317,11 +317,12 @@
 
         await RefreshButtons();
 
-        ItemObserver<PermissionsNode>.OnAnyUpdated += OnPermissionNodeUpdate;
+        ModelObserver<PermissionsNode>.OnAnyUpdated += OnPermissionNodeUpdate;
     }
 
-    public async Task OnPermissionNodeUpdate(PermissionsNode node, bool newitem, int flags) 
+    public async Task OnPermissionNodeUpdate(ModelUpdateEvent<PermissionsNode> eventData)
     {
+        var node = eventData.Model;
         if (node.TargetId == Target.Id) {
             await OnRoleChange(await PlanetRole.FindAsync(node.RoleId, Target.PlanetId));
         }

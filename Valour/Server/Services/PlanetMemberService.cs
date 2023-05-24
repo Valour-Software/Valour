@@ -501,7 +501,7 @@ public class PlanetMemberService
         if (roleMember is null)
             return new TaskResult(false, "Member does not have this role.");
 
-        var isDefaultRole = await _db.PlanetRoles.AnyAsync(x => x.PlanetId == roleMember.PlanetId && x.IsDefault);
+        var isDefaultRole = await _db.PlanetRoles.AnyAsync(x => x.Id == roleMember.RoleId && x.IsDefault);
         if (isDefaultRole)
             return new TaskResult(false, "Cannot remove the default role from members.");
         

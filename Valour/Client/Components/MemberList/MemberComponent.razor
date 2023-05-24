@@ -117,16 +117,13 @@
         User.OnUpdated += async d =>
         {
             await RefreshAsync();
-            await Parent.OnMemberUserUpdate(Member);
+            await Parent.OnRoleModified(Member);
         };
 
-        Member.OnUpdated += async f =>
+        Member.OnRoleModified += async f =>
         {
-            if ((f & PlanetMember.FLAG_UPDATE_ROLES) != 0)
-            {
-                Role = await Member.GetPrimaryRoleAsync();
-                await RefreshAsync();
-            }
+            Role = await Member.GetPrimaryRoleAsync();
+            await RefreshAsync();
         };
 
         Role.OnDeleted += async () =>
