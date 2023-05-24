@@ -19,6 +19,7 @@
 @using Valour.Client.Utility
 
 @inject IJSRuntime JS
+@inject ILocalStorageService LocalStorage
 
 <!-- Enable app sounds -->
 <SoundsComponent></SoundsComponent>
@@ -79,6 +80,9 @@ else
     // Runs when page is initialized
     protected override async Task OnInitializedAsync()
     {
+        await DevicePreferences.LoadPreferences(LocalStorage);
+        await LogToConsole("Loaded user preferences", "magenta");
+        
         ColorLogger.App = this;
         ColorLogger.Setup();
 
