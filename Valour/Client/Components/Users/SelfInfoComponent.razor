@@ -1,0 +1,13 @@
+<div class="self-info">
+    <UserInfoComponent User="ValourClient.Self"/>
+        <img id="user-edit-button" class="settings" alt="User settings button" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick="OnClickUserSettings">
+</div>
+@code {
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    
+    private void OnClickUserSettings()
+    {
+        Modal.Show<EditUserComponent>("Edit User");
+    }
+}

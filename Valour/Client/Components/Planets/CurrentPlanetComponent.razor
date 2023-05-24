@@ -1,117 +1,144 @@
 ﻿@inject NavigationManager navManager
 @inject WindowManager windowManager
+@implements IDisposable
 
-
-@{
-    string key = "null";
-    if (Planet is not null)
-    {
-        key = Planet.Id.ToString();
-    }
+<!-- Logo and version if planet is not focused -->
+@if (_planet is null)
+{
+    <div class="logo-container">
+        <LogoComponent></LogoComponent>
+        <div style="display:inline-block; vertical-align: middle">
+            <p class="valour-name">
+                Valour
+            </p>
+            <p class="valour-version">
+                Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
+            </p>
+        </div>
+    </div>
+    
+    return;
 }
 
-<div @key="key">
+<!-- Planet info if focused -->
 
-    @if (Planet is not null)
-    {
-        <h2 class="planet-title">@Planet.Name</h2>
+<h2 class="planet-title">@_planet.Name</h2>
 
-        @if (canEdit)
-        {
-            <img class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
-        }
+@if (_canEdit)
+{
+    <img alt="Edit planet button" class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditPlanetComponent>("Edit Planet")' id="edit-planet-button">
+}
 
-        <p class="planet-desc">@Planet.Description</p>
-    }
-    else
-    {
-        <div class="logo-container">
-            <LogoComponent></LogoComponent>
-            <div style="display:inline-block; vertical-align: middle">
-                <p class="valour-name">
-                    Valour
-                </p>
-                <p class="valour-version">
-                    Version @typeof(ISharedUser).Assembly.GetName().Version.ToString() Pre-Alpha
-                </p>
-            </div>
-        </div>
-    }
-</div>
+<p class="planet-desc">@_planet.Description</p>
 
 @code {
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
 
-    public Planet Planet { get; set; }
+    private Planet _planet;
+    private PlanetMember _selfMember;
+    private bool _canEdit = false;
 
-    public bool canEdit = false;
-
-    protected async override Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        windowManager.OnPlanetFocused += OnPlanetChange;
-        ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
-
-        ValourClient.OnPlanetClose += async planet =>
-        {
-            if (planet.Id == Planet.Id)
-                await OnPlanetChange(null);
-        };
-        ItemObserver<Planet>.OnAnyUpdated += OnPlanetUpdate;
+        windowManager.OnPlanetFocused += OnPlanetFocused;
+        ValourClient.OnPlanetClose += OnPlanetClose;
     }
 
-    public async Task OnPlanetUpdate(Planet planet, bool newItem, int flags)
+    void IDisposable.Dispose()
     {
-        if (Planet == null || planet.Id == Planet.Id)
+        windowManager.OnPlanetFocused -= OnPlanetFocused;
+        ValourClient.OnPlanetClose -= OnPlanetClose;
+        if (_planet is not null)
         {
-            StateHasChanged();
+            _planet.OnUpdated -= OnPlanetUpdate;
         }
     }
 
-    // Must refresh if roles update because it may remove permission to
-    // manage the planet
-    public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+    private async Task OnPlanetClose(Planet planet)
     {
-        if (Planet.Id != role.PlanetId)
-            return;
-
-        await Refresh();
+        if (planet.Id == _planet.Id)
+            await OnPlanetFocused(null);
     }
 
-    public async Task OnPlanetChange(Planet planet)
+    private Task OnPlanetUpdate(ModelUpdateEvent eventData)
     {
-        this.Planet = planet;
-
-        await Refresh();
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
-    public async Task Refresh()
+    private async Task OnPlanetFocused(Planet planet)
     {
-        if (Planet == null)
+        if (planet is null)
         {
-            StateHasChanged();
-            return;
-        }
-
-        Console.WriteLine($"Updating current planet component for {Planet.Name}.");
-
-        var selfMember = await ValourClient.GetSelfMember(Planet);
-        var selfRole = await selfMember.GetPrimaryRoleAsync();
-
-        //Console.WriteLine("Self: " + selfMember.Nickname);
-        //Console.WriteLine("Role: " + selfRole.Name);
-
-        if (Planet.OwnerId == selfMember.UserId ||
-            selfRole.HasPermission(PlanetPermissions.Manage))
-        {
-            canEdit = true;
+            if (_planet is not null)
+            {
+                _planet.OnUpdated -= OnPlanetUpdate;
+                _planet = null;
+            }
+            
+            if (_selfMember is not null)
+            {
+                _selfMember.OnRoleModified -= OnRoleModified;
+                _selfMember = null;
+            }
         }
         else
         {
-            canEdit = false;
+            // Remove old event
+            if (_planet is not null)
+            {
+                _planet.OnUpdated -= OnPlanetUpdate;
+            }
+            // Add new event
+            planet.OnUpdated += OnPlanetUpdate;
+            
+            var newMember = await ValourClient.GetSelfMember(planet);
+            
+            // Remove old
+            if (_selfMember is not null)
+            {
+                _selfMember.OnRoleModified -= OnRoleModified;
+            }
+            // Add new
+            if (newMember is not null)
+            {
+                newMember.OnRoleModified += OnRoleModified;
+            }
+
+            _selfMember = newMember;
+            _planet = planet;
+            
+            await DetermineCanEdit();
         }
 
+        ReRender();
+    }
+
+    private async Task OnRoleModified(MemberRoleEvent eventData)
+    {
+        await DetermineCanEdit();
+        ReRender();
+    }
+
+    private async Task DetermineCanEdit()
+    {
+        var selfRole = await _selfMember.GetPrimaryRoleAsync();
+
+        if (_planet.OwnerId == _selfMember.UserId ||
+            selfRole.HasPermission(PlanetPermissions.Manage))
+        {
+            _canEdit = true;
+        }
+        else
+        {
+            _canEdit = false;
+        }
+    }
+
+    private void ReRender()
+    {
         StateHasChanged();
     }
 }

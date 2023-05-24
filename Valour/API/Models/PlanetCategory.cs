@@ -47,6 +47,18 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 
         return item;
     }
+    
+    public override async Task OnUpdate(ModelUpdateEvent eventData)
+    {
+        var planet = await GetPlanetAsync();
+        await planet.NotifyCategoryUpdateAsync(this, eventData);
+    }
+
+    public override async Task OnDelete()
+    {
+        var planet = await GetPlanetAsync();
+        await planet.NotifyCategoryDeleteAsync(this);
+    }
 
     public async Task<TaskResult> SetChildOrderAsync(List<long> childIds) =>
         await Node.PostAsync($"{IdRoute}/children/order", childIds);

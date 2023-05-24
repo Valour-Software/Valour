@@ -55,6 +55,18 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
 
         return item;
     }
+    
+    public override async Task OnUpdate(ModelUpdateEvent eventData)
+    {
+        var planet = await GetPlanetAsync();
+        await planet.NotifyVoiceChannelUpdateAsync(this, eventData);
+    }
+
+    public override async Task OnDelete()
+    {
+        var planet = await GetPlanetAsync();
+        await planet.NotifyVoiceChannelDeleteAsync(this);
+    }
 
     /// <summary>
     /// Returns the voice channel permissions node for the given role id

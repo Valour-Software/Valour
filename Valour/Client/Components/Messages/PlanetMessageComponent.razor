@@ -1,5 +1,6 @@
 ﻿@using Valour.Api.Models.Messages
 @inherits MessageComponent
+@implements IDisposable
 
 @{
     // Renders the base component
@@ -7,9 +8,8 @@
 }
 
 @code {
-    PlanetMessage message;
-    PlanetMember author;
-    PlanetRole primaryRole;
+    PlanetMessage _message;
+    PlanetMember _author;
 
     public override string ContextMenuId => "member-context";
 
@@ -19,78 +19,66 @@
         await base.OnInitializedAsync();
 
         // Cast message
-        message = ((PlanetMessage)MessageData.Message);
+        _message = ((PlanetMessage)MessageData.Message);
 
         // Get member and hook event
-        author = await message.GetAuthorMemberAsync();
-        author.OnUpdated += OnAuthorUpdated;
-
-        // Get initial role
-        primaryRole = await author.GetPrimaryRoleAsync();
-
-        // Hook initial events
-        primaryRole.OnUpdated += OnRoleUpdate;
-        primaryRole.OnDeleted += OnRoleDeletion;
+        _author = await _message.GetAuthorMemberAsync();
+        _author.OnUpdated += OnAuthorUpdated;
+        _author.OnRoleModified += OnAuthorRoleChange;
     }
 
     public override async Task InitializeContextMenu()
     {
-        await InnerMemberContextMenuComponent.Initialize(author, Window);
+        await InnerMemberContextMenuComponent.Initialize(_author, Window);
     }
 
-    public async Task OnAuthorUpdated(int flags)
-    {
-        // Member role membership was changed
-        if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
-            await UpdateForRoleChange();
-
-        name = await MessageData.Message.GetAuthorNameAsync();
-        pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
-
-        ReRender();
-    }
-
-    // Role was changed
-    public async Task OnRoleUpdate(int flags)
+    public async Task OnAuthorRoleChange(MemberRoleEvent roleEvent)
     {
         await UpdateForRoleChange();
-        ReRender();
     }
 
-    // Role was deleted
-    public async Task OnRoleDeletion()
+    private async Task OnAuthorUpdated(ModelUpdateEvent eventData)
     {
-        // Unhook role events
-        primaryRole.OnUpdated -= OnRoleUpdate;
-        primaryRole.OnDeleted -= OnRoleDeletion;
+        var render = false;
+        
+        if (eventData.PropsChanged.Contains(nameof(_author.Nickname)))
+        {
+            render = true;
+            name = await MessageData.Message.GetAuthorNameAsync();
+        }
 
-        // Update
-        await UpdateForRoleChange();
-        ReRender();
+        if (eventData.PropsChanged.Contains(nameof(_author.MemberPfp)))
+        {
+            render = true;
+            pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
+        }
+
+        if (render)
+        {
+            ReRender();
+        }
     }
-
+    
     // Update for any role changes
-    public async Task UpdateForRoleChange()
+    private async Task UpdateForRoleChange()
     {
-        var newPrimaryRole = await author.GetPrimaryRoleAsync();
+        var newPrimaryRole = await _author.GetPrimaryRoleAsync();
 
         // Cosmetic changes
         nameTag = newPrimaryRole.Name;
         nameColor = newPrimaryRole.GetColorHex();
-
-        // If the primary role has changed to a new role
-        if (primaryRole.Id != newPrimaryRole.Id)
+        
+        ReRender();
+    }
+    
+    void IDisposable.Dispose()
+    {
+        _author.OnUpdated -= OnAuthorUpdated;
+        _author.OnRoleModified -= OnAuthorRoleChange;
+        
+        if (Holder != null)
         {
-            // Unhook old role
-            primaryRole.OnUpdated -= OnRoleUpdate;
-            primaryRole.OnDeleted -= OnRoleDeletion;
-
-            // Hook new role
-            newPrimaryRole.OnUpdated += OnRoleUpdate;
-            newPrimaryRole.OnDeleted += OnRoleDeletion;
-
-            // Set new role
-            primaryRole = newPrimaryRole;
+            Holder.RemoveRenderedMessage(this);
         }
     }
 

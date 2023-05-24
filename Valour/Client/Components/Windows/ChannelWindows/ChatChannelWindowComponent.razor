@@ -170,7 +170,7 @@
         _thisRef.Dispose();
     }
 
-    public async Task OnChatChannelUpdate(int flags)
+    public async Task OnChatChannelUpdate(ModelUpdateEvent eventData)
     {
         Refresh();
     }
