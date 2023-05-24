@@ -116,12 +116,13 @@
 
         StateHasChanged();
 
-        ItemObserver<PlanetInvite>.OnAnyUpdated += OnPlanetInviteUpdated;
+        ModelObserver<PlanetInvite>.OnAnyUpdated += OnPlanetInviteUpdated;
 
     }
 
-    public async Task OnPlanetInviteUpdated(PlanetInvite invite, bool newitem, int flags)
+    public async Task OnPlanetInviteUpdated(ModelUpdateEvent<PlanetInvite> eventData)
     {
+        var invite = eventData.Model;
         if (invite.PlanetId == Planet.Id)
         {
             Invites = await Planet.GetInvitesAsync(true);

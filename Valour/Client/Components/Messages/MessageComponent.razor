@@ -329,12 +329,26 @@
             User.OnUpdated += OnUserUpdated;
     }
 
-    public async Task OnUserUpdated(int flags)
+    public async Task OnUserUpdated(ModelUpdateEvent eventData)
     {
-        name = await MessageData.Message.GetAuthorNameAsync();
-        pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
+        bool render = false;
+        
+        if (eventData.PropsChanged.Contains(nameof(User.Name)))
+        {
+            render = true;
+            name = await MessageData.Message.GetAuthorNameAsync();
+        }
 
-        ReRender();
+        if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
+        {
+            render = true;
+            pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
+        }
+        
+        if (render)
+        {
+            ReRender();
+        }
     }
 
     public void CheckMinimal()

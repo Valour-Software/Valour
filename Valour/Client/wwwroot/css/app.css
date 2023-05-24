@@ -246,6 +246,7 @@ body {
     background-color: var(--main-1);
     flex-direction: column;
     height: 100%;
+    width: 100%;
 }
 
 .channel-and-topbar-mobile {

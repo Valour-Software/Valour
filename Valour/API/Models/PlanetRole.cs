@@ -148,6 +148,18 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         return item;
     }
 
+    public override async Task OnUpdate(ModelUpdateEvent eventData)
+    {
+        var planet = await GetPlanetAsync();
+        await planet.NotifyRoleUpdateAsync(this, eventData);
+    }
+
+    public override async Task OnDelete()
+    {
+        var planet = await GetPlanetAsync();
+        await planet.NotifyRoleDeleteAsync(this);
+    }
+
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>

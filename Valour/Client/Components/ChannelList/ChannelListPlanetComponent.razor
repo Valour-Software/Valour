@@ -57,14 +57,14 @@
         TopCategories = new List<PlanetCategory>();
 
         // Handle list change
-        ItemObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
-        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
-        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
+        ModelObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
+        ModelObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
 
         // Handle Deletions
-        ItemObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
-        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
-        ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
+        ModelObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
+        ModelObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
+        ModelObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
 
         await GetCategories();
         await GetChannels();
@@ -144,8 +144,9 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategory category, bool newItem, int flags)
+    public async Task OnCategoryUpdate(ModelUpdateEvent<PlanetCategory> eventData)
     {
+        var category = eventData.Model;
         // If we contain the category and its position or category changed we need to factor for that
         var old = TopCategories.FirstOrDefault(x => x.Id == category.Id);
 
@@ -187,9 +188,11 @@
         GetTopLevelCategories();
     }
 
-    public async Task OnChatChannelUpdate(PlanetChatChannel channel, bool newItem, int flags)
+    public async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
     {
 
+        var channel = eventData.Model;
+        
         //Console.WriteLine(channel.Name);
 
         var oldChannel = Channels.FirstOrDefault(x => x.Id == channel.Id);
@@ -212,8 +215,10 @@
         StateHasChanged();
     }
 
-    public async Task OnVoiceChannelUpdate(PlanetVoiceChannel channel, bool newItem, int flags)
+    public async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
     {
+        var channel = eventData.Model;
+        
         var oldChannel = VoiceChannels.FirstOrDefault(x => x.Id == channel.Id);
 
         if (oldChannel == null)

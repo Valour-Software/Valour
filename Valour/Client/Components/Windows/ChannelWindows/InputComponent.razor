@@ -8,7 +8,7 @@
 
 <div class='@(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
-        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="@WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
+        <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
 
     <ChannelCurrentlyTypingComponent ParentComponent="WindowComponent" Channel="WindowComponent.Channel"></ChannelCurrentlyTypingComponent>
@@ -119,7 +119,7 @@
     /// <summary>
     /// If the current user is able to post messages using this input
     /// </summary>
-    protected bool CanUserPost { get; set; }
+    protected bool CanUserPost { get; set; } = true; // Start as true
 
     /// <summary>
     /// Allows this component to render when true
