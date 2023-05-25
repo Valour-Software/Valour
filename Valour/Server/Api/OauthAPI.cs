@@ -6,6 +6,7 @@ using Valour.Shared;
 using System.Collections.Concurrent;
 using Valour.Shared.Authorization;
 using Valour.Shared.Models;
+using Valour.Server.Config;
 
 namespace Valour.Server.API;
 
@@ -53,7 +54,7 @@ public class OauthAPI : BaseAPI
         context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
 
         // Slightly different than normal oauth because of Blazor: We return the link for the app to redirect itself to
-        return ValourResult.Ok($"{model.RedirectUri}?code={model.Code}&state={model.State}");
+        return ValourResult.Ok($"{model.RedirectUri}?code={model.Code}&state={model.State}&node={NodeConfig.Instance.Name}");
     }
 
     public static async Task<IResult> Token(
