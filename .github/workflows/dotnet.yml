@@ -14,13 +14,22 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
     - uses: benjlevesque/short-sha@v2.2
       id: short-sha
       with:
         length: 7
+    - name: Modify asset versions
+      uses: mingjun97/file-regex-replace
+      with:
+        regex: '$(SHORTHASH)'
+        replacement: '${{ env.SHA }}'
+        flags: "g"                  # Optional, defaults to "g"
+        include: '.*'    # Optional, defaults to ".*"
+        exclude: '.^'               # Optional, defaults to '.^'
+        encoding: 'utf8'            # Optional, defaults to 'utf8'
+        path: '.'                   # Optional, defaults to '.'
+    - uses: actions/checkout@v3
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
