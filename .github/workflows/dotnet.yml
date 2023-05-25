@@ -22,7 +22,7 @@ jobs:
     - name: Modify asset versions
       uses: mingjun97/file-regex-replace@v1
       with:
-        regex: '$(SHORTHASH)'
+        regex: '\$\(SHORTHASH\)'
         replacement: '${{ env.SHA }}'
         flags: "g"                  # Optional, defaults to "g"
         include: '.*'    # Optional, defaults to ".*"
