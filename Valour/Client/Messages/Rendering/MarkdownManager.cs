@@ -2,6 +2,7 @@
 using Markdig.Extensions;
 using System.Text.RegularExpressions;
 using Markdig.Extensions.MediaLinks;
+using Valour.Client.Device;
 using Valour.Client.Messages;
 
 namespace Valour.Client.Messages;
@@ -16,38 +17,44 @@ public static class MarkdownManager
 {
     public static MarkdownPipeline pipeline;
 
-    public static MarkdownPipelineBuilder UseVooperMediaLinks(this MarkdownPipelineBuilder pipeline, MediaOptions? options = null)
+    public static MarkdownPipelineBuilder UseVooperMediaLinks(this MarkdownPipelineBuilder pipeline,
+        MediaOptions? options = null)
     {
         if (!pipeline.Extensions.Contains<VooperMediaLinkExtension>())
         {
             pipeline.Extensions.Add(new VooperMediaLinkExtension(options));
         }
+
         return pipeline;
     }
 
     static MarkdownManager()
     {
+        RegenPipeline();
+    }
 
+    public static void RegenPipeline()
+    {
         pipeline = new MarkdownPipelineBuilder().DisableHtml()
-                                                .UseVooperMediaLinks()
-                                                .UseAutoLinks()
-                                                .UseMathematics()
-                                                .UseAbbreviations()
-                                                .UseCitations()
-                                                .UseCustomContainers()
-                                                .UseDiagrams()
-                                                .UseFigures()
-                                                .UseFootnotes()
-                                                .UseGlobalization()
-                                                .UseGridTables()
-                                                .UseListExtras()
-                                                .UsePipeTables()
-                                                .UseTaskLists()
-                                                .UseEmphasisExtras()
-                                                .UseEmojiAndSmiley(true)
-                                                .UseReferralLinks("nofollow")
-                                                .UseSoftlineBreakAsHardlineBreak()
-                                                .Build();
+            .UseVooperMediaLinks()
+            .UseAutoLinks()
+            .UseMathematics()
+            .UseAbbreviations()
+            .UseCitations()
+            .UseCustomContainers()
+            .UseDiagrams()
+            .UseFigures()
+            .UseFootnotes()
+            .UseGlobalization()
+            .UseGridTables()
+            .UseListExtras()
+            .UsePipeTables()
+            .UseTaskLists()
+            .UseEmphasisExtras()
+            .UseEmojiAndSmiley(DevicePreferences.AutoEmoji)
+            .UseReferralLinks("nofollow")
+            .UseSoftlineBreakAsHardlineBreak()
+            .Build();
     }
 
     public static readonly Regex sanitizeLink = new("(?<=follow\">).+?(?=<)");
@@ -75,4 +82,3 @@ public static class MarkdownManager
         return markdown;
     }
 }
-

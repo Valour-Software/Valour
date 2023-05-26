@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using Valour.Api.Client;
-using Valour.Api.Models;
+﻿using Valour.Api.Client;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -18,7 +16,7 @@ namespace Valour.Api.Items
         /// <summary>
         /// Ran when this item is updated
         /// </summary>
-        public event Func<int, Task> OnUpdated;
+        public event Func<ModelUpdateEvent, Task> OnUpdated;
 
         /// <summary>
         /// Ran when this item is deleted
@@ -26,11 +24,19 @@ namespace Valour.Api.Items
         public event Func<Task> OnDeleted;
 
         /// <summary>
-        /// Custom logic on item update
+        /// Custom logic on model update
         /// </summary>
-        public virtual async Task OnUpdate(int flags)
+        public virtual Task OnUpdate(ModelUpdateEvent eventData)
         {
+            return Task.CompletedTask;
+        }
 
+        /// <summary>
+        /// Custom logic on model deletion
+        /// </summary>
+        public virtual Task OnDelete()
+        {
+            return Task.CompletedTask;
         }
 
         public Node Node
@@ -60,12 +66,12 @@ namespace Valour.Api.Items
         /// <summary>
         /// Safely invokes the updated event
         /// </summary>
-        public async Task InvokeUpdatedEventAsync(int flags)
+        public async Task InvokeUpdatedEventAsync(ModelUpdateEvent eventData)
         {
-            await OnUpdate(flags);
+            await OnUpdate(eventData);
 
             if (OnUpdated != null)
-                await OnUpdated?.Invoke(flags);
+                await OnUpdated.Invoke(eventData);
         }
 
         /// <summary>
@@ -73,8 +79,10 @@ namespace Valour.Api.Items
         /// </summary>
         public async Task InvokeDeletedEventAsync()
         {
+            await OnDelete();
+            
             if (OnDeleted != null)
-                await OnDeleted?.Invoke();
+                await OnDeleted.Invoke();
         }
 
         /// <summary>
@@ -87,8 +95,8 @@ namespace Valour.Api.Items
         {
             Node node;
 
-            if (item is IPlanetItem)
-                node = await NodeManager.GetNodeForPlanetAsync(((IPlanetItem)item).PlanetId);
+            if (item is IPlanetItem planetItem)
+                node = await NodeManager.GetNodeForPlanetAsync(planetItem.PlanetId);
             else
                 node = ValourClient.PrimaryNode;
 
@@ -103,7 +111,7 @@ namespace Valour.Api.Items
         /// <returns>The result, with the updated item (if successful)</returns>
         public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : Item
         {
-            return await item.Node.PutAsyncWithResponse<T>(item.IdRoute, item);
+            return await item.Node.PutAsyncWithResponse(item.IdRoute, item);
         }
 
         /// <summary>

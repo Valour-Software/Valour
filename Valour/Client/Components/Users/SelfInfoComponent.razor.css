@@ -1,0 +1,16 @@
+.self-info {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 20px;
+    background-color: var(--main-4);
+    border-radius: 5px;
+}
+
+.settings {
+    align-self: flex-start;
+    margin-right: 5px;
+    margin-top: 5px;
+    cursor: pointer;
+    width: 16px;
+}

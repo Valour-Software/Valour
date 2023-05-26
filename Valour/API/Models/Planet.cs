@@ -1,4 +1,5 @@
-﻿using Valour.Api.Client;
+﻿using Markdig.Extensions.TaskLists;
+using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Nodes;
 using Valour.Shared.Models;
@@ -62,30 +63,130 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public bool Discoverable { get; set; }
 
-    public Planet()
+    #region Child Event Handlers
+    
+    public Task NotifyRoleUpdateAsync(PlanetRole role, ModelUpdateEvent eventData)
     {
-        HookEvents();
+        if (Roles is null || role.PlanetId != Id)
+            return Task.CompletedTask;
+
+        if (!Roles.Any(x => x.Id == role.Id))
+        {
+            Roles.Add(role);
+            
+            Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
+        }
+
+        return Task.CompletedTask;
+    }
+    
+    public Task NotifyRoleDeleteAsync(PlanetRole role)
+    {
+        if (Roles is null || !Roles.Contains(role))
+            return Task.CompletedTask;
+
+        Roles.Remove(role);
+
+        return Task.CompletedTask;
     }
 
-    public void HookEvents()
+    public Task NotifyCategoryUpdateAsync(PlanetCategory category, ModelUpdateEvent eventData)
     {
-        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdateAsync;
+        if (Categories is null || category.PlanetId != Id)
+            return Task.CompletedTask;
+        
+        if (!Categories.Any(x => x.Id == category.Id))
+        {
+            Categories.Add(category);
+            
+            Categories.Sort((a, b) => a.Position.CompareTo(b.Position));
+        }
+
+        return Task.CompletedTask;
     }
 
-    public void UnHookEvents()
+    public Task NotifyCategoryDeleteAsync(PlanetCategory category)
     {
-        ItemObserver<PlanetMember>.OnAnyUpdated -= OnMemberUpdateAsync;
+        if (Categories is null || !Categories.Contains(category))
+            return Task.CompletedTask;
+
+        Categories.Remove(category);
+
+        return Task.CompletedTask;
+    }
+    
+    public Task NotifyVoiceChannelUpdateAsync(PlanetVoiceChannel channel, ModelUpdateEvent eventData)
+    {
+        if (VoiceChannels is null || channel.PlanetId != Id)
+            return Task.CompletedTask;
+        
+        if (!VoiceChannels.Any(x => x.Id == channel.Id))
+        {
+            VoiceChannels.Add(channel);
+            
+            VoiceChannels.Sort((a, b) => a.Position.CompareTo(b.Position));
+        }
+
+        return Task.CompletedTask;
+    }
+    
+    public Task NotifyVoiceChannelDeleteAsync(PlanetVoiceChannel channel)
+    {
+        if (VoiceChannels is null || !VoiceChannels.Contains(channel))
+            return Task.CompletedTask;
+
+        VoiceChannels.Remove(channel);
+
+        return Task.CompletedTask;
     }
 
-    public async Task OnMemberUpdateAsync(PlanetMember member, bool newItem, int flags)
+    public Task NotifyChannelUpdateAsync(PlanetChatChannel channel, ModelUpdateEvent eventData)
     {
-        if (member.PlanetId != Id)
-            return;
+        if (Channels is null || channel.PlanetId != Id)
+            return Task.CompletedTask;
+        
+        if (!Channels.Any(x => x.Id == channel.Id))
+        {
+            Channels.Add(channel);
+            // Resort
+            Channels.Sort((a, b) => a.Position.CompareTo(b.Position));
+        }
 
-        // Ensure that we add new members to the planet cache
-        if (newItem)
+        return Task.CompletedTask;
+    }
+    
+    public Task NotifyChannelDeleteAsync(PlanetChatChannel channel)
+    {
+        if (Channels is null || !Channels.Contains(channel))
+            return Task.CompletedTask;
+
+        Channels.Remove(channel);
+
+        return Task.CompletedTask;
+    }
+
+    public Task NotifyMemberUpdateAsync(PlanetMember member, ModelUpdateEvent eventData)
+    {
+        if (Members is null || member.PlanetId != Id)
+            return Task.CompletedTask;
+        
+        if (!Members.Any(x => x.Id == member.Id))
             Members.Add(member);
+        
+        return Task.CompletedTask;
     }
+    
+    public Task NotifyMemberDeleteAsync(PlanetMember member)
+    {
+        if (Members is null || !Members.Contains(member))
+            return Task.CompletedTask;
+
+        Members.Remove(member);
+
+        return Task.CompletedTask;
+    }
+    
+    #endregion
 
     public override async Task AddToCache()
     {
@@ -432,124 +533,4 @@ public class Planet : Item, ISharedPlanet
     {
         return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
     }
-
-    /// <summary>
-    /// Ran to notify the planet that a channel has been updated
-    /// </summary>
-    public async ValueTask NotifyUpdateChannel(PlanetChatChannel channel)
-    {
-        if (Channels == null)
-            await LoadChannelsAsync();
-
-        if (!Channels.Contains(channel))
-            return;
-
-        // Resort
-        Channels.Sort((a, b) => a.Position.CompareTo(b.Position));
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a channel has been deleted
-    /// </summary>
-    public async ValueTask NotifyDeleteChannel(PlanetChatChannel channel)
-    {
-        if (Channels == null)
-            await LoadChannelsAsync();
-
-        if (!Channels.Contains(channel))
-            return;
-
-        Channels.Remove(channel);
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a voice channel has been updated
-    /// </summary>
-    public async ValueTask NotifyUpdateVoiceChannel(PlanetVoiceChannel channel)
-    {
-        if (VoiceChannels == null)
-            await LoadChannelsAsync();
-
-        if (!VoiceChannels.Contains(channel))
-            return;
-
-        // Resort
-        VoiceChannels.Sort((a, b) => a.Position.CompareTo(b.Position));
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a voice channel has been deleted
-    /// </summary>
-    public async ValueTask NotifyDeleteVoiceChannel(PlanetVoiceChannel channel)
-    {
-        if (VoiceChannels == null)
-            await LoadChannelsAsync();
-
-        if (!VoiceChannels.Contains(channel))
-            return;
-
-        VoiceChannels.Remove(channel);
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a category has been updated
-    /// </summary>
-    public async ValueTask NotifyUpdateCategory(PlanetCategory category)
-    {
-        if (Categories == null)
-            await LoadCategoriesAsync();
-
-        if (!Categories.Contains(category))
-            return;
-
-        // Resort
-        Categories.Sort((a, b) => a.Position.CompareTo(b.Position));
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a category has been deleted
-    /// </summary>
-    public async ValueTask NotifyDeleteCategory(PlanetCategory category)
-    {
-        if (Categories == null)
-            await LoadCategoriesAsync();
-
-        if (!Categories.Contains(category))
-            return;
-
-        Categories.Remove(category);
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a role has been updated
-    /// </summary>
-    public async ValueTask NotifyUpdateRole(PlanetRole role)
-    {
-        if (Roles == null)
-            await LoadRolesAsync();
-
-        if (!Roles.Any(x => x.Id == role.Id))
-        {
-            Roles.Add(role);
-        }
-
-        // Resort
-        Roles.Sort((a, b) => a.Position.CompareTo(b.Position));
-    }
-
-    /// <summary>
-    /// Ran to notify the planet that a role has been deleted
-    /// </summary>
-    public async ValueTask NotifyDeleteRole(PlanetRole role)
-    {
-        if (Roles == null)
-            await LoadRolesAsync();
-
-        if (!Roles.Contains(role))
-            return;
-
-        // Resort
-        Roles.Remove(role);
-    }
-
 }

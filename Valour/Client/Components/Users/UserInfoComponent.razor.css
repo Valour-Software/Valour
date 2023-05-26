@@ -2,9 +2,8 @@
     display: flex;
     flex-direction: row;
     max-width: 100%;
-    background: rgba(255, 255, 255, 0.07);
+    background-color: var(--main-4);
     border-radius: 5px;
-    margin: 13px auto 11px;
     justify-content: space-between;
 }
 
@@ -33,15 +32,6 @@
     border: 2px solid var(--main-1);
 }
 
-.settings {
-    margin-left: 10px;
-    margin-right: 5px;
-    margin-top: 5px;
-    cursor: pointer;
-    align-self: flex-start;
-    width: 16px;
-}
-
 .name-status {
     display: flex;
     flex-direction: column;
@@ -58,23 +48,56 @@
     font-weight: bold;
     font-size: 14px;
     text-overflow: ellipsis;
+    overflow: hidden;
     margin: 0;
     vertical-align: top;
 }
 
 .user-info:hover .tag {
     opacity: 1;
+    width: auto;
 }
 
 .tag {
     color: #c8c8c8;
     font-family: Ubuntu, sans-serif;
     display: inline-block;
+    width: 0;
     font-size: 14px;
     font-weight: 400;
     margin: 0;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
+}
+
+.user-badge {
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 2px;
+    font-size: 7px;
+    color: black;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.user-badge.staff {
+    width: 25px;
+    height: 9px;
+    background: #00FAFF;
+}
+
+.user-badge.bot {
+    width: 17px;
+    height: 9px;
+    background: #FF00E9;
+}
+
+.user-badge p {
+    margin: 0;
+    font-weight: 700;
 }
 
 .status {

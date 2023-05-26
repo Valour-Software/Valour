@@ -1,59 +1,239 @@
-﻿<div class="user-info">
-    <div class="left-block">
-        <img class="pfp" src="@pfpurl" @onerror="OnPfpError">
-        @if (User.Name != null)
-        {
+﻿@implements IDisposable
+
+@if (User is null)
+{
+    return; // Don't bother rendering if user is null
+}
+
+<ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline'>
+    <div class="user-info">
+        <div class="left-block">
+            <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username">@User.Name</p>
-                    <p class="tag">#@(User.Tag)</p>
+                    <p class="username">@_name</p>
+                    <p class="tag">#@_userTag</p>
+                    @if (User.Bot)
+                    {
+                        <div class="user-badge bot">
+                            <p>BOT</p>
+                        </div>
+                    }
+                    @if (User.ValourStaff)
+                    {
+                        <div class="user-badge staff">
+                            <p>STAFF</p>
+                        </div>
+                    }
                 </div>
                 <p class="status">
-                    @User.Status
+                    @_statusText
                 </p>
             </div>
-        }
-        <div class="active" />
+            <div class="@_statusClass" />
+        </div>
     </div>
-
-    <img id="user-edit-button" class="settings" src="_content/Valour.Client/media/Settings-Icon.svg" @onclick='() => Modal.Show<EditUserComponent>("Edit User")'>
-</div>
+</ContextMenuTrigger>
 
 @code {
     [Parameter]
     public User User { get; set; }
+    
+    // You can additionally supply the PlanetMember object 
+    // for role color and syncing
+    [Parameter]
+    public PlanetMember Member { get; set; }
+    
+    // The type, either "user" or "member"
+    private string _type = "user";
+    private string _contextMenu = "user";
+    
+    // Internal cached values
+    private string _name = DefaultName;
+    private string _userTag;
+    private string _roleColor = DefaultRoleColor;
+    private string _pfpUrl = DefaultPfp;
 
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
+    private string _statusClass = "offline";
+    private string _statusText = "";
 
-    public string pfpurl = "_content/Valour.Client/icon-512.png";
+    // Defaults
+    const string DefaultPfp = "_content/Valour.Client/icon-512.png";
+    const string DefaultRoleColor = "#fff";
+    const string DefaultName = "Unknown User";
 
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-
-        if (User != null && !string.IsNullOrWhiteSpace(User.PfpUrl))
+        // It's slower to just supply the member, but we can
+        // use the UserId to still function
+        if (User is null && Member is not null)
         {
-            pfpurl = User.PfpUrl;
+            User = await User.FindAsync(Member.UserId);
+        }
+        
+        if (User is not null)
+        {
+            User.OnUpdated += OnUserUpdate;
+        }
 
-            // did not work without this
-            User _user = await User.FindAsync(User.Id);
+        if (Member is not null)
+        {
+            Member.OnUpdated += OnMemberUpdate;
+            Member.OnRoleModified += OnMemberRoleModified;
+            _type = "member";
+            _contextMenu = "member-context";
+        }
 
-            _user.OnUpdated += (async data =>
-            {
-                if (_user != null && !string.IsNullOrWhiteSpace(_user.PfpUrl))
-                {
-                    pfpurl = _user.PfpUrl;
-                    StateHasChanged();
-                }
-            });
+        CalculateName();
+        CalculateTag();
+        CalculatePfp();
+        CalculateStatus();
+        CalculateStatusCode();
+        await DetermineColorChange();
+
+        StateHasChanged();
+    }
+
+    void IDisposable.Dispose()
+    {
+        if (User is not null)
+        {
+            User.OnUpdated -= OnUserUpdate;
+        }
+
+        if (Member is not null)
+        {
+            Member.OnUpdated -= OnMemberUpdate;
+            Member.OnRoleModified -= OnMemberRoleModified;
         }
     }
 
-    protected async Task OnPfpError()
+    private async Task OnContextMenu()
     {
-        pfpurl = "_content/Valour.Client/icon-512.png";
+        if (Member is not null)
+        {
+            await InnerMemberContextMenuComponent.Initialize(Member, null);
+        }
+        else
+        {
+            await UserContextMenuComponent.Initialize(User);
+        }
+    }
 
+    private void CalculateName()
+    {
+        _name = (Member is not null && !string.IsNullOrWhiteSpace(Member.Nickname)) 
+            ? Member.Nickname : User?.Name ?? "Unknown User";
+    }
+
+    private void CalculateTag()
+    {
+        _userTag = User?.Tag ?? "????";
+    }
+
+    private void CalculatePfp()
+    {
+        _pfpUrl = Member?.MemberPfp ?? User?.PfpUrl ?? DefaultPfp;
+    }
+
+    private void CalculateStatus()
+    {
+        _statusText = User?.Status ?? string.Empty;
+    }
+
+    private void CalculateStatusCode()
+    {
+        _statusClass = User?.UserState?.CssClassName ?? "offline";
+    }
+
+    private async Task<bool> DetermineColorChange()
+    {
+        var old = _roleColor;
+        if (Member is null)
+        {
+            _roleColor = DefaultRoleColor;
+        }
+        else
+        {
+            var displayedRole = await Member.GetDisplayedRoleAsync();
+            _roleColor = displayedRole is null ? DefaultRoleColor : displayedRole.GetColorHex();
+        }
+
+        return old != _roleColor;
+    }
+
+    private Task OnUserUpdate(ModelUpdateEvent eventData)
+    {
+        bool render = false;
+        
+        if (eventData.PropsChanged.Contains(nameof(User.PfpUrl)))
+        {
+            render = true;
+            CalculatePfp();
+        }
+        if (eventData.PropsChanged.Contains(nameof(User.Name)))
+        {
+            render = true;
+            CalculateName();
+        }
+        if (eventData.PropsChanged.Contains(nameof(User.Tag)))
+        {
+            render = true;
+            CalculateTag();
+        }
+        if (eventData.PropsChanged.Contains(nameof(User.Status)))
+        {
+            render = true;
+            CalculateStatus();
+        }
+        if (eventData.PropsChanged.Contains(nameof(User.UserStateCode)))
+        {
+            render = true;
+            CalculateStatusCode();
+        }
+        
+        if (render)
+        {
+            StateHasChanged();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task OnMemberUpdate(ModelUpdateEvent eventData)
+    {
+        bool render = false;
+
+        if (eventData.PropsChanged.Contains(nameof(Member.MemberPfp)))
+        {
+            render = true;
+            CalculatePfp();
+        }
+        
+        if (eventData.PropsChanged.Contains(nameof(Member.Nickname)))
+        {
+            render = true;
+            CalculateName();
+        }
+        
+        if (render)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnMemberRoleModified(MemberRoleEvent eventData)
+    {
+        // We can skip for update because it's the same role
+        if (await DetermineColorChange())
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void OnPfpError()
+    {
+        _pfpUrl = DefaultPfp;
         StateHasChanged();
     }
 }

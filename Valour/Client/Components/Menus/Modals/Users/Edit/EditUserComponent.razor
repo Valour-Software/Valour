@@ -10,7 +10,7 @@
     return;
 }
 
-<BigMenuComponent @ref="bigMenuComponent">
+<BigMenuComponent @ref="bigMenu">
     <LeftSide>
         <section>
             <p class="user-settings">USER SETTINGS</p>
@@ -19,22 +19,26 @@
                 <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
                     <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Info"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Permissions"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Device Preferences"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Name="Log Out" Color="EF3A3A"></BigMenuSubMenuComponent>
                 </BigMenuTopLevelMenuComponent>
             </div>
         </section>
     </LeftSide>
     <RightSide>
-        @switch (bigMenuComponent.SelectedTopLevelMenu?.Name)
+        @switch (bigMenu.SelectedTopLevelMenu?.Name)
         {
             case "General Settings":
-                switch (bigMenuComponent.SelectedSubMenu.Name)
+                switch (bigMenu.SelectedSubMenu.Name)
                 {
                     case "Info":
                         <EditUserInfoComponent User="User"></EditUserInfoComponent>
                         break;
                     case "Permissions":
                         <EditUserNotificationsComponent></EditUserNotificationsComponent>
+                        break;
+                    case "Device Preferences":
+                        <EditDevicePreferencesComponent></EditDevicePreferencesComponent>
                         break;
                 }
                 break;
@@ -46,11 +50,11 @@
     [Parameter]
     public User User { get; set; }
 
-    public BigMenuComponent bigMenuComponent { get; set; }
+    private BigMenuComponent bigMenu { get; set; }
 
     public void Dispose()
     {
-        bigMenuComponent.RefreshRightSide -= Refresh;
+        bigMenu.RefreshRightSide -= Refresh;
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -58,14 +62,14 @@
 
         if (firstRender)
         {
-            bigMenuComponent.RefreshRightSide += Refresh;
+            bigMenu.RefreshRightSide += Refresh;
         }
         return base.OnAfterRenderAsync(firstRender);
     }
 
     public async void Refresh()
     {
-        if (bigMenuComponent.SelectedSubMenu?.Name == "Log Out")
+        if (bigMenu.SelectedSubMenu?.Name == "Log Out")
         {
             await LogOut();
         }

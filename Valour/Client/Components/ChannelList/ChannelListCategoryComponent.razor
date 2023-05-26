@@ -101,14 +101,14 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ItemObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
-        ItemObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
-        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
+        ModelObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
+        ModelObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
 
         // Handle Deletions
-        ItemObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
-        ItemObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
-        ItemObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
+        ModelObserver<PlanetCategory>.OnAnyDeleted += OnCategoryDeletion;
+        ModelObserver<PlanetChatChannel>.OnAnyDeleted += OnChatChannelDeletion;
+        ModelObserver<PlanetVoiceChannel>.OnAnyDeleted += OnVoiceChannelDeletion;
 
         ValourClient.OnChannelOpen += OnChannelOpenedChange;
         ValourClient.OnChannelClose += OnChannelOpenedChange;
@@ -118,12 +118,9 @@
         ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
 
         Planet = await Category.GetPlanetAsync();
-
-        if (ChildCategories is null)
-            ChildCategories = new();
-
-        if (ChildVoiceChannels is null)
-            ChildVoiceChannels = new();
+        
+        ChildCategories ??= new();
+        ChildVoiceChannels ??= new();
 
         IsOpen = categoryManager.IsOpen(Category);
 
@@ -148,13 +145,13 @@
 
     public void Dispose()
     {
-        ItemObserver<PlanetCategory>.OnAnyUpdated -= OnCategoryUpdate;
-        ItemObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
-        ItemObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
+        ModelObserver<PlanetCategory>.OnAnyUpdated -= OnCategoryUpdate;
+        ModelObserver<PlanetChatChannel>.OnAnyUpdated -= OnChatChannelUpdate;
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
 
-        ItemObserver<PlanetCategory>.OnAnyDeleted -= OnCategoryDeletion;
-        ItemObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
-        ItemObserver<PlanetVoiceChannel>.OnAnyDeleted -= OnVoiceChannelDeletion;
+        ModelObserver<PlanetCategory>.OnAnyDeleted -= OnCategoryDeletion;
+        ModelObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
+        ModelObserver<PlanetVoiceChannel>.OnAnyDeleted -= OnVoiceChannelDeletion;
     }
 
     public void OnClick()
@@ -223,8 +220,10 @@
         }
     }
 
-    public async Task OnCategoryUpdate(PlanetCategory category, bool newItem, int flags)
+    public async Task OnCategoryUpdate(ModelUpdateEvent<PlanetCategory> eventData)
     {
+        var category = eventData.Model;
+        
         if (Category.Id == category.Id)
         {
             StateHasChanged();
@@ -284,8 +283,10 @@
         }
     }
 
-    public async Task OnVoiceChannelUpdate(PlanetVoiceChannel channel, bool newItem, int flags)
+    public async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
     {
+        var channel = eventData.Model;
+        
         // If we contain the category and its position or category changed we need to factor for that
         var old = ChildVoiceChannels.FirstOrDefault(x => x.Id == channel.Id);
 
@@ -334,8 +335,10 @@
         }
     }
 
-    public async Task OnChatChannelUpdate(PlanetChatChannel channel, bool newItem, int flags)
+    public async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
     {
+        var channel = eventData.Model;
+        
         // Console.WriteLine($"This: {Category.Id} | New: {channel.Id} | New Parent: {channel.ParentId}");
 
         // If we contain the category and its position or category changed we need to factor for that

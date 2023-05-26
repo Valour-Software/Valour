@@ -312,10 +312,11 @@
 
         await UpdateRoleMemberCount();
 
-        ItemObserver<PlanetRole>.OnAnyUpdated += OnRolesUpdate;
-        ItemObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
+        ModelObserver<PlanetRole>.OnAnyUpdated += OnRolesUpdate;
+        ModelObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
 
-        ItemObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
+        ModelObserver<PlanetRoleMember>.OnAnyUpdated += OnMemberRoleUpdate;
+        ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnMemberRoleDelete;
     }
 
     public async Task UpdateRoleMemberCount()
@@ -351,9 +352,19 @@
         StateHasChanged();
     }
 
-    public async Task OnMemberUpdate(PlanetMember member, bool newItem, int flags)
+    private async Task OnMemberRoleUpdate(ModelUpdateEvent<PlanetRoleMember> eventData)
     {
-        if (member.PlanetId == Planet.Id)
+        var roleMember = eventData.Model;
+        if (roleMember.PlanetId == Planet.Id)
+        {
+            await UpdateRoleMemberCount();
+            StateHasChanged();
+        }
+    }
+    
+    private async Task OnMemberRoleDelete(PlanetRoleMember roleMember)
+    {
+        if (roleMember.PlanetId == Planet.Id)
         {
             await UpdateRoleMemberCount();
             StateHasChanged();
@@ -507,8 +518,9 @@
     }
 
     // Handle role list changes that may occur while open
-    public async Task OnRolesUpdate(PlanetRole role, bool newItem, int flags)
+    public async Task OnRolesUpdate(ModelUpdateEvent<PlanetRole> eventData)
     {
+        var role = eventData.Model;
         var oldRole = Roles.FirstOrDefault(x => x.Id == role.Id);
 
         if (oldRole == null)

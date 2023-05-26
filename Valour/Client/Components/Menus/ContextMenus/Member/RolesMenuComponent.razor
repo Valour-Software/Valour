@@ -26,18 +26,19 @@
 		Roles = await (await Member.GetPlanetAsync()).GetRolesAsync();
 		MemberRoles = await Member.GetRolesAsync();
 
-		ItemObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
-		Member.OnUpdated += OnMemberUpdate;
+		ModelObserver<PlanetRole>.OnAnyUpdated += OnRoleUpdate;
+		Member.OnRoleModified += OnMemberRoleUpdate;
 	}
 
 	void IDisposable.Dispose()
 	{
-		ItemObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
-		Member.OnUpdated -= OnMemberUpdate;
+		ModelObserver<PlanetRole>.OnAnyUpdated -= OnRoleUpdate;
+		Member.OnRoleModified -= OnMemberRoleUpdate;
 	}
 
-	public async Task OnRoleUpdate(PlanetRole role, bool newItem, int flags)
+	public async Task OnRoleUpdate(ModelUpdateEvent<PlanetRole> eventData)
 	{
+		var role = eventData.Model;
 		if (Roles.Any(x => x.Id == role.Id))
 			StateHasChanged();
 	}
@@ -65,12 +66,9 @@
 		StateHasChanged();
 	}
 
-	public async Task OnMemberUpdate(int flags)
+	public async Task OnMemberRoleUpdate(MemberRoleEvent eventData)
 	{
-		if ((flags & PlanetMember.FLAG_UPDATE_ROLES) != 0)
-		{
-			MemberRoles = await Member.GetRolesAsync();
-			StateHasChanged();
-		}
+		MemberRoles = await Member.GetRolesAsync();
+		StateHasChanged();
 	}
 }

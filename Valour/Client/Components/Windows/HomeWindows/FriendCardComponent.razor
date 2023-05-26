@@ -31,7 +31,7 @@
     public HomeWindow Window { get; set; }
 
     [Parameter]
-    public HomeWindowComponent homeWindowComponent { get; set; }
+    public HomeWindowComponent HomeWindowComponent { get; set; }
 
     public string iconUrl = "_content/Valour.Client/media/logo/logo-256.png";
 
@@ -44,7 +44,7 @@
             iconUrl = Friend.PfpUrl;
         }
 
-        homeWindowComponent.RerenderFriendCards += Refresh;
+        HomeWindowComponent.RerenderFriendCards += Refresh;
     }
 
     public async Task Refresh()
@@ -69,7 +69,7 @@
 
     public void Dispose()
     {
-        homeWindowComponent.RerenderFriendCards -= Refresh;
+        HomeWindowComponent.RerenderFriendCards -= Refresh;
     }
     
 

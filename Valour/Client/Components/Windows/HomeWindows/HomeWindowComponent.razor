@@ -1,5 +1,4 @@
-﻿@inject NavigationManager navManager
-@inject WindowManager windowManager
+﻿@inject WindowManager windowManager
 
 <div class="home-window">
     <div class="channel-info">
@@ -62,7 +61,7 @@
 
             @foreach (var friend in ValourClient.Friends)
             {
-                <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" Window="Window" homeWindowComponent="this"></FriendCardComponent>
+                <FriendCardComponent @key='"friend-" + friend.Id' Friend="friend" Window="Window" HomeWindowComponent="this" />
             }
             
             <div id="flipper-friend-add-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-friend-add-@Window.Id', 240)" onmouseover="determineFlip('flipper-friend-add-@Window.Id', 240)" @onclick="OnClickAddFriend">

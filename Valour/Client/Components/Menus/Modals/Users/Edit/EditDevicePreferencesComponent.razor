@@ -1,0 +1,32 @@
+@inject ILocalStorageService LocalStorage
+
+<h3>Device Preferences</h3>
+<p class="subtitle">SAVED PER DEVICE</p>
+
+<div class="perm-section">
+    <div class="perm-list-item">
+        <div class="perm-list-name mb-1">
+            Auto Emojis
+        </div>
+        <div type="button" style="float:right">
+            <label class="switch">
+                <input type="checkbox" @onclick="SwitchAutoEmojis" checked="@DevicePreferences.AutoEmoji">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="perm-list-desc mt-1">
+            When true, faces like :) will be automatically turned into emojis in chat.
+        </div>
+    </div>
+</div>
+
+
+@code {
+
+    private async Task SwitchAutoEmojis()
+    {
+        DevicePreferences.AutoEmoji = !DevicePreferences.AutoEmoji;
+        await LocalStorage.SetItemAsync("AutoEmoji", DevicePreferences.AutoEmoji);
+        MarkdownManager.RegenPipeline();
+    }
+}

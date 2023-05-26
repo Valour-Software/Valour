@@ -2,4 +2,5 @@
     padding: 14px;
     min-height: 115px;
     position: relative;
+    flex-shrink: 0;
 }
