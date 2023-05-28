@@ -1,4 +1,9 @@
-﻿:root {
+﻿:root { font-family: 'Inter', sans-serif; }
+@supports (font-variation-settings: normal) {
+    :root { font-family: 'Inter var', sans-serif; }
+}
+
+:root {
     --primary-color: #040d14;
     --secondary-color: #aaaaaa;
     --font-color: #ffffff;

@@ -8,7 +8,7 @@ namespace Valour.Api.Items
     public abstract class Item : ISharedItem
     {
         public long Id { get; set; }
-
+        
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
 
         public virtual string BaseRoute => $"api/{GetType().Name}";

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
+using Valour.Server.Workers.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
@@ -194,6 +195,12 @@ public class EcoService
     /// </summary>
     public async ValueTask<EcoAccount> GetAccountAsync(long userId, long planetId) =>
         (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId)).ToModel();
+    
+    /// <summary>
+    /// Returns all accounts associated with a user id
+    /// </summary>
+    public async ValueTask<List<EcoAccount>> GetAccountsAsync(long userId) =>
+        await _db.EcoAccounts.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
 
     //////////////////
     // Transactions //
@@ -218,11 +225,52 @@ public class EcoService
             .ToListAsync();
     }
 
+    public async ValueTask<TaskResult<Transaction>> CreateTransactionAsync(Transaction transaction)
+    {
+        if (transaction is null)
+            return new TaskResult<Transaction>(false, "Null transaction");
+        
+        if (transaction.AccountFromId == transaction.AccountToId)
+            return new TaskResult<Transaction>(false, "Cannot send to self");
+        
+        if (transaction.Amount <= 0)
+            return new TaskResult<Transaction>(false, "Amount must be positive");
+
+        var fromAccount = await _db.EcoAccounts.FindAsync(transaction.AccountFromId);
+        if (fromAccount is null)
+            return new TaskResult<Transaction>(false, "Could not find from account");
+        
+        var currency = await _db.Currencies.FindAsync(fromAccount.CurrencyId);
+        if (currency is null)
+            return new TaskResult<Transaction>(false, "Critical error: Currency not found");
+        
+        // Round per the currency's decimal places
+        transaction.Amount = Math.Round(transaction.Amount, currency.DecimalPlaces);
+        
+        if (fromAccount.BalanceValue < transaction.Amount)
+            return new TaskResult<Transaction>(false, "Insufficient funds");
+        
+        var toAccount = await _db.EcoAccounts.FindAsync(transaction.AccountToId);
+        if (toAccount is null)
+            return new TaskResult<Transaction>(false, "Could not find to account");
+
+        if (fromAccount.CurrencyId != toAccount.CurrencyId)
+            return new TaskResult<Transaction>(false, "Account currencies do not match. Use Exchange API instead.");
+
+        // Set id before processing
+        transaction.Id = Guid.NewGuid().ToString();
+
+        // Post transaction to queue
+        TransactionWorker.AddToQueue(transaction);
+
+        return new TaskResult<Transaction>(true, "Transaction has been queued.", transaction);
+    }
+
     /// <summary>
     /// This method should really only be called by the TransactionWorker within nodes.
     /// Manually calling this can break transaction ordering!
     /// </summary>
-    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction)
+    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, CoreHubService injectedHub)
     {
         // Fun case for those who wish to break the system
         // Throwbacks to SV1
@@ -233,7 +281,12 @@ public class EcoService
         var isGlobal = (transaction.PlanetId == ISharedPlanet.ValourCentralId);
 
         var fromAcc = await GetAccountAsync(transaction.AccountFromId);
+        if (fromAcc is null)
+            return new TaskResult(false, "Could not find sending account");
+        
         var toAcc = await GetAccountAsync(transaction.AccountToId);
+        if (toAcc is null)
+            return new TaskResult(false, "Could not find receiving account");
 
         if (fromAcc.CurrencyId != toAcc.CurrencyId)
             return new TaskResult(false, "Currency mismatch");
@@ -250,7 +303,10 @@ public class EcoService
 
         await using var trans = await _db.Database.BeginTransactionAsync();
 
-        transaction.Id = Guid.NewGuid().ToString();
+        if (string.IsNullOrWhiteSpace(transaction.Id))
+        {
+            transaction.Id = Guid.NewGuid().ToString();
+        }
 
         fromAcc.BalanceValue -= transaction.Amount;
         toAcc.BalanceValue += transaction.Amount;
@@ -259,6 +315,7 @@ public class EcoService
         {
             // Build transaction for database
             var dbTrans = transaction.ToDatabase();
+            _db.Transactions.Add(dbTrans);
 
             await _db.SaveChangesAsync();
             await trans.CommitAsync();
@@ -278,11 +335,11 @@ public class EcoService
 
         if (isGlobal)
         {
-            _coreHub.NotifyGlobalTransactionProcessed(transaction);
+            injectedHub.NotifyGlobalTransactionProcessed(transaction);
         }
         else
         {
-            _coreHub.NotifyPlanetTransactionProcessed(transaction);
+            injectedHub.NotifyPlanetTransactionProcessed(transaction);
         }
 
         return TaskResult.SuccessResult;

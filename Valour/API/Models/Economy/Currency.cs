@@ -1,3 +1,6 @@
+using Valour.Api.Client;
+using Valour.Api.Nodes;
+using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Api.Models.Economy;
@@ -5,12 +8,9 @@ namespace Valour.Api.Models.Economy;
 /// <summary>
 /// Currencies represent one *type* of cash, declared by a community.
 /// </summary>
-public class Currency : ISharedCurrency
+public class Currency : Item, ISharedCurrency
 {
-    /// <summary>
-    /// The database id of this currency
-    /// </summary>
-    public long Id { get; set; }
+    public override string BaseRoute => "api/eco/currencies";
 
     /// <summary>
     /// The planet this currency belongs to
@@ -46,4 +46,22 @@ public class Currency : ISharedCurrency
     /// The number of decimal places this currency supports
     /// </summary>
     public int DecimalPlaces { get; set; }
+
+    public static async ValueTask<Currency> FindAsync(long id, long planetId, bool refresh = false)
+    {
+        if (!refresh)
+        {
+            var cached = ValourCache.Get<Currency>(id);
+            if (cached != null)
+                return cached;
+        }
+
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
+
+        if (item is not null)
+            await item.AddToCache();
+
+        return item;
+    }
 }

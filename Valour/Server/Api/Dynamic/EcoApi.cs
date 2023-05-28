@@ -55,8 +55,6 @@ public class EcoApi
             return ValourResult.BadRequest(result.Message);
 
         return Results.Created($"api/eco/currencies/{result.Data.Id}", result.Data);
-
-        
     }
 
     [ValourRoute(HttpVerbs.Put, "api/eco/currencies")]
@@ -96,8 +94,7 @@ public class EcoApi
     public static async Task<IResult> GetAccountAsync(
         long id,
         EcoService ecoService,
-        TokenService tokenService,
-        PlanetMemberService memberService)
+        TokenService tokenService)
     {
         var account = await ecoService.GetAccountAsync(id);
         if (account is null)
@@ -119,15 +116,111 @@ public class EcoApi
             if (!authToken.HasScope(UserPermissions.EconomyViewPlanet))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
 
+            // It's not actually an issue if someone simply wants to look at their account but doesnt have
+            // planet eco perms. They just shouldn't be able to *use* it.
+            
+            //var member = await memberService.GetCurrentAsync(account.PlanetId);
+            //if (member is null)
+            //    return ValourResult.NotPlanetMember();
+
+            //if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            //    return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        }
+
+        return Results.Json(account);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self")]
+    [UserRequired]
+    public static async Task<IResult> GetAccountsAsync(
+        long userId, 
+        EcoService ecoService, 
+        TokenService tokenService)
+    {
+        var authToken = await tokenService.GetCurrentToken();
+        var accounts = await ecoService.GetAccountsAsync(userId);
+
+        List<EcoAccount> results = new();
+        
+        var globalAccess = authToken.HasScope(UserPermissions.EconomyViewGlobal);
+        var planetAccess = authToken.HasScope(UserPermissions.EconomyViewPlanet);
+        
+        foreach (var account in accounts)
+        {
+            if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
+            {
+                if (globalAccess)
+                    results.Add(account);
+            }
+            else
+            {
+                if (planetAccess)
+                    results.Add(account);
+            }
+        }
+
+        return Results.Json(results);
+    }
+    
+    //////////////////
+    // Transactions //
+    //////////////////
+    
+    // Careful now, this is what gets Jacob VERY excited
+    
+    [ValourRoute(HttpVerbs.Post, "api/eco/transaction")]
+    [UserRequired]
+    public static async Task<IResult> CreateTransactionAsync(
+        [FromBody] Transaction transaction,
+        EcoService ecoService,
+        TokenService tokenService,
+        PlanetMemberService memberService)
+    {
+        if (transaction is null)
+            return ValourResult.BadRequest("Include transaction in body");
+
+        var authToken = await tokenService.GetCurrentToken();
+        var account = await ecoService.GetAccountAsync(transaction.UserFromId);
+        if (account is null)
+            return ValourResult.NotFound("Account not found");
+
+        // User account can only be used by the owner
+        if (account.AccountType == AccountType.User)
+        {
+            if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
+                return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
+
+            if (!authToken.HasScope(UserPermissions.EconomySendGlobal))
+                return ValourResult.LacksPermission(UserPermissions.EconomySendGlobal);
+            
+            if (account.UserId != authToken.UserId)
+                return ValourResult.Forbid("You cannot access this account");
+
+            if (transaction.UserFromId != authToken.UserId)
+                return ValourResult.Forbid("You cannot create a transaction for an account you do not own");
+        }
+        // Planet accounts can be used by those with permission
+        else
+        {
+            if (!authToken.HasScope(UserPermissions.EconomyViewPlanet))
+                return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
+
+            if (!authToken.HasScope(UserPermissions.EconomySendPlanet))
+                return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
+            
             var member = await memberService.GetCurrentAsync(account.PlanetId);
             if (member is null)
                 return ValourResult.NotPlanetMember();
 
-            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
-                return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
+                return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
         }
+        
+        var result = await ecoService.CreateTransactionAsync(transaction);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
 
-        return Results.Json(account);
+        return Results.Created($"api/eco/transaction/{result.Data.Id}", result.Data);
     }
 
 }
