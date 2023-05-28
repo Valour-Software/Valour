@@ -47,12 +47,12 @@
                                 <label class="switch">
                                     @if (role.GetAuthority() == SelfAuthority)
                                     {
-                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]" disabled>
+                                        <input type="checkbox" @onclick="@(() => SwitchRole(role))" checked="@SelectedRoles[role]" disabled>
                                         <span class="slider round" cursor: not-allowed;></span>
                                     }
                                     else
                                     {
-                                        <input type="checkbox" OnStateChange="SwitchRole(role)" checked="@SelectedRoles[role]">
+                                        <input type="checkbox" @onclick="@(() => SwitchRole(role))" checked="@SelectedRoles[role]">
                                         <span class="slider round"></span>
                                     }
                                 </label>
@@ -193,7 +193,6 @@
 
             foreach (PlanetRole role in Roles)
             {
-
                 if (!SelectedRoles[role])
                 {
                     continue;
