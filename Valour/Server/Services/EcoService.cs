@@ -3,6 +3,7 @@ using Valour.Server.Database;
 using Valour.Server.Workers.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Economy;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Valour.Server.Services;
@@ -32,6 +33,9 @@ public class EcoService
     ////////////////
     // Currencies //
     ////////////////
+
+    public async ValueTask<Currency> GetPlanetCurrencyAsync(long planetId) => 
+        (await _db.Currencies.FirstOrDefaultAsync(x => x.PlanetId == planetId)).ToModel();
 
     /// <summary>
     /// Returns the currency with the given id
@@ -64,7 +68,7 @@ public class EcoService
         if (exists)
             return new TaskResult<Currency>(false, "Planet already has a currency");
 
-        var planetExists = await _db.Planets.AnyAsync(x => x.Id == newCurrency.Id);
+        var planetExists = await _db.Planets.AnyAsync(x => x.Id == newCurrency.PlanetId);
         if (!planetExists)
             return new TaskResult<Currency>(false, "Planet does not exist");
 
@@ -134,9 +138,11 @@ public class EcoService
             return new TaskResult<Currency>(false, "Error updating currency");
         }
 
+        CurrencyCache[updated.Id] = updated;
+
         _coreHub.NotifyCurrencyChange(updated);
 
-        return new TaskResult<Currency>(true, "Currency updated successfully");
+        return new TaskResult<Currency>(true, "Currency updated successfully", updated);
     }
 
     /// <summary>
@@ -145,34 +151,31 @@ public class EcoService
     public TaskResult ValidateCurrency(Currency currency)
     {
         if (currency.Name.Length > 20)
-            return TaskResult.FromError("Max name length is 16 characters");
+            return TaskResult.FromError("Max name length is 20 characters");
 
         if (string.IsNullOrEmpty(currency.Name))
             return TaskResult.FromError("Currency must have a name");
 
         if (currency.PluralName.Length > 20)
-            return TaskResult.FromError("Max name plural length is 16 characters");
+            return TaskResult.FromError("Max name plural length is 20 characters");
 
         if (string.IsNullOrEmpty(currency.PluralName))
             return TaskResult.FromError("Currency must have a plural name");
 
-        if (currency.ShortCode.Length > 4)
-            return TaskResult.FromError("Max shortcode length is 4 characters");
+        if (currency.ShortCode.Length > 5)
+            return TaskResult.FromError("Max shortcode length is 5 characters");
 
         if (string.IsNullOrEmpty(currency.ShortCode))
             return TaskResult.FromError("Currency must have a shortcode");
 
-        if (currency.Symbol.Length > 4)
-            return TaskResult.FromError("Max symbol length is 4 characters");
+        if (currency.Symbol.Length > 5)
+            return TaskResult.FromError("Max symbol length is 5 characters");
 
         if (string.IsNullOrEmpty(currency.Symbol))
             return TaskResult.FromError("Currency must have a symbol");
 
-        if (currency.Issued < 1)
-            return TaskResult.FromError("At least 1 of the currency must be issued");
-
         if (currency.DecimalPlaces > 8)
-            return TaskResult.FromError("Currency can have max 4 decimals");
+            return TaskResult.FromError("Currency can have max 8 decimals");
 
         if (currency.DecimalPlaces < 0)
             return TaskResult.FromError("Negative decimals are not allowed");
@@ -191,10 +194,16 @@ public class EcoService
         (await _db.EcoAccounts.FindAsync(id)).ToModel();
 
     /// <summary>
+    /// Returns the user account with the given user and planet ids
+    /// </summary>
+    public async ValueTask<EcoAccount> GetUserAccountAsync(long userId, long planetId) =>
+        (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId && x.AccountType == AccountType.User)).ToModel();
+    
+    /// <summary>
     /// Returns the account with the given user and planet ids
     /// </summary>
-    public async ValueTask<EcoAccount> GetAccountAsync(long userId, long planetId) =>
-        (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId)).ToModel();
+    public async ValueTask<List<EcoAccount>> GetPlanetAccountsAsync(long planetId) =>
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId).Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
     /// Returns all accounts associated with a user id
@@ -240,7 +249,7 @@ public class EcoService
         if (fromAccount is null)
             return new TaskResult<Transaction>(false, "Could not find from account");
         
-        var currency = await _db.Currencies.FindAsync(fromAccount.CurrencyId);
+        var currency = await GetCurrencyAsync(fromAccount.CurrencyId);
         if (currency is null)
             return new TaskResult<Transaction>(false, "Critical error: Currency not found");
         

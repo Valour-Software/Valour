@@ -1,0 +1,110 @@
+﻿<div class="tabs-container">
+    <div class="tab-holder">
+        @if (TabOne is not null)
+        {
+            <div class="@_classOne @GetActive(0)" @onclick="() => OnClick(0)">
+                @_titleOne
+            </div>
+        }
+        @if (TabTwo is not null)
+        {
+            <div class="@_classTwo @GetActive(1)" @onclick="() => OnClick(1)">
+                @_titleTwo
+            </div>
+        }
+        @if (TabThree is not null)
+        {
+            <div class="@_classThree @GetActive(2)" @onclick="() => OnClick(2)">
+                @_titleThree
+            </div>
+        }
+    </div>
+    <div class="tabs-content">
+        @switch (_active)
+        {
+            case 0:
+                @TabOne
+                break;
+            case 1:
+                @TabTwo
+                break;
+            case 2:
+                @TabThree
+                break;
+        }
+    </div>
+</div>
+
+
+@code {
+
+    private string GetActive(int index)
+    {
+        return index == _active ? "active" : "";
+    }
+
+    [Parameter]
+    public string[] Titles { get; set; }
+
+    // Cached so we don't have to keep recalculating
+    private string _titleOne = "Tab One";
+    private string _titleTwo = "Tab Two";
+    private string _titleThree = "Tab Three";
+
+    private string _classOne;
+    private string _classTwo;
+    private string _classThree;
+    
+    
+    [Parameter]
+    public RenderFragment TabOne { get; set; }
+    [Parameter]
+    public RenderFragment TabTwo { get; set; }
+    [Parameter]
+    public RenderFragment TabThree { get; set; }
+
+    private int _tabCount;
+    private int _active;
+
+    protected override void OnInitialized()
+    {
+        if (TabOne is not null)
+            _tabCount++;
+        if (TabTwo is not null)
+            _tabCount++;
+        if (TabThree is not null)
+            _tabCount++;
+
+        if (Titles is not null)
+        {
+            if (Titles.Length > 0)
+                _titleOne = Titles[0];
+            if (Titles.Length > 1)
+                _titleTwo = Titles[1];
+            if (Titles.Length > 2)
+                _titleThree = Titles[2];
+        }
+
+        switch (_tabCount)
+        {
+            case 1:
+                _classOne = "tab left right";
+                break;
+            case 2:
+                _classOne = "tab left";
+                _classTwo = "tab right";
+                break;
+            case 3:
+                _classOne = "tab left";
+                _classTwo = "tab";
+                _classThree = "tab right";
+                break;
+        }
+    }
+
+    private void OnClick(int index)
+    {
+        _active = index;
+    }
+
+}

@@ -10,6 +10,28 @@ public class EcoApi
     // Currencies //
     ////////////////
 
+    [ValourRoute(HttpVerbs.Get, "api/eco/currencies/byPlanet/{planetId}")]
+    [UserRequired(UserPermissionsEnum.Membership)]
+    public static async Task<IResult> GetPlanetCurrencyAsync(
+        long planetId,
+        EcoService ecoService,
+        PlanetMemberService planetMemberService)
+    {
+        var currency = await ecoService.GetPlanetCurrencyAsync(planetId);
+        if (currency is null)
+            return ValourResult.NotFound("Currency not found");
+
+        // Non-global currencies require membership checks
+        if (currency.Id != ISharedCurrency.ValourCreditsId)
+        {
+            var member = await planetMemberService.GetCurrentAsync(currency.PlanetId);
+            if (member is null)
+                return ValourResult.NotPlanetMember();
+        }
+        
+        return Results.Json(currency);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/eco/currencies/{id}")]
     [UserRequired(UserPermissionsEnum.Membership)]
     public static async Task<IResult> GetCurrencyAsync(
@@ -57,15 +79,19 @@ public class EcoApi
         return Results.Created($"api/eco/currencies/{result.Data.Id}", result.Data);
     }
 
-    [ValourRoute(HttpVerbs.Put, "api/eco/currencies")]
+    [ValourRoute(HttpVerbs.Put, "api/eco/currencies/{id}")]
     [UserRequired(UserPermissionsEnum.Membership,
                   UserPermissionsEnum.PlanetManagement,
                   UserPermissionsEnum.EconomyPlanetView)]
     public static async Task<IResult> UpdateCurrencyAsync(
+        long id,
         [FromBody] Currency currency,
         EcoService ecoService,
         PlanetMemberService planetMemberService)
     {
+        if (currency.Id != id)
+            return ValourResult.BadRequest("Id mismatch");
+        
         if (currency is null)
             return ValourResult.BadRequest("Include currency in body");
 
@@ -130,10 +156,31 @@ public class EcoApi
         return Results.Json(account);
     }
 
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}")]
+    [UserRequired]
+    public static async Task<IResult> GetPlanetAccountsAsync(
+        long planetId, 
+        EcoService ecoService,
+        TokenService tokenService,
+        PlanetMemberService memberService)
+    {
+        var authToken = await tokenService.GetCurrentToken();
+
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        
+        var accounts = await ecoService.GetPlanetAccountsAsync(planetId);
+        return Results.Json(accounts);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self")]
     [UserRequired]
     public static async Task<IResult> GetAccountsAsync(
-        long userId, 
+        long userId,
         EcoService ecoService, 
         TokenService tokenService)
     {

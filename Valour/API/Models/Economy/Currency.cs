@@ -40,7 +40,7 @@ public class Currency : Item, ISharedCurrency
     /// <summary>
     /// The total amount of this currency that has been issued
     /// </summary>
-    public int Issued { get; set; }
+    public long Issued { get; set; }
 
     /// <summary>
     /// The number of decimal places this currency supports
@@ -58,6 +58,17 @@ public class Currency : Item, ISharedCurrency
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
         var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/{id}")).Data;
+
+        if (item is not null)
+            await item.AddToCache();
+
+        return item;
+    }
+    
+    public static async ValueTask<Currency> FindByPlanetAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planetId}")).Data;
 
         if (item is not null)
             await item.AddToCache();

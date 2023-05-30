@@ -1,0 +1,37 @@
+﻿.full-container {
+    border-radius: 1em;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab-holder {
+    display: flex;
+    flex-direction: row;
+}
+
+.tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.tab:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.tab.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab.left {
+    border-radius: 1em 0 0 0;
+}
+
+.tab.right {
+    border-radius: 0 1em 0 0;
+}
+
+.tab.center {
+    
+}

@@ -1,5 +1,145 @@
-<h3>EditPlanetEconomyComponent</h3>
+@using Valour.Api.Models.Economy
+@using Item = Valour.Api.Items.Item
+
+<div class="title-container">
+    <h3>Economy</h3>
+    <img alt="Icon of a bank" class="icon" src="_content/Valour.Client/media/eco-icon.svg"/>
+</div>
+
+<p class="subtitle">MANAGE ECONOMY</p>
+
+<!-- Eco does not exist -->
+@if (Currency is null)
+{
+    <p>This planet does not have an economy set up yet.</p>
+    <button class="v-button-primary mt-2" @onclick="OnClickSetup">Set Up Now</button>
+    
+<!-- Eco exists -->
+} else {
+
+    if (_hasCurrencyPermission)
+    {
+        <section class="v-section v-inline dark">
+            <h4>Currency:</h4>
+            <span class="v-span m-1">Name</span>
+            <input class="v-input" placeholder="Dollar" @bind="Currency.Name"/>
+            <span class="v-span m-1">Plural</span>
+            <input class="v-input" placeholder="Dollars" @bind="Currency.PluralName"/>
+            <span class="v-span m-1">Symbol</span>
+            <input class="v-input" placeholder="$" @bind="Currency.Symbol"/>
+            <span class="v-span m-1">Shortcode</span>
+            <input class="v-input" placeholder="USD" @bind="Currency.ShortCode"/>
+            <span class="v-span m-1">Decimals (2 = 1.99, 3 = 1.999, ...)</span>
+            <input class="v-input" placeholder="2" @bind="Currency.DecimalPlaces"/>
+            <p class="mt-4 mb-4">Issued: @Currency.Symbol@Currency.Issued.ToString()@Currency.ShortCode</p>
+            <button class="v-button-primary mt-4" @onclick="OnClickSaveCurrency">Save Changes</button>
+
+            @if (!string.IsNullOrWhiteSpace(_currencyError))
+            {
+                <span class="v-span error">@_currencyError</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(_currencyInfo))
+            {
+                <span class="v-span info">@_currencyInfo</span>
+            }
+        </section>
+        
+        <section class="v-section v-inline dark">
+            <TabContainerComponent>
+                <TabOne>
+                    
+                </TabOne>
+                <TabTwo>
+                    
+                </TabTwo>
+                <TabThree>
+                    
+                </TabThree>
+            </TabContainerComponent>
+
+            @if (!string.IsNullOrWhiteSpace(_accountError))
+            {
+                <span class="v-span error">@_accountError</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(_accountInfo))
+            {
+                <span class="v-span info">@_accountInfo</span>
+            }
+        </section>
+    } 
+    else
+    {
+        <span class="v-span m-1">You do not have permission to edit the currency.</span>        
+    }
+}
+
+
 
 @code {
+    
+    [Parameter]
+    public Planet Planet { get; set; }
+    
+    public Currency Currency { get; set; }
+    public List<EcoAccount> PlanetAccounts { get; set; }
+
+    private bool _hasCurrencyPermission = false;
+    
+    // State handling
+    private bool _editCurrency = false;
+
+    private string _currencyError = null;
+    private string _currencyInfo = null;
+
+    private string _accountError = null;
+    private string _accountInfo = null;
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var self = await ValourClient.GetSelfMember(Planet);
+        _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
+
+        Currency = await Currency.FindByPlanetAsync(Planet.Id);
+
+        // Planet does not have an economy set up yet
+        if (Currency is null)
+            return;
+        
+        PlanetAccounts = await Planet.GetPlanetAccounts();
+    }
+
+    private void OnClickSetup()
+    {
+        Currency = new Currency();
+        Currency.PlanetId = Planet.Id;
+        _editCurrency = true;
+    }
+
+    private async Task OnClickSaveCurrency()
+    {
+        _currencyError = null;
+        _currencyInfo = null;
+        
+        TaskResult<Currency> result;
+        
+        // New currency
+        if (Currency.Id == 0)
+        {
+            result = await Item.CreateAsync(Currency);
+        }
+        else
+        {
+            result = await Item.UpdateAsync(Currency);
+        }
+
+        if (!result.Success)
+        {
+            _currencyError = $"Error: {result.Message}";
+            return;
+        }
+        
+        _currencyInfo = "Currency saved successfully.";
+    }
     
 }

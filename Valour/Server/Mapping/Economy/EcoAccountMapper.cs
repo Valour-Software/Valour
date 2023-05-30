@@ -10,6 +10,7 @@ public static class EcoAccountMapper
         return new EcoAccount()
         {
             Id = account.Id,
+            Name = account.Name,
             AccountType = account.AccountType,
             UserId = account.UserId,
             PlanetId = account.PlanetId,
@@ -26,6 +27,7 @@ public static class EcoAccountMapper
         return new Valour.Database.Economy.EcoAccount()
         {
             Id = account.Id,
+            Name = account.Name,
             AccountType = account.AccountType,
             UserId = account.UserId,
             PlanetId = account.PlanetId,

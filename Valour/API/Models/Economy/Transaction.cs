@@ -1,9 +1,12 @@
+using Valour.Api.Client;
+using Valour.Api.Nodes;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Api.Models.Economy;
 
 /// <summary>
 /// A transaction represents a *completed* transaction between two accounts.
+/// Transactions are not a true model because they do not change.
 /// </summary>
 public class Transaction : ISharedTransaction
 {
@@ -71,4 +74,10 @@ public class Transaction : ISharedTransaction
     /// If this transaction was forced by an Eco Admin, this is the id of the user who forced it.
     /// </summary>
     public long? ForcedBy { get; set; }
+    
+    public static async ValueTask<Transaction> FindAsync(string id, bool refresh = false)
+    {
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<Transaction>($"api/eco/transactions/{id}")).Data;
+        return item;
+    }
 }
