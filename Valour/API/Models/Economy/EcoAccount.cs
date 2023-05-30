@@ -74,10 +74,32 @@ public class EcoAccount : Item, ISharedEcoAccount
         return item;
     }
 
-    public static async Task<List<EcoAccount>> GetPlanetAccountsAsync(long planetId)
+    /// <summary>
+    /// Returns all planet accounts for the given planet id
+    /// </summary>
+    public static async Task<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}")).Data;
+        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet")).Data;
+
+        if (accounts is not null)
+        {
+            foreach (var account in accounts)
+            {
+                await account.AddToCache();
+            }
+        }
+
+        return accounts;
+    }
+    
+    /// <summary>
+    /// Returns all user accounts for the given planet id
+    /// </summary>
+    public static async Task<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user")).Data;
 
         if (accounts is not null)
         {

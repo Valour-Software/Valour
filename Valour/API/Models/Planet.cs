@@ -536,5 +536,5 @@ public class Planet : Item, ISharedPlanet
     }
 
     public Task<List<EcoAccount>> GetPlanetAccounts() =>
-        EcoAccount.GetPlanetAccountsAsync(Id);
+        EcoAccount.GetPlanetPlanetAccountsAsync(Id);
 }

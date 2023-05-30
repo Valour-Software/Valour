@@ -1,0 +1,29 @@
+.v-dropdown {
+    position: relative;
+    text-align: right;
+}
+
+.v-dropdown .content.hidden {
+    display: none;
+}
+
+.v-dropdown .content {
+    position: absolute;
+    top: 100%;
+    background-color: var(--main-1);
+    z-index: 5;
+    border-radius: 0.5em;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    right: 0;
+    padding: 0.5em;
+}
+
+.v-dropdown .align-right {
+    right: 0;
+}
+
+.v-dropdown .align-left {
+    right: 0;
+}

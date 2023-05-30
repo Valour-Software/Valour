@@ -377,7 +377,7 @@ CREATE TABLE IF NOT EXISTS eco_accounts (
   user_id BIGINT NOT NULL,
   planet_id BIGINT NOT NULL,
   currency_id BIGINT NOT NULL,
-  balance_value BIGINT NOT NULL DEFAULT 0,
+  balance_value DECIMAL NOT NULL DEFAULT 0,
   
   CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
   CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),

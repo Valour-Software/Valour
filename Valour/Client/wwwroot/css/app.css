@@ -3,6 +3,10 @@
     :root { font-family: 'Inter var', sans-serif; }
 }
 
+html * {
+    font-family: Ubuntu, sans-serif;
+}
+
 :root {
     --primary-color: #040d14;
     --secondary-color: #aaaaaa;
@@ -61,58 +65,6 @@
 
 .v-inline {
     display: inline-block;
-}
-
-.v-section {
-    display: block;
-    padding: 2em;
-    border-radius: 1em;
-    margin-bottom: 2em;
-}
-
-.v-section.darkest {
-    background-color: var(--main-1);
-}
-.v-section.dark {
-    background-color: var(--main-2);
-}
-.v-section.medium {
-    background-color: var(--main-3);
-}
-.v-section.light {
-    background-color: var(--main-4);
-}
-.v-section.lightest {
-    background-color: var(--main-5);
-}
-
-.v-input {
-    display: block;
-    background: var(--main-4);
-    border: 1px solid #030B11;
-    border-radius: 8px;
-    color: #ffffff;
-    padding: 5px 9px;
-    font-size: 1em;
-    outline: none !important;
-    font-family: Ubuntu, sans-serif;
-    margin-bottom: 0.5em;
-    width: 100%;
-}
-
-.v-button-primary {
-    color: var(--font-color);
-    background-color: var(--main-5);
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    padding: 5px 9px;
-    display: block;
-    outline: none !important;
-}
-
-.v-button-primary:hover {
-    background-color: #555;
 }
 
 .v-button {

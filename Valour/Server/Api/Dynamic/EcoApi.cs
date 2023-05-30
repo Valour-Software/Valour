@@ -156,16 +156,14 @@ public class EcoApi
         return Results.Json(account);
     }
 
-    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}")]
+    // Returns all planet accounts of the planet
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/planet")]
     [UserRequired]
-    public static async Task<IResult> GetPlanetAccountsAsync(
+    public static async Task<IResult> GetPlanetPlanetAccountsAsync(
         long planetId, 
         EcoService ecoService,
-        TokenService tokenService,
         PlanetMemberService memberService)
     {
-        var authToken = await tokenService.GetCurrentToken();
-
         var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
@@ -173,13 +171,32 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
             return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
         
-        var accounts = await ecoService.GetPlanetAccountsAsync(planetId);
+        var accounts = await ecoService.GetPlanetPlanetAccountsAsync(planetId);
+        return Results.Json(accounts);
+    }
+    
+    // Returns all user accounts of the planet
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/user")]
+    [UserRequired]
+    public static async Task<IResult> GetPlanetUserAccountsAsync(
+        long planetId, 
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
+            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        
+        var accounts = await ecoService.GetPlanetPlanetAccountsAsync(planetId);
         return Results.Json(accounts);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self")]
     [UserRequired]
-    public static async Task<IResult> GetAccountsAsync(
+    public static async Task<IResult> GetSelfAccountsAsync(
         long userId,
         EcoService ecoService, 
         TokenService tokenService)
@@ -207,6 +224,45 @@ public class EcoApi
         }
 
         return Results.Json(results);
+    }
+
+    [ValourRoute(HttpVerbs.Post, "api/eco/accounts")]
+    [UserRequired]
+    public static async Task<IResult> CreateAccountAsync(
+        [FromBody] EcoAccount account,
+        TokenService tokenService,
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        var token = await tokenService.GetCurrentToken();
+        
+        if (account.UserId != token.UserId)
+            return ValourResult.Forbid("You cannot create an account for another user");
+        
+        if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
+        {
+            if (!token.HasScope(UserPermissions.EconomyViewGlobal))
+                return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
+            if (!token.HasScope(UserPermissions.EconomySendGlobal))
+                return ValourResult.LacksPermission(UserPermissions.EconomySendGlobal);
+        }
+        else
+        {
+            if (!token.HasScope(UserPermissions.EconomyViewPlanet))
+                return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
+            if (!token.HasScope(UserPermissions.EconomySendPlanet))
+                return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
+        }
+
+        var member = await memberService.GetCurrentAsync(account.PlanetId);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        
+        var result = await ecoService.CreateEcoAccountAsync(account);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return Results.Created($"api/eco/accounts/{result.Data.Id}", result.Data);
     }
     
     //////////////////
@@ -242,9 +298,22 @@ public class EcoApi
             
             if (account.UserId != authToken.UserId)
                 return ValourResult.Forbid("You cannot access this account");
-
+            
             if (transaction.UserFromId != authToken.UserId)
-                return ValourResult.Forbid("You cannot create a transaction for an account you do not own");
+            {
+                var member = await memberService.GetCurrentAsync(account.PlanetId);
+                if (member is null)
+                    return ValourResult.NotPlanetMember();
+                
+                // Trying to send for someone else
+                if (transaction.UserFromId != member.UserId)
+                {
+                    if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ForceTransactions))
+                    {
+                        return ValourResult.Forbid("You do not have permission to create transactions for other users");
+                    }
+                }
+            }
         }
         // Planet accounts can be used by those with permission
         else

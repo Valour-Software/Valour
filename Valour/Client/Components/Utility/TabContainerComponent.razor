@@ -1,4 +1,4 @@
-﻿<div class="tabs-container">
+﻿<div class="full-container">
     <div class="tab-holder">
         @if (TabOne is not null)
         {
@@ -19,7 +19,7 @@
             </div>
         }
     </div>
-    <div class="tabs-content">
+    <div class="tab-content" style="max-height: @MaxHeight">
         @switch (_active)
         {
             case 0:
@@ -35,7 +35,6 @@
     </div>
 </div>
 
-
 @code {
 
     private string GetActive(int index)
@@ -45,6 +44,9 @@
 
     [Parameter]
     public string[] Titles { get; set; }
+    
+    [Parameter]
+    public string MaxHeight { get; set; } = "400px";
 
     // Cached so we don't have to keep recalculating
     private string _titleOne = "Tab One";

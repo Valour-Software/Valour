@@ -47,6 +47,11 @@ public class Currency : Item, ISharedCurrency
     /// </summary>
     public int DecimalPlaces { get; set; }
 
+    public string Format(decimal amount)
+    {
+        return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
+    }
+
     public static async ValueTask<Currency> FindAsync(long id, long planetId, bool refresh = false)
     {
         if (!refresh)

@@ -1,6 +1,7 @@
 ﻿.full-container {
     border-radius: 1em;
     background-color: rgba(255, 255, 255, 0.05);
+    margin-bottom: 2em;
 }
 
 .tab-holder {
@@ -14,6 +15,9 @@
     align-items: center;
     justify-content: left;
     background-color: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    padding: 0.5em;
+    padding-left: 1em;
 }
 
 .tab:hover {
@@ -34,4 +38,8 @@
 
 .tab.center {
     
+}
+
+.tab-content {
+    padding: 0 0 1em 0;
 }

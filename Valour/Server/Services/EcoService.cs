@@ -4,7 +4,6 @@ using Valour.Server.Workers.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Valour.Server.Services;
 
@@ -21,7 +20,7 @@ public class EcoService
     /// <summary>
     /// Cache for currency definitions
     /// </summary>
-    private readonly ConcurrentDictionary<long, Currency> CurrencyCache = new();
+    private readonly ConcurrentDictionary<long, Currency> _currencyCache = new();
 
     public EcoService(ValourDB db, ILogger<EcoService> logger, CoreHubService coreHub)
     {
@@ -42,14 +41,14 @@ public class EcoService
     /// </summary>
     public async ValueTask<Currency> GetCurrencyAsync(long id) {
 
-        CurrencyCache.TryGetValue(id, out var currency);
+        _currencyCache.TryGetValue(id, out var currency);
 
         if (currency is null)
         {
            currency = (await _db.Currencies.FindAsync(id)).ToModel();
 
             if (currency is not null)
-                CurrencyCache.TryAdd(id, currency);
+                _currencyCache.TryAdd(id, currency);
         }
 
         return currency;
@@ -91,7 +90,7 @@ public class EcoService
         catch (Exception e)
         {
             await tran.RollbackAsync();
-            _logger.LogError("Error adding currency: " + e.Message);
+            _logger.LogError("Error adding currency: {Message}", e.Message);
             return new TaskResult<Currency>(false, "Error adding currency");
         }
 
@@ -134,11 +133,11 @@ public class EcoService
         catch (Exception e)
         {
             await tran.RollbackAsync();
-            _logger.LogError(e, "Error updating currency: " + e.Message);
+            _logger.LogError(e, "Error updating currency: {Message}", e.Message);
             return new TaskResult<Currency>(false, "Error updating currency");
         }
 
-        CurrencyCache[updated.Id] = updated;
+        _currencyCache[updated.Id] = updated;
 
         _coreHub.NotifyCurrencyChange(updated);
 
@@ -148,7 +147,7 @@ public class EcoService
     /// <summary>
     /// Validates the state of a currency
     /// </summary>
-    public TaskResult ValidateCurrency(Currency currency)
+    public static TaskResult ValidateCurrency(Currency currency)
     {
         if (currency.Name.Length > 20)
             return TaskResult.FromError("Max name length is 20 characters");
@@ -200,16 +199,74 @@ public class EcoService
         (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId && x.AccountType == AccountType.User)).ToModel();
     
     /// <summary>
-    /// Returns the account with the given user and planet ids
+    /// Returns the planet accounts for the given planet id
     /// </summary>
-    public async ValueTask<List<EcoAccount>> GetPlanetAccountsAsync(long planetId) =>
+    public async ValueTask<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId) =>
         await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId).Select(x => x.ToModel()).ToListAsync();
+    
+    /// <summary>
+    /// Returns the user accounts for the given planet id
+    /// </summary>
+    public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId) =>
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
     /// Returns all accounts associated with a user id
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetAccountsAsync(long userId) =>
         await _db.EcoAccounts.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
+    
+    public async ValueTask<TaskResult<EcoAccount>> CreateEcoAccountAsync(EcoAccount account)
+    {
+        if (account is null)
+            return new TaskResult<EcoAccount>(false, "Account is null");
+
+        var planet = await _db.Planets.FindAsync(account.PlanetId);
+        if (planet is null)
+            return new TaskResult<EcoAccount>(false, "Planet not found");
+        
+        if (!await _db.PlanetMembers.AnyAsync(x => x.UserId == account.UserId && x.PlanetId == account.PlanetId))
+            return new TaskResult<EcoAccount>(false, "User is not a member of the planet");
+
+        if (string.IsNullOrWhiteSpace(account.Name))
+        {
+            account.Name = $"{planet.Name.Truncate(15)}-{Guid.NewGuid().ToString().Truncate(5)}";
+        }
+        
+        if (account.Name.Length > 20)
+            return new TaskResult<EcoAccount>(false, "Max account name length is 20");
+        
+        if (account.BalanceValue > 0)
+            return new TaskResult<EcoAccount>(false, "Initial balance must be zero");
+
+        if (account.AccountType == AccountType.User)
+        {
+            if (await _db.EcoAccounts.AnyAsync(x => x.UserId == account.UserId && x.PlanetId == account.PlanetId && x.AccountType == AccountType.User))
+                return new TaskResult<EcoAccount>(false, "User already has an account on this planet");
+        }
+
+        if (!await _db.Currencies.AnyAsync(x => x.PlanetId == account.PlanetId && x.Id == account.CurrencyId))
+            return new TaskResult<EcoAccount>(false, "Currency is invalid for given planet");
+
+        account.Id = IdManager.Generate();
+        
+        await using var tran = await _db.Database.BeginTransactionAsync();
+        
+        try
+        {
+            await _db.EcoAccounts.AddAsync(account.ToDatabase());
+            await _db.SaveChangesAsync();
+            await tran.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e, "Error creating account: {Message}", e.Message);
+            return new TaskResult<EcoAccount>(false, "Error creating account");
+        }
+        
+        return new TaskResult<EcoAccount>(true, "Account created successfully", account);
+    }
 
     //////////////////
     // Transactions //
@@ -329,16 +386,15 @@ public class EcoService
             await _db.SaveChangesAsync();
             await trans.CommitAsync();
         }
-        catch (DbUpdateConcurrencyException e)
+        catch (DbUpdateConcurrencyException)
         {
             await trans.RollbackAsync();
 
             return new TaskResult(false, "Another transaction modified your account before processing finished. Please try again.");
         }
-        catch(System.Exception e)
+        catch(Exception)
         {
             await trans.RollbackAsync();
-
             return new TaskResult(false, "An unexpected error occured. Try again?");
         }
 
