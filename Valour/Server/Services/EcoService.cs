@@ -460,7 +460,7 @@ public class EcoService
 
         if (isGlobal)
         {
-            injectedHub.NotifyGlobalTransactionProcessed(transaction);
+            await injectedHub.RelayTransaction(transaction);
         }
         else
         {

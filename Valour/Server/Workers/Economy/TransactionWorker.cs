@@ -56,14 +56,12 @@ public class TransactionWorker : IHostedService, IDisposable
     /// </summary>
     private async Task ConsumeTransactionQueue(CancellationToken stoppingToken)
     {
-        // This scope is long-living, which is usually bad. But it's only used to send events,
-        // and does not interact with the database, so it should be fine.
-        await using var scope = _serviceProvider.CreateAsyncScope();
-        var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
-        var ecoService = scope.ServiceProvider.GetRequiredService<EcoService>();
-
         foreach (var transaction in TransactionQueue.GetConsumingEnumerable(stoppingToken))
         {
+            await using var scope = _serviceProvider.CreateAsyncScope();
+            var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+            var ecoService = scope.ServiceProvider.GetRequiredService<EcoService>();
+            
             var result = await ecoService.ProcessTransactionAsync(transaction, hubService);
             if (!result.Success)
                 _logger.LogWarning("Transaction on queue failed: {Result}", result.Message);
