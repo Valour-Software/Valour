@@ -23,6 +23,12 @@ Planets are the communities of Valour, allowing you to build your ideas and fost
 
 <br/>
 
+### Economies and Items
+
+Planets can deploy a currency and economic system in two clicks. Why? Don't bother managing 20 different 'coins' and 'xp' from different bots, and use one built-in system to handle user value tracking. Users can send your currency to each other in the community, and even trade it for community-defined items. You can even hook the API into your own systems, allowing your community members to pay for custom perks and be rewarded for anything!
+
+<br/>
+
 ### Total-Outage-proof Node System
 
 Valour Nodes are designed to be able to run independantly of any central server or service. One node failing has no effect on other nodes, allowing Valour to scale safely and efficiently. Our logical-server based system, rather than depending on cloud services, also allows us to be provider-agnostic, hosting Valour across different providers and giving us the ability to dedicate resources to large communities that need it.
