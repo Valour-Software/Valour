@@ -1,6 +1,12 @@
-﻿using StackExchange.Redis;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
+using StackExchange.Redis;
+using Valour.Api.Nodes;
 using Valour.Server.Config;
+using Valour.Server.Database;
+using Valour.Server.Hubs;
 using Valour.Server.Redis;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -18,16 +24,22 @@ public class NodeService
     private readonly IDatabase _nodeRecords;
     private readonly ILogger<NodeService> _logger;
     private readonly ISubscriber _redisChannel;
+    private readonly IConnectionMultiplexer _redis;
+    private readonly IHubContext<CoreHub> _hub;
     
+
     private readonly string _nodeAliveKey = $"alive:{NodeConfig.Instance.Name}";
 
-    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger)
+    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger, IHubContext<CoreHub> hub)
     {
+        _hub = hub;
         _logger = logger;
+        _redis = redis;
         _nodeRecords = redis.GetDatabase(RedisDbTypes.Cluster);
         _redisChannel = redis.GetSubscriber();
 
         _redisChannel.Subscribe("planet-requests", OnPlanetRequestedAsync);
+        _redisChannel.Subscribe($"node-relay-{NodeConfig.Instance.Name}", OnNodeRelayEvent);
         
         var config = NodeConfig.Instance;
         Name = config.Name;
@@ -53,7 +65,7 @@ public class NodeService
     /// </summary>
     public async Task AnnounceNode()
     {
-        _logger.LogInformation($"Announcing node {NodeConfig.Instance.Name} at {NodeConfig.Instance.Location}");
+        _logger.LogInformation("Announcing node {Name} at {Location}", NodeConfig.Instance.Name, NodeConfig.Instance.Location);
         await UpdateNodeAliveAsync();
     }
 
@@ -98,20 +110,20 @@ public class NodeService
         if (node == Name)
         {
             if (NodeConfig.Instance.LogInfo)
-                _logger.LogInformation($"Resuming hosting of {planetId}");
+                _logger.LogInformation("Resuming hosting of {PlanetId}", planetId);
             
             Planets.Add(planetId);
         }
         
         if (NodeConfig.Instance.LogInfo)
-            _logger.LogInformation($"Planet {planetId} belongs to node {node}");
+            _logger.LogInformation("Planet {PlanetId} belongs to node {Node}", planetId, node);
         
         // Ensure node is alive
         var alive = await IsNodeAliveAsync(node);
         if (!alive)
         {
             if (NodeConfig.Instance.LogInfo)
-                _logger.LogInformation($"Node {node} is dead...");
+                _logger.LogInformation("Node {Node} is dead...", node);
             
             return null;
         }
@@ -140,7 +152,7 @@ public class NodeService
         // We can't host the planet, so we need to request another node
         
         if (NodeConfig.Instance.LogInfo)
-            _logger.LogInformation($"Requesting another node to host {planetId}");
+            _logger.LogInformation("Requesting another node to host {PlanetId}", planetId);
 
         var tryNum = 1;
         string node = null;
@@ -193,7 +205,7 @@ public class NodeService
     public async Task AnnouncePlanetHostedAsync(long planetId)
     {
         if (NodeConfig.Instance.LogInfo)
-            _logger.LogInformation($"Taking ownership of planet {planetId}");
+            _logger.LogInformation("Taking ownership of planet {PlanetId}", planetId);
         
         Planets.Add(planetId);
         var key = $"planet:{planetId}";
@@ -208,5 +220,88 @@ public class NodeService
     {
         // For now we just assume we can
         return true;
+    }
+    
+    ////////////////////////////////
+    /// Inter-node communications //
+    ////////////////////////////////
+    
+    public enum NodeEventType
+    {
+        Transaction,
+        DirectMessage,
+    }
+    
+    public struct NodeRelayEventData
+    {
+        public long TargetUser;
+        public NodeEventType Type;
+        public object Payload;
+    }
+
+    /// <summary>
+    /// Relays an event to all nodes that are hosting the given user (primary nodes)
+    /// </summary>
+    public async Task RelayUserEventAsync(long userId, NodeEventType eventType, object data)
+    {
+        var userNodes = await ConnectionTracker.GetPrimaryNodeConnectionsAsync(userId, _redis);
+        
+        NodeRelayEventData eventData = new()
+        {
+            Type = eventType,
+            Payload = data,
+            TargetUser = userId,
+        };
+        
+        var json = JsonSerializer.Serialize(eventData);
+
+        foreach (var node in userNodes)
+        {
+            if (node == NodeConfig.Instance.Name)
+            {
+                // Skip redis, run on self
+                AfterNodeRelayEventAsync(eventData);
+            }
+            else
+            {
+                // Publish to pubsub channel for other nodes
+                await _redisChannel.PublishAsync(node, json);
+            }
+        }
+    }
+
+    /// <summary>
+    /// This channel is called when this node is sent an event from another node
+    /// </summary>
+    private void OnNodeRelayEvent(RedisChannel channel, RedisValue value)
+    {
+        var data = JsonSerializer.Deserialize<NodeRelayEventData>(value.ToString());
+        AfterNodeRelayEventAsync(data);
+    }
+
+    private void AfterNodeRelayEventAsync(NodeRelayEventData data)
+    {
+        switch (data.Type)
+        {
+            case NodeEventType.Transaction:
+                var transaction = (Transaction) data.Payload;
+                OnRelayTransaction(transaction);
+                break;
+            case NodeEventType.DirectMessage:
+                var message = (DirectMessage) data.Payload;
+                OnRelayDirectMessage(message, data.TargetUser);
+                break;
+        }
+    }
+
+    private void OnRelayTransaction(Transaction transaction)
+    {
+        _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
+        _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+    }
+
+    private void OnRelayDirectMessage(DirectMessage message, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
     }
 }
