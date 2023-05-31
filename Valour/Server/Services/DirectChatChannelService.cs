@@ -23,6 +23,7 @@ public class DirectChatChannelService
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
     private readonly UserService _userService;
+    private readonly NodeService _nodeService;
     private readonly ILogger<DirectChatChannelService> _logger;
     private readonly CdnDb _cdnDB;
     private readonly IConnectionMultiplexer _redis;
@@ -36,6 +37,7 @@ public class DirectChatChannelService
         ILogger<DirectChatChannelService> logger,
         CdnDb cdnDb,
         IConnectionMultiplexer redis,
+        NodeService nodeService,
         HttpClient httpClient)
     {
         _db = db;
@@ -46,6 +48,7 @@ public class DirectChatChannelService
         _cdnDB = cdnDb;
         _redis = redis;
         _httpClient = httpClient;
+        _nodeService = nodeService;
     }
 
     /// <summary>
@@ -272,37 +275,7 @@ public class DirectChatChannelService
         await _db.DirectMessages.AddAsync(message.ToDatabase());
         await _db.SaveChangesAsync();
 
-        // Relay to nodes where sending user or target user is connected
-        var rdb = _redis.GetDatabase(RedisDbTypes.Cluster);
-
-        var nodeTargets = new List<(string nodeId, long userId)>();
-        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserOneId}"))
-        {
-            var split = conn.ToString().Split(':');
-            var nodeId = split[0];
-            nodeTargets.Add((nodeId, channel.UserOneId));
-        }
-        await foreach (var conn in rdb.SetScanAsync($"user:{channel.UserTwoId}"))
-        {
-            var split = conn.ToString().Split(':');
-            var nodeId = split[0];
-            nodeTargets.Add((nodeId, channel.UserTwoId));
-        }
-
-        foreach (var target in nodeTargets.Distinct())
-        {
-            // Case for same name
-            if (target.nodeId == NodeConfig.Instance.Name)
-            {
-                // Just fire event in this node
-                _coreHub.RelayDirectMessage(message, target.userId);
-            }
-            else
-            {
-                // Inter-node communications
-                await _httpClient.PostAsJsonAsync($"https://{target.nodeId}.nodes.valour.gg/api/directchatchannels/relay?targetId={target.userId}&auth={NodeConfig.Instance.Key}", message);
-            }
-        }
+        await _coreHub.RelayDirectMessage(message, _nodeService);
 
         StatWorker.IncreaseMessageCount();
 

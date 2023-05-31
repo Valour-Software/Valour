@@ -1,12 +1,8 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
-using Valour.Server.API;
 using Valour.Server.Config;
-using Valour.Server.Database;
-using Valour.Server.Database.Nodes;
 using Valour.Server.Redis;
-using Valour.Shared;
 
 namespace Valour.Server.Hubs;
 
@@ -131,6 +127,25 @@ public class ConnectionTracker
         //ConnectionIdentities.Remove(Context.ConnectionId, out _);
     }
 
+    public static async Task<List<string>> GetPrimaryNodeConnectionsAsync(long userId, IConnectionMultiplexer redis)
+    {
+        var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
+        var scan = rdb.SetScanAsync(new RedisKey("user:" + userId));
+
+        var connections = new List<string>();
+        
+        await foreach (var value in scan)
+        {
+            var split = value.ToString().Split(':');
+            if (split.Length < 2)
+                continue; // Malformed value
+            
+            connections.Add(split[0]);
+        }
+        
+        return connections;
+    }
+
     public static async Task AddPrimaryConnection(long userId, HubCallerContext context, IConnectionMultiplexer redis)
     {
         var conn = new Valour.Database.PrimaryNodeConnection()
@@ -147,10 +162,10 @@ public class ConnectionTracker
         var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
 
         // Connection to node
-        rdb.SetAdd($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
+        await rdb.SetAddAsync($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
         
         // Specific connection by user
-        rdb.SetAdd($"user:{userId.ToString()}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
+        await rdb.SetAddAsync($"user:{userId.ToString()}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
     }
 
     public static async Task RemovePrimaryConnection(HubCallerContext context, IConnectionMultiplexer redis)
@@ -163,9 +178,9 @@ public class ConnectionTracker
         var rdb = redis.GetDatabase(RedisDbTypes.Cluster);
         
         // Connection to node
-        rdb.SetRemove($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
+        await rdb.SetRemoveAsync($"node:{NodeConfig.Instance.Name}", $"{userId.ToString()}:{context.ConnectionId}");
         
         // Specific connection by user
-        rdb.SetRemove($"user:{userId.ToString()}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
+        await rdb.SetRemoveAsync($"user:{userId.ToString()}", $"{NodeConfig.Instance.Name}:{context.ConnectionId}");
     }
 }
