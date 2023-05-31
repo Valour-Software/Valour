@@ -23,6 +23,7 @@ using WebPush;
 using Valour.Database.Config;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Server.Api.Dynamic;
+using Valour.Server.Workers.Economy;
 
 namespace Valour.Server
 {
@@ -108,6 +109,7 @@ namespace Valour.Server
                 new DynamicAPI<DirectChatChannelApi>()        .RegisterRoutes(app),
                 new DynamicAPI<OauthAppAPI>()                 .RegisterRoutes(app),
                 new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app),
+                new DynamicAPI<EcoApi>()                      .RegisterRoutes(app)
             };
 
             NodeAPI = new NodeAPI();
@@ -307,6 +309,7 @@ namespace Valour.Server
             services.AddScoped<UserOnlineService>();
             services.AddScoped<UserService>();
             services.AddScoped<ChannelStateService>();
+            services.AddScoped<EcoService>();
             
             services.AddSingleton<NodeService>();
 
@@ -314,6 +317,7 @@ namespace Valour.Server
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
             services.AddHostedService<NodeStateWorker>();
+            services.AddHostedService<TransactionWorker>();
 
             services.AddEndpointsApiExplorer();
 

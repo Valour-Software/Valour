@@ -18,13 +18,9 @@ namespace Valour.Api.Models;
 
 public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatChannel
 {
-    #region IPlanetItem implementation
-
     public override string BaseRoute =>
-            $"api/chatchannels";
+            "api/chatchannels";
 
-    #endregion
-    
     /// <summary>
     /// True if this is the default chat channel
     /// </summary>

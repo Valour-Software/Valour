@@ -244,6 +244,16 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     public async Task<bool> HasPermissionAsync(PlanetChannel channel, Permission permission) =>
         await channel.HasPermissionAsync(this, permission);
 
+    public async Task<bool> HasPermissionAsync(PlanetPermission permission)
+    {
+        var planet = await GetPlanetAsync();
+        if (planet.OwnerId == UserId)
+            return true;
+
+        var topRole = await GetPrimaryRoleAsync();
+        return topRole.HasPermission(permission);
+    }
+
     /// <summary>
     /// Loads all role Ids from the server
     /// </summary>

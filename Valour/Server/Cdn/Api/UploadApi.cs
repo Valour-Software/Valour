@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.Processing;
 using System.Security.Cryptography;
+using SixLabors.ImageSharp.Formats;
 using Valour.Database;
 using Valour.Server.Cdn.Extensions;
 using Valour.Server.Cdn.Objects;
@@ -23,7 +24,7 @@ namespace Valour.Server.Cdn.Api
         public static JpegEncoder _jpegEncoder = new()
         {
             Quality = 80,
-            ColorType = JpegColorType.YCbCrRatio444
+            ColorType = JpegEncodingColor.YCbCrRatio444
         };
 
         public static PngEncoder _pngEncoder = new()
@@ -272,8 +273,20 @@ namespace Valour.Server.Cdn.Api
         private static async Task<(MemoryStream stream, string mime, string extension)?> ProcessImage(IFormFile file, int size = -1)
         {
             var stream = file.OpenReadStream();
-            var image_data = await Image.LoadWithFormatAsync(stream);
-            var image = image_data.Image;
+
+            Image image;
+            
+            if (size != -1)
+            {
+                image = await Image.LoadAsync(
+                    new() { TargetSize = new(size, size) }, 
+                    stream
+                );
+            }
+            else
+            {
+                image = await Image.LoadAsync(stream);
+            }
 
             if (image == null)
                 return null;
@@ -289,12 +302,12 @@ namespace Valour.Server.Cdn.Api
             string contentType;
             string extension;
 
-            switch (image_data.Format)
+            switch (image.Metadata.DecodedImageFormat)
             {
                 case PngFormat:
                     {
                         // Has transparency
-                        image.Save(ms, _pngEncoder);
+                        await image.SaveAsync(ms, _pngEncoder);
                         contentType = "image/png";
                         extension = ".png";
                         break;
@@ -302,7 +315,7 @@ namespace Valour.Server.Cdn.Api
                 case GifFormat:
                     {
                         // Has gif (animation)
-                        image.Save(ms, _gifEncoder);
+                        await image.SaveAsync(ms, _gifEncoder);
                         contentType = "image/gif";
                         extension = ".gif";
                         break;
@@ -310,7 +323,7 @@ namespace Valour.Server.Cdn.Api
                 default:
                     {
                         // No transparency
-                        image.Save(ms, _jpegEncoder);
+                        await image.SaveAsync(ms, _jpegEncoder);
                         contentType = "image/jpeg";
                         extension = ".jpg";
                         break;

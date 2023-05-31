@@ -22,6 +22,11 @@ public class EcoAccount : ISharedEcoAccount
     /// The database id of this economy account
     /// </summary>
     public long Id { get; set; }
+    
+    /// <summary>
+    /// The name of the account
+    /// </summary>
+    public string Name { get; set; }
 
     /// <summary>
     /// The type of account this represents

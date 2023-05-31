@@ -1,0 +1,298 @@
+@using Valour.Api.Models.Economy
+@using Valour.Shared.Models.Economy
+@using Item = Valour.Api.Items.Item
+
+<div class="title-container">
+    <h3>Economy</h3>
+    <img alt="Icon of a bank" class="icon" src="_content/Valour.Client/media/eco-icon.svg"/>
+</div>
+
+<p class="subtitle">MANAGE ECONOMY</p>
+
+@if (_loading)
+{
+    <h4>Loading...</h4>
+    return;
+}
+
+<!-- Eco does not exist -->
+@if (Currency is null)
+{
+    <p>This planet does not have an economy set up yet.</p>
+    <button class="v-btn mt-2" @onclick="@OnClickSetup">Set Up Now</button>
+    
+<!-- Eco exists -->
+} else {
+
+    if (_hasCurrencyPermission)
+    {
+        <section class="v-section v-inline v-bg-light">
+            <h4>Currency:</h4>
+            <span class="v-span m-1">Name</span>
+            <input class="v-input" placeholder="Dollar" @bind="Currency.Name"/>
+            <span class="v-span m-1">Plural</span>
+            <input class="v-input" placeholder="Dollars" @bind="Currency.PluralName"/>
+            <span class="v-span m-1">Symbol</span>
+            <input class="v-input" placeholder="$" @bind="Currency.Symbol"/>
+            <span class="v-span m-1">Shortcode</span>
+            <input class="v-input" placeholder="USD" @bind="Currency.ShortCode"/>
+            <span class="v-span m-1">Decimals (2 = 1.99, 3 = 1.999, ...)</span>
+            <input class="v-input" placeholder="2" @bind="Currency.DecimalPlaces"/>
+            <p class="mt-4 mb-4">Issued: @Currency.Format(Currency.Issued)</p>
+            <button class="v-btn mt-4" @onclick="@OnClickSaveCurrency">Save Changes</button>
+
+            @if (!string.IsNullOrWhiteSpace(_currencyError))
+            {
+                <span class="v-span error">@_currencyError</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(_currencyInfo))
+            {
+                <span class="v-span info">@_currencyInfo</span>
+            }
+        </section>
+        
+       
+        <TabContainerComponent Titles="@_tabTitles">
+            <TabOne>
+                @if (PlanetAccounts is null || PlanetAccounts.Count == 0)
+                {
+                    <h6 class="p-4">There are no planet accounts.</h6>
+                }
+                else
+                {
+                    <table class="v-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Balance</th>
+                                <th>Id</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var account in PlanetAccounts)
+                            {
+                                <tr>
+                                    <td><input class="v-input" @bind="account.Name"/></td>
+                                    <td>@Currency.Format(account.BalanceValue)</td>
+                                    <td>@account.Id</td>
+                                    
+                                    <td>
+                                        <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
+                                            <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
+                                            <a class="v-drop-item" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
+                                            <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
+                                        </DropdownComponent>
+                                    </td>
+                                    
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                
+                <button class="v-btn m-2" @onclick="@OnClickAddAccount">Add Account</button>
+                
+                @if (!string.IsNullOrWhiteSpace(_accountError))
+                {
+                    <span class="v-span error m-2">@_accountError</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(_accountInfo))
+                {
+                    <span class="v-span info m-2">@_accountInfo</span>
+                }
+                
+            </TabOne>
+            <TabTwo>
+                
+            </TabTwo>
+        </TabContainerComponent>
+    } 
+    else
+    {
+        <span class="v-span m-1">You do not have permission to edit the currency.</span>        
+    }
+}
+
+
+
+@code {
+    
+    private static string[] _tabTitles = new [] { "Planet Accounts", "User Accounts" };
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+    
+    [Parameter]
+    public Planet Planet { get; set; }
+    
+    public Currency Currency { get; set; }
+    public List<EcoAccount> PlanetAccounts { get; set; }
+    public List<EcoAccount> UserAccounts { get; set; }
+
+    private bool _hasCurrencyPermission = false;
+    
+    // State handling
+    private bool _loading = true;
+    
+    private bool _editCurrency = false;
+
+    private string _currencyError = null;
+    private string _currencyInfo = null;
+
+    private string _accountError = null;
+    private string _accountInfo = null;
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var self = await ValourClient.GetSelfMember(Planet);
+        _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
+
+        Currency = await Currency.FindByPlanetAsync(Planet.Id);
+        
+        if (Currency is not null)
+        {
+            PlanetAccounts = await EcoAccount.GetPlanetPlanetAccountsAsync(Planet.Id);
+            UserAccounts = await EcoAccount.GetPlanetUserAccountsAsync(Planet.Id);
+        }
+
+        _loading = false;
+    }
+
+    private void OnClickSetup()
+    {
+        Currency = new Currency();
+        Currency.PlanetId = Planet.Id;
+        _editCurrency = true;
+    }
+
+    private async Task OnClickSaveCurrency()
+    {
+        _currencyError = null;
+        _currencyInfo = null;
+        
+        TaskResult<Currency> result;
+        
+        // New currency
+        if (Currency.Id == 0)
+        {
+            result = await Item.CreateAsync(Currency);
+        }
+        else
+        {
+            result = await Item.UpdateAsync(Currency);
+        }
+
+        if (!result.Success)
+        {
+            _currencyError = $"Error: {result.Message}";
+            return;
+        }
+        
+        _currencyInfo = "Currency saved successfully.";
+    }
+
+    private async Task OnClickAddAccount()
+    {
+        var newAccount = new EcoAccount()
+        {
+            UserId = ValourClient.Self.Id,
+            AccountType = AccountType.Planet,
+            BalanceValue = 0,
+            CurrencyId = Currency.Id,
+            Name = string.Empty,
+            PlanetId = Currency.PlanetId,
+        };
+
+        var result = await Item.CreateAsync(newAccount);
+        if (!result.Success)
+        {
+            _accountError = result.Message;
+        }
+        else
+        {
+            _accountInfo = result.Message;
+            PlanetAccounts.Add(result.Data);
+        }
+    }
+
+    private async Task OnClickSaveAccount(EcoAccount account)
+    {
+        var result = await Item.UpdateAsync(account);
+        if (!result.Success)
+        {
+            _accountError = result.Message;
+        }
+        else
+        {
+            _accountInfo = "Saved successfully.";
+        }
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnClickDeleteAccount(EcoAccount account)
+    {
+        var result = await Item.DeleteAsync(account);
+        if (!result.Success)
+        {
+            _accountError = result.Message;
+        }
+        else
+        {
+            _accountInfo = result.Message;
+            PlanetAccounts.Remove(account);
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnClickIssue(EcoAccount account)
+    {
+        NumberModalData data = new()
+        {
+            TitleText = "Issue Currency",
+            DescText = "How much currency would you like to issue?",
+            ConfirmText = "Issue",
+            CancelText = "Cancel",
+            CancelEvent = null,
+            ConfirmEvent = async (value) =>
+            {
+                var issueTrans = new Transaction()
+                {
+                    AccountFromId = account.Id,
+                    AccountToId = account.Id,
+                    Amount = (decimal) value,
+                    Data = null,
+                    PlanetId = account.PlanetId,
+                    Description = $"Issued {value} when supply was {account.BalanceValue} via Planet Settings",
+                    ForcedBy = null,
+                    Fingerprint = Guid.NewGuid().ToString(),
+                    UserFromId = account.UserId,
+                    UserToId = account.UserId,
+                };
+
+                var result = await Transaction.SendTransaction(issueTrans);
+                
+                if (!result.Success)
+                {
+                    _accountError = result.Message;
+                }
+                else
+                {
+                    _accountInfo = result.Message;
+                    account.BalanceValue += (decimal) value;
+                    Currency.Issued += value;
+                }
+                
+                StateHasChanged();
+            },
+        };
+        
+        ModalParameters modParams = new();
+        modParams.Add("Data", data);
+        Modal.Show<NumberInputModalComponent>("Number Input", modParams);
+    }
+    
+}

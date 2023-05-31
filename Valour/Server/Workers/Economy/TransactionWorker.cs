@@ -64,7 +64,9 @@ public class TransactionWorker : IHostedService, IDisposable
 
         foreach (var transaction in TransactionQueue.GetConsumingEnumerable(stoppingToken))
         {
-            await ecoService.ProcessTransactionAsync(transaction);
+            var result = await ecoService.ProcessTransactionAsync(transaction, hubService);
+            if (!result.Success)
+                _logger.LogWarning("Transaction on queue failed: {Result}", result.Message);
         }
     }
 

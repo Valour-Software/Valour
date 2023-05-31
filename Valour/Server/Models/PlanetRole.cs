@@ -70,7 +70,7 @@ public class PlanetRole : Item, ISharedPlanetRole
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
 
-    public Color GetColor() =>
+    public System.Drawing.Color GetColor() =>
         ISharedPlanetRole.GetColor(this);
 
     public string GetColorHex() =>

@@ -1,0 +1,42 @@
+<button class="v-dropdown v-btn" style="@Style" @onmousedown="@OnClick" @onblur="@OnBlur">
+    ▼
+    <div class="content @GetHidden() @("align-" + Alignment.ToString().ToLower())">
+        @ChildContent
+    </div>
+</button>
+
+@code {
+
+    public enum DropdownAlignment
+    {
+        Right,
+        Left
+    }
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public string Style { get; set; }
+    
+    [Parameter]
+    public DropdownAlignment Alignment { get; set; } = DropdownAlignment.Right;
+
+    private bool _isHidden = true;
+
+    private string GetHidden()
+    {
+        return _isHidden ? "hidden" : string.Empty;
+    }
+    
+    private void OnClick()
+    {
+        _isHidden = false;
+    }
+    
+    private void OnBlur()
+    {
+        _isHidden = true;
+        StateHasChanged();
+    }
+}

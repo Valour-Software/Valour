@@ -357,15 +357,54 @@ CREATE TABLE IF NOT EXISTS user_channel_states (
     CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id)
 );
 
-ALTER TABLE planets
-    ADD CONSTRAINT fk_default_role
-        FOREIGN KEY(default_role_id)
-            REFERENCES planet_roles(id);
+CREATE TABLE IF NOT EXISTS currencies (
+  id BIGINT NOT NULL PRIMARY KEY,  
+  planet_id BIGINT NOT NULL,
+  name VARCHAR(32) NOT NULL,
+  plural_name VARCHAR(32) NOT NULL,
+  short_code VARCHAR(5) NOT NULL,
+  symbol VARCHAR(5) NOT NULL,
+  issued BIGINT NOT NULL DEFAULT 0,
+  decimal_places INT NOT NULL DEFAULT 2,
+    
+  CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
+);
 
-ALTER TABLE planets
-    ADD CONSTRAINT fk_primary_channel
-        FOREIGN KEY(primary_channel_id)
-            REFERENCES planet_chat_channels(id);
+CREATE TABLE IF NOT EXISTS eco_accounts (
+  id BIGINT NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  account_type INT NOT NULL,
+  user_id BIGINT NOT NULL,
+  planet_id BIGINT NOT NULL,
+  currency_id BIGINT NOT NULL,
+  balance_value DECIMAL NOT NULL DEFAULT 0,
+  
+  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+  CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
+  CONSTRAINT fk_currency FOREIGN KEY(currency_id) REFERENCES currencies(id)
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+  id TEXT NOT NULL PRIMARY KEY,
+  planet_id BIGINT NOT NULL,
+  user_from_id BIGINT NOT NULL,
+  account_from_id BIGINT NOT NULL,
+  user_to_id BIGINT NOT NULL,
+  account_to_id BIGINT NOT NULL,
+  time_stamp TIMESTAMP NOT NULL,
+  description TEXT,
+  amount DECIMAL NOT NULL,
+  data TEXT,
+  fingerprint TEXT NOT NULL,
+  forced_by BIGINT,
+  
+  CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id),
+  CONSTRAINT fk_user_from FOREIGN KEY(user_from_id) REFERENCES users(id),
+  CONSTRAINT fk_user_to FOREIGN KEY(user_to_id) REFERENCES users(id),
+  CONSTRAINT fk_account_from FOREIGN KEY(account_from_id) REFERENCES eco_accounts(id),
+  CONSTRAINT fk_account_to FOREIGN KEY(account_to_id) REFERENCES eco_accounts(id),
+  CONSTRAINT fk_forced_by FOREIGN KEY(forced_by) REFERENCES users(id)
+);
 
 COMMIT;
 

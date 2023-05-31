@@ -1,4 +1,5 @@
-﻿using Valour.Api.Client;
+﻿using System.Text.Json.Serialization;
+using Valour.Api.Client;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Models;
@@ -8,9 +9,11 @@ namespace Valour.Api.Items
     public abstract class Item : ISharedItem
     {
         public long Id { get; set; }
-
+        
+        [JsonIgnore]
         public virtual string IdRoute => $"{BaseRoute}/{Id}";
 
+        [JsonIgnore]
         public virtual string BaseRoute => $"api/{GetType().Name}";
 
         /// <summary>
@@ -39,6 +42,7 @@ namespace Valour.Api.Items
             return Task.CompletedTask;
         }
 
+        [JsonIgnore]
         public Node Node
         {
             get

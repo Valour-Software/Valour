@@ -1,3 +1,112 @@
+/* Dropdowns */
+.v-drop-item {
+    font-size: 1em;
+    padding: 0.5em;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+/* Tables */
+.v-table {
+    display: table;
+    width: 100%;
+}
+
+.v-table tr {
+    display: table-row;
+}
+
+.v-table td,th {
+    border: none;
+}
+
+.v-table thead {
+    background-color: var(--main-2);
+    font-weight: 700;
+}
+
+/* Colors */
+.v-text-primary {
+    color: var(--font-color);
+}
+.v-color-secondary {
+    color: var(--font-color);
+    opacity: 0.75;
+}
+.v-text-cyan {
+    color: var(--v-cyan);
+}
+.v-text-blue {
+    color: var(--v-blue);
+}
+.v-text-purple {
+    color: var(--v-purple);
+}
+.v-text-red {
+    color: red;
+}
+
+.v-bg-darkest {
+    background-color: var(--main-1);
+}
+.v-bg-dark {
+    background-color: var(--main-2);
+}
+.v-bg-medium {
+    background-color: var(--main-3);
+}
+.v-bg-light {
+    background-color: var(--main-4);
+}
+.v-bg-lightest {
+    background-color: var(--main-5);
+}
+
+/* Inputs and Buttons */
+.v-input {
+    display: block;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid #1d1d1d;
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 5px 9px;
+    font-size: 1em;
+    outline: none !important;
+    font-family: Ubuntu, sans-serif;
+    margin-bottom: 0.5em;
+    width: 100%;
+    min-width: 10em;
+}
+
+.v-btn {
+    color: var(--font-color);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 0.5em;
+    font-size: 1em;
+    padding: 0.25em 0.5em;
+    display: block;
+    outline: none !important;
+    cursor: pointer;
+}
+
+.v-btn:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.v-btn:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Sections */
+.v-section {
+    display: block;
+    padding: 2em;
+    border-radius: 1em;
+    margin-bottom: 2em;
+}
+
 /* Headings and titles */
 .subtitle {
     font-weight: 700;
