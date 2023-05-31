@@ -3,6 +3,7 @@
 # Valour
 
 ### Valour is an open-source, modern chat client designed by communities for communities.
+## Try it at: [](https://valour.gg/)
 <br/>
 
 ## Design
