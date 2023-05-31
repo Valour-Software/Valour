@@ -1,5 +1,6 @@
 using Valour.Api.Client;
 using Valour.Api.Nodes;
+using Valour.Shared;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Api.Models.Economy;
@@ -80,4 +81,10 @@ public class Transaction : ISharedTransaction
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<Transaction>($"api/eco/transactions/{id}")).Data;
         return item;
     }
+
+    public static async ValueTask<TaskResult<Transaction>> SendTransaction(Transaction trans)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(trans.PlanetId);
+        return await node.PostAsyncWithResponse<Transaction>("api/eco/transactions", trans);
+    } 
 }

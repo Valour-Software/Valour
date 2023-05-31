@@ -88,6 +88,7 @@
     padding: 0.25em 0.5em;
     display: block;
     outline: none !important;
+    cursor: pointer;
 }
 
 .v-btn:hover {

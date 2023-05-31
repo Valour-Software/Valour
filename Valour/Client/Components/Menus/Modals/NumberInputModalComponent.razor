@@ -1,0 +1,39 @@
+﻿<!-- This modal exists to allow parts of the app to ask for a number -->
+
+<div class="col-md-12">
+	<section class="v-section" style="text-align: center; padding: 30px">
+		<h4>@Data.TitleText</h4>
+		<h5 class="subtitle">@Data.DescText</h5>
+		<br />
+		<input type="number" step="1" min="0" max="1000000000000" class="v-input" @bind="_value" />
+		
+		<div @onclick="@OnCancel" class="v-btn d-inline-block">@Data.CancelText</div>
+		<div @onclick="@OnConfirm" class="v-btn v-text-red d-inline-block">@Data.ConfirmText</div>
+	</section>
+</div>
+
+@code {
+	[CascadingParameter]
+	public BlazoredModalInstance ModalInstance { get; set; }
+
+	[Parameter]
+	public NumberModalData Data { get; set; }
+
+	private int _value;
+
+	private async Task OnConfirm()
+	{
+		if (Data.ConfirmEvent is not null)
+			await Data.ConfirmEvent.Invoke(_value);
+		
+		await ModalInstance.CloseAsync();
+	}
+
+	private async Task OnCancel()
+	{
+		if (Data.CancelEvent is not null)
+			await Data.CancelEvent.Invoke();
+		
+		await ModalInstance.CancelAsync();
+	}
+}

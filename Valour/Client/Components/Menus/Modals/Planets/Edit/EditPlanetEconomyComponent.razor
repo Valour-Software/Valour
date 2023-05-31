@@ -80,6 +80,7 @@
                                     <td>
                                         <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
                                             <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
+                                            <a class="v-drop-item" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
                                             <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
                                         </DropdownComponent>
                                     </td>
@@ -118,6 +119,9 @@
 @code {
     
     private static string[] _tabTitles = new [] { "Planet Accounts", "User Accounts" };
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
     
     [Parameter]
     public Planet Planet { get; set; }
@@ -242,6 +246,53 @@
         }
         
         StateHasChanged();
+    }
+
+    private async Task OnClickIssue(EcoAccount account)
+    {
+        NumberModalData data = new()
+        {
+            TitleText = "Issue Currency",
+            DescText = "How much currency would you like to issue?",
+            ConfirmText = "Issue",
+            CancelText = "Cancel",
+            CancelEvent = null,
+            ConfirmEvent = async (value) =>
+            {
+                var issueTrans = new Transaction()
+                {
+                    AccountFromId = account.Id,
+                    AccountToId = account.Id,
+                    Amount = (decimal) value,
+                    Data = null,
+                    PlanetId = account.PlanetId,
+                    Description = $"Issued {value} when supply was {account.BalanceValue} via Planet Settings",
+                    ForcedBy = null,
+                    Fingerprint = Guid.NewGuid().ToString(),
+                    UserFromId = account.UserId,
+                    UserToId = account.UserId,
+                };
+
+                var result = await Transaction.SendTransaction(issueTrans);
+                
+                if (!result.Success)
+                {
+                    _accountError = result.Message;
+                }
+                else
+                {
+                    _accountInfo = result.Message;
+                    account.BalanceValue += (decimal) value;
+                    Currency.Issued += value;
+                }
+                
+                StateHasChanged();
+            },
+        };
+        
+        ModalParameters modParams = new();
+        modParams.Add("Data", data);
+        Modal.Show<NumberInputModalComponent>("Number Input", modParams);
     }
     
 }

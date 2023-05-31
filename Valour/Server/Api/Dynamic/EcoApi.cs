@@ -368,7 +368,7 @@ public class EcoApi
     
     // Careful now, this is what gets Jacob VERY excited
     
-    [ValourRoute(HttpVerbs.Post, "api/eco/transaction")]
+    [ValourRoute(HttpVerbs.Post, "api/eco/transactions")]
     [UserRequired]
     public static async Task<IResult> CreateTransactionAsync(
         [FromBody] Transaction transaction,
@@ -380,13 +380,18 @@ public class EcoApi
             return ValourResult.BadRequest("Include transaction in body");
 
         var authToken = await tokenService.GetCurrentToken();
-        var account = await ecoService.GetAccountAsync(transaction.UserFromId);
+        var account = await ecoService.GetAccountAsync(transaction.AccountFromId);
         if (account is null)
             return ValourResult.NotFound("Account not found");
 
+        bool issuing = false;
+        
         // User account can only be used by the owner
         if (account.AccountType == AccountType.User)
         {
+            if (account.Id == transaction.AccountToId)
+                return ValourResult.BadRequest("You cannot send to yourself");
+            
             if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
 
@@ -409,6 +414,8 @@ public class EcoApi
                     {
                         return ValourResult.Forbid("You do not have permission to create transactions for other users");
                     }
+
+                    transaction.ForcedBy = authToken.UserId;
                 }
             }
         }
@@ -427,9 +434,12 @@ public class EcoApi
 
             if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
                 return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+
+            if (account.Id == transaction.AccountToId)
+                issuing = true;
         }
         
-        var result = await ecoService.CreateTransactionAsync(transaction);
+        var result = await ecoService.CreateTransactionAsync(transaction, issuing);
         if (!result.Success)
             return ValourResult.BadRequest(result.Message);
 
