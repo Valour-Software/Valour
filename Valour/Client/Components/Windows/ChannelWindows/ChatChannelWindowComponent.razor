@@ -193,7 +193,7 @@
         if (message.ChannelId != Channel.Id)
             return;
         
-        ValourClient.SetChannelLastViewedState(Channel.Id, DateTime.UtcNow);
+        ValourClient.SetChannelLastViewedState(Channel.Id, message.TimeSent);
 
         // Create client wrapper
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
