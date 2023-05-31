@@ -1,7 +1,9 @@
 ﻿using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
 using StackExchange.Redis;
 using Valour.Api.Nodes;
 using Valour.Server.Config;
+using Valour.Server.Database;
 using Valour.Server.Hubs;
 using Valour.Server.Redis;
 using Valour.Shared.Models;
@@ -23,13 +25,14 @@ public class NodeService
     private readonly ILogger<NodeService> _logger;
     private readonly ISubscriber _redisChannel;
     private readonly IConnectionMultiplexer _redis;
-    private readonly CoreHubService _coreHub;
+    private readonly IHubContext<CoreHub> _hub;
     
+
     private readonly string _nodeAliveKey = $"alive:{NodeConfig.Instance.Name}";
 
-    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger, CoreHubService coreHub)
+    public NodeService(IConnectionMultiplexer redis, ILogger<NodeService> logger, IHubContext<CoreHub> hub)
     {
-        _coreHub = coreHub;
+        _hub = hub;
         _logger = logger;
         _redis = redis;
         _nodeRecords = redis.GetDatabase(RedisDbTypes.Cluster);
@@ -226,10 +229,12 @@ public class NodeService
     public enum NodeEventType
     {
         Transaction,
+        DirectMessage,
     }
     
     public struct NodeRelayEventData
     {
+        public long TargetUser;
         public NodeEventType Type;
         public object Payload;
     }
@@ -243,8 +248,9 @@ public class NodeService
         
         NodeRelayEventData eventData = new()
         {
-            Type = NodeEventType.Transaction,
+            Type = eventType,
             Payload = data,
+            TargetUser = userId,
         };
         
         var json = JsonSerializer.Serialize(eventData);
@@ -281,11 +287,21 @@ public class NodeService
                 var transaction = (Transaction) data.Payload;
                 OnRelayTransaction(transaction);
                 break;
+            case NodeEventType.DirectMessage:
+                var message = (DirectMessage) data.Payload;
+                OnRelayDirectMessage(message, data.TargetUser);
+                break;
         }
     }
 
     private void OnRelayTransaction(Transaction transaction)
     {
-        _coreHub.NotifyGlobalTransactionProcessed(transaction);
+        _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
+        _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+    }
+
+    private void OnRelayDirectMessage(DirectMessage message, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
     }
 }

@@ -381,7 +381,7 @@ public class EcoService
     /// This method should really only be called by the TransactionWorker within nodes.
     /// Manually calling this can break transaction ordering!
     /// </summary>
-    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, CoreHubService injectedHub)
+    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, CoreHubService injectedHub, NodeService nodeService)
     {
         // Fun case for those who wish to break the system
         // Throwbacks to SV1
@@ -460,7 +460,7 @@ public class EcoService
 
         if (isGlobal)
         {
-            await injectedHub.RelayTransaction(transaction);
+            await injectedHub.RelayTransaction(transaction, nodeService);
         }
         else
         {

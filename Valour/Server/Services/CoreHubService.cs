@@ -19,15 +19,13 @@ public class CoreHubService
     private readonly ValourDB _db;
     private readonly IServiceProvider _serviceProvider;
     private readonly IConnectionMultiplexer _redis;
-    private readonly NodeService _nodeService;
-    
-    public CoreHubService(ValourDB db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis, NodeService nodeService)
+
+    public CoreHubService(ValourDB db, IServiceProvider serviceProvider, IHubContext<CoreHub> hub, IConnectionMultiplexer redis)
     {
         _db = db;
         _hub = hub;
         _serviceProvider = serviceProvider;
         _redis = redis;
-        _nodeService = nodeService;
     }
     
     public async void RelayMessage(PlanetMessage message)
@@ -50,15 +48,17 @@ public class CoreHubService
 
         await group.SendAsync("Relay", message);
     }
-    
-    public async void RelayDirectMessage(DirectMessage message, long targetUserId)
-    {
-        var groupId = $"u-{targetUserId}";
 
-        // Group we are sending messages to
-        var group = _hub.Clients.Group(groupId);
+    public async Task RelayDirectMessage(DirectMessage message, NodeService nodeService)
+    {
+        var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
+        await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessage, message);
+        await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessage, message);
+    }
+
+    public async void NotifyDirectMessage(DirectMessage message, long userId)
+    {
         
-        await group.SendAsync("RelayDirect", message);
     }
     
     public async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
@@ -159,17 +159,10 @@ public class CoreHubService
         await _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
     }
 
-    public async Task RelayTransaction(Transaction transaction)
+    public async Task RelayTransaction(Transaction transaction, NodeService nodeService)
     {
-        await _nodeService.RelayUserEventAsync(transaction.UserFromId, NodeService.NodeEventType.Transaction, transaction);
-        await _nodeService.RelayUserEventAsync(transaction.UserToId, NodeService.NodeEventType.Transaction, transaction);
-    }
-    
-
-    public async void NotifyGlobalTransactionProcessed(Transaction transaction)
-    {
-        await _hub.Clients.Group($"u-{transaction.UserFromId}").SendAsync("Transaction-Processed", transaction);
-        await _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
+        await nodeService.RelayUserEventAsync(transaction.UserFromId, NodeService.NodeEventType.Transaction, transaction);
+        await nodeService.RelayUserEventAsync(transaction.UserToId, NodeService.NodeEventType.Transaction, transaction);
     }
 
     public async void NotifyCurrencyChange(Currency item, int flags = 0) =>

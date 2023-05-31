@@ -197,34 +197,4 @@ public class DirectChatChannelApi
 
         return Results.NoContent();
     }
-
-    [ValourRoute(HttpVerbs.Post, "api/directchatchannels/relay")]
-    public static async Task<IResult> RelayDirectMessageAsync(
-        [FromBody] DirectMessage message, 
-        [FromQuery] string auth, 
-        [FromQuery] long targetId,
-        CoreHubService hubService)
-    {
-        if (auth != NodeConfig.Instance.Key)
-            return ValourResult.Forbid("Invalid inter-node key.");
-
-        hubService.RelayDirectMessage(message, targetId);
-
-        return Results.Ok();
-    }
-
-    [ValourRoute(HttpVerbs.Post, "api/directchatchannels/relaydelete")]
-    public static async Task<IResult> RelayDeleteDirectMessageAsync(
-        [FromBody] DirectMessage message, 
-        [FromQuery] string auth, 
-        [FromQuery] long targetId,
-        CoreHubService hubService)
-    {
-        if (auth != NodeConfig.Instance.Key)
-            return ValourResult.Forbid("Invalid inter-node key.");
-
-        hubService.NotifyDirectMessageDeletion(message, targetId);
-
-        return Results.Ok();
-    }
 }

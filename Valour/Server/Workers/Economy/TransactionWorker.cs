@@ -60,9 +60,10 @@ public class TransactionWorker : IHostedService, IDisposable
         {
             await using var scope = _serviceProvider.CreateAsyncScope();
             var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
+            var nodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
             var ecoService = scope.ServiceProvider.GetRequiredService<EcoService>();
             
-            var result = await ecoService.ProcessTransactionAsync(transaction, hubService);
+            var result = await ecoService.ProcessTransactionAsync(transaction, hubService, nodeService);
             if (!result.Success)
                 _logger.LogWarning("Transaction on queue failed: {Result}", result.Message);
         }
