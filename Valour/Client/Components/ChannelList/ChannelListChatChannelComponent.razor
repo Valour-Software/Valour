@@ -128,14 +128,24 @@
         ValourClient.OnChannelOpen += OnChannelOpenedChange;
         ValourClient.OnChannelClose += OnChannelOpenedChange;
 
-        ValourClient.OnUserChannelStateUpdate += OnChannelStateUpdate;
+        ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
+        ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
 
         AnyUnread = Channel.DetermineUnread();
 
         await DetermineLock();
     }
 
-    public async Task OnChannelStateUpdate(UserChannelState state)
+    public async Task OnUserChannelStateUpdate(UserChannelState state)
+    {
+        if (state.ChannelId != Channel.Id)
+            return;
+
+        AnyUnread = Channel.DetermineUnread();
+        StateHasChanged();
+    }
+
+    public async Task OnChannelStateUpdate(ChannelStateUpdate state)
     {
         if (state.ChannelId != Channel.Id)
             return;
@@ -152,5 +162,7 @@
 
         ValourClient.OnChannelOpen -= OnChannelOpenedChange;
         ValourClient.OnChannelClose -= OnChannelOpenedChange;
+        ValourClient.OnUserChannelStateUpdate -= OnUserChannelStateUpdate;
+        ValourClient.OnChannelStateUpdate -= OnChannelStateUpdate;
     }
 }

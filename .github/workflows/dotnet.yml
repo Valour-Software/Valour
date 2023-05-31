@@ -12,19 +12,27 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - uses: benjlevesque/short-sha@v2.2
       id: short-sha
       with:
         length: 7
+    - name: Modify asset versions
+      uses: mingjun97/file-regex-replace@v1
+      with:
+        regex: '\$\(SHORTHASH\)'
+        replacement: '${{ env.SHA }}'
+        flags: "g"                  # Optional, defaults to "g"
+        include: '.*'    # Optional, defaults to ".*"
+        exclude: '.^'               # Optional, defaults to '.^'
+        encoding: 'utf8'            # Optional, defaults to 'utf8'
+        path: '.'                   # Optional, defaults to '.'
     - name: Setup .NET
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 7.0.x
+        dotnet-version: 7.0.203
         include-prerelease: true
     - name: Restore dependencies
       run: dotnet restore
@@ -33,14 +41,14 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish Shared Nuget Package
-      uses: alirezanet/publish-nuget@v3.0.4
+      uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/Shared/Valour.Shared.csproj
         VERSION_FILE_PATH: Valour/Shared/Valour.Shared.csproj
         NUGET_KEY: ${{secrets.NUGET_API_KEY}}
 
     - name: Publish API Nuget Package
-      uses: alirezanet/publish-nuget@v3.0.4
+      uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: Valour/API/Valour.Api.csproj
         VERSION_FILE_PATH: Valour/API/Valour.Api.csproj
