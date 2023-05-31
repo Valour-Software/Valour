@@ -265,6 +265,103 @@ public class EcoApi
         return Results.Created($"api/eco/accounts/{result.Data.Id}", result.Data);
     }
     
+    [ValourRoute(HttpVerbs.Put, "api/eco/accounts/{id}")]
+    [UserRequired]
+    public static async Task<IResult> UpdateAccountAsync(
+        long id,
+        [FromBody] EcoAccount account,
+        TokenService tokenService,
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        if (id != account.Id)
+            return ValourResult.BadRequest("Id mismatch");
+        
+        var token = await tokenService.GetCurrentToken();
+
+        if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
+        {
+            if (account.UserId != token.UserId)
+                return ValourResult.Forbid("You cannot update an account for another user");
+            
+            if (!token.HasScope(UserPermissions.EconomyViewGlobal))
+                return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
+            if (!token.HasScope(UserPermissions.EconomySendGlobal))
+                return ValourResult.LacksPermission(UserPermissions.EconomySendGlobal);
+        }
+        else
+        {
+            if (!token.HasScope(UserPermissions.EconomyViewPlanet))
+                return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
+            if (!token.HasScope(UserPermissions.EconomySendPlanet))
+                return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
+        }
+
+        var member = await memberService.GetCurrentAsync(account.PlanetId);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        
+        if (account.AccountType == AccountType.User)
+        {
+            if (account.UserId != token.UserId)
+                return ValourResult.Forbid("You cannot update an account for another user");
+        }
+        else
+        {
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
+                    return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        }
+
+        var result = await ecoService.UpdateEcoAccountAsync(account);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return Results.Json(result.Data);
+    }
+    
+    [ValourRoute(HttpVerbs.Delete, "api/eco/accounts/{id}")]
+    [UserRequired]
+    public static async Task<IResult> UpdateAccountAsync(
+        long id,
+        TokenService tokenService,
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        var token = await tokenService.GetCurrentToken();
+
+        var account = await ecoService.GetAccountAsync(id);
+        
+        if (account.BalanceValue != 0)
+            return ValourResult.BadRequest("You cannot delete an account with a balance");
+
+        if (account.CurrencyId == ISharedCurrency.ValourCreditsId)
+            return ValourResult.Forbid("You cannot delete a Valour Credits account");
+
+        if (!token.HasScope(UserPermissions.EconomyViewPlanet))
+            return ValourResult.LacksPermission(UserPermissions.EconomyViewPlanet);
+        if (!token.HasScope(UserPermissions.EconomySendPlanet))
+            return ValourResult.LacksPermission(UserPermissions.EconomySendPlanet);
+        
+        
+        if (account.AccountType == AccountType.User)
+        {
+            if (account.UserId != token.UserId)
+                return ValourResult.Forbid("You cannot delete an account for another user");
+        }
+        else
+        {
+            var member = await memberService.GetCurrentAsync(account.PlanetId);
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
+                    return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        }
+
+        var result = await ecoService.DeleteEcoAccountAsync(account.Id);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+
+        return Results.Json("Successfully deleted account");
+    }
+    
     //////////////////
     // Transactions //
     //////////////////

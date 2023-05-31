@@ -80,7 +80,7 @@
                                     <td>
                                         <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
                                             <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
-                                            <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickSaveAccount(account))">Delete</a>
+                                            <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
                                         </DropdownComponent>
                                     </td>
                                     
@@ -92,20 +92,20 @@
                 
                 <button class="v-btn m-2" @onclick="@OnClickAddAccount">Add Account</button>
                 
+                @if (!string.IsNullOrWhiteSpace(_accountError))
+                {
+                    <span class="v-span error m-2">@_accountError</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(_accountInfo))
+                {
+                    <span class="v-span info m-2">@_accountInfo</span>
+                }
+                
             </TabOne>
             <TabTwo>
                 
             </TabTwo>
         </TabContainerComponent>
-
-        @if (!string.IsNullOrWhiteSpace(_accountError))
-        {
-            <span class="v-span error">@_accountError</span>
-        }
-        @if (!string.IsNullOrWhiteSpace(_accountInfo))
-        {
-            <span class="v-span info">@_accountInfo</span>
-        }
     } 
     else
     {
@@ -222,8 +222,26 @@
         }
         else
         {
-            _accountInfo = result.Message;
+            _accountInfo = "Saved successfully.";
         }
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnClickDeleteAccount(EcoAccount account)
+    {
+        var result = await Item.DeleteAsync(account);
+        if (!result.Success)
+        {
+            _accountError = result.Message;
+        }
+        else
+        {
+            _accountInfo = result.Message;
+            PlanetAccounts.Remove(account);
+        }
+        
+        StateHasChanged();
     }
     
 }

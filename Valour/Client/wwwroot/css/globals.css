@@ -76,6 +76,7 @@
     font-family: Ubuntu, sans-serif;
     margin-bottom: 0.5em;
     width: 100%;
+    min-width: 10em;
 }
 
 .v-btn {

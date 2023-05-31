@@ -491,6 +491,11 @@ app {
     border: 3px solid var(--main-2);
 }
 
+*::-webkit-scrollbar-corner 
+{ 
+    background: rgba(0,0,0,0); 
+}
+
 .login-background {
     background-image: url(/_content/Valour.Client/media/Spookvooper-tall.jpg);
     background-repeat: no-repeat;

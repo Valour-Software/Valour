@@ -3,6 +3,10 @@
     text-align: right;
 }
 
+.mobile .v-dropdown {
+    position: unset;
+}
+
 .v-dropdown .content.hidden {
     display: none;
 }
@@ -18,6 +22,14 @@
     gap: 0.5em;
     right: 0;
     padding: 0.5em;
+}
+
+.mobile .v-dropdown .content {
+    right: 0;
+    left: 0;
+    top: auto;
+    bottom: 0;
+    z-index: 100000;
 }
 
 .v-dropdown .align-right {

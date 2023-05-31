@@ -202,13 +202,13 @@ public class EcoService
     /// Returns the planet accounts for the given planet id
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId).Select(x => x.ToModel()).ToListAsync();
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).Select(x => x.ToModel()).ToListAsync();
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
     /// Returns all accounts associated with a user id
@@ -266,6 +266,51 @@ public class EcoService
         }
         
         return new TaskResult<EcoAccount>(true, "Account created successfully", account);
+    }
+
+    public async Task<TaskResult<EcoAccount>> UpdateEcoAccountAsync(EcoAccount account)
+    {
+        var old = await _db.EcoAccounts.FindAsync(account.Id);
+        if (old is null)
+            return new TaskResult<EcoAccount>(false, "Account not found");
+        
+        // Literally the only thing you can change is the name so we're just going to copy that across
+        // rather than validate 50 things for no reason. If you're trying to change something else and
+        // there's no error this is why.
+        
+        if (account.Name.Length > 20)
+            return new TaskResult<EcoAccount>(false, "Max account name length is 20");
+        
+        old.Name = account.Name;
+
+        await _db.SaveChangesAsync();
+        
+        return new TaskResult<EcoAccount>(true, "Account updated successfully", old.ToModel());
+    }
+
+    public async Task<TaskResult> DeleteEcoAccountAsync(long accountId)
+    {
+        var account = await _db.EcoAccounts.FindAsync(accountId);
+        
+        if (account is null)
+            return new TaskResult(false, "Account not found");
+        
+        await using var tran = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            _db.EcoAccounts.Remove(account);
+            await _db.SaveChangesAsync();
+            await tran.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await tran.RollbackAsync();
+            _logger.LogError(e, "Error deleting account: {Message}", e.Message);
+            return new TaskResult(false, "Error deleting account");
+        }
+
+        return new TaskResult(true, "Account deleted successfully");
     }
 
     //////////////////
