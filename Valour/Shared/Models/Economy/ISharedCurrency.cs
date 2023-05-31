@@ -41,7 +41,7 @@ public interface ISharedCurrency
     /// <summary>
     /// The total amount of this currency that has been issued
     /// </summary>
-    int Issued { get; set; }
+    long Issued { get; set; }
 
     /// <summary>
     /// The number of decimal places this currency supports

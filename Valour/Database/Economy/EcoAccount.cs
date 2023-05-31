@@ -12,6 +12,12 @@ public class EcoAccount : ISharedEcoAccount
     /// </summary>
     [Column("id")]
     public long Id { get; set; }
+    
+    /// <summary>
+    /// The name of the account
+    /// </summary>
+    [Column("name")]
+    public string Name { get; set; }
 
     /// <summary>
     /// The type of account this represents

@@ -152,6 +152,27 @@
         ModelObserver<PlanetCategory>.OnAnyDeleted -= OnCategoryDeletion;
         ModelObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
         ModelObserver<PlanetVoiceChannel>.OnAnyDeleted -= OnVoiceChannelDeletion;
+
+        ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
+        ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
+    }
+
+    public async Task OnUserChannelStateUpdate(UserChannelState state)
+    {
+        var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.PermType == PermChannelType.PlanetChatChannel);
+        if (channel is null || channel.ParentId != Category.Id)
+            return;
+
+        StateHasChanged();
+    }
+
+    public async Task OnChannelStateUpdate(ChannelStateUpdate state)
+    {
+        var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.PermType == PermChannelType.PlanetChatChannel);
+        if (channel is null || channel.ParentId != Category.Id)
+            return;
+            
+        StateHasChanged();
     }
 
     public void OnClick()

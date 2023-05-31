@@ -1,0 +1,46 @@
+﻿.full-container {
+    border-radius: 1em;
+    background-color: rgba(255, 255, 255, 0.05);
+    margin-bottom: 2em;
+}
+
+.tab-holder {
+    display: flex;
+    flex-direction: row;
+}
+
+.tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: left;
+    background-color: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    padding: 0.5em;
+    padding-left: 1em;
+}
+
+.tab:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.tab.active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab.left {
+    border-radius: 1em 0 0 0;
+}
+
+.tab.right {
+    border-radius: 0 1em 0 0;
+}
+
+.tab.center {
+    
+}
+
+.tab-content {
+    padding: 0 0 1em 0;
+    overflow: auto;
+}

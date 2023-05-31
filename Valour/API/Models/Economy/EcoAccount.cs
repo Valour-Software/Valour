@@ -1,3 +1,5 @@
+using Valour.Api.Client;
+using Valour.Api.Nodes;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Api.Models.Economy;
@@ -16,13 +18,15 @@ namespace Valour.Api.Models.Economy;
 /// If you have a currency with two decimal places, and you attempt to 
 /// subtract 0.333... from cash, it will end up subtracting 0.33.
 /// </summary>
-public class EcoAccount : ISharedEcoAccount
+public class EcoAccount : Item, ISharedEcoAccount
 {
-    /// <summary>
-    /// The database id of this economy account
-    /// </summary>
-    public long Id { get; set; }
+    public override string BaseRoute => "api/eco/accounts";
 
+    /// <summary>
+    /// The name of the account
+    /// </summary>
+    public string Name { get; set; }
+    
     /// <summary>
     /// The type of account this represents
     /// </summary>
@@ -51,4 +55,60 @@ public class EcoAccount : ISharedEcoAccount
     /// This is just for mapping to the database.
     /// </summary>
     public decimal BalanceValue { get; set; }
+    
+    public static async ValueTask<EcoAccount> FindAsync(long id, long planetId, bool refresh = false)
+    {
+        if (!refresh)
+        {
+            var cached = ValourCache.Get<EcoAccount>(id);
+            if (cached != null)
+                return cached;
+        }
+
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var item = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/{id}")).Data;
+
+        if (item is not null)
+            await item.AddToCache();
+
+        return item;
+    }
+
+    /// <summary>
+    /// Returns all planet accounts for the given planet id
+    /// </summary>
+    public static async Task<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet")).Data;
+
+        if (accounts is not null)
+        {
+            foreach (var account in accounts)
+            {
+                await account.AddToCache();
+            }
+        }
+
+        return accounts;
+    }
+    
+    /// <summary>
+    /// Returns all user accounts for the given planet id
+    /// </summary>
+    public static async Task<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user")).Data;
+
+        if (accounts is not null)
+        {
+            foreach (var account in accounts)
+            {
+                await account.AddToCache();
+            }
+        }
+
+        return accounts;
+    }
 }

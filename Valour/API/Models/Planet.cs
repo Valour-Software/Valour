@@ -1,6 +1,7 @@
 ﻿using Markdig.Extensions.TaskLists;
 using Valour.Api.Client;
 using Valour.Api.Models;
+using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
 using Valour.Shared.Models;
 
@@ -533,4 +534,7 @@ public class Planet : Item, ISharedPlanet
     {
         return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
     }
+
+    public Task<List<EcoAccount>> GetPlanetAccounts() =>
+        EcoAccount.GetPlanetPlanetAccountsAsync(Id);
 }

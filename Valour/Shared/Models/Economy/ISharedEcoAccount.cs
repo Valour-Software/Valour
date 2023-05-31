@@ -6,6 +6,11 @@ public interface ISharedEcoAccount
     /// The database id of this economy account
     /// </summary>
     long Id { get; set; }
+    
+    /// <summary>
+    /// The name of the account
+    /// </summary>
+    string Name { get; set; }
 
     /// <summary>
     /// The type of account this represents

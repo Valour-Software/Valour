@@ -50,7 +50,7 @@ public class Currency : ISharedCurrency
     /// The total amount of this currency that has been issued
     /// </summary>
     [Column("issued")]
-    public int Issued { get; set; }
+    public long Issued { get; set; }
 
     /// <summary>
     /// The number of decimal places this currency supports

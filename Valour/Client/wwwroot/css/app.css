@@ -1,4 +1,13 @@
-﻿:root {
+﻿:root { font-family: 'Inter', sans-serif; }
+@supports (font-variation-settings: normal) {
+    :root { font-family: 'Inter var', sans-serif; }
+}
+
+html * {
+    font-family: Ubuntu, sans-serif;
+}
+
+:root {
     --primary-color: #040d14;
     --secondary-color: #aaaaaa;
     --font-color: #ffffff;
@@ -38,6 +47,24 @@
     padding: 0px;
     overflow-x: hidden;
     overflow-y: hidden;  
+}
+
+.v-span {
+    font-size: 0.9em;
+    color: var(--font-color);
+    opacity: 0.75;
+}
+
+.v-span.error {
+    color: red;
+}
+
+.v-span.info {
+    color: var(--v-cyan);
+}
+
+.v-inline {
+    display: inline-block;
 }
 
 .v-button {
@@ -242,16 +269,16 @@ body {
 .channel-and-topbar {
     display: flex;
     margin: 0;
-    flex: 1;
     background-color: var(--main-1);
     flex-direction: column;
     height: 100%;
-    width: 100%;
+    flex: 1;
+    overflow: hidden;
 }
 
 .channel-and-topbar-mobile {
     flex: 0;
-    min-width: 100vw;
+    width: 100vw;
     position: absolute;
 }
 
@@ -462,6 +489,11 @@ app {
     background-color: var(--main-1);
     border-radius: 20px;
     border: 3px solid var(--main-2);
+}
+
+*::-webkit-scrollbar-corner 
+{ 
+    background: rgba(0,0,0,0); 
 }
 
 .login-background {
