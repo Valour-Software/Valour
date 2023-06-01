@@ -154,7 +154,6 @@
 }
 
 .upload-menu .button {
-    background-color: var(--main-3);
     color: white;
     cursor: pointer;
     border: none;
