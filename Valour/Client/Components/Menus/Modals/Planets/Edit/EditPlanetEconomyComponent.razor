@@ -102,9 +102,9 @@
                 
             </TabOne>
             <TabTwo>
-                @if (PlanetAccounts is null || PlanetAccounts.Count == 0)
+                @if (UserAccounts is null || UserAccounts.Count == 0)
                 {
-                    <h6 class="p-4">There are no planet accounts.</h6>
+                    <h6 class="p-4">There are no user accounts.</h6>
                 }
                 else
                 {
@@ -113,24 +113,17 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Balance</th>
-                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var account in PlanetAccounts)
+                            @for (int i = 0; i < UserAccounts.Count; i++)
                             {
+                                var account = UserAccounts[i];
+                                var member = UserAccountMembers[i];
+                                
                                 <tr>
-                                    <td><input class="v-input" @bind="account.Name"/></td>
+                                    <td><UserInfoComponent Member="@member" /></td>
                                     <td>@Currency.Format(account.BalanceValue)</td>
-
-                                    <td>
-                                        <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
-                                            <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
-                                            <a class="v-drop-item" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
-                                            <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
-                                        </DropdownComponent>
-                                    </td>
-                                    
                                 </tr>
                             }
                         </tbody>
@@ -161,6 +154,8 @@
     public Currency Currency { get; set; }
     public List<EcoAccount> PlanetAccounts { get; set; }
     public List<EcoAccount> UserAccounts { get; set; }
+    
+    public List<PlanetMember> UserAccountMembers { get; set; }
 
     private bool _hasCurrencyPermission = false;
     
@@ -187,6 +182,16 @@
         {
             PlanetAccounts = await EcoAccount.GetPlanetPlanetAccountsAsync(Planet.Id);
             UserAccounts = await EcoAccount.GetPlanetUserAccountsAsync(Planet.Id);
+
+            if (UserAccounts is not null && UserAccounts.Count > 0)
+            {
+                UserAccountMembers = new List<PlanetMember>();
+                
+                foreach (var account in UserAccounts)
+                {
+                    UserAccountMembers.Add(await PlanetMember.FindAsyncByUser(account.UserId, account.PlanetId));
+                }
+            }
         }
 
         _loading = false;

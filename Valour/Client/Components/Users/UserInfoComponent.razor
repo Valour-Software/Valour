@@ -11,7 +11,7 @@
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username">@_name</p>
+                    <p class="username" style="color: @_roleColor">@_name</p>
                     <p class="tag">#@_userTag</p>
                     @if (User.Bot)
                     {
@@ -46,7 +46,7 @@
     
     // The type, either "user" or "member"
     private string _type = "user";
-    private string _contextMenu = "user";
+    private string _contextMenu = "user-context";
     
     // Internal cached values
     private string _name = DefaultName;
