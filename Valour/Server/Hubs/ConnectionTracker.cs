@@ -170,6 +170,10 @@ public class ConnectionTracker
 
     public static async Task RemovePrimaryConnection(HubCallerContext context, IConnectionMultiplexer redis)
     {
+        // Was not a primary connection
+        if (!PrimaryConnections.ContainsKey(context.ConnectionId))
+            return;
+        
         // Remove any existing connection from collection
         PrimaryConnections.Remove(context.ConnectionId, out _);
         

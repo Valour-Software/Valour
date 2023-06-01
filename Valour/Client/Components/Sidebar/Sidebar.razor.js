@@ -26,11 +26,13 @@ function handleTouchMove(evt) {
     var xDiff = xDown - xUp;
     var yDiff = yDown - yUp;
 
+    const width = screen.width;
+
     if (Math.abs(xDiff) > Math.abs(yDiff)) {/*most significant*/
-        if (xDiff > 5) {
+        if (xUp > width - 50 && xDiff > 5) {
             /* left swipe */
             OnLeftSwipe();
-        } else if (xDiff < -5) {
+        } else if (xUp < 50 && xDiff < -5) {
             /* right swipe */
             OnRightSwipe();
         }

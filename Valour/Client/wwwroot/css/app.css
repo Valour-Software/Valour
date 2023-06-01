@@ -927,10 +927,8 @@ blockquote {
 
 /* Window resize gutters */
 .gutter {
-    background-color: var(--main-1);
+    background-color: var(--main-3);
     width: 10px;
-    border-right: 3px var(--main-5) inset;
-    border-left: 3px var(--main-5) outset;
     cursor: e-resize;
 }
 

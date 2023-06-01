@@ -3,7 +3,7 @@
 @using Valour.Api.Models.Messages
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
-    <CascadingValue Value="this">
+    <CascadingValue Value="this" IsFixed="true">
         @{
             ClientMessageWrapper last;    
 
@@ -110,6 +110,9 @@
     public void Clear()
     {
         DisplayedMessageData.Clear();
+        QueuedMessageData.Clear();
+        RenderedMessages.Clear();
+        StateHasChanged();
     }
 
     public ClientMessageWrapper GetLastMessage()
