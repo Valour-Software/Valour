@@ -32,7 +32,6 @@
 
 .planet {
     max-width: 269px;
-    background-color: var(--main-4);
     border-radius: 5px;
     margin-right: auto;
     margin-left: auto;

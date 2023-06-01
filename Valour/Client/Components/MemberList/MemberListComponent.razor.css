@@ -6,12 +6,8 @@
 }
 
 .role-title {
-    margin-top: 1em;
+    margin-top: 2em;
     margin-bottom: 0.25em;
-}
-
-.role-underline {
-    height: 2px;
-    width: 100%;
-    margin-bottom: 0.5em;
+    opacity: 100% !important;
+    font-size: 0.8em;
 }
