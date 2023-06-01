@@ -47,7 +47,7 @@
 
                     @if (!Minimal)
                     {
-                        <div style="width: max-content">
+                        <div class="name-role-holder">
                             <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
                                 <p class="author-name" style="color: @nameColor;">
                                     @name
