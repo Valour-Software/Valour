@@ -6,12 +6,12 @@
 }
 
 <ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline'>
-    <div class="user-info">
+    <div class="user-info" style="@Style">
         <div class="left-block">
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username">@_name</p>
+                    <p class="username" style="color: @_roleColor">@_name</p>
                     <p class="tag">#@_userTag</p>
                     @if (User.Bot)
                     {
@@ -30,7 +30,7 @@
                     @_statusText
                 </p>
             </div>
-            <div class="@_statusClass" />
+            <div class="state-circle @_statusClass" />
         </div>
     </div>
 </ContextMenuTrigger>
@@ -44,9 +44,12 @@
     [Parameter]
     public PlanetMember Member { get; set; }
     
+    [Parameter]
+    public string Style { get; set; }
+    
     // The type, either "user" or "member"
     private string _type = "user";
-    private string _contextMenu = "user";
+    private string _contextMenu = "user-context";
     
     // Internal cached values
     private string _name = DefaultName;

@@ -3,7 +3,6 @@
     flex-direction: row;
     justify-content: space-between;
     margin: 20px;
-    background-color: var(--main-4);
     border-radius: 5px;
 }
 
