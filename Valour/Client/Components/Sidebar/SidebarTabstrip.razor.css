@@ -1,7 +1,7 @@
 .tabstrip {
     width: 100%;
     display: flex;
-    min-height: 48px;
+    min-height: 36px;
     background-color: var(--main-1);
     bottom: 0;
     justify-content: space-evenly;
@@ -9,7 +9,7 @@
 }
 
 .mobile .tabstrip {
-    min-height: 80px;
+    min-height: 44px;
 }
 
 .tabstrip .item {
@@ -23,11 +23,11 @@
 }
 
 .tabstrip .icon {
-    height: 16px;
+    height: 12px;
     margin: 4px;
 }
 
 .mobile .tabstrip .icon {
-    height: 26px;
+    height: 16px;
     margin: 8px;
 }
