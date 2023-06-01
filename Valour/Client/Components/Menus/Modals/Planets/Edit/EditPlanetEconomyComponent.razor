@@ -65,7 +65,6 @@
                             <tr>
                                 <th>Name</th>
                                 <th>Balance</th>
-                                <th>Id</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -75,8 +74,7 @@
                                 <tr>
                                     <td><input class="v-input" @bind="account.Name"/></td>
                                     <td>@Currency.Format(account.BalanceValue)</td>
-                                    <td>@account.Id</td>
-                                    
+
                                     <td>
                                         <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
                                             <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
@@ -104,7 +102,41 @@
                 
             </TabOne>
             <TabTwo>
-                
+                @if (PlanetAccounts is null || PlanetAccounts.Count == 0)
+                {
+                    <h6 class="p-4">There are no planet accounts.</h6>
+                }
+                else
+                {
+                    <table class="v-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Balance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var account in PlanetAccounts)
+                            {
+                                <tr>
+                                    <td><input class="v-input" @bind="account.Name"/></td>
+                                    <td>@Currency.Format(account.BalanceValue)</td>
+
+                                    <td>
+                                        <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
+                                            <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
+                                            <a class="v-drop-item" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
+                                            <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
+                                        </DropdownComponent>
+                                    </td>
+                                    
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                                
             </TabTwo>
         </TabContainerComponent>
     } 
