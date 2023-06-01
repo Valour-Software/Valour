@@ -19,7 +19,7 @@
     margin: 6px;
 }
 
-.active {
+.state-circle {
     width: 12px;
     height: 12px;
     background: #05FF00;
@@ -28,6 +28,22 @@
     left: 28px;
     top: 26px;
     border: 2px solid var(--main-1);
+}
+
+.state-circle.online {
+    background: #05FF00;
+}
+
+.state-circle.away {
+    background: #F0E62E;
+}
+
+.state-circle.do-not-disturb {
+    background: #F21F1F;
+}
+
+.state-circle.offline {
+    background: #B3B3B3;
 }
 
 .name-status {

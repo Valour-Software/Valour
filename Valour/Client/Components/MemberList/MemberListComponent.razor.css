@@ -2,4 +2,16 @@
     overflow-y: scroll;
     overflow-x: hidden;
     height: 100%;
+    padding: 1em;
+}
+
+.role-title {
+    margin-top: 1em;
+    margin-bottom: 0.25em;
+}
+
+.role-underline {
+    height: 2px;
+    width: 100%;
+    margin-bottom: 0.5em;
 }
