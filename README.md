@@ -5,6 +5,8 @@
 ### Valour is an open-source, modern chat client designed by communities for communities.
 <br/>
 
+![Open Planet Platform View](Valour/Web/wwwroot/media/images/in-planet.png)
+
 ## Design
 
 Valour is designed to be as flexible as possible - with a client built atop an official API for use in bots and applications. Valour is open-source, and your personal client can be as creative as your imagination allows. We believe in an open ecosystem for Valour - and hold bot authors to follow in our transparency to respect user data and privacy.
@@ -19,7 +21,9 @@ Valour's client allows you to open multiple chats at once - even across several 
 
 ### Planets and Communities
 
-Planets are the communities of Valour, allowing you to build your ideas and foster strong interactions. With role management and per-channel permissions, you can ensure that your community is managed how you see fit. 
+Planets are the communities of Valour, allowing you to build your ideas and foster strong interactions. With role management and per-channel permissions, you can ensure that your community is managed how you see fit.
+
+![Open Planet Platform View](Valour/Web/wwwroot/media/images/home-screen.png)
 
 <br/>
 
