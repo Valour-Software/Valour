@@ -18,6 +18,8 @@
     padding-left: 5px;
     padding-right: 5px;
     margin: 0px;
+    max-height: 50vh;
+    overflow: auto;
 }
 
 .blazor-context-menu__seperator {

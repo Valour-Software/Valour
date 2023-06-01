@@ -1,25 +1,3 @@
 ﻿.friend-container {
-    padding: 20px;
-}
-
-.friend-list {
-    
-}
-
-.friend-title {
-    margin: 0px;
-    margin-top: 12px;
-    margin-bottom: 5px;
-    font-family: Ubuntu;
-    font-style: normal;
-    font-weight: 500;
-    font-size: 14px;
-    text-decoration-line: underline;
-    color: #7A7A7A;
-    text-align: center;
-    width: 100%;
-}
-
-.friend-card {
-    
+    padding: 1em;
 }

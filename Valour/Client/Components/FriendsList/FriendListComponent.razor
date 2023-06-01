@@ -1,5 +1,6 @@
 ﻿<div class="friend-container">
-    <p class="subtitle text-center mb-2">Friends</p>
+    <p class="subtitle mb-2">Friends</p>
+    <div class="v-gradient-underline"></div>
     <div>
         @{
             var firstId = _friends.FirstOrDefault()?.Id;
@@ -7,17 +8,7 @@
             
             
             <Virtualize Items="@_friends">
-                @{
-                    string classList = "";
-
-                    if (context.Id == firstId)
-                        classList += " top";
-
-                    if (context.Id == lastId)
-                        classList += " bottom";
-
-                    <FriendComponent User="@context" PositionClass="@classList" @key="context.Id"></FriendComponent>
-                }
+                <UserInfoComponent User="@context" @key="@context.Id" />
             </Virtualize>
         }
     </div>

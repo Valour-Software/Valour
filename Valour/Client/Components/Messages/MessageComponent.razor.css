@@ -121,6 +121,11 @@
     margin-right: 4px;
 }
 
+.message .name-role-holder {
+    display: flex;
+    max-width: 100%;
+}
+
 .message .author-name {
     display: inline-block;
     font-family: Ubuntu;
@@ -139,6 +144,9 @@
     line-height: 25px;
     display: inline-block;
     margin: 0px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .message .left-info {

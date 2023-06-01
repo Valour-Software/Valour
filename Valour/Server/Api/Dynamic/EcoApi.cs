@@ -190,7 +190,7 @@ public class EcoApi
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
             return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
         
-        var accounts = await ecoService.GetPlanetPlanetAccountsAsync(planetId);
+        var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId);
         return Results.Json(accounts);
     }
 
