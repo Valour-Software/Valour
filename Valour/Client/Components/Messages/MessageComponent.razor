@@ -10,36 +10,15 @@
 <div class="message-outer">
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
         <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
-            <div id="@Id" class="@Class" tabindex='0'>
+            <div id="@Id" class="@_class" tabindex='0'>
                 <div class="left-info">
                     @if (!Minimal)
                     {
                         <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
                     }
                     <div class="time-container">
-                        @{
-                            var hourssentago = (DateTime.UtcNow - MessageData.Message.TimeSent).TotalHours;
-                            var locattime = MessageData.Message.TimeSent.ToLocalTime();
-                            var titlefortime = locattime.ToShortDateString().Replace("00", "") + " " + locattime.ToShortTimeString();
-                            @if (hourssentago >= 24 && hourssentago <= 48)
-                            {
-                                titlefortime = $"Yesterday at {locattime.ToShortTimeString()}";
-                            }
-                        }
-                        <p class="time" title="@titlefortime">
-                            @if (hourssentago >= 24 && hourssentago <= 48)
-                            {
-                                @($"Yesterday")
-                            }
-                            else if (hourssentago >= 24)
-                            {
-                                @($"{locattime.ToShortDateString().Replace("00", "")}")
-                            }
-                            else
-                            {
-                                @locattime.ToShortTimeString().Replace(' ', '\0')
-                            }
-
+                        <p class="time" title="@_timeTitle">
+                            @_timeText
                         </p>
                     </div>
                 </div>
@@ -160,37 +139,62 @@
 
     public string name = "User not Found";
 
+    private string _timeTitle = "";
+    private string _timeText = "";
+
     public bool Edit = false;
 
     bool mentioned = false;
 
     bool IsBuilt = false;
 
-    public string Class
+    private string _class = "message";
+
+    private void CalculateClass()
     {
-        get
+        _class = "message";
+
+        if (Minimal)
+            _class += " minimal";
+
+        if (mentioned)
+            _class += " mentioned";
+
+        if (Edit)
+            _class += " edit";
+
+        if (IsInnerReply)
+            _class += " reply";
+
+        if (Ghost)
+            _class += " ghost";
+
+        if (ReplyMessage is not null)
+            _class += " hasreply";
+    }
+
+    private void CalculateTime()
+    {
+        var hoursAgo = (DateTime.UtcNow - MessageData.Message.TimeSent).TotalHours;
+        var localTime = MessageData.Message.TimeSent.ToLocalTime();
+
+        if (hoursAgo >= 24)
         {
-            string _class = "message";
-
-            if (Minimal)
-                _class += " minimal";
-
-            if (mentioned)
-                _class += " mentioned";
-
-            if (Edit)
-                _class += " edit";
-
-            if (IsInnerReply)
-                _class += " reply";
-
-            if (Ghost)
-                _class += " ghost";
-
-            if (ReplyMessage is not null)
-                _class += " hasreply";
-
-            return _class;
+            if (hoursAgo <= 48)
+            {
+                _timeTitle = $"Yesterday at {localTime.ToShortTimeString()}";
+                _timeText = "Yesterday";
+            }
+            else
+            {
+                _timeTitle = localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
+                _timeText = $"{localTime.ToShortDateString().Replace("00", "")}";
+            }
+        }
+        else
+        {
+            _timeTitle = localTime.ToShortDateString().Replace("00", "") + " " + localTime.ToShortTimeString();
+            _timeText = localTime.ToShortTimeString().Replace(' ', '\0');
         }
     }
 
@@ -302,6 +306,9 @@
         nameColor = await MessageData.Message.GetAuthorColorAsync();
         nameTag = await MessageData.Message.GetAuthorTagAsync();
         pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
+        
+        CalculateClass();
+        CalculateTime();
 
         IsBuilt = true;
         ReRender();

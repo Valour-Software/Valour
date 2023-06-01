@@ -19,11 +19,11 @@
     padding-right: 5px;
     margin: 0px;
     max-height: 50vh;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .blazor-context-menu__seperator {
-    min-width: 120px;
     color: #333;
     position: relative;
 }
@@ -39,23 +39,25 @@
 }
 
 .blazor-context-menu__item--default {
-    min-width: 120px;
-    padding: 6px;
+    padding: 4px;
     text-align: left;
     white-space: nowrap;
     position: relative;
     cursor: pointer;
 }
 
-    .blazor-context-menu__item--default:hover {
-        background-color: rgba(0,0,0,.05);
-    }
+.blazor-context-menu__item--default:hover {
+    background-color: rgba(0,0,0,.05);
+}
 
+.blazor-context-menu__item--with-submenu {
+    padding-right: 20px;
+}
 
 .blazor-context-menu__item--with-submenu:after {
     content: "";
     position: absolute;
-    right: -8px;
+    right: 0;
     top: 50%;
     -webkit-transform: translateY(-50%);
     transform: translateY(-50%);

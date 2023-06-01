@@ -5,10 +5,10 @@
 @using Valour.TenorTwo.Models
 @using Valour.TenorTwo.Responses
 
-<div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg" class="tenor-bg">
+<div style="display: @(_visible ? "absolute" : "none")" id="tenor-bg-@ChannelWindow.Id" class="tenor-bg">
     <input @bind="_searchTerm" @bind:event="oninput" @onkeyup="OnSearchChange" class="form-control mb-2" placeholder="Search Tenor..." />
     <div class="masonry-scroller">
-        <div id="masonry-root">
+        <div id="masonry-root-@ChannelWindow.Id" class="masonry-root">
             @if (SearchResults?.Results is not null)
             {
                 foreach (var result in SearchResults.Results)
@@ -174,7 +174,7 @@
         {
             _thisRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Upload/TenorMenuComponent.razor.js");
-            await _jsModule.InvokeVoidAsync("setupHide", "tenor-bg", _thisRef);
+            await _jsModule.InvokeVoidAsync("setupHide", "tenor-bg-" + ChannelWindow.Id, _thisRef);
         }
         
         await BuildMasonry();
@@ -182,13 +182,13 @@
 
     public async Task FocusAndScroll()
     {
-        await _jsModule.InvokeVoidAsync("focusAndScroll", "masonry-root");
+        await _jsModule.InvokeVoidAsync("focusAndScroll", "masonry-root-" + ChannelWindow.Id);
     }
 
     public async Task BuildMasonry()
     {
         if (_jsModule is not null)
-            await _jsModule.InvokeVoidAsync("buildMasonry", "masonry-root");
+            await _jsModule.InvokeVoidAsync("buildMasonry", "masonry-root-" + ChannelWindow.Id);
     }
     
     public async Task Show()
