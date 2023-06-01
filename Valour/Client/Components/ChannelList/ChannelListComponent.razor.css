@@ -1,0 +1,55 @@
+/* Entire Thing */
+.full-channel-list {
+    padding: 10px;
+}
+
+/* Channel wrapper */
+
+::deep .channel {
+    cursor: pointer;
+    display: flex;
+}
+
+::deep .channel:nth-child(1) {
+    margin-top: 2px;
+}
+
+::deep .channel:hover {
+    background: rgba(255, 255, 255, 0.075);
+}
+
+::deep .channel .open {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+::deep .channel .open:hover {
+    background: rgba(255, 255, 255, 0.125);
+}
+
+::deep .channel .name {
+    font-family: Ubuntu, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 16px;
+    line-height: 21px;
+    color: #FFFFFF;
+    margin-top: 2px;
+    margin-left: 8px;
+    vertical-align: top;
+    display: inline-block;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Sub list */
+
+::deep .channel .sub-list {
+    
+}
+
+/* Icons */
+
+::deep .channel .chat-icon {
+    margin-left: 8px;
+    display: inline-block;
+}

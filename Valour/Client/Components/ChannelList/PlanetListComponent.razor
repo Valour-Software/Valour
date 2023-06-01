@@ -22,13 +22,13 @@
                 {
                     @foreach (PlanetCategory category in TopCategories)
                     {
-                        <ChannelListCategoryComponent Categories="Categories"
+                        <CategoryListComponent Categories="Categories"
                                                       Channels="Channels"
                                                       VoiceChannels="VoiceChannels"
                                                       Category="category"
                                                       IsTopLevel="true"
                                                       @key='category.Id'>
-                        </ChannelListCategoryComponent>
+                        </CategoryListComponent>
                     }
 
                 }

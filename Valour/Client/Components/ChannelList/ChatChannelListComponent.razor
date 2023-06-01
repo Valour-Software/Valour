@@ -29,7 +29,7 @@
                     }
                 }
             </div>
-            <p class="channel-name">
+            <p class="name">
                 @Channel.Name
             </p>
         </div>
@@ -42,7 +42,7 @@
     public PlanetChatChannel Channel { get; set; }
 
     [Parameter]
-    public ChannelListCategoryComponent ParentCategory { get; set; }
+    public CategoryListComponent ParentCategory { get; set; }
 
     public bool AnyUnread { get; set; }
 

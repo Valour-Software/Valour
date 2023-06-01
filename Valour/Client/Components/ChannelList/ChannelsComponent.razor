@@ -1,0 +1,57 @@
+@* Context menu trigger. Wraps the entire menu, clicking on a specific
+   item sets the actual target. This keeps elements down. *@
+<ContextMenuTrigger
+    MouseButtonTrigger="MouseButtonTrigger.ContextOrHold"
+    MenuId='list-context'>
+    
+    @* Magic list building *@
+
+    <SortableWrapper>
+        
+    </SortableWrapper>
+    
+    @* Actual content *@
+    <div class="channel">
+        <div class="channel-row">
+            @* Channel Icon *@
+
+        </div>
+    </div>
+
+</ContextMenuTrigger>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+    
+    
+
+    /* Possible values */
+    private PlanetCategory _categories;
+    private PlanetChatChannel _chatChannels;
+    private PlanetVoiceChannel _voiceChannels;
+
+    protected override Task OnInitializedAsync()
+    {
+        return base.OnInitializedAsync();
+    }
+
+    // Generates the entire list structure
+    public async Task BuildList()
+    {
+        
+    }
+        
+        
+
+
+    private string GetIconSource(PlanetChannel channel)
+    {
+
+    }
+    
+    private async Task SetContextTarget(PlanetChannel channel)
+    {
+        await ChannelListContextMenuComponent.SetSelectedItem(channel);
+    }
+}

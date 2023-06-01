@@ -19,8 +19,8 @@ namespace Valour.Client.Components.ChannelList
         public PlanetChannel currentDragItem;
 
         // Only of of these should be non-null at a time
-        public ChannelListCategoryComponent currentDragParentCategory;
-        public ChannelListPlanetComponent currentDragParentPlanet;
+        public CategoryListComponent currentDragParentCategory;
+        public PlanetListComponent currentDragParentPlanet;
 
         /// <summary>
         /// Run when an item is clicked within a category
@@ -28,7 +28,7 @@ namespace Valour.Client.Components.ChannelList
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
         public void OnItemClickInCategory(PlanetChannel item, 
-                                          ChannelListCategoryComponent parent)
+                                          CategoryListComponent parent)
         {
             SetTargetInCategory(item, parent);
             Console.WriteLine($"Click for {item.GetHumanReadableName()} {item.Name} at position {currentDragIndex}");
@@ -40,7 +40,7 @@ namespace Valour.Client.Components.ChannelList
         /// <param name="item">The item that was clicked</param>
         /// <param name="parent">The parent category of the item that was clicked</param>
         public void OnItemStartDragInCategory(PlanetChannel item,
-                                              ChannelListCategoryComponent parent)
+                                              CategoryListComponent parent)
         {
             SetTargetInCategory(item, parent);
             Console.WriteLine($"Starting drag for {item.GetHumanReadableName()} {item.Name} at position {currentDragIndex}");
@@ -52,7 +52,7 @@ namespace Valour.Client.Components.ChannelList
         /// <param name="item">The item</param>
         /// <param name="parent">The parent category</param>
         public void SetTargetInCategory(PlanetChannel item,
-                                        ChannelListCategoryComponent parent)
+                                        CategoryListComponent parent)
         {
             currentDragIndex = 0;
 
@@ -70,7 +70,7 @@ namespace Valour.Client.Components.ChannelList
         /// Run when an item is dropped on a planet
         /// </summary>
         /// <param name="target">The planet component that the item was dropped onto</param>
-        public async Task OnItemDropOnPlanet(ChannelListPlanetComponent target)
+        public async Task OnItemDropOnPlanet(PlanetListComponent target)
         {
             // Insert item into the next slot in the category
             if (target == null)
@@ -102,7 +102,7 @@ namespace Valour.Client.Components.ChannelList
         /// Run when an item is dropped on a category
         /// </summary>
         /// <param name="target">The category component that the item was dropped onto</param>
-        public async Task OnItemDropOnCategory(ChannelListCategoryComponent target)
+        public async Task OnItemDropOnCategory(CategoryListComponent target)
         {
             // Insert item into the next slot in the category
             if (target == null)
@@ -136,7 +136,7 @@ namespace Valour.Client.Components.ChannelList
         }
 
         // TODO: Merge this and below into one function using some inheritance on the components
-        public async Task OnItemDropOnVoiceChannel(ChannelListVoiceChannelComponent target)
+        public async Task OnItemDropOnVoiceChannel(VoiceChannelListComponent target)
         {
             if (target == null)
                 return;
@@ -180,7 +180,7 @@ namespace Valour.Client.Components.ChannelList
             Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
         }
 
-        public async Task OnItemDropOnChatChannel(ChannelListChatChannelComponent target)
+        public async Task OnItemDropOnChatChannel(ChatChannelListComponent target)
         {
             if (target == null)
                 return;

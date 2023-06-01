@@ -7,30 +7,28 @@
 
 <div @onpointerdown:stopPropagation='true'>
     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='async () => await ChannelListContextMenuComponent.SetSelectedItem(Category)'>
-        <div class="@Chosen_CSS"
+        <div class="channel"
             id="@Category.Id">
-            <div style="cursor:pointer" id="@Category.Id">
-                <div draggable="true" ondragover="event.preventDefault();" class="header"
+            <div draggable="true" ondragover="event.preventDefault();" class="header"
                 @onclick="OnClick"
                 @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
                 @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)">
-                    <div>
-                        @if (DetermineUnread(Category)) {
-                            <img class="arrow" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
-                        }
-                        else {
-                            <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
-                        }
-                        <p class="name">
-                            @Category.Name
-                        </p>
-                    </div>
+                <div>
+                    @if (DetermineUnread(Category)) {
+                        <img class="arrow" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
+                    }
+                    else {
+                        <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
+                    }
+                    <p class="name">
+                        @Category.Name
+                    </p>
                 </div>
             </div>
-            <!-- The Modal -->
+                <!-- The Modal -->
             @if (IsOpen)
             {
-                <div class="channel-list" ondragover="event.preventDefault();">
+                <div class="sub-list" ondragover="event.preventDefault();">
                     @foreach (var item in ItemList)
                     {
                         
@@ -39,7 +37,7 @@
                             PlanetChatChannel channel = item as PlanetChatChannel;
                             if (channel.ParentId == Category.Id)
                             {
-                                <ChannelListChatChannelComponent @key='channel.Id' ParentCategory="this" Channel="channel"></ChannelListChatChannelComponent>
+                                <ChatChannelListComponent @key='channel.Id' ParentCategory="this" Channel="channel"></ChatChannelListComponent>
                             }
                         }
                         /* // Un-comment when voice is production ready
@@ -47,7 +45,7 @@
                             PlanetVoiceChannel channel = item as PlanetVoiceChannel;
                             if (channel.ParentId == Category.Id)
                             {
-                                <ChannelListVoiceChannelComponent @key='channel.Id' ParentCategory="this" Channel="channel"></ChannelListVoiceChannelComponent>
+                                <VoiceChannelListComponent @key='channel.Id' ParentCategory="this" Channel="channel"></VoiceChannelListComponent>
                             }
                         }
                         */
@@ -56,7 +54,7 @@
                             PlanetCategory planetcategory = item as PlanetCategory;
                             @if (planetcategory.ParentId == Category.Id)
                             {
-                                <ChannelListCategoryComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" VoiceChannels="VoiceChannels" ChannelWindow="ChannelWindow"></ChannelListCategoryComponent>
+                                <CategoryListComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" VoiceChannels="VoiceChannels" ChannelWindow="ChannelWindow"></CategoryListComponent>
                             }
                         }
                     }
@@ -87,7 +85,7 @@
     public ChatChannelWindow ChannelWindow { get; set; }
 
     [Parameter]
-    public ChannelListCategoryComponent ParentCategory { get; set; }
+    public CategoryListComponent ParentCategory { get; set; }
 
     public List<PlanetChatChannel> ChildChannels { get; set; }
     public List<PlanetVoiceChannel> ChildVoiceChannels { get; set; }
@@ -197,29 +195,6 @@
             else
             {
                 return "";
-            }
-        }
-    }
-
-    public string Chosen_CSS
-    {
-        get
-        {
-            if (IsOpen)
-            {
-                if (IsTopLevel)
-                {
-                    return "category is-open top-level-category";
-                }
-                return "category is-open";
-            }
-            else
-            {
-                if (IsTopLevel)
-                {
-                    return "category top-level-category";
-                }
-                return "category";
             }
         }
     }
