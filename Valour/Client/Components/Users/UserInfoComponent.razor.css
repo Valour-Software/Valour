@@ -2,8 +2,6 @@
     display: flex;
     flex-direction: row;
     max-width: 100%;
-    background-color: var(--main-4);
-    border-radius: 5px;
     justify-content: space-between;
 }
 
@@ -45,7 +43,6 @@
 .username {
     font-family: Ubuntu, sans-serif;
     font-style: normal;
-    font-weight: bold;
     font-size: 14px;
     text-overflow: ellipsis;
     overflow: hidden;

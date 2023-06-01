@@ -6,7 +6,7 @@
 }
 
 <ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline'>
-    <div class="user-info">
+    <div class="user-info" style="@Style">
         <div class="left-block">
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
@@ -43,6 +43,9 @@
     // for role color and syncing
     [Parameter]
     public PlanetMember Member { get; set; }
+    
+    [Parameter]
+    public string Style { get; set; }
     
     // The type, either "user" or "member"
     private string _type = "user";

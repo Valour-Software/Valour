@@ -8,15 +8,15 @@
             
             <Virtualize Items="@_friends">
                 @{
-                    string classList = "";
+                    string style = "background-color: var(--main-4);";
 
                     if (context.Id == firstId)
-                        classList += " top";
+                        style += "border-top-left-radius: 0.5em; border-top-right-radius: 0.5em;";
 
                     if (context.Id == lastId)
-                        classList += " bottom";
+                        style += "border-bottom-left-radius: 0.5em; border-bottom-right-radius: 0.5em;";
 
-                    <FriendComponent User="@context" PositionClass="@classList" @key="context.Id"></FriendComponent>
+                    <UserInfoComponent User="@context" Style="@style" @key="@context.Id" />
                 }
             </Virtualize>
         }
