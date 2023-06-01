@@ -153,6 +153,8 @@
         ModelObserver<PlanetRole>.OnAnyDeleted += OnRoleDeletion;
         ModelObserver<PlanetMember>.OnAnyUpdated += OnMemberUpdate;
         ModelObserver<PlanetMember>.OnAnyDeleted += OnMemberDelete;
+        ModelObserver<PlanetRoleMember>.OnAnyUpdated += OnRoleMembershipUpdate;
+        ModelObserver<PlanetRoleMember>.OnAnyDeleted += OnRoleMembershipDelete;
 
         var reloadTask = Task.Run(async () =>
         {
@@ -185,9 +187,22 @@
         UserCache.Remove(member.Id);
         StateHasChanged();
     }
+
+    private async Task OnRoleMembershipUpdate(ModelUpdateEvent<PlanetRoleMember> eventData)
+    {
+        await OnRoleModified(MemberList.FirstOrDefault(x => x.Id == eventData.Model.MemberId));
+    }
+
+    private async Task OnRoleMembershipDelete(PlanetRoleMember roleMember)
+    {
+        await OnRoleModified(MemberList.FirstOrDefault(x => x.Id == roleMember.MemberId));
+    }
     
     public async Task OnRoleModified(PlanetMember member)
     {
+        if (member is null)
+            return;
+        
         var lastRole = LastMemberRoles[member.Id];
         var newRole = await DetermineDisplayRoleId(member);
 
