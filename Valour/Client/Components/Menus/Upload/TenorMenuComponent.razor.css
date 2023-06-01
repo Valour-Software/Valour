@@ -21,7 +21,7 @@
     padding: 5px 9px;
 }
 
-#masonry-root {
+.masonry-root {
     overflow-y: auto;
     margin-top: 10px;
     width: 100%;
@@ -36,13 +36,13 @@
     height: 90%;
 }
 
-#masonry-root .masonry-cell {
+.masonry-root .masonry-cell {
     flex: 1;
     position: relative;
     cursor: pointer;
 }
 
-#masonry-root .masonry-cell .item {
+.masonry-root .masonry-cell .item {
     object-fit: cover;
     border-radius: 10px;
     margin-bottom: 10px;
@@ -62,7 +62,7 @@
     text-shadow: black 0px 0px 6px;
 }
 
-#masonry-root .masonry-cell:hover .item {
+.masonry-root .masonry-cell:hover .item {
     border: 5px solid var(--v-cyan);
 }
 

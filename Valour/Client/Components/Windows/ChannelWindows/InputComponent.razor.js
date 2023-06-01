@@ -250,3 +250,7 @@ export function injectElement(text, covertext, classlist, stylelist, id) {
     
     input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
 }
+
+export function OpenUploadFile(windowId){
+    document.getElementById(`upload-core-${windowId}`).click();
+}

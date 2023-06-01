@@ -112,12 +112,8 @@ export function buildMasonry(rootId) {
     root.element.style.maxHeight = masonryHeight + 17 + 'px';
 }
 
-export var dotnet = null;
-
 export function setupHide(elementId, dotnetRef) {
-    dotnet = dotnetRef;
-    
-    const handler = function(e){
+    document.addEventListener('mousedown', function handler(e) {
         // Allow tenor button
         if (e.target.classList.contains('tenor')) {
             return;
@@ -136,11 +132,9 @@ export function setupHide(elementId, dotnetRef) {
 
         // Close the menu if the target was not us or the upload
         // button
-        dotnet.invokeMethodAsync('Hide').catch((err) => {
-            document.removeEventListener('click', handler);
+        dotnetRef.invokeMethodAsync('Hide').catch((err) => {
+            document.removeEventListener('mousedown', handler);
             console.log("Cleaning up old Tenor Menu event");
         });
-    }
-    
-    document.addEventListener('click', handler);
+    });
 }
