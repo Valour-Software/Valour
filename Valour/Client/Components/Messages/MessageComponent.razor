@@ -152,25 +152,27 @@
 
     private void CalculateClass()
     {
-        _class = "message";
+        var newClass = "message";
 
         if (Minimal)
-            _class += " minimal";
+            newClass += " minimal";
 
         if (mentioned)
-            _class += " mentioned";
+            newClass += " mentioned";
 
         if (Edit)
-            _class += " edit";
+            newClass += " edit";
 
         if (IsInnerReply)
-            _class += " reply";
+            newClass += " reply";
 
         if (Ghost)
-            _class += " ghost";
+            newClass += " ghost";
 
         if (ReplyMessage is not null)
-            _class += " hasreply";
+            newClass += " hasreply";
+
+        _class = newClass;
     }
 
     private void CalculateTime()
@@ -296,6 +298,9 @@
         if (!IsInnerReply)
             mentioned = await MessageData.Message.CheckIfMentioned();
 
+        CalculateClass();
+        CalculateTime();
+        
         if (Minimal)
         {
             IsBuilt = true;
@@ -306,9 +311,6 @@
         nameColor = await MessageData.Message.GetAuthorColorAsync();
         nameTag = await MessageData.Message.GetAuthorTagAsync();
         pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
-        
-        CalculateClass();
-        CalculateTime();
 
         IsBuilt = true;
         ReRender();
