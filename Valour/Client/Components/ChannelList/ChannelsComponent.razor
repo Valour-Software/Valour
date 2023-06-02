@@ -6,52 +6,157 @@
     
     @* Magic list building *@
 
-    <SortableWrapper>
-        
-    </SortableWrapper>
-    
-    @* Actual content *@
-    <div class="channel">
-        <div class="channel-row">
-            @* Channel Icon *@
-
-        </div>
-    </div>
+    @if (TopChannel is not null)
+    {
+        <SortableWrapper OnDataChanged="@OnSortingChange">
+            @_channelFragment(TopChannel)
+        </SortableWrapper>
+    }
 
 </ContextMenuTrigger>
 
 @code {
+
+    private RenderFragment<NestedChannel> _channelFragment = nestedData =>
+        // We stop propagation to prevent the context menu from bubbling up to parents
+        @<Sortable TItem="NestedChannel" Items="@nestedData.Children" Class="channels-sortable" Options="@nestedData.Options">
+            <Template Context="item">
+                @* Case for top level category *@
+                @if (item.Channel is null)
+                {
+                    @item.ListComponent._channelFragment(item)
+                }
+                else
+                {
+                    Console.WriteLine("CHANNEL: null:" + (item.Channel is null) + " name:" + item.Channel?.Name + " parent:" + item.Channel?.ParentId + " id:" + item.Channel?.Id);
+                    
+                    <div class="channel-wrapper">
+                        <div class="channel-bar">
+                            <img alt="Channel Icon" class="icon" src="@item.IconSource"/>
+                            <p>@item.Channel.Name</p>
+                        </div>
+                        <div class="children">
+                            @if (item.Children is not null && item.Children.Count > 0)
+                            {
+
+                            }
+                        </div>
+                    </div>
+                }
+            </Template>
+        </Sortable>;
+
+    public class NestedChannel
+    {
+        public PlanetChannel Channel;
+        public List<NestedChannel> Children;
+        public object Options;
+        
+        public ChannelsComponent ListComponent;
+
+        // Calculated
+        public string IconSource;
+        public bool IsUnread;
+
+        public NestedChannel(PlanetChannel channel, object options, ChannelsComponent listComponent)
+        {
+            Channel = channel;
+            Options = options;
+            ListComponent = listComponent;
+        }
+        
+        public async Task LoadChildren(List<NestedChannel> children = null)
+        {
+            if (Channel is not null && Channel is not PlanetCategory)
+                return;
+
+            if (children is not null)
+            {
+                Children = children;
+            }
+            else
+            {
+                Children = ListComponent.AllChannels
+                    .Where(x => x.ParentId == Channel.Id)
+                    .Select(x => new NestedChannel(x, Options, ListComponent))
+                    .ToList();
+            }
+
+            foreach (var child in Children)
+            {
+                await child.LoadChildren();
+            }
+
+            // We load ourself after our children because it's easier to know if we are unread
+            await LoadSelf();
+        }
+        
+        public async Task LoadSelf()
+        {
+            
+        }
+    }
+    
     [Parameter]
     public Planet Planet { get; set; }
     
-    
+    public NestedChannel TopChannel;
 
     /* Possible values */
-    private PlanetCategory _categories;
-    private PlanetChatChannel _chatChannels;
-    private PlanetVoiceChannel _voiceChannels;
+    public List<PlanetChannel> AllChannels;
+    private List<PlanetCategory> _topCategories;
+    private List<PlanetCategory> _categories;
+    private List<PlanetChatChannel> _chatChannels;
+    private List<PlanetVoiceChannel> _voiceChannels;
 
-    protected override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
-        return base.OnInitializedAsync();
+        Planet = WindowManager.Instance.FocusedPlanet;
+        await BuildList();
     }
 
     // Generates the entire list structure
     public async Task BuildList()
     {
+        _categories = await Planet.GetCategoriesAsync();
+        _chatChannels = await Planet.GetChannelsAsync();
+        _voiceChannels = await Planet.GetVoiceChannelsAsync();
         
+        AllChannels = new List<PlanetChannel>();
+        AllChannels.AddRange(_categories);
+        AllChannels.AddRange(_chatChannels);
+        AllChannels.AddRange(_voiceChannels);
+
+        _topCategories = _categories.Where(x => x.ParentId == null).ToList();
+        
+        Console.WriteLine("TOP CATS: " + _topCategories.Count);
+        
+        var _options = new
+        {
+            group = "channel-list-" + Planet.Id
+        };
+        
+        // Prepare top level
+        TopChannel = new NestedChannel(null, _options, this);
+        
+        // Build entire list
+        var topChildren = _topCategories.Select(x => new NestedChannel(x, _options, this)).ToList();
+        Console.WriteLine("TOP CATS CHILDREN: " + topChildren.Count);
+        await TopChannel.LoadChildren(topChildren);
     }
         
+    private async Task OnSortingChange()
+    {
         
-
+    }
 
     private string GetIconSource(PlanetChannel channel)
     {
-
+        return "";
     }
     
-    private async Task SetContextTarget(PlanetChannel channel)
+    public async Task SetContextTarget(NestedChannel nested)
     {
-        await ChannelListContextMenuComponent.SetSelectedItem(channel);
+        await ChannelListContextMenuComponent.SetSelectedItem(nested.Channel);
     }
 }
