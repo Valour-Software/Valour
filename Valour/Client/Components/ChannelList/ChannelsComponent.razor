@@ -1,3 +1,6 @@
+@inject IJSRuntime JsRuntime
+@inject WindowManager WindowManager
+
 @* Context menu trigger. Wraps the entire menu, clicking on a specific
    item sets the actual target. This keeps elements down. *@
 <ContextMenuTrigger
@@ -16,48 +19,50 @@
 </ContextMenuTrigger>
 
 @code {
-
-    private RenderFragment<NestedChannel> _channelFragment = nestedData =>
+    /* Todo: At some point Blazor may support C# event handling inside of here, in which case this should be refactored */
+    private static RenderFragment<NestedChannel> _channelFragment = nestedData =>
         // We stop propagation to prevent the context menu from bubbling up to parents
-        @<Sortable TItem="NestedChannel" Items="@nestedData.Children" Class="channels-sortable" Options="@nestedData.Options">
-            <Template Context="item">
-                @* Case for top level category *@
-                @if (item.Channel is null)
-                {
-                    @item.ListComponent._channelFragment(item)
-                }
-                else
-                {
-                    Console.WriteLine("CHANNEL: null:" + (item.Channel is null) + " name:" + item.Channel?.Name + " parent:" + item.Channel?.ParentId + " id:" + item.Channel?.Id);
-                    
-                    <div class="channel-wrapper">
-                        <div class="channel-bar">
-                            <img alt="Channel Icon" class="icon" src="@item.IconSource"/>
-                            <p>@item.Channel.Name</p>
+        @<div onmousedown="onChannelListOuterDown">
+            <Sortable TItem="NestedChannel" Items="@nestedData.Children" Class="channels-sortable" Options="@nestedData.Options">
+                <Template Context="item">
+                    @* Case for top level category *@
+                    @if (item.Channel is null)
+                    {
+                        @_channelFragment(item)
+                    }
+                    else
+                    {
+                        <div class="channel-wrapper" onpointerdown="onChannelListContextClick(event, '@item.Channel.Id')">
+                            <div class="channel-bar" onclick="onChannelListItemClick(event,  '@item.Channel.Id')">
+                                <img alt="Channel Icon" class="icon" src="@item.IconSource"/>
+                                <p>@item.Channel.Name</p>
+                            </div>
+                            <div class="children">
+                                @_channelFragment(item)
+                            </div>
                         </div>
-                        <div class="children">
-                            @if (item.Children is not null && item.Children.Count > 0)
-                            {
-
-                            }
-                        </div>
-                    </div>
-                }
-            </Template>
-        </Sortable>;
+                    }
+                </Template>
+            </Sortable>
+        </div>;
 
     public class NestedChannel
     {
-        public PlanetChannel Channel;
-        public List<NestedChannel> Children;
-        public object Options;
+        public PlanetChannel Channel { get; set; }
+        public List<NestedChannel> Children { get; set; }
+        public object Options { get; set; }
         
-        public ChannelsComponent ListComponent;
+        private ChannelsComponent ListComponent;
 
         // Calculated
         public string IconSource;
         public bool IsUnread;
 
+        public NestedChannel()
+        {
+            
+        }
+        
         public NestedChannel(PlanetChannel channel, object options, ChannelsComponent listComponent)
         {
             Channel = channel;
@@ -67,24 +72,37 @@
         
         public async Task LoadChildren(List<NestedChannel> children = null)
         {
-            if (Channel is not null && Channel is not PlanetCategory)
-                return;
-
-            if (children is not null)
+            if (Channel is null)
             {
-                Children = children;
+                if (children is not null)
+                {
+                    Children = children;
+                    foreach (var child in Children)
+                    {
+                        await child.LoadChildren();        
+                    }
+                }
+                
+                return;
             }
-            else
+
+            // Categories load their children
+            if (Channel is PlanetCategory)
             {
                 Children = ListComponent.AllChannels
                     .Where(x => x.ParentId == Channel.Id)
+                    .OrderByDescending(x => x.Position)
                     .Select(x => new NestedChannel(x, Options, ListComponent))
                     .ToList();
-            }
 
-            foreach (var child in Children)
+                foreach (var child in Children)
+                {
+                    await child.LoadChildren();
+                }
+            }
+            else
             {
-                await child.LoadChildren();
+                Children = new List<NestedChannel>();
             }
 
             // We load ourself after our children because it's easier to know if we are unread
@@ -95,24 +113,51 @@
         {
             
         }
+
+        public async Task OnContext()
+        {
+            
+        }
     }
     
     [Parameter]
     public Planet Planet { get; set; }
     
+    /* Controls if this list will re-render */
+    private bool _shouldRender = false;
+    
+    /* The root channel object */
     public NestedChannel TopChannel;
 
-    /* Possible values */
+    /* Lists for channels and building */
     public List<PlanetChannel> AllChannels;
     private List<PlanetCategory> _topCategories;
     private List<PlanetCategory> _categories;
     private List<PlanetChatChannel> _chatChannels;
     private List<PlanetVoiceChannel> _voiceChannels;
+    
+    /* Js interop */
+    
+    /// <summary>
+    /// Dotnet object reference for use in Javascript
+    /// </summary>
+    private DotNetObjectReference<ChannelsComponent> _thisRef;
 
     protected override async Task OnInitializedAsync()
     {
         Planet = WindowManager.Instance.FocusedPlanet;
         await BuildList();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _thisRef = DotNetObjectReference.Create(this);
+            await JsRuntime.InvokeVoidAsync("setupChannelList", _thisRef);
+        }
+        
+        _shouldRender = false;
     }
 
     // Generates the entire list structure
@@ -133,16 +178,21 @@
         
         var _options = new
         {
-            group = "channel-list-" + Planet.Id
+            group = "channel-list-" + Planet.Id,
+            animation = 150,
         };
         
         // Prepare top level
         TopChannel = new NestedChannel(null, _options, this);
         
         // Build entire list
-        var topChildren = _topCategories.Select(x => new NestedChannel(x, _options, this)).ToList();
+        var topChildren = _topCategories.OrderByDescending(x => x.Position).Select(x => new NestedChannel(x, _options, this)).ToList();
         Console.WriteLine("TOP CATS CHILDREN: " + topChildren.Count);
         await TopChannel.LoadChildren(topChildren);
+        
+        Console.WriteLine(JsonSerializer.Serialize(TopChannel));
+
+        Render();
     }
         
     private async Task OnSortingChange()
@@ -154,9 +204,57 @@
     {
         return "";
     }
-    
-    public async Task SetContextTarget(NestedChannel nested)
+
+    private void Render()
     {
-        await ChannelListContextMenuComponent.SetSelectedItem(nested.Channel);
+        _shouldRender = true;
+        StateHasChanged();
     }
+
+    protected override bool ShouldRender() => _shouldRender;
+
+    /* JS Interop zone */
+    
+    /// <summary>
+    /// This is the event used to prepare the context menu
+    /// </summary>
+    [JSInvokable]
+    public async Task OnChannelListContextClick(string data)
+    {
+        if (!long.TryParse(data, out var channelId))
+            return;
+        
+        var channel = AllChannels.FirstOrDefault(x => x.Id == channelId);
+        if (channel is not null)
+            Console.WriteLine("Set context target to " + channel.Name);
+        await ChannelListContextMenuComponent.SetSelectedItem(channel);
+    }
+    
+    /// <summary>
+    /// This is the event used for actual click event handling
+    /// </summary>
+    [JSInvokable]
+    public async Task OnChannelListItemClick(string data)
+    {
+        if (!long.TryParse(data, out var channelId))
+            return;
+        
+        var clickedChannel = AllChannels.FirstOrDefault(x => x.Id == channelId);
+        if (clickedChannel is not null)
+            Console.WriteLine("Click event for " + clickedChannel.Name);
+
+        switch (clickedChannel)
+        {
+            case PlanetChatChannel clickedChatChannel:
+                var selectedWindow = WindowManager.GetSelectedWindow();
+                if (selectedWindow is ChatChannelWindow oldChatWindow &&
+                    oldChatWindow.Channel.Id != clickedChatChannel.Id)
+                {
+                    await oldChatWindow.Component.SwapChannel(clickedChatChannel);
+                    Render();
+                }
+                break;
+        }
+    }
+
 }
