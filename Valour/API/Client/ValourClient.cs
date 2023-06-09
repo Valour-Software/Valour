@@ -542,6 +542,9 @@ public static class ValourClient
         tasks.Add(planet.LoadChannelsAsync());
         tasks.Add(planet.LoadCategoriesAsync());
         tasks.Add(planet.LoadVoiceChannelsAsync());
+        
+        // Load permissions nodes
+        tasks.Add(planet.LoadPermissionsNodesAsync());
 
         // requesting/loading the data does not require data from other requests/types
         // so just await them all, instead of one by one

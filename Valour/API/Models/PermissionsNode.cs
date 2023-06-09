@@ -101,5 +101,24 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         await ValourCache.Put(Id, this);
         await ValourCache.Put((TargetId, (RoleId, TargetType)), this);
     }
+
+    public static async Task<List<PermissionsNode>> GetAllForPlanetAsync(long planetId)
+    {
+        var nodes = (await ValourClient.PrimaryNode.GetJsonAsync<List<PermissionsNode>>($"api/permissionsnodes/all/{planetId}")).Data;
+
+        var results = new List<PermissionsNode>();
+        
+        foreach (var node in nodes)
+        {
+            // Add or update in cache
+            await node.AddToCache();
+            
+            // Put cached node in results
+            results.Add(ValourCache.Get<PermissionsNode>(node.Id));
+        }
+        
+        // Return results
+        return results;
+    }
 }
 

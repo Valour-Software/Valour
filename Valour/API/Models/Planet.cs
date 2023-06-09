@@ -28,6 +28,7 @@ public class Planet : Item, ISharedPlanet
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
     private List<PlanetInvite> Invites { get; set; }
+    private List<PermissionsNode> PermissionsNodes { get; set; }
 
     /// <summary>
     /// The Id of the owner of this planet
@@ -438,6 +439,19 @@ public class Planet : Item, ISharedPlanet
             if (member is not null)
                 Members.Add(member);
         }
+    }
+
+    public async ValueTask<List<PermissionsNode>> GetPermissionsNodesAsync(bool refresh = false)
+    {
+        if (PermissionsNodes is null || refresh)
+            await LoadPermissionsNodesAsync();
+
+        return PermissionsNodes;
+    }
+
+    public async Task LoadPermissionsNodesAsync()
+    {
+        PermissionsNodes =  await PermissionsNode.GetAllForPlanetAsync(Id);
     }
 
     /// <summary>

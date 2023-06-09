@@ -1,10 +1,26 @@
+@using FastDragBlazor.Components
+@using System.Diagnostics
+
 @* Magic list building *@
 
 @if (_root is not null)
 {
-    <SortableWrapper OnDataChanged="@(() => InvokeAsync(StateHasChanged))">
-        <RecursiveChannelComponent Items="@_root" Planet="@Planet" />
-    </SortableWrapper>
+    <div class="channel-tab-wrapper">
+        <DragWrapper TItem="NestedChannel" TabSize="20" Class="channel-wrapper" UsePaddingTabs="true">
+            @foreach (var item in _ordered)
+            {
+                var _item = item;
+                <DragItem TItem="NestedChannel" Class="item" StartDepth="@item.Depth" Height="30" IsContainer="@item.IsCategory">
+                    <div class="channel" @onclick="_item.OnClicked">
+                        <img alt="@item.AltText" src="@item.IconUrl" />
+                        <p>@item.Channel.Name</p>
+                    </div>
+                </DragItem>
+            }
+        </DragWrapper>
+        <div class="channel-fade-left"></div>
+        <div class="channel-fade-right"></div>
+    </div>
 }
 
 @code {
@@ -13,11 +29,12 @@
     public Planet Planet { get; set; }
 
     /* The root channel object */
-    private List<NestedChannel> _root;
+    private List<NestedChannel> _root = new();
+    private List<NestedChannel> _ordered = new();
 
     /* Lists for channels and building */
-    private List<PlanetChannel> _allChannels;
-    private List<PlanetCategory> _topCategories;
+    private List<PlanetChannel> _allChannels = new();
+    private List<PlanetCategory> _topCategories = new();
     private List<PlanetCategory> _categories;
     private List<PlanetChatChannel> _chatChannels;
     private List<PlanetVoiceChannel> _voiceChannels;
@@ -42,31 +59,53 @@
         _chatChannels = await Planet.GetChannelsAsync();
         _voiceChannels = await Planet.GetVoiceChannelsAsync();
         
-        _allChannels = new List<PlanetChannel>();
+        _allChannels.Clear();
         _allChannels.AddRange(_categories);
         _allChannels.AddRange(_chatChannels);
         _allChannels.AddRange(_voiceChannels);
 
-        _topCategories = _categories.Where(x => x.ParentId == null).ToList();
-        
-        Console.WriteLine("TOP CATS: " + _topCategories.Count);
-        
-        var _options = new
+        _topCategories.Clear();
+        foreach (var cat in _categories)
         {
-            group = "channel-list-" + Planet.Id,
-            forceFallback = "true",
-            animation = 150,
-        };
+            if (cat.ParentId is null)
+                _topCategories.Add(cat);
+        }
+
+        Console.WriteLine("TOP CATS: " + _topCategories.Count);
+
+        Stopwatch sw = new();
+        sw.Start();
+
+        var defaultRole = await Planet.GetDefaultRoleAsync();
         
         // Build entire list
-        _root = _topCategories.OrderByDescending(x => x.Position).Select(x => new NestedChannel(x)).ToList();
+        _root = _topCategories.OrderByDescending(x => x.Position).Select(x => new NestedChannel(Planet, defaultRole, x)).ToList();
 
         foreach (var child in _root)
         {
             await child.LoadChildren(_allChannels);
         }
         
+        sw.Stop();
+        Console.WriteLine("Channel list structure built in " + sw.ElapsedMilliseconds);
+
+        _ordered.Clear();
+
+        foreach (var child in _root)
+        {
+            AddToOrdered(child);
+        }
+        
         StateHasChanged();
+    }
+
+    private void AddToOrdered(NestedChannel nested)
+    {
+        _ordered.Add(nested);
+        foreach (var child in nested.Children)
+        {
+            AddToOrdered(child);
+        }
     }
         
     private async Task OnSortingChange()

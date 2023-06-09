@@ -1,3 +1,50 @@
-.channel-wrapper {
-    
+.channel-tab-wrapper {
+}
+
+.channel-fade-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, var(--main-2) 80%);
+    margin-top: 200px;
+}
+
+.channel-fade-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--main-2) 20%, transparent 100%);
+    margin-top: 200px;
+}
+
+.channel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: max-content;
+    border-radius: 8px;
+    padding: 2px;
+    padding-left: 6px;
+    padding-right: 6px;
+    height: 100%;
+    margin-right: 16px;
+    cursor: pointer;
+}
+
+.__drag-item:hover .channel {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.channel img {
+
+}
+
+.channel p {
+    margin: 0;
+    margin-left: 8px;
+    white-space: nowrap;
 }

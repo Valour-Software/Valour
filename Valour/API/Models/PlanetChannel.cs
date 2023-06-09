@@ -25,7 +25,7 @@ public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     #endregion
 
     // Cached values
-    protected List<PermissionsNode> PermissionsNodes { get; set; }
+    protected List<PermissionsNode> PermissionsNodes { get; set; } = new();
 
     public int Position { get; set; }
     public long? ParentId { get; set; }
@@ -56,41 +56,25 @@ public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>
-    public virtual async Task LoadPermissionNodesAsync()
+    public virtual async Task LoadPermissionNodesAsync(bool refresh = false)
     {
-        var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
-        if (nodes is null)
-            return;
-
-        // Update cache values
-        foreach (var node in nodes)
+        var planet = await GetPlanetAsync();
+        var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
+        
+        PermissionsNodes.Clear();
+        foreach (var node in allPermissions)
         {
-            // Skip event for bulk loading
-            await ValourCache.Put(node.Id, node, true);
-        }
-
-        // Create container if needed
-        if (PermissionsNodes == null)
-            PermissionsNodes = new List<PermissionsNode>();
-        else
-            PermissionsNodes.Clear();
-
-        // Retrieve cache values (this is necessary to ensure single copies of items)
-        foreach (var node in nodes)
-        {
-            var cNode = ValourCache.Get<PermissionsNode>(node.Id);
-
-            if (cNode is not null)
-                PermissionsNodes.Add(cNode);
+            if (node.TargetId == Id)
+                PermissionsNodes.Add(node);
         }
     }
 
-    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, PermChannelType? type = null, bool force_refresh = false)
+    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, PermChannelType? type = null, bool refresh = false)
     {
         if (type is null)
             type = PermType;
 
-        if (PermissionsNodes is null || force_refresh)
+        if (PermissionsNodes is null || refresh)
             await LoadPermissionNodesAsync();
 
         return PermissionsNodes.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);

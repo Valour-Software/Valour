@@ -11,7 +11,7 @@
     <PackageReference Include="BlazorDateRangePicker" Version="4.3.0" />
     <PackageReference Include="Blazored.LocalStorage" Version="4.3.0" />
     <PackageReference Include="Blazored.Modal" Version="7.1.0" />
-    <PackageReference Include="BlazorSortableJs" Version="2.0.0-Preview2" />
+    <PackageReference Include="FastDragBlazor" Version="1.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.5" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />

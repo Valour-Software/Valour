@@ -18,6 +18,19 @@ public class PermissionsNodeApi
 
         return Results.Json(node);
     }
+    
+    // Returns ALL permissions nodes for a planet
+    [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/all/{planetId}")]
+    public static async Task<IResult> GetAllForPlanetAsync(
+        long planetId,
+        PermissionsNodeService permissionsNodeService)
+    {
+        var nodes = await permissionsNodeService.GetAllAsync(planetId);
+        if (nodes is null)
+            return ValourResult.NotFound<PermissionsNode>();
+
+        return Results.Json(nodes);
+    }
 
     [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{type}/{targetId}/{roleId}")]
     public static async Task<IResult> GetNodeForTargetRouteAsync(
