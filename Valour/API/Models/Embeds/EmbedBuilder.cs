@@ -271,7 +271,34 @@ public class EmbedBuilder
         return this;
 	}
 
-	public EmbedBuilder AddDropDownMenu(string id, string name = null, string value = "")
+	/// <summary>
+	/// Adds a piece of media to the embed. Width and Height can be overriden by the Height and Width styles.
+	/// </summary>
+	/// <param name="width"></param>
+	/// <param name="height"></param>
+	/// <param name="mimetype"></param>
+	/// <param name="filename"></param>
+	/// <param name="location">Must be either from https://media.tenor.com or https://cdn.valour.gg</param>
+	/// <returns></returns>
+	public EmbedBuilder AddMedia(int width, int height, string mimetype, string filename, string location)
+    {
+        var item = new EmbedMediaItem()
+        {
+            Attachment = new()
+            {
+                Width = width,
+                Height = height,
+                MimeType = mimetype,
+                FileName = filename,
+                Location = location
+            }
+        };
+
+        AddItem(item);
+        return this;
+    }
+
+    public EmbedBuilder AddDropDownMenu(string id, string name = null, string value = "")
 	{
 		var item = new EmbedDropDownMenuItem()
 		{

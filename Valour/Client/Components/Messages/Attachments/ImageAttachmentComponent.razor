@@ -1,5 +1,19 @@
 ﻿<div class="image-attachment-wrapper">
-    <img style="@_style" class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+    @if (Clickable)
+    {
+        <img style="@_style" class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+    }
+    else
+    {
+        @if (CustomStyle is not null)
+        {
+            <img style="@_style" class="attached-image" src="@Attachment.Location">
+        }
+        else
+        {
+            <img style="@_style" class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height"/>
+        }
+    }
 </div>
 
 @code {
@@ -11,11 +25,24 @@
     [Parameter]
     public MessageComponent MessageComponent { get; set; }
 
+    [Parameter]
+    public bool Clickable { get; set; } = true;
+
+    [Parameter]
+    public string? CustomStyle { get; set; }
+
     private string _style;
 
     protected override void OnInitialized()
     {
-        LoadStyle(300f);
+        if (CustomStyle is null)
+            LoadStyle(300f);
+        else
+        {
+            _style = CustomStyle;
+            if (!_style.Contains("margin"))
+                _style += "margin: 0px;";
+        }
     }
 
     public void LoadStyle(float maxSizePixels)

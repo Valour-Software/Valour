@@ -10,7 +10,9 @@ public class Height : StyleBase
     public static readonly Height Third = new Height(Size.Third);
     public static readonly Height Quarter = new Height(Size.Quarter);
 
-    [JsonPropertyName("s")]
+    public override StyleType StyleType => StyleType.Height;
+
+	[JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public Height(Size size)

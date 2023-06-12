@@ -11,6 +11,8 @@ using Valour.Shared.Models;
 using Valour.Server.Notifications;
 using Valour.Server.Services;
 using Valour.Server.Requests;
+using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Api.Models.Messages.Embeds;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -271,8 +273,6 @@ public class PlanetChatChannelApi
         return Results.Json(await channelService.GetMessagesAsync(channel, count, index));
     }
 
-    public static Regex _attachmentRejectRegex = new Regex("(^|.)(<|>|\"|'|\\s)(.|$)");
-
     [ValourRoute(HttpVerbs.Post, "api/chatchannels/{id}/messages")]
     [UserRequired(UserPermissionsEnum.Messages)]
     public static async Task<IResult> PostMessageRouteAsync(
@@ -333,6 +333,25 @@ public class PlanetChatChannelApi
         if (message.EmbedData != null && message.EmbedData.Length > 65535)
             return Results.BadRequest("EmbedData must be under 65535 chars");
 
+        if (message.EmbedData is not null)
+        {
+            // load embed to check for anti-valour propaganda (incorrect media URIs)
+            var embed = JsonSerializer.Deserialize<Embed>(message.EmbedData);
+            foreach (var page in embed.Pages)
+            {
+                foreach (var item in page.GetAllItems())
+                {
+                    if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                    {
+                        var at = ((EmbedMediaItem)item).Attachment;
+                        var result = MediaUriHelper.ScanMediaUri(at);
+                        if (!result.Success)
+                            return Results.BadRequest(result.Message);
+                    }
+                }
+            }
+        }
+
         if (message.Content is null)
             message.Content = "";
 
@@ -350,15 +369,9 @@ public class PlanetChatChannelApi
             {
                 foreach (var at in attachments)
                 {
-                    if (!at.Location.StartsWith("https://cdn.valour.gg") && 
-                        !at.Location.StartsWith("https://media.tenor.com"))
-                    {
-                        return Results.BadRequest("Attachments must be from https://cdn.valour.gg...");
-                    }
-                    if (_attachmentRejectRegex.IsMatch(at.Location))
-                    {
-                        return Results.BadRequest("Attachment location contains invalid characters");
-                    }
+                    var result = MediaUriHelper.ScanMediaUri(at);
+                    if (!result.Success)
+                        return Results.BadRequest(result.Message);
                 }
             }
         }

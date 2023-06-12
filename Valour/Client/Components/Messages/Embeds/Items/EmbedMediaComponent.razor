@@ -1,0 +1,69 @@
+﻿@using Valour.Api.Models.Messages.Embeds.Styles;
+@implements IDisposable
+@inject IJSRuntime JS
+@inherits BaseEmbedItemComponent
+
+<div style="@AdditionalDivStyle@item.GetStyle()">
+	@{
+		var par = new Dictionary<string, object>(){ 
+            { "Attachment", item.Attachment },
+			{ "MessageComponent", messageComponent }
+        };
+
+		if (item.Styles.Any(x => x.StyleType == StyleType.Width || x.StyleType == StyleType.Height))
+		{
+			par.Add("CustomStyle", item.GetStyle());
+			if (item.Attachment.GetAttachmentType() == AttachmentType.Image)
+			{
+				par.Add("Clickable", false);
+			}
+		}
+
+        <div class="attachment-wrapper">
+            <DynamicComponent Type="item.Attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+        </div>
+	}
+</div>
+
+@code {
+	public EmbedMediaItem item { get; set; }
+
+	[CascadingParameter]
+	public MessageComponent messageComponent { get; set; }
+
+	[CascadingParameter]
+	public IModalService Modal { get; set; }
+
+	public string AdditionalDivStyle
+	{
+		get
+		{
+			if (item.ClickTarget is not null)
+				return "cursor: pointer;";
+			return "";
+		}
+	}
+
+	protected override void OnInitialized()
+	{
+		item = (EmbedMediaItem)_item;
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
+		embedComponent.RefreshItemComponents += Refresh;
+	}
+
+	public void Dispose()
+    {
+        embedComponent.RefreshItemComponents -= Refresh;
+		if (item.Id is not null)
+            embedComponent.ItemComponents.Remove(item.Id, out var _);
+    }
+
+	public override void Refresh()
+	{
+		item = (EmbedMediaItem)_item;
+		if (item.Id is not null)
+			embedComponent.ItemComponents[item.Id] = this;
+		StateHasChanged();
+	}
+}

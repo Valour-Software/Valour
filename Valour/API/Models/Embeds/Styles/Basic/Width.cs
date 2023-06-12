@@ -10,7 +10,9 @@ public class Width : StyleBase
     public static readonly Width Third = new Width(Size.Third);
     public static readonly Width Quarter = new Width(Size.Quarter);
 
-    [JsonPropertyName("s")]
+	public override StyleType StyleType => StyleType.Width;
+
+	[JsonPropertyName("s")]
     public Size Size { get; set; }
 
     public Width(Size size)
