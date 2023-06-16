@@ -35,6 +35,10 @@ public enum StyleType {
 [JsonDerivedType(typeof(FlexWrap), typeDiscriminator: 24)]
 [JsonDerivedType(typeof(TextDecoration), typeDiscriminator: 25)]
 [JsonDerivedType(typeof(FontWeight), typeDiscriminator: 26)]
+[JsonDerivedType(typeof(MaxWidth), typeDiscriminator: 27)]
+[JsonDerivedType(typeof(MinWidth), typeDiscriminator: 28)]
+[JsonDerivedType(typeof(MaxHeight), typeDiscriminator: 27)]
+[JsonDerivedType(typeof(MinHeight), typeDiscriminator: 28)]
 public abstract class StyleBase
 {
 	public StyleBase() { }
