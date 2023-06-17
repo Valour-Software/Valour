@@ -10,14 +10,14 @@ namespace Valour.Api.Models;
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 [JsonDerivedType(typeof(PlanetCategory), typeDiscriminator: nameof(PlanetCategory))]
-public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
+public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrderedModel
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetItem.GetPlanetAsync(this, refresh);
+        IPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/channels";

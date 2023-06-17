@@ -15,7 +15,7 @@ namespace Valour.Api.Models;
 
 public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoiceChannel
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/voicechannels";
@@ -54,18 +54,6 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
             await item.AddToCache();
 
         return item;
-    }
-    
-    public override async Task OnUpdate(ModelUpdateEvent eventData)
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyVoiceChannelUpdateAsync(this, eventData);
-    }
-
-    public override async Task OnDelete()
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyVoiceChannelDeleteAsync(this);
     }
 
     /// <summary>

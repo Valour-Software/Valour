@@ -8,7 +8,7 @@ namespace Valour.Api.Models;
 
 public class User : Item, ISharedUser
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/users";

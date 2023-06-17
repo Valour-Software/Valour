@@ -96,7 +96,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         return permNode;
     }
 
-    public override async Task AddToCache()
+    public override async Task AddToCache<T>(T item)
     {
         await ValourCache.Put(Id, this);
         await ValourCache.Put((TargetId, (RoleId, TargetType)), this);

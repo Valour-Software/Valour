@@ -57,7 +57,7 @@
 <!-- If there's a role selected we show possible permissions that role can have
      for the channel or category -->
 <div class="perm-section">
-    <div class="perm-list-item">
+    <div class="perm-list-model">
         <div class="perm-list-name mb-1">
             Inherit Category Permissions
         </div>
@@ -96,7 +96,7 @@
             int i2 = i; // Prevent odd razor bug
             Permission perm = channelType.Permissions[i2];
 
-            <div class="perm-list-item">
+            <div class="perm-list-model">
                 <div class="perm-list-name mb-1">
                     @perm.Name
                 </div>

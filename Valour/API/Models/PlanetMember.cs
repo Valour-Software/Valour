@@ -12,14 +12,14 @@ namespace Valour.Api.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
+public class PlanetMember : Item, IPlanetModel, ISharedPlanetMember
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetItem.GetPlanetAsync(this, refresh);
+        IPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/members";
@@ -84,7 +84,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         await planet.NotifyMemberDeleteAsync(this);
     }
 
-    public override async Task AddToCache()
+    public override async Task AddToCache<T>(T item)
     {
         await ValourCache.Put(Id, this);
         await ValourCache.Put((PlanetId, UserId), this);

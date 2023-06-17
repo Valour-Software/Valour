@@ -24,5 +24,14 @@
 }
 
 .tab-container::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    width: 0;
+}
+
+.tab-container::-webkit-scrollbar-track {
+    background: var(--main-1);
+}
+
+.tab-container::-webkit-scrollbar-thumb {
+    border-color: var(--main-1);
+    background-color: var(--main-4);
 }

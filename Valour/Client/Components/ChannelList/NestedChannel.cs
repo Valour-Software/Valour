@@ -1,3 +1,5 @@
+using System.Collections.Specialized;
+using FastDragBlazor.Components;
 using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Client.Windows;
@@ -15,24 +17,64 @@ public class NestedChannel
     public string IconUrl { get; set; }
     public string AltText { get; set; }
     public bool IsUnread { get; set; }
+    public NestedChannel Parent { get; set; }
     public List<NestedChannel> Children { get; set; }
     public Planet Planet { get; set; }
     public PlanetRole DefaultRole { get; set; }
+    private ChannelsComponent _listComponent;
 
-    public bool IsShown { get; set; } = true;
-
-    public NestedChannel()
-    {
-        
-    }
+    public DragItem<NestedChannel> Component;
     
-    public NestedChannel(Planet planet, PlanetRole defaultRole, PlanetChannel channel, int depth = 0)
+
+    public NestedChannel(ChannelsComponent listComponent, Planet planet, PlanetRole defaultRole, PlanetChannel channel)
     {
         Planet = planet;
+        DefaultRole = defaultRole;
+        Channel = channel;
+        IsCategory = true;
+        _listComponent = listComponent;
+
+        ((PlanetCategory)channel).OnUpdated += OnChannelUpdate;
+    }
+    
+    public NestedChannel(NestedChannel parent, PlanetChannel channel, int depth = 0)
+    {
+        Parent = parent;
+        Planet = Parent.Planet;
         Depth = depth;
         Channel = channel;
         IsCategory = channel is PlanetCategory;
-        DefaultRole = defaultRole;
+        DefaultRole = Parent.DefaultRole;
+        _listComponent = Parent._listComponent;
+        
+        switch (Channel)
+        {
+            case PlanetCategory category:
+                category.OnUpdated += OnChannelUpdate;
+                break;
+            case PlanetChatChannel chatChannel:
+                chatChannel.OnUpdated += OnChannelUpdate;
+                break;
+            case PlanetVoiceChannel voiceChannel:
+                voiceChannel.OnUpdated += OnChannelUpdate;
+                break;
+        }
+    }
+    
+    public async Task OnChannelUpdate(ModelUpdateEvent eventData)
+    {
+        if (eventData.PropsChanged.Contains(nameof(Channel.Name)))
+        {
+            Component.Refresh();
+        }
+    }
+
+    public string GetIconStyle()
+    {
+        if (!IsCategory)
+            return string.Empty;
+        
+        return Component.Expanded ? "transform: rotate(90deg);" : string.Empty;
     }
 
     public async Task OnClicked()
@@ -41,7 +83,7 @@ public class NestedChannel
         {
             case PlanetCategory:
             {
-                IsShown = !IsShown;
+                _listComponent.ToggleExpand(Component);
                 break;
             }
             case PlanetChatChannel chatChannel:
@@ -73,7 +115,7 @@ public class NestedChannel
             foreach (var channel in allChannels)
             {
                 if (channel.ParentId == Channel.Id)
-                    Children.Add(new NestedChannel(Planet, DefaultRole, channel, Depth + 1));
+                    Children.Add(new NestedChannel(this, channel, Depth + 1));
             }
             
             Children.Sort((a, b) => a.Channel.Position.CompareTo(b.Channel.Position));

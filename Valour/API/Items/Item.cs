@@ -52,7 +52,7 @@ namespace Valour.Api.Items
                     case Planet planet: 
                         // Planets have node known
                         return NodeManager.GetNodeFromName(planet.NodeName);
-                    case IPlanetItem planetItem: 
+                    case IPlanetModel planetItem: 
                         // Planet items can just check their planet
                         return NodeManager.GetKnownByPlanet(planetItem.PlanetId);
                     default: 
@@ -62,9 +62,17 @@ namespace Valour.Api.Items
             }
         }
 
-        public virtual async Task AddToCache()
+        public async Task AddToCache()
         {
-            await ValourCache.Put(this.Id, this);
+            await AddToCache(this);
+        }
+        
+        /// <summary>
+        /// This exists because of some type weirdness in C#
+        /// </summary>
+        public virtual async Task AddToCache<T>(T item) where T : Item
+        {
+            await ValourCache.Put<T>(this.Id, item);
         }
 
         /// <summary>
@@ -99,7 +107,7 @@ namespace Valour.Api.Items
         {
             Node node;
 
-            if (item is IPlanetItem planetItem)
+            if (item is IPlanetModel planetItem)
                 node = await NodeManager.GetNodeForPlanetAsync(planetItem.PlanetId);
             else
                 node = ValourClient.PrimaryNode;

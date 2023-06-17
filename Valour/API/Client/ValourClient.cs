@@ -728,7 +728,7 @@ public static class ValourClient
                 var b = prop.GetValue(updated);
 
                 if (a != b)
-                    eventData.FieldsChanged.Add(prop.Name);
+                    eventData.PropsChanged.Add(prop.Name);
             }
             
             // Update local copy
@@ -747,7 +747,7 @@ public static class ValourClient
             {
                 eventData.Model = local;
                 // Fire off local event on item
-                await local.InvokeUpdatedEventAsync(new ModelUpdateEvent(){ Flags = flags, PropsChanged = eventData.FieldsChanged});
+                await local.InvokeUpdatedEventAsync(new ModelUpdateEvent(){ Flags = flags, PropsChanged = eventData.PropsChanged});
             }
             // New
             else
@@ -769,9 +769,8 @@ public static class ValourClient
     /// </summary>
     public static async Task DeleteItem<T>(T item) where T : Item
     {
-        // Console.WriteLine($"Deletion for {item.Id}, type {item.GetType()}");
         var local = ValourCache.Get<T>(item.Id);
-
+        
         ValourCache.Remove<T>(item.Id);
 
         if (local is null)

@@ -132,18 +132,6 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
         return item;
     }
     
-    public override async Task OnUpdate(ModelUpdateEvent eventData)
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyChannelUpdateAsync(this, eventData);
-    }
-
-    public override async Task OnDelete()
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyChannelDeleteAsync(this);
-    }
-
     public static async Task<TaskResult<PlanetChatChannel>> CreateWithDetails(CreatePlanetChatChannelRequest request)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Channel.PlanetId);

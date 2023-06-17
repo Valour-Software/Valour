@@ -12,7 +12,7 @@ namespace Valour.Api.Models;
 
 public class OauthApp : Item, ISharedOauthApp
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/oauthapps";

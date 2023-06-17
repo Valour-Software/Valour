@@ -7,7 +7,7 @@ namespace Valour.Api.Models;
 
 public class DirectMessage : Message, ISharedDirectMessage
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/directchatchannels/{ChannelId}/messages";

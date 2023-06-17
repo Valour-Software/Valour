@@ -14,7 +14,7 @@ namespace Valour.Api.Models;
 
 public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/directchatchannels";
@@ -86,7 +86,7 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
         return item;
     }
 
-    public override async Task AddToCache()
+    public override async Task AddToCache<T>(T item)
     {
         // We insert into the cache with lower-value id first to ensure a match
         long lowerId;

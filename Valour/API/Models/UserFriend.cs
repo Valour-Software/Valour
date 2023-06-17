@@ -17,7 +17,7 @@ namespace Valour.Api.Models;
 /// </summary>
 public class UserFriend : Item, ISharedUserFriend
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/userfriends";

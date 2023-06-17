@@ -6,7 +6,7 @@ namespace Valour.Api.Models;
 
 public class PlanetBan : Item, ISharedPlanetBan
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute => "api/bans";
 

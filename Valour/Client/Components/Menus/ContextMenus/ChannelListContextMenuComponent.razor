@@ -4,18 +4,18 @@
 <ContextMenu Id='list-context' CssClass='context'>
 
     @if (SelectedItem is PlanetCategory && CanModifyCategory){
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateChannel'>Add Channel</BlazorContextMenu.Item>
         /* Uncomment when voice is production ready
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateVoiceChannel'>Add Voice Channel</BlazorContextMenu.Item>
         */
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='OpenCreateCategory'>Add Category</BlazorContextMenu.Item>
     }
 
     @if ((SelectedItem is PlanetCategory && CanModifyCategory) || (SelectedItem is PlanetChannel && CanModifyChannel)) {
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
-        <BlazorContextMenu.Item CssClass='context-item' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='EditChannelListItem'>Edit</BlazorContextMenu.Item>
+        <BlazorContextMenu.Item CssClass='context-model' OnClick='DeleteChannelListItem'>Delete</BlazorContextMenu.Item>
     }
-    <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-item'>Copy Id</BlazorContextMenu.Item>
+    <BlazorContextMenu.Item OnClick='OnClickCopyId' CssClass='context-model'>Copy Id</BlazorContextMenu.Item>
 </ContextMenu>
 
 @code {
@@ -153,14 +153,12 @@
              "Cancel", 
              async () =>
              {
-                 Console.WriteLine("Confirmed channel item deletion.");
+                 Console.WriteLine("Confirmed channel model deletion.");
                  var result = await Item.DeleteAsync(SelectedItem);
-                 Console.WriteLine("Deletion: " + result.Message);
-
              },
              async () =>
              {
-                 Console.WriteLine("Cancelled channel item deletion.");
+                 Console.WriteLine("Cancelled channel model deletion.");
              }
         );
 

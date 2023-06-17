@@ -77,9 +77,9 @@
 
                                     <td>
                                         <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
-                                            <a class="v-drop-item" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
-                                            <a class="v-drop-item" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
-                                            <a class="v-drop-item v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
+                                            <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
+                                            <a class="v-drop-model" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
+                                            <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
                                         </DropdownComponent>
                                     </td>
                                     

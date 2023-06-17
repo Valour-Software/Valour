@@ -241,10 +241,7 @@ namespace Valour.Server
                 });
             });
 
-            services.AddSignalR(options =>
-            {
-                options.KeepAliveInterval = TimeSpan.FromSeconds(10);
-            });
+            services.AddSignalR();
 
             services.AddHttpClient();
 
