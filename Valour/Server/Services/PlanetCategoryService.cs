@@ -297,11 +297,13 @@ public class PlanetCategoryService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
-
-        foreach (var child in children)
+        
+        _coreHub.NotifyCategoryOrderChange(new ()
         {
-            _coreHub.NotifyPlanetItemChange(child.ToModel());
-        }
+            PlanetId = category.PlanetId,
+            CategoryId = category.Id,
+            Order = order.ToList()
+        });
 
         return new(true, "Success");
     }

@@ -212,6 +212,11 @@ public static class ValourClient
     public static event Func<ChannelStateUpdate, Task> OnChannelStateUpdate;
 
     /// <summary>
+    /// Run when a category is reordered
+    /// </summary>
+    public static event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
+
+    /// <summary>
     /// Run when the user logs in
     /// </summary>
     public static event Func<Task> OnLogin;
@@ -830,6 +835,24 @@ public static class ValourClient
     {
         if (OnChannelEmbedUpdate is not null)
             await OnChannelEmbedUpdate.Invoke(update);
+    }
+
+    public static async Task CategoryOrderUpdate(CategoryOrderEvent eventData)
+    {
+        // Update channels in cache
+        int pos = 0;
+        foreach (var channelId in eventData.Order)
+        {
+            var channel = ValourCache.Get<PlanetChatChannel>(channelId);
+            if (channel is not null)
+            {
+                channel.Position = pos;
+                pos++;
+            }
+        }
+        
+        if (OnCategoryOrderUpdate is not null)
+            await OnCategoryOrderUpdate.Invoke(eventData);
     }
 
     #endregion

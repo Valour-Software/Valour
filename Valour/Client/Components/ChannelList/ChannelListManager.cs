@@ -72,6 +72,8 @@ namespace Valour.Client.Components.ChannelList
         /// <param name="target">The planet component that the item was dropped onto</param>
         public async Task OnItemDropOnPlanet(PlanetListComponent target)
         {
+            OnDragEnterItem(0);
+            
             // Insert item into the next slot in the category
             if (target == null)
                 return;
@@ -104,6 +106,8 @@ namespace Valour.Client.Components.ChannelList
         /// <param name="target">The category component that the item was dropped onto</param>
         public async Task OnItemDropOnCategory(CategoryListComponent target)
         {
+            OnDragEnterItem(0);
+            
             // Insert item into the next slot in the category
             if (target == null)
                 return;
@@ -138,6 +142,8 @@ namespace Valour.Client.Components.ChannelList
         // TODO: Merge this and below into one function using some inheritance on the components
         public async Task OnItemDropOnVoiceChannel(VoiceChannelListComponent target)
         {
+            OnDragEnterItem(0);
+            
             if (target == null)
                 return;
 
@@ -182,7 +188,12 @@ namespace Valour.Client.Components.ChannelList
 
         public async Task OnItemDropOnChatChannel(ChatChannelListComponent target)
         {
+            OnDragEnterItem(0);
+            
             if (target == null)
+                return;
+
+            if (currentDragItem.Id == target.Channel.Id)
                 return;
 
             var oldIndex = 0;
@@ -200,28 +211,43 @@ namespace Valour.Client.Components.ChannelList
             }
             // Insert into new list at correct position
             target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
+
             currentDragItem.ParentId = target.ParentCategory.Category.Id;
 
-            TaskResult response;
-            var orderData = new List<long>();
-
-            ushort pos = 0;
-
-            foreach (var item in target.ParentCategory.ItemList)
+            // Update positions
+            var pos = 0;
+            foreach (var child in target.ParentCategory.ItemList)
             {
-                Console.WriteLine($"{item.Id} at {pos}");
-
-                orderData.Add(
-                    item.Id
-                );
-
+                child.Position = pos;
                 pos++;
             }
+            
+            // Rebuild item lists
+            if (currentDragParentCategory is not null)
+            {
+                currentDragParentCategory.BuildItemList();
+            }
 
+            target.ParentCategory.BuildItemList();
+            
+            TaskResult response;
+            var orderData = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
             response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
 
             Console.WriteLine(response.Message);
             Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
+        }
+
+        public long DragOverId = 0;
+        
+        public void OnDragEnterItem(long id)
+        {
+            DragOverId = id;
+        }
+
+        public void OnDragLeave()
+        {
+            DragOverId = 0;
         }
     }
 }

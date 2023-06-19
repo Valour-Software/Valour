@@ -126,7 +126,8 @@ public class PlanetChatChannelApi
         [FromBody] PlanetChatChannel channel,
         long id,
         PlanetMemberService memberService,
-        PlanetChatChannelService channelService)
+        PlanetChatChannelService channelService,
+        PlanetCategoryService categoryService)
     {
         // Get the channel
         var old = await channelService.GetAsync(id);
@@ -140,6 +141,32 @@ public class PlanetChatChannelApi
 
         if (!await memberService.HasPermissionAsync(member, old, ChatChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
+        
+        // Channel parent is being changed
+        if (old.ParentId != channel.ParentId)
+        {
+	        if (channel.ParentId is null)
+		        return ValourResult.BadRequest("ParentId cannot be null on chat channels.");
+	        
+	        var newParent = await categoryService.GetAsync(channel.ParentId.Value);
+	        if (newParent is null)
+		        return ValourResult.BadRequest("Parent category not found.");
+	        
+	        // Ensure member has permissions for new parent category
+	        if (!await memberService.HasPermissionAsync(member, newParent, CategoryPermissions.ManageCategory))
+		        return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+	        
+	        // Determine position (n + 1)
+	        var position = await categoryService.GetChildCountAsync(newParent.Id) + 1;
+	        
+	        // Update position
+	        channel.Position = position;
+        }
+        // Channel is being moved
+        else if (old.Position != channel.Position)
+        {
+	        return ValourResult.BadRequest("Use the order endpoint in the parent category to change position.");
+        }
 
         var result = await channelService.UpdateAsync(channel);
         if (!result.Success)

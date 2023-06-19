@@ -3,40 +3,84 @@
 @inject WindowManager windowManager
 @inject ChannelListManager listManager
 
-<div @onpointerdown:stopPropagation='true'>
-    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
-        <div class="@Chosen_CSS" 
-            @onclick="OnClick"
-            @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
-            @ondrop="async () => await listManager.OnItemDropOnChatChannel(this)" draggable="true" id="@Channel.Id">
-            <div class="chat-icon">
-                @if (AnyUnread)
-                {
-                    @if (HasLock) {
-                        <img src="_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg" alt="Chat channel with unread messages" />
-                    }
-                    else {
-                        <img src="_content/Valour.Client/media/Channel-Filled-Icon.svg" alt="Chat channel with unread messages" />
-                    }
-                }
-                else
-                {
-                    @if (HasLock) {
-                        <img src="_content/Valour.Client/media/Channel-Icon-with-lock.svg" alt="Chat channel without unread messages" />
-                    }
-                    else {
-                        <img src="_content/Valour.Client/media/Channel-Icon.svg" alt="Chat channel without unread messages" />
-                    }
-                }
-            </div>
-            <p class="name">
-                @Channel.Name
-            </p>
-        </div>
-    </ContextMenuTrigger>
+<div
+    class="@Chosen_CSS"
+    draggable="true" 
+    id="@Channel.Id"
+    
+    @onclick:stopPropagation="true"
+    @onclick="OnClick"
+    
+    @ondragstart:stopPropagation="true"
+    @ondragstart="@OnDragStart"
+    
+    @ondrop:stopPropagation="true"
+    @ondrop="@OnDropOn" 
+    
+    @onpointerdown:stopPropagation="true"
+    @onpointerdown='@PrepareContext'
+    
+    @ondragenter:stopPropagation="true"
+    @ondragenter="@OnDragEnter"
+    
+    @ondragleave:stopPropagation="true"
+    @ondragleave="@OnDragLeave"
+>
+    
+    @{ var iconData = GetIconData(); }
+    
+    <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+    <p class="name">
+        @Channel.Name
+    </p>
 </div>
-
 @code {
+
+    private static string[] _lockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg", "Chat channel with unread messages" };
+    private static string[] _unlockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon.svg", "Chat channel with unread messages" };
+    private static string[] _lockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon-with-lock.svg", "Chat channel without unread messages" };
+    private static string[] _unlockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon.svg", "Chat channel without unread messages" };
+
+    private bool _render = true;
+    protected override bool ShouldRender() => _render;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _render = false;
+    }
+
+    public void Refresh()
+    {
+        _render = true;
+        StateHasChanged();
+    }
+
+    private string[] GetIconData()
+    {
+        if (IsUnread)
+        {
+            if (HasLock)
+            {
+                return _lockUnreadSrc;
+            }
+            else
+            {
+                return _unlockUnreadSrc;
+            }
+        }
+        else
+        {
+            if (HasLock)
+            {
+                return _lockReadSrc;
+            }
+            else
+            {
+                return _unlockReadSrc;
+            }
+        }
+    }
+    
     // Demonstrates how a parent component can supply parameters
     [Parameter]
     public PlanetChatChannel Channel { get; set; }
@@ -44,47 +88,70 @@
     [Parameter]
     public CategoryListComponent ParentCategory { get; set; }
 
-    public bool AnyUnread { get; set; }
-
     public bool HasLock  { get; set; }
+    
+    public bool IsUnread { get; set; }
 
     public string Chosen_CSS
     {
         get
         {
-            if (windowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
-            {
-                return "channel open";
-            }
+            var css = "channel";
 
-            return "channel";
+            if (windowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
+                css += " open";
+
+            if (listManager.DragOverId == Channel.Id)
+                css += " drag-over";
+            
+            return css;
         }
     }
 
-    public async Task OnClick()
+    private void OnDragEnter()
+    {
+        listManager.OnDragEnterItem(this.Channel.Id);
+        Refresh();
+    }
+
+    private void OnDragLeave()
+    {
+        Refresh();
+    }
+
+    private async Task OnDropOn()
+    {
+        await listManager.OnItemDropOnChatChannel(this);
+        Refresh();
+    }
+
+    private async Task PrepareContext()
+    {
+        await ChannelListContextMenuComponent.SetSelectedItem(Channel);
+    }
+
+    private void OnDragStart()
+    {
+        listManager.OnItemStartDragInCategory(Channel, ParentCategory);
+    }
+
+    private async Task OnClick()
     {
 
         listManager.OnItemClickInCategory(Channel, ParentCategory);
 
-        ClientWindow window = windowManager.GetSelectedWindow();
-
-        if (window is ChatChannelWindow)
+        var window = windowManager.GetSelectedWindow();
+        
+        if (window is ChatChannelWindow channelWindow)
         {
-            ChatChannelWindow channelWindow = (ChatChannelWindow)window;
-            if (channelWindow != null)
-            {
-                // It's the same channel, cancel
-                if (channelWindow.Channel.Id == Channel.Id)
-                {
-                    return;
-                }
+            // It's the same channel, cancel
+            if (channelWindow.Channel.Id == Channel.Id)
+                return;
 
-                Console.WriteLine(Channel.Name);
-                await channelWindow.Component.SwapChannel(Channel);
-            }
+            await channelWindow.Component.SwapChannel(Channel);
         }
-
-        StateHasChanged();
+        
+        Refresh();
     }
 
     public async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
@@ -92,16 +159,15 @@
         var channel = eventData.Model;
         if (Channel.Id == channel.Id)
         {
-            AnyUnread = channel.DetermineUnread();
             await DetermineLock();
-            StateHasChanged();
+            Refresh();
         }
     }
 
     public async Task OnChannelOpenedChange(PlanetChatChannel channel)
     {
         //if (channel.Id == Channel.Id)
-        StateHasChanged();
+        Refresh();
     }
 
     public async Task DetermineLock()
@@ -131,8 +197,7 @@
         ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
         ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
 
-        AnyUnread = Channel.DetermineUnread();
-
+        DetermineUnread();
         await DetermineLock();
     }
 
@@ -141,8 +206,8 @@
         if (state.ChannelId != Channel.Id)
             return;
 
-        AnyUnread = Channel.DetermineUnread();
-        StateHasChanged();
+        DetermineUnread();
+        Refresh();
     }
 
     public async Task OnChannelStateUpdate(ChannelStateUpdate state)
@@ -150,8 +215,8 @@
         if (state.ChannelId != Channel.Id)
             return;
 
-        AnyUnread = Channel.DetermineUnread();
-        StateHasChanged();
+        DetermineUnread();
+        Refresh();
     }
 
     public void Dispose()
@@ -164,5 +229,10 @@
         ValourClient.OnChannelClose -= OnChannelOpenedChange;
         ValourClient.OnUserChannelStateUpdate -= OnUserChannelStateUpdate;
         ValourClient.OnChannelStateUpdate -= OnChannelStateUpdate;
+    }
+
+    public void DetermineUnread()
+    {
+        IsUnread = ValourClient.GetChannelUnreadState(Channel.Id);
     }
 }

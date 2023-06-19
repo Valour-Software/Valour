@@ -3,15 +3,73 @@
     padding: 10px;
 }
 
+.channel-fade-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, var(--main-2) 80%);
+    margin-top: 200px;
+}
+
+.channel-fade-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--main-2) 20%, transparent 100%);
+    margin-top: 200px;
+}
+
 /* Channel wrapper */
+
+::deep .category {
+    border-radius: 8px;
+    border-left-width: 2px;
+    border-left-style: solid;
+    border-left-color: transparent;
+}
+
+::deep .category:hover {
+    border-left-width: 2px;
+    border-left-style: solid;
+}
+
+::deep .category[depth="0"]:hover {
+    border-left-color: #00a4b3;
+}
+
+::deep .category[depth="1"]:hover {
+    border-left-color: #0024b3;
+}
+
+::deep .category[depth="2"]:hover {
+    border-left-color: #7700b3;
+}
+
+::deep .category[depth="3"]:hover {
+    border-left-color: #b30033;
+}
+
+::deep .category[depth="4"]:hover {
+    border-left-color: #b35300;
+}
+
+::deep .category[depth="5"]:hover {
+    border-left-color: #21b300;
+}
 
 ::deep .channel {
     cursor: pointer;
-    display: flex;
-}
-
-::deep .channel:nth-child(1) {
-    margin-top: 2px;
+    border-radius: 8px;
+    padding: 2px;
+    padding-left: 6px;
+    padding-right: 8px;
+    overflow: visible;
+    white-space: nowrap;
+    width: max-content;
 }
 
 ::deep .channel:hover {
@@ -27,29 +85,39 @@
 }
 
 ::deep .channel .name {
+    margin: 0;
     font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: normal;
     font-size: 16px;
     line-height: 21px;
     color: #FFFFFF;
-    margin-top: 2px;
-    margin-left: 8px;
     vertical-align: top;
     display: inline-block;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+::deep .channel.drag-over {
+    border: 1px solid var(--v-cyan);
+    background-color: rgba(0, 255, 255, 0.1);
+}
+
 /* Sub list */
 
-::deep .channel .sub-list {
-    
+::deep .sub-list {
+    margin-left: 8px;
 }
 
 /* Icons */
 
-::deep .channel .chat-icon {
-    margin-left: 8px;
+::deep .channel-icon {
     display: inline-block;
+    max-width: 16px;
+}
+
+::deep .category-icon {
+    display: inline-block;
+    max-width: 16px;
+    margin-right: 6px;
 }

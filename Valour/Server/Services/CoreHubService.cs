@@ -60,7 +60,10 @@ public class CoreHubService
     {
         
     }
-    
+
+    public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
+        await _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("CategoryOrder-Update", eventData);
+
     public async void NotifyUserChannelStateUpdate(long userId, UserChannelState state) =>
         await _hub.Clients.Group($"u-{userId}").SendAsync("UserChannelState-Update", state);
 

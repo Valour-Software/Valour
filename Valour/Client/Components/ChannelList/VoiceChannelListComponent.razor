@@ -3,20 +3,18 @@
 @inject WindowManager windowManager
 @inject ChannelListManager listManager
 
-<div @onpointerdown:stopPropagation='true'>
-    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'>
-        <div class="@Chosen_CSS"
-        @onclick="OnClick"
-        @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
-        @ondrop="async () => await listManager.OnItemDropOnVoiceChannel(this)" draggable="true" id="@Channel.Id">
-            <div class="chat-icon">
-                <img src="_content/Valour.Client/media/voice-channel-icon.svg">
-            </div>
-            <p class="channel-name">
-                @Channel.Name
-            </p>
-        </div>
-    </ContextMenuTrigger>
+<div class="@Chosen_CSS"
+     @onclick="OnClick"
+     @onpointerdown:stopPropagation="true"
+     @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'
+     @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
+     @ondrop="async () => await listManager.OnItemDropOnVoiceChannel(this)" draggable="true" id="@Channel.Id">
+    <div class="channel-icon">
+        <img src="_content/Valour.Client/media/voice-channel-icon.svg">
+    </div>
+    <p class="channel-name">
+        @Channel.Name
+    </p>
 </div>
 
 @code {

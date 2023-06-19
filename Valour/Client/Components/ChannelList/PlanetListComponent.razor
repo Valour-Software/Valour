@@ -1,41 +1,47 @@
 ﻿@inject WindowManager windowManager
 @inject ChannelListManager listManager
 
-<div @onpointerdown:stopPropagation='true'>
-    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='planet-context' @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
-        <div class="@GetCssClass()" id="list-@Planet.Id">
-            <div style="cursor:pointer" id="list-inner-@Planet.Id">
-                <div @onclick='@OnClick'
-                     @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
-                     class="header" ondragover="event.preventDefault();">
-                    <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@GetArrowStyle()">
-                    <p class="name">
-                        @Planet.Name
-                    </p>
+<ContextMenuTrigger 
+    MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" 
+    MenuId='planet-context'>
+    <div 
+        class="@GetCssClass()" 
+        id="list-@Planet.Id"
+        @onpointerdown:stopPropagation="true"
+        @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
+        <div style="cursor:pointer" id="list-inner-@Planet.Id">
+            <div @onclick='@OnClick'
+                 @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
+                 class="header" ondragover="event.preventDefault();">
+                <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@GetArrowStyle()">
+                <p class="name">
+                    @Planet.Name
+                </p>
 
-                    <img src="@Planet.IconUrl" class="icon" />
-                </div>
+                <img src="@Planet.IconUrl" class="icon" />
             </div>
-            <div class="channel-list">
+        </div>
+        <div class="channel-list">
+            <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
                 <!-- The Modal -->
                 @if (Open)
                 {
                     @foreach (PlanetCategory category in TopCategories)
                     {
                         <CategoryListComponent Categories="Categories"
-                                                      Channels="Channels"
-                                                      VoiceChannels="VoiceChannels"
-                                                      Category="category"
-                                                      IsTopLevel="true"
-                                                      @key='category.Id'>
+                                               Channels="Channels"
+                                               VoiceChannels="VoiceChannels"
+                                               Category="category"
+                                               IsTopLevel="true"
+                                               @key='category.Id'>
                         </CategoryListComponent>
                     }
 
                 }
-            </div>
+            </ContextMenuTrigger>
         </div>
-    </ContextMenuTrigger>
-</div>
+    </div>
+</ContextMenuTrigger>
 
 @code {
     [Parameter]

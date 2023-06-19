@@ -188,6 +188,7 @@ public class Node
         HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", ValourClient.ChannelCurrentlyTypingUpdateRecieved);
         HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.PersonalEmbedUpdate);
 		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", ValourClient.ChannelEmbedUpdate);
+        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", ValourClient.CategoryOrderUpdate);
 
 		await Logger.Log("[Item Events]: Events hooked.", "yellow");
     }

@@ -4,67 +4,84 @@
 @inject ClientCategoryManager categoryManager
 @inject ChannelListManager listManager
 
-
-<div @onpointerdown:stopPropagation='true'>
-    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context' @onpointerdown='async () => await ChannelListContextMenuComponent.SetSelectedItem(Category)'>
-        <div class="channel"
-            id="@Category.Id">
-            <div draggable="true" ondragover="event.preventDefault();" class="header"
-                @onclick="OnClick"
-                @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
-                @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)">
-                <div>
-                    @if (DetermineUnread(Category)) {
-                        <img class="arrow" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
-                    }
-                    else {
-                        <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
-                    }
-                    <p class="name">
-                        @Category.Name
-                    </p>
-                </div>
-            </div>
-                <!-- The Modal -->
-            @if (IsOpen)
+<div class="category"
+     draggable="true"
+     depth="@(Depth % 6)"
+     
+     @onpointerdown:stopPropagation="true"
+     @onpointerdown='async () => await ChannelListContextMenuComponent.SetSelectedItem(Category)'
+     
+     @onclick:stopPropagation="true"
+     @onclick="OnClick"
+     
+     @ondrop:stopPropagation="true"
+     @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
+     
+     @ondragstart:stopPropagation="true"
+     @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)">
+    <div
+        id="@Category.Id"
+        class="channel"
+        >
+            @if (IsUnread) {
+                <img alt="Category with unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
+            }
+            else {
+                <img alt="Category without unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
+            }
+            <p class="name">
+                @Category.Name
+            </p>
+    </div>
+        
+    @if (IsOpen)
+    {
+        <div class="sub-list" ondragover="event.preventDefault();">
+            @foreach (var item in ItemList)
             {
-                <div class="sub-list" ondragover="event.preventDefault();">
-                    @foreach (var item in ItemList)
-                    {
-                        
-                        if (item is PlanetChatChannel)
-                        {
-                            PlanetChatChannel channel = item as PlanetChatChannel;
-                            if (channel.ParentId == Category.Id)
-                            {
-                                <ChatChannelListComponent @key='channel.Id' ParentCategory="this" Channel="channel"></ChatChannelListComponent>
-                            }
-                        }
-                        /* // Un-comment when voice is production ready
-                        else if (model is PlanetVoiceChannel) {
-                            PlanetVoiceChannel channel = model as PlanetVoiceChannel;
-                            if (channel.ParentId == Category.Id)
-                            {
-                                <VoiceChannelListComponent @key='channel.Id' ParentCategory="this" Channel="channel"></VoiceChannelListComponent>
-                            }
-                        }
-                        */
-                        else if (item is PlanetCategory)
-                        {
-                            PlanetCategory planetcategory = item as PlanetCategory;
-                            @if (planetcategory.ParentId == Category.Id)
-                            {
-                                <CategoryListComponent @key='planetcategory.Id' ParentCategory="this" Category="planetcategory" Categories="Categories" Channels="Channels" VoiceChannels="VoiceChannels" ChannelWindow="ChannelWindow"></CategoryListComponent>
-                            }
-                        }
-                    }
-                </div>
+                if (item.ParentId != Category.Id)
+                    continue;
+
+                switch (item)
+                {
+                    case PlanetChatChannel chat:
+                        <ChatChannelListComponent @key='@chat.Id' ParentCategory="@this" Channel="@chat" />
+                        break;
+                    //case PlanetVoiceChannel voice:
+                    //    <VoiceChannelListComponent @key='@voice.Id' ParentCategory="@this" Channel="@voice" />
+                    //    break;
+                    case PlanetCategory cat:
+                        <CategoryListComponent 
+                            @key='@cat.Id' 
+                            ParentCategory="@this" 
+                            Category="@cat" 
+                            Categories="@Categories" 
+                            Channels="@Channels" 
+                            VoiceChannels="@VoiceChannels" 
+                            ChannelWindow="@ChannelWindow" 
+                            Depth="@(this.Depth + 1)" />
+                        break;
+                }
             }
         </div>
-    </ContextMenuTrigger>
+    }
 </div>
 
 @code {
+    
+    private bool _render = true;
+    protected override bool ShouldRender() => _render;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        _render = false;
+    }
+
+    public void Refresh()
+    {
+        _render = true;
+        StateHasChanged();
+    }
 
     [Parameter]
     public bool IsTopLevel { get; set; }
@@ -92,10 +109,15 @@
     public List<PlanetCategory> ChildCategories { get; set; }
 
     public bool IsOpen { get; set; } = true;
+    
+    public bool IsUnread { get; set; }
 
     public Planet Planet { get; set; }
 
     public List<PlanetChannel> ItemList = new List<PlanetChannel>();
+    
+    [Parameter]
+    public int Depth { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,6 +132,7 @@
 
         ValourClient.OnChannelOpen += OnChannelOpenedChange;
         ValourClient.OnChannelClose += OnChannelOpenedChange;
+        ValourClient.OnCategoryOrderUpdate += OnCategoryOrderUpdate;
 
         ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
         ChildVoiceChannels = VoiceChannels.Where(x => x.ParentId == Category.Id).ToList();
@@ -123,12 +146,14 @@
         IsOpen = categoryManager.IsOpen(Category);
 
         BuildItemList();
+        
+        DetermineUnread();
     }
 
     public async Task OnChannelOpenedChange(PlanetChatChannel channel)
     {
-        if (channel.ParentId == Category.Id)
-            StateHasChanged();
+        //if (channel.ParentId == Category.Id)
+            //StateHasChanged();
     }
 
     public void BuildItemList()
@@ -138,6 +163,11 @@
         ItemList.AddRange(ChildChannels);
         ItemList.AddRange(ChildVoiceChannels);
         ItemList.AddRange(ChildCategories);
+        SortItems();
+    }
+
+    public void SortItems()
+    {
         ItemList.Sort((x, y) => x.Position.CompareTo(y.Position));
     }
 
@@ -151,17 +181,28 @@
         ModelObserver<PlanetChatChannel>.OnAnyDeleted -= OnChatChannelDeletion;
         ModelObserver<PlanetVoiceChannel>.OnAnyDeleted -= OnVoiceChannelDeletion;
 
-        ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
-        ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
+        ValourClient.OnUserChannelStateUpdate -= OnUserChannelStateUpdate;
+        ValourClient.OnChannelStateUpdate -= OnChannelStateUpdate;
+        ValourClient.OnCategoryOrderUpdate -= OnCategoryOrderUpdate;
     }
 
+    private async Task OnCategoryOrderUpdate(CategoryOrderEvent eventData)
+    {
+        if (eventData.CategoryId != Category.Id)
+            return;
+        
+        SortItems();
+        Refresh();
+    }
+    
     public async Task OnUserChannelStateUpdate(UserChannelState state)
     {
         var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.PermType == PermChannelType.PlanetChatChannel);
         if (channel is null || channel.ParentId != Category.Id)
             return;
 
-        StateHasChanged();
+        DetermineUnread();
+        Refresh();
     }
 
     public async Task OnChannelStateUpdate(ChannelStateUpdate state)
@@ -170,7 +211,8 @@
         if (channel is null || channel.ParentId != Category.Id)
             return;
             
-        StateHasChanged();
+        DetermineUnread();
+        Refresh();
     }
 
     public void OnClick()
@@ -181,7 +223,7 @@
 
         categoryManager.SetOpen(Category, IsOpen);
 
-        StateHasChanged();
+        Refresh();
     }
 
     public string ArrowStyle
@@ -212,7 +254,7 @@
         {
             ChildCategories.Remove(old);
             BuildItemList();
-            StateHasChanged();
+            Refresh();
         }
     }
 
@@ -222,7 +264,7 @@
         
         if (Category.Id == category.Id)
         {
-            StateHasChanged();
+            Refresh();
         }
         else
         {
@@ -236,21 +278,9 @@
                 {
                     ChildCategories.Remove(old);
                     BuildItemList();
+                    
+                    Refresh();
                 }
-                // If moved within this category
-                else
-                {
-                    // Get old index
-                    var index = ChildCategories.IndexOf(old);
-                    // Remove old
-                    ChildCategories.Remove(old);
-                    // Replace with new
-                    ChildCategories.Insert(index, category);
-                    // Resort
-                    BuildItemList();
-                }
-
-                StateHasChanged();
             }
             // In this case it was just added to this category
             else if (category.ParentId == Category.Id)
@@ -263,7 +293,7 @@
 
                 Console.WriteLine($"Inserted {category.Name} into {Category.Name}");
 
-                StateHasChanged();
+                Refresh();
             }
         }
     }
@@ -275,7 +305,7 @@
             var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
             ChildChannels.Remove(old);
             BuildItemList();
-            StateHasChanged();
+            Refresh();
         }
     }
 
@@ -293,21 +323,8 @@
             {
                 ChildVoiceChannels.Remove(old);
                 BuildItemList();
+                Refresh();
             }
-            // If moved within this category
-            else
-            {
-                // Get old index
-                var index = ChildVoiceChannels.IndexOf(old);
-                // Remove old
-                ChildVoiceChannels.Remove(old);
-                // Replace with new
-                ChildVoiceChannels.Insert(index, channel);
-                // Resort
-                BuildItemList();
-            }
-
-            StateHasChanged();
         }
         // In this case it was just added to this category
         else if (channel.ParentId == Category.Id)
@@ -317,7 +334,7 @@
             // Resort
             BuildItemList();
 
-            StateHasChanged();
+            Refresh();
         }
     }
 
@@ -327,7 +344,7 @@
             var old = ChildChannels.FirstOrDefault(x => x.Id == channel.Id);
             ChildChannels.Remove(old);
             BuildItemList();
-            StateHasChanged();
+            Refresh();
         }
     }
 
@@ -347,21 +364,9 @@
             {
                 ChildChannels.Remove(old);
                 BuildItemList();
+                
+                Refresh();
             }
-            // If moved within this category
-            else
-            {
-                // Get old index
-                var index = ChildChannels.IndexOf(old);
-                // Remove old
-                ChildChannels.Remove(old);
-                // Replace with new
-                ChildChannels.Insert(index, channel);
-                // Resort
-                BuildItemList();
-            }
-
-            StateHasChanged();
         }
         // In this case it was just added to this category
         else if (channel.ParentId == Category.Id)
@@ -371,7 +376,7 @@
             // Resort
             BuildItemList();
 
-            StateHasChanged();
+            Refresh();
         }
     }
 
@@ -383,18 +388,19 @@
         return ItemList.FindIndex(x => x.Id == item.Id);
     }
 
-    public bool DetermineUnread(PlanetCategory category) {
-        foreach (var child in ItemList.Where(x => x.ParentId == category.Id)) {
-            if (child.PermType == PermChannelType.PlanetChatChannel) {
-                if (((PlanetChatChannel)child).DetermineUnread()) {
-                    return true;
-                }
-            }
-            // if the child is a category, then look for unread channels & categories in that category
-            else if (DetermineUnread((PlanetCategory)child)) {
-                return true;
+    public void DetermineUnread()
+    {
+        bool unread = false;
+        
+        foreach (var channel in ChildChannels)
+        {
+            if (ValourClient.GetChannelUnreadState(channel.Id))
+            {
+                unread = true;
+                break;
             }
         }
-        return false;
+
+        IsUnread = unread;
     }
 }
