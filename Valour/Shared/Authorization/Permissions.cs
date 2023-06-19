@@ -124,10 +124,16 @@ public static class ChannelPermissions
     // There is a gap here in values! 0x01 -> 0x08
     public const long ManageValue = 0x08;
     public const long PermissionsValue = 0x10;
-
+    
+    public static readonly Permission View;
+    public static readonly Permission Manage;
+    public static readonly Permission ManagePermissions;
+    
     static ChannelPermissions() 
     {
-
+        View = new CategoryPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel/category in the channel list.");
+        Manage = new CategoryPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the channel/category's details.");
+        ManagePermissions = new CategoryPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel/category.");
     }
     
     public static Permission[] GetChannelPermissionSet(PermChannelType type)

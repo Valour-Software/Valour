@@ -15,11 +15,11 @@ namespace Valour.Client.Components.ChannelList
             Instance = this;
         }
 
-        public int currentDragIndex;
-        public PlanetChannel currentDragItem;
+        private int _currentDragIndex;
+        private PlanetChannel _currentDragItem;
 
         // Only of of these should be non-null at a time
-        public CategoryListComponent currentDragParentCategory;
+        private CategoryListComponent _currentDragParentCategory;
         public PlanetListComponent currentDragParentPlanet;
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace Valour.Client.Components.ChannelList
                                           CategoryListComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Click for {item.GetHumanReadableName()} {item.Name} at position {currentDragIndex}");
+            Console.WriteLine($"Click for {item.GetHumanReadableName()} {item.Name} at position {_currentDragIndex}");
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace Valour.Client.Components.ChannelList
                                               CategoryListComponent parent)
         {
             SetTargetInCategory(item, parent);
-            Console.WriteLine($"Starting drag for {item.GetHumanReadableName()} {item.Name} at position {currentDragIndex}");
+            Console.WriteLine($"Starting drag for {item.GetHumanReadableName()} {item.Name} at position {_currentDragIndex}");
         }
 
         /// <summary>
@@ -54,16 +54,16 @@ namespace Valour.Client.Components.ChannelList
         public void SetTargetInCategory(PlanetChannel item,
                                         CategoryListComponent parent)
         {
-            currentDragIndex = 0;
+            _currentDragIndex = 0;
 
             if (parent != null)
             {
-                currentDragIndex = parent.GetIndex(item);
+                _currentDragIndex = parent.GetIndex(item);
             }
 
             currentDragParentPlanet = null;
-            currentDragParentCategory = parent;
-            currentDragItem = item;
+            _currentDragParentCategory = parent;
+            _currentDragItem = item;
         }
 
         /// <summary>
@@ -78,24 +78,24 @@ namespace Valour.Client.Components.ChannelList
             if (target == null)
                 return;
 
-            if (currentDragItem == null)
+            if (_currentDragItem == null)
                 return;
 
             // Only categories can be put under a planet
-            if (currentDragItem is not PlanetCategory)
+            if (_currentDragItem is not PlanetCategory)
                 return;
 
             // Already parent
-            if (target.Planet.Id == currentDragItem.ParentId)
+            if (target.Planet.Id == _currentDragItem.ParentId)
                 return;
 
             // Add current item to target category
 
-            currentDragItem.Position =  -1;
-            currentDragItem.ParentId = null;
-            var response = await Item.UpdateAsync(currentDragItem);
+            _currentDragItem.Position =  -1;
+            _currentDragItem.ParentId = null;
+            var response = await Item.UpdateAsync(_currentDragItem);
 
-            Console.WriteLine($"Inserting category {currentDragItem.Id} into planet {target.Planet.Id}");
+            Console.WriteLine($"Inserting category {_currentDragItem.Id} into planet {target.Planet.Id}");
 
             Console.WriteLine(response.Message);
         }
@@ -113,28 +113,28 @@ namespace Valour.Client.Components.ChannelList
                 return;
 
             // Already parent
-            if (target.Category.Id == currentDragItem.ParentId)
+            if (target.Category.Id == _currentDragItem.ParentId)
                 return;
 
             // Same item
-            if (target.Category.Id == currentDragItem.Id)
+            if (target.Category.Id == _currentDragItem.Id)
                 return;
 
-            currentDragItem.ParentId = target.Category.Id;
-            currentDragItem.Position = -1;
+            _currentDragItem.ParentId = target.Category.Id;
+            _currentDragItem.Position = -1;
 
             // Add current item to target category
 
-            if (currentDragItem is PlanetCategory)
+            if (_currentDragItem is PlanetCategory)
             {
-                var response = await PlanetCategory.UpdateAsync((PlanetCategory)currentDragItem);
-                Console.WriteLine($"Inserting category {currentDragItem.Id} into {target.Category.Id}");
+                var response = await PlanetCategory.UpdateAsync((PlanetCategory)_currentDragItem);
+                Console.WriteLine($"Inserting category {_currentDragItem.Id} into {target.Category.Id}");
                 Console.WriteLine(response.Message);
             }
-            else if (currentDragItem is PlanetChatChannel)
+            else if (_currentDragItem is PlanetChatChannel)
             {
-                var response = await PlanetChatChannel.UpdateAsync((PlanetChatChannel)currentDragItem);
-                Console.WriteLine($"Inserting chat channel {currentDragItem.Id} into {target.Category.Id}");
+                var response = await PlanetChatChannel.UpdateAsync((PlanetChatChannel)_currentDragItem);
+                Console.WriteLine($"Inserting chat channel {_currentDragItem.Id} into {target.Category.Id}");
                 Console.WriteLine(response.Message);
             }
         }
@@ -149,20 +149,20 @@ namespace Valour.Client.Components.ChannelList
 
             var oldIndex = 0;
 
-            if (currentDragParentCategory != null)
+            if (_currentDragParentCategory != null)
             {
-                oldIndex = currentDragParentCategory.GetIndex(currentDragItem);
+                oldIndex = _currentDragParentCategory.GetIndex(_currentDragItem);
             }
             var newIndex = target.ParentCategory.GetIndex(target.Channel);
 
             // Remove from old list
-            if (currentDragParentCategory != null)
+            if (_currentDragParentCategory != null)
             {
-                currentDragParentCategory.ItemList.RemoveAt(oldIndex);
+                _currentDragParentCategory.ItemList.RemoveAt(oldIndex);
             }
             // Insert into new list at correct position
-            target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
-            currentDragItem.ParentId = target.ParentCategory.Category.Id;
+            target.ParentCategory.ItemList.Insert(newIndex, _currentDragItem);
+            _currentDragItem.ParentId = target.ParentCategory.Category.Id;
 
             TaskResult response;
             var orderData = new List<long>();
@@ -183,7 +183,7 @@ namespace Valour.Client.Components.ChannelList
             response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
 
             Console.WriteLine(response.Message);
-            Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
+            Console.WriteLine($"Dropped {_currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
         }
 
         public async Task OnItemDropOnChatChannel(ChatChannelListComponent target)
@@ -193,49 +193,30 @@ namespace Valour.Client.Components.ChannelList
             if (target == null)
                 return;
 
-            if (currentDragItem.Id == target.Channel.Id)
+            if (_currentDragItem.Id == target.Channel.Id)
                 return;
-
-            var oldIndex = 0;
-
-            if (currentDragParentCategory != null)
-            {
-                oldIndex = currentDragParentCategory.GetIndex(currentDragItem);
-            }
+            
             var newIndex = target.ParentCategory.GetIndex(target.Channel);
-
-            // Remove from old list
-            if (currentDragParentCategory != null)
+            
+            // Moving within the same category
+            if (target.Channel.ParentId == _currentDragItem.ParentId)
             {
-                currentDragParentCategory.ItemList.RemoveAt(oldIndex);
+                var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                childrenOrder.Insert(newIndex, _currentDragItem.Id);
+
+                var response = await target.ParentCategory.Category.SetChildOrderAsync(childrenOrder);
+                if (!response.Success)
+                    Console.WriteLine("Error setting order:\n" + response.Message);
             }
-            // Insert into new list at correct position
-            target.ParentCategory.ItemList.Insert(newIndex, currentDragItem);
-
-            currentDragItem.ParentId = target.ParentCategory.Category.Id;
-
-            // Update positions
-            var pos = 0;
-            foreach (var child in target.ParentCategory.ItemList)
+            // Inserting into new category
+            else
             {
-                child.Position = pos;
-                pos++;
+                var response = await target.ParentCategory.Category.InsertChild(_currentDragItem.Id, newIndex);
+                if (!response.Success)
+                    Console.WriteLine("Error setting order:\n" + response.Message);
             }
             
-            // Rebuild item lists
-            if (currentDragParentCategory is not null)
-            {
-                currentDragParentCategory.BuildItemList();
-            }
-
-            target.ParentCategory.BuildItemList();
-            
-            TaskResult response;
-            var orderData = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
-            response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
-
-            Console.WriteLine(response.Message);
-            Console.WriteLine($"Dropped {currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
+            Console.WriteLine($"Dropped {_currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
         }
 
         public long DragOverId = 0;

@@ -51,6 +51,9 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
     public async Task<TaskResult> SetChildOrderAsync(List<long> childIds) =>
         await Node.PostAsync($"{IdRoute}/children/order", childIds);
 
+    public async Task<TaskResult> InsertChild(long childId, int position = -1) =>
+        await Node.PostAsync($"{IdRoute}/children/insert/{childId}/{position}", null);
+
     public static async Task<TaskResult<PlanetCategory>> CreateWithDetails(CreatePlanetCategoryChannelRequest request)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(request.Category.PlanetId);

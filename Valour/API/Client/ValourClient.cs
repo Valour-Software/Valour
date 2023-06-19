@@ -846,6 +846,12 @@ public static class ValourClient
             var channel = ValourCache.Get<PlanetChatChannel>(channelId);
             if (channel is not null)
             {
+                Console.WriteLine($"{pos}: {channel.Name}");
+                
+                // The parent can be changed in this event
+                channel.ParentId = eventData.CategoryId;
+                
+                // Position can be changed in this event
                 channel.Position = pos;
                 pos++;
             }

@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Valour.Server.Services;
@@ -164,6 +165,7 @@ public class PlanetCategoryService
     /// </summary>
     public async Task<List<PlanetChannel>> GetChildrenAsync(long id) =>
         await _db.PlanetChannels.Where(x => x.ParentId == id)
+            .OrderBy(x => x.Position)
             .Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
@@ -183,7 +185,9 @@ public class PlanetCategoryService
     /// Returns the ids of the children of the category with the given id
     /// </summary>
     public async Task<List<long>> GetChildrenIdsAsync(long id) =>
-        await _db.PlanetChannels.Where(x => x.ParentId == id).Select(x => x.Id).ToListAsync();
+        await _db.PlanetChannels.Where(x => x.ParentId == id)
+            .OrderBy(x => x.Position)
+            .Select(x => x.Id).ToListAsync();
 
     /// <summary>
     /// Returns the children of the category with the given id
@@ -255,6 +259,107 @@ public class PlanetCategoryService
         }
 
         return TaskResult.SuccessResult;
+    }
+    
+    public async Task<TaskResult> InsertChildAsync(long categoryId, long insertId, int position = -1)
+    {
+        var category = await _db.PlanetCategories.FindAsync(categoryId);
+        if (category is null)
+            return new TaskResult(false, "Category not found.");
+
+        var insert = await _db.PlanetChannels.FindAsync(insertId);
+        if (insert is null)
+            return new TaskResult(false, "Child to insert not found.");
+        
+        var children = await _db.PlanetChannels
+            .Where(x => x.ParentId == category.Id)
+            .OrderBy(x => x.Position)
+            .ToListAsync();
+
+        // If unspecified or too high, set to next position
+        if (position < 0 || position > children.Count)
+        {
+            position = children.Count + 1;
+        }
+        
+        var oldCategoryId = insert.ParentId;
+        List<long> oldCategoryOrder = null;
+
+        if (oldCategoryId is not null)
+        {
+            var oldCategory = await _db.PlanetCategories.FindAsync(insert.ParentId);
+            if (oldCategory is null)
+                return new TaskResult(false, "Error getting old parent category.");
+
+            var oldCategoryChildren = await _db.PlanetChannels
+                .Where(x => x.ParentId == oldCategory.Id)
+                .OrderBy(x => x.Position)
+                .ToListAsync();
+
+            // Remove from old category
+            oldCategoryChildren.RemoveAll(x => x.Id == insertId);
+
+            oldCategoryOrder = new();
+            
+            // Update all positions
+            var opos = 0;
+            foreach (var child in oldCategoryChildren)
+            {
+                child.Position = opos;
+                oldCategoryOrder.Add(child.Id);
+                opos++;
+            }
+        }
+
+        insert.ParentId = category.Id;
+        insert.PlanetId = category.PlanetId;
+        insert.Position = position;
+        
+        children.Insert(position, insert);
+
+
+        // Positions for new category
+        List<long> newCategoryOrder = new();
+        
+        // Update all positions
+        var pos = 0;
+        foreach (var child in children)
+        {
+            child.Position = pos;
+            newCategoryOrder.Add(child.Id);
+            pos++;
+        }
+        
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return new TaskResult(false, "Error saving changes. Please try again later.");
+        }
+        
+        // Fire off events for both modified categories (if applicable)
+        
+        // New parent
+        _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
+        {
+            PlanetId = category.PlanetId,
+            CategoryId = categoryId,
+            Order = newCategoryOrder
+        });
+
+        if (oldCategoryId is not null)
+        {
+            _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
+            {
+                PlanetId = category.PlanetId,
+                CategoryId = oldCategoryId.Value,
+                Order = oldCategoryOrder,
+            });
+        }
+
+        return new(true, "Success");
     }
 
     public async Task<TaskResult> SetChildOrderAsync(PlanetCategory category, long[] order)

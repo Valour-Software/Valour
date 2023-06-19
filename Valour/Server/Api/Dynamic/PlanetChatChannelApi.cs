@@ -145,22 +145,7 @@ public class PlanetChatChannelApi
         // Channel parent is being changed
         if (old.ParentId != channel.ParentId)
         {
-	        if (channel.ParentId is null)
-		        return ValourResult.BadRequest("ParentId cannot be null on chat channels.");
-	        
-	        var newParent = await categoryService.GetAsync(channel.ParentId.Value);
-	        if (newParent is null)
-		        return ValourResult.BadRequest("Parent category not found.");
-	        
-	        // Ensure member has permissions for new parent category
-	        if (!await memberService.HasPermissionAsync(member, newParent, CategoryPermissions.ManageCategory))
-		        return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-	        
-	        // Determine position (n + 1)
-	        var position = await categoryService.GetChildCountAsync(newParent.Id) + 1;
-	        
-	        // Update position
-	        channel.Position = position;
+	        return ValourResult.BadRequest("Use the order endpoint in the parent category to update parent.");
         }
         // Channel is being moved
         else if (old.Position != channel.Position)

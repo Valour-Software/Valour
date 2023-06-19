@@ -52,7 +52,7 @@
                     //    break;
                     case PlanetCategory cat:
                         <CategoryListComponent 
-                            @key='@cat.Id' 
+                            @key='$"{Category.Id}-{cat.Id}"' 
                             ParentCategory="@this" 
                             Category="@cat" 
                             Categories="@Categories" 
@@ -159,6 +159,10 @@
     public void BuildItemList()
     {
         ItemList.Clear();
+        
+        ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
+        ChildVoiceChannels = VoiceChannels.Where(x => x.ParentId == Category.Id).ToList();
+        ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
 
         ItemList.AddRange(ChildChannels);
         ItemList.AddRange(ChildVoiceChannels);
@@ -191,6 +195,7 @@
         if (eventData.CategoryId != Category.Id)
             return;
         
+        BuildItemList();
         SortItems();
         Refresh();
     }
