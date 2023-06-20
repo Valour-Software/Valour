@@ -14,7 +14,7 @@
                  @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
                  class="header" ondragover="event.preventDefault();">
                 <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@GetArrowStyle()">
-                <p class="name">
+                <p class="planet-name">
                     @Planet.Name
                 </p>
 
@@ -22,10 +22,19 @@
             </div>
         </div>
         <div class="channel-list">
-            <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
-                <!-- The Modal -->
-                @if (Open)
-                {
+            
+            @if (Open)
+            {
+                <div class="channel planet-about">
+                    <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
+                    <p class="name">
+                        About Planet
+                    </p>
+                </div>
+
+                <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
+                    <!-- The Modal -->
+
                     @foreach (PlanetCategory category in TopCategories)
                     {
                         <CategoryListComponent Categories="Categories"
@@ -37,8 +46,9 @@
                         </CategoryListComponent>
                     }
 
-                }
-            </ContextMenuTrigger>
+
+                </ContextMenuTrigger>
+            }
         </div>
     </div>
 </ContextMenuTrigger>

@@ -6,6 +6,10 @@
     {
         <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickLeavePlanet'>Leave Planet</BlazorContextMenu.Item>
     }
+    @if (CanEdit)
+    {
+        <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickEdit'>Edit</BlazorContextMenu.Item>
+    }
     <BlazorContextMenu.Item CssClass='context-item' OnClick='OnClickCopyId'>Copy Id</BlazorContextMenu.Item>
 </ContextMenu>
 
@@ -16,17 +20,35 @@
 
     public static Planet Planet { get; set; }
 
+    public static bool CanEdit { get; set; } = false;
+
     public static PlanetContextMenuComponent Instance;
 
     public static async Task SetSelectedPlanet(Planet planet)
     {
         Planet = planet;
+
+        var selfMember = await ValourClient.GetSelfMember(planet.Id);
+        if (selfMember is null)
+        {
+            CanEdit = false;
+        }
+        else
+        {
+            CanEdit = await selfMember.HasPermissionAsync(PlanetPermissions.Manage);
+        }
+
         Instance.Refresh();
     }
 
     protected override async Task OnInitializedAsync()
     {
         Instance = this;
+    }
+
+    private void OnClickEdit()
+    {
+        Modal.Show<EditPlanetComponent>("Edit Planet");
     }
 
     public void Refresh()

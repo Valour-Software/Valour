@@ -1,16 +1,15 @@
 /* Entire Thing */
 .full-channel-list {
-    padding: 10px;
+    padding: 8px;
 }
 
 .channel-fade-right {
     position: absolute;
     top: 0;
     right: 0;
-    width: 10%;
+    width: 6%;
     height: 100%;
     background: linear-gradient(90deg, transparent 0%, var(--main-2) 80%);
-    margin-top: 200px;
     z-index: 2;
     pointer-events: none;
 }
@@ -19,10 +18,9 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: 10%;
+    width: 6%;
     height: 100%;
     background: linear-gradient(90deg, var(--main-2) 20%, transparent 100%);
-    margin-top: 200px;
     z-index: 2;
     pointer-events: none;
 }
@@ -89,11 +87,11 @@
     background: rgba(255, 255, 255, 0.125);
 }
 
-::deep .channel .open {
-    background: rgba(255, 255, 255, 0.1);
+::deep .channel.open {
+    background: rgba(255, 255, 255, 0.075);
 }
 
-::deep .channel .open:hover {
+::deep .channel.open:hover {
     background: rgba(255, 255, 255, 0.125);
 }
 

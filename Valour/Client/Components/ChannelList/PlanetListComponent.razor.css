@@ -3,7 +3,7 @@
     cursor: pointer;
 }
 
-.planet .name {
+.planet-name {
     margin: 0;
     margin-left: 6px;
     vertical-align: top;
@@ -14,13 +14,6 @@
     font-size: 16px;
     line-height: 21px;
     color: #FFFFFF;
-}
-
-.planet .channel-list {
-    margin: 0px;
-    border-bottom-left-radius: 5px;
-    border-bottom-right-radius: 5px;
-    padding-left: 10px;
 }
 
 .planet {
@@ -42,11 +35,31 @@
     margin-right: 4px;
 }
 
+.planet-about-icon {
+    display: inline-block;
+    max-width: 16px;
+    margin-right: 2px;
+    margin-left: -2px;
+    margin-bottom: 3px;
+}
+
 .planet .header {
     display: inline-block;
     width: 100%;
     border-radius: 8px;
     padding: 4px;
+    padding-left: 0px;
+}
+
+.planet-about {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 2px;
+    padding-left: 6px;
+    overflow: visible;
+    white-space: nowrap;
+    width: max-content;
+    padding-right: 24px;
 }
 
 .planet .header:hover {
@@ -55,5 +68,9 @@
 
 .planet .header:active {
     background: rgba(255, 255, 255, 0.125);
+}
+
+.planet .channel-list {
+    margin-left: 2px !important;
 }
 
