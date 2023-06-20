@@ -107,6 +107,7 @@ namespace Valour.Client.Components.ChannelList
         public async Task OnItemDropOnCategory(CategoryListComponent target)
         {
             OnDragEnterItem(0);
+            target.Refresh();
             
             // Insert item into the next slot in the category
             if (target == null)
@@ -177,6 +178,7 @@ namespace Valour.Client.Components.ChannelList
         public async Task OnItemDropOnChatChannel(ChatChannelListComponent target)
         {
             OnDragEnterItem(0);
+            target.Refresh();
             
             if (target == null)
                 return;

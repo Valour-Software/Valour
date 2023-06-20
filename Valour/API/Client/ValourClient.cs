@@ -854,7 +854,8 @@ public static class ValourClient
                 // Position can be changed in this event
                 channel.Position = pos;
                 pos++;
-            }
+            }dsdfasfgasfa
+            
         }
         
         if (OnCategoryOrderUpdate is not null)

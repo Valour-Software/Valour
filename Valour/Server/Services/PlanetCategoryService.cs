@@ -315,8 +315,14 @@ public class PlanetCategoryService
         insert.PlanetId = category.PlanetId;
         insert.Position = position;
         
-        children.Insert(position, insert);
-
+        if (position >= children.Count)
+        {
+            children.Add(insert);
+        }
+        else
+        {
+            children.Insert(position, insert);
+        }
 
         // Positions for new category
         List<long> newCategoryOrder = new();

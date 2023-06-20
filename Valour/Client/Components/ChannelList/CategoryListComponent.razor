@@ -4,7 +4,7 @@
 @inject ClientCategoryManager categoryManager
 @inject ChannelListManager listManager
 
-<div class="category"
+<div class="category @(listManager.DragOverId == Category.Id ? "drag-over" : "")"
      draggable="true"
      depth="@(Depth % 6)"
      
@@ -18,7 +18,13 @@
      @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
      
      @ondragstart:stopPropagation="true"
-     @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)">
+     @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)"
+     
+     @ondragenter:stopPropagation="true"
+     @ondragenter="@OnDragEnter"
+     
+     @ondragleave:stopPropagation="true"
+     @ondragleave="@OnDragLeave">
     <div
         id="@Category.Id"
         class="channel"
@@ -148,6 +154,17 @@
         BuildItemList();
         
         DetermineUnread();
+    }
+    
+    private void OnDragEnter()
+    {
+        listManager.OnDragEnterItem(this.Category.Id);
+        Refresh();
+    }
+
+    private void OnDragLeave()
+    {
+        Refresh();
     }
 
     public async Task OnChannelOpenedChange(PlanetChatChannel channel)

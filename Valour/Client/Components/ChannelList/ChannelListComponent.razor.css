@@ -37,6 +37,11 @@
     border-left-style: solid;
 }
 
+::deep .category.drag-over {
+    border: 1px solid var(--v-cyan);
+    background-color: rgba(0, 255, 255, 0.1);
+}
+
 ::deep .category[depth="0"]:hover {
     border-left-color: #00a4b3;
 }
