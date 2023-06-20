@@ -185,13 +185,16 @@ namespace Valour.Client.Components.ChannelList
 
             if (_currentDragItem.Id == target.Channel.Id)
                 return;
-            
-            var newIndex = target.ParentCategory.GetIndex(target.Channel);
+
+            int newIndex = -1;
             
             // Moving within the same category
             if (target.Channel.ParentId == _currentDragItem.ParentId)
             {
                 var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                childrenOrder.Remove(_currentDragItem.Id);
+                newIndex = target.ParentCategory.GetIndex(target.Channel);
+                    
                 childrenOrder.Insert(newIndex, _currentDragItem.Id);
 
                 var response = await target.ParentCategory.Category.SetChildOrderAsync(childrenOrder);
@@ -201,6 +204,7 @@ namespace Valour.Client.Components.ChannelList
             // Inserting into new category
             else
             {
+                newIndex = target.ParentCategory.GetIndex(target.Channel);
                 var response = await target.ParentCategory.Category.InsertChild(_currentDragItem.Id, newIndex);
                 if (!response.Success)
                     Console.WriteLine("Error setting order:\n" + response.Message);

@@ -11,6 +11,6 @@ public class PlanetVoiceChannel : PlanetChannel, ISharedPlanetVoiceChannel
     // Entity Properties //
     ///////////////////////
     
-    public override PermChannelType PermType
-        => PermChannelType.PlanetVoiceChannel;
+    public override ChannelType Type
+        => ChannelType.PlanetVoiceChannel;
 }

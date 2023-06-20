@@ -30,7 +30,7 @@ public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrder
     public int Position { get; set; }
     public long? ParentId { get; set; }
     public bool InheritsPerms { get; set; }
-    public virtual PermChannelType PermType => PermChannelType.Undefined;
+    public virtual ChannelType Type => ChannelType.Undefined;
 
     public virtual string GetHumanReadableName() => "UNKNOWN TYPE";
 
@@ -53,6 +53,21 @@ public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrder
         return await PlanetCategory.FindAsync(ParentId.Value, PlanetId);
     }
 
+    public static PlanetChannel GetCachedByType(long id, ChannelType type)
+    {
+        switch (type)
+        {
+            default:
+                throw new NotImplementedException("Unknown channel type");
+            case ChannelType.PlanetChatChannel:
+                return ValourCache.Get<PlanetChatChannel>(id);
+            case ChannelType.PlanetCategoryChannel:
+                return ValourCache.Get<PlanetCategory>(id);
+            case ChannelType.PlanetVoiceChannel:
+                return ValourCache.Get<PlanetVoiceChannel>(id);
+        }
+    }
+
     /// <summary>
     /// Requests and caches nodes from the server
     /// </summary>
@@ -69,10 +84,10 @@ public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrder
         }
     }
 
-    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, PermChannelType? type = null, bool refresh = false)
+    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, ChannelType? type = null, bool refresh = false)
     {
         if (type is null)
-            type = PermType;
+            type = Type;
 
         if (PermissionsNodes is null || refresh)
             await LoadPermissionNodesAsync();

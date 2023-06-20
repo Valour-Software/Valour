@@ -219,7 +219,7 @@
     
     public async Task OnUserChannelStateUpdate(UserChannelState state)
     {
-        var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.PermType == PermChannelType.PlanetChatChannel);
+        var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.Type == ChannelType.PlanetChatChannel);
         if (channel is null || channel.ParentId != Category.Id)
             return;
 
@@ -229,7 +229,7 @@
 
     public async Task OnChannelStateUpdate(ChannelStateUpdate state)
     {
-        var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.PermType == PermChannelType.PlanetChatChannel);
+        var channel = ItemList.FirstOrDefault(x => x.Id == state.ChannelId && x.Type == ChannelType.PlanetChatChannel);
         if (channel is null || channel.ParentId != Category.Id)
             return;
             

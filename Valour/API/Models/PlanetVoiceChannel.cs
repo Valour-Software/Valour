@@ -27,7 +27,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
     /// </summary>
     public override string GetHumanReadableName() => "Voice Channel";
 
-    public override PermChannelType PermType => PermChannelType.PlanetVoiceChannel;
+    public override ChannelType Type => ChannelType.PlanetVoiceChannel;
 
     public override async Task Open() =>
         await Task.CompletedTask;
@@ -60,7 +60,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
     /// Returns the voice channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermChannelType.PlanetVoiceChannel, refresh);
+        await PermissionsNode.FindAsync(Id, roleId, ChannelType.PlanetVoiceChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
@@ -81,7 +81,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermChannelType.PlanetVoiceChannel
+            TargetType = ChannelType.PlanetVoiceChannel
         };
 
         var planet = await GetPlanetAsync();

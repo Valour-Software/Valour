@@ -34,7 +34,7 @@ public class PermissionsNodeApi
 
     [ValourRoute(HttpVerbs.Get, "api/permissionsnodes/{type}/{targetId}/{roleId}")]
     public static async Task<IResult> GetNodeForTargetRouteAsync(
-        PermChannelType type, 
+        ChannelType type, 
         long targetId, 
         long roleId,
         PermissionsNodeService permissionsNodeService)
@@ -52,7 +52,7 @@ public class PermissionsNodeApi
     // There will be more permissions than just planet permissions!
     public static async Task<IResult> PutRouteAsync(
         [FromBody] PermissionsNode node,
-        PermChannelType type,
+        ChannelType type,
         long targetId, 
         long roleId,
         PermissionsNodeService permissionsNodeService,
@@ -141,9 +141,9 @@ public class PermissionsNodeApi
         if (target is null)
             return ValourResult.NotFound<PlanetChannel>();
 
-        if (target.PermType != node.TargetType)
+        if (target.Type != node.TargetType)
         {
-            if (target.PermType == PermChannelType.PlanetCategoryChannel)
+            if (target.Type == ChannelType.PlanetCategoryChannel)
             {
                 if ((int)node.TargetType < 0 || (int)node.TargetType > (ChannelPermissions.ChannelTypes.Length - 1))
                 {

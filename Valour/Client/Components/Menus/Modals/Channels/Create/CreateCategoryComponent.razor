@@ -185,7 +185,7 @@
                 RoleId = defaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermChannelType.PlanetCategoryChannel,
+                TargetType = ChannelType.PlanetCategoryChannel,
             };
 
             PermissionsNode chatnode = new()
@@ -195,7 +195,7 @@
                 RoleId = defaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermChannelType.PlanetChatChannel,
+                TargetType = ChannelType.PlanetChatChannel,
             };
 
             catnode.SetPermission(CategoryPermissions.View, PermissionState.False);
@@ -218,7 +218,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermChannelType.PlanetCategoryChannel
+                    TargetType = ChannelType.PlanetCategoryChannel
                 };
                 PermissionsNode _chatnode = new()
                 {
@@ -227,7 +227,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermChannelType.PlanetChatChannel
+                    TargetType = ChannelType.PlanetChatChannel
                 };
 
                 _catnode.SetPermission(CategoryPermissions.View, PermissionState.True);

@@ -283,7 +283,7 @@ public class PlanetCategoryService
         }
         
         var oldCategoryId = insert.ParentId;
-        List<long> oldCategoryOrder = null;
+        List<ChannelOrderData> oldCategoryOrder = null;
 
         if (oldCategoryId is not null)
         {
@@ -306,7 +306,7 @@ public class PlanetCategoryService
             foreach (var child in oldCategoryChildren)
             {
                 child.Position = opos;
-                oldCategoryOrder.Add(child.Id);
+                oldCategoryOrder.Add(new(child.Id, child.Type));
                 opos++;
             }
         }
@@ -325,14 +325,14 @@ public class PlanetCategoryService
         }
 
         // Positions for new category
-        List<long> newCategoryOrder = new();
+        List<ChannelOrderData> newCategoryOrder = new();
         
         // Update all positions
         var pos = 0;
         foreach (var child in children)
         {
             child.Position = pos;
-            newCategoryOrder.Add(child.Id);
+            newCategoryOrder.Add(new(child.Id, child.Type));
             pos++;
         }
         
@@ -378,7 +378,7 @@ public class PlanetCategoryService
         // Use transaction so we can stop at any failure
         await using var tran = await _db.Database.BeginTransactionAsync();
 
-        List<Valour.Database.PlanetChannel> children = new();
+        List<ChannelOrderData> newOrder = new();
 
         try
         {
@@ -394,7 +394,7 @@ public class PlanetCategoryService
 
                 child.Position = pos;
 
-                children.Add(child);
+                newOrder.Add(new(child.Id, child.Type));
 
                 pos++;
             }
@@ -413,7 +413,7 @@ public class PlanetCategoryService
         {
             PlanetId = category.PlanetId,
             CategoryId = category.Id,
-            Order = order.ToList()
+            Order = newOrder
         });
 
         return new(true, "Success");

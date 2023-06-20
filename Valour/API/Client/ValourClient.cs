@@ -841,21 +841,21 @@ public static class ValourClient
     {
         // Update channels in cache
         int pos = 0;
-        foreach (var channelId in eventData.Order)
+        foreach (var data in eventData.Order)
         {
-            var channel = ValourCache.Get<PlanetChatChannel>(channelId);
+            var channel = PlanetChannel.GetCachedByType(data.Id, data.Type);
             if (channel is not null)
             {
                 Console.WriteLine($"{pos}: {channel.Name}");
-                
+
                 // The parent can be changed in this event
                 channel.ParentId = eventData.CategoryId;
-                
+
                 // Position can be changed in this event
                 channel.Position = pos;
-                pos++;
-            }dsdfasfgasfa
-            
+            }
+
+            pos++;
         }
         
         if (OnCategoryOrderUpdate is not null)

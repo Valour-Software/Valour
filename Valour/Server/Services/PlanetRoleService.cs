@@ -86,26 +86,26 @@ public class PlanetRoleService
         await _db.PermissionsNodes.Where(x => x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<List<PermissionsNode>> GetChannelNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.TargetType == PermChannelType.PlanetChatChannel &&
+        await _db.PermissionsNodes.Where(x => x.TargetType == ChannelType.PlanetChatChannel &&
                                           x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<List<PermissionsNode>> GetCategoryNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.TargetType == PermChannelType.PlanetCategoryChannel &&
+        await _db.PermissionsNodes.Where(x => x.TargetType == ChannelType.PlanetCategoryChannel &&
                                           x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetChatChannel channel, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
-                                                           x.TargetType == PermChannelType.PlanetChatChannel &&
+                                                           x.TargetType == ChannelType.PlanetChatChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetCategory category, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                           x.TargetType == PermChannelType.PlanetChatChannel &&
+                                                           x.TargetType == ChannelType.PlanetChatChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionsNode> GetCategoryNodeAsync(PlanetCategory category, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                           x.TargetType == PermChannelType.PlanetCategoryChannel &&
+                                                           x.TargetType == ChannelType.PlanetCategoryChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, long roleId) =>

@@ -177,7 +177,7 @@
 
         var role = await planet.GetDefaultRoleAsync();
 
-        var node = await Channel.GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel);
+        var node = await Channel.GetPermNodeAsync(role.Id, ChannelType.PlanetChatChannel);
         if (node is not null) {
             var state = node.GetPermissionState(ChatChannelPermissions.View);
             if (state == PermissionState.False)

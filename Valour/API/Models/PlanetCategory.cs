@@ -23,7 +23,7 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 
     #endregion
 
-    public override PermChannelType PermType => PermChannelType.PlanetCategoryChannel;
+    public override ChannelType Type => ChannelType.PlanetCategoryChannel;
 
     public override string GetHumanReadableName() => "Category";
 

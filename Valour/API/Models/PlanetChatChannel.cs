@@ -31,7 +31,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     /// </summary>
     public override string GetHumanReadableName() => "Chat Channel";
 
-    public override PermChannelType PermType => PermChannelType.PlanetChatChannel;
+    public override ChannelType Type => ChannelType.PlanetChatChannel;
 
     public override async Task Open() =>
         await ValourClient.OpenPlanetChannel(this);
@@ -62,7 +62,7 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermChannelType.PlanetChatChannel
+            TargetType = ChannelType.PlanetChatChannel
         };
 
         var planet = await GetPlanetAsync();
@@ -82,9 +82,9 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
             PermissionsNode node;
             // If true, we grab the parent's permission node
             if (InheritsPerms)
-                node = await (await GetParentAsync()).GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel, force_refresh);
+                node = await (await GetParentAsync()).GetPermNodeAsync(role.Id, ChannelType.PlanetChatChannel, force_refresh);
             else
-                node = await GetPermNodeAsync(role.Id, PermChannelType.PlanetChatChannel, force_refresh);
+                node = await GetPermNodeAsync(role.Id, ChannelType.PlanetChatChannel, force_refresh);
 
             if (node is null)
                 continue;
