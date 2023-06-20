@@ -119,24 +119,12 @@ namespace Valour.Client.Components.ChannelList
             // Same item
             if (target.Category.Id == _currentDragItem.Id)
                 return;
-
-            _currentDragItem.ParentId = target.Category.Id;
-            _currentDragItem.Position = -1;
+            
 
             // Add current item to target category
-
-            if (_currentDragItem is PlanetCategory)
-            {
-                var response = await PlanetCategory.UpdateAsync((PlanetCategory)_currentDragItem);
-                Console.WriteLine($"Inserting category {_currentDragItem.Id} into {target.Category.Id}");
-                Console.WriteLine(response.Message);
-            }
-            else if (_currentDragItem is PlanetChatChannel)
-            {
-                var response = await PlanetChatChannel.UpdateAsync((PlanetChatChannel)_currentDragItem);
-                Console.WriteLine($"Inserting chat channel {_currentDragItem.Id} into {target.Category.Id}");
-                Console.WriteLine(response.Message);
-            }
+            var response = await target.Category.InsertChild(_currentDragItem.Id);
+            Console.WriteLine($"Inserting category {_currentDragItem.Id} into {target.Category.Id}");
+            Console.WriteLine(response.Message);
         }
 
         // TODO: Merge this and below into one function using some inheritance on the components
