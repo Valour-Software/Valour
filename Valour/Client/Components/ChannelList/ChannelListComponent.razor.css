@@ -11,6 +11,8 @@
     height: 100%;
     background: linear-gradient(90deg, transparent 0%, var(--main-2) 80%);
     margin-top: 200px;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .channel-fade-left {
@@ -21,6 +23,8 @@
     height: 100%;
     background: linear-gradient(90deg, var(--main-2) 20%, transparent 100%);
     margin-top: 200px;
+    z-index: 2;
+    pointer-events: none;
 }
 
 /* Channel wrapper */
@@ -81,6 +85,10 @@
     background: rgba(255, 255, 255, 0.075);
 }
 
+::deep .channel:active {
+    background: rgba(255, 255, 255, 0.125);
+}
+
 ::deep .channel .open {
     background: rgba(255, 255, 255, 0.1);
 }
@@ -94,13 +102,9 @@
     font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-weight: normal;
-    font-size: 16px;
-    line-height: 21px;
-    color: #FFFFFF;
-    vertical-align: top;
+    font-size: 14px;
+    color: #fff;
     display: inline-block;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 ::deep .channel.drag-over {
@@ -112,6 +116,8 @@
 
 ::deep .sub-list {
     margin-left: 8px;
+    margin-right: 20px;
+    width: max-content;
 }
 
 /* Icons */
@@ -119,10 +125,12 @@
 ::deep .channel-icon {
     display: inline-block;
     max-width: 16px;
+    margin-right: 3px;
 }
 
 ::deep .category-icon {
     display: inline-block;
     max-width: 16px;
     margin-right: 6px;
+    margin-left: -3px;
 }

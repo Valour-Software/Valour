@@ -16,15 +16,7 @@
 			}
 
 			<div class="sidebar-content">
-				@if (!Flip)
-                {
-	                <SelfInfoComponent />
-                }
-				else
-				{
-					<br/>
-				}
-    
+				<br/>
 				<div class="tab-container">
 					@switch (_selectedTab)
 					{
@@ -45,6 +37,10 @@
 						}
 					}
 				</div>
+				@if (!Flip)
+				{
+					<SelfInfoComponent />
+				}
 				<SidebarTabstrip OnSelected="OnSelected" Flip="Flip"></SidebarTabstrip>
 			</div>
 		</div>
