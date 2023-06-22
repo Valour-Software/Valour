@@ -70,8 +70,8 @@
 
     #region Event Handling
 
-    public async Task OnPlanetDeleted() 
-    => await CloseWindow();
+    public async Task OnPlanetDeleted()
+        => await Window.CloseAsync();
 
     public async Task OnSelfMemberDeleted()
     {

@@ -25,7 +25,7 @@
             
             @if (Open)
             {
-                <div class="channel planet-about">
+                <div class="channel planet-about" @onclick="OnClickPlanetInfo">
                     <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
                     <p class="name">
                         About Planet
@@ -261,5 +261,11 @@
     public async Task GetVoiceChannels()
     {
         VoiceChannels = await Planet.GetVoiceChannelsAsync();
+    }
+
+    private async Task OnClickPlanetInfo()
+    {
+        var currentWindow = WindowManager.Instance.GetSelectedWindow();
+        await WindowManager.Instance.ReplaceWindow(currentWindow, new PlanetInfoWindow(Planet));
     }
 }

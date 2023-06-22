@@ -26,4 +26,16 @@ public abstract class ClientWindow
         if (Holder is not null)
             await Holder.CloseWindow(this);
     }
+
+    public async Task CloseAsync()
+    {
+        await WindowManager.Instance.CloseWindow(this);
+    }
+
+    public async Task ReturnHomeAsync()
+    {
+        var newWindow = new HomeWindow();
+        await WindowManager.Instance.ReplaceWindow(this, newWindow);
+        await WindowManager.Instance.SetFocusedPlanet(null);
+    }
 }

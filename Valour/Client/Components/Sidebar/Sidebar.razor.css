@@ -2,12 +2,8 @@
     display: flex;
     flex: auto;
     flex-direction: column;
-    max-height: calc(100vh - 118px);
-    min-height: 0;
-}
-
-.flip .sidebar-content {
     max-height: 100vh;
+    min-height: 0;
 }
 
 .tab-container {

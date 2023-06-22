@@ -4,17 +4,7 @@
 <div class="sidebar-container @ActiveClass @FlipClass">
 	<div class="sidebar-menu">
 		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
-
 		<div class="sidebar-2" id="sidebar2">
-			@if (!Flip)
-			{
-				<SidebarTop>
-					<CurrentPlanetComponent></CurrentPlanetComponent>
-				</SidebarTop>
-				<div class="top-bar">
-				</div>
-			}
-
 			<div class="sidebar-content">
 				<br/>
 				<div class="tab-container">

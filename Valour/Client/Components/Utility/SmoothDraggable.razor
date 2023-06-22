@@ -1,0 +1,38 @@
+@inject IJSRuntime JsRuntime
+
+<div id="@_id" class="smooth-drag">
+    @ChildContent
+</div>
+
+
+
+@code {
+    
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+    
+    [Parameter]
+    public int StartX { get; set; }
+    
+    [Parameter]
+    public int StartY { get; set; }
+    
+    [Parameter]
+    public bool FromRight { get; set; }
+    
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+    
+    private string _id = Guid.NewGuid().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/SmoothDraggable.razor.js?version=$(SHORTHASH)");
+            await _jsModule.InvokeVoidAsync("initialize", _id, StartX, StartY, FromRight);
+        }
+    }
+}
