@@ -1,4 +1,4 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using Valour.Api.Models.Messages
 
@@ -229,7 +229,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/MessageHolderComponent.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/MessageHolderComponent.razor.js");
             await SetupJS();
             await ScrollToBottom();
         }

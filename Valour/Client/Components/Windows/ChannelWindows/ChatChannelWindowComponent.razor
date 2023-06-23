@@ -91,7 +91,7 @@
         Description = await GetChannelDisplayDescriptionAsync();
 
         Refresh();
-
+        
         MessageHolder.Clear();
 
         var msgs = ClientMessageWrapper.FromList(await Channel.GetLastMessagesGenericAsync(64));
@@ -121,6 +121,11 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender)
+        {
+            await SetupNewChannelAsync();
+        }
+        
         await base.OnAfterRenderAsync(firstRender);
         CanRenderFlag = false;
     }

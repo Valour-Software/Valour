@@ -150,6 +150,11 @@
 
             await channelWindow.Component.SwapChannel(Channel);
         }
+        else
+        {
+            var planet = await Channel.GetPlanetAsync();
+            await windowManager.ReplaceWindow(window, new PlanetChatChannelWindow(planet, Channel));
+        }
         
         Refresh();
     }

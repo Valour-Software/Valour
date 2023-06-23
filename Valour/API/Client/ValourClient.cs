@@ -86,6 +86,11 @@ public static class ValourClient
     /// Currently opened planets
     /// </summary>
     public static List<Planet> OpenPlanets { get; private set; }
+    
+    /// <summary>
+    /// A set of locks used to prevent planet connections from closing automatically
+    /// </summary>
+    public static Dictionary<string, long> PlanetLocks { get; private set; }
 
     /// <summary>
     /// Currently opened channels
@@ -248,6 +253,7 @@ public static class ValourClient
         OpenPlanets = new List<Planet>();
         OpenPlanetChannels = new List<PlanetChatChannel>();
         JoinedPlanets = new List<Planet>();
+        PlanetLocks = new();
 
         // Hook top level events
         HookPlanetEvents();
@@ -570,6 +576,28 @@ public static class ValourClient
     }
 
     /// <summary>
+    /// Prevents a planet from closing connections automatically.
+    /// Key is used to allow multiple locks per planet.
+    /// </summary>
+    public static void AddPlanetLock(string key, long planetId)
+    {
+        PlanetLocks[key] = planetId;
+    }
+
+    public static async Task RemovePlanetLock(string key)
+    {
+        var found = PlanetLocks.TryGetValue(key, out var planetId);
+        
+        if (!found)
+            return;
+        
+        PlanetLocks.Remove(key);
+
+        var planet = ValourCache.Get<Planet>(planetId);
+        await ClosePlanetConnectionIfNotBlocked(planet);
+    }
+
+    /// <summary>
     /// Closes a SignalR connection to a planet
     /// </summary>
     public static async Task ClosePlanetConnection(Planet planet)
@@ -644,23 +672,22 @@ public static class ValourClient
         if (OnChannelClose is not null)
             await OnChannelClose.Invoke(channel);
 
-        await ClosePlanetConnectionIfNoChannels(await channel.GetPlanetAsync());
+        await ClosePlanetConnectionIfNotBlocked(await channel.GetPlanetAsync());
     }
 
     /// <summary>
     /// Closes planet connection if no chat channels are opened for it
     /// </summary>
-    public static async Task ClosePlanetConnectionIfNoChannels(Planet planet)
+    public static async Task ClosePlanetConnectionIfNotBlocked(Planet planet)
     {
         if (planet == null)
             return;
 
-        // Check if any open chat windows are for the planet
-        if (!OpenPlanetChannels.Any(x => x.PlanetId == planet.Id))
-        {
-            // Close the planet connection
-            await ClosePlanetConnection(planet);
-        }
+        if (PlanetLocks.Values.Any(x => x == planet.Id))
+            return;
+        
+        // Close the planet connection
+        await ClosePlanetConnection(planet);
     }
 
     #endregion

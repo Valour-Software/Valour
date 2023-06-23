@@ -7,13 +7,13 @@ export function initialize(id, x, y, right = false){
     const element = document.getElementById(id);
     
     if (right) {
-        element.style.left = (element.parentElement.clientWidth - x - element.clientWidth) + "px";
+        element.style.left = ((element.parentElement.clientWidth - x - element.clientWidth) / element.parentElement.clientWidth) * 100 + "%";
     } else {
-        element.style.left = x + "px";
+        element.style.left =  ((element.clientWidth + x) / element.parentElement.clientWidth) * 100 + "px";
     }
-    element.style.top = y + "px";
+    element.style.top = ((y / element.parentElement.clientHeight) * 100) + "%";
     
-    states[id] = { distX: x, distY: y };
+    states[id] = { distX: element.style.left, distY: element.style.top };
     elements[id] = element;
     
     if (!init){
@@ -31,8 +31,8 @@ function onDown(e, id) {
     const evt = e.type === 'touchstart' ? e.changedTouches[0] : e;
     activeId = id;
     
-    states[id].distX = Math.abs(elements[id].offsetLeft - evt.clientX);
-    states[id].distY = Math.abs(elements[id].offsetTop - evt.clientY);
+    states[id].distX = Math.abs((elements[id].offsetLeft - evt.clientX) / elements[id].parentElement.clientWidth * 100);
+    states[id].distY = Math.abs((elements[id].offsetTop - evt.clientY) / elements[id].parentElement.clientHeight * 100);
 
     elements[id].style.pointerEvents = 'none';
 }
@@ -56,6 +56,6 @@ function onMove(e) {
     const evt = e.type === 'touchmove' ? e.changedTouches[0] : e;
     
     // Update top/left directly in the dom element:
-    element.style.left = `${evt.clientX - states[activeId].distX}px`;
-    element.style.top = `${evt.clientY - states[activeId].distY}px`;
+    element.style.left = `${((evt.clientX / element.parentElement.clientWidth) * 100) - states[activeId].distX}%`;
+    element.style.top = `${((evt.clientY / element.parentElement.clientHeight) * 100) - states[activeId].distY}%`;
 }
