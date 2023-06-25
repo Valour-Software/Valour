@@ -96,10 +96,10 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         return permNode;
     }
 
-    public override async Task AddToCache<T>(T item)
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Id, this);
-        await ValourCache.Put((TargetId, (RoleId, TargetType)), this);
+        await ValourCache.Put(Id, this, skipEvent);
+        await ValourCache.Put((TargetId, (RoleId, TargetType)), this, true); // Skip duplicate event
     }
 
     public static async Task<List<PermissionsNode>> GetAllForPlanetAsync(long planetId)

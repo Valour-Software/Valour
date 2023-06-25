@@ -198,12 +198,6 @@
         }
     }
 
-    public async Task GetCategories()
-    {
-        Categories = await Planet.GetCategoriesAsync();
-        GetTopLevelCategories();
-    }
-
     public async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
     {
 
@@ -251,6 +245,11 @@
         VoiceChannels[index] = channel;
 
         StateHasChanged();
+    }
+    
+    public async Task GetCategories()
+    {
+        Categories = await Planet.GetCategoriesAsync();
     }
 
     public async Task GetChannels()

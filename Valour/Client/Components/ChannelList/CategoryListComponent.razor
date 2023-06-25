@@ -51,7 +51,7 @@
                 switch (item)
                 {
                     case PlanetChatChannel chat:
-                        <ChatChannelListComponent @key='@chat.Id' ParentCategory="@this" Channel="@chat" />
+                        <ChatChannelListComponent @key='$"{Category.Id}-{chat.Id}"' ParentCategory="@this" Channel="@chat" />
                         break;
                     //case PlanetVoiceChannel voice:
                     //    <VoiceChannelListComponent @key='@voice.Id' ParentCategory="@this" Channel="@voice" />
@@ -140,14 +140,7 @@
         ValourClient.OnChannelClose += OnChannelOpenedChange;
         ValourClient.OnCategoryOrderUpdate += OnCategoryOrderUpdate;
 
-        ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
-        ChildVoiceChannels = VoiceChannels.Where(x => x.ParentId == Category.Id).ToList();
-        ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
-
         Planet = await Category.GetPlanetAsync();
-        
-        ChildCategories ??= new();
-        ChildVoiceChannels ??= new();
 
         IsOpen = categoryManager.IsOpen(Category);
 
@@ -180,7 +173,7 @@
         ChildChannels = Channels.Where(x => x.ParentId == Category.Id).ToList();
         ChildVoiceChannels = VoiceChannels.Where(x => x.ParentId == Category.Id).ToList();
         ChildCategories = Categories.Where(x => x.ParentId == Category.Id).ToList();
-
+        
         ItemList.AddRange(ChildChannels);
         ItemList.AddRange(ChildVoiceChannels);
         ItemList.AddRange(ChildCategories);

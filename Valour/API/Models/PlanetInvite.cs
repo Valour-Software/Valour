@@ -69,9 +69,9 @@ public class PlanetInvite : Item, IPlanetModel, ISharedPlanetInvite
         return invResult;
     }
 
-    public override async Task AddToCache<T>(T item)
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Code, this);
+        await ValourCache.Put(Code, this, skipEvent);
     }
 
     public override string IdRoute => $"{BaseRoute}/{Code}";

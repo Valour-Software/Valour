@@ -70,9 +70,9 @@ namespace Valour.Api.Items
         /// <summary>
         /// This exists because of some type weirdness in C#
         /// </summary>
-        public virtual async Task AddToCache<T>(T item) where T : Item
+        public virtual async Task AddToCache<T>(T item, bool skipEvent = false) where T : Item
         {
-            await ValourCache.Put<T>(this.Id, item);
+            await ValourCache.Put<T>(this.Id, item, skipEvent);
         }
 
         /// <summary>

@@ -84,10 +84,10 @@ public class PlanetMember : Item, IPlanetModel, ISharedPlanetMember
         await planet.NotifyMemberDeleteAsync(this);
     }
 
-    public override async Task AddToCache<T>(T item)
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Id, this);
-        await ValourCache.Put((PlanetId, UserId), this);
+        await ValourCache.Put(Id, this, skipEvent);
+        await ValourCache.Put((PlanetId, UserId), this, true); // Skip event because we already called it above
     }
 
     /// <summary>

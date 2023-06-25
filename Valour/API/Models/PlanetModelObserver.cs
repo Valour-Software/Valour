@@ -74,6 +74,8 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Item
     /// </summary>
     public async Task Initialize(List<T> newModels = null)
     {
+        Console.WriteLine(JsonSerializer.Serialize(newModels));
+        
         if (!Initialized)
         {
             // Subscribe to model events if this is the first time
@@ -98,7 +100,7 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Item
         // Retrieve cache values (this is necessary to ensure single copies of items)
         foreach (var model in newModels)
         {
-            await model.AddToCache<T>(model);
+            await model.AddToCache<T>(model, true);
             var cached = ValourCache.Get<T>(model.Id);
             if (cached is not null)
             {

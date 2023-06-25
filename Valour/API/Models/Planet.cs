@@ -122,10 +122,10 @@ public class Planet : Item, ISharedPlanet
     
     #endregion
 
-    public override async Task AddToCache<T>(T item)
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
         NodeManager.PlanetToNode[Id] = NodeName;
-        await ValourCache.Put(this.Id, this);
+        await ValourCache.Put(this.Id, this, skipEvent);
     }
 
     /// <summary>
