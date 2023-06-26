@@ -3,7 +3,7 @@
 @inject IJSRuntime JS
 @inherits BaseEmbedItemComponent
 
-<div style="@AdditionalDivStyle@item.GetStyle()">
+<div style="@(AdditionalDivStyle + item.GetStyle())">
 	@{
 		var par = new Dictionary<string, object>(){ 
             { "Attachment", item.Attachment },
