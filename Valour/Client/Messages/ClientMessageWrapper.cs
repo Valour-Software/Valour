@@ -39,6 +39,11 @@ public class ClientMessageWrapper
     /// The internal message
     /// </summary>
     public Message Message { get; set; }
+    
+    /// <summary>
+    /// The replied to message
+    /// </summary>
+    public ClientMessageWrapper Reply { get; set; }
 
     /// <summary>
     /// Returns the component type to be used when rendering the message
@@ -54,22 +59,24 @@ public class ClientMessageWrapper
         return typeof(MessageComponent);
     }
 
-    public static List<ClientMessageWrapper> FromList(List<Message> messages)
+    public static List<ClientMessageWrapper> FromList(List<MessageTransferData<Message>> data)
     {
         List<ClientMessageWrapper> result = new();
 
-        if (messages is null)
+        if (data is null)
             return result;
 
-        foreach (Message message in messages)
-            result.Add(new ClientMessageWrapper(message));
+        foreach (var msg in data)
+            result.Add(new ClientMessageWrapper(msg.Message, msg.Reply));
 
         return result;
     }
 
-    public ClientMessageWrapper(Message message)
+    public ClientMessageWrapper(Message message, Message reply = null)
     {
         Message = message;
+        if (reply is not null)
+            Reply = new ClientMessageWrapper(reply);
     }
 
     public string MarkdownContent

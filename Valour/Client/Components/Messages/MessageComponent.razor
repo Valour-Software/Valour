@@ -39,17 +39,17 @@
                         </div>
                     }
 
-                    @if (ReplyMessage is not null && !IsInnerReply)
+                    @if (MessageData.Reply is not null && !IsInnerReply)
                     {
                         Dictionary<string, object> replyParams = new()
                         {
-                            { "MessageData", ReplyMessage },
+                            { "MessageData", MessageData.Reply },
                             { "IsInnerReply", true },
                             { "LastMessage", null },
                             { "Ghost", Ghost }
                         };
 
-                        <DynamicComponent @key='ReplyMessage' Type="ReplyMessage.GetComponentType()" Parameters="replyParams"></DynamicComponent>
+                        <DynamicComponent @key='$"reply-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}"' Type="@MessageData.Reply.GetComponentType()" Parameters="replyParams"></DynamicComponent>
                     }
 
                     <div class="content" @ref="InnerRef">
@@ -127,8 +127,6 @@
 
     public bool Minimal = false;
 
-    public ClientMessageWrapper ReplyMessage;
-
     public string Id = "";
 
     public string nameColor = "#ffffff";
@@ -169,7 +167,7 @@
         if (Ghost)
             newClass += " ghost";
 
-        if (ReplyMessage is not null)
+        if (MessageData.Reply is not null)
             newClass += " hasreply";
 
         _class = newClass;
@@ -283,16 +281,12 @@
         LastMessage = msg;
     }
 
-    public async Task BuildMessage()
+    public async Task BuildMessage(bool render = true)
     {
         if (MessageData == null)
             return;
 
-        // Get reference to reply message if we have a reply
-        if (MessageData.Message.ReplyToId is not null)
-            ReplyMessage = new ClientMessageWrapper(await MessageData.Message.GetReplyMessageAsync());
-
-        // Check if we are a minimal message
+    // Check if we are a minimal message
         CheckMinimal();
 
         if (!IsInnerReply)
@@ -313,7 +307,9 @@
         pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
 
         IsBuilt = true;
-        ReRender();
+        
+        if (render)
+            ReRender();
     }
 
     protected override async Task OnInitializedAsync()
@@ -332,7 +328,7 @@
 
         User = await MessageData.Message.GetAuthorUserAsync();
 
-        await BuildMessage();
+        await BuildMessage(false);
 
         if (User != null)
             User.OnUpdated += OnUserUpdated;
@@ -364,7 +360,7 @@
     {
         if (LastMessage != null && MessageData != null)
         {
-            if (ReplyMessage is not null)
+            if (MessageData.Reply is not null)
             {
                 Minimal = false;
                 return;

@@ -2,6 +2,7 @@ using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Server.Workers;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -267,26 +268,45 @@ public class PlanetChatChannelService
                                                 x.Position == channel.Position && // Same position
                                                 x.Id != channel.Id); // Not self
 
-    public async Task<List<PlanetMessage>> GetMessagesAsync(PlanetChatChannel channel, int count, long index)
+    public async Task<List<MessageTransferData<PlanetMessage>>> GetMessagesAsync(PlanetChatChannel channel, int count = 50, long index = long.MaxValue)
     {
+        // Not sure why this request would even be made
+        if (count < 1)
+            return new();
+        
         List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
+        
+        var messages = await _db.PlanetMessages.Where(x => x.ChannelId == channel.Id && x.Id < index)
+                                              .Include(x => x.ReplyToMessage)
+                                              .OrderByDescending(x => x.TimeSent)
+                                              .Take(count)
+                                              .Reverse()
+                                              .Select(x => new MessageTransferData<PlanetMessage>()
+                                              {
+                                                  Message = x.ToModel(),
+                                                  Reply = x.ReplyToMessage.ToModel()
+                                              })
+                                              .ToListAsync();
 
-        if (count > 0)
+        if (staged.Count > 0)
         {
-            var messages = await _db.PlanetMessages.Where(x => x.ChannelId == channel.Id && x.Id < index)
-                                                  .OrderByDescending(x => x.TimeSent)
-                                                  .Take(count)
-                                                  .Reverse()
-                                                  .Select(x => x.ToModel())
-                                                  .ToListAsync();
-
-            messages.AddRange(staged);
-
-            return messages;
+            List<MessageTransferData<PlanetMessage>> stagedData = new();
+            foreach (var msg in staged)
+            {
+                PlanetMessage reply = null;
+                if (msg.ReplyToId is not null)
+                {
+                    reply = (await _db.PlanetMessages.FindAsync(msg.ReplyToId)).ToModel();
+                }
+                
+                stagedData.Add(new MessageTransferData<PlanetMessage>()
+                {
+                    Message = msg,
+                    Reply = reply
+                });
+            }
         }
-        else
-        {
-            return staged;
-        }
+        
+        return messages;
     }
 }

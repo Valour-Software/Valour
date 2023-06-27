@@ -288,7 +288,7 @@ public class NodeService
                 OnRelayTransaction(transaction);
                 break;
             case NodeEventType.DirectMessage:
-                var message = (DirectMessage) data.Payload;
+                var message = (MessageTransferData<DirectMessage>) data.Payload;
                 OnRelayDirectMessage(message, data.TargetUser);
                 break;
         }
@@ -300,7 +300,7 @@ public class NodeService
         _hub.Clients.Group($"u-{transaction.UserToId}").SendAsync("Transaction-Processed", transaction);
     }
 
-    private void OnRelayDirectMessage(DirectMessage message, long targetUser)
+    private void OnRelayDirectMessage(MessageTransferData<DirectMessage> message, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
     }

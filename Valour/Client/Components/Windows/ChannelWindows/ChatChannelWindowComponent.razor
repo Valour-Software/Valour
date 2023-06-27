@@ -65,7 +65,7 @@
 
         Channel = Window.Channel;
 
-        ValourClient.OnMessageRecieved += OnRecieveMessage;
+        ValourClient.OnMessageReceived += OnRecieveMessage;
 
         await Channel.Open();
     }
@@ -146,7 +146,7 @@
 
     void IDisposable.Dispose()
     {
-        ValourClient.OnMessageRecieved -= OnRecieveMessage;
+        ValourClient.OnMessageReceived -= OnRecieveMessage;
 
         _thisRef.Dispose();
     }
@@ -156,8 +156,10 @@
         Refresh();
     }
 
-    public virtual async Task OnRecieveMessage(Message message)
+    public virtual async Task OnRecieveMessage(MessageTransferData<Message> data)
     {
+        var message = data.Message;
+        
         // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
             return;
@@ -165,7 +167,7 @@
         ValourClient.SetChannelLastViewedState(Channel.Id, message.TimeSent);
 
         // Create client wrapper
-        ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
+        ClientMessageWrapper wrapper = new ClientMessageWrapper(message, data.Reply);
         await CheckForSelfMention(wrapper);
 
         await MessageHolder.AddMessage(wrapper);

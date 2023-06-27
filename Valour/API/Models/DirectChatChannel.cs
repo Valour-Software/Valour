@@ -123,26 +123,59 @@ public class DirectChatChannel : Channel, ISharedDirectChatChannel, IChatChannel
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
-    public async Task<List<DirectMessage>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<DirectMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data;
+    public async Task<List<MessageTransferData<DirectMessage>>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
+        (await ValourClient.PrimaryNode.GetJsonAsync<List<MessageTransferData<DirectMessage>>>($"{IdRoute}/messages?index={index}&count={count}")).Data;
 
     /// <summary>
     /// Returns the last (count) messages
     /// </summary>
-    public async Task<List<DirectMessage>> GetLastMessagesAsync(int count = 10) =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<DirectMessage>>($"{IdRoute}/messages?count={count}")).Data;
+    public async Task<List<MessageTransferData<DirectMessage>>> GetLastMessagesAsync(int count = 10) =>
+        (await ValourClient.PrimaryNode.GetJsonAsync<List<MessageTransferData<DirectMessage>>>($"{IdRoute}/messages?count={count}")).Data;
 
     /// <summary>
     /// Returns the last (count) generic messages
     /// </summary>
-    public async Task<List<Message>> GetLastMessagesGenericAsync(int count = 10) =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<DirectMessage>>($"{IdRoute}/messages?count={count}")).Data.Cast<Message>().ToList();
+    public async Task<List<MessageTransferData<Message>>> GetLastMessagesGenericAsync(int count = 10)
+    {
+        var messages =
+            (await ValourClient.PrimaryNode.GetJsonAsync<List<MessageTransferData<DirectMessage>>>(
+                $"{IdRoute}/messages?count={count}")).Data;
+        
+        List<MessageTransferData<Message>> results = new();
+        foreach (var data in messages)
+        {
+            results.Add(new MessageTransferData<Message>()
+            {
+                Message = data.Message,
+                Reply = data.Reply
+            });
+        }
+
+        return results;
+    }
 
     /// <summary>
     /// Returns the last (count) generic messages starting at (index)
     /// </summary>
-    public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
-        (await ValourClient.PrimaryNode.GetJsonAsync<List<DirectMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
+    public async Task<List<MessageTransferData<Message>>> GetMessagesGenericAsync(long index = long.MaxValue,
+        int count = 10)
+    {
+        var messages =
+            (await ValourClient.PrimaryNode.GetJsonAsync<List<MessageTransferData<DirectMessage>>>(
+                $"{IdRoute}/messages?index={index}&count={count}")).Data;
+        
+        List<MessageTransferData<Message>> results = new();
+        foreach (var data in messages)
+        {
+            results.Add(new MessageTransferData<Message>()
+            {
+                Message = data.Message,
+                Reply = data.Reply
+            });
+        }
+
+        return results;
+    }
 
     // IsCurrentlyTyping is not supported for direct chat channels right now
     public Task SendIsTyping()

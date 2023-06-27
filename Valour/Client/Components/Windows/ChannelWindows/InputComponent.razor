@@ -405,7 +405,7 @@
 
     public async Task SetReplyMessage(ClientMessageWrapper message)
     {
-        PreviewMessageComponent.ReplyMessage = message;
+        PreviewMessageComponent.MessageData.Reply = message;
         PreviewMessage.Message.ReplyToId = message?.Message?.Id;
 
         await RefreshPreviewMessage();
@@ -417,7 +417,7 @@
     public async Task RemoveReply()
     {
         PreviewMessage.Message.ReplyToId = null;
-        PreviewMessageComponent.ReplyMessage = null;
+        PreviewMessageComponent.MessageData.Reply = null;
         PreviewMessageComponent.ReRender();
     }
 
@@ -448,7 +448,7 @@
             MessageHolder.RemoveErrorMessage();
         }
 
-        PreviewMessageComponent.ReplyMessage = null;
+        PreviewMessageComponent.MessageData.Reply = null;
         PreviewMessage.Clear();
         PreviewMessageComponent.ReRender();
         windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);

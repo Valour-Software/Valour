@@ -144,26 +144,56 @@ public class PlanetChatChannel : PlanetChannel, ISharedPlanetChatChannel, IChatC
     /// <summary>
     /// Returns the last (count) messages starting at (index)
     /// </summary>
-    public async Task<List<PlanetMessage>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data;
+    public async Task<List<MessageTransferData<PlanetMessage>>> GetMessagesAsync(long index = long.MaxValue, int count = 10) =>
+        (await Node.GetJsonAsync<List<MessageTransferData<PlanetMessage>>>($"{IdRoute}/messages?index={index}&count={count}")).Data;
 
     /// <summary>
     /// Returns the last (count) messages
     /// </summary>
-    public async Task<List<PlanetMessage>> GetLastMessagesAsync(int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data;
+    public async Task<List<MessageTransferData<PlanetMessage>>> GetLastMessagesAsync(int count = 10) =>
+        (await Node.GetJsonAsync<List<MessageTransferData<PlanetMessage>>>($"{IdRoute}/messages?count={count}")).Data;
 
     /// <summary>
     /// Returns the last (count) generic messages
     /// </summary>
-    public async Task<List<Message>> GetLastMessagesGenericAsync(int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?count={count}")).Data.Cast<Message>().ToList();
+    public async Task<List<MessageTransferData<Message>>> GetLastMessagesGenericAsync(int count = 10)
+    {
+        var messages =
+            (await Node.GetJsonAsync<List<MessageTransferData<PlanetMessage>>>($"{IdRoute}/messages?count={count}"))
+            .Data;
+        List<MessageTransferData<Message>> results = new();
+        foreach (var data in messages)
+        {
+            results.Add(new MessageTransferData<Message>()
+            {
+                Message = data.Message,
+                Reply = data.Reply
+            });
+        }
+
+        return results;
+    }
 
     /// <summary>
     /// Returns the last (count) generic messages starting at (index)
     /// </summary>
-    public async Task<List<Message>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10) =>
-        (await Node.GetJsonAsync<List<PlanetMessage>>($"{IdRoute}/messages?index={index}&count={count}")).Data.Cast<Message>().ToList();
+    public async Task<List<MessageTransferData<Message>>> GetMessagesGenericAsync(long index = long.MaxValue, int count = 10)
+    {
+        var messages = (await Node.GetJsonAsync<List<MessageTransferData<PlanetMessage>>>(
+            $"{IdRoute}/messages?index={index}&count={count}")).Data;
+        
+        List<MessageTransferData<Message>> results = new();
+        foreach (var data in messages)
+        {
+            results.Add(new MessageTransferData<Message>()
+            {
+                Message = data.Message,
+                Reply = data.Reply
+            });
+        }
+
+        return results;
+    }
 
     public async Task SendIsTyping()
     {

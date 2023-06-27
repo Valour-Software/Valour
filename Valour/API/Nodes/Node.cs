@@ -179,8 +179,8 @@ public class Node
             HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => ValourClient.DeleteItem((dynamic)i[0]));
         }
 
-        HubConnection.On<PlanetMessage>("Relay", ValourClient.MessageRecieved);
-        HubConnection.On<DirectMessage>("RelayDirect", ValourClient.MessageRecieved);
+        HubConnection.On<MessageTransferData<PlanetMessage>>("Relay", ValourClient.PlanetMessageRecieved);
+        HubConnection.On<MessageTransferData<DirectMessage>>("RelayDirect", ValourClient.DirectMessageRecieved);
         HubConnection.On<PlanetMessage>("DeleteMessage", ValourClient.MessageDeleted);
         HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
         HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
 using Valour.Server.Services;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Workers
 {
@@ -149,6 +150,9 @@ namespace Valour.Server.Workers
             var hubService = scope.ServiceProvider.GetRequiredService<CoreHubService>();
             var stateService = scope.ServiceProvider.GetRequiredService<ChannelStateService>();
             
+            // This is ONLY READ FROM
+            var dbService = scope.ServiceProvider.GetRequiredService<ValourDB>();
+            
             // This is a stream and will run forever
             foreach (var message in MessageQueue.GetConsumingEnumerable())
             {
@@ -159,7 +163,18 @@ namespace Valour.Server.Workers
                 
                 stateService.SetChannelStateTime(message.ChannelId, message.TimeSent);
                 hubService.NotifyChannelStateUpdate(message.PlanetId, message.ChannelId, message.TimeSent);
-                hubService.RelayMessage(message);
+
+                PlanetMessage replyTo = null;
+                if (message.ReplyToId is not null)
+                {
+                    replyTo = (await dbService.PlanetMessages.FindAsync(message.ReplyToId)).ToModel();
+                }
+                
+                hubService.RelayMessage(new MessageTransferData<PlanetMessage>()
+                {
+                    Message = message,
+                    Reply = replyTo,
+                });
 
                 // Add message to message staging
                 StagedMessages[message.Id] = message;

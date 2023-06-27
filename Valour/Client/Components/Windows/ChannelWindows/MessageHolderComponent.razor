@@ -1,6 +1,7 @@
 ﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using Valour.Api.Models.Messages
+@using System.Reflection.Metadata
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
     <CascadingValue Value="this" IsFixed="true">
@@ -303,7 +304,13 @@
             return;
 
         foreach (var msg in messages)
-            await ValourCache.Put(msg.Id, msg, true);
+        {
+            await msg.Message.AddToCache(msg.Message);
+            if (msg.Reply is not null)
+            {
+                await msg.Reply.AddToCache(msg.Reply);
+            }
+        }
 
         await UpdateScrollPosition(); // This saves the scroll position
 
