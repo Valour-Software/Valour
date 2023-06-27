@@ -554,18 +554,21 @@ public class PlanetMemberService
     /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(PlanetMember member)
+    public async Task<TaskResult> DeleteAsync(long memberId)
     {
         await using var trans = await _db.Database.BeginTransactionAsync();
+        var dbMember = await _db.PlanetMembers.FindAsync(memberId);
 
+        if (dbMember is null)
+            return new TaskResult(false, "Member not found");
+        
         try
         {
             // Remove roles
-            var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id);
+            var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == memberId);
             _db.PlanetRoleMembers.RemoveRange(roles);
-
-            Valour.Database.PlanetMember dbMember = new() { Id = member.Id, IsDeleted = true };
-            _db.PlanetMembers.Attach(dbMember).Property(x => x.IsDeleted).IsModified = true;
+            
+            dbMember.IsDeleted = true;
 
             await _db.SaveChangesAsync();
             await trans.CommitAsync();
@@ -577,7 +580,7 @@ public class PlanetMemberService
             return new(false, "An unexpected error occurred.");
         }
 
-        _coreHub.NotifyPlanetItemDelete(member);
+        _coreHub.NotifyPlanetItemDelete(dbMember.ToModel());
 
         return TaskResult.SuccessResult;
     }
