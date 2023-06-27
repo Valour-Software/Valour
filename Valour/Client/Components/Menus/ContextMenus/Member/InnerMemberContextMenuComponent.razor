@@ -10,6 +10,10 @@
 {
 	<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-model'>Remove Friend</BlazorContextMenu.Item>
 }
+else if (IsFriendRequested)
+{
+	<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-model'>Cancel Request</BlazorContextMenu.Item>
+}
 else
 {
 	<BlazorContextMenu.Item OnClick='OnClickAddFriend' CssClass='context-model'>Add Friend</BlazorContextMenu.Item>
@@ -47,6 +51,7 @@ else
 	public static bool CanKick { get; set; }
 	public static bool CanBan { get; set; }
 	public static bool IsFriend { get; set; }
+	public static bool IsFriendRequested { get; set; }
 
 	public static ClientWindow Window { get; set; }
 
@@ -75,6 +80,7 @@ else
 		}
 
 		IsFriend = false;
+		IsFriendRequested = false;
 		StateHasChanged();
 	}
 
@@ -84,6 +90,7 @@ else
 		Window = window;
 
 		User = await member.GetUserAsync();
+		IsFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
 		IsFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
 
 		if ((await member.GetPlanetAsync()).OwnerId == ValourClient.Self.Id)

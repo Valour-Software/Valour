@@ -44,10 +44,11 @@
     white-space: nowrap;
     position: relative;
     cursor: pointer;
+    border-radius: 5px;
 }
 
 .blazor-context-menu__item--default:hover {
-    background-color: rgba(0,0,0,.05);
+    background-color: rgba(255,255,255,.1)
 }
 
 .blazor-context-menu__item--with-submenu {

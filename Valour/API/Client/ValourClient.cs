@@ -460,6 +460,7 @@ public static class ValourClient
 
         if (result.Success)
         {
+            FriendsRequested.RemoveAll(x => x.Name.ToLower() == username.ToLower());
             var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
             if (friend is not null)
             {
@@ -468,7 +469,7 @@ public static class ValourClient
 
                 FriendRequests.Add(friend);
 
-				if (OnFriendsUpdate is not null)
+                if (OnFriendsUpdate is not null)
 					await OnFriendsUpdate.Invoke();
 			}
 
