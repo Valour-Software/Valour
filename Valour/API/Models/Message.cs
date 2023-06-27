@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared.Models;
@@ -8,8 +9,18 @@ using Valour.Api.Client;
 using Valour.Api.Models;
 
 namespace Valour.Api.Models;
+
+[JsonDerivedType(typeof(PlanetMessage), typeDiscriminator: nameof(PlanetMessage))]
+[JsonDerivedType(typeof(DirectMessage), typeDiscriminator: nameof(DirectMessage))]
 public abstract class Message : LiveModel, ISharedMessage
 {
+    public Message()
+    {
+        
+    }
+
+    public abstract Message GetReply();
+
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>

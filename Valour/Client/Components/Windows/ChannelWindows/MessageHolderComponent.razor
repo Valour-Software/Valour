@@ -305,10 +305,11 @@
 
         foreach (var msg in messages)
         {
-            await msg.Message.AddToCache(msg.Message);
-            if (msg.Reply is not null)
+            await msg.AddToCache(msg);
+            var reply = msg.GetReply();
+            if (reply is not null)
             {
-                await msg.Reply.AddToCache(msg.Reply);
+                await reply.AddToCache(reply);
             }
         }
 

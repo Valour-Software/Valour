@@ -156,18 +156,16 @@
         Refresh();
     }
 
-    public virtual async Task OnRecieveMessage(MessageTransferData<Message> data)
+    public virtual async Task OnRecieveMessage(Message message)
     {
-        var message = data.Message;
-        
-        // Ignore messages not meant for this channel
+    // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
             return;
         
         ValourClient.SetChannelLastViewedState(Channel.Id, message.TimeSent);
 
         // Create client wrapper
-        ClientMessageWrapper wrapper = new ClientMessageWrapper(message, data.Reply);
+        ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
         await CheckForSelfMention(wrapper);
 
         await MessageHolder.AddMessage(wrapper);

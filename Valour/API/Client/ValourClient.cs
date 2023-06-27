@@ -184,7 +184,7 @@ public static class ValourClient
     /// <summary>
     /// Run when a message is received
     /// </summary>
-    public static event Func<MessageTransferData<Message>, Task> OnMessageReceived;
+    public static event Func<Message, Task> OnMessageReceived;
 
     /// <summary>
     /// Run when a planet is deleted
@@ -820,47 +820,33 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task PlanetMessageRecieved(MessageTransferData<PlanetMessage> data)
+    public static async Task PlanetMessageRecieved(PlanetMessage message)
     {
-        var message = data.Message;
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
-        if (data.Reply is not null)
+        if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.Id, data.Reply);
+            await ValourCache.Put(message.Id, message.ReplyTo);
         }
 
-        var generic = new MessageTransferData<Message>()
-        {
-            Message = data.Message,
-            Reply = data.Reply
-        };
-        
         if (OnMessageReceived is not null)
-            await OnMessageReceived.Invoke(generic);
+            await OnMessageReceived.Invoke(message);
     }
     
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task DirectMessageRecieved(MessageTransferData<DirectMessage> data)
+    public static async Task DirectMessageRecieved(DirectMessage message)
     {
-        var message = data.Message;
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
-        if (data.Reply is not null)
+        if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.Id, data.Reply);
+            await ValourCache.Put(message.Id, message.ReplyTo);
         }
         
-        var generic = new MessageTransferData<Message>()
-        {
-            Message = data.Message,
-            Reply = data.Reply
-        };
-        
         if (OnMessageReceived is not null)
-            await OnMessageReceived.Invoke(generic);
+            await OnMessageReceived.Invoke(message);
     }
 
     public static async Task MessageDeleted(PlanetMessage message)

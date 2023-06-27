@@ -34,6 +34,13 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
 
     #endregion
 
+    public PlanetMessage ReplyTo { get; set; }
+    
+    public override PlanetMessage GetReply()
+    {
+        return ReplyTo as PlanetMessage; 
+    }
+    
     /// <summary>
     /// The member's ID
     /// </summary>

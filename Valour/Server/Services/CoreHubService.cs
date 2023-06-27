@@ -28,10 +28,8 @@ public class CoreHubService
         _redis = redis;
     }
     
-    public async void RelayMessage(MessageTransferData<PlanetMessage> data)
+    public async void RelayMessage(PlanetMessage message)
     {
-        var message = data.Message;
-        
         var groupId = $"c-{message.ChannelId}";
 
         // Group we are sending messages to
@@ -48,14 +46,14 @@ public class CoreHubService
         if (NodeConfig.Instance.LogInfo)
             Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying message {message.Id} to group {groupId}");
 
-        await group.SendAsync("Relay", data);
+        await group.SendAsync("Relay", message);
     }
 
-    public async Task RelayDirectMessage(MessageTransferData<DirectMessage> data, NodeService nodeService)
+    public async Task RelayDirectMessage(DirectMessage message, NodeService nodeService)
     {
-        var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == data.Message.ChannelId);
-        await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessage, data);
-        await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessage, data);
+        var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
+        await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessage, message);
+        await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessage, message);
     }
 
     public async void NotifyDirectMessage(DirectMessage message, long userId)

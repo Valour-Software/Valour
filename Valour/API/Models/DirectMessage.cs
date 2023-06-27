@@ -13,6 +13,16 @@ public class DirectMessage : Message, ISharedDirectMessage
             $"api/directchatchannels/{ChannelId}/messages";
 
     #endregion
+    
+    public DirectMessage() { }
+    
+    public DirectMessage ReplyTo { get; set; }
+    
+    public override DirectMessage GetReply()
+    {
+        return ReplyTo as DirectMessage; 
+    }
+
     public static async ValueTask<DirectMessage> FindAsync(long id, long channelId, bool refresh = false)
     {
         if (!refresh)

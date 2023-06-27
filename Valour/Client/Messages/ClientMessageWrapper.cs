@@ -59,7 +59,7 @@ public class ClientMessageWrapper
         return typeof(MessageComponent);
     }
 
-    public static List<ClientMessageWrapper> FromList(List<MessageTransferData<Message>> data)
+    public static List<ClientMessageWrapper> FromList(List<Message> data)
     {
         List<ClientMessageWrapper> result = new();
 
@@ -67,14 +67,15 @@ public class ClientMessageWrapper
             return result;
 
         foreach (var msg in data)
-            result.Add(new ClientMessageWrapper(msg.Message, msg.Reply));
+            result.Add(new ClientMessageWrapper(msg));
 
         return result;
     }
 
-    public ClientMessageWrapper(Message message, Message reply = null)
+    public ClientMessageWrapper(Message message)
     {
         Message = message;
+        var reply = message.GetReply();
         if (reply is not null)
             Reply = new ClientMessageWrapper(reply);
     }

@@ -4,6 +4,14 @@ namespace Valour.Server.Models;
 
 public class DirectMessage : Item, ISharedMessage
 {
+    public DirectMessage ReplyTo { get; set; }
+    
+    public DirectMessage AddReplyTo(DirectMessage replyTo)
+    {
+        ReplyTo = replyTo;
+        return this;
+    }
+    
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>

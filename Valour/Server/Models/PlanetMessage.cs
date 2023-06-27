@@ -4,6 +4,14 @@ namespace Valour.Server.Models;
 
 public class PlanetMessage : Item, ISharedPlanetMessage
 {
+    public PlanetMessage ReplyTo { get; set; }
+
+    public PlanetMessage AddReplyTo(PlanetMessage replyTo)
+    {
+        ReplyTo = replyTo;
+        return this;
+    }
+    
     /// <summary>
     /// The id of the planet this message belongs to
     /// </summary>

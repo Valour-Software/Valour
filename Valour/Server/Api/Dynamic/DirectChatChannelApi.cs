@@ -185,13 +185,13 @@ public class DirectChatChannelApi
 
         var message = await directService.GetDirectMessageAsync(message_id);
 
-        if (message.Message.ChannelId != id)
+        if (message.ChannelId != id)
             return ValourResult.NotFound<PlanetMessage>();
 
-        if (requesterUserId != message.Message.AuthorUserId)
+        if (requesterUserId != message.AuthorUserId)
             return ValourResult.Forbid("You cannot delete another user's direct messages");
 
-        var result = await directService.DeleteMessageAsync(channel, message.Message);
+        var result = await directService.DeleteMessageAsync(channel, message);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

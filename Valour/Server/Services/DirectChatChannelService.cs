@@ -120,31 +120,22 @@ public class DirectChatChannelService
         return new(true, "Success", channel.ToModel());
     }
 
-    public async Task<MessageTransferData<DirectMessage>> GetDirectMessageAsync(long msgId)
+    public async Task<DirectMessage> GetDirectMessageAsync(long msgId)
     {
-        DirectMessage reply = null;
         var msg = (await _db.DirectMessages.FindAsync(msgId)).ToModel();
         if (msg.ReplyToId is not null)
-            reply = (await _db.DirectMessages.FindAsync(msg.ReplyToId)).ToModel();
+            msg.ReplyTo = (await _db.DirectMessages.FindAsync(msg.ReplyToId)).ToModel();
 
-        return new()
-        {
-            Message = msg,
-            Reply = reply
-        };
+        return msg;
     }
 
-    public async Task<List<MessageTransferData<DirectMessage>>> GetDirectMessagesAsync(DirectChatChannel channel, long index, int count) =>
+    public async Task<List<DirectMessage>> GetDirectMessagesAsync(DirectChatChannel channel, long index, int count) =>
         await _db.DirectMessages.Where(x => x.ChannelId == channel.Id && x.Id <= index)
             .Include(x => x.ReplyToMessage)
             .OrderByDescending(x => x.Id)
             .Take(count)
             .Reverse()
-            .Select(x => new MessageTransferData<DirectMessage>()
-            {
-                Message = x.ToModel(),
-                Reply = x.ReplyToMessage.ToModel()
-            })
+            .Select(x => x.ToModel().AddReplyTo(x.ReplyToMessage.ToModel()))
             .ToListAsync();
 
     public async Task UpdateUserStateAsync(DirectChatChannel channel, long userId)
@@ -285,13 +276,13 @@ public class DirectChatChannelService
         if (targetUser is null)
             return new(false, "Target user not found.");
 
-        Valour.Database.DirectMessage replyTo = null;
-        
         if (message.ReplyToId is not null)
         {
-            replyTo = await _db.DirectMessages.FindAsync(message.ReplyToId);
+            var replyTo = await _db.DirectMessages.FindAsync(message.ReplyToId);
             if (replyTo is null)
                 return new(false, "Reply message not found");
+
+            message.ReplyTo = replyTo.ToModel();
         }
 
 
@@ -300,11 +291,7 @@ public class DirectChatChannelService
         await _db.DirectMessages.AddAsync(message.ToDatabase());
         await _db.SaveChangesAsync();
 
-        await _coreHub.RelayDirectMessage(new MessageTransferData<DirectMessage>()
-        {
-            Message = message,
-            Reply = replyTo.ToModel(),
-        }, _nodeService);
+        await _coreHub.RelayDirectMessage(message, _nodeService);
 
         StatWorker.IncreaseMessageCount();
 

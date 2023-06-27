@@ -268,7 +268,7 @@ public class PlanetChatChannelService
                                                 x.Position == channel.Position && // Same position
                                                 x.Id != channel.Id); // Not self
 
-    public async Task<List<MessageTransferData<PlanetMessage>>> GetMessagesAsync(PlanetChatChannel channel, int count = 50, long index = long.MaxValue)
+    public async Task<List<PlanetMessage>> GetMessagesAsync(PlanetChatChannel channel, int count = 50, long index = long.MaxValue)
     {
         // Not sure why this request would even be made
         if (count < 1)
@@ -281,31 +281,23 @@ public class PlanetChatChannelService
                                               .OrderByDescending(x => x.TimeSent)
                                               .Take(count)
                                               .Reverse()
-                                              .Select(x => new MessageTransferData<PlanetMessage>()
-                                              {
-                                                  Message = x.ToModel(),
-                                                  Reply = x.ReplyToMessage.ToModel()
-                                              })
+                                              .Select(x => x.ToModel().AddReplyTo(x.ReplyToMessage.ToModel()))
                                               .ToListAsync();
 
         if (staged.Count > 0)
         {
-            List<MessageTransferData<PlanetMessage>> stagedData = new();
             foreach (var msg in staged)
             {
-                PlanetMessage reply = null;
                 if (msg.ReplyToId is not null)
                 {
-                    reply = (await _db.PlanetMessages.FindAsync(msg.ReplyToId)).ToModel();
+                    var reply = (await _db.PlanetMessages.FindAsync(msg.ReplyToId)).ToModel();
+                    if (reply is not null)
+                        reply.AddReplyTo(reply);
                 }
-                
-                stagedData.Add(new MessageTransferData<PlanetMessage>()
-                {
-                    Message = msg,
-                    Reply = reply
-                });
             }
         }
+        
+        messages.AddRange(staged);
         
         return messages;
     }

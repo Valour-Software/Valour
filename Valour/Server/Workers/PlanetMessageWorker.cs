@@ -163,18 +163,14 @@ namespace Valour.Server.Workers
                 
                 stateService.SetChannelStateTime(message.ChannelId, message.TimeSent);
                 hubService.NotifyChannelStateUpdate(message.PlanetId, message.ChannelId, message.TimeSent);
-
-                PlanetMessage replyTo = null;
+                
                 if (message.ReplyToId is not null)
                 {
-                    replyTo = (await dbService.PlanetMessages.FindAsync(message.ReplyToId)).ToModel();
+                    var replyTo = (await dbService.PlanetMessages.FindAsync(message.ReplyToId)).ToModel();
+                    message.ReplyTo = replyTo;
                 }
                 
-                hubService.RelayMessage(new MessageTransferData<PlanetMessage>()
-                {
-                    Message = message,
-                    Reply = replyTo,
-                });
+                hubService.RelayMessage(message);
 
                 // Add message to message staging
                 StagedMessages[message.Id] = message;
