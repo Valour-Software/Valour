@@ -54,6 +54,8 @@ public class PlanetChatChannelService
         await _db.SaveChangesAsync();
 
         _coreHub.NotifyPlanetItemDelete(channel);
+
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
