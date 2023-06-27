@@ -10,7 +10,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class OauthApp : Item, ISharedOauthApp
+public class OauthApp : LiveModel, ISharedOauthApp
 {
     #region IPlanetModel implementation
 

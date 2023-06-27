@@ -21,6 +21,12 @@ public class PlanetRole : Item, ISharedPlanetRole
     ///////////////////////
     // Entity Properties //
     ///////////////////////
+    
+    /// <summary>
+    /// True if this is an admin role - meaning that it overrides all permissions
+    /// </summary>
+    [Column("is_admin")]
+    public bool IsAdmin { get; set; }
 
     /// <summary>
     /// The id of the planet this belongs to
@@ -64,15 +70,11 @@ public class PlanetRole : Item, ISharedPlanetRole
     [Column("voice_perms")]
     public long VoicePermissions { get; set; }
 
-    // RGB Components for role color
-    [Column("red")]
-    public byte Red { get; set; }
-
-    [Column("green")]
-    public byte Green { get; set; }
-
-    [Column("blue")]
-    public byte Blue { get; set; }
+    /// <summary>
+    /// The hex color for the role
+    /// </summary>
+    [Column("color")]
+    public string Color { get; set; }
 
     // Formatting options
     [Column("bold")]
@@ -83,15 +85,9 @@ public class PlanetRole : Item, ISharedPlanetRole
 
     [Column("name")]
     public string Name { get; set; }
-    
+
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
-
-    public Color GetColor() =>
-        ISharedPlanetRole.GetColor(this);
-
-    public string GetColorHex() =>
-        ISharedPlanetRole.GetColorHex(this);
 
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);

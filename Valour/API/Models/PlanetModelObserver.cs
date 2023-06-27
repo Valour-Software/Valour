@@ -6,7 +6,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Item, IPlanetModel
+public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : LiveModel, IPlanetModel
 {
     /// <summary>
     /// If true, this collection will sort when necessary
@@ -74,8 +74,6 @@ public class PlanetModelObserver<T> : IEnumerable<T>, IDisposable where T : Item
     /// </summary>
     public async Task Initialize(List<T> newModels = null)
     {
-        Console.WriteLine(JsonSerializer.Serialize(newModels));
-        
         if (!Initialized)
         {
             // Subscribe to model events if this is the first time

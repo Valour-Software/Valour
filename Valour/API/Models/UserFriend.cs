@@ -15,7 +15,7 @@ namespace Valour.Api.Models;
 /// 
 /// ... I'll be your friend!
 /// </summary>
-public class UserFriend : Item, ISharedUserFriend
+public class UserFriend : LiveModel, ISharedUserFriend
 {
     #region IPlanetModel implementation
 

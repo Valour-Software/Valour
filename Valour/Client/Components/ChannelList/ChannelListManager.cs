@@ -93,7 +93,7 @@ namespace Valour.Client.Components.ChannelList
 
             _currentDragItem.Position =  -1;
             _currentDragItem.ParentId = null;
-            var response = await Item.UpdateAsync(_currentDragItem);
+            var response = await LiveModel.UpdateAsync(_currentDragItem);
 
             Console.WriteLine($"Inserting category {_currentDragItem.Id} into planet {target.Planet.Id}");
 

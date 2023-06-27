@@ -6,7 +6,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class User : Item, ISharedUser
+public class User : LiveModel, ISharedUser
 {
     #region IPlanetModel implementation
 

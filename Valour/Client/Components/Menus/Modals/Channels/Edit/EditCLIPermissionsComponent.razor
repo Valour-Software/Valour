@@ -18,7 +18,7 @@
 <p class="subtitle">CHOOSE ROLE</p>
 
 
-<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.GetColorHex();
+<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.Color;
         background-color: var(--main-1)">
 
     @{
@@ -36,7 +36,7 @@
 
         options++;
 
-        <option value="@role.Id" style="color: @role.GetColorHex(); background-color: var(--main-1)">@role.Name</option>
+        <option value="@role.Id" style="color: @role.Color; background-color: var(--main-1)">@role.Name</option>
     }
 </select>
 

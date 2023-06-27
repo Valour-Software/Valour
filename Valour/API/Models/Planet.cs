@@ -13,7 +13,7 @@ namespace Valour.Api.Models;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : Item, ISharedPlanet
+public class Planet : LiveModel, ISharedPlanet
 {
     public override string BaseRoute =>
             $"api/planets";

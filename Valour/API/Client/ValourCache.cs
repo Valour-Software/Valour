@@ -20,7 +20,7 @@ public static class ValourCache
     /// <summary>
     /// Places an item into the cache
     /// </summary>
-    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : Item
+    public static async Task Put<T>(object id, T obj, bool skipEvent = false, int flags = 0) where T : LiveModel
     {
         // Empty object is ignored
         if (obj == null)
@@ -47,7 +47,7 @@ public static class ValourCache
     /// <summary>
     /// Returns true if the cache contains the item
     /// </summary>
-    public static bool Contains<T>(object id) where T : Item
+    public static bool Contains<T>(object id) where T : LiveModel
     {
         var type = typeof(T);
 
@@ -75,7 +75,7 @@ public static class ValourCache
     /// <summary>
     /// Returns the item for the given id, or null if it does not exist
     /// </summary>
-    public static T Get<T>(object id) where T : Item
+    public static T Get<T>(object id) where T : LiveModel
     {
         var type = typeof(T);
 
@@ -89,7 +89,7 @@ public static class ValourCache
     /// <summary>
     /// Removes an item if present in the cache
     /// </summary>
-    public static void Remove<T>(object id) where T : Item
+    public static void Remove<T>(object id) where T : LiveModel
     {
         var type = typeof(T);
 

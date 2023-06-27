@@ -166,6 +166,31 @@ public class PlanetMemberService
     public async Task<bool> HasRoleAsync(long memberId, long roleId) =>
         await _db.PlanetRoleMembers.AnyAsync(x => x.MemberId == memberId && x.RoleId == roleId);
 
+
+    /// <summary>
+    /// Returns if the given member is an admin
+    /// </summary>
+    public async Task<bool> IsAdminAsync(long memberId)
+    {
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is null)
+            return false;
+        
+        if (await _db.PlanetRoleMembers.AnyAsync(x => x.MemberId == memberId && x.Role.IsAdmin))
+        {
+            return true;
+        }
+
+        var planet = await _db.Planets.FindAsync(member.PlanetId);
+        if (planet is null)
+            return false; // This should be impossible
+
+        // Owner is always admin - last check
+        return (planet.OwnerId == member.UserId);
+    }
+        
+        
+    
     /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
@@ -244,6 +269,12 @@ public class PlanetMemberService
         
         // Get permission nodes in order of role position
         var rolePermData = await GetRolesAndNodesAsync(member, target.Id, permission.TargetType);
+
+        // Admins always have permission
+        if (rolePermData.Any(x => x.Role.IsAdmin))
+        {
+            return true;
+        }
 
         var viewPerm = PermissionState.Undefined;
 

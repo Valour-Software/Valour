@@ -15,7 +15,7 @@ namespace Valour.Api.Models;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : Item, ISharedPermissionsNode
+public class PermissionsNode : LiveModel, ISharedPermissionsNode
 {
     /// <summary>
     /// The planet this node belongs to

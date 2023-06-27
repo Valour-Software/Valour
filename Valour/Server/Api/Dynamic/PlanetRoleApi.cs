@@ -49,8 +49,11 @@ public class PlanetRoleApi
         if (role.IsDefault)
             return ValourResult.BadRequest("You cannot create another default role.");
 
-            if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
+        if (role.GetAuthority() > await memberService.GetAuthorityAsync(member))
             return ValourResult.Forbid("You cannot create roles with higher authority than your own.");
+
+        if (role.IsAdmin && !await memberService.IsAdminAsync(member.Id))
+            return ValourResult.Forbid("Only an admin can create admin roles");
 
         var result = await roleService.CreateAsync(role);
         if (!result.Success)
@@ -81,6 +84,9 @@ public class PlanetRoleApi
 
         if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
             return ValourResult.Forbid("You can only edit roles under your own.");
+        
+        if ((oldRole.IsAdmin != role.IsAdmin) && !await memberService.IsAdminAsync(member.Id))
+            return ValourResult.Forbid("Only an admin can change admin state of roles");
 
         var result = await roleService.UpdateAsync(role);
         if (!result.Success)
@@ -110,6 +116,9 @@ public class PlanetRoleApi
 
         if (await memberService.GetAuthorityAsync(member) <= role.GetAuthority())
             return ValourResult.Forbid("You can only delete roles under your own.");
+        
+        if (role.IsAdmin && !await memberService.IsAdminAsync(member.Id))
+            return ValourResult.Forbid("Only an admin can delete admin roles");
 
         var result = await roleService.DeleteAsync(role);
         if (!result.Success)

@@ -51,6 +51,7 @@ public class PlanetService
     /// </summary>
     public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+            .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.ToModel())
             .ToListAsync();
 
@@ -59,6 +60,7 @@ public class PlanetService
     /// </summary>
     public async Task<List<long>> GetRoleIdsAsync(long planetId) =>
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+            .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.Id)
             .ToListAsync();
 
@@ -283,9 +285,7 @@ public class PlanetService
 
                 Id = IdManager.Generate(),
                 Position = int.MaxValue,
-                Blue = 255,
-                Green = 255,
-                Red = 255,
+                Color = "#ffffff",
                 Name = "everyone",
                 Permissions = PlanetPermissions.Default,
                 ChatPermissions = ChatChannelPermissions.Default,

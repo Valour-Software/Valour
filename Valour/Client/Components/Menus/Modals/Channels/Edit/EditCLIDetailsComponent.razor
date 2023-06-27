@@ -52,7 +52,7 @@
             Channel.Name = nameValue;
             Channel.Description = descValue;
 
-            TaskResult<PlanetChannel> result = await Api.Items.Item.UpdateAsync(Channel);
+            TaskResult<PlanetChannel> result = await Api.Items.LiveModel.UpdateAsync(Channel);
 
             if (!result.Success)
             {
