@@ -180,8 +180,10 @@ public class PlanetChatChannelApi
         if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageChannel))
 			return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
 
-		await channelService.DeleteAsync(channel);
-
+		var result = await channelService.DeleteAsync(channel);
+		if (!result.Success)
+			return ValourResult.BadRequest(result.Message);
+		
 		return Results.NoContent();
 	}
 
