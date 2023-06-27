@@ -3,7 +3,7 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class PlanetRoleMember : Item, ISharedPlanetRoleMember
+public class PlanetRoleMember : LiveModel, ISharedPlanetRoleMember
 {
     public long UserId { get; set; }
     public long RoleId { get; set; }

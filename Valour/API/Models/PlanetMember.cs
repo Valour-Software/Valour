@@ -12,7 +12,7 @@ namespace Valour.Api.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : Item, IPlanetModel, ISharedPlanetMember
+public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
 {
     #region IPlanetModel implementation
 
@@ -302,7 +302,7 @@ public class PlanetMember : Item, IPlanetModel, ISharedPlanetMember
     /// Returns the role color of the member
     /// </summary>
     public async Task<string> GetRoleColorAsync(bool force_refresh = false) =>
-        (await GetPrimaryRoleAsync(force_refresh))?.GetColorHex() ?? "#ffffff";
+        (await GetPrimaryRoleAsync(force_refresh))?.Color ?? "#ffffff";
 
 
     /// <summary>

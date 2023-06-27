@@ -6,7 +6,10 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Items
 {
-    public abstract class Item : ISharedItem
+    /// <summary>
+    /// A live model is a model that is updated in real time
+    /// </summary>
+    public abstract class LiveModel : ISharedItem
     {
         public long Id { get; set; }
         
@@ -70,7 +73,7 @@ namespace Valour.Api.Items
         /// <summary>
         /// This exists because of some type weirdness in C#
         /// </summary>
-        public virtual async Task AddToCache<T>(T item, bool skipEvent = false) where T : Item
+        public virtual async Task AddToCache<T>(T item, bool skipEvent = false) where T : LiveModel
         {
             await ValourCache.Put<T>(this.Id, item, skipEvent);
         }
@@ -103,7 +106,7 @@ namespace Valour.Api.Items
         /// <typeparam name="T">The type of object being created</typeparam>
         /// <param name="item">The item to create</param>
         /// <returns>The result, with the created item (if successful)</returns>
-        public static async Task<TaskResult<T>> CreateAsync<T>(T item) where T : Item
+        public static async Task<TaskResult<T>> CreateAsync<T>(T item) where T : LiveModel
         {
             Node node;
 
@@ -121,7 +124,7 @@ namespace Valour.Api.Items
         /// <typeparam name="T">The type of object being created</typeparam>
         /// <param name="item">The item to update</param>
         /// <returns>The result, with the updated item (if successful)</returns>
-        public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : Item
+        public static async Task<TaskResult<T>> UpdateAsync<T>(T item) where T : LiveModel
         {
             return await item.Node.PutAsyncWithResponse(item.IdRoute, item);
         }
@@ -132,7 +135,7 @@ namespace Valour.Api.Items
         /// <typeparam name="T">The type of object being deleted</typeparam>
         /// <param name="item">The item to delete</param>
         /// <returns>The result</returns>
-        public static async Task<TaskResult> DeleteAsync<T>(T item) where T : Item
+        public static async Task<TaskResult> DeleteAsync<T>(T item) where T : LiveModel
         {
             return await item.Node.DeleteAsync(item.IdRoute);
         }

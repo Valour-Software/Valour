@@ -8,7 +8,7 @@ namespace Valour.Api.Models.Economy;
 /// <summary>
 /// Currencies represent one *type* of cash, declared by a community.
 /// </summary>
-public class Currency : Item, ISharedCurrency
+public class Currency : LiveModel, ISharedCurrency
 {
     public override string BaseRoute => "api/eco/currencies";
 

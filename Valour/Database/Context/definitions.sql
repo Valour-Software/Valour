@@ -270,12 +270,11 @@ CREATE TABLE IF NOT EXISTS direct_messages (
 
 CREATE TABLE IF NOT EXISTS planet_roles (
     id BIGINT NOT NULL PRIMARY KEY,
+    is_admin BOOLEAN NOT NULL DEFAULT false,
     name VARCHAR(32) NOT NULL,
     position INT NOT NULL,
     planet_id BIGINT NOT NULL,
-    red SMALLINT NOT NULL DEFAULT 0,
-    green SMALLINT NOT NULL DEFAULT 0,
-    blue SMALLINT NOT NULL DEFAULT 0,
+    color VARCHAR(6) NOT NULL DEFAULT 'ffffff',
     bold BOOLEAN NOT NULL DEFAULT false,
     italics BOOLEAN NOT NULL DEFAULT false,
     permissions BIGINT NOT NULL DEFAULT 0,

@@ -8,7 +8,7 @@ using Valour.Api.Client;
 using Valour.Api.Models;
 
 namespace Valour.Api.Models;
-public abstract class Message : Item, ISharedMessage
+public abstract class Message : LiveModel, ISharedMessage
 {
     /// <summary>
     /// The message (if any) this is a reply to

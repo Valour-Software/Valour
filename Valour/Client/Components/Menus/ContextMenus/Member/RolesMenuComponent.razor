@@ -7,7 +7,7 @@
 
 	<BlazorContextMenu.Item CssClass='context-model'>
 		<div @onclick='(e => OnRoleClick(cRole, !hasRole))'>
-			<p style="color:@role.GetColorHex(); display: inline-block; margin: 0;">@role.Name</p>
+			<p style="color:@role.Color; display: inline-block; margin: 0;">@role.Name</p>
 			<input style='float: right; margin-left: 10px;' class="role-checkbox" type="checkbox"
 			   checked="@hasRole" disabled />
 		</div>

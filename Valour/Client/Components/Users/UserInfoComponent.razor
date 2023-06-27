@@ -159,7 +159,7 @@
         else
         {
             var displayedRole = await Member.GetDisplayedRoleAsync();
-            _roleColor = displayedRole is null ? DefaultRoleColor : displayedRole.GetColorHex();
+            _roleColor = displayedRole is null ? DefaultRoleColor : displayedRole.Color;
         }
 
         return old != _roleColor;

@@ -8,6 +8,11 @@ namespace Valour.Shared.Models;
 public interface ISharedPlanetRole : ISharedPlanetItem
 {
     /// <summary>
+    /// True if this is an admin role - meaning that it overrides all permissions
+    /// </summary>
+    bool IsAdmin { get; set; }
+    
+    /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
     int Position { get; set; }
@@ -37,10 +42,10 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     /// </summary>
     long VoicePermissions { get; set; }
 
-    // RGB Components for role color
-    byte Red { get; set; }
-    byte Green { get; set; }
-    byte Blue { get; set; }
+    /// <summary>
+    /// The hex color of the role
+    /// </summary>
+    string Color { get; set; }
 
     // Formatting options
     bool Bold { get; set; }
@@ -49,29 +54,13 @@ public interface ISharedPlanetRole : ISharedPlanetItem
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
-
-    public Color GetColor() =>
-        ISharedPlanetRole.GetColor(this);
-
-
-    public string GetColorHex() =>
-        ISharedPlanetRole.GetColorHex(this);
-
+    
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
 
     public static int GetAuthority(ISharedPlanetRole role) =>
         int.MaxValue - role.Position - 1; // Subtract one so owner can have higher
-
-    public static Color GetColor(ISharedPlanetRole role) =>
-        Color.FromArgb(role.Red, role.Green, role.Blue);
-
-    public static string GetColorHex(ISharedPlanetRole role)
-    {
-        Color c = role.GetColor();
-        return "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
-    }
-
+    
     public static bool HasPermission(ISharedPlanetRole role, PlanetPermission perm)
         => Permission.HasPermission(role.Permissions, perm);
 
