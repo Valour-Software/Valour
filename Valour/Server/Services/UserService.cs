@@ -456,10 +456,10 @@ public class UserService
     {
         try
         {
-            var token = await _tokenService.GetCurrentToken();
-            var dbToken = await _db.AuthTokens.FirstOrDefaultAsync(x => x.Id == token.Id);
+            var key = _tokenService.GetAuthKey();
+            var dbToken = await _db.AuthTokens.FindAsync(key);
             _db.AuthTokens.Remove(dbToken);
-            _tokenService.RemoveFromQuickCache(token.Id);
+            _tokenService.RemoveFromQuickCache(key);
             await _db.SaveChangesAsync();
         }
         catch (Exception e)

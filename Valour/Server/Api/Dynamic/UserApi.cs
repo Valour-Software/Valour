@@ -73,7 +73,7 @@ public class UserApi
     [ValourRoute(HttpVerbs.Post, "api/users/self/logout")]
     public static async Task<IResult> LogOutRouteAsync(UserService userService)
     {
-        var result = userService.Logout();
+        var result = await userService.Logout();
         return Results.Ok("Come back soon!");
     }
 
