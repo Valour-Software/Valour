@@ -1,5 +1,4 @@
-﻿@inject HttpClient Http
-@inject NavigationManager navManager
+﻿@inject NavigationManager NavManager
 
 
 @if (User is null)
@@ -123,6 +122,6 @@
 
         Console.WriteLine(response.Message);
 
-        navManager.NavigateTo("/", true);
+        NavManager.NavigateTo("/", true);
     }
 }

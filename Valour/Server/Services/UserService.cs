@@ -457,7 +457,8 @@ public class UserService
         try
         {
             var token = await _tokenService.GetCurrentToken();
-            _db.AuthTokens.Remove(token.ToDatabase());
+            var dbToken = await _db.AuthTokens.FirstOrDefaultAsync(x => x.Id == token.Id);
+            _db.AuthTokens.Remove(dbToken);
             _tokenService.RemoveFromQuickCache(token.Id);
             await _db.SaveChangesAsync();
         }
