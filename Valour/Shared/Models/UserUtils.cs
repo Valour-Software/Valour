@@ -25,7 +25,7 @@ public class UserUtils
         }
     }
 
-    public static Regex usernameRegex = new Regex(@"^[a-zA-Z0-9_-]+$");
+    private static readonly Regex UsernameRegex = new Regex(@"^[a-zA-Z0-9_-]+$");
 
     /// <summary>
     /// Checks if a username meets standards
@@ -37,7 +37,7 @@ public class UserUtils
             return new TaskResult(false, "That username is too long!");
         }
 
-        if (!usernameRegex.IsMatch(username))
+        if (!UsernameRegex.IsMatch(username))
         {
             return new TaskResult(false, "Usernames must be alphanumeric plus underscores and dashes.");
         }
@@ -45,39 +45,25 @@ public class UserUtils
         return new TaskResult(true, "The given username is valid.");
     }
 
-    public static Regex hasUpper = new Regex(@"[A-Z]");
-    public static Regex hasLower = new Regex(@"[a-z]");
-    public static Regex hasNumbers = new Regex(@"\d");
-    public static Regex hasSymbols = new Regex(@"\W");
+    private static readonly Regex HasUpperRegex = new Regex(@"[A-Z]");
+    private static readonly Regex HasLowerRegex = new Regex(@"[a-z]");
+    private static readonly Regex HasNumbersRegex = new Regex(@"\d");
+    private static readonly Regex HasSymbolsRegex = new Regex(@"\W");
 
+    private static readonly TaskResult PasswordFailedResult = 
+        new TaskResult(false, $"Password must be 10 characters, with an uppercase letter, lowercase letter, and number or symbol.");
+    
     /// <summary>
     /// Returns success if a password meets complexity rules
     /// </summary>
     public static TaskResult TestPasswordComplexity(string password)
     {
-        if (password.Length < 12)
+        if (password.Length < 10 || // Length
+            !HasUpperRegex.IsMatch(password) || // Uppercase
+            !HasLowerRegex.IsMatch(password) || // Lowercase
+            (!HasNumbersRegex.IsMatch(password) && !HasSymbolsRegex.IsMatch(password))) // Numbers or symbols
         {
-            return new TaskResult(false, $"Failed: Please use a password at least 12 characters in length.");
-        }
-
-        if (!hasUpper.IsMatch(password))
-        {
-            return new TaskResult(false, $"Failed: Please use a password that contains an uppercase character.");
-        }
-
-        if (!hasLower.IsMatch(password))
-        {
-            return new TaskResult(false, $"Failed: Please use a password that contains an lowercase character.");
-        }
-
-        if (!hasNumbers.IsMatch(password))
-        {
-            return new TaskResult(false, $"Failed: Please use a password that contains a number.");
-        }
-
-        if (!hasSymbols.IsMatch(password))
-        {
-            return new TaskResult(false, $"Failed: Please use a password that contains a symbol.");
+            return PasswordFailedResult;
         }
 
         return new TaskResult(true, $"Success: The given password passed all tests.");
