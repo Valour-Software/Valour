@@ -11,7 +11,7 @@ public class User : Item, ISharedUser
     ///////////////////////////
     
     [InverseProperty("User")]
-    public virtual UserEmail Email { get; set; }
+    public virtual UserPrivateInfo Email { get; set; }
 
     [InverseProperty("User")]
     public virtual ICollection<PlanetMember> Membership { get; set; }

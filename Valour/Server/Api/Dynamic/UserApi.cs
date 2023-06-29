@@ -136,15 +136,15 @@ public class UserApi
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
 
-        UserEmail userEmail = await userService.GetUserEmailAsync(tokenRequest.Email);
+        UserPrivateInfo userPrivateInfo = await userService.GetUserEmailAsync(tokenRequest.Email);
 
-        if (userEmail is null)
+        if (userPrivateInfo is null)
             return ValourResult.InvalidToken();
 
-        if (!userEmail.Verified)
+        if (!userPrivateInfo.Verified)
             return ValourResult.Forbid("This account needs email verification. Please check your email.");
 
-        var user = await userService.GetAsync(userEmail.UserId);
+        var user = await userService.GetAsync(userPrivateInfo.UserId);
 
         if (user.Disabled)
             return ValourResult.Forbid("Your account is disabled.");
@@ -153,7 +153,7 @@ public class UserApi
         if (!validResult.Success)
             return Results.Unauthorized();
 
-        var result = await userService.GetTokenAfterLoginAsync(ctx, userEmail.UserId);
+        var result = await userService.GetTokenAfterLoginAsync(ctx, userPrivateInfo.UserId);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -218,15 +218,15 @@ public class UserApi
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
-        UserEmail userEmail = await userService.GetUserEmailAsync(request.Email);
+        UserPrivateInfo userPrivateInfo = await userService.GetUserEmailAsync(request.Email);
 
-        if (userEmail is null)
+        if (userPrivateInfo is null)
             return ValourResult.NotFound("Could not find user. Retry registration?");
 
-        if (userEmail.Verified)
+        if (userPrivateInfo.Verified)
             return Results.Ok("You are already verified, you can close this!");
 
-        var result = await userService.ResendRegistrationEmail(userEmail, ctx, request);
+        var result = await userService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -242,7 +242,7 @@ public class UserApi
         var userEmail = await userService.GetUserEmailAsync(email, true);
 
         if (userEmail is null)
-            return ValourResult.NotFound<UserEmail>();
+            return ValourResult.NotFound<UserPrivateInfo>();
 
         var result = await userService.SendPasswordResetEmail(userEmail, email, ctx);
         if (!result.Success)

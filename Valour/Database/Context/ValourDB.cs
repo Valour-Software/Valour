@@ -86,7 +86,7 @@ public class ValourDB : DbContext
     /// <summary>
     /// Table for email information
     /// </summary>
-    public DbSet<UserEmail> UserEmails { get; set; }
+    public DbSet<UserPrivateInfo> UserEmails { get; set; }
 
     /// <summary>
     /// Table for blocked email addresses and hosts

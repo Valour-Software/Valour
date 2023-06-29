@@ -102,7 +102,7 @@ public class UserService
         return friends;
     }
 
-    public async Task<UserEmail> GetUserEmailAsync(string email, bool makelowercase = true)
+    public async Task<UserPrivateInfo> GetUserEmailAsync(string email, bool makelowercase = true)
     {
         if (!makelowercase)
             return (await _db.UserEmails.FindAsync(email)).ToModel();
@@ -110,11 +110,11 @@ public class UserService
             return (await _db.UserEmails.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower())).ToModel();
     }
 
-    public async Task<TaskResult> SendPasswordResetEmail(UserEmail userEmail, string email, HttpContext ctx)
+    public async Task<TaskResult> SendPasswordResetEmail(UserPrivateInfo userPrivateInfo, string email, HttpContext ctx)
     {
         try
         {
-            var oldRecoveries = _db.PasswordRecoveries.Where(x => x.UserId == userEmail.UserId);
+            var oldRecoveries = _db.PasswordRecoveries.Where(x => x.UserId == userPrivateInfo.UserId);
             if (oldRecoveries.Any())
             {
                 _db.PasswordRecoveries.RemoveRange(oldRecoveries);
@@ -126,7 +126,7 @@ public class UserService
             PasswordRecovery recovery = new()
             {
                 Code = recoveryCode,
-                UserId = userEmail.UserId
+                UserId = userPrivateInfo.UserId
             };
 
             await _db.PasswordRecoveries.AddAsync(recovery.ToDatabase());
@@ -199,7 +199,14 @@ public class UserService
     {
         if (await _db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
             return new(false, "Username is taken");
+        
+        var now = DateTime.Today;
+        var age = now.Year - request.DateOfBirth.Year;
+        if (request.DateOfBirth > now.AddYears(-age)) age--;
 
+        if (age < 13)
+            return new TaskResult(false, "You must be 13 to use Valour. Sorry!");
+        
         if (await _db.UserEmails.AnyAsync(x => x.Email.ToLower() == request.Email))
             return new(false, "This email has already been used");
 
@@ -265,14 +272,16 @@ public class UserService
                 await _db.Referrals.AddAsync(refer.ToDatabase());
             }
 
-            UserEmail userEmail = new()
+            UserPrivateInfo userPrivateInfo = new()
             {
                 Email = request.Email,
                 Verified = false,
-                UserId = user.Id
+                UserId = user.Id,
+                BirthDate = request.DateOfBirth,
+                Locality = request.Locality
             };
 
-            _db.UserEmails.Add(userEmail.ToDatabase());
+            _db.UserEmails.Add(userPrivateInfo.ToDatabase());
 
             Valour.Database.Credential cred = new()
             {
@@ -335,25 +344,26 @@ public class UserService
     }
     
     // TODO: Prevent the one in 1.6 million chance that you will get the tag F***, along with other 'bad words'
+    // Just passed by this and realized the chances are far higher when accounting for similar-looking characters
     private string GenerateRandomTag()
     {
         return new string(Enumerable.Repeat(ISharedUser.TagChars, 4)
             .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
     }
 
-    public async Task<TaskResult> ResendRegistrationEmail(UserEmail userEmail, HttpContext ctx, RegisterUserRequest request)
+    public async Task<TaskResult> ResendRegistrationEmail(UserPrivateInfo userPrivateInfo, HttpContext ctx, RegisterUserRequest request)
     {
         await using var tran = await _db.Database.BeginTransactionAsync();
 
         try
         {
-            _db.EmailConfirmCodes.RemoveRange(_db.EmailConfirmCodes.Where(x => x.UserId == userEmail.UserId));
+            _db.EmailConfirmCodes.RemoveRange(_db.EmailConfirmCodes.Where(x => x.UserId == userPrivateInfo.UserId));
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()
             {
                 Code = emailCode,
-                UserId = userEmail.UserId
+                UserId = userPrivateInfo.UserId
             };
 
             _db.EmailConfirmCodes.Add(confirmCode.ToDatabase());
