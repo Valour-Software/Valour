@@ -6,7 +6,10 @@
 		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
 		<div class="sidebar-2" id="sidebar2">
 			<div class="sidebar-content">
-				<br/>
+				@if (!Flip)
+                {
+                	<VersionComponent />
+                }
 				<div class="tab-container">
 					@switch (_selectedTab)
 					{

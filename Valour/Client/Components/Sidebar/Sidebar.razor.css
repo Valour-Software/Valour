@@ -13,10 +13,12 @@
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
     padding-bottom: 24px;
+    padding-top: 60px;
 }
 
 .flip .tab-container {
     padding-bottom: 0;
+    padding-top: 20px;
 }
 
 .tab-container::-webkit-scrollbar {
