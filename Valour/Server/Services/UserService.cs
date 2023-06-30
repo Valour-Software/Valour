@@ -195,6 +195,54 @@ public class UserService
         return new(true, "Success");
     }
 
+    public int GetYearsOld(DateTime birthDate)
+    {
+        var now = DateTime.Today;
+        var age = now.Year - birthDate.Year;
+        if (birthDate > now.AddYears(-age)) age--;
+
+        return age;
+    }
+
+    public async Task<TaskResult> SetUserComplianceData(long userId, DateTime birthDate, Locality locality)
+    {
+        if (GetYearsOld(birthDate) < 13)
+            return new TaskResult(false, "You must be 13 or older to use Valour. Sorry!");
+
+        birthDate = DateTime.SpecifyKind(birthDate, DateTimeKind.Utc);
+        
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new TaskResult(false, "User not found");
+        
+        var userPrivateInfo = await _db.UserEmails.FirstOrDefaultAsync(x => x.UserId == userId);
+        if (userPrivateInfo is null)
+            return new TaskResult(false, "User info not found");
+
+        await using var trans = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            userPrivateInfo.BirthDate = birthDate;
+            userPrivateInfo.Locality = locality;
+
+            await _db.SaveChangesAsync();
+
+            user.Compliance = true;
+
+            await _db.SaveChangesAsync();
+
+            await trans.CommitAsync();
+        }
+        catch (Exception e)
+        {
+            await trans.RollbackAsync();
+            return new TaskResult(false, "An unexpected error occured. Try again?");
+        }
+        
+        return TaskResult.SuccessResult;
+    }
+
     public async Task<TaskResult> RegisterUserAsync(RegisterUserRequest request, HttpContext ctx)
     {
         if (await _db.Users.AnyAsync(x => x.Name.ToLower() == request.Username.ToLower()))
@@ -261,6 +309,7 @@ public class UserService
                 Tag = await GetUniqueTag(request.Username),
                 TimeJoined = DateTime.UtcNow,
                 TimeLastActive = DateTime.UtcNow,
+                Compliance = true, // All new users should be compliant
             };
 
             _db.Users.Add(user.ToDatabase());

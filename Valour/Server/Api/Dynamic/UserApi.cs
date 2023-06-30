@@ -70,6 +70,28 @@ public class UserApi
         return Results.LocalRedirect("/FromVerify", true, false);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/self/compliance/{birthDate}/{locality}")]
+    [UserRequired(UserPermissionsEnum.FullControl)] // Require direct login
+    public static async Task<IResult> SetComplianceData(UserService service, DateTime? birthDate, Locality? locality)
+    {
+        var userId = await service.GetCurrentUserIdAsync();
+        
+        if (birthDate is null)
+            return ValourResult.BadRequest("Birth date cannot be null.");
+
+        if (locality is null)
+            return ValourResult.BadRequest("Locality cannot be null");
+
+        var notNullBirthDate = birthDate.Value;
+        var notNullLocality = locality.Value;
+
+        var result = await service.SetUserComplianceData(userId, notNullBirthDate, notNullLocality);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return Results.NoContent();
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/users/self/logout")]
     public static async Task<IResult> LogOutRouteAsync(UserService userService)
     {

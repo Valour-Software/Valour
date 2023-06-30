@@ -61,6 +61,12 @@ public class User : Item, ISharedUser
     /// True if the user has been recently on a mobile device
     /// </summary>
     public bool IsMobile { get; set; }
+    
+    /// <summary>
+    /// If the user has completed the compliance step for regulatory purposes.
+    /// This should only ever be false on legacy or testing accounts.
+    /// </summary>
+    public bool Compliance { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active

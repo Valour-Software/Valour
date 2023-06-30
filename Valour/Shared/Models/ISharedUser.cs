@@ -85,6 +85,12 @@ public interface ISharedUser : ISharedItem
     /// True if the user has been recently on a mobile device
     /// </summary>
     bool IsMobile { get; set; }
+    
+    /// <summary>
+    /// If the user has completed the compliance step for regulatory purposes.
+    /// This should only ever be false on legacy or testing accounts.
+    /// </summary>
+    bool Compliance { get; set; }
 
     /// <summary>
     /// The span of time from which the user was last active

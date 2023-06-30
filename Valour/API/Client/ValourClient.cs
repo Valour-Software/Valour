@@ -276,6 +276,22 @@ public static class ValourClient
     public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
         PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
 
+    /// <summary>
+    /// Sets the compliance data for the current user
+    /// </summary>
+    public static async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
+    {
+        var result = await PrimaryNode.PostAsync($"api/users/self/compliance/{birthDate.ToString("s")}/{locality}", null);
+        var taskResult = new TaskResult()
+        {
+            Success = result.Success,
+            Message = result.Message
+        };
+
+        return taskResult;
+    }
+
+
     public static async Task<List<TenorFavorite>> GetTenorFavoritesAsync()
     {
         if (TenorFavorites is null)

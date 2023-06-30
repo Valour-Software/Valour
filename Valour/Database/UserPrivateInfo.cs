@@ -43,12 +43,12 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     /// The date of birth of the user (for COPPA and GDPR compliance)
     /// </summary>
     [Column("birth_date")]
-    public DateTime BirthDate { get; set; }
+    public DateTime? BirthDate { get; set; }
     
     /// <summary>
     /// Locality is used for data localization and other compliance purposes
     /// </summary>
     [Column("locality")]
-    public Locality Locality { get; set; }
+    public Locality? Locality { get; set; }
 }
 
