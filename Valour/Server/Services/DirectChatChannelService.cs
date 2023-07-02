@@ -297,4 +297,53 @@ public class DirectChatChannelService
 
         return new(true, "Success");
     }
+    
+    public async Task<TaskResult> EditMessageAsync(DirectMessage message)
+    {
+        if (message.Content is null)
+            message.Content = "";
+
+        // Handle URL content
+        if (!string.IsNullOrWhiteSpace(message.Content))
+            message.Content = await ProxyHandler.HandleUrls(message.Content, _httpClient, _cdnDB);
+
+        // Handle attachments
+        if (message.AttachmentsData is not null)
+        {
+            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
+            if (attachments is not null)
+            {
+                foreach (var at in attachments)
+                {
+                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
+                    {
+                        return new(false, "Attachments must be from https://cdn.valour.gg...");
+                    }
+                    if (_attachmentRejectRegex.IsMatch(at.Location))
+                    {
+                        return new(false, "Attachment location contains invalid characters");
+                    }
+                }
+            }
+        }
+
+        var old = await _db.DirectMessages.FindAsync(message.Id);
+        old.Content = message.Content;
+        old.AttachmentsData = message.AttachmentsData;
+        old.MentionsData = message.MentionsData;
+        old.EditedTime = DateTime.UtcNow;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            return new(false, e.Message);
+        }
+
+        _coreHub.RelayDirectMessageEdit(message, _nodeService);
+
+        return new(true, "Success");
+    }
 }

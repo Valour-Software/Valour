@@ -185,6 +185,11 @@ public static class ValourClient
     /// Run when a message is received
     /// </summary>
     public static event Func<Message, Task> OnMessageReceived;
+    
+    /// <summary>
+    /// Run when a message is edited
+    /// </summary>
+    public static event Func<Message, Task> OnMessageEdited;
 
     /// <summary>
     /// Run when a planet is deleted
@@ -842,11 +847,27 @@ public static class ValourClient
         await ValourCache.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.Id, message.ReplyTo);
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
         }
 
         if (OnMessageReceived is not null)
             await OnMessageReceived.Invoke(message);
+    }
+    
+    /// <summary>
+    /// Ran when a message is edited
+    /// </summary>
+    public static async Task PlanetMessageEdited(PlanetMessage message)
+    {
+        Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
+        await ValourCache.Put(message.Id, message);
+        if (message.ReplyTo is not null)
+        {
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+        }
+        
+        if (OnMessageEdited is not null)
+            await OnMessageEdited.Invoke(message);
     }
     
     /// <summary>
@@ -858,11 +879,27 @@ public static class ValourClient
         await ValourCache.Put(message.Id, message);
         if (message.ReplyTo is not null)
         {
-            await ValourCache.Put(message.Id, message.ReplyTo);
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
         }
         
         if (OnMessageReceived is not null)
             await OnMessageReceived.Invoke(message);
+    }
+    
+    /// <summary>
+    /// Ran when a message is edited
+    /// </summary>
+    public static async Task DirectMessageEdited(DirectMessage message)
+    {
+        Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
+        await ValourCache.Put(message.Id, message);
+        if (message.ReplyTo is not null)
+        {
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+        }
+        
+        if (OnMessageEdited is not null)
+            await OnMessageEdited.Invoke(message);
     }
 
     public static async Task MessageDeleted(PlanetMessage message)

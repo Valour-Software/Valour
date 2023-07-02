@@ -89,6 +89,12 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
         var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
         return await node.PostAsync($"api/chatchannels/{ChannelId}/messages", this);
     }
+    
+    public override async Task<TaskResult> EditMessageAsync()
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
+        return await node.PutAsync($"api/chatchannels/{ChannelId}/messages", this);
+    }
 
     /// <summary> 
     /// Returns the author member of the message 

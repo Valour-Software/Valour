@@ -53,10 +53,10 @@ public class DirectMessage : Item, ISharedMessage
     public string AttachmentsData { get; set; }
 
     /// <summary>
-    /// True if the message was edited
+    /// The time when the message was edited, or null if it was not
     /// </summary>
-    public bool Edited { get; set; }
-
+    public DateTime? EditedTime { get; set; }
+    
     /// <summary>
     /// Used to identify a message returned from the server 
     /// </summary>

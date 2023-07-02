@@ -73,9 +73,9 @@ public abstract class Message : LiveModel, ISharedMessage
     public string Fingerprint { get; set; }
 
     /// <summary>
-    /// True if the message was edited
+    /// The time when the message was edited, or null if it was not
     /// </summary>
-    public bool Edited { get; set; }
+    public DateTime? EditedTime { get; set; }
 
     /////////////////////////////////
     // Advanced message data below //
@@ -114,6 +114,7 @@ public abstract class Message : LiveModel, ISharedMessage
     public abstract ValueTask<string> GetAuthorImageUrlAsync();
 
     public abstract Task<TaskResult> PostMessageAsync();
+    public abstract Task<TaskResult> EditMessageAsync();
     public abstract Task<TaskResult> DeleteAsync();
 
     public virtual Task<bool> CheckIfMentioned() =>

@@ -85,4 +85,7 @@ public class DirectMessage : Message, ISharedDirectMessage
 
     public override Task<TaskResult> PostMessageAsync() =>
         ValourClient.PrimaryNode.PostAsync($"api/directchatchannels/{ChannelId}/messages", this);
+    
+    public override Task<TaskResult> EditMessageAsync() =>
+        ValourClient.PrimaryNode.PutAsync($"api/directchatchannels/{ChannelId}/messages", this);
 }

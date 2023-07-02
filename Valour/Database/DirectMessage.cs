@@ -69,8 +69,8 @@ public class DirectMessage  : Item, ISharedMessage
     public string AttachmentsData { get; set; }
 
     /// <summary>
-    /// True if the message was edited
+    /// The time when the message was edited, or null if it was not
     /// </summary>
-    [Column("edited")]
-    public bool Edited { get; set; }
+    [Column("edit_time")]
+    public DateTime? EditedTime { get; set; }
 }

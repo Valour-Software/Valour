@@ -48,12 +48,32 @@ public class CoreHubService
 
         await group.SendAsync("Relay", message);
     }
+    
+    public async void RelayMessageEdit(PlanetMessage message)
+    {
+        var groupId = $"c-{message.ChannelId}";
+
+        // Group we are sending messages to
+        var group = _hub.Clients.Group(groupId);
+        
+        if (NodeConfig.Instance.LogInfo)
+            Console.WriteLine($"[{NodeConfig.Instance.Name}]: Relaying edited message {message.Id} to group {groupId}");
+
+        await group.SendAsync("RelayEdit", message);
+    }
 
     public async Task RelayDirectMessage(DirectMessage message, NodeService nodeService)
     {
         var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
         await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessage, message);
         await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessage, message);
+    }
+    
+    public async void RelayDirectMessageEdit(DirectMessage message, NodeService nodeService)
+    {
+        var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
+        await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessageEdit, message);
+        await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessageEdit, message);
     }
 
     public async void NotifyDirectMessage(DirectMessage message, long userId)

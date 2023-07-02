@@ -65,7 +65,8 @@
 
         Channel = Window.Channel;
 
-        ValourClient.OnMessageReceived += OnRecieveMessage;
+        ValourClient.OnMessageReceived += OnReceiveMessage;
+        ValourClient.OnMessageEdited += OnReceiveMessageEdit;
 
         await Channel.Open();
     }
@@ -138,7 +139,12 @@
 
     public async Task OpenEditMode(MessageComponent message)
     {
-        await InputComponent.OnBeginEdit(message.MessageData);
+        await InputComponent.OnBeginEdit(message, message.MessageData);
+    }
+
+    public async Task CloseEditMode(bool cancel = false)
+    {
+        await InputComponent.OnStopEdit(cancel);
     }
 
     protected override bool ShouldRender()
@@ -146,7 +152,7 @@
 
     void IDisposable.Dispose()
     {
-        ValourClient.OnMessageReceived -= OnRecieveMessage;
+        ValourClient.OnMessageReceived -= OnReceiveMessage;
 
         _thisRef.Dispose();
     }
@@ -156,7 +162,7 @@
         Refresh();
     }
 
-    public virtual async Task OnRecieveMessage(Message message)
+    public virtual async Task OnReceiveMessage(Message message)
     {
     // Ignore messages not meant for this channel
         if (message.ChannelId != Channel.Id)
@@ -172,6 +178,27 @@
         InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
         InputComponent.PreviewMessageComponent.CheckMinimal();
         InputComponent.PreviewMessageComponent.ReRender();
+    }
+    
+    public virtual async Task OnReceiveMessageEdit(Message message)
+    {
+        // Ignore messages not meant for this channel
+        if (message.ChannelId != Channel.Id)
+            return;
+
+        foreach (var m in MessageHolder.RenderedMessages)
+        {
+            if (m.MessageData.Message.Id == message.Id)
+            {
+                m.MessageData.Message.EditedTime = DateTime.UtcNow;
+                await m.BuildMessage();
+
+                if (m.Edit)
+                {
+                    await m.CloseEditMode();
+                }
+            }
+        }
     }
 
     public virtual async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)

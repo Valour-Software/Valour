@@ -230,6 +230,7 @@ public class NodeService
     {
         Transaction,
         DirectMessage,
+        DirectMessageEdit,
     }
     
     public struct NodeRelayEventData
@@ -284,13 +285,23 @@ public class NodeService
         switch (data.Type)
         {
             case NodeEventType.Transaction:
+            {
                 var transaction = (Transaction) data.Payload;
                 OnRelayTransaction(transaction);
                 break;
+            }
             case NodeEventType.DirectMessage:
+            {
                 var message = (DirectMessage) data.Payload;
                 OnRelayDirectMessage(message, data.TargetUser);
                 break;
+            }
+            case NodeEventType.DirectMessageEdit:
+            {
+                var message = (DirectMessage) data.Payload;
+                OnRelayDirectMessageEdit(message, data.TargetUser);
+                break;
+            }
         }
     }
 
@@ -303,5 +314,10 @@ public class NodeService
     private void OnRelayDirectMessage(DirectMessage message, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
+    }
+    
+    private void OnRelayDirectMessageEdit(DirectMessage message, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirectEdit", message);
     }
 }

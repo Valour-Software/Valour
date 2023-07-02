@@ -180,7 +180,9 @@ public class Node
         }
 
         HubConnection.On<PlanetMessage>("Relay", ValourClient.PlanetMessageRecieved);
+        HubConnection.On<PlanetMessage>("RelayEdit", ValourClient.PlanetMessageEdited);
         HubConnection.On<DirectMessage>("RelayDirect", ValourClient.DirectMessageRecieved);
+        HubConnection.On<DirectMessage>("RelayDirectEdit", ValourClient.DirectMessageEdited);
         HubConnection.On<PlanetMessage>("DeleteMessage", ValourClient.MessageDeleted);
         HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
         HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);
