@@ -407,10 +407,11 @@
         if (Ghost && IsInnerReply) return;
 
         ShouldRenderValue = true;
-        StateHasChanged();
 
         ContentComponent?.ReRender();
 
+        StateHasChanged();
+        
         ShouldRenderValue = false;
     }
 

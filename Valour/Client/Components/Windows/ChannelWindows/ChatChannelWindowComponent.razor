@@ -191,12 +191,17 @@
             if (m.MessageData.Message.Id == message.Id)
             {
                 m.MessageData.Message.EditedTime = DateTime.UtcNow;
-                await m.BuildMessage();
+                m.MessageData.Message.Content = message.Content;
+                m.MessageData.Message.AttachmentsData = message.AttachmentsData;
+                m.MessageData.Message.MentionsData = message.MentionsData;
+                m.MessageData.Clear();
 
                 if (m.Edit)
                 {
                     await m.CloseEditMode();
                 }
+                
+                await m.BuildMessage(true);
             }
         }
     }
