@@ -76,6 +76,11 @@ public class CoreHubService
         await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessageEdit, message);
     }
 
+    public async void RelayNotification(Notification notif, NodeService nodeService)
+    {
+        await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
+    }
+
     public async void NotifyDirectMessage(DirectMessage message, long userId)
     {
         

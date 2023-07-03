@@ -2,23 +2,29 @@
 
 public static class NotificationMapper
 {
-    public static Valour.Api.Models.Notification ToModel(this Valour.Database.Notification notification)
+    public static Notification ToModel(this Valour.Database.Notification notification)
     {
         if (notification is null)
             return null;
         
-        return new Valour.Api.Models.Notification()
+        return new Notification()
         {
             Id = notification.Id,
             UserId = notification.UserId,
             PlanetId = notification.PlanetId,
             ChannelId = notification.ChannelId,
             SourceId = notification.SourceId,
-            Source = notification.Source
+            Source = notification.Source,
+            TimeSent = notification.TimeSent,
+            TimeRead = notification.TimeRead,
+            Title = notification.Title,
+            Body = notification.Body,
+            ImageUrl = notification.ImageUrl,
+            ClickUrl = notification.ClickUrl
         };
     }
     
-    public static Valour.Database.Notification ToDatabase(this Valour.Api.Models.Notification notification)
+    public static Valour.Database.Notification ToDatabase(this Notification notification)
     {
         if (notification is null)
             return null;
@@ -30,7 +36,13 @@ public static class NotificationMapper
             PlanetId = notification.PlanetId,
             ChannelId = notification.ChannelId,
             SourceId = notification.SourceId,
-            Source = notification.Source
+            Source = notification.Source,
+            TimeSent = notification.TimeSent,
+            TimeRead = notification.TimeRead,
+            Title = notification.Title,
+            Body = notification.Body,
+            ImageUrl = notification.ImageUrl,
+            ClickUrl = notification.ClickUrl
         };
     }
 }

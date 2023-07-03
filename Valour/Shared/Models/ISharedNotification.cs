@@ -52,4 +52,34 @@ public interface ISharedNotification
     /// The source of the notification
     /// </summary>
     NotificationSource Source { get; set; }
+    
+    /// <summary>
+    /// The time at which the notification was sent
+    /// </summary>
+    DateTime TimeSent { get; set; }
+    
+    /// <summary>
+    /// The time at which the notification was read
+    /// </summary>
+    DateTime? TimeRead { get; set; }
+    
+    /// <summary>
+    /// The title of the notification
+    /// </summary>
+    string Title { get; set; }
+    
+    /// <summary>
+    /// The body of the notification
+    /// </summary>
+    string Body { get; set; }
+    
+    /// <summary>
+    /// The image url of the notification
+    /// </summary>
+    string ImageUrl { get; set; }
+    
+    /// <summary>
+    /// The url the user is brought to when the notification is clicked
+    /// </summary>
+    string ClickUrl { get; set; }
 }

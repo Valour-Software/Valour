@@ -44,4 +44,40 @@ public class Notification : ISharedNotification
     /// </summary>
     [Column("source")]
     public NotificationSource Source { get; set; }
+    
+    /// <summary>
+    /// The time at which the notification was sent
+    /// </summary>
+    [Column("time_sent")]
+    public DateTime TimeSent { get; set; }
+    
+    /// <summary>
+    /// The time at which the notification was read
+    /// </summary>
+    [Column("time_read")]
+    public DateTime? TimeRead { get; set; }
+    
+    /// <summary>
+    /// The title of the notification
+    /// </summary>
+    [Column("title")]
+    public string Title { get; set; }
+    
+    /// <summary>
+    /// The body of the notification
+    /// </summary>
+    [Column("description")]
+    public string Body { get; set; }
+    
+    /// <summary>
+    /// The image url of the notification
+    /// </summary>
+    [Column("image_url")]
+    public string ImageUrl { get; set; }
+    
+    /// <summary>
+    /// The url the user is brought to when the notification is clicked
+    /// </summary>
+    [Column("click_url")]
+    public string ClickUrl { get; set; }
 }

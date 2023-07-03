@@ -2,13 +2,8 @@
 
 namespace Valour.Api.Models;
 
-public class Notification : ISharedNotification
+public class Notification : LiveModel, ISharedNotification
 {
-    /// <summary>
-    /// The id of the notification
-    /// </summary>
-    public long Id { get; set; }
-    
     /// <summary>
     /// The user the notification was sent to
     /// </summary>
@@ -36,4 +31,34 @@ public class Notification : ISharedNotification
     /// The source of the notification
     /// </summary>
     public NotificationSource Source { get; set; }
+    
+    /// <summary>
+    /// The time at which the notification was sent
+    /// </summary>
+    public DateTime TimeSent { get; set; }
+    
+    /// <summary>
+    /// The time at which the notification was read
+    /// </summary>
+    public DateTime? TimeRead { get; set; }
+    
+    /// <summary>
+    /// The title of the notification
+    /// </summary>
+    public string Title { get; set; }
+    
+    /// <summary>
+    /// The body of the notification
+    /// </summary>
+    public string Body { get; set; }
+    
+    /// <summary>
+    /// The image url of the notification
+    /// </summary>
+    public string ImageUrl { get; set; }
+    
+    /// <summary>
+    /// The url the user is brought to when the notification is clicked
+    /// </summary>
+    public string ClickUrl { get; set; }
 }

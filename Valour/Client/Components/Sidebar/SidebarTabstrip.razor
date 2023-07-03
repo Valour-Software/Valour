@@ -52,14 +52,25 @@
         IconScale = 1.1f
     };
     
-    private TabStripItem[] _homeItems = { _friendsItem };
-    private TabStripItem[] _planetItems = { _channelsItem, _membersItem, _friendsItem };
+    private static TabStripItem _notificationsItem = new()
+    {
+        Name = "Notifications",
+        IconUrl = "tabstrip-bell-icon.svg",
+        IconScale = 1.1f
+    };
+    
+    private TabStripItem[] _homeItems = { _friendsItem, _notificationsItem };
+    private TabStripItem[] _planetItems = { _channelsItem, _membersItem, _friendsItem, _notificationsItem };
     
     private int _selectedTab = 0;
 
     protected override Task OnInitializedAsync()
     {
         WindowManager.OnPlanetFocused += OnPlanetFocused;
+        
+        if (Flip)
+            _selectedTab = 1;
+        
         return Task.CompletedTask;
     }
     
@@ -79,6 +90,8 @@
         else
         {
             _selectedTab = 0;
+            if (Flip)
+                _selectedTab = 1;
         }
         
         StateHasChanged();

@@ -356,6 +356,23 @@ CREATE TABLE IF NOT EXISTS user_channel_states (
     CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id)
 );
 
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    planet_id BIGINT,
+    channel_id BIGINT,
+    source_id BIGINT,
+    time_sent TIMESTAMP NOT NULL,
+    time_read TIMESTAMP,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    ImageUrl TEXT NOT NULL,
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id),
+    CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
+);
+
 CREATE TABLE IF NOT EXISTS currencies (
   id BIGINT NOT NULL PRIMARY KEY,  
   planet_id BIGINT NOT NULL,

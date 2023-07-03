@@ -1,15 +1,11 @@
 using Valour.Shared.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using IdGen;
 using Valour.Server.Database;
-using Pipelines.Sockets.Unofficial.Arenas;
 using Valour.Server.Workers;
 using Valour.Server.Cdn;
 using System.Text.Json;
 using Valour.Server.Config;
 using Valour.Shared.Models;
-using Valour.Server.Notifications;
-using Valour.Server.Services;
 using Valour.Server.Requests;
 
 namespace Valour.Server.Api.Dynamic;
@@ -299,7 +295,8 @@ public class PlanetChatChannelApi
 		PlanetMemberService memberService,
 		UserService userService,
         PlanetService planetService,
-        NodeService nodeService)
+        NodeService nodeService,
+        NotificationService notificationService)
     {
 	    if (NodeConfig.Instance.LogInfo)
 		    Console.WriteLine($"Message posted for channel {id}");
@@ -392,7 +389,20 @@ public class PlanetChatChannelApi
 
                         var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
 
-                        await NotificationManager.SendNotificationAsync(valourDb, targetMember.UserId, sendingUser.PfpUrl, member.Nickname + " in " + planet.Name, content);
+                        Notification notif = new()
+                        {
+	                        Title = member.Nickname + " in " + planet.Name,
+	                        Body = content,
+	                        ImageUrl = sendingUser.PfpUrl,
+	                        UserId = targetMember.UserId,
+	                        PlanetId = planet.Id,
+	                        ChannelId = channel.Id,
+	                        SourceId = message.Id,
+	                        Source = NotificationSource.PlanetMemberMention,
+	                        ClickUrl = $"/planetchannels/{channel.Id}/{message.Id}"
+                        };
+
+                        await notificationService.AddNotificationAsync(notif);
                     }
                 }
             }

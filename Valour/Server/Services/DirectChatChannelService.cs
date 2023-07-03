@@ -1,18 +1,11 @@
-﻿using IdGen;
-using Microsoft.EntityFrameworkCore.Storage;
-using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Asn1.X509;
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 using System.Text.Json;
-using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Config;
 using Valour.Server.Database;
-using Valour.Server.Notifications;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared;
-using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -24,6 +17,7 @@ public class DirectChatChannelService
     private readonly TokenService _tokenService;
     private readonly UserService _userService;
     private readonly NodeService _nodeService;
+    private readonly NotificationService _notificationService;
     private readonly ILogger<DirectChatChannelService> _logger;
     private readonly CdnDb _cdnDB;
     private readonly IConnectionMultiplexer _redis;
@@ -34,6 +28,7 @@ public class DirectChatChannelService
         CoreHubService coreHub,
         TokenService tokenService,
         UserService userService,
+        NotificationService notificationService,
         ILogger<DirectChatChannelService> logger,
         CdnDb cdnDb,
         IConnectionMultiplexer redis,
@@ -49,6 +44,7 @@ public class DirectChatChannelService
         _redis = redis;
         _httpClient = httpClient;
         _nodeService = nodeService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -250,12 +246,29 @@ public class DirectChatChannelService
                 {
                     if (mention.Type == MentionType.User)
                     {
+                        // Ensure user being mentioned is actually in the channel
+                        if (mention.TargetId != channel.UserOneId && mention.TargetId != channel.UserTwoId)
+                        {
+                            continue;
+                        }
+                        
                         var mentionTargetUser = await _userService.GetAsync(mention.TargetId);
                         var sendingUser = await _userService.GetAsync(sendingUserId);
 
                         var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
 
-                        await NotificationManager.SendNotificationAsync(_db, mentionTargetUser.Id, sendingUser.PfpUrl, sendingUser.Name + " in DMs", content);
+                        Notification notif = new()
+                        {
+                            Title = sendingUser.Name + " in DMs",
+                            Body = content,
+                            ImageUrl = sendingUser.PfpUrl,
+                            ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
+                            ChannelId = channel.Id,
+                            Source = NotificationSource.DirectMention,
+                            SourceId = message.Id,
+                            UserId = mentionTargetUser.Id,
+                        };
+                        await _notificationService.AddNotificationAsync(notif);
                     }
                 }
             }

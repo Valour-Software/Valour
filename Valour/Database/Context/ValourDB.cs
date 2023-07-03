@@ -172,6 +172,11 @@ public class ValourDB : DbContext
     /// Table for notification subscriptions
     /// </summary>
     public DbSet<NotificationSubscription> NotificationSubscriptions { get; set; }
+    
+    /// <summary>
+    /// Table for notifications
+    /// </summary>
+    public DbSet<Notification> Notifications { get; set; }
 
     /// <summary>
     /// Table for members of planet roles

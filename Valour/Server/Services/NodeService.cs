@@ -231,6 +231,7 @@ public class NodeService
         Transaction,
         DirectMessage,
         DirectMessageEdit,
+        Notification
     }
     
     public struct NodeRelayEventData
@@ -302,6 +303,12 @@ public class NodeService
                 OnRelayDirectMessageEdit(message, data.TargetUser);
                 break;
             }
+            case NodeEventType.Notification:
+            {
+                var notification = (Notification) data.Payload;
+                OnRelayNotification(notification, data.TargetUser);
+                break;
+            }
         }
     }
 
@@ -319,5 +326,10 @@ public class NodeService
     private void OnRelayDirectMessageEdit(DirectMessage message, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirectEdit", message);
+    }
+    
+    private void OnRelayNotification(Notification notif, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotification", notif);
     }
 }

@@ -61,6 +61,13 @@
 	/// </summary>
 	private IJSInProcessObjectReference _jsModule;
 
+
+	protected override void OnInitialized()
+	{
+		if (Flip)
+			_selectedTab = "Notifications";
+	}
+
 	private Task OnSelected(TabStripItem tab)
 	{
 		_selectedTab = tab.Name;
