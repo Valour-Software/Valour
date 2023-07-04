@@ -231,7 +231,7 @@ public class NodeService
         Transaction,
         DirectMessage,
         DirectMessageEdit,
-        Notification
+        Notification,
     }
     
     public struct NodeRelayEventData
@@ -258,7 +258,7 @@ public class NodeService
         var json = JsonSerializer.Serialize(eventData);
 
         foreach (var node in userNodes)
-        {
+        { 
             if (node == NodeConfig.Instance.Name)
             {
                 // Skip redis, run on self

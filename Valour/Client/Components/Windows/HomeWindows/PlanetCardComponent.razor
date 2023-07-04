@@ -60,9 +60,10 @@
             }
             
             
-            @if (IsUnread)
+            @if (IsUnread || _notificationCount > 0)
             {
-                <div class="noti">
+                <div class="noti @(_notificationCount > 0 ? "purple" : "")">
+                    @(_notificationCount > 9 ? "+" : _notificationCount)
                 </div>
             }
             <div class="rect-slide">
@@ -95,6 +96,7 @@
     private string iconUrl = DefaultImage;
 
     private bool IsUnread = false;
+    private int _notificationCount = 0;
 
     protected override async Task OnInitializedAsync(){
         if (!string.IsNullOrWhiteSpace(Planet.IconUrl))
@@ -107,6 +109,17 @@
         }
 
         HomeWindowComponent.RerenderPlanetCards += Refresh;
+        ValourClient.OnNotificationReceived += OnNotification;
+    }
+
+    private async Task OnNotification(Notification notification)
+    {
+        if (notification.PlanetId != Planet.Id)
+            return;
+        
+        // Unread
+        _notificationCount = ValourClient.GetPlanetNotifications(Planet.Id);
+        StateHasChanged();
     }
     
     public string GetCommunityShortCode(string communityName)
@@ -161,6 +174,7 @@
     public async Task Refresh()
     {
         IsUnread = ValourClient.GetPlanetUnreadState(Planet.Id);
+        _notificationCount = ValourClient.GetPlanetNotifications(Planet.Id);
         StateHasChanged();
     }
     

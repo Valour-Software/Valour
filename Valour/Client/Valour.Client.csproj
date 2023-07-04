@@ -23,4 +23,19 @@
     <ProjectReference Include="..\API\Valour.Api.csproj" />
     <ProjectReference Include="..\Shared\Valour.Shared.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\CategoryListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\ChannelListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\ChatChannelListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\PlanetListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\ChannelList\VoiceChannelListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\FriendsList\FriendListComponent.razor" />
+    <AdditionalFiles Include="Components\Sidebar\MemberList\MemberListComponent.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Components\FriendsList\FriendListComponent.razor" />
+    <_ContentIncludedByDefault Remove="Components\MemberList\MemberListComponent.razor" />
+  </ItemGroup>
 </Project>

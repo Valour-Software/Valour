@@ -126,6 +126,19 @@
     margin-right: 3px;
 }
 
+::deep .channel-icon-holder {
+    display: inline-block;
+    position: relative;
+}
+
+::deep .channel-icon-holder p {
+    top: 4px;
+    left: 3px;
+    font-size: 10px;
+    font-weight: 900;
+    position: absolute;
+}
+
 ::deep .category-icon {
     display: inline-block;
     max-width: 16px;

@@ -399,7 +399,7 @@ public class PlanetChatChannelApi
 	                        ChannelId = channel.Id,
 	                        SourceId = message.Id,
 	                        Source = NotificationSource.PlanetMemberMention,
-	                        ClickUrl = $"/planetchannels/{channel.Id}/{message.Id}"
+	                        ClickUrl = $"/planetchannels/{channel.PlanetId}/{channel.Id}/{message.Id}"
                         };
 
                         await notificationService.AddNotificationAsync(notif);

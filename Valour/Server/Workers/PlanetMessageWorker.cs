@@ -40,7 +40,6 @@ namespace Valour.Server.Workers
         public static void AddToQueue(PlanetMessage message)
         {
             // Generate Id for message
-            message.Id = IdManager.Generate();
             MessageQueue.Add(message);
         }
 

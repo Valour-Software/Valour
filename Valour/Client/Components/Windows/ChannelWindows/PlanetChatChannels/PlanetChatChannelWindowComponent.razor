@@ -1,6 +1,5 @@
 ﻿@inherits ChatChannelWindowComponent
 @implements IDisposable
-@inject SoundManager soundManager
 @inject WindowManager windowManager
 @using Valour.Api.Models.Messages
 
@@ -37,12 +36,6 @@
 
         // Do normal channel setup
         await base.SetupNewChannelAsync();
-    }
-
-    public override async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)
-    {
-        if (messageWrapper.Message.Mentions.Any(x => x.Type == MentionType.Member && x.TargetId == SelfMember.Id))
-            await soundManager.PlaySound("Notification.mp3");
     }
 
     public override async Task OnClickWindow()

@@ -293,6 +293,7 @@ function dummySound() {
 
 function playSound(name) {
     var source = getAudioSource();
+    source.loop = false;
     source.volume = 0.4;
     source.src = "./_content/Valour.Client/media/sounds/" + name;
     source.play();

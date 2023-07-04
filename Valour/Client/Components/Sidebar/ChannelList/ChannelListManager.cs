@@ -4,7 +4,7 @@ using Valour.Api.Client;
 using Valour.Api.Items;
 using Valour.Api.Models;
 
-namespace Valour.Client.Components.ChannelList
+namespace Valour.Client.Components.Sidebar.ChannelList
 {
     public class ChannelListManager
     {

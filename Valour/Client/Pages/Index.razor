@@ -1,7 +1,10 @@
 ﻿@page "/"
+@page "/planetchannels/{StartPlanetId:long}/{StartChannelId:long}/{StartMessageId:long}"
+@page "/directchannels/{StartChannelId:long}/{StartMessageId:long}"
 
 @inject IJSRuntime JS
 @inject WindowManager windowManager
+@inject NavigationManager NavigationManager
 
 <!-- Check login status -->
 @if (!ValourClient.IsLoggedIn)
@@ -21,12 +24,16 @@
 			<Sidebar></Sidebar>
 			<div class="channel-and-topbar" id="mainwindow">
 				<div class="topbar">
+					@if (!DeviceInfo.IsMobile)
+					{
+						<QuickNotifComponent></QuickNotifComponent>
+					}
 				</div>
 				<div class="topline">
 				</div>
 
 				<!-- It's so nice when it's hidden away, just like my fears -->
-				<MainWindowsComponent></MainWindowsComponent>
+				<MainWindowsComponent StartData="@_startData"></MainWindowsComponent>
 			</div>
 			@if (!DeviceInfo.IsMobile)
 			{
@@ -40,11 +47,42 @@
 
 
 @code {
+
+	private StartScreenData _startData;
+	
+	public StartScreen? Start { get; set; }
+	
+	[Parameter]
+	public long? StartPlanetId { get; set; }
+	
+	[Parameter]
+	public long? StartChannelId { get; set; }
+	
+	[Parameter]
+	public long? StartMessageId { get; set; }
+	
 	
 	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
 
 	protected override async Task OnInitializedAsync()
 	{
+		if (NavigationManager.Uri.Contains("planetchannels"))
+		{
+			Start = StartScreen.PlanetChannel;
+		}
+		else if (NavigationManager.Uri.Contains("directchannels"))
+		{
+			Start = StartScreen.DirectChannel;
+		}
+
+		_startData = new()
+		{
+			Start = Start,
+			StartPlanetId = StartPlanetId,
+			StartChannelId = StartChannelId,
+			StartMessageId = StartMessageId
+		};
+
 		await base.OnInitializedAsync();
 
 		windowManager.OnPlanetFocused += OnPlanetChange;

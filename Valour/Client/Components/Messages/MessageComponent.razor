@@ -14,7 +14,7 @@
                 <div class="left-info">
                     @if (!Minimal)
                     {
-                        <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                        <img alt="@name's profile picture" loading="lazy" class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
                     }
                     <div class="time-container">
                         <p class="time" title="@_timeTitle">
@@ -258,6 +258,16 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
+
+        if (firstRender)
+        {
+            // Clear notification if one exists for this message
+            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(MessageData.Message.Id, out var notification);
+            if (found && notification.TimeRead is null)
+            {
+                await ValourClient.MarkNotificationRead(notification, true);
+            }
+        }
     }
 
     public async Task OpenEditMode()

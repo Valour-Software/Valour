@@ -66,7 +66,7 @@ public class Notification : ISharedNotification
     /// <summary>
     /// The body of the notification
     /// </summary>
-    [Column("description")]
+    [Column("body")]
     public string Body { get; set; }
     
     /// <summary>

@@ -238,6 +238,9 @@ public class WindowManager
     /// </summary>
     public ClientWindow GetSelectedWindow()
     {
+        if (SelectedWindow is null)
+            SelectedWindow = Windows.FirstOrDefault();
+            
         return SelectedWindow;
     }
 

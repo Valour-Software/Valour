@@ -29,16 +29,30 @@
     
     @{ var iconData = GetIconData(); }
     
-    <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+    @if (_notificationCount > 0)
+    {
+        <div class="channel-icon-holder">
+            <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+            <p>@_notificationCount</p>
+        </div>
+    }
+    else
+    {
+        <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+    }
+    
+    
     <p class="name">
         @Channel.Name
     </p>
 </div>
 @code {
 
-    private static string[] _lockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg", "Chat channel with unread messages" };
+    private static string[] _lockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg", "Private chat channel with unread messages" };
     private static string[] _unlockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon.svg", "Chat channel with unread messages" };
-    private static string[] _lockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon-with-lock.svg", "Chat channel without unread messages" };
+    private static string[] _lockNotifSrc = new[] { "_content/Valour.Client/media/Channel-Notif-Icon-with-lock.svg", "Private chat channel with notifications" };
+    private static string[] _unlockNotifSrc = new[] { "_content/Valour.Client/media/Channel-Notif-Icon.svg", "Chat channel with notifications" };
+    private static string[] _lockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon-with-lock.svg", "Private chat channel without unread messages" };
     private static string[] _unlockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon.svg", "Chat channel without unread messages" };
 
     private bool _render = true;
@@ -57,7 +71,18 @@
 
     private string[] GetIconData()
     {
-        if (IsUnread)
+        if (_notificationCount > 0)
+        {
+            if (HasLock)
+            {
+                return _lockNotifSrc;
+            }
+            else
+            {
+                return _unlockNotifSrc;
+            }
+        }
+        else if (IsUnread)
         {
             if (HasLock)
             {
@@ -91,6 +116,8 @@
     public bool HasLock  { get; set; }
     
     public bool IsUnread { get; set; }
+
+    private int _notificationCount = 0;
 
     public string Chosen_CSS
     {
@@ -202,8 +229,20 @@
         ValourClient.OnUserChannelStateUpdate += OnUserChannelStateUpdate;
         ValourClient.OnChannelStateUpdate += OnChannelStateUpdate;
 
+        ValourClient.OnNotificationReceived += OnNotification;
+
+        DetermineNotifications();
         DetermineUnread();
         await DetermineLock();
+    }
+
+    public async Task OnNotification(Notification notification)
+    {
+        if (notification.ChannelId != Channel.Id)
+            return;
+        
+        DetermineNotifications();
+        Refresh();
     }
 
     public async Task OnUserChannelStateUpdate(UserChannelState state)
@@ -239,5 +278,10 @@
     public void DetermineUnread()
     {
         IsUnread = ValourClient.GetChannelUnreadState(Channel.Id);
+    }
+
+    public void DetermineNotifications()
+    {
+        _notificationCount = ValourClient.GetChannelNotifications(Channel.Id);
     }
 }

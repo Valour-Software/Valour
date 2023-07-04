@@ -1,6 +1,5 @@
 ﻿@implements IDisposable
 @inject WindowManager WindowManager
-@inject SoundManager SoundManager
 
 <!-- Cascade a bunch of values that messages and subcomponents need -->
 <CascadingValue Value='Channel' IsFixed="true">
@@ -172,7 +171,6 @@
 
         // Create client wrapper
         ClientMessageWrapper wrapper = new ClientMessageWrapper(message);
-        await CheckForSelfMention(wrapper);
 
         await MessageHolder.AddMessage(wrapper);
         InputComponent.PreviewMessageComponent.SetLast(MessageHolder.GetLastMessage());
@@ -204,12 +202,6 @@
                 await m.BuildMessage(true);
             }
         }
-    }
-
-    public virtual async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)
-    {
-        if (messageWrapper.Message.Mentions.Any(x => x.Type == MentionType.User && x.TargetId == ValourClient.Self.Id))
-            await SoundManager.PlaySound("Notification.mp3");
     }
 
     public virtual Task OnClickWindow()

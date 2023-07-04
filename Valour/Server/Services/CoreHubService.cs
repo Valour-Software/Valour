@@ -80,12 +80,17 @@ public class CoreHubService
     {
         await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
     }
+    
+    public async void RelayNotificationReadChange(Notification notif, NodeService nodeService)
+    {
+        await nodeService.RelayUserEventAsync(notif.UserId, NodeService.NodeEventType.Notification, notif);
+    }
 
     public async void NotifyDirectMessage(DirectMessage message, long userId)
     {
         
     }
-
+    
     public async void NotifyCategoryOrderChange(CategoryOrderEvent eventData) =>
         await _hub.Clients.Group($"p-{eventData.PlanetId}").SendAsync("CategoryOrder-Update", eventData);
 

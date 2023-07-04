@@ -125,6 +125,17 @@ public static class ValourClient
     public static List<User> FriendsRequested { get; set; }
     
     /// <summary>
+    /// Pain and suffering for thee
+    /// </summary>
+    public static List<Notification> UnreadNotifications { get; set; }
+    
+    /// <summary>
+    /// A set from the source if of notifications to the notification.
+    /// Used for extremely efficient lookups.
+    /// </summary>
+    public static Dictionary<long, Notification> UnreadNotificationsLookup { get; set; }
+    
+    /// <summary>
     /// The direct chat channels (dms) of this user
     /// </summary>
     public static List<DirectChatChannel> DirectChatChannels { get; set; }
@@ -197,6 +208,11 @@ public static class ValourClient
     public static event Func<PlanetMessage, Task> OnMessageDeleted;
 
     /// <summary>
+    /// Run when a notification is received
+    /// </summary>
+    public static event Func<Notification, Task> OnNotificationReceived;
+
+    /// <summary>
     /// Run when a channel sends a watching update
     /// </summary>
     public static event Func<ChannelWatchingUpdate, Task> OnChannelWatchingUpdate;
@@ -259,7 +275,9 @@ public static class ValourClient
         OpenPlanetChannels = new List<PlanetChatChannel>();
         JoinedPlanets = new List<Planet>();
         PlanetLocks = new();
-
+        UnreadNotifications = new();
+        UnreadNotificationsLookup = new();
+        
         // Hook top level events
         HookPlanetEvents();
     }
@@ -838,10 +856,48 @@ public static class ValourClient
         }
     }
 
+    public static int GetPlanetNotifications(long planetId)
+    {
+        return UnreadNotifications.Count(x => x.PlanetId == planetId);
+    }
+
+    public static int GetChannelNotifications(long channelId)
+    {
+        return UnreadNotifications.Count(x => x.ChannelId == channelId);
+    }
+
+    public static async Task NotificationReceived(Notification notification)
+    {
+        await notification.AddToCache(notification);
+        var cached = ValourCache.Get<Notification>(notification.Id);
+        
+        if (cached.TimeRead is null)
+        {
+            if (!UnreadNotifications.Contains(cached))
+                UnreadNotifications.Add(cached);
+
+            if (cached.SourceId != null)
+            {
+                UnreadNotificationsLookup[cached.SourceId.Value] = cached;
+            }
+        }
+        else
+        {
+            UnreadNotifications.RemoveAll(x => x.Id == cached.Id);
+            if (cached.SourceId != null)
+            {
+                UnreadNotificationsLookup.Remove(cached.SourceId.Value);
+            }
+        }
+
+        if (OnNotificationReceived is not null)
+            await OnNotificationReceived.Invoke(cached);
+    }
+
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task PlanetMessageRecieved(PlanetMessage message)
+    public static async Task PlanetMessageReceived(PlanetMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -873,7 +929,7 @@ public static class ValourClient
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task DirectMessageRecieved(DirectMessage message)
+    public static async Task DirectMessageReceived(DirectMessage message)
     {
         Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
@@ -1168,7 +1224,8 @@ public static class ValourClient
             LoadFriendsAsync(),
             LoadJoinedPlanetsAsync(),
             LoadTenorFavoritesAsync(),
-            LoadDirectChatChannelsAsync()
+            LoadDirectChatChannelsAsync(),
+            LoadUnreadNotificationsAsync(),
         };
 
         // Load user data concurrently
@@ -1372,6 +1429,46 @@ public static class ValourClient
 
         if (OnJoinedPlanetsUpdate != null)
             await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task LoadUnreadNotificationsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
+
+        if (!response.Success)
+            return;
+
+        var notifications = response.Data;
+
+        // Add to cache
+        foreach (var notification in notifications)
+            await notification.AddToCache(notification);
+        
+        UnreadNotifications.Clear();
+        UnreadNotificationsLookup.Clear();
+        
+        foreach (var notification in notifications)
+        {
+            var cached = ValourCache.Get<Notification>(notification.Id);
+            if (cached is null)
+                continue;
+
+            // Only add if unread
+            if (notification.TimeRead is not null)
+                continue;
+            
+            if (!UnreadNotifications.Contains(cached))
+                UnreadNotifications.Add(cached);
+            
+            if (cached.SourceId is not null)
+                UnreadNotificationsLookup[cached.SourceId.Value] = cached;
+        }
+    }
+
+    public static async Task<TaskResult> MarkNotificationRead(Notification notification, bool value)
+    {
+        var result = await PrimaryNode.PostAsync($"api/notifications/self/{notification.Id}/read/{value}", null);
+        return result;
     }
 
     public static async Task LoadFriendsAsync()

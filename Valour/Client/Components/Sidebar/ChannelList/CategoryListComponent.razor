@@ -27,17 +27,23 @@
      @ondragleave="@OnDragLeave">
     <div
         id="@Category.Id"
-        class="channel"
-        >
-            @if (IsUnread) {
-                <img alt="Category with unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
-            }
-            else {
-                <img alt="Category without unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
-            }
-            <p class="name">
-                @Category.Name
-            </p>
+        class="channel">
+
+        @if (IsNotification)
+        {
+            <img alt="Category with notifications" class="category-icon" src="_content/Valour.Client/media/Category-Icon-Notif.svg" style="@ArrowStyle">
+        }
+        else if (IsUnread)
+        {
+            <img alt="Category with unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
+        }
+        else
+        {
+            <img alt="Category without unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
+        }
+        <p class="name">
+            @Category.Name
+        </p>
     </div>
         
     @if (IsOpen)
@@ -117,6 +123,8 @@
     public bool IsOpen { get; set; } = true;
     
     public bool IsUnread { get; set; }
+    
+    public bool IsNotification { get; set; }
 
     public Planet Planet { get; set; }
 
@@ -140,13 +148,28 @@
         ValourClient.OnChannelClose += OnChannelOpenedChange;
         ValourClient.OnCategoryOrderUpdate += OnCategoryOrderUpdate;
 
+        ValourClient.OnNotificationReceived += OnNotification;
+
         Planet = await Category.GetPlanetAsync();
 
         IsOpen = categoryManager.IsOpen(Category);
 
         BuildItemList();
         
+        DetermineNotifications();
         DetermineUnread();
+    }
+
+    private async Task OnNotification(Notification notification)
+    {
+        if (notification.PlanetId != Category.PlanetId)
+            return;
+        
+        if (ChildChannels.Any(x => x.Id == notification.ChannelId))
+        {
+            DetermineNotifications();
+            Refresh();
+        }
     }
     
     private void OnDragEnter()
@@ -198,6 +221,8 @@
         ValourClient.OnUserChannelStateUpdate -= OnUserChannelStateUpdate;
         ValourClient.OnChannelStateUpdate -= OnChannelStateUpdate;
         ValourClient.OnCategoryOrderUpdate -= OnCategoryOrderUpdate;
+
+        ValourClient.OnNotificationReceived -= OnNotification;
     }
 
     private async Task OnCategoryOrderUpdate(CategoryOrderEvent eventData)
@@ -207,6 +232,7 @@
         
         BuildItemList();
         SortItems();
+        DetermineNotifications();
         DetermineUnread();
         Refresh();
     }
@@ -402,6 +428,20 @@
     public int GetIndex(PlanetChannel item)
     {
         return ItemList.FindIndex(x => x.Id == item.Id);
+    }
+
+    public void DetermineNotifications()
+    {
+        IsNotification = false;
+        
+        foreach (var channel in ChildChannels)
+        {
+            if (ValourClient.GetChannelNotifications(channel.Id) > 0)
+            {
+                IsNotification = true;
+                break;
+            }
+        }
     }
 
     public void DetermineUnread()
