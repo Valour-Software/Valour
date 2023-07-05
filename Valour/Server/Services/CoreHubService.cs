@@ -69,7 +69,7 @@ public class CoreHubService
         await nodeService.RelayUserEventAsync(channel.UserTwoId, NodeService.NodeEventType.DirectMessage, message);
     }
     
-    public async void RelayDirectMessageEdit(DirectMessage message, NodeService nodeService)
+    public async Task RelayDirectMessageEdit(DirectMessage message, NodeService nodeService)
     {
         var channel = await _db.DirectChatChannels.AsNoTracking().FirstOrDefaultAsync(x => x.Id == message.ChannelId);
         await nodeService.RelayUserEventAsync(channel.UserOneId, NodeService.NodeEventType.DirectMessageEdit, message);

@@ -355,7 +355,7 @@ public class DirectChatChannelService
             return new(false, e.Message);
         }
 
-        _coreHub.RelayDirectMessageEdit(message, _nodeService);
+        await _coreHub.RelayDirectMessageEdit(message, _nodeService);
 
         return new(true, "Success");
     }

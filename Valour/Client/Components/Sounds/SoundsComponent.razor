@@ -20,12 +20,9 @@
 
     private async Task OnNotification(Notification notification)
     {
-        Console.WriteLine(JsonSerializer.Serialize(notification));
-        
-        // Has to be unread for sound to play
+    // Has to be unread for sound to play
         if (notification.TimeRead is null)
         {
-            Console.WriteLine("PING");
             await PlayNotificationSound();
         }
     }
