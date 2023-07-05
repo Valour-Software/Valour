@@ -16,6 +16,6 @@ public struct ChannelOrderData
 public class CategoryOrderEvent
 {
     public long PlanetId { get; set; }
-    public long CategoryId { get; set; }
+    public long? CategoryId { get; set; }
     public List<ChannelOrderData> Order { get; set; }
 }

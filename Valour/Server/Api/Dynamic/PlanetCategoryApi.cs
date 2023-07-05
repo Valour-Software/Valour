@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 using Valour.TenorTwo.Models;
 
 namespace Valour.Server.Api.Dynamic;
@@ -195,75 +196,42 @@ public class PlanetCategoryApi
 
         return Results.Json(await categoryService.GetChildrenIdsAsync(category.Id));
     }
+    
 
-
-    [ValourRoute(HttpVerbs.Post, "api/categories/{id}/children/insert/{insertId}/{position}")]
-    [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> InsertChildRouteAsync(
-        long insertId,
-        long id,
-        PlanetCategoryService categoryService,
-        PlanetMemberService memberService,
-        PlanetChannelService channelService,
-        int position = -1)
-    {
-        // Get the category
-        var category = await categoryService.GetAsync(id);
-        if (category is null)
-            return ValourResult.NotFound("Category not found");
-
-        // Get member
-        var member = await memberService.GetCurrentAsync(category.PlanetId);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-
-        if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
-            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-        
-        // If the child currently belongs to another category (not planet), we need to check permissions for it
-        var inserting = await channelService.GetAsync(insertId);
-        if (inserting.ParentId == id)
-            return ValourResult.BadRequest("Channel is already in this category.");
-        
-        // We need to get the old category and ensure we have permissions in it
-        if (inserting.ParentId is not null)
-        {
-            var oldCategory = await categoryService.GetAsync(inserting.ParentId.Value);
-            if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
-                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-        }
-        
-        // We have permission for the insert, the target category, and the old category if applicable.
-        // Actually do the changes.
-        await categoryService.InsertChildAsync(category.Id, inserting.Id, position);
-
-        return ValourResult.Ok("Success");
-    }
-
-    [ValourRoute(HttpVerbs.Post, "api/categories/{id}/children/order")]
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/categories/{id}/children/order")]
     [UserRequired(UserPermissionsEnum.PlanetManagement)]
     public static async Task<IResult> SetChildOrderRouteAsync(
         [FromBody] long[] order,
-        long id,
+        long? id,
+        long planetId,
         PlanetCategoryService categoryService,
         PlanetMemberService memberService,
-        PlanetChannelService channelService)
+        PlanetChannelService channelService,
+        PlanetService planetService)
     {
-        // Get the category
-        var category = await categoryService.GetAsync(id);
-        if (category is null)
-            return ValourResult.NotFound("Category not found");
-
         // Get member
-        var member = await memberService.GetCurrentAsync(category.PlanetId);
+        var member = await memberService.GetCurrentAsync(planetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
-
-        if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
-            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        
+        // Get the category
+        if (id is not null)
+        {
+            var category = await categoryService.GetAsync(id.Value);
+            if (category is null)
+                return ValourResult.NotFound("Category not found");
+            
+            if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+        else
+        {
+            // Top level requires planet management perms
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+                return ValourResult.LacksPermission(PlanetPermissions.Manage);
+        }
 
         order = order.Distinct().ToArray();
-
 
         // We have to check permissions for ALL changes in this ordering. Fuuuuuuun!
         var pos = 0;
@@ -276,19 +244,24 @@ public class PlanetCategoryApi
             if (child.ParentId != id)
                 return ValourResult.BadRequest("Use the category insert route to change parent id");
             
-            // Change in permission or parent requires perms
-            if (child.Position != pos || child.ParentId != category.Id)
+            // Change in position requires perms
+            /*
+             
+            Retrospect: This is silly. If someone has permissions to a category, they should be able to move channels in it
+             
+            if (child.Position != pos)
             {
                 // Require permission for the child being moved
                 if (!await memberService.HasPermissionAsync(member, child, ChannelPermissions.Manage))
                     return ValourResult.LacksPermission(ChannelPermissions.Manage);
             }
+            */
             
             pos++;
         }
         
         // Actually do the changes
-        var result = await categoryService.SetChildOrderAsync(category, order);
+        var result = await categoryService.SetChildOrderAsync(planetId, id, order);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

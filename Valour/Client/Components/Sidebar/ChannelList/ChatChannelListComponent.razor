@@ -1,4 +1,5 @@
-﻿@implements IDisposable
+﻿@inherits ChannelListItemComponent
+@implements IDisposable
 
 @inject WindowManager WindowManager
 @inject ChannelListManager ListManager
@@ -85,20 +86,6 @@
     private static string[] _lockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon-with-lock.svg", "Private chat channel without unread messages" };
     private static string[] _unlockReadSrc = new[] { "_content/Valour.Client/media/Channel-Icon.svg", "Chat channel without unread messages" };
 
-    private bool _render = true;
-    protected override bool ShouldRender() => _render;
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        _render = false;
-    }
-
-    public void Refresh()
-    {
-        _render = true;
-        StateHasChanged();
-    }
-
     private string[] GetIconData()
     {
         if (_notificationCount > 0)
@@ -139,10 +126,8 @@
     // Demonstrates how a parent component can supply parameters
     [Parameter]
     public PlanetChatChannel Channel { get; set; }
-
-    [Parameter]
-    public CategoryListComponent ParentCategory { get; set; }
-
+    public override PlanetChannel GetItem() => Channel;
+    
     public bool HasLock  { get; set; }
     
     public bool IsUnread { get; set; }
@@ -184,7 +169,7 @@
 
     private async Task OnDropOn()
     {
-        await ListManager.OnItemDropOnChatChannel(this);
+        await ListManager.OnItemDropOnItem(this);
         Refresh();
     }
 

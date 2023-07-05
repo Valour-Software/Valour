@@ -105,7 +105,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         /// Run when an item is dropped on a category
         /// </summary>
         /// <param name="target">The category component that the item was dropped onto</param>
-        public async Task OnItemDropOnCategory(CategoryListComponent target)
+        public async Task OnItemDropIntoCategory(CategoryListComponent target)
         {
             OnDragEnterItem(0);
             target.Refresh();
@@ -176,7 +176,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             Console.WriteLine($"Dropped {_currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
         }
 
-        public async Task OnItemDropOnChatChannel(ChatChannelListComponent target)
+        public async Task OnItemDropOnItem(ChannelListItemComponent target)
         {
             // Get current top/bottom value
             var top = DragIsTop;
@@ -186,17 +186,33 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             if (target == null)
                 return;
 
-            if (_currentDragItem.Id == target.Channel.Id)
+            var targetItem = target.GetItem();
+
+            if (_currentDragItem.Id == targetItem.Id)
                 return;
 
             int newIndex = -1;
-            
+
             // Moving within the same category
-            if (target.Channel.ParentId == _currentDragItem.ParentId)
+            if (targetItem.ParentId == _currentDragItem.ParentId)
             {
-                var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                List<long> childrenOrder = null;
+                
+                // Moving within top level (planet)
+                if (targetItem.ParentId == null)
+                {
+                    childrenOrder = target.PlanetComponent.TopItems
+                        .Select(x => x.Id)
+                        .ToList();
+                }
+                else
+                {
+                    childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                }
+                
                 childrenOrder.Remove(_currentDragItem.Id);
-                newIndex = childrenOrder.IndexOf(target.Channel.Id);
+                
+                newIndex = childrenOrder.IndexOf(targetItem.Id);
                 if (!top)
                     newIndex += 1;
 
@@ -208,16 +224,29 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 {
                     childrenOrder.Insert(newIndex, _currentDragItem.Id);
                 }
-
+                
                 var response = await target.ParentCategory.Category.SetChildOrderAsync(childrenOrder);
                 if (!response.Success)
                     Console.WriteLine("Error setting order:\n" + response.Message);
+            }
+            // Inserting
+            else
+            {
+                
+            }
+
+            
+
+            // Moving within the same category
+            if (targetItem.ParentId == _currentDragItem.ParentId)
+            {
+                
             }
             // Inserting into new category
             else
             {
                 var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
-                newIndex = childrenOrder.IndexOf(target.Channel.Id);
+                newIndex = childrenOrder.IndexOf(targetItem.Id);
                 if (!top)
                     newIndex += 1;
                 
@@ -226,23 +255,24 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                     Console.WriteLine("Error setting order:\n" + response.Message);
             }
             
-            Console.WriteLine($"Dropped {_currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
+            Console.WriteLine($"Dropped {_currentDragItem.Id} onto {targetItem.Id} at {newIndex}");
         }
 
         public long DragOverId = 0;
         public bool DragIsTop = true;
-        
+        public ChannelListItemComponent HighlightInner = null;
+
         public void OnDragEnterItem(long id, bool top = false)
         {
             DragOverId = id;
             DragIsTop = top;
             
-            Console.WriteLine("Drag enter: " + top);
-        }
-
-        public void OnDragLeave()
-        {
-            DragOverId = 0;
+            var oldHighlight = HighlightInner;
+            
+            HighlightInner = null;
+            
+            if (oldHighlight is not null)
+                oldHighlight.Refresh();
         }
     }
 }

@@ -49,18 +49,25 @@
 
 ::deep .category .inner-drop {
     color: white;
-    font-size: 14px;
+    font-size: 12px;
     font-style: italic;
 }
 
 
 ::deep .category.drag-over > .inner-drop {
     display: block;
-    border: 1px solid var(--v-cyan);
-    background-color: rgba(0, 255, 255, 0.1);
+    border: 1px solid var(--main-5);
+    background-color: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 6px;
     margin-left: 12px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+::deep .category.drag-over >  .inner-drop.highlight {
+    border: 1px solid var(--v-cyan);
+    background-color: rgba(0, 255, 255, 0.1);
 }
 
 ::deep .category[depth="0"]:hover {

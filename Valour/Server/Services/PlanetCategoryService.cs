@@ -260,117 +260,10 @@ public class PlanetCategoryService
 
         return TaskResult.SuccessResult;
     }
-    
-    public async Task<TaskResult> InsertChildAsync(long categoryId, long insertId, int position = -1)
+
+    public async Task<TaskResult> SetChildOrderAsync(long planetId, long? categoryId, long[] order)
     {
-        var category = await _db.PlanetCategories.FindAsync(categoryId);
-        if (category is null)
-            return new TaskResult(false, "Category not found.");
-
-        var insert = await _db.PlanetChannels.FindAsync(insertId);
-        if (insert is null)
-            return new TaskResult(false, "Child to insert not found.");
-        
-        var children = await _db.PlanetChannels
-            .Where(x => x.ParentId == category.Id)
-            .OrderBy(x => x.Position)
-            .ToListAsync();
-
-        // If unspecified or too high, set to next position
-        if (position < 0 || position > children.Count)
-        {
-            position = children.Count + 1;
-        }
-        
-        var oldCategoryId = insert.ParentId;
-        List<ChannelOrderData> oldCategoryOrder = null;
-
-        if (oldCategoryId is not null)
-        {
-            var oldCategory = await _db.PlanetCategories.FindAsync(insert.ParentId);
-            if (oldCategory is null)
-                return new TaskResult(false, "Error getting old parent category.");
-
-            var oldCategoryChildren = await _db.PlanetChannels
-                .Where(x => x.ParentId == oldCategory.Id)
-                .OrderBy(x => x.Position)
-                .ToListAsync();
-
-            // Remove from old category
-            oldCategoryChildren.RemoveAll(x => x.Id == insertId);
-
-            oldCategoryOrder = new();
-            
-            // Update all positions
-            var opos = 0;
-            foreach (var child in oldCategoryChildren)
-            {
-                child.Position = opos;
-                oldCategoryOrder.Add(new(child.Id, child.Type));
-                opos++;
-            }
-        }
-
-        insert.ParentId = category.Id;
-        insert.PlanetId = category.PlanetId;
-        insert.Position = position;
-        
-        if (position >= children.Count)
-        {
-            children.Add(insert);
-        }
-        else
-        {
-            children.Insert(position, insert);
-        }
-
-        // Positions for new category
-        List<ChannelOrderData> newCategoryOrder = new();
-        
-        // Update all positions
-        var pos = 0;
-        foreach (var child in children)
-        {
-            child.Position = pos;
-            newCategoryOrder.Add(new(child.Id, child.Type));
-            pos++;
-        }
-        
-        try
-        {
-            await _db.SaveChangesAsync();
-        }
-        catch (Exception e)
-        {
-            return new TaskResult(false, "Error saving changes. Please try again later.");
-        }
-        
-        // Fire off events for both modified categories (if applicable)
-        
-        // New parent
-        _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
-        {
-            PlanetId = category.PlanetId,
-            CategoryId = categoryId,
-            Order = newCategoryOrder
-        });
-
-        if (oldCategoryId is not null)
-        {
-            _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
-            {
-                PlanetId = category.PlanetId,
-                CategoryId = oldCategoryId.Value,
-                Order = oldCategoryOrder,
-            });
-        }
-
-        return new(true, "Success");
-    }
-
-    public async Task<TaskResult> SetChildOrderAsync(PlanetCategory category, long[] order)
-    {
-        var totalChildren = await _db.PlanetChannels.CountAsync(x => x.ParentId == category.Id);
+        var totalChildren = await _db.PlanetChannels.CountAsync(x => x.PlanetId == planetId && x.ParentId == categoryId);
 
         if (totalChildren != order.Length)
             return new(false, "Your order does not contain all the children.");
@@ -389,8 +282,8 @@ public class PlanetCategoryService
                 if (child is null)
                     return new(false, $"Child with id {childId} does not exist!");
 
-                if (child.ParentId != category.Id)
-                    return new(false, $"Category {childId} is not a child of {category.Id}.");
+                if (child.ParentId != categoryId)
+                    return new(false, $"Category {childId} is not a child of {categoryId}.");
 
                 child.Position = pos;
 
@@ -411,8 +304,8 @@ public class PlanetCategoryService
         
         _coreHub.NotifyCategoryOrderChange(new ()
         {
-            PlanetId = category.PlanetId,
-            CategoryId = category.Id,
+            PlanetId = planetId,
+            CategoryId = categoryId,
             Order = newOrder
         });
 

@@ -1,51 +1,74 @@
-﻿@implements IDisposable
+﻿@inherits ChannelListItemComponent
+@implements IDisposable
 
-@inject WindowManager windowManager
-@inject ClientCategoryManager categoryManager
-@inject ChannelListManager listManager
+@inject WindowManager WindowManager
+@inject ClientCategoryManager CategoryManager
+@inject ChannelListManager ListManager
 
-<div class="category @(listManager.DragOverId == Category.Id ? "drag-over" : "")"
+<div class="category @(ShouldShowDragOver() ? "drag-over" : "")"
      draggable="true"
      depth="@(Depth % 6)"
-     
+
      @onpointerdown:stopPropagation="true"
      @onpointerdown='async () => await ChannelListContextMenuComponent.SetSelectedItem(Category)'
-     
+
      @onclick:stopPropagation="true"
      @onclick="OnClick"
-     
-     @ondrop:stopPropagation="true"
-     @ondrop="async () => await listManager.OnItemDropOnCategory(this)"
-     
-     @ondragstart:stopPropagation="true"
-     @ondragstart="() => listManager.OnItemStartDragInCategory(Category, ParentCategory)"
-     
-     @ondragenter:stopPropagation="true"
-     @ondragenter="@OnDragEnter"
-     
-     @ondragleave:stopPropagation="true"
-     @ondragleave="@OnDragLeave">
-    <div
-        id="@Category.Id"
-        class="channel">
 
-        @if (IsNotification)
+     @ondragstart:stopPropagation="true"
+     @ondragstart="() => ListManager.OnItemStartDragInCategory(Category, ParentCategory)"
+
+     @ondragleave:stopPropagation="true"
+     @ondragleave="@OnDragLeave"
+
+     @ondrop:stopPropagation="true"
+     @ondrop="OnDropOn"
+
+     @ondragenter:stopPropagation="true"
+     ondragenter="return false;">
+    <div class="channel-wrapper">
+        @if (ListManager.DragOverId == Category.Id &&
+                 ListManager.DragIsTop)
         {
-            <img alt="Category with notifications" class="category-icon" src="_content/Valour.Client/media/Category-Icon-Notif.svg" style="@ArrowStyle">
+            <div
+                class="drop-line"
+                @ondragenter:stopPropagation="true"
+                ondragenter="return false;">
+            </div>
         }
-        else if (IsUnread)
-        {
-            <img alt="Category with unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
-        }
-        else
-        {
-            <img alt="Category without unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
-        }
-        <p class="name">
-            @Category.Name
-        </p>
+        <div
+            id="@Category.Id"
+            class="channel">
+
+            @if (IsNotification)
+            {
+                <img alt="Category with notifications" class="category-icon" src="_content/Valour.Client/media/Category-Icon-Notif.svg" style="@ArrowStyle">
+            }
+            else if (IsUnread)
+            {
+                <img alt="Category with unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-unread.svg" style="@ArrowStyle">
+            }
+            else
+            {
+                <img alt="Category without unread messages" class="category-icon" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@ArrowStyle">
+            }
+            <p class="name">
+                @Category.Name
+            </p>
+
+        </div>
+        <div
+            class="drop top"
+            @ondragenter:stopPropagation="true"
+            @ondragenter="@OnDragEnterTop">
+        </div>
+        <div
+            class="drop bottom"
+            @ondragenter:stopPropagation="true"
+            @ondragenter="@OnDragEnterBottom">
+        </div>
     </div>
-        
+
     @if (IsOpen)
     {
         <div class="sub-list" ondragover="event.preventDefault();">
@@ -57,45 +80,57 @@
                 switch (item)
                 {
                     case PlanetChatChannel chat:
-                        <ChatChannelListComponent @key='$"{Category.Id}-{chat.Id}"' ParentCategory="@this" Channel="@chat" />
+                        <ChatChannelListComponent @key='$"{Category.Id}-{chat.Id}"' ParentCategory="@this" Channel="@chat"/>
                         break;
                     //case PlanetVoiceChannel voice:
                     //    <VoiceChannelListComponent @key='@voice.Id' ParentCategory="@this" Channel="@voice" />
                     //    break;
                     case PlanetCategory cat:
-                        <CategoryListComponent 
-                            @key='$"{Category.Id}-{cat.Id}"' 
-                            ParentCategory="@this" 
-                            Category="@cat" 
-                            Categories="@Categories" 
-                            Channels="@Channels" 
-                            VoiceChannels="@VoiceChannels" 
-                            ChannelWindow="@ChannelWindow" 
-                            Depth="@(this.Depth + 1)" />
+                        <CategoryListComponent
+                            @key='$"{Category.Id}-{cat.Id}"'
+                            ParentCategory="@this"
+                            Category="@cat"
+                            Categories="@Categories"
+                            Channels="@Channels"
+                            VoiceChannels="@VoiceChannels"
+                            ChannelWindow="@ChannelWindow"
+                            Depth="@(this.Depth + 1)"/>
                         break;
                 }
             }
         </div>
     }
-    <div class="inner-drop">
-        <span>> Insert Here</span>
-    </div>
+    @if (ItemList.Count == 0)
+    {
+        <!-- Makes it so you can insert into empty categories -->
+        <div
+            class="inner-drop @((ListManager.HighlightInner?.GetItem()?.Id ?? 0) == this.Category.Id ? "highlight" : "")"
+            @ondrop:stopPropagation="true"
+            @ondrop="async () => await ListManager.OnItemDropIntoCategory(this)"
+            @ondragenter:stopPropagation="true"
+            @ondragenter="@OnDragEnterInnerDrop"
+            @ondragleave="@Refresh">
+            <span>Insert into @Category.Name</span>
+        </div>
+    }
+    
+    @if (ListManager.DragOverId == Category.Id &&
+             !ListManager.DragIsTop &&
+             !((ListManager.HighlightInner?.GetItem()?.Id ?? 0) == Category.Id))
+    {
+        <div
+            class="drop-line"
+            @ondragenter:stopPropagation="true"
+            ondragenter="return false;">
+        </div>
+    }
 </div>
 
 @code {
-    
-    private bool _render = true;
-    protected override bool ShouldRender() => _render;
 
-    protected override void OnAfterRender(bool firstRender)
+    private bool ShouldShowDragOver()
     {
-        _render = false;
-    }
-
-    public void Refresh()
-    {
-        _render = true;
-        StateHasChanged();
+        return ListManager.DragOverId == Category.Id;
     }
 
     [Parameter]
@@ -103,6 +138,7 @@
 
     [Parameter]
     public PlanetCategory Category { get; set; }
+    public override PlanetChannel GetItem() => Category;
 
     [Parameter]
     public List<PlanetChatChannel> Channels { get; set; }
@@ -115,9 +151,6 @@
 
     [Parameter]
     public ChatChannelWindow ChannelWindow { get; set; }
-
-    [Parameter]
-    public CategoryListComponent ParentCategory { get; set; }
 
     public List<PlanetChatChannel> ChildChannels { get; set; }
     public List<PlanetVoiceChannel> ChildVoiceChannels { get; set; }
@@ -132,7 +165,7 @@
     public Planet Planet { get; set; }
 
     public List<PlanetChannel> ItemList = new List<PlanetChannel>();
-    
+
     [Parameter]
     public int Depth { get; set; }
 
@@ -155,7 +188,7 @@
 
         Planet = await Category.GetPlanetAsync();
 
-        IsOpen = categoryManager.IsOpen(Category);
+        IsOpen = CategoryManager.IsOpen(Category);
 
         BuildItemList();
         
@@ -174,10 +207,28 @@
             Refresh();
         }
     }
-    
-    private void OnDragEnter()
+
+    private void OnDragEnterInnerDrop()
     {
-        listManager.OnDragEnterItem(this.Category.Id);
+        ListManager.HighlightInner = this;
+        Refresh();
+    }
+    
+    private void OnDragEnterTop()
+    {
+        ListManager.OnDragEnterItem(Category.Id, true);
+        Refresh();
+    }
+    
+    private void OnDragEnterBottom()
+    {
+        ListManager.OnDragEnterItem(Category.Id, false);
+        Refresh();
+    }
+    
+    private async Task OnDropOn()
+    {
+        await ListManager.OnItemDropOnItem(this);
         Refresh();
     }
 
@@ -262,11 +313,11 @@
 
     public void OnClick()
     {
-        listManager.OnItemClickInCategory(Category, ParentCategory);
+        ListManager.OnItemClickInCategory(Category, ParentCategory);
 
         IsOpen = !IsOpen;
 
-        categoryManager.SetOpen(Category, IsOpen);
+        CategoryManager.SetOpen(Category, IsOpen);
 
         Refresh();
     }
@@ -424,8 +475,6 @@
             Refresh();
         }
     }
-
-    int currentDragIndex;
 
     // Get local index
     public int GetIndex(PlanetChannel item)
