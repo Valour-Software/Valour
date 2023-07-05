@@ -8,6 +8,7 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 {
     public class ChannelListManager
     {
+
         public static ChannelListManager Instance;
 
         public ChannelListManager()
@@ -177,7 +178,9 @@ namespace Valour.Client.Components.Sidebar.ChannelList
 
         public async Task OnItemDropOnChatChannel(ChatChannelListComponent target)
         {
-            OnDragEnterItem(0);
+            // Get current top/bottom value
+            var top = DragIsTop;
+            OnDragEnterItem(0, DragIsTop);
             target.Refresh();
             
             if (target == null)
@@ -193,9 +196,18 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             {
                 var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
                 childrenOrder.Remove(_currentDragItem.Id);
-                newIndex = target.ParentCategory.GetIndex(target.Channel);
-                    
-                childrenOrder.Insert(newIndex, _currentDragItem.Id);
+                newIndex = childrenOrder.IndexOf(target.Channel.Id);
+                if (!top)
+                    newIndex += 1;
+
+                if (newIndex >= childrenOrder.Count)
+                {
+                    childrenOrder.Add(_currentDragItem.Id);
+                }
+                else
+                {
+                    childrenOrder.Insert(newIndex, _currentDragItem.Id);
+                }
 
                 var response = await target.ParentCategory.Category.SetChildOrderAsync(childrenOrder);
                 if (!response.Success)
@@ -214,10 +226,14 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         }
 
         public long DragOverId = 0;
+        public bool DragIsTop = true;
         
-        public void OnDragEnterItem(long id)
+        public void OnDragEnterItem(long id, bool top = false)
         {
             DragOverId = id;
+            DragIsTop = top;
+            
+            Console.WriteLine("Drag enter: " + top);
         }
 
         public void OnDragLeave()

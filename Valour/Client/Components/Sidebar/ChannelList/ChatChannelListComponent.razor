@@ -1,51 +1,81 @@
 ﻿@implements IDisposable
 
-@inject WindowManager windowManager
-@inject ChannelListManager listManager
+@inject WindowManager WindowManager
+@inject ChannelListManager ListManager
 
 <div
-    class="@Chosen_CSS"
-    draggable="true" 
-    id="@Channel.Id"
+    class="channel-wrapper"
+    draggable="true"
     
     @onclick:stopPropagation="true"
     @onclick="OnClick"
-    
+
     @ondragstart:stopPropagation="true"
     @ondragstart="@OnDragStart"
-    
+
     @ondrop:stopPropagation="true"
-    @ondrop="@OnDropOn" 
-    
+    @ondrop="@OnDropOn"
+
     @onpointerdown:stopPropagation="true"
     @onpointerdown='@PrepareContext'
-    
-    @ondragenter:stopPropagation="true"
-    @ondragenter="@OnDragEnter"
-    
+
     @ondragleave:stopPropagation="true"
-    @ondragleave="@OnDragLeave"
->
+    @ondragleave="@OnDragLeave">
     
-    @{ var iconData = GetIconData(); }
-    
-    @if (_notificationCount > 0)
+    @if (ListManager.DragOverId == Channel.Id &&
+         ListManager.DragIsTop)
     {
-        <div class="channel-icon-holder">
-            <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
-            <p>@_notificationCount</p>
+        <div
+            class="drop-line"
+            @ondragenter:stopPropagation="true"
+            ondragenter="return false;">
         </div>
     }
-    else
+    <div
+        class="@ChosenCss"
+        id="@Channel.Id">
+
+        @{ var iconData = GetIconData(); }
+
+        @if (_notificationCount > 0)
+        {
+            <div class="channel-icon-holder">
+                <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+                <p>@_notificationCount</p>
+            </div>
+        }
+        else
+        {
+            <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+        }
+
+
+        <p class="name">
+            @Channel.Name
+        </p>
+
+    </div>
+    @if (ListManager.DragOverId == Channel.Id &&
+         !ListManager.DragIsTop)
     {
-        <img class="channel-icon" src="@iconData[0]" alt="@iconData[1]"/>
+        <div
+            class="drop-line"
+            @ondragenter:stopPropagation="true"
+            ondragenter="return false;">
+        </div>
     }
-    
-    
-    <p class="name">
-        @Channel.Name
-    </p>
+    <div
+        class="drop top"
+        @ondragenter:stopPropagation="true"
+        @ondragenter="@OnDragEnterTop">
+    </div>
+    <div
+        class="drop bottom"
+        @ondragenter:stopPropagation="true"
+        @ondragenter="@OnDragEnterBottom">
+    </div>
 </div>
+
 @code {
 
     private static string[] _lockUnreadSrc = new[] { "_content/Valour.Client/media/Channel-Filled-Icon-with-lock.svg", "Private chat channel with unread messages" };
@@ -119,25 +149,31 @@
 
     private int _notificationCount = 0;
 
-    public string Chosen_CSS
+    public string ChosenCss
     {
         get
         {
             var css = "channel";
 
-            if (windowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
+            if (WindowManager.GetWindows().OfType<ChatChannelWindow>().Any(x => x.Channel.Id == Channel.Id))
                 css += " open";
 
-            if (listManager.DragOverId == Channel.Id)
+            if (ListManager.DragOverId == Channel.Id)
                 css += " drag-over";
             
             return css;
         }
     }
 
-    private void OnDragEnter()
+    private void OnDragEnterTop()
     {
-        listManager.OnDragEnterItem(this.Channel.Id);
+        ListManager.OnDragEnterItem(this.Channel.Id, true);
+        Refresh();
+    }
+    
+    private void OnDragEnterBottom()
+    {
+        ListManager.OnDragEnterItem(this.Channel.Id, false);
         Refresh();
     }
 
@@ -148,7 +184,7 @@
 
     private async Task OnDropOn()
     {
-        await listManager.OnItemDropOnChatChannel(this);
+        await ListManager.OnItemDropOnChatChannel(this);
         Refresh();
     }
 
@@ -159,15 +195,15 @@
 
     private void OnDragStart()
     {
-        listManager.OnItemStartDragInCategory(Channel, ParentCategory);
+        ListManager.OnItemStartDragInCategory(Channel, ParentCategory);
     }
 
     private async Task OnClick()
     {
 
-        listManager.OnItemClickInCategory(Channel, ParentCategory);
+        ListManager.OnItemClickInCategory(Channel, ParentCategory);
 
-        var window = windowManager.GetSelectedWindow();
+        var window = WindowManager.GetSelectedWindow();
         
         if (window is ChatChannelWindow channelWindow)
         {
@@ -180,7 +216,7 @@
         else
         {
             var planet = await Channel.GetPlanetAsync();
-            await windowManager.ReplaceWindow(window, new PlanetChatChannelWindow(planet, Channel));
+            await WindowManager.ReplaceWindow(window, new PlanetChatChannelWindow(planet, Channel));
         }
         
         Refresh();

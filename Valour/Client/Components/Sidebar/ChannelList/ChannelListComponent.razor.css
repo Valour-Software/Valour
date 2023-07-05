@@ -32,6 +32,7 @@
     border-left-width: 2px;
     border-left-style: solid;
     border-left-color: transparent;
+    width: max-content;
 }
 
 ::deep .category:hover {
@@ -39,9 +40,27 @@
     border-left-style: solid;
 }
 
+/*
 ::deep .category.drag-over {
     border: 1px solid var(--v-cyan);
     background-color: rgba(0, 255, 255, 0.1);
+}
+*/
+
+::deep .category .inner-drop {
+    color: white;
+    font-size: 14px;
+    font-style: italic;
+}
+
+
+::deep .category.drag-over > .inner-drop {
+    display: block;
+    border: 1px solid var(--v-cyan);
+    background-color: rgba(0, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px;
+    margin-left: 12px;
 }
 
 ::deep .category[depth="0"]:hover {
@@ -68,6 +87,25 @@
     border-left-color: #21b300;
 }
 
+::deep .channel-wrapper {
+    position: relative;
+    background-color: transparent;
+}
+
+::deep .channel-wrapper .drop {
+    height: 50%;
+    width: 100%;
+    position: absolute;
+    cursor: pointer;
+}
+
+::deep .channel-wrapper .drop.top {
+    top: 0;
+}
+::deep .channel-wrapper .drop.bottom {
+    bottom: 0;
+}
+
 ::deep .channel {
     cursor: pointer;
     border-radius: 8px;
@@ -76,14 +114,16 @@
     padding-right: 8px;
     overflow: visible;
     white-space: nowrap;
-    width: max-content;
+    /* width: max-content;*/
+    min-width: 150px;
+    position: relative;
 }
 
-::deep .channel:hover {
+::deep .channel-wrapper:hover .channel {
     background: rgba(255, 255, 255, 0.075);
 }
 
-::deep .channel:active {
+::deep .channel-wrapper:active .channel {
     background: rgba(255, 255, 255, 0.125);
 }
 
@@ -105,9 +145,25 @@
     display: inline-block;
 }
 
+/*
 ::deep .channel.drag-over {
     border: 1px solid var(--v-cyan);
     background-color: rgba(0, 255, 255, 0.1);
+}
+*/
+
+::deep .channel .inner-drop {
+    display: none;
+}
+
+::deep .drop-line {
+    height: 2px;
+    background-color: var(--v-cyan);
+    width: 100%;
+}
+
+::deep .category .inner-drop {
+    display: none;
 }
 
 /* Sub list */
