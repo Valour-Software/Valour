@@ -216,7 +216,11 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             // Inserting into new category
             else
             {
-                newIndex = target.ParentCategory.GetIndex(target.Channel);
+                var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                newIndex = childrenOrder.IndexOf(target.Channel.Id);
+                if (!top)
+                    newIndex += 1;
+                
                 var response = await target.ParentCategory.Category.InsertChild(_currentDragItem.Id, newIndex);
                 if (!response.Success)
                     Console.WriteLine("Error setting order:\n" + response.Message);
