@@ -15,6 +15,7 @@ public static class NotificationNavigator
         switch (notification.Source)
         {
             case NotificationSource.PlanetMemberMention:
+            case NotificationSource.PlanetRoleMention:
             {
                 var planet = ValourCache.Get<Planet>(notification.PlanetId);
                 if (planet is null)

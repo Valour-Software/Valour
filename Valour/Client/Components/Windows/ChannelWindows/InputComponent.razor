@@ -404,7 +404,7 @@
         {
             if (!MentionSelector.Visible)
             {
-                MentionSelector.SetVisible(true, text[0]);
+                await MentionSelector.SetVisible(true, text[0]);
             }
 
             await MentionSelector.SetText(text);
@@ -412,7 +412,7 @@
         else
         {
             if (MentionSelector.Visible){
-                MentionSelector.SetVisible(false);
+                await MentionSelector.SetVisible(false);
             }
         }
 

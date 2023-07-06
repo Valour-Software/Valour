@@ -1,5 +1,5 @@
-<div class="@("item " + Selected_Class)" @onclick="OnClickAsync">
-     <p class='title noselect'>#@Channel.Name</p>
+<div class="@("item " + SelectedClass)" @onclick="OnClickAsync">
+    <p class='title noselect' style="color: @Role.Color">@@@Role.Name</p>
 </div>
 
 @code {
@@ -11,12 +11,12 @@
     public MentionSelectComponent Parent { get; set; }
 
     [Parameter]
-    public IChatChannel Channel { get; set; }
+    public PlanetRole Role { get; set; }
 
     [Parameter]
     public bool Selected { get; set; }
 
-    public string Selected_Class
+    private string SelectedClass
     {
         get
         {

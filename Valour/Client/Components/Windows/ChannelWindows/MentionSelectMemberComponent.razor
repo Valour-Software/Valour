@@ -1,5 +1,5 @@
-﻿<div class="@("select-member " + Selected_Class)" @onclick="OnClickAsync">
-    <img class="pfp" style="@Pfp_Style" src="@Pfp_Url" @onerror="OnPfpError" />
+﻿<div class="@("item " + Selected_Class)" @onclick="OnClickAsync">
+    <img class="icon" style="@Pfp_Style" src="@Pfp_Url" @onerror="OnPfpError" />
     <p class="title noselect" style="color:@Role_Color">@Member.Nickname</p>
 </div>
 
