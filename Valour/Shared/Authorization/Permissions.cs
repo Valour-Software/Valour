@@ -577,10 +577,10 @@ public struct PermissionNodeCode
         this.Mask = mask;
     }
 
-    public PermissionState GetState(Permission permission, bool ignoreviewperm)
+    public PermissionState GetState(Permission permission, bool ignoreViewPerm)
     {
         // If the lowest, or view, permission is false, all other permissions are automatically false
-        if ((Mask & 0x01) == 0x01 && (Code & 0x01) == 0 && !ignoreviewperm)
+        if ((Mask & 0x01) == 0x01 && (Code & 0x01) == 0 && !ignoreViewPerm)
         {
             return PermissionState.False;
         }

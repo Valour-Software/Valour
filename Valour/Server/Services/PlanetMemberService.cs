@@ -238,11 +238,11 @@ public class PlanetMemberService
         if (member.UserId == planet.OwnerId)
             return true;
 
-        // Get user main role
-        var mainRole = await GetPrimaryRoleAsync(member.Id);
-
-        // Return permission state
-        return mainRole.HasPermission(permission);
+        return await _db.PlanetRoleMembers
+            .Where(x => x.MemberId == member.Id)
+            .Include(x => x.Role)
+            .AnyAsync(x => x.Role.IsAdmin || // Admins have all permissions
+                      (x.Role.Permissions & permission.Value) != 0); // Otherwise, at least one role must have the planet permission granted
     }
 
     /// <summary>
@@ -289,10 +289,10 @@ public class PlanetMemberService
                 break;
         }
 
+        // Ultimate fallback is the super default
         if (viewPerm == PermissionState.Undefined)
         {
-            var _topRole = rolePermData.FirstOrDefault()?.Role ?? PlanetRole.DefaultRole;
-            viewPerm = Permission.HasPermission(_topRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
+            viewPerm = Permission.HasPermission(PlanetRole.DefaultRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
         }
 
         if (viewPerm != PermissionState.True)

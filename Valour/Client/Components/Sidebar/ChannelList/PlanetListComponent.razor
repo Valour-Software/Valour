@@ -127,12 +127,12 @@
     private async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
     {
         if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
-            eventData.Model.ParentId is not null || // We only render top level
-            !eventData.NewToClient) // Only new items make a change
-            return; 
+            eventData.Model.ParentId is not null) // We only render top level
+        return; 
 
         // Add and sort new item
-        TopItems.Add(eventData.Model);
+        if (!TopItems.Any(x => x.Id == eventData.Model.Id))
+            TopItems.Add(eventData.Model);
         SortTopItems();
         
         StateHasChanged();
@@ -141,12 +141,12 @@
     private async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
     {
         if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
-            eventData.Model.ParentId is not null || // We only render top level
-            !eventData.NewToClient) // Only new items make a change
+            eventData.Model.ParentId is not null) // We only render top level
             return; 
 
         // Add and sort new item
-        TopItems.Add(eventData.Model);
+        if (!TopItems.Any(x => x.Id == eventData.Model.Id))
+            TopItems.Add(eventData.Model);
         SortTopItems();
         
         StateHasChanged();
@@ -155,12 +155,12 @@
     private async Task OnCategoryUpdate(ModelUpdateEvent<PlanetCategory> eventData)
     {
         if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
-            eventData.Model.ParentId is not null || // We only render top level
-            !eventData.NewToClient) // Only new items make a change
+            eventData.Model.ParentId is not null) // We only render top level
             return; 
 
         // Add and sort new item
-        TopItems.Add(eventData.Model);
+        if (!TopItems.Any(x => x.Id == eventData.Model.Id))
+            TopItems.Add(eventData.Model);
         SortTopItems();
         
         StateHasChanged();

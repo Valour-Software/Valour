@@ -13,6 +13,7 @@
 	return;
 }
 
+<ChangeLogComponent />
 <MediaSoupWrapper />
 <SafetyPopup />
 
@@ -60,8 +61,7 @@
 	
 	[Parameter]
 	public long? StartMessageId { get; set; }
-	
-	
+
 	private string MobileClass => DeviceInfo.IsMobile ? "mobile" : "desktop";
 
 	protected override async Task OnInitializedAsync()
