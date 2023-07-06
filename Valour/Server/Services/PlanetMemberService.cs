@@ -113,7 +113,7 @@ public class PlanetMemberService
     /// Returns the roles for the given PlanetMember id,
     /// including the permissions node for a specific target channel
     /// </summary>
-    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
+    public async Task<List<PlanetRoleAndNode>> GetRolesAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
        await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes)
@@ -130,7 +130,7 @@ public class PlanetMemberService
     /// including the permissions node for a specific target channel
     /// this will return role ids that no node
     /// </summary>
-    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
+    public async Task<List<PlanetRoleIdAndNode>> GetRoleIdsAndNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -146,7 +146,7 @@ public class PlanetMemberService
     /// <summary>
     /// Returns the permission nodes for the given target in order of role position
     /// </summary>
-    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, PermChannelType type) =>
+    public async Task<List<PermissionsNode>> GetPermNodesAsync(PlanetMember member, long targetId, ChannelType type) =>
         await _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id)
             .Include(x => x.Role)
             .ThenInclude(r => r.PermissionNodes.Where(n => n.TargetId == targetId && n.TargetType == type))
@@ -166,6 +166,31 @@ public class PlanetMemberService
     public async Task<bool> HasRoleAsync(long memberId, long roleId) =>
         await _db.PlanetRoleMembers.AnyAsync(x => x.MemberId == memberId && x.RoleId == roleId);
 
+
+    /// <summary>
+    /// Returns if the given member is an admin
+    /// </summary>
+    public async Task<bool> IsAdminAsync(long memberId)
+    {
+        var member = await _db.PlanetMembers.FindAsync(memberId);
+        if (member is null)
+            return false;
+        
+        if (await _db.PlanetRoleMembers.AnyAsync(x => x.MemberId == memberId && x.Role.IsAdmin))
+        {
+            return true;
+        }
+
+        var planet = await _db.Planets.FindAsync(member.PlanetId);
+        if (planet is null)
+            return false; // This should be impossible
+
+        // Owner is always admin - last check
+        return (planet.OwnerId == member.UserId);
+    }
+        
+        
+    
     /// <summary>
     /// Returns the authority of a planet member
     /// </summary>
@@ -213,11 +238,11 @@ public class PlanetMemberService
         if (member.UserId == planet.OwnerId)
             return true;
 
-        // Get user main role
-        var mainRole = await GetPrimaryRoleAsync(member.Id);
-
-        // Return permission state
-        return mainRole.HasPermission(permission);
+        return await _db.PlanetRoleMembers
+            .Where(x => x.MemberId == member.Id)
+            .Include(x => x.Role)
+            .AnyAsync(x => x.Role.IsAdmin || // Admins have all permissions
+                      (x.Role.Permissions & permission.Value) != 0); // Otherwise, at least one role must have the planet permission granted
     }
 
     /// <summary>
@@ -245,6 +270,12 @@ public class PlanetMemberService
         // Get permission nodes in order of role position
         var rolePermData = await GetRolesAndNodesAsync(member, target.Id, permission.TargetType);
 
+        // Admins always have permission
+        if (rolePermData.Any(x => x.Role.IsAdmin))
+        {
+            return true;
+        }
+
         var viewPerm = PermissionState.Undefined;
 
         foreach (var rolePerm in rolePermData)
@@ -258,10 +289,10 @@ public class PlanetMemberService
                 break;
         }
 
+        // Ultimate fallback is the super default
         if (viewPerm == PermissionState.Undefined)
         {
-            var _topRole = rolePermData.FirstOrDefault()?.Role ?? PlanetRole.DefaultRole;
-            viewPerm = Permission.HasPermission(_topRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
+            viewPerm = Permission.HasPermission(PlanetRole.DefaultRole.ChatPermissions, ChatChannelPermissions.View) ? PermissionState.True : PermissionState.False;
         }
 
         if (viewPerm != PermissionState.True)
@@ -523,18 +554,21 @@ public class PlanetMemberService
     /// <summary>
     /// Soft deletes the PlanetMember (and member roles)
     /// </summary>
-    public async Task<TaskResult> DeleteAsync(PlanetMember member)
+    public async Task<TaskResult> DeleteAsync(long memberId)
     {
         await using var trans = await _db.Database.BeginTransactionAsync();
+        var dbMember = await _db.PlanetMembers.FindAsync(memberId);
 
+        if (dbMember is null)
+            return new TaskResult(false, "Member not found");
+        
         try
         {
             // Remove roles
-            var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == member.Id);
+            var roles = _db.PlanetRoleMembers.Where(x => x.MemberId == memberId);
             _db.PlanetRoleMembers.RemoveRange(roles);
-
-            Valour.Database.PlanetMember dbMember = new() { Id = member.Id, IsDeleted = true };
-            _db.PlanetMembers.Attach(dbMember).Property(x => x.IsDeleted).IsModified = true;
+            
+            dbMember.IsDeleted = true;
 
             await _db.SaveChangesAsync();
             await trans.CommitAsync();
@@ -546,7 +580,7 @@ public class PlanetMemberService
             return new(false, "An unexpected error occurred.");
         }
 
-        _coreHub.NotifyPlanetItemDelete(member);
+        _coreHub.NotifyPlanetItemDelete(dbMember.ToModel());
 
         return TaskResult.SuccessResult;
     }

@@ -4,6 +4,7 @@ using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Valour.Server.Services;
@@ -164,6 +165,7 @@ public class PlanetCategoryService
     /// </summary>
     public async Task<List<PlanetChannel>> GetChildrenAsync(long id) =>
         await _db.PlanetChannels.Where(x => x.ParentId == id)
+            .OrderBy(x => x.Position)
             .Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
@@ -183,7 +185,9 @@ public class PlanetCategoryService
     /// Returns the ids of the children of the category with the given id
     /// </summary>
     public async Task<List<long>> GetChildrenIdsAsync(long id) =>
-        await _db.PlanetChannels.Where(x => x.ParentId == id).Select(x => x.Id).ToListAsync();
+        await _db.PlanetChannels.Where(x => x.ParentId == id)
+            .OrderBy(x => x.Position)
+            .Select(x => x.Id).ToListAsync();
 
     /// <summary>
     /// Returns the children of the category with the given id
@@ -257,17 +261,17 @@ public class PlanetCategoryService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> SetChildOrderAsync(PlanetCategory category, long[] order)
+    public async Task<TaskResult> SetChildOrderAsync(long planetId, long? categoryId, List<long> order)
     {
-        var totalChildren = await _db.PlanetChannels.CountAsync(x => x.ParentId == category.Id);
+        var totalChildren = await _db.PlanetChannels.CountAsync(x => x.PlanetId == planetId && x.ParentId == categoryId);
 
-        if (totalChildren != order.Length)
+        if (totalChildren != order.Count)
             return new(false, "Your order does not contain all the children.");
 
         // Use transaction so we can stop at any failure
         await using var tran = await _db.Database.BeginTransactionAsync();
 
-        List<Valour.Database.PlanetChannel> children = new();
+        List<ChannelOrderData> newOrder = new();
 
         try
         {
@@ -278,12 +282,12 @@ public class PlanetCategoryService
                 if (child is null)
                     return new(false, $"Child with id {childId} does not exist!");
 
-                if (child.ParentId != category.Id)
-                    return new(false, $"Category {childId} is not a child of {category.Id}.");
+                if (child.ParentId != categoryId)
+                    return new(false, $"Category {childId} is not a child of {categoryId}.");
 
                 child.Position = pos;
 
-                children.Add(child);
+                newOrder.Add(new(child.Id, child.Type));
 
                 pos++;
             }
@@ -297,11 +301,13 @@ public class PlanetCategoryService
             _logger.LogError(e.Message);
             return new(false, e.Message);
         }
-
-        foreach (var child in children)
+        
+        _coreHub.NotifyCategoryOrderChange(new ()
         {
-            _coreHub.NotifyPlanetItemChange(child.ToModel());
-        }
+            PlanetId = planetId,
+            CategoryId = categoryId,
+            Order = newOrder
+        });
 
         return new(true, "Success");
     }

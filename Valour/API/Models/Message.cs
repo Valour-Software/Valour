@@ -1,5 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Shared.Models;
 using Valour.Shared.Models;
@@ -8,8 +9,18 @@ using Valour.Api.Client;
 using Valour.Api.Models;
 
 namespace Valour.Api.Models;
-public abstract class Message : Item, ISharedMessage
+
+[JsonDerivedType(typeof(PlanetMessage), typeDiscriminator: nameof(PlanetMessage))]
+[JsonDerivedType(typeof(DirectMessage), typeDiscriminator: nameof(DirectMessage))]
+public abstract class Message : LiveModel, ISharedMessage
 {
+    public Message()
+    {
+        
+    }
+
+    public abstract Message GetReply();
+
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
@@ -62,9 +73,9 @@ public abstract class Message : Item, ISharedMessage
     public string Fingerprint { get; set; }
 
     /// <summary>
-    /// True if the message was edited
+    /// The time when the message was edited, or null if it was not
     /// </summary>
-    public bool Edited { get; set; }
+    public DateTime? EditedTime { get; set; }
 
     /////////////////////////////////
     // Advanced message data below //
@@ -103,6 +114,7 @@ public abstract class Message : Item, ISharedMessage
     public abstract ValueTask<string> GetAuthorImageUrlAsync();
 
     public abstract Task<TaskResult> PostMessageAsync();
+    public abstract Task<TaskResult> EditMessageAsync();
     public abstract Task<TaskResult> DeleteAsync();
 
     public virtual Task<bool> CheckIfMentioned() =>

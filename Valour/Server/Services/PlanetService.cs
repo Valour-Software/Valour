@@ -2,6 +2,7 @@ using Valour.Database.Context;
 using Valour.Server.Database;
 using Valour.Shared;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 using PlanetRoleMember = Valour.Database.PlanetRoleMember;
 
 namespace Valour.Server.Services;
@@ -51,6 +52,7 @@ public class PlanetService
     /// </summary>
     public async Task<List<PlanetRole>> GetRolesAsync(long planetId) =>
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+            .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.ToModel())
             .ToListAsync();
 
@@ -59,6 +61,7 @@ public class PlanetService
     /// </summary>
     public async Task<List<long>> GetRoleIdsAsync(long planetId) =>
         await _db.PlanetRoles.Where(x => x.PlanetId == planetId)
+            .OrderBy(x => x.Position) // NEEDS TO BE ORDERED
             .Select(x => x.Id)
             .ToListAsync();
 
@@ -283,15 +286,14 @@ public class PlanetService
 
                 Id = IdManager.Generate(),
                 Position = int.MaxValue,
-                Blue = 255,
-                Green = 255,
-                Red = 255,
+                Color = "#ffffff",
                 Name = "everyone",
                 Permissions = PlanetPermissions.Default,
                 ChatPermissions = ChatChannelPermissions.Default,
                 CategoryPermissions = CategoryPermissions.Default,
                 VoicePermissions = VoiceChannelPermissions.Default,
                 IsDefault = true,
+                AnyoneCanMention = false,
             };
 
             planet.Roles = new List<Valour.Database.PlanetRole>()
@@ -389,6 +391,140 @@ public class PlanetService
         _coreHub.NotifyPlanetChange(planet);
         
         return new TaskResult<Planet>(true, "Planet updated successfully.", planet);
+    }
+    
+    public async Task<TaskResult> InsertChildAsync(long? categoryId, long insertId, int? inPosition = null)
+    {
+        if (categoryId == insertId)
+            return new TaskResult(false, "A category cannot contain itself. Nice try though.");
+        
+        Valour.Database.PlanetCategory category = null;
+        
+        if (categoryId is not null)
+        {
+            category = await _db.PlanetCategories.FindAsync(categoryId);
+            if (category is null)
+                return new TaskResult(false, "Category not found.");
+        }
+
+        var insert = await _db.PlanetChannels.FindAsync(insertId);
+        if (insert is null)
+            return new TaskResult(false, "Child to insert not found.");
+        
+        // Ensure we are not putting a category into one of its own children
+        if (category is not null)
+        {
+            var parentId = category.ParentId;
+            while (parentId is not null)
+            {
+                var parent = await _db.PlanetCategories.FindAsync(parentId);
+                if (parent is null)
+                    return new TaskResult(false, "Error in hierarchy.");
+
+                if (parent.ParentId == insertId)
+                    return new TaskResult(false, "This would result in a circular hierarchy.");
+                
+                parentId = parent.ParentId;
+            }
+        }
+
+        var children = await _db.PlanetChannels
+            .Where(x => x.ParentId == categoryId)
+            .OrderBy(x => x.Position)
+            .ToListAsync();
+
+        var position = inPosition ?? children.Count + 1;
+        
+        // If unspecified or too high, set to next position
+        if (position < 0 || position > children.Count)
+        {
+            position = children.Count + 1;
+        }
+        
+        var oldCategoryId = insert.ParentId;
+        List<ChannelOrderData> oldCategoryOrder = null;
+
+        if (oldCategoryId is not null)
+        {
+            var oldCategory = await _db.PlanetCategories.FindAsync(insert.ParentId);
+            if (oldCategory is null)
+                return new TaskResult(false, "Error getting old parent category.");
+
+            var oldCategoryChildren = await _db.PlanetChannels
+                .Where(x => x.ParentId == oldCategory.Id)
+                .OrderBy(x => x.Position)
+                .ToListAsync();
+
+            // Remove from old category
+            oldCategoryChildren.RemoveAll(x => x.Id == insertId);
+
+            oldCategoryOrder = new();
+            
+            // Update all positions
+            var opos = 0;
+            foreach (var child in oldCategoryChildren)
+            {
+                child.Position = opos;
+                oldCategoryOrder.Add(new(child.Id, child.Type));
+                opos++;
+            }
+        }
+
+        insert.ParentId = categoryId;
+        insert.PlanetId = insert.PlanetId;
+        insert.Position = position;
+        
+        if (position >= children.Count)
+        {
+            children.Add(insert);
+        }
+        else
+        {
+            children.Insert(position, insert);
+        }
+
+        // Positions for new category
+        List<ChannelOrderData> newCategoryOrder = new();
+        
+        // Update all positions
+        var pos = 0;
+        foreach (var child in children)
+        {
+            child.Position = pos;
+            newCategoryOrder.Add(new(child.Id, child.Type));
+            pos++;
+        }
+        
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            return new TaskResult(false, "Error saving changes. Please try again later.");
+        }
+        
+        // Fire off events for both modified categories (if applicable)
+        
+        // New parent
+        _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
+        {
+            PlanetId = insert.PlanetId,
+            CategoryId = categoryId,
+            Order = newCategoryOrder
+        });
+
+        if (oldCategoryId is not null)
+        {
+            _coreHub.NotifyCategoryOrderChange(new CategoryOrderEvent()
+            {
+                PlanetId = insert.PlanetId,
+                CategoryId = oldCategoryId,
+                Order = oldCategoryOrder,
+            });
+        }
+
+        return new(true, "Success");
     }
     
     //////////////////////

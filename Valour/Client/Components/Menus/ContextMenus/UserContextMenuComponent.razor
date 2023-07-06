@@ -5,6 +5,10 @@
 	{
 		<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-item'>Remove Friend</BlazorContextMenu.Item>
 	}
+	else if (IsFriendRequested)
+	{
+		<BlazorContextMenu.Item OnClick='OnClickRemoveFriend' CssClass='context-item'>Cancel Request</BlazorContextMenu.Item>
+	}
 	else
 	{
 		<BlazorContextMenu.Item OnClick='OnClickAddFriend' CssClass='context-item'>Add Friend</BlazorContextMenu.Item>
@@ -26,11 +30,7 @@
 
 	public static User User { get; set; }
 	public static bool IsFriend { get; set; }
-
-	protected override async Task OnInitializedAsync()
-	{
-		
-	}
+	public static bool IsFriendRequested { get; set; }
 
 	public async Task OnClickAddFriend()
 	{
@@ -56,6 +56,7 @@
 			return;
 		}
 
+		IsFriendRequested = false;
 		IsFriend = false;
 		StateHasChanged();
 	}
@@ -63,6 +64,7 @@
 	public static async Task Initialize(User user)
 	{
 		User = user;
+		IsFriendRequested = ValourClient.FriendsRequested.Any(x => x.Id == User.Id);
 		IsFriend = ValourClient.Friends.Any(x => x.Id == User.Id);
 	}
 

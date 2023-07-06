@@ -1,0 +1,17 @@
+.safety-popup {
+    position: absolute;
+    z-index: 10000;
+    height: 100vh;
+    width: 100vw;
+    padding: 20%;
+    background-image: url(/_content/Valour.Client/media/Spookvooper-tall.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+}
+
+.safety-inner {
+    padding: 20px;
+    background-color: var(--main-2);
+    border-radius: 20px;
+}

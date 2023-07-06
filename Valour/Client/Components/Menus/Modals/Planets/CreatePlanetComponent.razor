@@ -89,7 +89,7 @@
 
 		await windowManager.ClearWindows();
 
-		var newChannel = new PlanetChatChannelWindow(mainChannel);
+		var newChannel = new PlanetChatChannelWindow(planet, mainChannel);
 
 		// Get the new main window
 		var mainWindow = windowManager.GetWindows()[0];

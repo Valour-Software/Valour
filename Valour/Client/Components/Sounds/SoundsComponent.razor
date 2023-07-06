@@ -2,13 +2,34 @@
 @inject IJSRuntime JS
 
 @code {
+
+    protected override bool ShouldRender()
+    {
+        return false;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         soundManager.Component = this;
+        ValourClient.OnNotificationReceived += OnNotification;
     }
 
-    public async Task PlaySound(string name)
-    {
+    public async Task PlaySound(string name) => 
         await JS.InvokeVoidAsync("playSound", name);
+
+
+    private async Task OnNotification(Notification notification)
+    {
+    // Has to be unread for sound to play
+        if (notification.TimeRead is null)
+        {
+            await PlayNotificationSound();
+        }
     }
+
+    public async Task PlayNotificationSound()
+    {
+        await PlaySound("Notification.mp3");
+    }
+        
 }

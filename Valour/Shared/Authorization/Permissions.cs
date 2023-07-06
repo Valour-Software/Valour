@@ -46,7 +46,7 @@ public class Permission
 
     public virtual string ReadableName => "Base";
     
-    public virtual PermChannelType TargetType => PermChannelType.Undefined;
+    public virtual ChannelType TargetType => ChannelType.Undefined;
 
     public virtual long GetDefault() => 0;
 
@@ -112,7 +112,7 @@ public class Permission
 
 public class ChannelPermissionGroup
 {
-    public PermChannelType TargetType { get; set; }
+    public ChannelType TargetType { get; set; }
     public Permission[] Permissions { get; set; }
 }
 
@@ -124,21 +124,27 @@ public static class ChannelPermissions
     // There is a gap here in values! 0x01 -> 0x08
     public const long ManageValue = 0x08;
     public const long PermissionsValue = 0x10;
-
+    
+    public static readonly Permission View;
+    public static readonly Permission Manage;
+    public static readonly Permission ManagePermissions;
+    
     static ChannelPermissions() 
     {
-
+        View = new CategoryPermission(ChannelPermissions.ViewValue, "View", "Allow members to view the channel/category in the channel list.");
+        Manage = new CategoryPermission(ChannelPermissions.ManageValue, "Manage", "Allow members to manage the channel/category's details.");
+        ManagePermissions = new CategoryPermission(ChannelPermissions.PermissionsValue, "Permissions", "Allow members to manage permissions for the channel/category.");
     }
     
-    public static Permission[] GetChannelPermissionSet(PermChannelType type)
+    public static Permission[] GetChannelPermissionSet(ChannelType type)
     {
         switch (type)
         {
-            case PermChannelType.PlanetChatChannel:
+            case ChannelType.PlanetChatChannel:
                 return ChatChannelPermissions.Permissions;
-            case PermChannelType.PlanetCategoryChannel:
+            case ChannelType.PlanetCategoryChannel:
                 return CategoryPermissions.Permissions;
-            case PermChannelType.PlanetVoiceChannel:
+            case ChannelType.PlanetVoiceChannel:
                 return VoiceChannelPermissions.Permissions;
             default:
                 throw new Exception($"Invalid channel type {type}");
@@ -148,7 +154,7 @@ public static class ChannelPermissions
 
 public class ChatChannelPermission : Permission
 {
-    public override PermChannelType TargetType => PermChannelType.PlanetChatChannel;
+    public override ChannelType TargetType => ChannelType.PlanetChatChannel;
     public override string ReadableName => "Chat Channel";
     public override long GetDefault() => ChatChannelPermissions.Default;
     public ChatChannelPermission(long value, string name, string description) : base(value, name, description)
@@ -158,7 +164,7 @@ public class ChatChannelPermission : Permission
 
 public class CategoryPermission : Permission
 {
-    public override PermChannelType TargetType => PermChannelType.PlanetCategoryChannel;
+    public override ChannelType TargetType => ChannelType.PlanetCategoryChannel;
     public override string ReadableName => "Category";
     public override long GetDefault() => CategoryPermissions.Default;
     public CategoryPermission(long value, string name, string description) : base(value, name, description)
@@ -168,7 +174,7 @@ public class CategoryPermission : Permission
 
 public class VoiceChannelPermission : Permission
 {
-    public override PermChannelType TargetType => PermChannelType.PlanetVoiceChannel;
+    public override ChannelType TargetType => ChannelType.PlanetVoiceChannel;
     public override string ReadableName => "Voice Channel";
     public override long GetDefault() => VoiceChannelPermissions.Default;
     public VoiceChannelPermission(long value, string name, string description) : base(value, name, description)
@@ -343,7 +349,7 @@ public static class ChatChannelPermissions
 
         ChannelPermissions.ChannelTypes[0] = new ChannelPermissionGroup()
         {
-            TargetType = PermChannelType.PlanetChatChannel,
+            TargetType = ChannelType.PlanetChatChannel,
             Permissions = ChatChannelPermissions.Permissions
         };
     }
@@ -398,7 +404,7 @@ public static class CategoryPermissions
 
         ChannelPermissions.ChannelTypes[1] = new ChannelPermissionGroup()
         {
-            TargetType = PermChannelType.PlanetCategoryChannel,
+            TargetType = ChannelType.PlanetCategoryChannel,
             Permissions = CategoryPermissions.Permissions
         };
     }
@@ -461,7 +467,7 @@ public static class VoiceChannelPermissions
 
         ChannelPermissions.ChannelTypes[2] = new ChannelPermissionGroup()
         {
-            TargetType = PermChannelType.PlanetVoiceChannel,
+            TargetType = ChannelType.PlanetVoiceChannel,
             Permissions = VoiceChannelPermissions.Permissions
         };
     }
@@ -520,6 +526,8 @@ public static class PlanetPermissions
                 ManageCurrency,
                 ManageEcoAccounts,
                 ForceTransactions,
+                
+                MentionAll,
         };
     }
 
@@ -541,6 +549,7 @@ public static class PlanetPermissions
     public static readonly PlanetPermission ManageEcoAccounts = new PlanetPermission(0x400, "Manage Eco Accounts", "Allow members to manage the planet's economy accounts.");
     public static readonly PlanetPermission ForceTransactions = new PlanetPermission(0x800, "Force Transactions", "Allow members to force transactions in the planet.");
 
+    public static readonly PlanetPermission MentionAll = new PlanetPermission(0x1000, "Mention All", "Allow members to mention all roles.");
 }
 
 public enum PermissionState
@@ -568,10 +577,10 @@ public struct PermissionNodeCode
         this.Mask = mask;
     }
 
-    public PermissionState GetState(Permission permission, bool ignoreviewperm)
+    public PermissionState GetState(Permission permission, bool ignoreViewPerm)
     {
         // If the lowest, or view, permission is false, all other permissions are automatically false
-        if ((Mask & 0x01) == 0x01 && (Code & 0x01) == 0 && !ignoreviewperm)
+        if ((Mask & 0x01) == 0x01 && (Code & 0x01) == 0 && !ignoreViewPerm)
         {
             return PermissionState.False;
         }

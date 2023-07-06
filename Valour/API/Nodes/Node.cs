@@ -168,8 +168,8 @@ public class Node
         await Logger.Log("[Item Events]: Hooking events.", "yellow");
 
         // For every single item...
-        foreach (var type in Assembly.GetAssembly(typeof(Item)).GetTypes()
-            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(Item))))
+        foreach (var type in Assembly.GetAssembly(typeof(LiveModel)).GetTypes()
+            .Where(x => x.IsClass && !x.IsAbstract && x.IsSubclassOf(typeof(LiveModel))))
         {
             // Console.WriteLine(type.Name);
 
@@ -179,8 +179,11 @@ public class Node
             HubConnection.On($"{type.Name}-Delete", new Type[] { type }, i => ValourClient.DeleteItem((dynamic)i[0]));
         }
 
-        HubConnection.On<PlanetMessage>("Relay", ValourClient.MessageRecieved);
-        HubConnection.On<DirectMessage>("RelayDirect", ValourClient.MessageRecieved);
+        HubConnection.On<PlanetMessage>("Relay", ValourClient.PlanetMessageReceived);
+        HubConnection.On<PlanetMessage>("RelayEdit", ValourClient.PlanetMessageEdited);
+        HubConnection.On<DirectMessage>("RelayDirect", ValourClient.DirectMessageReceived);
+        HubConnection.On<DirectMessage>("RelayDirectEdit", ValourClient.DirectMessageEdited);
+        HubConnection.On<Notification>("RelayNotification", ValourClient.NotificationReceived);
         HubConnection.On<PlanetMessage>("DeleteMessage", ValourClient.MessageDeleted);
         HubConnection.On<ChannelStateUpdate>("Channel-State", ValourClient.UpdateChannelState);
         HubConnection.On<UserChannelState>("UserChannelState-Update", ValourClient.UpdateUserChannelState);
@@ -188,6 +191,7 @@ public class Node
         HubConnection.On<ChannelTypingUpdate>("Channel-CurrentlyTyping-Update", ValourClient.ChannelCurrentlyTypingUpdateRecieved);
         HubConnection.On<PersonalEmbedUpdate>("Personal-Embed-Update", ValourClient.PersonalEmbedUpdate);
 		HubConnection.On<ChannelEmbedUpdate>("Channel-Embed-Update", ValourClient.ChannelEmbedUpdate);
+        HubConnection.On<CategoryOrderEvent>("CategoryOrder-Update", ValourClient.CategoryOrderUpdate);
 
 		await Logger.Log("[Item Events]: Events hooked.", "yellow");
     }

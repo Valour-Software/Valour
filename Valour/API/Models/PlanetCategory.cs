@@ -16,14 +16,14 @@ namespace Valour.Api.Models;
 
 public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/categories";
 
     #endregion
 
-    public override PermChannelType PermType => PermChannelType.PlanetCategoryChannel;
+    public override ChannelType Type => ChannelType.PlanetCategoryChannel;
 
     public override string GetHumanReadableName() => "Category";
 
@@ -47,21 +47,6 @@ public class PlanetCategory : PlanetChannel, ISharedPlanetCategory
 
         return item;
     }
-    
-    public override async Task OnUpdate(ModelUpdateEvent eventData)
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyCategoryUpdateAsync(this, eventData);
-    }
-
-    public override async Task OnDelete()
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyCategoryDeleteAsync(this);
-    }
-
-    public async Task<TaskResult> SetChildOrderAsync(List<long> childIds) =>
-        await Node.PostAsync($"{IdRoute}/children/order", childIds);
 
     public static async Task<TaskResult<PlanetCategory>> CreateWithDetails(CreatePlanetCategoryChannelRequest request)
     {

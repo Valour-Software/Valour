@@ -18,7 +18,7 @@
 <p class="subtitle">CHOOSE ROLE</p>
 
 
-<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.GetColorHex();
+<select @key="@("perm-role-select")" class="form-control" @onchange="OnRoleSelect" style="color: @SelectedRole.Color;
         background-color: var(--main-1)">
 
     @{
@@ -36,7 +36,7 @@
 
         options++;
 
-        <option value="@role.Id" style="color: @role.GetColorHex(); background-color: var(--main-1)">@role.Name</option>
+        <option value="@role.Id" style="color: @role.Color; background-color: var(--main-1)">@role.Name</option>
     }
 </select>
 
@@ -57,7 +57,7 @@
 <!-- If there's a role selected we show possible permissions that role can have
      for the channel or category -->
 <div class="perm-section">
-    <div class="perm-list-item">
+    <div class="perm-list-model">
         <div class="perm-list-name mb-1">
             Inherit Category Permissions
         </div>
@@ -96,7 +96,7 @@
             int i2 = i; // Prevent odd razor bug
             Permission perm = channelType.Permissions[i2];
 
-            <div class="perm-list-item">
+            <div class="perm-list-model">
                 <div class="perm-list-name mb-1">
                     @perm.Name
                 </div>
@@ -192,7 +192,7 @@
         StateHasChanged();
     }
 
-    public void SwitchPermission(TriButtonComponent.TriButtonState state, Permission permission, PermChannelType type)
+    public void SwitchPermission(TriButtonComponent.TriButtonState state, Permission permission, ChannelType type)
     {
         // If the node for the type is null, we create it and set a flag that it
         // needs to be created on the server
@@ -376,8 +376,8 @@
                         ShowStates[(int)type.TargetType] = false;
                     }
 
-                    Nodes[(int)Target.PermType] = await Target.GetPermNodeAsync(SelectedRole.Id, Target.PermType);
-                    ShowStates[(int)Target.PermType] = true;
+                    Nodes[(int)Target.Type] = await Target.GetPermNodeAsync(SelectedRole.Id, Target.Type);
+                    ShowStates[(int)Target.Type] = true;
                     break;
                 }
         }

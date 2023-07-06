@@ -106,6 +106,16 @@ public class WindowManager
             await OnWindowOpened.Invoke(window);
 
         await Log($"[WindowManager]: Added window {window.Id}");
+        
+        await SetSelectedWindow(window);
+        if (window is IPlanetWindow planetWindow)
+        {
+            await SetFocusedPlanet(planetWindow.Planet);
+        }
+        else
+        {
+            await SetFocusedPlanet(null);
+        }
     }
 
 
@@ -134,7 +144,8 @@ public class WindowManager
         else
             await Log($"[WindowManager]: Set focused planet to {planet.Name} ({planet.Id})");
 
-        await OnPlanetFocused?.Invoke(planet);
+        if (OnPlanetFocused is not null)
+            await OnPlanetFocused.Invoke(planet);
     }
 
     public async Task OnNodeReconnect(Node node)
@@ -227,6 +238,9 @@ public class WindowManager
     /// </summary>
     public ClientWindow GetSelectedWindow()
     {
+        if (SelectedWindow is null)
+            SelectedWindow = Windows.FirstOrDefault();
+            
         return SelectedWindow;
     }
 
@@ -271,23 +285,32 @@ public class WindowManager
         await old.Holder.ReplaceWindow(old, newWindow);
 
         // Don't refresh! We're doing that ourselves
-        await CloseWindow(old, false);
+        await CloseWindow(old);
 
-        await ForceChatRefresh();
+        //await ForceChatRefresh();
+        
+        await SetSelectedWindow(newWindow);
+        if (newWindow is IPlanetWindow planetWindow)
+        {
+            await SetFocusedPlanet(planetWindow.Planet);
+        }
+        else
+        {
+            await SetFocusedPlanet(null);
+        }
     }
 
     /// <summary>
     /// Closes the given window
     /// </summary>
-    public async Task CloseWindow(ClientWindow window, bool refresh = true)
+    public async Task CloseWindow(ClientWindow window)
     {
         await window.OnClosedAsync();
-
+        
         Windows.Remove(window);
 
-        if (window is ChatChannelWindow)
+        if (window is ChatChannelWindow chatWindow)
         {
-            var chatWindow = window as ChatChannelWindow;
             var chatWindows = Windows.OfType<ChatChannelWindow>();
 
             if (!chatWindows.Any(x => x.Id != window.Id))

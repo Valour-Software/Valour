@@ -1,0 +1,80 @@
+﻿@inject NavigationManager NavManager
+
+<div class="quick-notif">
+    @for (int i = 0; i < _showing.Count; i++)
+    {
+        var ii = i;
+        
+        <BasicTooltipComponent Title="@_showing[ii].Notification.Title" Placement="left">
+            <div 
+                class="item @(_showing[ii].Animating ? "animate" : "")" 
+                @key="@_showing[ii].Notification.Id" 
+                @onmouseenter="@(() => OnMouseEnter(_showing[ii]))"
+                @onmousedown="@((e) => OnMouseDown(e, _showing[ii]))"
+            >
+                <img alt="Notification: @_showing[ii].Notification.Title" class="icon" src="@_showing[ii].Notification.ImageUrl" />
+            </div>
+        </BasicTooltipComponent>
+    }
+</div>
+
+@code {
+
+    private class QuickNotif
+    {
+        public Notification Notification { get; set; }
+        public bool Animating { get; set; }
+    }
+    
+    private List<QuickNotif> _showing = new List<QuickNotif>();
+
+    protected override void OnInitialized()
+    {
+        ValourClient.OnNotificationReceived += OnNotification;
+    }
+
+    private async Task OnNotification(Notification notification)
+    {
+        bool render = false;
+        
+        if (notification.TimeRead is null)
+        {
+            _showing.Add(new QuickNotif()
+            {
+                Notification = notification,
+                Animating = true
+            });
+            render = true;
+        }
+        else
+        {
+            var removed = _showing.RemoveAll(x => x.Notification.Id == notification.Id);
+            if (removed > 0)
+                render = true;
+        }
+        
+        if (render)
+            StateHasChanged();
+    }
+
+    private void OnMouseEnter(QuickNotif notif)
+    {
+        if (notif.Animating)
+        {
+            notif.Animating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnMouseDown(MouseEventArgs e, QuickNotif notif)
+    {
+        if (e.Button == 2)
+        {
+            await ValourClient.MarkNotificationRead(notif.Notification, true);
+        }
+        else if (e.Button == 0)
+        {
+            await NotificationNavigator.NavigateTo(notif.Notification);
+        }
+    }
+}

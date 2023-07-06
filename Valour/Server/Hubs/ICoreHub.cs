@@ -30,8 +30,8 @@ public interface ICoreHub
     void NotifyUserDelete(User user);
     void NotifyUserChannelStateUpdate(long userId, UserChannelState state);
 
-    void NotifyPlanetItemChange(Valour.Api.Models.IPlanetItem item, int flags = 0);
-    void NotifyPlanetItemDelete(Valour.Api.Models.IPlanetItem item);
+    void NotifyPlanetItemChange(Valour.Api.Models.IPlanetModel model, int flags = 0);
+    void NotifyPlanetItemDelete(Valour.Api.Models.IPlanetModel model);
 
     void NotifyPlanetChange(Planet item, int flags = 0);
     void NotifyPlanetDelete(Planet item);

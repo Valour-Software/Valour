@@ -39,6 +39,11 @@ public class ClientMessageWrapper
     /// The internal message
     /// </summary>
     public Message Message { get; set; }
+    
+    /// <summary>
+    /// The replied to message
+    /// </summary>
+    public ClientMessageWrapper Reply { get; set; }
 
     /// <summary>
     /// Returns the component type to be used when rendering the message
@@ -54,15 +59,15 @@ public class ClientMessageWrapper
         return typeof(MessageComponent);
     }
 
-    public static List<ClientMessageWrapper> FromList(List<Message> messages)
+    public static List<ClientMessageWrapper> FromList(List<Message> data)
     {
         List<ClientMessageWrapper> result = new();
 
-        if (messages is null)
+        if (data is null)
             return result;
 
-        foreach (Message message in messages)
-            result.Add(new ClientMessageWrapper(message));
+        foreach (var msg in data)
+            result.Add(new ClientMessageWrapper(msg));
 
         return result;
     }
@@ -70,6 +75,9 @@ public class ClientMessageWrapper
     public ClientMessageWrapper(Message message)
     {
         Message = message;
+        var reply = message.GetReply();
+        if (reply is not null)
+            Reply = new ClientMessageWrapper(reply);
     }
 
     public string MarkdownContent
@@ -205,6 +213,46 @@ public class ClientMessageWrapper
                         };
 
                         Message.Mentions.Add(memberMention);
+                    }
+                    else if (planetMessage is not null && text[pos + 2] == 'r')
+                    {
+                        // Extract id
+                        char c = ' ';
+                        int offset = 4;
+                        string id_chars = "";
+                        while (offset < s_len &&
+                               (c = text[pos + offset]).IsDigit())
+                        {
+                            id_chars += c;
+                            offset++;
+                        }
+                        // Make sure ending tag is '>'
+                        if (c != '»')
+                        {
+                            pos++;
+                            continue;
+                        }
+                        if (string.IsNullOrWhiteSpace(id_chars))
+                        {
+                            pos++;
+                            continue;
+                        }
+                        bool parsed = long.TryParse(id_chars, out long id);
+                        if (!parsed)
+                        {
+                            pos++;
+                            continue;
+                        }
+                        // Create object
+                        Mention roleMention = new()
+                        {
+                            TargetId = id,
+                            Position = (ushort)pos,
+                            Length = (ushort)(6 + id_chars.Length),
+                            Type = MentionType.Role,
+                        };
+
+                        Message.Mentions.Add(roleMention);
                     }
                     // Other mentions go here
                     else if (directMessage is not null && text[pos + 2] == 'u')
@@ -446,32 +494,48 @@ public class ClientMessageWrapper
             {
                 MessageFragment fragment = null;
 
-                if (mention.Type == MentionType.Member)
+                switch (mention.Type)
                 {
-                    fragment = new MemberMentionFragment()
+                    case MentionType.Member:
                     {
-                        Mention = mention,
-                        Position = mention.Position,
-                        Length = mention.Length
-                    };
-                }
-                else if (mention.Type == MentionType.User)
-                {
-                    fragment = new UserMentionFragment()
+                        fragment = new MemberMentionFragment()
+                        {
+                            Mention = mention,
+                            Position = mention.Position,
+                            Length = mention.Length
+                        };
+                        break;
+                    }
+                    case MentionType.User:
                     {
-                        Mention = mention,
-                        Position = mention.Position,
-                        Length = mention.Length
-                    };
-                }
-                else if (mention.Type == MentionType.Channel)
-                {
-                    fragment = new ChannelMentionFragment()
+                        fragment = new UserMentionFragment()
+                        {
+                            Mention = mention,
+                            Position = mention.Position,
+                            Length = mention.Length
+                        };
+                        break;
+                    }
+                    case MentionType.Channel:
                     {
-                        Mention = mention,
-                        Position = mention.Position,
-                        Length = mention.Length
-                    };
+                        fragment = new ChannelMentionFragment()
+                        {
+                            Mention = mention,
+                            Position = mention.Position,
+                            Length = mention.Length
+                        };
+                        break;
+                    }
+                    case MentionType.Role:
+                    {
+                        fragment = new RoleMentionFragment()
+                        {
+                            Mention = mention,
+                            Position = mention.Position,
+                            Length = mention.Length
+                        };
+                        break;
+                    }
                 }
 
                 if (fragment != null)

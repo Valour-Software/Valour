@@ -86,6 +86,11 @@ public static class ValourClient
     /// Currently opened planets
     /// </summary>
     public static List<Planet> OpenPlanets { get; private set; }
+    
+    /// <summary>
+    /// A set of locks used to prevent planet connections from closing automatically
+    /// </summary>
+    public static Dictionary<string, long> PlanetLocks { get; private set; }
 
     /// <summary>
     /// Currently opened channels
@@ -118,6 +123,17 @@ public static class ValourClient
     public static HashSet<long> FriendFastLookup { get; set; }
     public static List<User> FriendRequests { get; set; }
     public static List<User> FriendsRequested { get; set; }
+    
+    /// <summary>
+    /// Pain and suffering for thee
+    /// </summary>
+    public static List<Notification> UnreadNotifications { get; set; }
+    
+    /// <summary>
+    /// A set from the source if of notifications to the notification.
+    /// Used for extremely efficient lookups.
+    /// </summary>
+    public static Dictionary<long, Notification> UnreadNotificationsLookup { get; set; }
     
     /// <summary>
     /// The direct chat channels (dms) of this user
@@ -177,14 +193,24 @@ public static class ValourClient
     public static event Func<PlanetChatChannel, Task> OnChannelClose;
 
     /// <summary>
-    /// Run when a message is recieved
+    /// Run when a message is received
     /// </summary>
-    public static event Func<Message, Task> OnMessageRecieved;
+    public static event Func<Message, Task> OnMessageReceived;
+    
+    /// <summary>
+    /// Run when a message is edited
+    /// </summary>
+    public static event Func<Message, Task> OnMessageEdited;
 
     /// <summary>
     /// Run when a planet is deleted
     /// </summary>
     public static event Func<PlanetMessage, Task> OnMessageDeleted;
+
+    /// <summary>
+    /// Run when a notification is received
+    /// </summary>
+    public static event Func<Notification, Task> OnNotificationReceived;
 
     /// <summary>
     /// Run when a channel sends a watching update
@@ -210,6 +236,11 @@ public static class ValourClient
     /// Run when a channel state updates
     /// </summary>
     public static event Func<ChannelStateUpdate, Task> OnChannelStateUpdate;
+
+    /// <summary>
+    /// Run when a category is reordered
+    /// </summary>
+    public static event Func<CategoryOrderEvent, Task> OnCategoryOrderUpdate;
 
     /// <summary>
     /// Run when the user logs in
@@ -243,7 +274,10 @@ public static class ValourClient
         OpenPlanets = new List<Planet>();
         OpenPlanetChannels = new List<PlanetChatChannel>();
         JoinedPlanets = new List<Planet>();
-
+        PlanetLocks = new();
+        UnreadNotifications = new();
+        UnreadNotificationsLookup = new();
+        
         // Hook top level events
         HookPlanetEvents();
     }
@@ -264,6 +298,22 @@ public static class ValourClient
     /// </summary>
     public static ValueTask<PlanetMember> GetSelfMember(long planetId, bool force_refresh = false) =>
         PlanetMember.FindAsyncByUser(Self.Id, planetId, force_refresh);
+
+    /// <summary>
+    /// Sets the compliance data for the current user
+    /// </summary>
+    public static async ValueTask<TaskResult> SetComplianceDataAsync(DateTime birthDate, Locality locality)
+    {
+        var result = await PrimaryNode.PostAsync($"api/users/self/compliance/{birthDate.ToString("s")}/{locality}", null);
+        var taskResult = new TaskResult()
+        {
+            Success = result.Success,
+            Message = result.Message
+        };
+
+        return taskResult;
+    }
+
 
     public static async Task<List<TenorFavorite>> GetTenorFavoritesAsync()
     {
@@ -307,7 +357,7 @@ public static class ValourClient
     {
         // Get member
         var member = await planet.GetMemberByUserAsync(ValourClient.Self.Id);
-        var result = await Item.DeleteAsync(member);
+        var result = await LiveModel.DeleteAsync(member);
 
         if (result.Success)
         {
@@ -449,6 +499,7 @@ public static class ValourClient
 
         if (result.Success)
         {
+            FriendsRequested.RemoveAll(x => x.Name.ToLower() == username.ToLower());
             var friend = Friends.FirstOrDefault(x => x.Name.ToLower() == username.ToLower());
             if (friend is not null)
             {
@@ -457,13 +508,10 @@ public static class ValourClient
 
                 FriendRequests.Add(friend);
 
-				if (OnFriendsUpdate is not null)
+                if (OnFriendsUpdate is not null)
 					await OnFriendsUpdate.Invoke();
 			}
-
-
-		}
-
+        }
         return result;
     }
 
@@ -542,6 +590,9 @@ public static class ValourClient
         tasks.Add(planet.LoadChannelsAsync());
         tasks.Add(planet.LoadCategoriesAsync());
         tasks.Add(planet.LoadVoiceChannelsAsync());
+        
+        // Load permissions nodes
+        tasks.Add(planet.LoadPermissionsNodesAsync());
 
         // requesting/loading the data does not require data from other requests/types
         // so just await them all, instead of one by one
@@ -559,6 +610,28 @@ public static class ValourClient
             Console.WriteLine($"Invoking Open Planet event for {planet.Name} ({planet.Id})");
             await OnPlanetOpen.Invoke(planet);
         }
+    }
+
+    /// <summary>
+    /// Prevents a planet from closing connections automatically.
+    /// Key is used to allow multiple locks per planet.
+    /// </summary>
+    public static void AddPlanetLock(string key, long planetId)
+    {
+        PlanetLocks[key] = planetId;
+    }
+
+    public static async Task RemovePlanetLock(string key)
+    {
+        var found = PlanetLocks.TryGetValue(key, out var planetId);
+        
+        if (!found)
+            return;
+        
+        PlanetLocks.Remove(key);
+
+        var planet = ValourCache.Get<Planet>(planetId);
+        await ClosePlanetConnectionIfNotBlocked(planet);
     }
 
     /// <summary>
@@ -636,23 +709,22 @@ public static class ValourClient
         if (OnChannelClose is not null)
             await OnChannelClose.Invoke(channel);
 
-        await ClosePlanetConnectionIfNoChannels(await channel.GetPlanetAsync());
+        await ClosePlanetConnectionIfNotBlocked(await channel.GetPlanetAsync());
     }
 
     /// <summary>
     /// Closes planet connection if no chat channels are opened for it
     /// </summary>
-    public static async Task ClosePlanetConnectionIfNoChannels(Planet planet)
+    public static async Task ClosePlanetConnectionIfNotBlocked(Planet planet)
     {
         if (planet == null)
             return;
 
-        // Check if any open chat windows are for the planet
-        if (!OpenPlanetChannels.Any(x => x.PlanetId == planet.Id))
-        {
-            // Close the planet connection
-            await ClosePlanetConnection(planet);
-        }
+        if (PlanetLocks.Values.Any(x => x == planet.Id))
+            return;
+        
+        // Close the planet connection
+        await ClosePlanetConnection(planet);
     }
 
     #endregion
@@ -703,7 +775,7 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : Item
+    public static async Task UpdateItem<T>(T updated, int flags, bool skipEvent = false) where T : LiveModel
     {
         // printing to console is SLOW, only turn on for debugging reasons
         //Console.WriteLine("Update for " + updated.Id + ",  skipEvent is " + skipEvent);
@@ -725,7 +797,7 @@ public static class ValourClient
                 var b = prop.GetValue(updated);
 
                 if (a != b)
-                    eventData.FieldsChanged.Add(prop.Name);
+                    eventData.PropsChanged.Add(prop.Name);
             }
             
             // Update local copy
@@ -744,7 +816,7 @@ public static class ValourClient
             {
                 eventData.Model = local;
                 // Fire off local event on item
-                await local.InvokeUpdatedEventAsync(new ModelUpdateEvent(){ Flags = flags, PropsChanged = eventData.FieldsChanged});
+                await local.InvokeUpdatedEventAsync(new ModelUpdateEvent(){ Flags = flags, PropsChanged = eventData.PropsChanged});
             }
             // New
             else
@@ -764,11 +836,10 @@ public static class ValourClient
     /// <summary>
     /// Updates an item's properties
     /// </summary>
-    public static async Task DeleteItem<T>(T item) where T : Item
+    public static async Task DeleteItem<T>(T item) where T : LiveModel
     {
-        // Console.WriteLine($"Deletion for {item.Id}, type {item.GetType()}");
         var local = ValourCache.Get<T>(item.Id);
-
+        
         ValourCache.Remove<T>(item.Id);
 
         if (local is null)
@@ -785,14 +856,106 @@ public static class ValourClient
         }
     }
 
+    public static int GetPlanetNotifications(long planetId)
+    {
+        return UnreadNotifications.Count(x => x.PlanetId == planetId);
+    }
+
+    public static int GetChannelNotifications(long channelId)
+    {
+        return UnreadNotifications.Count(x => x.ChannelId == channelId);
+    }
+
+    public static async Task NotificationReceived(Notification notification)
+    {
+        await notification.AddToCache(notification);
+        var cached = ValourCache.Get<Notification>(notification.Id);
+        
+        if (cached.TimeRead is null)
+        {
+            if (!UnreadNotifications.Contains(cached))
+                UnreadNotifications.Add(cached);
+
+            if (cached.SourceId != null)
+            {
+                UnreadNotificationsLookup[cached.SourceId.Value] = cached;
+            }
+        }
+        else
+        {
+            UnreadNotifications.RemoveAll(x => x.Id == cached.Id);
+            if (cached.SourceId != null)
+            {
+                UnreadNotificationsLookup.Remove(cached.SourceId.Value);
+            }
+        }
+
+        if (OnNotificationReceived is not null)
+            await OnNotificationReceived.Invoke(cached);
+    }
+
     /// <summary>
     /// Ran when a message is recieved
     /// </summary>
-    public static async Task MessageRecieved(Message message)
+    public static async Task PlanetMessageReceived(PlanetMessage message)
     {
-        Console.WriteLine($"[{message.Node?.Name}]: Received message {message.Id} for channel {message.ChannelId}");
+        Console.WriteLine($"[{message.Node?.Name}]: Received planet message {message.Id} for channel {message.ChannelId}");
         await ValourCache.Put(message.Id, message);
-        await OnMessageRecieved?.Invoke(message);
+        if (message.ReplyTo is not null)
+        {
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+        }
+
+        if (OnMessageReceived is not null)
+            await OnMessageReceived.Invoke(message);
+    }
+    
+    /// <summary>
+    /// Ran when a message is edited
+    /// </summary>
+    public static async Task PlanetMessageEdited(PlanetMessage message)
+    {
+        Console.WriteLine($"[{message.Node?.Name}]: Received planet message edit {message.Id} for channel {message.ChannelId}");
+        await ValourCache.Put(message.Id, message);
+        if (message.ReplyTo is not null)
+        {
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+        }
+        
+        if (OnMessageEdited is not null)
+            await OnMessageEdited.Invoke(message);
+    }
+    
+    /// <summary>
+    /// Ran when a message is recieved
+    /// </summary>
+    public static async Task DirectMessageReceived(DirectMessage message)
+    {
+        Console.WriteLine($"[{message.Node?.Name}]: Received direct message {message.Id} for channel {message.ChannelId}");
+        await ValourCache.Put(message.Id, message);
+        if (message.ReplyTo is not null)
+        {
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+        }
+        
+        if (OnMessageReceived is not null)
+            await OnMessageReceived.Invoke(message);
+    }
+    
+    /// <summary>
+    /// Ran when a message is edited
+    /// </summary>
+    public static async Task DirectMessageEdited(DirectMessage message)
+    {
+        Console.WriteLine($"[{message.Node?.Name}]: Received direct message edit {message.Id} for channel {message.ChannelId}");
+        await ValourCache.Put(message.Id, message);
+        if (message.ReplyTo is not null)
+        {
+            await ValourCache.Put(message.ReplyTo.Id, message.ReplyTo);
+        }
+        
+        if (OnMessageEdited is not null)
+            await OnMessageEdited.Invoke(message);
     }
 
     public static async Task MessageDeleted(PlanetMessage message)
@@ -828,6 +991,31 @@ public static class ValourClient
     {
         if (OnChannelEmbedUpdate is not null)
             await OnChannelEmbedUpdate.Invoke(update);
+    }
+
+    public static async Task CategoryOrderUpdate(CategoryOrderEvent eventData)
+    {
+        // Update channels in cache
+        int pos = 0;
+        foreach (var data in eventData.Order)
+        {
+            var channel = PlanetChannel.GetCachedByType(data.Id, data.Type);
+            if (channel is not null)
+            {
+                Console.WriteLine($"{pos}: {channel.Name}");
+
+                // The parent can be changed in this event
+                channel.ParentId = eventData.CategoryId;
+
+                // Position can be changed in this event
+                channel.Position = pos;
+            }
+
+            pos++;
+        }
+        
+        if (OnCategoryOrderUpdate is not null)
+            await OnCategoryOrderUpdate.Invoke(eventData);
     }
 
     #endregion
@@ -1036,7 +1224,8 @@ public static class ValourClient
             LoadFriendsAsync(),
             LoadJoinedPlanetsAsync(),
             LoadTenorFavoritesAsync(),
-            LoadDirectChatChannelsAsync()
+            LoadDirectChatChannelsAsync(),
+            LoadUnreadNotificationsAsync(),
         };
 
         // Load user data concurrently
@@ -1240,6 +1429,46 @@ public static class ValourClient
 
         if (OnJoinedPlanetsUpdate != null)
             await OnJoinedPlanetsUpdate?.Invoke();
+    }
+
+    public static async Task LoadUnreadNotificationsAsync()
+    {
+        var response = await PrimaryNode.GetJsonAsync<List<Notification>>($"api/notifications/self/unread/all");
+
+        if (!response.Success)
+            return;
+
+        var notifications = response.Data;
+
+        // Add to cache
+        foreach (var notification in notifications)
+            await notification.AddToCache(notification);
+        
+        UnreadNotifications.Clear();
+        UnreadNotificationsLookup.Clear();
+        
+        foreach (var notification in notifications)
+        {
+            var cached = ValourCache.Get<Notification>(notification.Id);
+            if (cached is null)
+                continue;
+
+            // Only add if unread
+            if (notification.TimeRead is not null)
+                continue;
+            
+            if (!UnreadNotifications.Contains(cached))
+                UnreadNotifications.Add(cached);
+            
+            if (cached.SourceId is not null)
+                UnreadNotificationsLookup[cached.SourceId.Value] = cached;
+        }
+    }
+
+    public static async Task<TaskResult> MarkNotificationRead(Notification notification, bool value)
+    {
+        var result = await PrimaryNode.PostAsync($"api/notifications/self/{notification.Id}/read/{value}", null);
+        return result;
     }
 
     public static async Task LoadFriendsAsync()

@@ -1,0 +1,50 @@
+﻿@inject NavigationManager NavigationManager
+@inject WindowManager WindowManager
+
+<div class="notifications-container">
+    <p class="subtitle mb-2">Notifications</p>
+    <div class="v-gradient-underline"></div>
+    <!-- This wrapper flips the order. Why? Because we sent the notifications in reverse order. Why? -->
+    <!-- Because adding new items to the end of a list is a lot faster than inserting to the start. -->
+    <div class="item-wrapper">
+        <Virtualize TItem="Notification" Items="ValourClient.UnreadNotifications">
+            <div class="notification" @key="@context.Id">
+                <div class="title-bar">
+                    <img alt="Notification icon" class="image" src="@context.ImageUrl"/>
+                    <p class="title">@context.Title</p>
+                </div>
+                <p class="body">@context.Body</p>
+                <div class="button-holder">
+                    <button @onclick="() => OnClickClear(context)">
+                        <img alt="Trash can" src="_content/Valour.Client/media/Trash-Can-Icon.svg" />
+                    </button>
+                    <button @onclick="() => OnClickView(context)">
+                        <img alt="Channel" src="_content/Valour.Client/media/Eye-Icon.svg" />
+                    </button>
+                </div>
+            </div>
+        </Virtualize>
+    </div>
+</div>
+@code {
+    protected override void OnInitialized()
+    {
+        ValourClient.OnNotificationReceived += OnNotification;
+    }
+
+    private Task OnNotification(Notification notification)
+    {
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task OnClickView(Notification notification)
+    {
+        await NotificationNavigator.NavigateTo(notification);
+    }
+    
+    private async Task OnClickClear(Notification notification)
+    {
+        await ValourClient.MarkNotificationRead(notification, true);
+    }
+}

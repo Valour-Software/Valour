@@ -5,9 +5,9 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class TenorFavorite : Item, ISharedTenorFavorite
+public class TenorFavorite : LiveModel, ISharedTenorFavorite
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/tenorfavorites";

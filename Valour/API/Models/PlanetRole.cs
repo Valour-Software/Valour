@@ -14,14 +14,14 @@ namespace Valour.Api.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
+public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetItem.GetPlanetAsync(this, refresh);
+        IPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/roles";
@@ -36,9 +36,8 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         Id = long.MaxValue,
         Position = int.MaxValue,
         PlanetId = 0,
-        Red = 255,
-        Green = 0,
-        Blue = 255
+        Color = "ff00ff",
+        AnyoneCanMention = false,
     };
 
     public static PlanetRole DefaultRole = new PlanetRole()
@@ -47,18 +46,22 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
         Id = long.MaxValue,
         Position = int.MaxValue,
         PlanetId = 0,
-        Red = 255,
-        Green = 255,
-        Blue = 255,
+        Color = "#ffffff",
         Permissions = PlanetPermissions.Default,
         ChatPermissions = ChatChannelPermissions.Default,
         CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
-        VoicePermissions = VoiceChannelPermissions.Default
+        VoicePermissions = VoiceChannelPermissions.Default,
+        AnyoneCanMention = false,
     };
 
     // Cached values
     private List<PermissionsNode> PermissionsNodes { get; set; }
 
+    /// <summary>
+    /// True if this is an admin role - meaning that it overrides all permissions
+    /// </summary>
+    public bool IsAdmin { get; set; }
+    
     /// <summary>
     /// The position of the role: Lower has more authority
     /// </summary>
@@ -94,24 +97,20 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
     /// </summary>
     public string Name { get; set; }
 
-    // RGB Components for role color
-    public byte Red { get; set; }
-    public byte Green { get; set; }
-    public byte Blue { get; set; }
+    /// <summary>
+    /// The hex color for the role
+    /// </summary>
+    public string Color { get; set; }
 
     // Formatting options
     public bool Bold { get; set; }
 
     public bool Italics { get; set; }
+    
+    public bool AnyoneCanMention { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);
-
-    public Color GetColor() =>
-        ISharedPlanetRole.GetColor(this);
-
-    public string GetColorHex() =>
-        ISharedPlanetRole.GetColorHex(this);
 
     public bool HasPermission(PlanetPermission perm) =>
         ISharedPlanetRole.HasPermission(this, perm);
@@ -124,9 +123,7 @@ public class PlanetRole : Item, IPlanetItem, ISharedPlanetRole
             Id = long.MaxValue,
             Position = int.MaxValue,
             PlanetId = planetId,
-            Red = 255,
-            Green = 255,
-            Blue = 255
+            Color = "#ffffff",
         };
     }
 

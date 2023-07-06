@@ -230,6 +230,8 @@ public class NodeService
     {
         Transaction,
         DirectMessage,
+        DirectMessageEdit,
+        Notification,
     }
     
     public struct NodeRelayEventData
@@ -256,7 +258,7 @@ public class NodeService
         var json = JsonSerializer.Serialize(eventData);
 
         foreach (var node in userNodes)
-        {
+        { 
             if (node == NodeConfig.Instance.Name)
             {
                 // Skip redis, run on self
@@ -284,13 +286,29 @@ public class NodeService
         switch (data.Type)
         {
             case NodeEventType.Transaction:
+            {
                 var transaction = (Transaction) data.Payload;
                 OnRelayTransaction(transaction);
                 break;
+            }
             case NodeEventType.DirectMessage:
+            {
                 var message = (DirectMessage) data.Payload;
                 OnRelayDirectMessage(message, data.TargetUser);
                 break;
+            }
+            case NodeEventType.DirectMessageEdit:
+            {
+                var message = (DirectMessage) data.Payload;
+                OnRelayDirectMessageEdit(message, data.TargetUser);
+                break;
+            }
+            case NodeEventType.Notification:
+            {
+                var notification = (Notification) data.Payload;
+                OnRelayNotification(notification, data.TargetUser);
+                break;
+            }
         }
     }
 
@@ -303,5 +321,15 @@ public class NodeService
     private void OnRelayDirectMessage(DirectMessage message, long targetUser)
     {
         _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirect", message);
+    }
+    
+    private void OnRelayDirectMessageEdit(DirectMessage message, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayDirectEdit", message);
+    }
+    
+    private void OnRelayNotification(Notification notif, long targetUser)
+    {
+        _hub.Clients.Group($"u-{targetUser}").SendAsync("RelayNotification", notif);
     }
 }

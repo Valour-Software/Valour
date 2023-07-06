@@ -1,5 +1,8 @@
 ﻿document.addEventListener('contextmenu', event => event.preventDefault());
 
+// Setup dayjs
+dayjs.extend(window.dayjs_plugin_timezone);
+
 window.clipboardCopy = {
     copyText: function (text) {
         navigator.clipboard.writeText(text).then(function () {
@@ -290,6 +293,7 @@ function dummySound() {
 
 function playSound(name) {
     var source = getAudioSource();
+    source.loop = false;
     source.volume = 0.4;
     source.src = "./_content/Valour.Client/media/sounds/" + name;
     source.play();
@@ -370,4 +374,46 @@ function determineFlip(elementId, safeWidth){
     } else {
         element.classList.remove('flip');
     }
+}
+
+/* GDPR Compliance */
+
+const EU_TIMEZONES = [
+    'Europe/Vienna',
+    'Europe/Brussels',
+    'Europe/Sofia',
+    'Europe/Zagreb',
+    'Asia/Famagusta',
+    'Asia/Nicosia',
+    'Europe/Prague',
+    'Europe/Copenhagen',
+    'Europe/Tallinn',
+    'Europe/Helsinki',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Europe/Busingen',
+    'Europe/Athens',
+    'Europe/Budapest',
+    'Europe/Dublin',
+    'Europe/Rome',
+    'Europe/Riga',
+    'Europe/Vilnius',
+    'Europe/Luxembourg',
+    'Europe/Malta',
+    'Europe/Amsterdam',
+    'Europe/Warsaw',
+    'Atlantic/Azores',
+    'Atlantic/Madeira',
+    'Europe/Lisbon',
+    'Europe/Bucharest',
+    'Europe/Bratislava',
+    'Europe/Ljubljana',
+    'Africa/Ceuta',
+    'Atlantic/Canary',
+    'Europe/Madrid',
+    'Europe/Stockholm'
+];
+
+function isEuropeanUnion(){
+    return EU_TIMEZONES.includes(dayjs.tz.guess());
 }

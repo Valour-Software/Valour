@@ -1,5 +1,13 @@
 ﻿.watching-icon {
-    width: 32px;
-    height: 32px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
+    background-color: black;
+    margin-left: -12px;
+    
+    transition: margin-left 0.2s ease-in-out;
+}
+
+.watching-container:hover .watching-icon {
+    margin-left: 4px;
 }

@@ -1,0 +1,17 @@
+.change-log {
+    width: 800px;
+    height: 600px;
+    max-width: 90%;
+    max-height: 90%;
+    padding: 40px;
+    background-color: var(--main-3);
+    border: solid 2px var(--main-4);
+    border-radius: 20px;
+    overflow-y: auto;
+    position: absolute;
+    z-index: 99999;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 30px black;
+}

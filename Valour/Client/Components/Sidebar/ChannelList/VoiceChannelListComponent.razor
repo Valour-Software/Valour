@@ -1,0 +1,76 @@
+﻿@implements IDisposable
+
+@inject WindowManager windowManager
+@inject ChannelListManager listManager
+
+<div class="@Chosen_CSS"
+     @onclick="OnClick"
+     @onpointerdown:stopPropagation="true"
+     @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'
+     @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
+     draggable="true" id="@Channel.Id">
+    <div class="channel-icon">
+        <img src="_content/Valour.Client/media/voice-channel-icon.svg">
+    </div>
+    <p class="channel-name">
+        @Channel.Name
+    </p>
+</div>
+
+@code {
+    [Parameter]
+    public PlanetVoiceChannel Channel { get; set; }
+
+    [Parameter]
+    public CategoryListComponent ParentCategory { get; set; }
+
+    public string Chosen_CSS
+    {
+        get
+        {
+            return "channel";
+        }
+    }
+
+    public async Task OnClick()
+    {
+        /* Very cool logic goes here */
+        listManager.OnItemClickInCategory(Channel, ParentCategory);
+
+        var voiceWindows = windowManager.GetWindows().OfType<VoiceChannelWindow>();
+
+        /* Check if another voice channel is open */
+        if (voiceWindows.Count() > 0)
+        {
+            var current = voiceWindows.FirstOrDefault();
+            await current.Component.SwapChannel(Channel);
+        }
+        else
+        {
+            var newWindow = new PlanetVoiceChannelWindow(Channel);
+            await windowManager.AddWindowAsync(newWindow, windowManager.GetSelectedWindow().Holder);
+        }
+
+        StateHasChanged();
+    }
+
+    public async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
+    {
+        var channel = eventData.Model;
+        
+        if (Channel.Id == channel.Id)
+        {
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
+    }
+
+    public void Dispose()
+    {
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated -= OnVoiceChannelUpdate;
+    }
+}

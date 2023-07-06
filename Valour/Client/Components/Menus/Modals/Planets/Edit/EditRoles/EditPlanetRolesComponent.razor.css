@@ -224,3 +224,24 @@ button {
 .rolecreate-cont {
     display: flex;
 }
+
+.color-wrapper {
+    border-radius: 50%;
+    width: 2em;
+    height: 2em;
+    overflow: hidden;
+    margin-top: 7px;
+    margin-left: 4px;
+}
+
+.color-picker {
+    display: block;
+    border: 0;
+    outline: 0;
+    padding: 0;
+    width: 200%;
+    height: 200%;
+    border-radius: 50%;
+    transform: translate(-25%, -25%);
+    cursor: pointer;
+}

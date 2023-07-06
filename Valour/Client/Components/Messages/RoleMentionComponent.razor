@@ -1,0 +1,70 @@
+<div class="@Class" style="color: @RoleColor">
+    @if (Role is null)
+    {
+        <div>@@RoleNotFound</div>
+    }
+    else
+    {
+        <div>@@@Role.Name</div>
+    }
+</div>
+
+@code {
+
+    public string Class
+    {
+        get
+        {
+            if (Role is null || !IsTarget)
+            {
+                return "mention";
+            }
+            else
+            {
+                return "mention target";
+            }
+        }
+    }
+
+
+    [Parameter]
+    public Mention Mention { get; set; }
+    public PlanetRole Role { get; set; }
+    public bool IsTarget { get; set; }
+    public string RoleColor = "#ffffff";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Build();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Role != null)
+        {
+            if (Mention.TargetId != Role.Id)
+            {
+                await Build();
+            }
+        }
+        else
+        {
+            await Build();
+        }
+    }
+
+    public async Task Build()
+    {
+        Role = await PlanetRole.FindAsync(Mention.TargetId, Mention.PlanetId);
+        RoleColor = Role is null ? "#fff" : Role.Color;
+        
+        var selfMember = await PlanetMember.FindAsync(ValourClient.Self.Id, Mention.PlanetId);
+        if (selfMember is not null)
+        {
+            var selfRoles = await selfMember.GetRolesAsync();
+            IsTarget = selfRoles.Any(r => r.Id == Role.Id);
+        }
+
+        StateHasChanged();
+    }
+}

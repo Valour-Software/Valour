@@ -1,14 +1,11 @@
-﻿@page "/Register/{birthDayString}"
-@page "/Register"
+﻿@page "/Register"
 
-@inject HttpClient Http
-@inject NavigationManager navManager
-@inject ILocalStorageService storage
+@inject IJSRuntime JsRuntime
 
 <body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
     <div class="popup-box">
         <div class="col-md-12">
-            @if (!responseSuccess)
+            @if (!_completed)
             {
                 <section>
                     <h2>Register for Valour</h2>
@@ -18,35 +15,41 @@
                     <div asp-validation-summary="All" class="text-danger"></div>
                     <div class="form-group mt-2">
                         <label>Username</label>
-                        <input class="form-control" @bind-value="@username" />
+                        <input class="form-control" @bind-value="@_username" />
                     </div>
                     <div class="form-group mt-2">
                         <label>Email</label>
-                        <input type="email" class="form-control" @bind-value="@email" />
+                        <input type="email" class="form-control" @bind-value="@_email" />
                     </div>
                     <div class="form-group mt-2">
                         <label>Password</label>
-                        <input type="password" class="form-control" @bind-value="@password" />
+                        <input type="password" class="form-control" @bind-value="@_password" />
                     </div>
                     <div class="form-group mt-2">
                         <label>Confirm Password</label>
-                        <input type="password" class="form-control" @bind-value="@passwordConf" />
+                        <input type="password" class="form-control" @bind-value="@_passwordConf" />
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>Birthday</label>
+                        <InputDate @bind-Value="@_dob" class="form-control"></InputDate>
+                        <br />
+                        <span id="date-span" class="text-danger">@_dobSpan</span>
                     </div>
                     <div class="form-group mt-2">
                         <label>Referral (Optional)</label>
-                        <input type="text" class="form-control" @bind-value="@referral" />
+                        <input type="text" class="form-control" @bind-value="@_referral" />
                         <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour!</span>
                     </div>
                     <div class="form-group mt-4">
                         <div style="display: inline-block">
                             <p>
-                                <input type="checkbox" @bind-value="@agreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
+                                <input type="checkbox" @bind-value="@_termsAgreed" /> &nbsp; By checking this box, you acknowledge you have read and agree to the Valour <a href="https://github.com/SpikeViper/Valour/blob/main/TERMS_OF_SERVICE.md">Terms of Service </a>
                                 and to follow the <a href="https://github.com/SpikeViper/Valour/blob/main/PLATFORM_RULES.md"> Platform Rules. </a>
                             </p>
                         </div>
                     </div>
-                    <span id="error-span" class="text-danger">@errorSpan</span>
-                    <span id="success-span" class="text-info">@successSpan</span>
+                    <span id="error-span" class="text-danger">@_errorSpan</span>
+                    <span id="success-span" class="text-info">@_successSpan</span>
 
                     <div class="form-group mt-4">
                         <button class="btn v-button v-button-primary mt-2" @onclick="OnClickSubmit">Submit</button>
@@ -55,7 +58,7 @@
             }
             else
             {
-                <ConfirmationEmailComponent RegisterRequest="@registerRequest"></ConfirmationEmailComponent>
+                <ConfirmationEmailComponent RegisterRequest="@_regRequest"></ConfirmationEmailComponent>
             }
         </div>
     </div>
@@ -63,112 +66,104 @@
 
 @code {
 
-    [Parameter]
-    public string birthDayString { get; set; }
-
-    public DateTime birthDay;
-
-    public RegisterUserRequest registerRequest;
-
-    bool responseSuccess = false;
-
+    private bool _completed;
+    
+    private RegisterUserRequest _regRequest;
+    
     // Input fields
-    string email;
-    string password;
-    string passwordConf;
-    string username;
-    string referral;
+    private string _email;
+    private string _password;
+    private string _passwordConf;
+    private string _username;
+    private string _referral;
+    private DateTime _dob = DateTime.Today;
+    private bool _termsAgreed;
 
     // Spans
-    string errorSpan;
-    string successSpan;
-
-    // Agreeance
-    bool agreed;
-
-    protected override void OnInitialized()
-    {
-        if (string.IsNullOrWhiteSpace(birthDayString))
-        {
-            navManager.NavigateTo("/AgeVeri");
-        }
-
-        birthDay = JsonSerializer.Deserialize<DateTime>(birthDayString);
-
-        if (birthDay == new DateTime())
-        {
-            navManager.NavigateTo("/AgeVeri");
-        }
-
-        int years = DateTime.Now.Subtract(birthDay).Days / 365;
-
-        if (years < 13)
-        {
-            errorSpan = "You must be 13 years of age or older to use Valour.";
-            navManager.NavigateTo("/AgeVeri");
-        }
-
-        if (years > 120)
-        {
-            errorSpan = $"If you are actually {years} years old, please contact us at support@valour.gg and we will buy you a cake.";
-            navManager.NavigateTo("/AgeVeri");
-        }
-    }
+    private string _errorSpan;
+    private string _successSpan;
+    private string _dobSpan;
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
-        errorSpan = "";
-        successSpan = "";
+        _errorSpan = "";
+        _successSpan = "";
 
-        if (!agreed)
+        if (!_termsAgreed)
         {
-            errorSpan = "You must read and accept the Terms of Service and Platform Rules to use Valour.";
+            _errorSpan = "You must read and accept the Terms of Service and Platform Rules to use Valour.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(email))
+        if (string.IsNullOrWhiteSpace(_email))
         {
-            errorSpan = "Please input an email.";
+            _errorSpan = "Please input an email.";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(_password))
         {
-            errorSpan = "Please input a password.";
+            _errorSpan = "Please input a password.";
             return;
         }
 
-        if (!string.Equals(password, passwordConf))
+        if (!string.Equals(_password, _passwordConf))
         {
-            errorSpan = "Passwords do not match";
+            _errorSpan = "Passwords do not match";
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(username))
+        if (string.IsNullOrWhiteSpace(_username))
         {
-            errorSpan = "Please input an username.";
+            _errorSpan = "Please input an username.";
             return;
         }
 
-        registerRequest = new RegisterUserRequest()
+        var now = DateTime.Today;
+        var age = now.Year - _dob.Year;
+        if (_dob > now.AddYears(-age)) age--;
+        
+        switch (age)
         {
-            Username = username,
-            Email = email,
-            Password = password,
-            Referrer = referral
+            case 0:
+                _dobSpan = "Welcome to life newborn! We may not know how you even wrote the date but unfortunately you are going to have to wait till 13 years to use Valour.";
+                return;
+            case < 0:
+                _dobSpan = $"Congratulations on not being born! Maybe try again when you are 13 in {Math.Abs(age) + 13} years?";
+                return;
+            case < 13:
+                _dobSpan = "You must be 13 years of age or older to use Valour.";
+                return;
+            case > 120:
+                _dobSpan = $"If you are actually {age} years old, please contact us at support@valour.gg and we will buy you a cake.";
+                return;
+        }
+
+        // We have to do this for data localization laws
+        var isEuropean = await JsRuntime.InvokeAsync<bool>("isEuropeanUnion");
+        var locale = isEuropean ? Locality.EuropeanUnion : Locality.General;
+
+        _regRequest = new RegisterUserRequest()
+        {
+            Username = _username,
+            Email = _email,
+            Password = _password,
+            Referrer = _referral,
+            DateOfBirth = _dob,
+            Locality = locale
         };
 
-        TaskResult result = await ValourClient.PostAsync("api/users/register", registerRequest);
+        var result = await ValourClient.PostAsync("api/users/register", _regRequest);
 
         if (!result.Success)
         {
-            errorSpan = result.Message;
+            _errorSpan = result.Message;
         }
         else
         {
             // This is important so that the flag cannot be unset by a double click of the button
-            responseSuccess = true;
-            successSpan = "Logging you in!";
+            _completed = true;
+            _successSpan = "Logging you in!";
         }
     }
     }

@@ -51,13 +51,19 @@ public class TokenService
 
         return token;
     }
+
+    public string GetAuthKey()
+    {
+        _contextAccessor.HttpContext!.Request.Headers.TryGetValue("authorization", out var authKey);
+        return authKey;
+    }
     
     public async ValueTask<AuthToken> GetCurrentToken()
     {
         if (_currentToken is not null)
             return _currentToken;
         
-        _contextAccessor.HttpContext!.Request.Headers.TryGetValue("authorization", out var authKey);
+        var authKey = GetAuthKey();
         _currentToken = await GetAsync(authKey);
         return _currentToken;
     }

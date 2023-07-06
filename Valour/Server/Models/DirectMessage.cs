@@ -4,6 +4,14 @@ namespace Valour.Server.Models;
 
 public class DirectMessage : Item, ISharedMessage
 {
+    public DirectMessage ReplyTo { get; set; }
+    
+    public DirectMessage AddReplyTo(DirectMessage replyTo)
+    {
+        ReplyTo = replyTo;
+        return this;
+    }
+    
     /// <summary>
     /// The message (if any) this is a reply to
     /// </summary>
@@ -45,10 +53,10 @@ public class DirectMessage : Item, ISharedMessage
     public string AttachmentsData { get; set; }
 
     /// <summary>
-    /// True if the message was edited
+    /// The time when the message was edited, or null if it was not
     /// </summary>
-    public bool Edited { get; set; }
-
+    public DateTime? EditedTime { get; set; }
+    
     /// <summary>
     /// Used to identify a message returned from the server 
     /// </summary>

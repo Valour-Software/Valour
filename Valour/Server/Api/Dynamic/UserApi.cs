@@ -70,10 +70,32 @@ public class UserApi
         return Results.LocalRedirect("/FromVerify", true, false);
     }
 
+    [ValourRoute(HttpVerbs.Post, "api/users/self/compliance/{birthDate}/{locality}")]
+    [UserRequired(UserPermissionsEnum.FullControl)] // Require direct login
+    public static async Task<IResult> SetComplianceData(UserService service, DateTime? birthDate, Locality? locality)
+    {
+        var userId = await service.GetCurrentUserIdAsync();
+        
+        if (birthDate is null)
+            return ValourResult.BadRequest("Birth date cannot be null.");
+
+        if (locality is null)
+            return ValourResult.BadRequest("Locality cannot be null");
+
+        var notNullBirthDate = birthDate.Value;
+        var notNullLocality = locality.Value;
+
+        var result = await service.SetUserComplianceData(userId, notNullBirthDate, notNullLocality);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return Results.NoContent();
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/users/self/logout")]
     public static async Task<IResult> LogOutRouteAsync(UserService userService)
     {
-        var result = userService.Logout();
+        var result = await userService.Logout();
         return Results.Ok("Come back soon!");
     }
 
@@ -136,15 +158,15 @@ public class UserApi
         if (tokenRequest is null)
             return ValourResult.BadRequest("Include request in body.");
 
-        UserEmail userEmail = await userService.GetUserEmailAsync(tokenRequest.Email);
+        UserPrivateInfo userPrivateInfo = await userService.GetUserEmailAsync(tokenRequest.Email);
 
-        if (userEmail is null)
+        if (userPrivateInfo is null)
             return ValourResult.InvalidToken();
 
-        if (!userEmail.Verified)
+        if (!userPrivateInfo.Verified)
             return ValourResult.Forbid("This account needs email verification. Please check your email.");
 
-        var user = await userService.GetAsync(userEmail.UserId);
+        var user = await userService.GetAsync(userPrivateInfo.UserId);
 
         if (user.Disabled)
             return ValourResult.Forbid("Your account is disabled.");
@@ -153,7 +175,7 @@ public class UserApi
         if (!validResult.Success)
             return Results.Unauthorized();
 
-        var result = await userService.GetTokenAfterLoginAsync(ctx, userEmail.UserId);
+        var result = await userService.GetTokenAfterLoginAsync(ctx, userPrivateInfo.UserId);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -218,15 +240,15 @@ public class UserApi
         if (request is null)
             return ValourResult.BadRequest("Include request in body");
 
-        UserEmail userEmail = await userService.GetUserEmailAsync(request.Email);
+        UserPrivateInfo userPrivateInfo = await userService.GetUserEmailAsync(request.Email);
 
-        if (userEmail is null)
+        if (userPrivateInfo is null)
             return ValourResult.NotFound("Could not find user. Retry registration?");
 
-        if (userEmail.Verified)
+        if (userPrivateInfo.Verified)
             return Results.Ok("You are already verified, you can close this!");
 
-        var result = await userService.ResendRegistrationEmail(userEmail, ctx, request);
+        var result = await userService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -242,7 +264,7 @@ public class UserApi
         var userEmail = await userService.GetUserEmailAsync(email, true);
 
         if (userEmail is null)
-            return ValourResult.NotFound<UserEmail>();
+            return ValourResult.NotFound<UserPrivateInfo>();
 
         var result = await userService.SendPasswordResetEmail(userEmail, email, ctx);
         if (!result.Success)

@@ -170,7 +170,7 @@ public class PlanetApi
                     break;
                 }
                 default:
-                    throw new NotImplementedException($"Case for Permission with type {channel.PermType} not implemented");
+                    throw new NotImplementedException($"Case for Permission with type {channel.Type} not implemented");
             }
         }
 
@@ -445,5 +445,127 @@ public class PlanetApi
         return Results.Created($"api/members/{result.Data.Id}", result.Data);
     }
     
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/planetChannels/insert")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> InsertChildRouteAsync(
+        [FromBody] InsertChannelChildModel model,
+        long planetId,
+        PlanetCategoryService categoryService,
+        PlanetMemberService memberService,
+        PlanetChannelService channelService,
+        PlanetService planetService)
+    {
+        if (planetId != model.PlanetId)
+            return ValourResult.BadRequest("PlanetId mismatch.");
+
+        // Get member
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        if (model.ParentId is not null)
+        {
+            // Get the category
+            var category = await categoryService.GetAsync(model.ParentId.Value);
+            if (category is null)
+                return ValourResult.NotFound("Category not found");
+            
+            if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+
+        // If the child currently belongs to another category (not planet), we need to check permissions for it
+        var inserting = await channelService.GetAsync(model.InsertId);
+        if (inserting.ParentId == model.ParentId)
+            return ValourResult.BadRequest("Channel is already in this category.");
+        
+        // We need to get the old category and ensure we have permissions in it
+        if (inserting.ParentId is not null)
+        {
+            var oldCategory = await categoryService.GetAsync(inserting.ParentId.Value);
+            if (!await memberService.HasPermissionAsync(member, oldCategory, CategoryPermissions.ManageCategory))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+        
+        // We have permission for the insert, the target category, and the old category if applicable.
+        // Actually do the changes.
+        var result = await planetService.InsertChildAsync(model.ParentId, inserting.Id, model.Position);
+        if (!result.Success)
+            return ValourResult.BadRequest(result.Message);
+        
+        return ValourResult.Ok("Success");
+    }
+    
+    [ValourRoute(HttpVerbs.Post, "api/planets/{planetId}/planetChannels/order")]
+    [UserRequired(UserPermissionsEnum.PlanetManagement)]
+    public static async Task<IResult> SetChildOrderRouteAsync(
+        [FromBody] OrderChannelsModel model,
+        long planetId,
+        PlanetCategoryService categoryService,
+        PlanetMemberService memberService,
+        PlanetChannelService channelService,
+        PlanetService planetService)
+    {
+        if (model.PlanetId != planetId)
+            return ValourResult.BadRequest("PlanetId mismatch.");
+        
+        // Get member
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+        
+        // Get the category
+        if (model.CategoryId is not null)
+        {
+            var category = await categoryService.GetAsync(model.CategoryId.Value);
+            if (category is null)
+                return ValourResult.NotFound("Category not found");
+            
+            if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
+                return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
+        }
+        else
+        {
+            // Top level requires planet management perms
+            if (!await memberService.HasPermissionAsync(member, PlanetPermissions.Manage))
+                return ValourResult.LacksPermission(PlanetPermissions.Manage);
+        }
+
+        model.Order = model.Order.Distinct().ToList();
+
+        // We have to check permissions for ALL changes in this ordering. Fuuuuuuun!
+        //var pos = 0;
+        foreach (var childId in model.Order)
+        {
+            var child = await channelService.GetAsync(childId);
+            if (child is null)
+                return ValourResult.NotFound($"Child {childId} not found");
+
+            if (child.ParentId != model.CategoryId)
+                return ValourResult.BadRequest("Use the category insert route to change parent id");
+            
+            // Change in position requires perms
+            /*
+             
+            Retrospect: This is silly. If someone has permissions to a category, they should be able to move channels in it
+             
+            if (child.Position != pos)
+            {
+                // Require permission for the child being moved
+                if (!await memberService.HasPermissionAsync(member, child, ChannelPermissions.Manage))
+                    return ValourResult.LacksPermission(ChannelPermissions.Manage);
+            }
+            */
+            
+            //pos++;
+        }
+        
+        // Actually do the changes
+        var result = await categoryService.SetChildOrderAsync(planetId, model.CategoryId, model.Order);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.NoContent();
+    }
     
 }

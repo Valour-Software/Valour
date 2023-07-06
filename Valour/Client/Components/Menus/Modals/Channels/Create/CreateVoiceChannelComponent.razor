@@ -40,7 +40,7 @@
                     @foreach (PlanetRole role in Roles)
                     {
                         <div class="role">
-                            <div class="perm-list-name mb-1" style="color: @role.GetColorHex();">
+                            <div class="perm-list-name mb-1" style="color: @role.Color;">
                                 @role.Name
                             </div>
                             <div type="button" style="float: right">
@@ -172,7 +172,7 @@
                 RoleId = defaultRoleId,
                 Mask = 0x00,
                 Code = 0x00,
-                TargetType = PermChannelType.PlanetVoiceChannel
+                TargetType = ChannelType.PlanetVoiceChannel
             };
 
             defaultNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.False);
@@ -196,7 +196,7 @@
                     RoleId = role.Id,
                     Mask = 0x00,
                     Code = 0x00,
-                    TargetType = PermChannelType.PlanetVoiceChannel
+                    TargetType = ChannelType.PlanetVoiceChannel
                 };
 
                 roleNode.SetPermission(VoiceChannelPermissions.Join, PermissionState.True);

@@ -12,14 +12,14 @@ namespace Valour.Api.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
+public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetItem.GetPlanetAsync(this, refresh);
+        IPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/members";
@@ -84,10 +84,10 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
         await planet.NotifyMemberDeleteAsync(this);
     }
 
-    public override async Task AddToCache()
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Id, this);
-        await ValourCache.Put((PlanetId, UserId), this);
+        await ValourCache.Put(Id, this, skipEvent);
+        await ValourCache.Put((PlanetId, UserId), this, true); // Skip event because we already called it above
     }
 
     /// <summary>
@@ -302,7 +302,7 @@ public class PlanetMember : Item, IPlanetItem, ISharedPlanetMember
     /// Returns the role color of the member
     /// </summary>
     public async Task<string> GetRoleColorAsync(bool force_refresh = false) =>
-        (await GetPrimaryRoleAsync(force_refresh))?.GetColorHex() ?? "#ffffff";
+        (await GetPrimaryRoleAsync(force_refresh))?.Color ?? "#ffffff";
 
 
     /// <summary>

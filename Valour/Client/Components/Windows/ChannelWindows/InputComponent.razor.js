@@ -65,6 +65,7 @@ export function inputKeyDownHandler(e, input) {
                 input.dotnet.invokeMethodAsync('MoveMentionSelect', -1);
             }
             else {
+                input.dotnet.invokeMethodAsync('OnUpArrowNonMention');
                 inputCaretMoveHandler(input);
             }
 
@@ -112,6 +113,10 @@ export function inputKeyDownHandler(e, input) {
                 e.preventDefault();
                 input.dotnet.invokeMethodAsync('MentionSubmit');
             }
+        }
+        // Escape
+        case 27: {
+            input.dotnet.invokeMethodAsync('OnEscape');
         }
     }
 }
@@ -179,6 +184,21 @@ export function getCursorPos() {
     }
 
     return 0;
+}
+
+export function selectEnd(id){
+    setTimeout(() => {
+        inputs[id].element.focus();
+        var sel, range;
+        if (window.getSelection) {
+            sel = window.getSelection();
+            if (sel.getRangeAt && sel.rangeCount) {
+                range = sel.getRangeAt(0);
+                range.selectNodeContents(inputs[id].element);
+                range.collapse(false);
+            }
+        }  
+    }, 100);
 }
 
 export function injectElement(text, covertext, classlist, stylelist, id) {

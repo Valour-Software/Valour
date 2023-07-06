@@ -4,27 +4,12 @@
 <div class="sidebar-container @ActiveClass @FlipClass">
 	<div class="sidebar-menu">
 		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
-
 		<div class="sidebar-2" id="sidebar2">
-			@if (!Flip)
-			{
-				<SidebarTop>
-					<CurrentPlanetComponent></CurrentPlanetComponent>
-				</SidebarTop>
-				<div class="top-bar">
-				</div>
-			}
-
 			<div class="sidebar-content">
 				@if (!Flip)
                 {
-	                <SelfInfoComponent />
+                	<VersionComponent />
                 }
-				else
-				{
-					<br/>
-				}
-    
 				<div class="tab-container">
 					@switch (_selectedTab)
 					{
@@ -43,8 +28,17 @@
 							<MemberListComponent></MemberListComponent>
 							break;
 						}
+						case "Notifications":
+						{
+							<NotificationsListComponent></NotificationsListComponent>
+							break;
+						}
 					}
 				</div>
+				@if (!Flip)
+				{
+					<SelfInfoComponent />
+				}
 				<SidebarTabstrip OnSelected="OnSelected" Flip="Flip"></SidebarTabstrip>
 			</div>
 		</div>
@@ -71,6 +65,13 @@
 	/// Module for calling Javascript functions
 	/// </summary>
 	private IJSInProcessObjectReference _jsModule;
+
+
+	protected override void OnInitialized()
+	{
+		if (Flip)
+			_selectedTab = "Notifications";
+	}
 
 	private Task OnSelected(TabStripItem tab)
 	{

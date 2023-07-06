@@ -3,30 +3,15 @@
 <CascadingValue Value="Channel">
     <CascadingValue Value="Window">
         <CascadingValue Value='this'>
-            <div class="d-flex flex-column window" style="height:99%; max-width:100%;" id="window" @onclick="@OnClickWindow">
-                @* Window header *@
-                <div class="channel-info">
-                    <h3 class="title">
-                        @Title
-                    </h3>
-
-                    <p class="description">
-                        @Description
-                    </p>
-
-                    <WindowButtonsComponent Window="Window" OnClickHome="ReturnHome" OnClickExit="CloseWindow"></WindowButtonsComponent>
-                </div>
-
+            <WindowFrameComponent Window="@Window" Title="@Title" Description="@Description">
                 @* Actual window *@
-
-                <div class="peer-container"> 
+                <div class="peer-container">
                     @foreach (var peer in VisiblePeers)
                     {
                         <MediaPeerComponent @key='@($"peer-{peer.PeerId}-{peer.MediaTag}")' Parent="this" Peer="peer"></MediaPeerComponent>
                     }
                 </div>
-
-            </div>
+            </WindowFrameComponent>
         </CascadingValue>
     </CascadingValue>
 </CascadingValue>

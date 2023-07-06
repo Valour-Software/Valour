@@ -1,28 +1,35 @@
 ﻿@using Valour.Shared.Channels
 @implements IDisposable
 
-<div class="watching-container">
-    @for (int i = 0; i < DisplayData.Count(); i++)
-    {
-        var ii = i;
-        var icon = DisplayData[ii].icon;
-        var name = DisplayData[ii].name;
+<SmoothDraggable StartX="20" StartY="40" FromRight="true">
+    <div class="watching-container">
+        
+        <p class="watching-title">Watching:</p>
+        
+        <div class="icons">
+            @for (int i = 0; i < DisplayData.Count(); i++)
+            {
+                var ii = i;
+                var icon = DisplayData[ii].icon;
+                var name = DisplayData[ii].name;
 
-        <WatchingIconComponent @key='name' IconUrl="@icon" Name="@name"></WatchingIconComponent>
-    }
+                <WatchingIconComponent @key='name' IconUrl="@icon" Name="@name" />
+            }
 
-    @{
-        // Amount we are *not* showing
-        int remaining = TotalCount - DisplayData.Count;
+            @{
+                // Amount we are *not* showing
+                int remaining = TotalCount - DisplayData.Count;
 
-        @if (remaining > 0)
-        {
-            <div class="remainder-text">
-                + @remaining watching
-            </div>
-        }
-    }
-</div>
+                @if (remaining > 0)
+                {
+                    <div class="remainder-text">
+                        + @remaining watching
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</SmoothDraggable>
 
 @code {
 

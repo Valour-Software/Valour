@@ -10,14 +10,14 @@ namespace Valour.Api.Models;
 [JsonDerivedType(typeof(PlanetChatChannel), typeDiscriminator: nameof(PlanetChatChannel))]
 [JsonDerivedType(typeof(PlanetVoiceChannel), typeDiscriminator: nameof(PlanetVoiceChannel))]
 [JsonDerivedType(typeof(PlanetCategory), typeDiscriminator: nameof(PlanetCategory))]
-public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
+public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrderedModel
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetItem.GetPlanetAsync(this, refresh);
+        IPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/channels";
@@ -25,12 +25,12 @@ public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
     #endregion
 
     // Cached values
-    protected List<PermissionsNode> PermissionsNodes { get; set; }
+    protected List<PermissionsNode> PermissionsNodes { get; set; } = new();
 
     public int Position { get; set; }
     public long? ParentId { get; set; }
     public bool InheritsPerms { get; set; }
-    public virtual PermChannelType PermType => PermChannelType.Undefined;
+    public virtual ChannelType Type => ChannelType.Undefined;
 
     public virtual string GetHumanReadableName() => "UNKNOWN TYPE";
 
@@ -53,44 +53,43 @@ public class PlanetChannel : Channel, IPlanetItem, ISharedPlanetChannel
         return await PlanetCategory.FindAsync(ParentId.Value, PlanetId);
     }
 
-    /// <summary>
-    /// Requests and caches nodes from the server
-    /// </summary>
-    public virtual async Task LoadPermissionNodesAsync()
+    public static PlanetChannel GetCachedByType(long id, ChannelType type)
     {
-        var nodes = (await Node.GetJsonAsync<List<PermissionsNode>>($"{IdRoute}/nodes")).Data;
-        if (nodes is null)
-            return;
-
-        // Update cache values
-        foreach (var node in nodes)
+        switch (type)
         {
-            // Skip event for bulk loading
-            await ValourCache.Put(node.Id, node, true);
-        }
-
-        // Create container if needed
-        if (PermissionsNodes == null)
-            PermissionsNodes = new List<PermissionsNode>();
-        else
-            PermissionsNodes.Clear();
-
-        // Retrieve cache values (this is necessary to ensure single copies of items)
-        foreach (var node in nodes)
-        {
-            var cNode = ValourCache.Get<PermissionsNode>(node.Id);
-
-            if (cNode is not null)
-                PermissionsNodes.Add(cNode);
+            default:
+                throw new NotImplementedException("Unknown channel type");
+            case ChannelType.PlanetChatChannel:
+                return ValourCache.Get<PlanetChatChannel>(id);
+            case ChannelType.PlanetCategoryChannel:
+                return ValourCache.Get<PlanetCategory>(id);
+            case ChannelType.PlanetVoiceChannel:
+                return ValourCache.Get<PlanetVoiceChannel>(id);
         }
     }
 
-    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, PermChannelType? type = null, bool force_refresh = false)
+    /// <summary>
+    /// Requests and caches nodes from the server
+    /// </summary>
+    public virtual async Task LoadPermissionNodesAsync(bool refresh = false)
+    {
+        var planet = await GetPlanetAsync();
+        var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
+        
+        PermissionsNodes.Clear();
+        foreach (var node in allPermissions)
+        {
+            if (node.TargetId == Id)
+                PermissionsNodes.Add(node);
+        }
+    }
+
+    public virtual async Task<PermissionsNode> GetPermNodeAsync(long roleId, ChannelType? type = null, bool refresh = false)
     {
         if (type is null)
-            type = PermType;
+            type = Type;
 
-        if (PermissionsNodes is null || force_refresh)
+        if (PermissionsNodes is null || refresh)
             await LoadPermissionNodesAsync();
 
         return PermissionsNodes.FirstOrDefault(x => x.RoleId == roleId && x.TargetType == type);

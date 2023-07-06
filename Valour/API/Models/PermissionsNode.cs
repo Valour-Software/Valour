@@ -15,7 +15,7 @@ namespace Valour.Api.Models;
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
 
-public class PermissionsNode : Item, ISharedPermissionsNode
+public class PermissionsNode : LiveModel, ISharedPermissionsNode
 {
     /// <summary>
     /// The planet this node belongs to
@@ -45,7 +45,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public PermChannelType TargetType { get; set; }
+    public ChannelType TargetType { get; set; }
 
     /// <summary>
     /// Returns the node code for this permission node
@@ -68,7 +68,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given channel and role
     /// </summary>
-    public static ValueTask<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, PermChannelType targetType) =>
+    public static ValueTask<PermissionsNode> FindAsync(PlanetChatChannel channel, PlanetRole role, ChannelType targetType) =>
         FindAsync(channel.Id, role.Id, targetType);
 
     public override string IdRoute => $"{BaseRoute}/{TargetType}/{TargetId}/{RoleId}";
@@ -79,7 +79,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// Returns the chat channel permissions node for the given ids
     /// </summary>
-    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, PermChannelType type, bool force_refresh = false)
+    public static async ValueTask<PermissionsNode> FindAsync(long targetId, long roleId, ChannelType type, bool force_refresh = false)
     {
         if (!force_refresh)
         {
@@ -96,10 +96,29 @@ public class PermissionsNode : Item, ISharedPermissionsNode
         return permNode;
     }
 
-    public override async Task AddToCache()
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
-        await ValourCache.Put(Id, this);
-        await ValourCache.Put((TargetId, (RoleId, TargetType)), this);
+        await ValourCache.Put(Id, this, skipEvent);
+        await ValourCache.Put((TargetId, (RoleId, TargetType)), this, true); // Skip duplicate event
+    }
+
+    public static async Task<List<PermissionsNode>> GetAllForPlanetAsync(long planetId)
+    {
+        var nodes = (await ValourClient.PrimaryNode.GetJsonAsync<List<PermissionsNode>>($"api/permissionsnodes/all/{planetId}")).Data;
+
+        var results = new List<PermissionsNode>();
+        
+        foreach (var node in nodes)
+        {
+            // Add or update in cache
+            await node.AddToCache();
+            
+            // Put cached node in results
+            results.Add(ValourCache.Get<PermissionsNode>(node.Id));
+        }
+        
+        // Return results
+        return results;
     }
 }
 

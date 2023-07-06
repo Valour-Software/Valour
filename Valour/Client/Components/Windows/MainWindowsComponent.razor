@@ -1,6 +1,7 @@
 ﻿
+@using Valour.Client.Pages
 @implements IWindowHolder
-@inject WindowManager windowManager
+@inject WindowManager WindowManager
 @inject IJSRuntime JS
 
 <!-- Pass WindowManager this down to all children -->
@@ -25,6 +26,9 @@
 </CascadingValue>
 
 @code {
+	
+	[Parameter]
+	public StartScreenData StartData { get; set; }
 
 	/// <summary>
 	/// The windows being displayed by this window holder
@@ -38,12 +42,52 @@
 		// Build empty window list
 		Windows = new();
 
-		windowManager.MainWindowsComponent = this;
+		WindowManager.MainWindowsComponent = this;
+		
+		Console.WriteLine(JsonSerializer.Serialize(StartData));
 
 		if (Windows.Count() == 0)
 		{
+			ClientWindow newWindow = null;
+			
+			if (StartData is not null)
+			{
+				switch (StartData.Start)
+				{
+					case StartScreen.PlanetChannel:
+					{
+						var planet = ValourCache.Get<Planet>(StartData.StartPlanetId);
+						if (planet is null)
+							break;
+
+						var channel = (await planet.GetChannelsAsync()).FirstOrDefault(x => x.Id == StartData.StartChannelId);
+						if (channel is null)
+							break;
+						
+						await ValourClient.OpenPlanet(planet);
+						await WindowManager.SetFocusedPlanet(planet);
+
+						newWindow = new PlanetChatChannelWindow(planet, channel);
+						break;
+					}
+					case StartScreen.DirectChannel:
+					{
+						var channel = ValourCache.Get<DirectChatChannel>(StartData.StartChannelId);
+						if (channel is null)
+							break;
+						
+						newWindow = new DirectChatChannelWindow(channel);
+						
+						break;
+					}
+				}
+			}
+			
+			if (newWindow is null)
+				newWindow = new HomeWindow();
+			
 			// Add a new window with self as the target
-			await windowManager.AddWindowAsync(new HomeWindow(), this);
+			await WindowManager.AddWindowAsync(newWindow, this);
 		}
 	}
 
@@ -118,7 +162,7 @@
 		if (Windows.Count() == 0)
 		{
 			// Add a new window with self as the target
-			await windowManager.AddWindowAsync(new HomeWindow(), this);
+			await WindowManager.AddWindowAsync(new HomeWindow(), this);
 		}
 
 		await RefreshAsync();
@@ -126,6 +170,6 @@
 
 	public async Task SetSelectedWindow(ClientWindow window)
 	{
-		await windowManager.SetSelectedWindow(window);
+		await WindowManager.SetSelectedWindow(window);
 	}
 }
