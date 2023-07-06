@@ -20,20 +20,27 @@ namespace Valour.Api.Models;
 *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
 */
 
-public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
+public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public long PlanetId { get; set; }
 
     public ValueTask<Planet> GetPlanetAsync(bool refresh = false) =>
-        IPlanetItem.GetPlanetAsync(this, refresh);
+        IPlanetModel.GetPlanetAsync(this, refresh);
 
     public override string BaseRoute =>
             $"api/chatchannels/{ChannelId}/messages/";
 
     #endregion
 
+    public PlanetMessage ReplyTo { get; set; }
+    
+    public override PlanetMessage GetReply()
+    {
+        return ReplyTo as PlanetMessage; 
+    }
+    
     /// <summary>
     /// The member's ID
     /// </summary>
@@ -81,6 +88,12 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
     {
         var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
         return await node.PostAsync($"api/chatchannels/{ChannelId}/messages", this);
+    }
+    
+    public override async Task<TaskResult> EditMessageAsync()
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(PlanetId);
+        return await node.PutAsync($"api/chatchannels/{ChannelId}/messages", this);
     }
 
     /// <summary> 
@@ -149,6 +162,14 @@ public class PlanetMessage : Message, IPlanetItem, ISharedPlanetMessage
 
         if (MentionsData is null)
             return false;
+        
+        // TODO: Maybe optimize this
+        var selfRoles = await selfMember.GetRolesAsync();
+        foreach (var role in selfRoles)
+        {
+            if (MentionsData.Contains(role.Id.ToString()))
+                return true;
+        }
 
         return MentionsData.Contains(selfMember.Id.ToString());
     }

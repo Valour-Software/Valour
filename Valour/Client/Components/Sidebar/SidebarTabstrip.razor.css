@@ -6,6 +6,7 @@
     bottom: 0;
     justify-content: space-evenly;
     align-items: center;
+    z-index: 10;
 }
 
 .mobile .tabstrip {

@@ -10,6 +10,7 @@ public static class PlanetRoleMapper
         return new PlanetRole()
         {
             Id = role.Id,
+            IsAdmin = role.IsAdmin,
             PlanetId = role.PlanetId,
             Position = role.Position,
             IsDefault = role.IsDefault,
@@ -17,12 +18,11 @@ public static class PlanetRoleMapper
             ChatPermissions = role.ChatPermissions,
             CategoryPermissions = role.CategoryPermissions,
             VoicePermissions = role.VoicePermissions,
-            Red = role.Red,
-            Green = role.Green,
-            Blue = role.Blue,
+            Color = role.Color,
             Bold = role.Bold,
             Italics = role.Italics,
             Name = role.Name,
+            AnyoneCanMention = role.AnyoneCanMention
         };
     }
     
@@ -34,19 +34,19 @@ public static class PlanetRoleMapper
         return new Valour.Database.PlanetRole()
         {
             Id = role.Id,
+            IsAdmin = role.IsAdmin,
             PlanetId = role.PlanetId,
             Position = role.Position,
             Permissions = role.Permissions,
             ChatPermissions = role.ChatPermissions,
             CategoryPermissions = role.CategoryPermissions,
             VoicePermissions = role.VoicePermissions,
-            Red = role.Red,
-            Green = role.Green,
-            Blue = role.Blue,
+            Color = role.Color,
             Bold = role.Bold,
             Italics = role.Italics,
             Name = role.Name,
             IsDefault = role.IsDefault,
+            AnyoneCanMention = role.AnyoneCanMention
         };
     }
 }

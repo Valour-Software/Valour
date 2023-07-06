@@ -8,7 +8,7 @@
 
     @{
         string editStyle = "display: none";
-        if (editMode)
+        if (_editMode)
         {
             editStyle = "";
         }
@@ -18,19 +18,19 @@
         <div class="rolecreate-cont">
             <div class="form-group mt-2">
                 <label>Role Name</label>
-                <input class="form-control" @bind-value="@role.Name"/>
-                <span id="rolename-span" class="text-danger">@roleNameSpan</span>
+                <input class="form-control" @bind-value="@_role.Name"/>
+                <span id="rolename-span" class="text-danger">@_roleNameSpan</span>
             </div>
-            <div class="form-group mt-2 ml-2">
+            <div class="form-group mt-2" style="margin-left: 8px">
                 <label>Color</label>
-                <div class="picker-holder">
-                    <ColorPickerComponent></ColorPickerComponent>
+                <div class="color-wrapper">
+                    <input type="color" class="form-control color-picker" value="@_role.Color" oninput="@OnColorChange" />
                 </div>
             </div>
 
         </div>
         <div class="mt-2" style="display: block">
-            @if (role.Id == 0)
+            @if (_role.Id == 0)
             {
                 <div class="btn-role-edit create" style="margin-left: 0px" @onclick="OnClickSave" id="role-save-button">
                     <p class="center-t">
@@ -47,8 +47,8 @@
             }
 
             <div class="mt-2">
-                <span id="result-span" class="text-info">@resultSpan</span>
-                <span id="error-span" class="text-danger" style="display:block">@errorSpan</span>
+                <span id="result-span" class="text-info">@_resultSpan</span>
+                <span id="error-span" class="text-danger" style="display:block">@_errorSpan</span>
             </div>
         </div>
 
@@ -61,6 +61,45 @@
 
         <p class="subtitle">PLANET PERMISSIONS</p>
         <div class="perm-section">
+            
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    Administrator
+                </div>
+                <div type="button" class="perm-switch">
+                    <label class="switch">
+                        <input 
+                            type="checkbox" 
+                            @onclick="OnClickAdmin" 
+                            checked="@_role.IsAdmin"
+                        />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    If true, a member has all permissions in the planet and on every channel in the planet. Grant cautiously.
+                </div>
+            </div>
+            
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    Mentionable
+                </div>
+                <div type="button" class="perm-switch">
+                    <label class="switch">
+                        <input 
+                            type="checkbox" 
+                            @onclick="OnClickCanMention" 
+                            checked="@_role.AnyoneCanMention"
+                        />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    If true, any member can mention this role in chat. Set cautiously.
+                </div>
+            </div>
+            
             @for (int i = 1; i < PlanetPermissions.Permissions.Length; i++)
             {
                 PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
@@ -71,11 +110,10 @@
                     </div>
                     <div type="button" class="perm-switch">
                         <label class="switch">
-                            <input 
-                                type="checkbox" 
-                                @onclick="(e => PermClick(planetPerm.Value, ref rolePlanetPerms))" 
-                                checked="@((rolePlanetPerms & planetPerm.Value) != 0)"
-                            />
+                            <input
+                                type="checkbox"
+                                @onclick="(e => PermClick(planetPerm.Value, ref _rolePlanetPerms))"
+                                checked="@((_rolePlanetPerms & planetPerm.Value) != 0)"/>
                             <span class="slider round"></span>
                         </label>
                     </div>
@@ -99,8 +137,8 @@
                     <div type="button" class="perm-switch">
                         <label class="switch">
                             <input type="checkbox"
-                               @onclick="(e => PermClick(categoryPerm.Value, ref roleCategoryPerms))"
-                                   checked="@((roleCategoryPerms & categoryPerm.Value) != 0)" />
+                               @onclick="(e => PermClick(categoryPerm.Value, ref _roleCategoryPerms))"
+                                   checked="@((_roleCategoryPerms & categoryPerm.Value) != 0)" />
                             <span class="slider round"></span>
                         </label>
                     </div>
@@ -125,8 +163,8 @@
                         <label class="switch">
                             <input 
                                 type="checkbox" 
-                                @onclick="(e => PermClick(chatPerm.Value, ref rolePlanetPerms))" 
-                                checked="@((roleChatPerms & chatPerm.Value) != 0)"
+                                @onclick="(e => PermClick(chatPerm.Value, ref _rolePlanetPerms))" 
+                                checked="@((_roleChatPerms & chatPerm.Value) != 0)"
                             />
                             <span class="slider round"></span>
                         </label>
@@ -151,8 +189,8 @@
                     <div type="button" class="perm-switch">
                         <label class="switch">
                             <input type="checkbox"
-                               @onclick="(e => PermClick(voicePerm.Value, ref roleVoicePerms))"
-                                   checked="@((roleVoicePerms & voicePerm.Value) != 0)" />
+                               @onclick="(e => PermClick(voicePerm.Value, ref _roleVoicePerms))"
+                                   checked="@((_roleVoicePerms & voicePerm.Value) != 0)" />
                             <span class="slider round"></span>
                         </label>
                     </div>
@@ -163,12 +201,12 @@
             }
         </div>
 
-        <button @onclick='() => DeleteRole(Selected)' class="mt-4 btn v-button danger">Delete this role</button>
+        <button @onclick='() => DeleteRole(_selected)' class="mt-4 btn v-button danger">Delete this role</button>
     </div>
 
     @{
         string normStyle = "display: none";
-        if (!editMode)
+        if (!_editMode)
         {
             normStyle = "";
         }
@@ -185,7 +223,7 @@
         }
 
         <div class="form-group mt-2 new-input-style">
-            <input class="form-control" placeholder="Search Roles" @bind="@searchRolesValue" @bind:event="oninput" />
+            <input class="form-control" placeholder="Search Roles" @bind="@_searchRolesValue" @bind:event="oninput" />
         </div>
 
         @if (!DeviceInfo.IsMobile)
@@ -202,7 +240,7 @@
         </div>
 
         <div class="roles-list">
-            @foreach (PlanetRole role in Roles.Where(x => (searchRolesValue == "" || x.Name.Contains(searchRolesValue))))
+            @foreach (PlanetRole role in Roles.Where(x => (_searchRolesValue == "" || x.Name.Contains(_searchRolesValue))))
             {
                 // For magic lambda
                 var role_x = role;
@@ -215,7 +253,7 @@
                     ondragover="event.preventDefault();" 
                     class='roles-row' @onclick="() => OnClickEdit(role_x)">
                     <div class="role-name-div">
-                        <p class='roles-name' style="color:@role.GetColorHex()">
+                        <p class='roles-name' style="color:@role.Color">
                                 @role.Name
                         </p>
                     </div>
@@ -230,6 +268,9 @@
 </div>
 
 @code {
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     [Parameter]
     public Planet Planet { get; set; }
@@ -240,56 +281,57 @@
 
     // Stuff for role creation //
 
-    public PlanetRole role = new PlanetRole()
+    private PlanetRole _role = new PlanetRole()
     {
         Name = "New Role",
-        Red = 255,
-        Green = 255,
-        Blue = 255
+        Color = "#ffffff"
     };
 
-    public bool editMode = false;
+    private bool _editMode = false;
 
-    public string roleNameSpan = "";
+    private string _roleNameSpan = "";
+    private string _resultSpan = "";
+    private string _errorSpan = "";
 
-    public string resultSpan = "";
+    private string _searchRolesValue = "";
 
-    public string errorSpan = "";
-
-    public string searchRolesValue = "";
-
-    private long rolePlanetPerms;
-    private long roleChatPerms;
-    private long roleCategoryPerms;
-    public long roleVoicePerms;
+    private long _rolePlanetPerms;
+    private long _roleChatPerms;
+    private long _roleCategoryPerms;
+    private long _roleVoicePerms;
 
     // Stuff for role editing //
 
-    public PlanetRole Selected { get; set; }
+    private PlanetRole _selected { get; set; }
 
-    [CascadingParameter]
-    public IModalService Modal { get; set; }
+    private PlanetRole _draggingRole;
 
-    public PlanetRole dragging_role;
-
-    public void OnRoleDrag(PlanetRole role){
-        dragging_role = role;
+    private void OnRoleDrag(PlanetRole role){
+        _draggingRole = role;
     }
 
-    public async Task OnRoleDrop(PlanetRole dropped_on){
+    private void OnColorChange(ChangeEventArgs e)
+    {
+        var color = e.Value?.ToString() ?? "#ffffff";
+        _role.Color = color;
+        
+        StateHasChanged();
+    }
 
-        var dropped_on_index = Roles.IndexOf(dropped_on);
+    private async Task OnRoleDrop(PlanetRole droppedOn){
+
+        var droppedOnIndex = Roles.IndexOf(droppedOn);
         
         // Cannot move default role
-        if (dragging_role.IsDefault || dropped_on.IsDefault)
+        if (_draggingRole.IsDefault || droppedOn.IsDefault)
             return;
 
-        Roles.Remove(dragging_role);
-        Roles.Insert(dropped_on_index, dragging_role);
+        Roles.Remove(_draggingRole);
+        Roles.Insert(droppedOnIndex, _draggingRole);
 
         var ids = Roles.Select(x => x.Id);
 
-        var result = await dropped_on.Node.PostAsync($"api/planets/{dropped_on.PlanetId}/roles/order", ids);
+        var result = await droppedOn.Node.PostAsync($"api/planets/{droppedOn.PlanetId}/roles/order", ids);
 
         Console.WriteLine(result.Message);
 
@@ -297,7 +339,7 @@
     }
 
     public async Task OnRoleItemClick(PlanetRole role){
-        dragging_role = role;
+        _draggingRole = role;
     }
 
     public void PermClick(long value, ref long perms)
@@ -339,7 +381,7 @@
 
     public async Task GoBack() 
     {
-        role = new PlanetRole()
+        _role = new PlanetRole()
         {
             Name = "New Role",
             Bold = false,
@@ -347,7 +389,7 @@
             PlanetId = Planet.Id
         };
 
-        editMode = false;
+        _editMode = false;
 
         StateHasChanged();
     }
@@ -373,20 +415,18 @@
 
     public async Task OnClickEdit(PlanetRole editRole)
     {
-        Selected = editRole;
+        _selected = editRole;
 
-        resultSpan = "";
-        errorSpan = "";
+        _resultSpan = "";
+        _errorSpan = "";
 
-        role = editRole;
-        editMode = true;
+        _role = editRole;
+        _editMode = true;
 
-        rolePlanetPerms = editRole.Permissions;
-        roleChatPerms = editRole.ChatPermissions;
-        roleCategoryPerms = editRole.CategoryPermissions;
-        roleVoicePerms = editRole.VoicePermissions;
-
-        await JS.InvokeVoidAsync("SetColorPickerColor", role.GetColorHex());
+        _rolePlanetPerms = editRole.Permissions;
+        _roleChatPerms = editRole.ChatPermissions;
+        _roleCategoryPerms = editRole.CategoryPermissions;
+        _roleVoicePerms = editRole.VoicePermissions;
 
         StateHasChanged();
     }
@@ -400,11 +440,11 @@
             "Confirm",
             "Cancel",
             async () => {
-                var response = await Selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
+                var response = await _selected.Node.DeleteAsync($"api/roles/{role.Id.ToString()}");
 
                 if (!response.Success)
                 {
-                    errorSpan = "Error: " + response.Message;
+                    _errorSpan = "Error: " + response.Message;
                     return;
                 }
 
@@ -423,7 +463,7 @@
 
     public async Task OnClickCreateMode()
     {
-        role = new PlanetRole()
+        _role = new PlanetRole()
         {
             Name = "New Role",
             Bold = false,
@@ -436,36 +476,39 @@
             VoicePermissions = VoiceChannelPermissions.Default
         };
 
-        rolePlanetPerms = PlanetPermissions.Default;
-        roleChatPerms = ChatChannelPermissions.Default;
-        roleCategoryPerms = CategoryPermissions.Default;
-        roleVoicePerms = VoiceChannelPermissions.Default;
+        _rolePlanetPerms = PlanetPermissions.Default;
+        _roleChatPerms = ChatChannelPermissions.Default;
+        _roleCategoryPerms = CategoryPermissions.Default;
+        _roleVoicePerms = VoiceChannelPermissions.Default;
 
-        editMode = true;
+        _editMode = true;
 
         StateHasChanged();
         //await editPlanetModal.Open();
     }
 
-    public async Task OnClickSave()
+    private void OnClickAdmin()
     {
-        resultSpan = "";
-        errorSpan = "";
+        _role.IsAdmin = !_role.IsAdmin;
+        StateHasChanged();
+    }
 
-        // Get chosen color
-        float[] color = await JS.InvokeAsync<float[]>("GetChosenColor");
+    private void OnClickCanMention()
+    {
+        _role.AnyoneCanMention = !_role.AnyoneCanMention;
+        StateHasChanged();
+    }
 
-        role.Red = (byte) Math.Round(color[0]);
-        role.Green = (byte) Math.Round(color[1]);
-        role.Blue = (byte) Math.Round(color[2]);
+    private async Task OnClickSave()
+    {
+        _resultSpan = "";
+        _errorSpan = "";
 
-        role.Permissions = rolePlanetPerms;
-        role.ChatPermissions = roleChatPerms;
-        role.CategoryPermissions = roleCategoryPerms;
-        role.VoicePermissions = roleVoicePerms;
-
-        Console.WriteLine($"Chosen color: rgb({role.Red.ToString()}, {role.Green.ToString()}, {role.Blue.ToString()})");
-
+        _role.Permissions = _rolePlanetPerms;
+        _role.ChatPermissions = _roleChatPerms;
+        _role.CategoryPermissions = _roleCategoryPerms;
+        _role.VoicePermissions = _roleVoicePerms;
+        
         // Create json payload to send to server for request
         // Id and authority is handled by the server
 
@@ -473,43 +516,41 @@
 
         TaskResult<PlanetRole> response;
 
-        JsonContent content = JsonContent.Create(role);
-
-        bool Creating = false;
+        bool creating = false;
 
         // If the id is not set, this is a new role to be created
-        if (role.Id == 0)
+        if (_role.Id == 0)
         {
-            response = await Api.Items.Item.CreateAsync(role);
-            Creating = true;
+            response = await Api.Items.LiveModel.CreateAsync(_role);
+            creating = true;
         }
         // Otherwise we are editing a prior role
         else
-            response = await Api.Items.Item.UpdateAsync(role);
+            response = await Api.Items.LiveModel.UpdateAsync(_role);
 
         if (response.Success)
         {
-            if (Creating)
-                resultSpan = "Successfully created role";
+            if (creating)
+                _resultSpan = "Successfully created role";
             else
-                resultSpan = response.Message;
+                _resultSpan = response.Message;
 
             // get new role
-            role = await PlanetRole.FindAsync(response.Data.Id, Planet.Id);
+            _role = await PlanetRole.FindAsync(response.Data.Id, Planet.Id);
 
             // If creating, send back to role list afterwards
-            if (Creating)
+            if (creating)
             {
-                editMode = false;
-                RoleMemberCounts[role.Id] = 0;
+                _editMode = false;
+                RoleMemberCounts[_role.Id] = 0;
             }
         }
         else
-            errorSpan = response.Message;
+            _errorSpan = response.Message;
 
         StateHasChanged();
 
-        editMode = false;
+        _editMode = false;
     }
 
     public async Task OnRoleDeletion(PlanetRole role)

@@ -15,7 +15,7 @@ namespace Valour.Api.Models;
 
 public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoiceChannel
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute =>
             $"api/voicechannels";
@@ -27,7 +27,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
     /// </summary>
     public override string GetHumanReadableName() => "Voice Channel";
 
-    public override PermChannelType PermType => PermChannelType.PlanetVoiceChannel;
+    public override ChannelType Type => ChannelType.PlanetVoiceChannel;
 
     public override async Task Open() =>
         await Task.CompletedTask;
@@ -55,24 +55,12 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
 
         return item;
     }
-    
-    public override async Task OnUpdate(ModelUpdateEvent eventData)
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyVoiceChannelUpdateAsync(this, eventData);
-    }
-
-    public override async Task OnDelete()
-    {
-        var planet = await GetPlanetAsync();
-        await planet.NotifyVoiceChannelDeleteAsync(this);
-    }
 
     /// <summary>
     /// Returns the voice channel permissions node for the given role id
     /// </summary>
     public async Task<PermissionsNode> GetChannelPermissionsNodeAsync(long roleId, bool refresh = false) =>
-        await PermissionsNode.FindAsync(Id, roleId, PermChannelType.PlanetVoiceChannel, refresh);
+        await PermissionsNode.FindAsync(Id, roleId, ChannelType.PlanetVoiceChannel, refresh);
 
     /// <summary>
     /// Returns the current total permissions for this channel for a member.
@@ -93,7 +81,7 @@ public class PlanetVoiceChannel : PlanetChannel, IVoiceChannel, ISharedPlanetVoi
 
             PlanetId = PlanetId,
             TargetId = Id,
-            TargetType = PermChannelType.PlanetVoiceChannel
+            TargetType = ChannelType.PlanetVoiceChannel
         };
 
         var planet = await GetPlanetAsync();

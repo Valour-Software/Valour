@@ -11,7 +11,7 @@ public class User : Item, ISharedUser
     ///////////////////////////
     
     [InverseProperty("User")]
-    public virtual UserEmail Email { get; set; }
+    public virtual UserPrivateInfo Email { get; set; }
 
     [InverseProperty("User")]
     public virtual ICollection<PlanetMember> Membership { get; set; }
@@ -84,5 +84,12 @@ public class User : Item, ISharedUser
     /// </summary>
     [Column("tag")]
     public string Tag { get; set; }
+    
+    /// <summary>
+    /// If the user has completed the compliance step for regulatory purposes.
+    /// This should only ever be false on legacy or testing accounts.
+    /// </summary>
+    [Column("compliance")]
+    public bool Compliance { get; set; }
 }
 

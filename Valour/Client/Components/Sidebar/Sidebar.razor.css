@@ -2,12 +2,8 @@
     display: flex;
     flex: auto;
     flex-direction: column;
-    max-height: calc(100vh - 118px);
-    min-height: 0;
-}
-
-.flip .sidebar-content {
     max-height: 100vh;
+    min-height: 0;
 }
 
 .tab-container {
@@ -17,12 +13,23 @@
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
     padding-bottom: 24px;
+    padding-top: 60px;
 }
 
 .flip .tab-container {
     padding-bottom: 0;
+    padding-top: 20px;
 }
 
 .tab-container::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    width: 0;
+}
+
+.tab-container::-webkit-scrollbar-track {
+    background: var(--main-1);
+}
+
+.tab-container::-webkit-scrollbar-thumb {
+    border-color: var(--main-1);
+    background-color: var(--main-4);
 }

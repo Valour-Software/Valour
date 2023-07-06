@@ -1,6 +1,7 @@
-﻿@inject IJSRuntime JS
+﻿@inject IJSRuntime JsRuntime
 @implements IAsyncDisposable
 @using Valour.Api.Models.Messages
+@using System.Reflection.Metadata
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
     <CascadingValue Value="this" IsFixed="true">
@@ -229,7 +230,7 @@
     {
         if (firstRender)
         {
-            _jsModule = await JS.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/MessageHolderComponent.razor.js");
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Windows/ChannelWindows/MessageHolderComponent.razor.js");
             await SetupJS();
             await ScrollToBottom();
         }
@@ -303,7 +304,14 @@
             return;
 
         foreach (var msg in messages)
-            await ValourCache.Put(msg.Id, msg, true);
+        {
+            await msg.AddToCache(msg);
+            var reply = msg.GetReply();
+            if (reply is not null)
+            {
+                await reply.AddToCache(reply);
+            }
+        }
 
         await UpdateScrollPosition(); // This saves the scroll position
 

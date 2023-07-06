@@ -106,6 +106,10 @@
     z-index: 1;
 }
 
+::deep .outer-circle .noti.purple{
+    background-color: var(--v-purple);
+}
+
 ::deep .outer-circle .noti.friends {
     background-color: red;
     font-size: 14px;

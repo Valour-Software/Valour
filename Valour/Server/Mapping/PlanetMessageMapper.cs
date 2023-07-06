@@ -20,7 +20,7 @@ public static class PlanetMessageMapper
             EmbedData = message.EmbedData,
             MentionsData = message.MentionsData,
             AttachmentsData = message.AttachmentsData,
-            Edited = message.Edited
+            EditedTime = message.EditedTime
         };
     }
     
@@ -42,7 +42,7 @@ public static class PlanetMessageMapper
             EmbedData = message.EmbedData,
             MentionsData = message.MentionsData,
             AttachmentsData = message.AttachmentsData,
-            Edited = message.Edited
+            EditedTime = message.EditedTime
         };
     }
 }

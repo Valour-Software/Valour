@@ -1,0 +1,255 @@
+﻿@inject WindowManager windowManager
+@inject ChannelListManager listManager
+
+<ContextMenuTrigger 
+    MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" 
+    MenuId='planet-context'>
+    <div 
+        class="@GetCssClass()" 
+        id="list-@Planet.Id"
+        @onpointerdown:stopPropagation="true"
+        @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
+        <div style="cursor:pointer" id="list-inner-@Planet.Id">
+            <div @onclick='@OnClick'
+                 class="header" ondragover="event.preventDefault();">
+                <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@GetArrowStyle()">
+                <p class="planet-name">
+                    @Planet.Name
+                </p>
+
+                <img src="@Planet.IconUrl" class="icon" />
+            </div>
+        </div>
+        <div class="channel-list">
+            
+            @if (Open)
+            {
+                <div class="channel planet-about" @onclick="OnClickPlanetInfo">
+                    <img class="planet-about-icon" src="_content/Valour.Client/media/Home-icon.svg" alt="Info channel"/>
+                    <p class="name">
+                        About Planet
+                    </p>
+                </div>
+
+                <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId='list-context'>
+                    <!-- The Modal -->
+
+                    <CascadingValue Value="@this" IsFixed="true">
+                        
+                        @foreach (var topItem in TopItems)
+                        {
+                            switch (topItem)
+                            {
+                                case PlanetCategory category:
+                                {
+                                    <CategoryListComponent Categories="Categories"
+                                                           Channels="Channels"
+                                                           VoiceChannels="VoiceChannels"
+                                                           Category="category"
+                                                           IsTopLevel="true"
+                                                           @key='category.Id'>
+                                    </CategoryListComponent>
+                                    break;
+                                }
+                                case PlanetChatChannel channel:
+                                {
+                                    <ChatChannelListComponent Channel="channel"
+                                                              @key='channel.Id'>
+                                    </ChatChannelListComponent>
+                                    break;
+                                }
+                                case PlanetVoiceChannel channel:
+                                {
+                                    <VoiceChannelListComponent Channel="channel"
+                                                               @key='channel.Id'>
+                                    </VoiceChannelListComponent>
+                                    break;
+                                }
+                            }
+                        }
+                    </CascadingValue>
+                </ContextMenuTrigger>
+            }
+        </div>
+    </div>
+</ContextMenuTrigger>
+
+@code {
+    [Parameter]
+    public Planet Planet { get; set; }
+
+    public bool Open { get; set; } = true;
+
+    public List<PlanetChannel> TopItems;
+    public List<PlanetCategory> Categories { get; set; }
+    public List<PlanetChatChannel> Channels { get; set; }
+    public List<PlanetVoiceChannel> VoiceChannels { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Initialize collections
+        Categories = new List<PlanetCategory>();
+        Channels = new List<PlanetChatChannel>();
+        VoiceChannels = new List<PlanetVoiceChannel>();
+        TopItems = new List<PlanetChannel>();
+
+        // Handle list change
+        ModelObserver<PlanetCategory>.OnAnyUpdated += OnCategoryUpdate;
+        ModelObserver<PlanetChatChannel>.OnAnyUpdated += OnChatChannelUpdate;
+        ModelObserver<PlanetVoiceChannel>.OnAnyUpdated += OnVoiceChannelUpdate;
+
+        // Handle Deletions
+        ModelObserver<PlanetCategory>.OnAnyDeleted += OnChannelDelete;
+        ModelObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDelete;
+        ModelObserver<PlanetVoiceChannel>.OnAnyDeleted += OnChannelDelete;
+
+        ValourClient.OnCategoryOrderUpdate += OnOrderUpdate;
+
+        await GetCategories();
+        await GetChannels();
+        await GetVoiceChannels();
+        GetTopLevelItems();
+    }
+
+    private async Task OnOrderUpdate(CategoryOrderEvent eventData)
+    {
+        if (eventData.PlanetId != Planet.Id)
+            return;
+
+        if (eventData.CategoryId is null)
+        {
+            GetTopLevelItems();
+            StateHasChanged();
+        }
+            
+    }
+
+    private async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
+    {
+        if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
+            eventData.Model.ParentId is not null) // We only render top level
+        return; 
+
+        // Add and sort new item
+        if (!TopItems.Any(x => x.Id == eventData.Model.Id))
+            TopItems.Add(eventData.Model);
+        SortTopItems();
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
+    {
+        if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
+            eventData.Model.ParentId is not null) // We only render top level
+            return; 
+
+        // Add and sort new item
+        if (!TopItems.Any(x => x.Id == eventData.Model.Id))
+            TopItems.Add(eventData.Model);
+        SortTopItems();
+        
+        StateHasChanged();
+    }
+
+    private async Task OnCategoryUpdate(ModelUpdateEvent<PlanetCategory> eventData)
+    {
+        if (eventData.Model.PlanetId != Planet.Id || // Don't care about other planets
+            eventData.Model.ParentId is not null) // We only render top level
+            return; 
+
+        // Add and sort new item
+        if (!TopItems.Any(x => x.Id == eventData.Model.Id))
+            TopItems.Add(eventData.Model);
+        SortTopItems();
+        
+        StateHasChanged();
+    }
+    
+    private async Task OnChannelDelete(PlanetChannel channel)
+    {
+        if (channel.PlanetId != Planet.Id || // Don't care about other planets
+            channel.ParentId != null) // We only render top level
+            return;
+
+        // Remove - don't need to sort when removing
+        TopItems.RemoveAll(x => x.Id == channel.Id);
+        
+        StateHasChanged();
+    }
+
+    private void SortTopItems()
+    {
+        TopItems.Sort((x, y) => x.Position.CompareTo(y.Position));
+    }
+
+    public string GetCssClass()
+    {
+        if (Open)
+        {
+            return "planet is-open";
+        }
+        else
+        {
+            return "planet";
+        }
+    }
+
+    public string GetArrowStyle()
+    {
+        if (Open)
+            return "transform: rotate(90deg);";
+        return "";
+    }
+
+    public void OnClick()
+    {
+        Open = !Open;
+        StateHasChanged();
+    }
+
+    private void GetTopLevelItems()
+    {
+        TopItems.Clear();
+        foreach (var item in Categories)
+        {
+            if (item.ParentId is null)
+                TopItems.Add(item);
+        }
+        foreach (var item in Channels)
+        {
+            if (item.ParentId is null)
+                TopItems.Add(item);
+        }
+        foreach (var item in VoiceChannels)
+        {
+            if (item.ParentId is null)
+                TopItems.Add(item);
+        }
+
+        SortTopItems();
+            
+        Console.WriteLine($"Found {TopItems.Count} top level channels and categories");
+    }
+    
+    public async Task GetCategories()
+    {
+        Categories = await Planet.GetCategoriesAsync();
+    }
+
+    public async Task GetChannels()
+    {
+        Channels = await Planet.GetChannelsAsync();
+    }
+
+    public async Task GetVoiceChannels()
+    {
+        VoiceChannels = await Planet.GetVoiceChannelsAsync();
+    }
+
+    private async Task OnClickPlanetInfo()
+    {
+        var currentWindow = WindowManager.Instance.GetSelectedWindow();
+        await WindowManager.Instance.ReplaceWindow(currentWindow, new PlanetInfoWindow(Planet));
+    }
+}

@@ -55,7 +55,7 @@
             }
 
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@Window.Id').focus()" autofocus>
+                <div @ref="InnerInputRef" tabindex="1" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@Window.Id').focus()" autofocus>
                 </div>
             </div>
         </div>
@@ -109,6 +109,12 @@
     /// The message component for the preview message
     /// </summary>
     public MessageComponent PreviewMessageComponent { get; private set; }
+    
+    /// <summary>
+    /// The message (if any) that is currently being edited
+    /// </summary>
+    public MessageComponent EditingMessageComponent { get; private set; }
+    private string EditingOriginalText { get; set; }
 
     /// <summary>
     /// The preview message
@@ -255,12 +261,41 @@
         "image/svg+xml"
     };
 
-    public async Task OnBeginEdit(ClientMessageWrapper message)
+    public async Task OnBeginEdit(MessageComponent component, ClientMessageWrapper message)
     {
+        EditingMessageComponent = component;
         PreviewMessage = message;
+        EditingOriginalText = PreviewMessage.Message.Content;
         await PreviewMessageComponent.SetMessage(PreviewMessage);
 
+        await OnChatboxUpdate(message.Message.Content, message.Message.Content.Split(' ').LastOrDefault());
+
+        await SetInputContent(message.Message.Content);
+
         Refresh();
+
+        await SelectEnd();
+    }
+
+    public async Task OnStopEdit(bool cancelled = false)
+    {
+        if (cancelled)
+        {
+            // Return to original
+            //EditingMessageComponent.MessageData.Clear();
+            EditingMessageComponent.MessageData.Message.Content = EditingOriginalText;
+        }
+
+        // Clear preview
+        EditingMessageComponent = null;
+        PreviewMessage = new(BuildNewMessage());
+        await PreviewMessageComponent.SetMessage(PreviewMessage);
+
+        // Clear input
+        await OnChatboxUpdate(null, "");
+        await SetInputContent(string.Empty);
+        
+        PreviewMessageComponent.ReRender();
     }
 
     private async Task LoadFiles(InputFileChangeEventArgs e)
@@ -369,7 +404,7 @@
         {
             if (!MentionSelector.Visible)
             {
-                MentionSelector.SetVisible(true, text[0]);
+                await MentionSelector.SetVisible(true, text[0]);
             }
 
             await MentionSelector.SetText(text);
@@ -377,7 +412,7 @@
         else
         {
             if (MentionSelector.Visible){
-                MentionSelector.SetVisible(false);
+                await MentionSelector.SetVisible(false);
             }
         }
 
@@ -405,7 +440,7 @@
 
     public async Task SetReplyMessage(ClientMessageWrapper message)
     {
-        PreviewMessageComponent.ReplyMessage = message;
+        PreviewMessageComponent.MessageData.Reply = message;
         PreviewMessage.Message.ReplyToId = message?.Message?.Id;
 
         await RefreshPreviewMessage();
@@ -417,41 +452,69 @@
     public async Task RemoveReply()
     {
         PreviewMessage.Message.ReplyToId = null;
-        PreviewMessageComponent.ReplyMessage = null;
+        PreviewMessageComponent.MessageData.Reply = null;
         PreviewMessageComponent.ReRender();
     }
 
     public async Task PostMessage(ClientMessageWrapper messageWrapper)
     {
         messageWrapper.GenerateForPost();
-        MessageHolder.AddQueuedMessage(messageWrapper);
-
-        var result = await messageWrapper.Message.PostMessageAsync();
-
-        if (!result.Success)
+        
+        // New message
+        if (messageWrapper.Message.Id == 0)
         {
-            MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
+            MessageHolder.AddQueuedMessage(messageWrapper);
+            
+            var result = await messageWrapper.Message.PostMessageAsync();
 
-            DirectMessage errorMsg = new()
+            if (!result.Success)
             {
-                Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
-                AuthorUserId = long.MaxValue,
-                ChannelId = Window.Channel.Id,
-                Id = 0
-            };
+                MessageHolder.RemoveQueuedMessage(messageWrapper.Message.Fingerprint);
 
-            MessageHolder.RemoveErrorMessage();
-            await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+                DirectMessage errorMsg = new()
+                {
+                    Content = $"Hey there, friend! Your message didn't post properly.\n Reason: {result.Message}",
+                    AuthorUserId = long.MaxValue,
+                    ChannelId = Window.Channel.Id,
+                    Id = 0 
+                };
+
+                MessageHolder.RemoveErrorMessage();
+                await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+            }
+            else
+            {
+                MessageHolder.RemoveErrorMessage();
+            }
+            
+            PreviewMessageComponent.MessageData.Reply = null;
+            PreviewMessage.Clear();
+            PreviewMessageComponent.ReRender();
+            windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
         }
+        // Editing message
         else
         {
-            MessageHolder.RemoveErrorMessage();
-        }
+            var result = await messageWrapper.Message.EditMessageAsync();
+            if (!result.Success)
+            {
+                DirectMessage errorMsg = new()
+                {
+                    Content = $"Hey there, friend! Your message didn't edit properly.\n Reason: {result.Message}",
+                    AuthorUserId = long.MaxValue,
+                    ChannelId = Window.Channel.Id,
+                    Id = 0 
+                };
 
-        PreviewMessageComponent.ReplyMessage = null;
-        PreviewMessage.Clear();
-        PreviewMessageComponent.ReRender();
-        windowManager.NotYetSentMessages.Remove(WindowComponent.Channel.Id, out var _);
+                MessageHolder.RemoveErrorMessage();
+                await MessageHolder.AddMessage(new ClientMessageWrapper(errorMsg));
+            }
+            else
+            {
+                PreviewMessage = new(BuildNewMessage());
+                await PreviewMessageComponent.SetMessage(PreviewMessage);
+            }
+        }
     }
 
     /////////////////////
@@ -472,6 +535,11 @@
     public async Task OnSubmitClick()
     {
         await _jsModule.InvokeVoidAsync("submitMessage", Window.Id, true);
+    }
+
+    private async Task SelectEnd()
+    {
+        await _jsModule.InvokeVoidAsync("selectEnd", Window.Id);
     }
 
     // JS -> C#
@@ -501,6 +569,11 @@
         PreviewMessage.Message.Content = input;
         await RefreshPreviewMessage();
 
+        if (EditingMessageComponent is not null)
+        {
+            await EditingMessageComponent.BuildMessage();
+        }
+
         await MessageHolder.ScrollToBottom();
 
         if (DateTime.UtcNow > _lastTypingUpdateSent.AddSeconds(5))
@@ -524,6 +597,36 @@
     public void MoveMentionSelect(int n)
     {
         MentionSelector.MoveSelect(n);
+    }
+
+    [JSInvokable]
+    public async Task OnUpArrowNonMention()
+    {
+        if (!string.IsNullOrEmpty((PreviewMessage.Message.Content)))
+        {
+            return;
+        }
+        
+        // Get last message where author is the current user
+        var lastMessage = MessageHolder.RenderedMessages
+            .LastOrDefault(m => m.MessageData.Message.AuthorUserId == ValourClient.Self.Id);
+
+        if (lastMessage is null)
+        {
+            return;
+        }
+
+        await lastMessage.OpenEditMode();
+        await SelectEnd();
+    }
+
+    [JSInvokable]
+    public async Task OnEscape()
+    {
+        if (EditingMessageComponent is null)
+            return;
+        
+        await EditingMessageComponent.CloseEditMode(true);
     }
 
     [JSInvokable]

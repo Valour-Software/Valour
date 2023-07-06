@@ -163,6 +163,40 @@ public class DirectChatChannelApi
 
         return Results.Ok();
     }
+    
+    [ValourRoute(HttpVerbs.Put, "api/directchatchannels/{id}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]
+    public static async Task<IResult> EditMessageRouteAsync(
+        [FromBody] DirectMessage editedMessage,
+        DirectChatChannelService directService,
+        ValourDB db,
+        UserService userService)
+    {
+        if (editedMessage is null)
+            return Results.BadRequest("Include message in body.");
+
+        var oldMessage = await db.DirectMessages.FindAsync(editedMessage.Id);
+        if (oldMessage is null)
+            return ValourResult.NotFound("Message not found");
+                
+        var requesterUserId = await userService.GetCurrentUserIdAsync();
+        if (requesterUserId != oldMessage.AuthorUserId)
+            return ValourResult.Forbid("Only message author can edit a message");
+
+        if (string.IsNullOrEmpty(editedMessage.Content) &&
+            string.IsNullOrEmpty(editedMessage.EmbedData) &&
+            string.IsNullOrEmpty(editedMessage.AttachmentsData))
+            return Results.BadRequest("Message content cannot be null");
+
+        if (editedMessage.Content != null && editedMessage.Content.Length > 2048)
+            return Results.BadRequest("Content must be under 2048 chars");
+
+        var result = await directService.EditMessageAsync(editedMessage);
+        if (!result.Success)
+            return ValourResult.Problem(result.Message);
+
+        return Results.Ok();
+    }
 
     [ValourRoute(HttpVerbs.Delete, "api/directchatchannels/{id}/messages/{message_id}")]
     [UserRequired(UserPermissionsEnum.Messages, UserPermissionsEnum.DirectMessages)]

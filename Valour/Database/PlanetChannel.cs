@@ -43,6 +43,6 @@ public abstract class PlanetChannel : Channel, ISharedPlanetChannel
     [Column("inherits_perms")]
     public bool InheritsPerms { get; set; }
 
-    public abstract PermChannelType PermType { get; }
+    public abstract ChannelType Type { get; }
 }
 

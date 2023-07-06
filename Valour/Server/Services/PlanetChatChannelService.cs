@@ -2,6 +2,7 @@ using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Server.Workers;
 using Valour.Shared;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
 
@@ -43,14 +44,19 @@ public class PlanetChatChannelService
     /// <summary>
     /// Soft deletes the given channel
     /// </summary>
-    public async Task DeleteAsync(PlanetChatChannel channel)
+    public async Task<TaskResult> DeleteAsync(PlanetChatChannel channel)
     {
-        var dbchannel = await _db.PlanetChatChannels.FindAsync(channel.Id);
-        dbchannel.IsDeleted = true;
-        _db.PlanetChatChannels.Update(dbchannel);
+        var dbChannel = await _db.PlanetChatChannels.FindAsync(channel.Id);
+        if (dbChannel.IsDefault)
+            return new TaskResult(false, "You cannot delete the default channel.");
+        
+        dbChannel.IsDeleted = true;
+        _db.PlanetChatChannels.Update(dbChannel);
         await _db.SaveChangesAsync();
 
         _coreHub.NotifyPlanetItemDelete(channel);
+
+        return TaskResult.SuccessResult;
     }
 
     /// <summary>
@@ -262,26 +268,37 @@ public class PlanetChatChannelService
                                                 x.Position == channel.Position && // Same position
                                                 x.Id != channel.Id); // Not self
 
-    public async Task<List<PlanetMessage>> GetMessagesAsync(PlanetChatChannel channel, int count, long index)
+    public async Task<List<PlanetMessage>> GetMessagesAsync(PlanetChatChannel channel, int count = 50, long index = long.MaxValue)
     {
+        // Not sure why this request would even be made
+        if (count < 1)
+            return new();
+        
         List<PlanetMessage> staged = PlanetMessageWorker.GetStagedMessages(channel.Id);
+        
+        var messages = await _db.PlanetMessages.Where(x => x.ChannelId == channel.Id && x.Id < index)
+                                              .Include(x => x.ReplyToMessage)
+                                              .OrderByDescending(x => x.TimeSent)
+                                              .Take(count)
+                                              .Reverse()
+                                              .Select(x => x.ToModel().AddReplyTo(x.ReplyToMessage.ToModel()))
+                                              .ToListAsync();
 
-        if (count > 0)
+        if (staged.Count > 0)
         {
-            var messages = await _db.PlanetMessages.Where(x => x.ChannelId == channel.Id && x.Id < index)
-                                                  .OrderByDescending(x => x.TimeSent)
-                                                  .Take(count)
-                                                  .Reverse()
-                                                  .Select(x => x.ToModel())
-                                                  .ToListAsync();
-
-            messages.AddRange(staged);
-
-            return messages;
+            foreach (var msg in staged)
+            {
+                if (msg.ReplyToId is not null)
+                {
+                    var reply = (await _db.PlanetMessages.FindAsync(msg.ReplyToId)).ToModel();
+                    if (reply is not null)
+                        reply.AddReplyTo(reply);
+                }
+            }
         }
-        else
-        {
-            return staged;
-        }
+        
+        messages.AddRange(staged);
+        
+        return messages;
     }
 }

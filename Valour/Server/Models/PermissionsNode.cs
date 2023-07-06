@@ -38,7 +38,7 @@ public class PermissionsNode : Item, ISharedPermissionsNode
     /// <summary>
     /// The type of object this node applies to
     /// </summary>
-    public PermChannelType TargetType { get; set; }
+    public ChannelType TargetType { get; set; }
     
     /// <summary>
     /// Returns the node code for this permission node

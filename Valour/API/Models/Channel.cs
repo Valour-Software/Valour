@@ -11,7 +11,7 @@ using Valour.Shared.Models;
 namespace Valour.Api.Models;
 
 [JsonDerivedType(typeof(PlanetChannel), typeDiscriminator: nameof(PlanetChannel))]
-public abstract class Channel : Item, IChannel, ISharedChannel
+public abstract class Channel : LiveModel, IChannel, ISharedChannel
 {
     public string Name { get; set; }
     public string Description { get; set; }

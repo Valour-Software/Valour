@@ -139,8 +139,10 @@ public class ConnectionTracker
             var split = value.ToString().Split(':');
             if (split.Length < 2)
                 continue; // Malformed value
-            
-            connections.Add(split[0]);
+
+            var node = split[0];
+            if (!connections.Contains(node)) // Prevent duplicates
+                connections.Add(node);
         }
         
         return connections;

@@ -1,0 +1,74 @@
+@inject IJSRuntime JsRuntime
+
+@if (ValourClient.Self is null || ValourClient.Self.Compliance)
+{
+    return;
+}
+
+@* Make the client pretty much unusable until this step is completed *@
+<div class="safety-popup">
+    <div class="safety-inner">
+        <EditForm Model="@_model" OnSubmit="OnClickSubmit">
+            <h4>Welcome back to Valour!</h4>
+            <p>Due to the platform growing, we have to ensure we follow regulatory guidelines. We already asked if you were 13 years or older on signup - but now we have to store your birthdate so we can prove, in the unfortunate case of a lawsuit, that our users provided dates. Sorry for any inconvenience! This step will also automatically determine your locality so we know where we have to store your user data. Thank you for using Valour!</p>
+            <br/>
+            <div class="form-group mt-2">
+                <label>Birthday</label>
+                <InputDate @bind-Value="@_model.DateOfBirth" class="form-control"></InputDate>
+            </div>
+            <span id="date-span" class="text-danger">@_errorSpan</span>
+            <div class="form-group mt-4">
+                <button class="btn v-button v-button-primary mt-2" style="width: 100%" type="submit">Submit</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+
+    private class SafetyModel
+    {
+        public DateTime DateOfBirth { get; set; } = DateTime.UtcNow;
+    }
+
+    private SafetyModel _model = new();
+    private string _errorSpan;
+    
+    public async Task OnClickSubmit()
+    {
+        var now = DateTime.Today;
+        var age = now.Year - _model.DateOfBirth.Year;
+        if (_model.DateOfBirth > now.AddYears(-age)) age--;
+        
+        switch (age)
+        {
+            case 0:
+                _errorSpan = "Welcome to life newborn! We may not know how you even wrote the date but unfortunately you are going to have to wait till 13 years to use Valour.";
+                return;
+            case < 0:
+                _errorSpan = $"Congratulations on not being born! Maybe try again when you are 13 in {Math.Abs(age) + 13} years?";
+                return;
+            case < 13:
+                _errorSpan = "You must be 13 years of age or older to use Valour.";
+                return;
+            case > 120:
+                _errorSpan = $"If you are actually {age} years old, please contact us at support@valour.gg and we will buy you a cake.";
+                return;
+        }
+        
+        // We have to do this for data localization laws
+        var isEuropean = await JsRuntime.InvokeAsync<bool>("isEuropeanUnion");
+        var locale = isEuropean ? Locality.EuropeanUnion : Locality.General;
+
+        var result = await ValourClient.SetComplianceDataAsync(_model.DateOfBirth, locale);
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+            return;
+        }
+        
+        // Set user compliance to true and close this
+        ValourClient.Self.Compliance = true;
+        StateHasChanged();
+    }
+}

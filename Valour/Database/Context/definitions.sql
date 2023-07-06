@@ -270,12 +270,11 @@ CREATE TABLE IF NOT EXISTS direct_messages (
 
 CREATE TABLE IF NOT EXISTS planet_roles (
     id BIGINT NOT NULL PRIMARY KEY,
+    is_admin BOOLEAN NOT NULL DEFAULT false,
     name VARCHAR(32) NOT NULL,
     position INT NOT NULL,
     planet_id BIGINT NOT NULL,
-    red SMALLINT NOT NULL DEFAULT 0,
-    green SMALLINT NOT NULL DEFAULT 0,
-    blue SMALLINT NOT NULL DEFAULT 0,
+    color VARCHAR(6) NOT NULL DEFAULT 'ffffff',
     bold BOOLEAN NOT NULL DEFAULT false,
     italics BOOLEAN NOT NULL DEFAULT false,
     permissions BIGINT NOT NULL DEFAULT 0,
@@ -355,6 +354,23 @@ CREATE TABLE IF NOT EXISTS user_channel_states (
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
     CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT NOT NULL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    planet_id BIGINT,
+    channel_id BIGINT,
+    source_id BIGINT,
+    time_sent TIMESTAMP NOT NULL,
+    time_read TIMESTAMP,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    ImageUrl TEXT NOT NULL,
+
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
+    CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id),
+    CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
 );
 
 CREATE TABLE IF NOT EXISTS currencies (

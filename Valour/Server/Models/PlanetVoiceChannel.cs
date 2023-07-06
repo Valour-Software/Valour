@@ -4,6 +4,6 @@ namespace Valour.Server.Models;
 
 public class PlanetVoiceChannel : PlanetChannel, ISharedPlanetVoiceChannel
 {
-    public override PermChannelType PermType
-        => PermChannelType.PlanetVoiceChannel;
+    public override ChannelType Type
+        => ChannelType.PlanetVoiceChannel;
 }

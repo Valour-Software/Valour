@@ -20,7 +20,8 @@ public static class UserMapper
             Status = user.Status,
             UserStateCode = user.UserStateCode,
             TimeLastActive = user.TimeLastActive,
-            IsMobile = user.IsMobile
+            IsMobile = user.IsMobile,
+            Compliance = user.Compliance,
         };
     }
     
@@ -42,7 +43,8 @@ public static class UserMapper
             Status = user.Status,
             UserStateCode = user.UserStateCode,
             TimeLastActive = user.TimeLastActive,
-            IsMobile = user.IsMobile
+            IsMobile = user.IsMobile,
+            Compliance = user.Compliance
         };
     }
 }

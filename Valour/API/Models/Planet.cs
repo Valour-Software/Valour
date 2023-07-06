@@ -1,8 +1,10 @@
-﻿using Markdig.Extensions.TaskLists;
+﻿using System.Text.Json;
+using Markdig.Extensions.TaskLists;
 using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
@@ -12,22 +14,20 @@ namespace Valour.Api.Models;
  *  This program is subject to the GNU Affero General Public license
  *  A copy of the license should be included - if not, see <http://www.gnu.org/licenses/>
  */
-public class Planet : Item, ISharedPlanet
+public class Planet : LiveModel, ISharedPlanet
 {
-    #region IPlanetItem implementation
-
     public override string BaseRoute =>
             $"api/planets";
 
-    #endregion
-
     // Cached values
-    private List<PlanetChatChannel> Channels { get; set; }
-    private List<PlanetVoiceChannel> VoiceChannels { get; set; }
-    private List<PlanetCategory> Categories { get; set; }
+
+    private PlanetModelObserver<PlanetChatChannel> ChatChannels { get; set; }
+    private PlanetModelObserver<PlanetVoiceChannel> VoiceChannels { get; set; }
+    private PlanetModelObserver<PlanetCategory> Categories { get; set; }
     private List<PlanetRole> Roles { get; set; }
     private List<PlanetMember> Members { get; set; }
     private List<PlanetInvite> Invites { get; set; }
+    private List<PermissionsNode> PermissionsNodes { get; set; }
 
     /// <summary>
     /// The Id of the owner of this planet
@@ -64,7 +64,16 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public bool Discoverable { get; set; }
 
+    public Planet()
+    {
+        // Setup self-observing collections
+        ChatChannels = new(this);
+        VoiceChannels = new(this);
+        Categories = new(this);
+    }
+
     #region Child Event Handlers
+    
     
     public Task NotifyRoleUpdateAsync(PlanetRole role, ModelUpdateEvent eventData)
     {
@@ -87,81 +96,6 @@ public class Planet : Item, ISharedPlanet
             return Task.CompletedTask;
 
         Roles.Remove(role);
-
-        return Task.CompletedTask;
-    }
-
-    public Task NotifyCategoryUpdateAsync(PlanetCategory category, ModelUpdateEvent eventData)
-    {
-        if (Categories is null || category.PlanetId != Id)
-            return Task.CompletedTask;
-        
-        if (!Categories.Any(x => x.Id == category.Id))
-        {
-            Categories.Add(category);
-            
-            Categories.Sort((a, b) => a.Position.CompareTo(b.Position));
-        }
-
-        return Task.CompletedTask;
-    }
-
-    public Task NotifyCategoryDeleteAsync(PlanetCategory category)
-    {
-        if (Categories is null || !Categories.Contains(category))
-            return Task.CompletedTask;
-
-        Categories.Remove(category);
-
-        return Task.CompletedTask;
-    }
-    
-    public Task NotifyVoiceChannelUpdateAsync(PlanetVoiceChannel channel, ModelUpdateEvent eventData)
-    {
-        if (VoiceChannels is null || channel.PlanetId != Id)
-            return Task.CompletedTask;
-        
-        if (!VoiceChannels.Any(x => x.Id == channel.Id))
-        {
-            VoiceChannels.Add(channel);
-            
-            VoiceChannels.Sort((a, b) => a.Position.CompareTo(b.Position));
-        }
-
-        return Task.CompletedTask;
-    }
-    
-    public Task NotifyVoiceChannelDeleteAsync(PlanetVoiceChannel channel)
-    {
-        if (VoiceChannels is null || !VoiceChannels.Contains(channel))
-            return Task.CompletedTask;
-
-        VoiceChannels.Remove(channel);
-
-        return Task.CompletedTask;
-    }
-
-    public Task NotifyChannelUpdateAsync(PlanetChatChannel channel, ModelUpdateEvent eventData)
-    {
-        if (Channels is null || channel.PlanetId != Id)
-            return Task.CompletedTask;
-        
-        if (!Channels.Any(x => x.Id == channel.Id))
-        {
-            Channels.Add(channel);
-            // Resort
-            Channels.Sort((a, b) => a.Position.CompareTo(b.Position));
-        }
-
-        return Task.CompletedTask;
-    }
-    
-    public Task NotifyChannelDeleteAsync(PlanetChatChannel channel)
-    {
-        if (Channels is null || !Channels.Contains(channel))
-            return Task.CompletedTask;
-
-        Channels.Remove(channel);
 
         return Task.CompletedTask;
     }
@@ -189,18 +123,18 @@ public class Planet : Item, ISharedPlanet
     
     #endregion
 
-    public override async Task AddToCache()
+    public override async Task AddToCache<T>(T item, bool skipEvent = false)
     {
         NodeManager.PlanetToNode[Id] = NodeName;
-        await ValourCache.Put(this.Id, this);
+        await ValourCache.Put(this.Id, this, skipEvent);
     }
 
     /// <summary>
     /// Retrieves and returns a client planet by requesting from the server
     /// </summary>
-    public static async ValueTask<Planet> FindAsync(long id, bool force_refresh = false)
+    public static async ValueTask<Planet> FindAsync(long id, bool refresh = false)
     {
-        if (!force_refresh)
+        if (!refresh)
         {
             var cached = ValourCache.Get<Planet>(id);
             if (cached is not null)
@@ -221,10 +155,10 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async ValueTask<PlanetChatChannel> GetPrimaryChannelAsync(bool refresh = false)
     {
-        if (Channels == null || refresh)
+        if (!ChatChannels.Initialized || refresh)
             await LoadChannelsAsync();
-
-        return Channels?.FirstOrDefault(x => x.IsDefault);
+        
+        return ChatChannels.FirstOrDefault(x => x.IsDefault);
     }
 
     public async ValueTask<PlanetRole> GetDefaultRoleAsync(bool refresh = false)
@@ -240,10 +174,10 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     public async ValueTask<List<PlanetCategory>> GetCategoriesAsync(bool refresh = false)
     {
-        if (Categories == null || refresh)
+        if (!Categories.Initialized || refresh)
             await LoadCategoriesAsync();
 
-        return Categories;
+        return Categories.GetContents();
     }
 
     /// <summary>
@@ -256,43 +190,18 @@ public class Planet : Item, ISharedPlanet
         if (categories is null)
             return;
 
-        // Update cache values
-        foreach (var category in categories)
-        {
-            // Skip event for bulk loading
-            await ValourCache.Put(category.Id, category, true);
-        }
-
-        // Create container if needed
-        if (Categories == null)
-            Categories = new List<PlanetCategory>();
-        else
-            Categories.Clear();
-
-        // Retrieve cache values (this is necessary to ensure single copies of items)
-        foreach (var category in categories)
-        {
-            var cCat = ValourCache.Get<PlanetCategory>(category.Id);
-
-            if (cCat is not null)
-                Categories.Add(cCat);
-        }
-
-        // Sort via position
-        Categories.Sort((a, b) => a.Position.CompareTo(b.Position));
+        await Categories.Initialize(categories);
     }
 
     /// <summary>
     /// Returns the channels of a planet
     /// </summary>
-    public async ValueTask<List<PlanetChatChannel>> GetChannelsAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetChatChannel>> GetChannelsAsync(bool refresh = false)
     {
-        if (Channels == null || force_refresh)
-        {
+        if (!ChatChannels.Initialized || refresh)
             await LoadChannelsAsync();
-        }
 
-        return Channels;
+        return ChatChannels.GetContents();
     }
 
     /// <summary>
@@ -301,46 +210,21 @@ public class Planet : Item, ISharedPlanet
     public async Task LoadChannelsAsync()
     {
         var channels = (await Node.GetJsonAsync<List<PlanetChatChannel>>($"{IdRoute}/channels/chat")).Data;
-
         if (channels is null)
             return;
 
-        foreach (var channel in channels)
-        {
-            // Skip event for bulk loading
-            await ValourCache.Put(channel.Id, channel, true);
-        }
-
-        // Create container if needed
-        if (Channels == null)
-            Channels = new List<PlanetChatChannel>();
-        else
-            Channels.Clear();
-
-        // Retrieve cache values (this is necessary to ensure single copies of items)
-        foreach (var channel in channels)
-        {
-            var cChan = ValourCache.Get<PlanetChatChannel>(channel.Id);
-
-            if (cChan is not null)
-                Channels.Add(cChan);
-        }
-
-        // Sort via position
-        Channels.Sort((a, b) => a.Position.CompareTo(b.Position));
+        await ChatChannels.Initialize(channels);
     }
 
     /// <summary>
     /// Returns the voice channels of a planet
     /// </summary>
-    public async ValueTask<List<PlanetVoiceChannel>> GetVoiceChannelsAsync(bool force_refresh = false)
+    public async ValueTask<List<PlanetVoiceChannel>> GetVoiceChannelsAsync(bool refresh = false)
     {
-        if (VoiceChannels == null || force_refresh)
-        {
+        if (!VoiceChannels.Initialized || refresh)
             await LoadVoiceChannelsAsync();
-        }
 
-        return VoiceChannels;
+        return VoiceChannels.GetContents();
     }
 
     /// <summary>
@@ -352,30 +236,8 @@ public class Planet : Item, ISharedPlanet
 
         if (channels is null)
             return;
-
-        foreach (var channel in channels)
-        {
-            // Skip event for bulk loading
-            await ValourCache.Put(channel.Id, channel, true);
-        }
-
-        // Create container if needed
-        if (VoiceChannels == null)
-            VoiceChannels = new List<PlanetVoiceChannel>();
-        else
-            VoiceChannels.Clear();
-
-        // Retrieve cache values (this is necessary to ensure single copies of items)
-        foreach (var channel in channels)
-        {
-            var vChan = ValourCache.Get<PlanetVoiceChannel>(channel.Id);
-
-            if (vChan is not null)
-                VoiceChannels.Add(vChan);
-        }
-
-        // Sort via position
-        VoiceChannels.Sort((a, b) => a.Position.CompareTo(b.Position));
+        
+        await VoiceChannels.Initialize(channels);
     }
 
     /// <summary>
@@ -438,6 +300,19 @@ public class Planet : Item, ISharedPlanet
             if (member is not null)
                 Members.Add(member);
         }
+    }
+
+    public async ValueTask<List<PermissionsNode>> GetPermissionsNodesAsync(bool refresh = false)
+    {
+        if (PermissionsNodes is null || refresh)
+            await LoadPermissionsNodesAsync();
+
+        return PermissionsNodes;
+    }
+
+    public async Task LoadPermissionsNodesAsync()
+    {
+        PermissionsNodes =  await PermissionsNode.GetAllForPlanetAsync(Id);
     }
 
     /// <summary>
@@ -534,6 +409,12 @@ public class Planet : Item, ISharedPlanet
     {
         return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
     }
+    
+    public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
+        await Node.PostAsync($"{IdRoute}/planetChannels/order", model);
+
+    public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
+        await Node.PostAsync($"{IdRoute}/planetChannels/insert", model);
 
     public Task<List<EcoAccount>> GetPlanetAccounts() =>
         EcoAccount.GetPlanetPlanetAccountsAsync(Id);

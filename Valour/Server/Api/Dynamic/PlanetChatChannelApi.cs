@@ -1,15 +1,11 @@
 using Valour.Shared.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using IdGen;
 using Valour.Server.Database;
-using Pipelines.Sockets.Unofficial.Arenas;
 using Valour.Server.Workers;
 using Valour.Server.Cdn;
 using System.Text.Json;
 using Valour.Server.Config;
 using Valour.Shared.Models;
-using Valour.Server.Notifications;
-using Valour.Server.Services;
 using Valour.Server.Requests;
 
 namespace Valour.Server.Api.Dynamic;
@@ -126,7 +122,8 @@ public class PlanetChatChannelApi
         [FromBody] PlanetChatChannel channel,
         long id,
         PlanetMemberService memberService,
-        PlanetChatChannelService channelService)
+        PlanetChatChannelService channelService,
+        PlanetCategoryService categoryService)
     {
         // Get the channel
         var old = await channelService.GetAsync(id);
@@ -140,6 +137,17 @@ public class PlanetChatChannelApi
 
         if (!await memberService.HasPermissionAsync(member, old, ChatChannelPermissions.ManageChannel))
             return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
+        
+        // Channel parent is being changed
+        if (old.ParentId != channel.ParentId)
+        {
+	        return ValourResult.BadRequest("Use the order endpoint in the parent category to update parent.");
+        }
+        // Channel is being moved
+        else if (old.Position != channel.Position)
+        {
+	        return ValourResult.BadRequest("Use the order endpoint in the parent category to change position.");
+        }
 
         var result = await channelService.UpdateAsync(channel);
         if (!result.Success)
@@ -168,8 +176,10 @@ public class PlanetChatChannelApi
         if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.ManageChannel))
 			return ValourResult.LacksPermission(ChatChannelPermissions.ManageChannel);
 
-		await channelService.DeleteAsync(channel);
-
+		var result = await channelService.DeleteAsync(channel);
+		if (!result.Success)
+			return ValourResult.BadRequest(result.Message);
+		
 		return Results.NoContent();
 	}
 
@@ -283,9 +293,11 @@ public class PlanetChatChannelApi
         CdnDb db,
 		PlanetChatChannelService channelService,
 		PlanetMemberService memberService,
+        PlanetRoleService roleService,
 		UserService userService,
         PlanetService planetService,
-        NodeService nodeService)
+        NodeService nodeService,
+        NotificationService notificationService)
     {
 	    if (NodeConfig.Instance.LogInfo)
 		    Console.WriteLine($"Message posted for channel {id}");
@@ -370,15 +382,58 @@ public class PlanetChatChannelApi
             {
                 foreach (var mention in mentions)
                 {
+	                var sendingUser = await userService.GetAsync(member.UserId);
+	                var planet = await planetService.GetAsync(message.PlanetId);
+	                
                     if (mention.Type == MentionType.Member)
                     {
                         var targetMember = await memberService.GetAsync(mention.TargetId);
-                        var sendingUser = await userService.GetAsync(member.UserId);
-                        var planet = await planetService.GetAsync(message.PlanetId);
+                        if (targetMember is null)
+	                        return ValourResult.NotFound($"Mentioned user {mention.TargetId} not found.");
 
                         var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
 
-                        await NotificationManager.SendNotificationAsync(valourDb, targetMember.UserId, sendingUser.PfpUrl, member.Nickname + " in " + planet.Name, content);
+                        Notification notif = new()
+                        {
+	                        Title = member.Nickname + " in " + planet.Name,
+	                        Body = content,
+	                        ImageUrl = sendingUser.PfpUrl,
+	                        UserId = targetMember.UserId,
+	                        PlanetId = planet.Id,
+	                        ChannelId = channel.Id,
+	                        SourceId = message.Id,
+	                        Source = NotificationSource.PlanetMemberMention,
+	                        ClickUrl = $"/planetchannels/{channel.PlanetId}/{channel.Id}/{message.Id}"
+                        };
+
+                        await notificationService.AddNotificationAsync(notif);
+                    }
+                    else if (mention.Type == MentionType.Role)
+                    {
+	                    var targetRole = await roleService.GetAsync(mention.TargetId);
+	                    if (targetRole is null)
+		                    return ValourResult.NotFound($"Mentioned role {mention.TargetId} not found.");
+
+	                    if (!targetRole.AnyoneCanMention)
+	                    {
+		                    if (!await memberService.HasPermissionAsync(member, channel, PlanetPermissions.MentionAll))
+			                    return ValourResult.LacksPermission(PlanetPermissions.MentionAll);
+	                    }
+	                    
+	                    var content = message.Content.Replace($"«@r-{mention.TargetId}»", $"@{targetRole.Name}");
+
+	                    Notification notif = new()
+	                    {
+		                    Title = member.Nickname + " in " + planet.Name,
+		                    Body = content,
+		                    ImageUrl = sendingUser.PfpUrl,
+		                    PlanetId = planet.Id,
+		                    ChannelId = channel.Id,
+		                    SourceId = message.Id,
+		                    ClickUrl = $"/planetchannels/{channel.PlanetId}/{channel.Id}/{message.Id}"
+	                    };
+
+	                    await notificationService.AddRoleNotificationAsync(notif, targetRole.Id);
                     }
                 }
             }
@@ -388,6 +443,126 @@ public class PlanetChatChannelApi
 
         StatWorker.IncreaseMessageCount();
 
+        return Results.Ok();
+    }
+    
+    [ValourRoute(HttpVerbs.Put, "api/chatchannels/{id}/messages")]
+    [UserRequired(UserPermissionsEnum.Messages)]
+    public static async Task<IResult> EditMessageRouteAsync(
+        [FromBody] PlanetMessage editedMessage,
+        long id,
+        HttpClient client, 
+        ValourDB valourDb, 
+        CdnDb db,
+		PlanetChatChannelService channelService,
+		PlanetMemberService memberService,
+		UserService userService,
+        NodeService nodeService,
+        CoreHubService coreHub)
+    {
+	    if (editedMessage is null)
+		    return Results.BadRequest("Include message in body.");
+	    
+	    if (NodeConfig.Instance.LogInfo)
+		    Console.WriteLine($"Message edit request for channel {id}");
+	    
+	    var currentUser = await userService.GetCurrentUserAsync();
+
+	    if (!await nodeService.IsPlanetHostedLocally(editedMessage.PlanetId))
+		    return ValourResult.BadRequest("Planet belongs to another node.");
+	    
+	    // Sanity checks
+	    if (string.IsNullOrEmpty(editedMessage.Content) &&
+	        string.IsNullOrEmpty(editedMessage.EmbedData) &&
+	        string.IsNullOrEmpty(editedMessage.AttachmentsData))
+		    return Results.BadRequest("Message content cannot be null");
+        
+	    if (editedMessage.Content != null && editedMessage.Content.Length > 2048)
+		    return Results.BadRequest("Content must be under 2048 chars");
+	    
+	    // Get the channel
+	    var channel = await channelService.GetAsync(id);
+	    if (channel is null)
+		    return ValourResult.NotFound("Channel not found");
+
+	    // Get member
+	    var member = await memberService.GetCurrentAsync(channel.PlanetId);
+	    if (member is null)
+		    return ValourResult.NotPlanetMember();
+
+	    if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.View))
+		    return ValourResult.LacksPermission(ChatChannelPermissions.View);
+
+	    if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
+		    return ValourResult.LacksPermission(ChatChannelPermissions.PostMessages);
+	    
+	    // Handle URL content
+	    if (!string.IsNullOrWhiteSpace(editedMessage.Content))
+		    editedMessage.Content = await ProxyHandler.HandleUrls(editedMessage.Content, client, db);
+
+	    // Handle attachments
+        if (editedMessage.AttachmentsData is not null)
+        {
+            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(editedMessage.AttachmentsData);
+            if (attachments is not null)
+            {
+                foreach (var at in attachments)
+                {
+                    if (!at.Location.StartsWith("https://cdn.valour.gg") && 
+                        !at.Location.StartsWith("https://media.tenor.com"))
+                    {
+                        return Results.BadRequest("Attachments must be from https://cdn.valour.gg...");
+                    }
+                    if (_attachmentRejectRegex.IsMatch(at.Location))
+                    {
+                        return Results.BadRequest("Attachment location contains invalid characters");
+                    }
+                }
+            }
+        }
+        
+        // yeah ok so there's a chance the message has not yet hit the database which makes this painful
+        PlanetMessage stagedMessage = PlanetMessageWorker.GetStagedMessage(editedMessage.Id);
+        if (stagedMessage is null)
+        {
+	        Valour.Database.PlanetMessage dbMessage = await valourDb.PlanetMessages.FindAsync(editedMessage.Id);
+	        if (dbMessage is null)
+		        return ValourResult.NotFound("Message not found");
+
+	        if (currentUser.Id != dbMessage.AuthorUserId)
+		        return ValourResult.Forbid("Only message author can edit a message");
+
+	        dbMessage.Content = editedMessage.Content;
+	        dbMessage.AttachmentsData = editedMessage.AttachmentsData;
+	        dbMessage.MentionsData = editedMessage.MentionsData;
+	        dbMessage.EditedTime = DateTime.UtcNow;
+
+	        try
+	        {
+		        await valourDb.SaveChangesAsync();
+	        }
+	        catch (Exception)
+	        {
+		        return ValourResult.Problem("Failed to save edited message");
+	        }
+	        
+	        coreHub.RelayMessageEdit(dbMessage.ToModel());
+        }
+        else
+        {
+	        if (currentUser.Id != stagedMessage.AuthorUserId)
+		        return ValourResult.Forbid("Only message author can edit a message");
+			
+	        // this is effective immediately so we can just edit the staged message before
+	        // it hits the database
+	        stagedMessage.Content = editedMessage.Content;
+	        stagedMessage.AttachmentsData = editedMessage.AttachmentsData;
+	        stagedMessage.MentionsData = editedMessage.MentionsData;
+	        stagedMessage.EditedTime = DateTime.UtcNow;
+
+	        coreHub.RelayMessageEdit(stagedMessage);
+        }
+        
         return Results.Ok();
     }
 

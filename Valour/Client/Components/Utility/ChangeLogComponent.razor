@@ -1,0 +1,81 @@
+@inject ILocalStorageService LocalStorage
+
+@if (!_show)
+{
+    return;
+}
+
+<div class="change-log" @onclick="OnClose">
+    <h4>Valour 0.2.1.0 Changelog (Click to close)</h4>
+    
+    <img alt="Valour logo for version 0.2.1.0 changelog" style="width: 95%; margin-bottom: 18px" src="_content/Valour.Client/media/0.2.1.0.jpg" />
+    
+    <p style="color: #00ffff">Wow, we're doing these now! That's exciting - and it means we're growing up. This version is packed with bug fixes, improvements, and more.</p>
+    <ul>
+        <li style="color: #ff00ff">Added full notification system</li>
+        <ul>
+            <li>Quick notifications can be seen up top on desktop (left click to go to, right click to dismiss)</li>
+            <li>Notification tab added to sidebars</li>
+            <li>You can now be notified from non-opened channels and planets</li>
+            <li>Notifications show on planet list</li>
+            <li>You can now mention roles</li>
+            <li>Note that iOS does not allow WPA push notifications</li>
+        </ul>
+        <li>Improved channel list system</li>
+        <ul>
+            <li>Channels can now be at root level</li>
+            <li>Moving channels and categories is much smoother</li>
+            <li>Reduced rendering complexity</li>
+            <li>Channel list now shows notifications</li>
+        </ul>
+        <li style="color: #ff00ff">Messages can now be edited</li>
+        <ul>
+            <li>Edits are live</li>
+            <li>Edits show (Edited) tag</li>
+            <li>Up arrow edits last message sent for convenience</li>
+        </ul>
+        <li>Leaving planets is fixed</li>
+        <li>Deleting planets is fixed</li>
+        <li>Context menu 'add friend' visual bug is fixed</li>
+        <li>Work on GDPR/COPPA compliance</li>
+        <li>Login/register flow improvement</li>
+        <li>Fix logging out</li>
+        <li>Make password requirements more clear and less annoying</li>
+        <li>Make mention selector not as gross</li>
+        <li>Make reply loading efficient</li>
+        <li>Fix bug where loaded channels would not be scrolled to bottom</li>
+        <li>Make it impossible to delete default channels</li>
+        <li>Add admin permission to roles</li>
+        <li>Use hex for role colors</li>
+        <li>Add planet info window (this will be made pretty soon)</li>
+        <li>Make watching bubble draggable</li>
+        <li>Fix channel highlighting</li>
+    </ul>
+    <p>Thank you for using Valour, and I am already working on the next update! - Spike</p>
+</div>
+
+@code {
+
+    private bool _show = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var version = typeof(ValourClient).Assembly.GetName().Version.ToString();
+        
+        if (!await LocalStorage.ContainKeyAsync("LastVersion") ||
+            await LocalStorage.GetItemAsync<string>("LastVersion") != version)
+        {
+            _show = true;
+            await LocalStorage.SetItemAsync<string>("LastVersion", version);
+            
+            StateHasChanged();
+        }
+    }
+    
+    private void OnClose()
+    {
+        _show = false;
+        StateHasChanged();
+    }
+
+}

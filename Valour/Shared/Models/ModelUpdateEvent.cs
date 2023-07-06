@@ -26,7 +26,7 @@ public class ModelUpdateEvent<T> where T : ISharedItem
     /// <summary>
     /// The fields that changed on the item
     /// </summary>
-    public HashSet<string> FieldsChanged { get; set; } = new HashSet<string>();
+    public HashSet<string> PropsChanged { get; set; } = new HashSet<string>();
     
     /// <summary>
     /// True if the item is new to the client

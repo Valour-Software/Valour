@@ -4,9 +4,9 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class PlanetBan : Item, ISharedPlanetBan
+public class PlanetBan : LiveModel, ISharedPlanetBan
 {
-    #region IPlanetItem implementation
+    #region IPlanetModel implementation
 
     public override string BaseRoute => "api/bans";
 

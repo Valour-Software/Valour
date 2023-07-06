@@ -1,4 +1,4 @@
-﻿@using Valour.Api.Models.Messages
+﻿ @using Valour.Api.Models.Messages
 @inject IJSRuntime JS
 @implements IDisposable
 
@@ -14,7 +14,7 @@
                 <div class="left-info">
                     @if (!Minimal)
                     {
-                        <img class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                        <img alt="@name's profile picture" loading="lazy" class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
                     }
                     <div class="time-container">
                         <p class="time" title="@_timeTitle">
@@ -39,17 +39,17 @@
                         </div>
                     }
 
-                    @if (ReplyMessage is not null && !IsInnerReply)
+                    @if (MessageData.Reply is not null && !IsInnerReply)
                     {
                         Dictionary<string, object> replyParams = new()
                         {
-                            { "MessageData", ReplyMessage },
+                            { "MessageData", MessageData.Reply },
                             { "IsInnerReply", true },
                             { "LastMessage", null },
                             { "Ghost", Ghost }
                         };
 
-                        <DynamicComponent @key='ReplyMessage' Type="ReplyMessage.GetComponentType()" Parameters="replyParams"></DynamicComponent>
+                        <DynamicComponent @key='$"reply-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}"' Type="@MessageData.Reply.GetComponentType()" Parameters="replyParams"></DynamicComponent>
                     }
 
                     <div class="content" @ref="InnerRef">
@@ -91,6 +91,16 @@
                     <div class="reply-x">x</div>
                 }
                 
+                @if (Edit)
+                {
+                    <p class="edit-flag">(Editing)</p>
+                }
+                
+                @if (MessageData.Message.EditedTime != null)
+                {
+                    <p class="edited-flag">(Edited)</p>
+                }
+                
             </div>
         </div>
     </ContextMenuTrigger>
@@ -119,6 +129,8 @@
 
     public virtual string ContextMenuId => "general-message-context";
 
+    public MessageComponent ReplyComponent;
+    
     public MessageContentComponent ContentComponent;
 
     public ElementReference InnerRef;
@@ -126,8 +138,6 @@
     public bool ShouldRenderValue = false;
 
     public bool Minimal = false;
-
-    public ClientMessageWrapper ReplyMessage;
 
     public string Id = "";
 
@@ -169,7 +179,7 @@
         if (Ghost)
             newClass += " ghost";
 
-        if (ReplyMessage is not null)
+        if (MessageData.Reply is not null)
             newClass += " hasreply";
 
         _class = newClass;
@@ -206,6 +216,14 @@
     {
 
     }
+    
+    private async Task OnEditReceived(ModelUpdateEvent eventData)
+    {
+        Console.WriteLine("EDIT RECEIVED");
+        Console.WriteLine(JsonSerializer.Serialize(eventData));
+        await BuildMessage();
+        await CloseEditMode();
+    }
 
     public async Task OnPointerDown()
     {
@@ -240,27 +258,40 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("OnMessageLoad", InnerRef);
+
+        if (firstRender)
+        {
+            // Clear notification if one exists for this message
+            var found = ValourClient.UnreadNotificationsLookup.TryGetValue(MessageData.Message.Id, out var notification);
+            if (found && notification.TimeRead is null)
+            {
+                await ValourClient.MarkNotificationRead(notification, true);
+            }
+        }
     }
 
     public async Task OpenEditMode()
     {
-        // Remove this when it's ready for prod
-        return;
-
-        //await this_ref.FocusAsync();
-
         Edit = true;
+        
+        CalculateClass();
+        
         ReRender();
 
         await Window.Component.OpenEditMode(this);
     }
 
-    public async Task CloseEditMode()
+    public async Task CloseEditMode(bool cancel = false)
     {
         if (!Edit)
             return;
 
         Edit = false;
+        
+        CalculateClass();
+
+        await Window.Component.CloseEditMode(cancel);
+        
         ReRender();
     }
 
@@ -283,14 +314,10 @@
         LastMessage = msg;
     }
 
-    public async Task BuildMessage()
+    public async Task BuildMessage(bool render = true)
     {
         if (MessageData == null)
             return;
-
-        // Get reference to reply message if we have a reply
-        if (MessageData.Message.ReplyToId is not null)
-            ReplyMessage = new ClientMessageWrapper(await MessageData.Message.GetReplyMessageAsync());
 
         // Check if we are a minimal message
         CheckMinimal();
@@ -304,6 +331,10 @@
         if (Minimal)
         {
             IsBuilt = true;
+            
+            if (render)
+                ReRender();
+            
             return;
         }
 
@@ -313,7 +344,9 @@
         pfpurl = await MessageData.Message.GetAuthorImageUrlAsync();
 
         IsBuilt = true;
-        ReRender();
+        
+        if (render)
+            ReRender();
     }
 
     protected override async Task OnInitializedAsync()
@@ -332,7 +365,7 @@
 
         User = await MessageData.Message.GetAuthorUserAsync();
 
-        await BuildMessage();
+        await BuildMessage(false);
 
         if (User != null)
             User.OnUpdated += OnUserUpdated;
@@ -364,7 +397,7 @@
     {
         if (LastMessage != null && MessageData != null)
         {
-            if (ReplyMessage is not null)
+            if (MessageData.Reply is not null)
             {
                 Minimal = false;
                 return;
@@ -384,10 +417,11 @@
         if (Ghost && IsInnerReply) return;
 
         ShouldRenderValue = true;
-        StateHasChanged();
 
         ContentComponent?.ReRender();
 
+        StateHasChanged();
+        
         ShouldRenderValue = false;
     }
 

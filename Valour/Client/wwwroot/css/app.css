@@ -357,7 +357,7 @@ body {
 }
 
 .sidebar-container.sidebar-active {
-    width: 300px;
+    width: 230px;
 }
 
 .mobile .sidebar-container.sidebar-active {
@@ -370,7 +370,7 @@ body {
     display: flex;
     align-items: stretch;
     transition: transform 0.5s ease-in-out;
-    width: 300px;
+    width: 230px;
     transform: translate(-100%);
 }
 

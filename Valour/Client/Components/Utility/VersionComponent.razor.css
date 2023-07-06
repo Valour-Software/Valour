@@ -1,0 +1,25 @@
+.version {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 5;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 16px;
+    width: 100%;
+    align-items: center;
+}
+
+.version .logo {
+    max-width: 40px;
+    max-height: 40px;
+    margin-right: 20px;
+}
+
+.version .text {
+    margin: 0;
+}
+
+.version-gap {
+    height: 60px;
+}

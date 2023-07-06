@@ -113,7 +113,7 @@ public class PlanetMemberApi
 
         // You can always delete your own membership, so we only check permissions
         // if you are not the same as the target
-        if (selfMember.UserId != targetMember.Id)
+        if (selfMember.UserId != targetMember.UserId)
         {
             if (!await memberService.HasPermissionAsync(selfMember, PlanetPermissions.Kick))
                 return ValourResult.LacksPermission(PlanetPermissions.Kick);
@@ -122,7 +122,7 @@ public class PlanetMemberApi
                 return ValourResult.Forbid("You have less authority than the target member.");
         }
 
-        var result = await memberService.DeleteAsync(targetMember);
+        var result = await memberService.DeleteAsync(targetMember.Id);
         if (!result.Success)
             return ValourResult.Problem("Failed to remove member. An unexpected error occured.");
 

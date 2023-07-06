@@ -1,15 +1,6 @@
 ﻿@inject WindowManager windowManager
 
-<div class="home-window">
-    <div class="channel-info">
-        <h3 class="title">
-            Planets and friends
-        </h3>
-        <div class="button-watching-bar">
-            <WindowButtonsComponent Window="Window" ShowHomeIcon="false" OnClickExit="CloseWindow"></WindowButtonsComponent>
-        </div>
-    </div>
-
+<WindowFrameComponent Title="Home" Description="Planets and Friends" Window="@Window">
     <div class="inner-window @mobileTag">
         <h6 class="mt-4 text-center icons-title">Your Planets</h6>
         <div class="icon-container">
@@ -17,7 +8,6 @@
             {
                 <PlanetCardComponent @key='"joined-" + planet.Id' Planet='planet' Window='Window' HomeWindowComponent="this"></PlanetCardComponent>
             }
-        
             <div id="flipper-planet-create-@Window.Id" class="flipper" ontouchstart="determineFlip('flipper-planet-create-@Window.Id', 240)" onmouseover="determineFlip('flipper-planet-create-@Window.Id', 240)" @onclick="OnClickCreatePlanet">
                 <div class="outer-circle">
                     <div class="text-hide-circle"></div>
@@ -131,7 +121,9 @@
 
         <br />
     </div>
-</div>
+</WindowFrameComponent>
+
+    
 
 @code {
 
@@ -182,11 +174,6 @@
     public async Task OnJoinedPlanetsUpdate()
     {
         StateHasChanged();
-    }
-
-    public async Task CloseWindow()
-    {
-        await windowManager.CloseWindow(Window);
     }
 
     public async Task OnClickCreatePlanet()

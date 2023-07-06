@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valour.Server.Database;
 using Valour.Server.Requests;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 using Valour.TenorTwo.Models;
 
 namespace Valour.Server.Api.Dynamic;
@@ -194,36 +195,6 @@ public class PlanetCategoryApi
             return ValourResult.LacksPermission(CategoryPermissions.View);
 
         return Results.Json(await categoryService.GetChildrenIdsAsync(category.Id));
-    }
-
-    [ValourRoute(HttpVerbs.Post, "api/categories/{id}/children/order")]
-    [UserRequired(UserPermissionsEnum.PlanetManagement)]
-    public static async Task<IResult> SetChildOrderRouteAsync(
-        [FromBody] long[] order,
-        long id,
-        PlanetCategoryService categoryService,
-        PlanetMemberService memberService)
-    {
-        // Get the category
-        var category = await categoryService.GetAsync(id);
-        if (category is null)
-            return ValourResult.NotFound("Category not found");
-
-        // Get member
-        var member = await memberService.GetCurrentAsync(category.PlanetId);
-        if (member is null)
-            return ValourResult.NotPlanetMember();
-
-        if (!await memberService.HasPermissionAsync(member, category, CategoryPermissions.ManageCategory))
-            return ValourResult.LacksPermission(CategoryPermissions.ManageCategory);
-
-        order = order.Distinct().ToArray();
-
-        var result = await categoryService.SetChildOrderAsync(category, order);
-        if (!result.Success)
-            return ValourResult.Problem(result.Message);
-
-        return Results.NoContent();
     }
 
     [ValourRoute(HttpVerbs.Get, "api/categories/{id}/nodes")]

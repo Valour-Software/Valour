@@ -7,9 +7,10 @@
         <div class="outer-circle">
             <div class="text-hide-circle" />
             <img src='@iconUrl' class="icon" @onerror='OnIconError' style='@image_style'/>
-            @if (IsUnread)
+            @if (IsUnread || _notificationCount > 0)
             {
-                <div class="noti">
+                <div class="noti @(_notificationCount > 0 ? "purple" : "")">
+                    @(_notificationCount > 9 ? "+" : _notificationCount)
                 </div>
             }
             <div class="rect-slide">
@@ -37,6 +38,7 @@
 
     public string image_style = "";
     public bool IsUnread = false;
+    private int _notificationCount = 0;
 
     protected override async Task OnInitializedAsync(){
         if (!string.IsNullOrWhiteSpace(Friend.PfpUrl))
@@ -62,6 +64,7 @@
         else
         {
             IsUnread = ValourClient.GetChannelUnreadState(channel.Id);
+            _notificationCount = ValourClient.GetChannelNotifications(channel.Id);
         }
         
         StateHasChanged();

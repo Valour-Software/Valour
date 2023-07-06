@@ -1,10 +1,38 @@
 ﻿.mention-select {
     position: absolute;
     bottom: 80px;
-    background-color: red;
     border-radius: 10px;
-    padding: 10px;
-    background-color: var(--main-5);
-    border: 5px solid var(--main-1);
-    opacity: 0.95;
+    padding: 6px;
+    background-color: var(--main-1);
+    opacity: 0.95
+}
+
+::deep .item {
+    cursor: pointer;
+    border-radius: 10px;
+    display: flex;
+    padding: 2px;
+}
+
+::deep .item:hover,
+::deep .item.selected {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+::deep .item:active {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+::deep .item .icon {
+    width: 18px;
+    height: 18px;
+    display: inline-block;
+    border-radius: 50%;
+}
+
+::deep .item .title {
+    font-size: 16px;
+    display: inline-block;
+    margin: 0;
+    margin-left: 3px;
 }

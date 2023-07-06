@@ -1,18 +1,11 @@
-﻿using IdGen;
-using Microsoft.EntityFrameworkCore.Storage;
-using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Asn1.X509;
-using StackExchange.Redis;
+﻿using StackExchange.Redis;
 using System.Text.Json;
-using Valour.Server.API;
 using Valour.Server.Cdn;
 using Valour.Server.Config;
 using Valour.Server.Database;
-using Valour.Server.Notifications;
 using Valour.Server.Redis;
 using Valour.Server.Workers;
 using Valour.Shared;
-using Valour.Shared.Authorization;
 using Valour.Shared.Models;
 
 namespace Valour.Server.Services;
@@ -24,6 +17,7 @@ public class DirectChatChannelService
     private readonly TokenService _tokenService;
     private readonly UserService _userService;
     private readonly NodeService _nodeService;
+    private readonly NotificationService _notificationService;
     private readonly ILogger<DirectChatChannelService> _logger;
     private readonly CdnDb _cdnDB;
     private readonly IConnectionMultiplexer _redis;
@@ -34,6 +28,7 @@ public class DirectChatChannelService
         CoreHubService coreHub,
         TokenService tokenService,
         UserService userService,
+        NotificationService notificationService,
         ILogger<DirectChatChannelService> logger,
         CdnDb cdnDb,
         IConnectionMultiplexer redis,
@@ -49,6 +44,7 @@ public class DirectChatChannelService
         _redis = redis;
         _httpClient = httpClient;
         _nodeService = nodeService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -120,16 +116,23 @@ public class DirectChatChannelService
         return new(true, "Success", channel.ToModel());
     }
 
-    public async Task<DirectMessage> GetDirectMessageAsync(long msgId) =>
-        (await _db.DirectMessages.FindAsync(msgId)).ToModel();
+    public async Task<DirectMessage> GetDirectMessageAsync(long msgId)
+    {
+        var msg = (await _db.DirectMessages.FindAsync(msgId)).ToModel();
+        if (msg.ReplyToId is not null)
+            msg.ReplyTo = (await _db.DirectMessages.FindAsync(msg.ReplyToId)).ToModel();
+
+        return msg;
+    }
 
     public async Task<List<DirectMessage>> GetDirectMessagesAsync(DirectChatChannel channel, long index, int count) =>
         await _db.DirectMessages.Where(x => x.ChannelId == channel.Id && x.Id <= index)
-                                              .OrderByDescending(x => x.Id)
-                                              .Take(count)
-                                              .Reverse()
-                                              .Select(x => x.ToModel())
-                                              .ToListAsync();
+            .Include(x => x.ReplyToMessage)
+            .OrderByDescending(x => x.Id)
+            .Take(count)
+            .Reverse()
+            .Select(x => x.ToModel().AddReplyTo(x.ReplyToMessage.ToModel()))
+            .ToListAsync();
 
     public async Task UpdateUserStateAsync(DirectChatChannel channel, long userId)
     {
@@ -243,12 +246,29 @@ public class DirectChatChannelService
                 {
                     if (mention.Type == MentionType.User)
                     {
+                        // Ensure user being mentioned is actually in the channel
+                        if (mention.TargetId != channel.UserOneId && mention.TargetId != channel.UserTwoId)
+                        {
+                            continue;
+                        }
+                        
                         var mentionTargetUser = await _userService.GetAsync(mention.TargetId);
                         var sendingUser = await _userService.GetAsync(sendingUserId);
 
                         var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
 
-                        await NotificationManager.SendNotificationAsync(_db, mentionTargetUser.Id, sendingUser.PfpUrl, sendingUser.Name + " in DMs", content);
+                        Notification notif = new()
+                        {
+                            Title = sendingUser.Name + " in DMs",
+                            Body = content,
+                            ImageUrl = sendingUser.PfpUrl,
+                            ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
+                            ChannelId = channel.Id,
+                            Source = NotificationSource.DirectMention,
+                            SourceId = message.Id,
+                            UserId = mentionTargetUser.Id,
+                        };
+                        await _notificationService.AddNotificationAsync(notif);
                     }
                 }
             }
@@ -269,6 +289,15 @@ public class DirectChatChannelService
         if (targetUser is null)
             return new(false, "Target user not found.");
 
+        if (message.ReplyToId is not null)
+        {
+            var replyTo = await _db.DirectMessages.FindAsync(message.ReplyToId);
+            if (replyTo is null)
+                return new(false, "Reply message not found");
+
+            message.ReplyTo = replyTo.ToModel();
+        }
+
 
         await UpdateUserStateAsync(channel, sendingUserId);
 
@@ -278,6 +307,55 @@ public class DirectChatChannelService
         await _coreHub.RelayDirectMessage(message, _nodeService);
 
         StatWorker.IncreaseMessageCount();
+
+        return new(true, "Success");
+    }
+    
+    public async Task<TaskResult> EditMessageAsync(DirectMessage message)
+    {
+        if (message.Content is null)
+            message.Content = "";
+
+        // Handle URL content
+        if (!string.IsNullOrWhiteSpace(message.Content))
+            message.Content = await ProxyHandler.HandleUrls(message.Content, _httpClient, _cdnDB);
+
+        // Handle attachments
+        if (message.AttachmentsData is not null)
+        {
+            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
+            if (attachments is not null)
+            {
+                foreach (var at in attachments)
+                {
+                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
+                    {
+                        return new(false, "Attachments must be from https://cdn.valour.gg...");
+                    }
+                    if (_attachmentRejectRegex.IsMatch(at.Location))
+                    {
+                        return new(false, "Attachment location contains invalid characters");
+                    }
+                }
+            }
+        }
+
+        var old = await _db.DirectMessages.FindAsync(message.Id);
+        old.Content = message.Content;
+        old.AttachmentsData = message.AttachmentsData;
+        old.MentionsData = message.MentionsData;
+        old.EditedTime = DateTime.UtcNow;
+
+        try
+        {
+            await _db.SaveChangesAsync();
+        }
+        catch (System.Exception e)
+        {
+            return new(false, e.Message);
+        }
+
+        await _coreHub.RelayDirectMessageEdit(message, _nodeService);
 
         return new(true, "Success");
     }

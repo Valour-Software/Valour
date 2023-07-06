@@ -1,10 +1,12 @@
+using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Client.Components.Windows.ChannelWindows;
 
 namespace Valour.Client.Windows.ChatWindows;
 
-public abstract class ChatChannelWindow : ClientWindow 
+public abstract class ChatChannelWindow : ClientWindow
 {
+    private readonly string _lockKey = Guid.NewGuid().ToString();
 
     /// <summary>
     /// The channel for this chat window
@@ -33,10 +35,20 @@ public abstract class ChatChannelWindow : ClientWindow
     public ChatChannelWindow(IChatChannel channel)
     {
         Channel = channel;
+
+        if (channel is PlanetChannel planetChannel)
+        {
+            ValourClient.AddPlanetLock(_lockKey, planetChannel.PlanetId);
+        }
     }
 
     public override async Task OnClosedAsync()
     {
+        if (Channel is PlanetChannel)
+        {
+            await ValourClient.RemovePlanetLock(_lockKey);
+        }
+        
         await base.OnClosedAsync();
         await Component.OnWindowClosed();
     }

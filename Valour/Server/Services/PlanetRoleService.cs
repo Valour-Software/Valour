@@ -31,8 +31,16 @@ public class PlanetRoleService
     public async ValueTask<PlanetRole> GetAsync(long id) =>
         (await _db.PlanetRoles.FindAsync(id)).ToModel();
 
+    private static readonly Regex _hexColorRegex = new Regex("^#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$");
+    
     public async Task<TaskResult<PlanetRole>> CreateAsync(PlanetRole role)
     {
+        if (string.IsNullOrWhiteSpace(role.Color))
+            role.Color = "#ffffff";
+        
+        if (!_hexColorRegex.IsMatch(role.Color))
+            return new TaskResult<PlanetRole>(false, "Invalid hex color");
+
         role.Position = await _db.PlanetRoles.CountAsync(x => x.PlanetId == role.PlanetId);
         role.Id = IdManager.Generate();
 
@@ -66,6 +74,15 @@ public class PlanetRoleService
         if (updatedRole.IsDefault != oldRole.IsDefault)
             return new TaskResult<PlanetRole>(false, "Cannot change default status of role.");
 
+        if (string.IsNullOrWhiteSpace(updatedRole.Color))
+            updatedRole.Color = "#ffffff";
+        
+        if (updatedRole.Color != oldRole.Color)
+        {
+            if (!_hexColorRegex.IsMatch(updatedRole.Color))
+                return new TaskResult<PlanetRole>(false, "Invalid hex color");
+        }
+
         try
         {
             _db.Entry(oldRole).CurrentValues.SetValues(updatedRole);
@@ -86,26 +103,26 @@ public class PlanetRoleService
         await _db.PermissionsNodes.Where(x => x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<List<PermissionsNode>> GetChannelNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.TargetType == PermChannelType.PlanetChatChannel &&
+        await _db.PermissionsNodes.Where(x => x.TargetType == ChannelType.PlanetChatChannel &&
                                           x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<List<PermissionsNode>> GetCategoryNodesAsync(PlanetRole role) =>
-        await _db.PermissionsNodes.Where(x => x.TargetType == PermChannelType.PlanetCategoryChannel &&
+        await _db.PermissionsNodes.Where(x => x.TargetType == ChannelType.PlanetCategoryChannel &&
                                           x.RoleId == role.Id).Select(x => x.ToModel()).ToListAsync();
 
     public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetChatChannel channel, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == channel.Id &&
-                                                           x.TargetType == PermChannelType.PlanetChatChannel &&
+                                                           x.TargetType == ChannelType.PlanetChatChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionsNode> GetChatChannelNodeAsync(PlanetCategory category, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                           x.TargetType == PermChannelType.PlanetChatChannel &&
+                                                           x.TargetType == ChannelType.PlanetChatChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionsNode> GetCategoryNodeAsync(PlanetCategory category, PlanetRole role) =>
         (await _db.PermissionsNodes.FirstOrDefaultAsync(x => x.TargetId == category.Id &&
-                                                           x.TargetType == PermChannelType.PlanetCategoryChannel &&
+                                                           x.TargetType == ChannelType.PlanetCategoryChannel &&
                                                            x.RoleId == role.Id)).ToModel();
 
     public async Task<PermissionState> GetPermissionStateAsync(Permission permission, long channelId, long roleId) =>

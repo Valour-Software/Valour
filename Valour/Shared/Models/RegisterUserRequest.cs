@@ -18,4 +18,6 @@ public class RegisterUserRequest
     public string Email { get; set; }
     public string Password { get; set; }
     public string Referrer { get; set; }
+    public DateTime DateOfBirth { get; set; }
+    public Locality Locality { get; set; }
 }

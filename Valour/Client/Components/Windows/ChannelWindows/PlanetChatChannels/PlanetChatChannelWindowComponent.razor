@@ -1,6 +1,5 @@
 ﻿@inherits ChatChannelWindowComponent
 @implements IDisposable
-@inject SoundManager soundManager
 @inject WindowManager windowManager
 @using Valour.Api.Models.Messages
 
@@ -39,12 +38,6 @@
         await base.SetupNewChannelAsync();
     }
 
-    public override async Task CheckForSelfMention(ClientMessageWrapper messageWrapper)
-    {
-        if (messageWrapper.Message.Mentions.Any(x => x.Type == MentionType.Member && x.TargetId == SelfMember.Id))
-            await soundManager.PlaySound("Notification.mp3");
-    }
-
     public override async Task OnClickWindow()
     {
         await windowManager.SetFocusedPlanet(await PlanetChannel.GetPlanetAsync());
@@ -70,8 +63,8 @@
 
     #region Event Handling
 
-    public async Task OnPlanetDeleted() 
-    => await CloseWindow();
+    public async Task OnPlanetDeleted()
+        => await Window.CloseAsync();
 
     public async Task OnSelfMemberDeleted()
     {

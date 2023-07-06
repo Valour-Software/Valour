@@ -1,7 +1,7 @@
 @inject HttpClient Http
-@inject NavigationManager navManager
-@inject ILocalStorageService localStorage
-@inject IJSRuntime JS
+@inject NavigationManager NavManager
+@inject ILocalStorageService LocalStorage
+@inject IJSRuntime JsRuntime
 
 <body class="login-background">
     <div class="popup-box">
@@ -20,15 +20,15 @@
                 <div asp-validation-summary="All" class="text-danger"></div>
                 <div class="form-group">
                     <label>Email</label>
-                    <input type="email" class="form-control" @bind-value="@email" />
-                    <span id="email-span" class="text-danger">@emailSpan</span>
+                    <input type="email" autocomplete="email" class="form-control" @bind-value="@_email" @onkeyup="@OnEmailKey" />
+                    <span id="email-span" class="text-danger">@_emailSpan</span>
                 </div>
                 <div class="form-group mt-2">
                     <label>Password</label>
-                    <input type="password" class="form-control" @bind-value="@password" />
-                    <span id="password-span" class="text-danger">@passwordSpan</span>
+                    <input @ref="@PasswordInput" id="password-input" type="password" autocomplete="current-password" class="form-control" @bind-value="@_password" @onkeyup="@OnPasswordKey" />
+                    <span id="password-span" class="text-danger">@_passwordSpan</span>
                 </div>
-                <span id="result-span" class="text-info">@resultSpan</span>
+                <span id="result-span" class="text-info">@_resultSpan</span>
                 <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
                 <div class="form-group mt-4" style="display:inline-block">
                     <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button>
@@ -40,66 +40,83 @@
 </body>
 
 @code {
+    
+    private ElementReference PasswordInput { get; set; }
+    
     [Parameter]
-    public bool FromVerified { get; set; } = false;
+    public bool FromVerified { get; set; }
 
-    public string email;
-    public string password;
+    private string _email;
+    private string _password;
 
-    public string emailSpan;
-    public string passwordSpan;
-    public string resultSpan;
+    private string _emailSpan;
+    private string _passwordSpan;
+    private string _resultSpan;
 
-    private async Task OnClickLogin(MouseEventArgs e)
+    private async Task OnEmailKey(KeyboardEventArgs e)
     {
-        if (email == null || string.IsNullOrWhiteSpace(email))
+        if (e.Key == "Enter")
         {
-            emailSpan = "Please enter your email.";
+            await PasswordInput.FocusAsync();
+        }
+    }
+    
+    private async Task OnPasswordKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await OnClickLogin();
+        }
+    }
+
+    private async Task OnClickLogin()
+    {
+        if (_email == null || string.IsNullOrWhiteSpace(_email))
+        {
+            _emailSpan = "Please enter your email.";
             return;
         }
 
         // Fix trailing whitespace
-        email = email.Trim();
+        _email = _email.Trim();
 
-        if (password == null || string.IsNullOrWhiteSpace(password))
+        if (_password == null || string.IsNullOrWhiteSpace(_password))
         {
-            passwordSpan = "Please enter your password.";
+            _passwordSpan = "Please enter your password.";
             return;
         }
 
         // Clear spans
-        passwordSpan = "";
-        emailSpan = "";
+        _passwordSpan = "";
+        _emailSpan = "";
 
-        var tokenResult = await ValourClient.GetToken(email, password);
+        var tokenResult = await ValourClient.GetToken(_email, _password);
 
         if (!tokenResult.Success)
         {
             Console.WriteLine("Failed to request user token.");
             Console.WriteLine(tokenResult.Data);
-            passwordSpan = tokenResult.Message;
+            _passwordSpan = tokenResult.Message;
             return;
         }
-        else
+
+        var result = await ValourClient.InitializeUser(tokenResult.Data);
+
+        if (result.Success)
         {
-            var result = await ValourClient.InitializeUser(tokenResult.Data);
+            _resultSpan = result.Message;
+            await JsRuntime.SetCookieAsync("token", tokenResult.Data);
 
-            if (result.Success)
-            {
-                resultSpan = result.Message;
-                await JS.SetCookieAsync("token", tokenResult.Data);
-
-                if (FromVerified)
-                    navManager.NavigateTo("/", true);
-            }
-            else {
-                passwordSpan = result.Message;
-            }
+            if (FromVerified)
+                NavManager.NavigateTo("/", true);
+        }
+        else {
+            _passwordSpan = result.Message;
         }
     }
 
     private void OnClickRegister(MouseEventArgs e)
     {
-        navManager.NavigateTo("/AgeVeri", forceLoad: true);
+        NavManager.NavigateTo("/Register", forceLoad: true);
     }
 }

@@ -76,7 +76,7 @@
     private async Task OnStatusApply()
     {
         User.Status = Status;
-        var result = await Valour.Api.Items.Item.UpdateAsync(User);
+        var result = await Valour.Api.Items.LiveModel.UpdateAsync(User);
         statusError = !result.Success;
 
         if (statusError)
@@ -90,7 +90,7 @@
     private async Task OnStatusCodeApply()
     {
         User.UserStateCode = StatusCode;
-        var result = await Valour.Api.Items.Item.UpdateAsync(User);
+        var result = await Valour.Api.Items.LiveModel.UpdateAsync(User);
         statusCodeError = !result.Success;
 
         if (statusCodeError)
