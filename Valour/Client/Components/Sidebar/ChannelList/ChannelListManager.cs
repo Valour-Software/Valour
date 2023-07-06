@@ -3,6 +3,7 @@ using Valour.Shared.Categories;
 using Valour.Api.Client;
 using Valour.Api.Items;
 using Valour.Api.Models;
+using Valour.Shared.Models;
 
 namespace Valour.Client.Components.Sidebar.ChannelList
 {
@@ -68,40 +69,6 @@ namespace Valour.Client.Components.Sidebar.ChannelList
         }
 
         /// <summary>
-        /// Run when an item is dropped on a planet
-        /// </summary>
-        /// <param name="target">The planet component that the item was dropped onto</param>
-        public async Task OnItemDropOnPlanet(PlanetListComponent target)
-        {
-            OnDragEnterItem(0);
-            
-            // Insert item into the next slot in the category
-            if (target == null)
-                return;
-
-            if (_currentDragItem == null)
-                return;
-
-            // Only categories can be put under a planet
-            if (_currentDragItem is not PlanetCategory)
-                return;
-
-            // Already parent
-            if (target.Planet.Id == _currentDragItem.ParentId)
-                return;
-
-            // Add current item to target category
-
-            _currentDragItem.Position =  -1;
-            _currentDragItem.ParentId = null;
-            var response = await LiveModel.UpdateAsync(_currentDragItem);
-
-            Console.WriteLine($"Inserting category {_currentDragItem.Id} into planet {target.Planet.Id}");
-
-            Console.WriteLine(response.Message);
-        }
-
-        /// <summary>
         /// Run when an item is dropped on a category
         /// </summary>
         /// <param name="target">The category component that the item was dropped onto</param>
@@ -124,58 +91,17 @@ namespace Valour.Client.Components.Sidebar.ChannelList
             
 
             // Add current item to target category
-            var response = await target.Category.InsertChild(_currentDragItem.Id);
+            InsertChannelChildModel model = new()
+            {
+                ParentId = target.Category.Id,
+                InsertId = _currentDragItem.Id,
+                PlanetId = _currentDragItem.PlanetId,
+            };
+            var response = await target.Planet.InsertChild(model);
             Console.WriteLine($"Inserting category {_currentDragItem.Id} into {target.Category.Id}");
             Console.WriteLine(response.Message);
         }
-
-        // TODO: Merge this and below into one function using some inheritance on the components
-        public async Task OnItemDropOnVoiceChannel(VoiceChannelListComponent target)
-        {
-            OnDragEnterItem(0);
-            
-            if (target == null)
-                return;
-
-            var oldIndex = 0;
-
-            if (_currentDragParentCategory != null)
-            {
-                oldIndex = _currentDragParentCategory.GetIndex(_currentDragItem);
-            }
-            var newIndex = target.ParentCategory.GetIndex(target.Channel);
-
-            // Remove from old list
-            if (_currentDragParentCategory != null)
-            {
-                _currentDragParentCategory.ItemList.RemoveAt(oldIndex);
-            }
-            // Insert into new list at correct position
-            target.ParentCategory.ItemList.Insert(newIndex, _currentDragItem);
-            _currentDragItem.ParentId = target.ParentCategory.Category.Id;
-
-            TaskResult response;
-            var orderData = new List<long>();
-
-            ushort pos = 0;
-
-            foreach (var item in target.ParentCategory.ItemList)
-            {
-                Console.WriteLine($"{item.Id} at {pos}");
-
-                orderData.Add(
-                    item.Id
-                );
-
-                pos++;
-            }
-
-            response = await target.ParentCategory.Category.SetChildOrderAsync(orderData);
-
-            Console.WriteLine(response.Message);
-            Console.WriteLine($"Dropped {_currentDragItem.Id} onto {target.Channel.Id} at {newIndex}");
-        }
-
+        
         public async Task OnItemDropOnItem(ChannelListItemComponent target)
         {
             // Get current top/bottom value
@@ -224,37 +150,52 @@ namespace Valour.Client.Components.Sidebar.ChannelList
                 {
                     childrenOrder.Insert(newIndex, _currentDragItem.Id);
                 }
+
+                var model = new OrderChannelsModel()
+                {
+                    PlanetId = _currentDragItem.PlanetId,
+                    CategoryId = target.GetItem().ParentId,
+                    Order = childrenOrder,
+                };
                 
-                var response = await target.ParentCategory.Category.SetChildOrderAsync(childrenOrder);
+                var response = await target.PlanetComponent.Planet.SetChildOrderAsync(model);
                 if (!response.Success)
                     Console.WriteLine("Error setting order:\n" + response.Message);
             }
             // Inserting
             else
             {
+                List<long> childrenOrder = null;
                 
-            }
-
-            
-
-            // Moving within the same category
-            if (targetItem.ParentId == _currentDragItem.ParentId)
-            {
+                if (target.ParentCategory is null)
+                {
+                    childrenOrder = target.PlanetComponent.TopItems
+                        .Select(x => x.Id)
+                        .ToList();
+                }
+                else
+                {
+                    childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                }
                 
-            }
-            // Inserting into new category
-            else
-            {
-                var childrenOrder = target.ParentCategory.ItemList.Select(x => x.Id).ToList();
+                
                 newIndex = childrenOrder.IndexOf(targetItem.Id);
                 if (!top)
                     newIndex += 1;
-                
-                var response = await target.ParentCategory.Category.InsertChild(_currentDragItem.Id, newIndex);
+
+                var model = new InsertChannelChildModel()
+                {
+                    InsertId = _currentDragItem.Id,
+                    ParentId = target.GetItem().ParentId,
+                    PlanetId = _currentDragItem.PlanetId,
+                    Position = newIndex
+                };
+
+                var response = await target.PlanetComponent.Planet.InsertChild(model);
                 if (!response.Success)
                     Console.WriteLine("Error setting order:\n" + response.Message);
             }
-            
+
             Console.WriteLine($"Dropped {_currentDragItem.Id} onto {targetItem.Id} at {newIndex}");
         }
 

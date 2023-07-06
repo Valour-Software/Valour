@@ -11,7 +11,6 @@
         @onpointerdown='async () => await PlanetContextMenuComponent.SetSelectedPlanet(Planet)'>
         <div style="cursor:pointer" id="list-inner-@Planet.Id">
             <div @onclick='@OnClick'
-                 @ondrop="async () => await listManager.OnItemDropOnPlanet(this)"
                  class="header" ondragover="event.preventDefault();">
                 <img class="arrow" src="_content/Valour.Client/media/Category-Icon-read.svg" style="@GetArrowStyle()">
                 <p class="planet-name">
@@ -104,10 +103,25 @@
         ModelObserver<PlanetChatChannel>.OnAnyDeleted += OnChannelDelete;
         ModelObserver<PlanetVoiceChannel>.OnAnyDeleted += OnChannelDelete;
 
+        ValourClient.OnCategoryOrderUpdate += OnOrderUpdate;
+
         await GetCategories();
         await GetChannels();
         await GetVoiceChannels();
         GetTopLevelItems();
+    }
+
+    private async Task OnOrderUpdate(CategoryOrderEvent eventData)
+    {
+        if (eventData.PlanetId != Planet.Id)
+            return;
+
+        if (eventData.CategoryId is null)
+        {
+            GetTopLevelItems();
+            StateHasChanged();
+        }
+            
     }
 
     private async Task OnChatChannelUpdate(ModelUpdateEvent<PlanetChatChannel> eventData)
@@ -120,6 +134,8 @@
         // Add and sort new item
         TopItems.Add(eventData.Model);
         SortTopItems();
+        
+        StateHasChanged();
     }
     
     private async Task OnVoiceChannelUpdate(ModelUpdateEvent<PlanetVoiceChannel> eventData)
@@ -129,9 +145,11 @@
             !eventData.NewToClient) // Only new items make a change
             return; 
 
-    // Add and sort new item
+        // Add and sort new item
         TopItems.Add(eventData.Model);
         SortTopItems();
+        
+        StateHasChanged();
     }
 
     private async Task OnCategoryUpdate(ModelUpdateEvent<PlanetCategory> eventData)
@@ -144,6 +162,8 @@
         // Add and sort new item
         TopItems.Add(eventData.Model);
         SortTopItems();
+        
+        StateHasChanged();
     }
     
     private async Task OnChannelDelete(PlanetChannel channel)
@@ -154,6 +174,8 @@
 
         // Remove - don't need to sort when removing
         TopItems.RemoveAll(x => x.Id == channel.Id);
+        
+        StateHasChanged();
     }
 
     private void SortTopItems()
@@ -188,8 +210,6 @@
 
     private void GetTopLevelItems()
     {
-        if (Categories == null) return;
-        
         TopItems.Clear();
         foreach (var item in Categories)
         {

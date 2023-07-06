@@ -261,11 +261,11 @@ public class PlanetCategoryService
         return TaskResult.SuccessResult;
     }
 
-    public async Task<TaskResult> SetChildOrderAsync(long planetId, long? categoryId, long[] order)
+    public async Task<TaskResult> SetChildOrderAsync(long planetId, long? categoryId, List<long> order)
     {
         var totalChildren = await _db.PlanetChannels.CountAsync(x => x.PlanetId == planetId && x.ParentId == categoryId);
 
-        if (totalChildren != order.Length)
+        if (totalChildren != order.Count)
             return new(false, "Your order does not contain all the children.");
 
         // Use transaction so we can stop at any failure

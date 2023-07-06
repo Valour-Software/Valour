@@ -4,6 +4,7 @@ using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
+using Valour.Shared;
 using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
@@ -408,6 +409,12 @@ public class Planet : LiveModel, ISharedPlanet
     {
         return await PlanetMember.FindAsyncByUser(userId, Id, force_refresh);
     }
+    
+    public async Task<TaskResult> SetChildOrderAsync(OrderChannelsModel model) =>
+        await Node.PostAsync($"{IdRoute}/planetChannels/order", model);
+
+    public async Task<TaskResult> InsertChild(InsertChannelChildModel model) =>
+        await Node.PostAsync($"{IdRoute}/planetChannels/insert", model);
 
     public Task<List<EcoAccount>> GetPlanetAccounts() =>
         EcoAccount.GetPlanetPlanetAccountsAsync(Id);

@@ -8,7 +8,7 @@
      @onpointerdown:stopPropagation="true"
      @onpointerdown='() => ChannelListContextMenuComponent.SetSelectedItem(Channel)'
      @ondragstart="() => listManager.OnItemStartDragInCategory(Channel, ParentCategory)"
-     @ondrop="async () => await listManager.OnItemDropOnVoiceChannel(this)" draggable="true" id="@Channel.Id">
+     draggable="true" id="@Channel.Id">
     <div class="channel-icon">
         <img src="_content/Valour.Client/media/voice-channel-icon.svg">
     </div>
