@@ -85,6 +85,9 @@ public class PlanetRole : Item, ISharedPlanetRole
 
     [Column("name")]
     public string Name { get; set; }
+    
+    [Column("anyone_can_mention")]
+    public bool AnyoneCanMention { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

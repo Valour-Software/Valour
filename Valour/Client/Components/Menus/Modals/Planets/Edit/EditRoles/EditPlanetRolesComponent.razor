@@ -81,6 +81,25 @@
                 </div>
             </div>
             
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    Mentionable
+                </div>
+                <div type="button" class="perm-switch">
+                    <label class="switch">
+                        <input 
+                            type="checkbox" 
+                            @onclick="OnClickCanMention" 
+                            checked="@_role.AnyoneCanMention"
+                        />
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    If true, any member can mention this role in chat. Set cautiously.
+                </div>
+            </div>
+            
             @for (int i = 1; i < PlanetPermissions.Permissions.Length; i++)
             {
                 PlanetPermission planetPerm = PlanetPermissions.Permissions[i];
@@ -471,6 +490,12 @@
     private void OnClickAdmin()
     {
         _role.IsAdmin = !_role.IsAdmin;
+        StateHasChanged();
+    }
+
+    private void OnClickCanMention()
+    {
+        _role.AnyoneCanMention = !_role.AnyoneCanMention;
         StateHasChanged();
     }
 

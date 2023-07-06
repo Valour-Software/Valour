@@ -167,7 +167,7 @@
 
         if (Mode == '@')
         {
-            if (Channel is PlanetChatChannel)
+            if (Channel is PlanetChatChannel planetChannel)
             {
                 if (string.IsNullOrEmpty(Text))
                 {
@@ -185,8 +185,22 @@
                     
                     Matches.AddRange(members);
 
-                    var roles = Roles.Where(x => x.Name.ToLower().Contains(Text))
-                        .OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
+                    bool canMentionAll = false;
+                    var selfMember = await PlanetMember.FindAsyncByUser(ValourClient.Self.Id, planetChannel.PlanetId);
+                    if (selfMember is not null)
+                    {
+                        if (await selfMember.HasPermissionAsync(PlanetPermissions.MentionAll))
+                        {
+                            canMentionAll = true;
+                        }
+                    }
+
+                    var roleQuery = Roles.Where(x => x.Name.ToLower().Contains(Text));
+                    if (!canMentionAll)
+                        roleQuery = roleQuery.Where(x => x.AnyoneCanMention);
+                    
+                    var roles = 
+                        roleQuery.OrderByDescending(x => x.Name.ToLower().StartsWith(Text))
                         .ThenBy(x => x.Name.Length)
                         .Take(5)
                         .Select(x => new MentionMatch() { Id = x.Id, Item = x });

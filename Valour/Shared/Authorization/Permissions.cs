@@ -526,6 +526,8 @@ public static class PlanetPermissions
                 ManageCurrency,
                 ManageEcoAccounts,
                 ForceTransactions,
+                
+                MentionAll,
         };
     }
 
@@ -547,6 +549,7 @@ public static class PlanetPermissions
     public static readonly PlanetPermission ManageEcoAccounts = new PlanetPermission(0x400, "Manage Eco Accounts", "Allow members to manage the planet's economy accounts.");
     public static readonly PlanetPermission ForceTransactions = new PlanetPermission(0x800, "Force Transactions", "Allow members to force transactions in the planet.");
 
+    public static readonly PlanetPermission MentionAll = new PlanetPermission(0x1000, "Mention All", "Allow members to mention all roles.");
 }
 
 public enum PermissionState

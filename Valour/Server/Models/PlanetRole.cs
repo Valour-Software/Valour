@@ -17,7 +17,8 @@ public class PlanetRole : Item, ISharedPlanetRole
         Permissions = PlanetPermissions.Default,
         ChatPermissions = ChatChannelPermissions.Default,
         CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
-        VoicePermissions = VoiceChannelPermissions.Default
+        VoicePermissions = VoiceChannelPermissions.Default,
+        AnyoneCanMention = false,
     };
     
     /// <summary>
@@ -68,8 +69,9 @@ public class PlanetRole : Item, ISharedPlanetRole
     // Formatting options
     public bool Bold { get; set; }
     public bool Italics { get; set; }
-    
     public string Name { get; set; }
+    
+    public bool AnyoneCanMention { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

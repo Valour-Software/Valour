@@ -37,6 +37,7 @@ public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
         Position = int.MaxValue,
         PlanetId = 0,
         Color = "ff00ff",
+        AnyoneCanMention = false,
     };
 
     public static PlanetRole DefaultRole = new PlanetRole()
@@ -49,7 +50,8 @@ public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
         Permissions = PlanetPermissions.Default,
         ChatPermissions = ChatChannelPermissions.Default,
         CategoryPermissions = Valour.Shared.Authorization.CategoryPermissions.Default,
-        VoicePermissions = VoiceChannelPermissions.Default
+        VoicePermissions = VoiceChannelPermissions.Default,
+        AnyoneCanMention = false,
     };
 
     // Cached values
@@ -104,6 +106,8 @@ public class PlanetRole : LiveModel, IPlanetModel, ISharedPlanetRole
     public bool Bold { get; set; }
 
     public bool Italics { get; set; }
+    
+    public bool AnyoneCanMention { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

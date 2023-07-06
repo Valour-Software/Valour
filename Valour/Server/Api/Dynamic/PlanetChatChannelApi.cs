@@ -293,6 +293,7 @@ public class PlanetChatChannelApi
         CdnDb db,
 		PlanetChatChannelService channelService,
 		PlanetMemberService memberService,
+        PlanetRoleService roleService,
 		UserService userService,
         PlanetService planetService,
         NodeService nodeService,
@@ -381,11 +382,14 @@ public class PlanetChatChannelApi
             {
                 foreach (var mention in mentions)
                 {
+	                var sendingUser = await userService.GetAsync(member.UserId);
+	                var planet = await planetService.GetAsync(message.PlanetId);
+	                
                     if (mention.Type == MentionType.Member)
                     {
                         var targetMember = await memberService.GetAsync(mention.TargetId);
-                        var sendingUser = await userService.GetAsync(member.UserId);
-                        var planet = await planetService.GetAsync(message.PlanetId);
+                        if (targetMember is null)
+	                        return ValourResult.NotFound($"Mentioned user {mention.TargetId} not found.");
 
                         var content = message.Content.Replace($"«@m-{mention.TargetId}»", $"@{targetMember.Nickname}");
 
@@ -403,6 +407,33 @@ public class PlanetChatChannelApi
                         };
 
                         await notificationService.AddNotificationAsync(notif);
+                    }
+                    else if (mention.Type == MentionType.Role)
+                    {
+	                    var targetRole = await roleService.GetAsync(mention.TargetId);
+	                    if (targetRole is null)
+		                    return ValourResult.NotFound($"Mentioned role {mention.TargetId} not found.");
+
+	                    if (!targetRole.AnyoneCanMention)
+	                    {
+		                    if (!await memberService.HasPermissionAsync(member, channel, PlanetPermissions.MentionAll))
+			                    return ValourResult.LacksPermission(PlanetPermissions.MentionAll);
+	                    }
+	                    
+	                    var content = message.Content.Replace($"«@r-{mention.TargetId}»", $"@{targetRole.Name}");
+
+	                    Notification notif = new()
+	                    {
+		                    Title = member.Nickname + " in " + planet.Name,
+		                    Body = content,
+		                    ImageUrl = sendingUser.PfpUrl,
+		                    PlanetId = planet.Id,
+		                    ChannelId = channel.Id,
+		                    SourceId = message.Id,
+		                    ClickUrl = $"/planetchannels/{channel.PlanetId}/{channel.Id}/{message.Id}"
+	                    };
+
+	                    await notificationService.AddRoleNotificationAsync(notif, targetRole.Id);
                     }
                 }
             }

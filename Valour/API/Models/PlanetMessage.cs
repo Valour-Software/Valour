@@ -162,6 +162,14 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
 
         if (MentionsData is null)
             return false;
+        
+        // TODO: Maybe optimize this
+        var selfRoles = await selfMember.GetRolesAsync();
+        foreach (var role in selfRoles)
+        {
+            if (MentionsData.Contains(role.Id.ToString()))
+                return true;
+        }
 
         return MentionsData.Contains(selfMember.Id.ToString());
     }

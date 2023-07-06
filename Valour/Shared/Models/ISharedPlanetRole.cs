@@ -51,6 +51,11 @@ public interface ISharedPlanetRole : ISharedPlanetItem
     bool Bold { get; set; }
 
     bool Italics { get; set; }
+    
+    /// <summary>
+    /// True if the role can be mentioned by non-admins
+    /// </summary>
+    bool AnyoneCanMention { get; set; }
 
     public int GetAuthority() =>
         ISharedPlanetRole.GetAuthority(this);

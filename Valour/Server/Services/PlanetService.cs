@@ -293,6 +293,7 @@ public class PlanetService
                 CategoryPermissions = CategoryPermissions.Default,
                 VoicePermissions = VoiceChannelPermissions.Default,
                 IsDefault = true,
+                AnyoneCanMention = false,
             };
 
             planet.Roles = new List<Valour.Database.PlanetRole>()

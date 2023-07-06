@@ -89,17 +89,20 @@ public class NotificationService
             .Select(x => x.ToModel())
             .ToListAsync();
 
-    public async Task AddNotificationAsync(Notification notification)
+    public async Task AddNotificationAsync(Notification notification, bool doDatabase = true)
     {
         // Create id for notification
         notification.Id = IdManager.Generate();
         // Set time of notification
         notification.TimeSent = DateTime.UtcNow;
-        
-        // Add notification to database
-        await _db.Notifications.AddAsync(notification.ToDatabase());
-        await _db.SaveChangesAsync();
-        
+
+        if (doDatabase)
+        {
+            // Add notification to database
+            await _db.Notifications.AddAsync(notification.ToDatabase());
+            await _db.SaveChangesAsync();
+        }
+
         // Send notification to all of the user's online Valour instances
         _coreHub.RelayNotification(notification, _nodeService);
         
@@ -111,6 +114,32 @@ public class NotificationService
             notification.Body, 
             notification.ClickUrl
         );
+    }
+    
+    public async Task AddRoleNotificationAsync(Notification baseNotification, long roleId)
+    {
+        var notifications = await _db.PlanetRoleMembers.Where(x => x.RoleId == roleId).Select(x => new Notification()
+        {
+            Id = IdManager.Generate(),
+            Title = baseNotification.Title,
+            Body = baseNotification.Body,
+            ImageUrl = baseNotification.ImageUrl,
+            ClickUrl = baseNotification.ClickUrl,
+            PlanetId = baseNotification.PlanetId,
+            ChannelId = baseNotification.ChannelId,
+            Source = NotificationSource.PlanetRoleMention,
+            SourceId = baseNotification.SourceId,
+            UserId = x.UserId,
+            TimeSent = DateTime.UtcNow,
+        }).ToListAsync();
+
+        foreach (var notification in notifications)
+        {
+            await AddNotificationAsync(notification, false);
+        }
+
+        await _db.Notifications.AddRangeAsync(notifications.Select(x => x.ToDatabase()));
+        await _db.SaveChangesAsync();
     }
 
     public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl)
