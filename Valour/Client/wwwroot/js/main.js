@@ -237,7 +237,9 @@ function GetChosenColor() {
 var splits = {};
 
 function SplitWindows(containerId) {
-
+    if (!splits)
+        return;
+    
     if (containerId in splits)
         splits[containerId].destroy();
 

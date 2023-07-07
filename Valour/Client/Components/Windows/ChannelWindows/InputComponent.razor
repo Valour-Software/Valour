@@ -21,7 +21,7 @@
 
         <div class="textbox" @ref="DropZoneElement">
             <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
-            <button class="upload-btn" @onmousedown="@ShowUploadMenu" @onblur="@HideUploadMenu">
+            <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
                 <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
             </button>
 
@@ -74,7 +74,7 @@
 
     [CascadingParameter]
     public IModalService Modal { get; set; }
-
+    
     /// <summary>
     /// A reference to the container for message rendering
     /// </summary>
@@ -168,7 +168,7 @@
         await TenorMenu.Show();
     }
 
-    private void ShowUploadMenu()
+    private async Task ShowUploadMenu()
     {
         if (_uploadMenuStyle != "")
         {
