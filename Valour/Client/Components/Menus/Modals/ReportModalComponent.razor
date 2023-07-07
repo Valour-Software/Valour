@@ -1,0 +1,72 @@
+<div class="report-modal">
+    @switch (_page)
+    {
+        case 0:
+        {
+            <h2>Why are you reporting this content?</h2>
+            <br />
+            @foreach (var reason in ReportReasons.Reasons)
+            {
+                var r = reason;
+                
+                <button class="btn v-button" @onclick="() => OnSelectReason(reason.Code)">
+                    <h4>@reason.Title</h4>
+                    <p>@reason.Description</p>
+                </button>
+            }
+            
+            break;
+        }
+        case 1:
+        {
+            <h2>Describe the incident</h2>
+            <br />
+            <textarea class="form-control" @bind="Report.LongReason" rows="5"></textarea>
+            <button style="text-align: center" class="btn v-button" @onclick="OnClickSubmitAsync">Submit Report</button>
+            break;
+        }
+        case 2:
+        {
+            <h4>@_response</h4>
+            break;
+        }
+    }
+    
+    <button style="text-align: center" class="btn v-button" @onclick="@OnClickCancelAsync">Cancel</button>
+</div>
+
+@code {
+    
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public Report Report { get; set; }
+
+    private int _page = 0;
+    private string _response = "";
+
+    private void OnSelectReason(ReportReasonCode reasonCode)
+    {
+        Report.ReasonCode = reasonCode;
+        _page = 1;
+        StateHasChanged();
+    }
+
+    private async Task OnClickSubmitAsync()
+    {
+        var result = await Report.PostReportAsync(Report);
+        if (!result.Success)
+            _response = result.Message;
+        else
+            _response = "Report submitted successfully. Thank you for making Valour a safe place for our communities.";
+        
+        _page = 2;
+        StateHasChanged();
+    }
+    
+    private async Task OnClickCancelAsync()
+    {
+        await ModalInstance.CloseAsync();
+    }
+}
