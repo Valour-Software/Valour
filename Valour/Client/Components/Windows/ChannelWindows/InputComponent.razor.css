@@ -44,6 +44,12 @@
     outline: none;
 }
 
+.mobile .upload-btn {
+    bottom: 8px;
+    left: 9px;
+    padding: 0;
+}
+
 .upload {
     width: 24px;
     height: 24px;
@@ -158,6 +164,7 @@
     cursor: pointer;
     border: none;
     padding: 8px;
+    background-color: var(--main-1);
 }
 
 .upload-menu .content .button:first-child {
