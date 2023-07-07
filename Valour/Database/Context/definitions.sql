@@ -422,5 +422,21 @@ CREATE TABLE IF NOT EXISTS transactions (
   CONSTRAINT fk_forced_by FOREIGN KEY(forced_by) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS reports (
+  id TEXT NOT NULL PRIMARY KEY,
+  time_created TIMESTAMP NOT NULL,
+  reporting_user_id BIGINT NOT NULL,
+  message_id BIGINT,
+  channel_id BIGINT,
+  planet_id BIGINT,
+  reason_code BIGINT,
+  long_reason TEXT,
+  reviewed BOOLEAN NOT NULL DEFAULT false,
+  
+  CONSTRAINT fk_user FOREIGN KEY(reporting_user_id) REFERENCES users(id),
+  CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id),
+  CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
+);
+
 COMMIT;
 

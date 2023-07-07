@@ -1,4 +1,4 @@
-﻿<div class="@("item " + Selected_Class)" @onclick="OnClickAsync">
+﻿<div class="@("item " + Selected_Class)" @ontouchstart="OnClickAsync" @onclick="OnClickAsync">
     <img class="icon" style="@Pfp_Style" src="@Pfp_Url" @onerror="OnPfpError" />
     <p class="title noselect" style="color:@Role_Color">@Member.Nickname</p>
 </div>

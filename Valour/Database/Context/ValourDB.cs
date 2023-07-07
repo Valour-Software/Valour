@@ -197,6 +197,8 @@ public class ValourDB : DbContext
     public DbSet<ChannelState> ChannelStates { get; set; }
 
     public DbSet<NodeStats> NodeStats { get; set; }
+    
+    public DbSet<Report> Reports { get; set; }
 
     ////////////////
     // Eco System //

@@ -82,6 +82,16 @@
                         else
                         {
                             <MessageContentComponent @key="MessageData.Message.Content" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
+                            
+                            @if (Edit)
+                            {
+                                <p class="edit-flag">(Editing)</p>
+                            }
+                            
+                            @if (MessageData.Message.EditedTime != null)
+                            {
+                                <p class="edited-flag"> (Edited)</p>
+                            }
                         }
                     </div>
                 </div>
@@ -91,16 +101,8 @@
                     <div class="reply-x">x</div>
                 }
                 
-                @if (Edit)
-                {
-                    <p class="edit-flag">(Editing)</p>
-                }
                 
-                @if (MessageData.Message.EditedTime != null)
-                {
-                    <p class="edited-flag">(Edited)</p>
-                }
-                
+
             </div>
         </div>
     </ContextMenuTrigger>

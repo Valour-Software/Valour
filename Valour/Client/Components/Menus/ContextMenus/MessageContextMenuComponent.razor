@@ -14,6 +14,10 @@
     <BlazorContextMenu.Item OnClick='OnClickReply' CssClass='context-item'>
         Reply
     </BlazorContextMenu.Item>
+    
+    <BlazorContextMenu.Item OnClick='OnClickReport' CssClass='context-item danger'>
+        Report
+    </BlazorContextMenu.Item>
 
     @if (MessageWrapper.Message.AuthorUserId == ValourClient.Self.Id)
     {
@@ -112,6 +116,26 @@
         par.Add("Data", confirm);
 
         Modal.Show<ConfirmModalComponent>("Delete Message", par);
+    }
+
+    private void OnClickReport()
+    {
+        var report = new Report()
+        {
+            ReportingUserId = ValourClient.Self.Id,
+            MessageId = MessageComponent.MessageData.Message.Id,
+            ChannelId = MessageComponent.MessageData.Message.ChannelId,
+        };
+
+        if (MessageComponent.MessageData.Message is PlanetMessage planetMessage)
+        {
+            report.PlanetId = planetMessage.PlanetId;
+        }
+        
+        ModalParameters par = new();
+        par.Add("Report", report);
+        
+        Modal.Show<ReportModalComponent>("Report", par);
     }
 
     public async Task OnClickEdit()

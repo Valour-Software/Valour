@@ -7,6 +7,10 @@
     margin: 10px;
 }
 
+.mobile .textbox {
+    margin-bottom: 30px; /* Account for rounded phone edges */
+}
+
 .textbox-wrapper {
     background: rgba(0, 0, 0, 0);
     border: none;
@@ -42,6 +46,12 @@
     background-color: transparent;
     border: none;
     outline: none;
+}
+
+.mobile .upload-btn {
+    bottom: 8px;
+    left: 9px;
+    padding: 0;
 }
 
 .upload {
@@ -158,6 +168,7 @@
     cursor: pointer;
     border: none;
     padding: 8px;
+    background-color: var(--main-1);
 }
 
 .upload-menu .content .button:first-child {

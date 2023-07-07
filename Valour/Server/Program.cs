@@ -110,7 +110,8 @@ namespace Valour.Server
                 new DynamicAPI<OauthAppAPI>()                 .RegisterRoutes(app),
                 new DynamicAPI<TenorFavoriteApi>()            .RegisterRoutes(app),
                 new DynamicAPI<EcoApi>()                      .RegisterRoutes(app),
-                new DynamicAPI<NotificationApi>()             .RegisterRoutes(app)
+                new DynamicAPI<NotificationApi>()             .RegisterRoutes(app),
+                new DynamicAPI<ReportApi>()                   .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI();
@@ -309,6 +310,7 @@ namespace Valour.Server
             services.AddScoped<ChannelStateService>();
             services.AddScoped<EcoService>();
             services.AddScoped<NotificationService>();
+            services.AddScoped<ReportService>();
             
             services.AddSingleton<NodeService>();
 

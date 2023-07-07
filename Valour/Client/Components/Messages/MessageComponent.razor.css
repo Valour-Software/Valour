@@ -291,20 +291,12 @@
 
 .edit-flag {
     color: red;
-    text-align: center;
-    position: absolute;
-    right: 8px;
-    top: 8px;
     margin: 0;
     font-size: 11px;
 }
 
 .edited-flag {
     color: lightgrey;
-    text-align: center;
-    position: absolute;
-    right: 8px;
-    top: 8px;
     margin: 0;
     font-size: 11px;
 }
