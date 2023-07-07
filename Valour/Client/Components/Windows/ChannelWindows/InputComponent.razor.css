@@ -7,6 +7,10 @@
     margin: 10px;
 }
 
+.mobile .textbox {
+    margin-bottom: 30px; /* Account for rounded phone edges */
+}
+
 .textbox-wrapper {
     background: rgba(0, 0, 0, 0);
     border: none;
