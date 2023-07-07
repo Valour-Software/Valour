@@ -5,6 +5,12 @@ using Valour.Api.Models.Messages.Embeds.Styles.Flex;
 
 namespace Valour.Api.Models.Messages.Embeds.Styles;
 
+public enum StyleType {
+	NotDefined,
+	Width,
+	Height
+}
+
 [JsonDerivedType(typeof(BackgroundColor), typeDiscriminator: 1)]
 [JsonDerivedType(typeof(BorderRadius), typeDiscriminator: 2)]
 [JsonDerivedType(typeof(Border), typeDiscriminator: 3)]
@@ -29,7 +35,14 @@ namespace Valour.Api.Models.Messages.Embeds.Styles;
 [JsonDerivedType(typeof(FlexWrap), typeDiscriminator: 24)]
 [JsonDerivedType(typeof(TextDecoration), typeDiscriminator: 25)]
 [JsonDerivedType(typeof(FontWeight), typeDiscriminator: 26)]
+[JsonDerivedType(typeof(MaxWidth), typeDiscriminator: 27)]
+[JsonDerivedType(typeof(MinWidth), typeDiscriminator: 28)]
+[JsonDerivedType(typeof(MaxHeight), typeDiscriminator: 27)]
+[JsonDerivedType(typeof(MinHeight), typeDiscriminator: 28)]
 public abstract class StyleBase
 {
 	public StyleBase() { }
+
+	[JsonIgnore]
+	public virtual StyleType StyleType => StyleType.NotDefined;
 }

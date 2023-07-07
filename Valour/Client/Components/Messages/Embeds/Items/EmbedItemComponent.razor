@@ -26,6 +26,9 @@
 	case EmbedItemType.TextArea:
 		//<EmbedButtonComponent _item="@item" Message="@Message" embed="@embed" FormItem="@FormItem"></EmbedButtonComponent>
 		break;
+	case EmbedItemType.Media:
+		<EmbedMediaComponent _item="@item"></EmbedMediaComponent>
+		break;
 }
 @code {
 	[Parameter]
