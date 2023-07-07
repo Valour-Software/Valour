@@ -521,15 +521,9 @@ public class PlanetChatChannelApi
             {
                 foreach (var at in attachments)
                 {
-                    if (!at.Location.StartsWith("https://cdn.valour.gg") && 
-                        !at.Location.StartsWith("https://media.tenor.com"))
-                    {
-                        return Results.BadRequest("Attachments must be from https://cdn.valour.gg...");
-                    }
-                    if (_attachmentRejectRegex.IsMatch(at.Location))
-                    {
-                        return Results.BadRequest("Attachment location contains invalid characters");
-                    }
+	                var result = MediaUriHelper.ScanMediaUri(at);
+	                if (!result.Success)
+		                return Results.BadRequest(result.Message);
                 }
             }
         }
