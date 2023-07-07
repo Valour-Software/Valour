@@ -20,7 +20,8 @@ public enum EmbedItemType
     DropDownMenu = 9,
     EmbedRow = 10,
     EmbedPage = 11,
-    Progress = 12
+    Progress = 12,
+    Media = 13
 }
 
 public interface IEmbedFormItem
@@ -59,6 +60,7 @@ public interface IParentItem
 [JsonDerivedType(typeof(EmbedRow), typeDiscriminator: 8)]
 [JsonDerivedType(typeof(EmbedProgress), typeDiscriminator: 9)]
 [JsonDerivedType(typeof(EmbedProgressBar), typeDiscriminator: 10)]
+[JsonDerivedType(typeof(EmbedMediaItem), typeDiscriminator: 11)]
 public class EmbedItem : IParentItem
 {
     [JsonIgnore]

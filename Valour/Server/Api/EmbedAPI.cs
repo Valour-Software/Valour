@@ -8,6 +8,12 @@ using Valour.Api.Models.Messages.Embeds;
 using Valour.Server.Services;
 using Valour.Server.Workers;
 using Valour.Shared.Authorization;
+using Valour.Shared;
+using Valour.Shared.Models;
+using Valour.Api.Models.Messages.Embeds.Items;
+using Valour.Server.Api.Dynamic;
+using Valour.Server.Cdn;
+using System.Runtime.ConstrainedExecution;
 
 namespace Valour.Server.API;
 public class EmbedAPI : BaseAPI
@@ -24,8 +30,22 @@ public class EmbedAPI : BaseAPI
         var ceu = await JsonSerializer.DeserializeAsync<ChannelEmbedUpdate>(ctx.Request.Body);
 
         if (ceu.NewEmbedContent.Length > 65535)
-        {
             return Results.BadRequest("EmbedData must be under 65535 chars");
+
+        // load embed to check for anti-valour propaganda (incorrect media URIs)
+        var embed = JsonSerializer.Deserialize<Embed>(ceu.NewEmbedContent);
+        foreach (var page in embed.Pages)
+        {
+            foreach (var item in page.GetAllItems())
+            {
+                if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                {
+                    var at = ((EmbedMediaItem)item).Attachment;
+                    var result = MediaUriHelper.ScanMediaUri(at);
+                    if (!result.Success)
+                        return Results.BadRequest(result.Message);
+                }
+            }
         }
 
         var botUser = await userService.GetCurrentUserAsync();
@@ -81,6 +101,42 @@ public class EmbedAPI : BaseAPI
 
         if (peu.ChangedEmbedItemsContent is not null && peu.ChangedEmbedItemsContent.Length > 65535)
             return Results.BadRequest("ChangeItemsData must be under 65535 chars");
+
+        if (peu.NewEmbedContent is not null)
+        {
+            // load embed to check for anti-valour propaganda (incorrect media URIs)
+            var embed = JsonSerializer.Deserialize<Embed>(peu.NewEmbedContent);
+            foreach (var page in embed.Pages)
+            {
+                foreach (var item in page.GetAllItems())
+                {
+                    if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                    {
+                        var at = ((EmbedMediaItem)item).Attachment;
+                        var result = MediaUriHelper.ScanMediaUri(at);
+                        if (!result.Success)
+                            return Results.BadRequest(result.Message);
+                    }
+                }
+            }
+        }
+        else
+        {
+            var embeditems = JsonSerializer.Deserialize<List<EmbedItem>>(peu.ChangedEmbedItemsContent);
+            foreach (var embeditem in embeditems)
+            {
+                foreach (var item in embeditem.GetAllItems())
+                {
+                    if (item.ItemType == Valour.Api.Models.Messages.Embeds.Items.EmbedItemType.Media)
+                    {
+                        var at = ((EmbedMediaItem)item).Attachment;
+                        var result = MediaUriHelper.ScanMediaUri(at);
+                        if (!result.Success)
+                            return Results.BadRequest(result.Message);
+                    }
+                }
+            }
+        }
 
         var botUser = await userService.GetCurrentUserAsync();
         if (botUser is null) { await TokenInvalid(ctx); return Results.BadRequest(); }
