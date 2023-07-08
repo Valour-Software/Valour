@@ -214,6 +214,7 @@ public class UserApi
     public static async Task<IResult> RegisterUserRouteAsync(
         [FromBody] RegisterUserRequest request, 
         UserService userService,
+        RegisterService registerService,
         HttpContext ctx)
     {
         if (request is null)
@@ -224,7 +225,7 @@ public class UserApi
         // Prevent comparisons issues
         request.Email = request.Email.ToLower();
 
-        var result = await userService.RegisterUserAsync(request, ctx);
+        var result = await registerService.RegisterUserAsync(request, ctx);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 
@@ -235,6 +236,7 @@ public class UserApi
     public static async Task<IResult> ResendRegistrationEmail(
         [FromBody] RegisterUserRequest request,
         UserService userService,
+        RegisterService registerService,
         HttpContext ctx)
     {
         if (request is null)
@@ -248,7 +250,7 @@ public class UserApi
         if (userPrivateInfo.Verified)
             return Results.Ok("You are already verified, you can close this!");
 
-        var result = await userService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
+        var result = await registerService.ResendRegistrationEmail(userPrivateInfo, ctx, request);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
 

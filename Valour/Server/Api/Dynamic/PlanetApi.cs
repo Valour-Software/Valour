@@ -402,7 +402,7 @@ public class PlanetApi
             return Results.BadRequest("Planet is not discoverable");
 
 
-        var result = await memberService.AddMemberAsync(planet, user);
+        var result = await memberService.AddMemberAsync(planet.Id, user.Id);
 
         if (result.Success)
             return Results.Created($"api/members/{result.Data.Id}", result.Data);
@@ -437,7 +437,7 @@ public class PlanetApi
         }
 
 
-        var result = await memberService.AddMemberAsync(planet, user);
+        var result = await memberService.AddMemberAsync(planet.Id, user.Id);
 
         if (!result.Success)
             return ValourResult.Problem(result.Message);

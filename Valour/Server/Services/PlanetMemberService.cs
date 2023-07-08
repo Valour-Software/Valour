@@ -343,11 +343,13 @@ public class PlanetMemberService
     /// <summary>
     /// Adds the given user to the given planet as a member
     /// </summary>
-    public async Task<TaskResult<PlanetMember>> AddMemberAsync(Planet planet, User user)
+    public async Task<TaskResult<PlanetMember>> AddMemberAsync(long planetId, long userId)
     {
+        var planet = await _db.Planets.FindAsync(planetId);
         if (planet is null)
             return new TaskResult<PlanetMember>(false, "Planet not found.");
 
+        var user = await _db.Users.FindAsync(userId);
         if (user is null)
             return new TaskResult<PlanetMember>(false, "User not found.");
 
