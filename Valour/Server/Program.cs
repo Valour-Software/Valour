@@ -311,6 +311,7 @@ namespace Valour.Server
             services.AddScoped<EcoService>();
             services.AddScoped<NotificationService>();
             services.AddScoped<ReportService>();
+            services.AddScoped<RegisterService>();
             
             services.AddSingleton<NodeService>();
 

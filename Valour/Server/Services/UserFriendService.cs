@@ -39,27 +39,32 @@ public class UserFriendService
         return new(true, "Succcess");
     }
 
-    public async Task<TaskResult<UserFriend>> AddFriendAsync(string friendUsername, long userId)
+    public async Task<TaskResult<UserFriend>> AddFriendAsync(long friendId, long userId)
     {
-        var friendUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == friendUsername.ToLower());
-        if (friendUser is null)
-            return new(false, $"User {friendUsername} was not found.");
-
         if (await _db.UserFriends.AnyAsync(x => x.UserId == userId &&
-                                               x.FriendId == friendUser.Id))
+                                                x.FriendId == friendId))
             return new(false, "Friend already added.");
-
+        
         UserFriend newFriend = new()
         {
             Id = IdManager.Generate(),
             UserId = userId,
-            FriendId = friendUser.Id,
+            FriendId = friendId
         };
 
         await _db.UserFriends.AddAsync(newFriend.ToDatabase());
         await _db.SaveChangesAsync();
 
         return new(true, "Success", newFriend);
+    }
+
+    public async Task<TaskResult<UserFriend>> AddFriendAsync(string friendUsername, long userId)
+    {
+        var friendUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == friendUsername.ToLower());
+        if (friendUser is null)
+            return new(false, $"User {friendUsername} was not found.");
+
+        return await AddFriendAsync(friendUser.Id, userId);
     }
 
     public async Task<TaskResult> DeclineRequestAsync(string username, long userId)

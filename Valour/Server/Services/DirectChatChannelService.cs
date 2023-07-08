@@ -15,7 +15,6 @@ public class DirectChatChannelService
     private readonly ValourDB _db;
     private readonly CoreHubService _coreHub;
     private readonly TokenService _tokenService;
-    private readonly UserService _userService;
     private readonly NodeService _nodeService;
     private readonly NotificationService _notificationService;
     private readonly ILogger<DirectChatChannelService> _logger;
@@ -27,7 +26,6 @@ public class DirectChatChannelService
         ValourDB db,
         CoreHubService coreHub,
         TokenService tokenService,
-        UserService userService,
         NotificationService notificationService,
         ILogger<DirectChatChannelService> logger,
         CdnDb cdnDb,
@@ -38,7 +36,6 @@ public class DirectChatChannelService
         _db = db;
         _coreHub = coreHub;
         _tokenService = tokenService;
-        _userService = userService;
         _logger = logger;
         _cdnDB = cdnDb;
         _redis = redis;
@@ -252,8 +249,8 @@ public class DirectChatChannelService
                             continue;
                         }
                         
-                        var mentionTargetUser = await _userService.GetAsync(mention.TargetId);
-                        var sendingUser = await _userService.GetAsync(sendingUserId);
+                        var mentionTargetUser = await _db.Users.FindAsync(mention.TargetId);
+                        var sendingUser = await _db.Users.FindAsync(sendingUserId);
 
                         var content = message.Content.Replace($"«@u-{mention.TargetId}»", $"@{mentionTargetUser.Name}");
 
@@ -279,11 +276,11 @@ public class DirectChatChannelService
         // Get the user that is NOT the token user
         if (channel.UserOneId == sendingUserId)
         {
-            targetUser = await _userService.GetAsync(channel.UserTwoId);
+            targetUser = (await _db.Users.FindAsync(channel.UserTwoId)).ToModel();
         }
         else
         {
-            targetUser = await _userService.GetAsync(channel.UserOneId);
+            targetUser = (await _db.Users.FindAsync(channel.UserOneId)).ToModel();
         }
 
         if (targetUser is null)
