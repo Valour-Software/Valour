@@ -25,7 +25,7 @@ public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrder
     #endregion
 
     // Cached values
-    protected List<PermissionsNode> PermissionsNodes { get; set; } = new();
+    protected List<PermissionsNode> PermissionsNodes { get; set; }
 
     public int Position { get; set; }
     public long? ParentId { get; set; }
@@ -76,7 +76,11 @@ public class PlanetChannel : Channel, IPlanetModel, ISharedPlanetChannel, IOrder
         var planet = await GetPlanetAsync();
         var allPermissions = await planet.GetPermissionsNodesAsync(refresh);
         
-        PermissionsNodes.Clear();
+        if (PermissionsNodes is not null)
+            PermissionsNodes.Clear();
+        else
+            PermissionsNodes = new List<PermissionsNode>();
+        
         foreach (var node in allPermissions)
         {
             if (node.TargetId == Id)
