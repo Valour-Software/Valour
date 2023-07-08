@@ -15,7 +15,7 @@ public static class PermissionsNodeMapper
             Mask = node.Mask,
             RoleId = node.RoleId,
             TargetId = node.TargetId,
-            TargetType = node.TargetType
+            TargetType = node.TargetType,
         };
     }
     
