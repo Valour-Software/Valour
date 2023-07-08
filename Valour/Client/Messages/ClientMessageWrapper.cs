@@ -250,6 +250,7 @@ public class ClientMessageWrapper
                             Position = (ushort)pos,
                             Length = (ushort)(6 + id_chars.Length),
                             Type = MentionType.Role,
+                            PlanetId = planetMessage.PlanetId
                         };
 
                         Message.Mentions.Add(roleMention);
