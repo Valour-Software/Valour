@@ -249,10 +249,11 @@ public class UserService
 
     public async Task<TaskResult<User>> UpdateAsync(User updatedUser)
     {
-        var old = await GetAsync(updatedUser.Id);
+        var old = await _db.Users.FindAsync(updatedUser.Id);
+        if (old is null)
+            return new TaskResult<User>(false, "Could not find user");
 
         old.Status = updatedUser.Status;
-
         old.UserStateCode = updatedUser.UserStateCode;
 
         try
@@ -265,9 +266,9 @@ public class UserService
             return new(false, e.Message);
         }
 
-        await _coreHub.NotifyUserChange(old);
+        await _coreHub.NotifyUserChange(old.ToModel());
 
-        return new(true, "Success", old);
+        return new(true, "Success", old.ToModel());
     }
 
     public async Task<TaskResult> VerifyAsync(string code)
