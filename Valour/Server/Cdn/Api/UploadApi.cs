@@ -184,9 +184,8 @@ namespace Valour.Server.Cdn.Api
 
             if (bucketResult.Success)
             {
-                var planet = new Valour.Database.Planet() { Id = planetId, IconUrl = bucketResult.Message };
-                valourDb.Planets.Attach(planet);
-                valourDb.Entry(planet).Property(x => x.IconUrl).IsModified = true;
+                var planet = await valourDb.Planets.FindAsync(member.PlanetId);
+                planet.IconUrl = bucketResult.Message;
                 await valourDb.SaveChangesAsync();
 
                 hubService.NotifyPlanetChange(planet.ToModel());
@@ -288,48 +287,15 @@ namespace Valour.Server.Cdn.Api
                 image = await Image.LoadAsync(stream);
             }
 
-            if (image == null)
-                return null;
-
             HandleExif(image);
-
-            if (size != -1)
-                image.Mutate(x => x.Resize(size, size));
 
             // Save image to stream
             MemoryStream ms = new();
 
-            string contentType;
-            string extension;
-
-            switch (image.Metadata.DecodedImageFormat)
-            {
-                case PngFormat:
-                    {
-                        // Has transparency
-                        await image.SaveAsync(ms, _pngEncoder);
-                        contentType = "image/png";
-                        extension = ".png";
-                        break;
-                    }
-                case GifFormat:
-                    {
-                        // Has gif (animation)
-                        await image.SaveAsync(ms, _gifEncoder);
-                        contentType = "image/gif";
-                        extension = ".gif";
-                        break;
-                    }
-                default:
-                    {
-                        // No transparency
-                        await image.SaveAsync(ms, _jpegEncoder);
-                        contentType = "image/jpeg";
-                        extension = ".jpg";
-                        break;
-                    }
-            }
-
+            string contentType = image.Metadata.DecodedImageFormat.DefaultMimeType;
+            string extension = image.Metadata.DecodedImageFormat.FileExtensions.FirstOrDefault();
+            await image.SaveAsync(ms, image.Metadata.DecodedImageFormat);
+            
             return (ms, contentType, extension);
         }
 
