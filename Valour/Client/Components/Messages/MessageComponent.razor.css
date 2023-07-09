@@ -236,6 +236,8 @@
     margin-right: 0px;
     display: block;
     cursor: pointer;
+    max-width: 100%;
+    max-height: 500px;
 }
 
 ::deep .content img::before {
