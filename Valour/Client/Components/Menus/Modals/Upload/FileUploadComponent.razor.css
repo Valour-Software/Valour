@@ -4,12 +4,27 @@
     padding: 20px;
 }
 
-::deep img {
-    max-height: 75vh;
-    max-width: 75vw;
+.preview-container .image-attachment-wrapper {
+    max-width: min(50vw, 500px);
+    max-height: min(50vh, 500px);
+    border-radius: 20px;
+}
 
-    width: 100%;
-    height: 100%;
+.preview-container button {
+    width: 48%;
+}
+
+::deep img {
+    object-fit: contain;
+    object-position: left;
+    margin: 5px;
+    margin-left: 0px;
+    margin-right: 0px;
+    cursor: pointer;
+    height: max-content;
+    width: max-content;
+    max-width: min(400px, 100%);
+    max-height: min(400px, 80vh);
 }
 
 ::deep video {

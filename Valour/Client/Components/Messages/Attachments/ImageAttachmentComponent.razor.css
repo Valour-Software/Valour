@@ -1,1 +1,4 @@
-﻿
+﻿.image-attachment-wrapper {
+    max-width: 100%;
+    max-height: min(100%, 500px);
+}

@@ -1,24 +1,22 @@
 ﻿<div class="image-attachment-wrapper">
     @if (Clickable)
     {
-        <img style="@_style" class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+        <img class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
     }
     else
     {
         @if (CustomStyle is not null)
         {
-            <img style="@_style" class="attached-image" src="@Attachment.Location">
+            <img class="attached-image" src="@Attachment.Location">
         }
         else
         {
-            <img style="@_style" class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height"/>
+            <img class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height"/>
         }
     }
 </div>
 
 @code {
-    private bool enlarged = false;
-
     [Parameter]
     public MessageAttachment Attachment { get; set; }
 
@@ -29,46 +27,10 @@
     public bool Clickable { get; set; } = true;
 
     [Parameter]
-    public string? CustomStyle { get; set; }
-
-    private string _style;
-
-    protected override void OnInitialized()
-    {
-        if (CustomStyle is null)
-            LoadStyle(300f);
-        else
-        {
-            _style = CustomStyle;
-            if (!_style.Contains("margin"))
-                _style += "margin: 0px;";
-        }
-    }
-
-    public void LoadStyle(float maxSizePixels)
-    {
-        float scalar;
-
-        if (Attachment.Height > Attachment.Width)
-            scalar = Attachment.Height / maxSizePixels;
-        else
-            scalar = Attachment.Width / maxSizePixels;
-
-        float heightMax = Attachment.Height / scalar;
-        float widthMax = Attachment.Width / scalar;
-
-        _style = $"max-height: min({heightMax}px, 60vh); max-width: min({widthMax}px, 90%)";
-    }
+    public string CustomStyle { get; set; }
 
     public void OnClick()
     {
-        enlarged = !enlarged;
-
-        if (enlarged)
-            LoadStyle(900f);
-        else
-            LoadStyle(300f);
-
-        StateHasChanged();
+        //StateHasChanged();
     }
 }

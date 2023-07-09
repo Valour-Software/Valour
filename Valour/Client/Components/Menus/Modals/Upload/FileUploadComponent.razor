@@ -9,7 +9,7 @@
 }
 
 <div class="preview-container" @onkeydown='OnKeyDown'>
-	<h4>Upload?</h4>
+	<h6>Upload?</h6>
 
     <div class="attachment-holder">
         @switch (Attachment.GetAttachmentType()){
@@ -28,9 +28,9 @@
         }
     </div>
 
-    <div class="d-flex flex-row justify-content-around">
-        <button class='btn v-button' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
-        <button class='btn v-button danger' @onclick='OnClickCancel'>Cancel</button>
+    <div class="d-flex flex-row justify-content-between">
+        <button class='v-btn' style="float: right" @onclick='OnClickConfirm'>Go for it</button>
+        <button class='v-btn danger' @onclick='OnClickCancel'>Cancel</button>
     </div>
 </div>
 

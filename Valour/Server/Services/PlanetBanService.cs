@@ -49,7 +49,7 @@ public class PlanetBanService
         if (await _db.PlanetBans.AnyAsync(x => x.PlanetId == ban.PlanetId && x.TargetId == ban.TargetId))
             return new(false, "Ban already exists for user.");
 
-        var target = await _memberService.GetAsync(ban.TargetId);
+        var target = await _db.PlanetMembers.FirstOrDefaultAsync(x => x.UserId == ban.TargetId && x.PlanetId == ban.PlanetId);
 
         await using var tran = await _db.Database.BeginTransactionAsync();
 
