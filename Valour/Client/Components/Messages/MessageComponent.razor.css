@@ -234,10 +234,11 @@
     margin: 5px;
     margin-left: 0px;
     margin-right: 0px;
-    display: block;
     cursor: pointer;
-    max-width: 100%;
-    max-height: 500px;
+    height: max-content;
+    width: max-content;
+    max-width: min(400px, 100%);
+    max-height: min(400px, 80vh);
 }
 
 ::deep .content img::before {
