@@ -160,3 +160,22 @@
     float: right;
     margin-top: 12px;
 }
+
+/* Emoji picker */
+.mobile .emoji-mart-wrapper-custom {
+    position: relative;
+    z-index: 9999;
+    bottom: 12px;
+}
+
+.mobile .emoji-mart-wrapper-custom > * {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+.emoji-mart-wrapper-custom {
+    position: absolute;
+    bottom: 50px;
+    right: 0;
+} 

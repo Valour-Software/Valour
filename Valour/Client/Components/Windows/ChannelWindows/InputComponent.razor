@@ -19,10 +19,16 @@
         </div>
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
 
+                    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+        
         <div class="textbox" @ref="DropZoneElement">
             <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
             <button tabindex="0" class="upload-btn" @onmousedown="@ShowUploadMenu" onmouseup="this.focus()" @onblur="@HideUploadMenu">
                 <img class="upload" src="_content/Valour.Client/media/Plus-Icon.svg" alt="Upload File"/>
+            </button>
+            
+            <button id="emoji-button" class="emoji-button" @onclick="@ToggleEmojis">
+                <img alt="Smiling face emoji" src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@14.1.2/assets/72x72/1f604.png" />
             </button>
 
             <div class="upload-menu" style="@_uploadMenuStyle">
@@ -55,7 +61,7 @@
             }
 
             <div class="textbox-wrapper">
-                <div @ref="InnerInputRef" tabindex="1" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@Window.Id').focus()" autofocus>
+                <div @ref="InnerInputRef" tabindex="1" role="textbox" contenteditable='@(CanUserPost ? "true" : "false")' class="textbox-inner" id="text-input-@Window.Id" data-window="@Window.Id" rows="1" @onclick:stopPropagation="true" @onclick:preventDefault="true" onclick="document.getElementById('text-input-@Window.Id').focus()" autofocus>
                 </div>
             </div>
         </div>
@@ -145,6 +151,23 @@
 
     private string _uploadMenuStyle = "display: none;";
 
+    private EmojiMart _emojis;
+
+    private void ToggleEmojis()
+    {
+        _emojis.ToggleVisible();
+    }
+    
+    private Task CloseEmojis(OutsidePickerClickEvent e)
+    {
+        if (e.Target == "emoji-button")
+            return Task.CompletedTask;
+        
+        _emojis.ToggleVisible();
+
+        return Task.CompletedTask;
+    }
+    
     /// <summary>
     /// Run when the component is initialized
     /// </summary>
@@ -214,6 +237,11 @@
         return null;
     }
 
+    private async Task OnEmojiSelectedAsync(EmojiClickEvent e)
+    {
+        await InjectEmojiAsync(e.Id, e.Native);
+    }
+
     public async Task SetInputContent(string content)
     {
         await _jsModule.InvokeVoidAsync("setInputContent", Window.Id, content);
@@ -245,21 +273,6 @@
     public InputFile InputFile_Ref { get; set; }
     ElementReference DropZoneElement { get; set; }
     IJSObjectReference dropZoneInstance;
-
-    /// <summary>
-    /// Image MIME types supported by the input box 
-    /// </summary>
-    public static HashSet<string> ImageContent = new HashSet<string>()
-    {
-        "image/gif",
-        "image/jpeg",
-        "image/png",
-        "image/tiff",
-        "image/vnd.microsoft.icon",
-        "image/x-icon",
-        "image/vnd.djvu",
-        "image/svg+xml"
-    };
 
     public async Task OnBeginEdit(MessageComponent component, ClientMessageWrapper message)
     {
@@ -327,16 +340,33 @@
 
         content.Add(arrContent, file.Name, file.Name);
 
-        string type = "File";
+        MessageAttachmentType type = MessageAttachmentType.File;
 
-        if (ImageContent.Contains(file.ContentType)){
-            type = "Image";
+        // Determine if audio or video or image
+
+        var mime = file.ContentType;
+        
+        // We only actually need to check the first letter,
+        // since only 'image/' starts with i
+        if (mime[0] == 'i')
+        {
+            type = MessageAttachmentType.Image;
+        }
+        // Same thing here - only 'video/' starts with v
+        else if (mime[0] == 'v')
+        {
+            type = MessageAttachmentType.Video;
+        }
+        // Unfortunately 'audio/' and 'application/' both start with 'a'
+        else if (mime[0] == 'a' && mime[1] == 'u')
+        {
+            type = MessageAttachmentType.Audio;
         }
 
-        MessageAttachment newAttachment = new()
+        MessageAttachment newAttachment = new(type)
         {
             MimeType = file.ContentType,
-            FileName = file.Name
+            FileName = file.Name,
         };
 
         ModalParameters modalParams = new();
@@ -386,7 +416,7 @@
     {
         var format = media.GetFormat(MediaFormatType.gif);
 
-        await AddMessageAttachment(new MessageAttachment()
+        await AddMessageAttachment(new MessageAttachment(MessageAttachmentType.Image)
         {
             Location = format.Url,
             MimeType = "image/gif",
@@ -530,6 +560,11 @@
     public async Task InjectElementAsync(string text, string coverText, string classList, string styleList)
     {
         await _jsModule.InvokeVoidAsync("injectElement", text, coverText, classList, styleList, Window.Id);
+    }
+    
+    public async Task InjectEmojiAsync(string emoji, string native)
+    {
+        await _jsModule.InvokeVoidAsync("injectEmoji", emoji, native, Window.Id);
     }
 
     public async Task OnSubmitClick()

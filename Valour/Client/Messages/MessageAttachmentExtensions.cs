@@ -1,5 +1,6 @@
 ﻿using Valour.Api.Models;
 using Valour.Client.Components.Messages.Attachments;
+using Valour.Shared.Models;
 
 namespace Valour.Client.Messages;
 
@@ -7,15 +8,20 @@ public static class MessageAttachmentExtensions
 {
     public static Type GetComponentType(this MessageAttachment attachment)
     {
-        var type = attachment.GetAttachmentType();
-        switch (type)
+        switch (attachment.Type)
         {
-            case AttachmentType.Image:
+            case MessageAttachmentType.Image:
                 return typeof(ImageAttachmentComponent);
-            case AttachmentType.Video:
+            case MessageAttachmentType.Video:
                 return typeof(VideoAttachmentComponent);
-            case AttachmentType.Audio:
+            case MessageAttachmentType.Audio:
                 return typeof(AudioAttachmentComponent);
+            case MessageAttachmentType.YouTube:
+                return typeof(YoutubeAttachmentComponent);
+            case MessageAttachmentType.Vimeo:
+                return typeof(VimeoAttachmentComponent);
+            case MessageAttachmentType.Twitch:
+                return typeof(TwitchAttachmentComponent);
             default:
                 return typeof(FileAttachmentComponent);
         }

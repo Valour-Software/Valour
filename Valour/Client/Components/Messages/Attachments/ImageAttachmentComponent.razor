@@ -1,17 +1,17 @@
-﻿<div class="image-attachment-wrapper">
+﻿<div class="image-attachment-wrapper" style="aspect-ratio: @_width / @_height; @(_widthLarger ? $"width: {_width}px" : $"height: {_height}px")">
     @if (Clickable)
     {
-        <img class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height" @onclick="OnClick" />
+        <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location" @onclick="OnClick" />
     }
     else
     {
         @if (CustomStyle is not null)
         {
-            <img class="attached-image" src="@Attachment.Location">
+            <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location">
         }
         else
         {
-            <img class="attached-image" src="@Attachment.Location" width="@Attachment.Width" height="@Attachment.Height"/>
+            <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location"/>
         }
     }
 </div>
@@ -22,12 +22,50 @@
 
     [Parameter]
     public MessageComponent MessageComponent { get; set; }
+    
+    private int _width;
+    private int _height;
+    private bool _widthLarger;
+        
+    const float MaxSize = 400f;
 
     [Parameter]
     public bool Clickable { get; set; } = true;
 
     [Parameter]
     public string CustomStyle { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var width = Attachment.Width;
+        var height = Attachment.Height;
+
+        if (width > MaxSize || height > MaxSize)
+        {
+
+            _widthLarger = Attachment.Width > Attachment.Height;
+
+            if (_widthLarger)
+            {
+                var ratio = Attachment.Width / MaxSize;
+                _width = (int)MaxSize;
+                _height = (int)(Attachment.Height / ratio);
+            }
+            else
+            {
+                var ratio = Attachment.Height / MaxSize;
+                _height = (int)MaxSize;
+                _width = (int)(Attachment.Width / ratio);
+            }
+        }
+        else
+        {
+            _width = width;
+            _height = height;
+        }
+        
+        base.OnInitialized();
+    }
 
     public void OnClick()
     {

@@ -324,6 +324,16 @@ public class PlanetChatChannelApi
 		if (message is null)
             return Results.BadRequest("Include message in body.");
 
+		if (message.ReplyToId is not null)
+		{
+			var replyTo = await valourDb.PlanetMessages.FindAsync(message.ReplyToId);
+			if (replyTo is null)
+				return ValourResult.NotFound("ReplyTo message not found.");
+			
+			if (replyTo.ChannelId != message.ChannelId)
+				return ValourResult.BadRequest("Cannot reply to message in another channel.");
+		}
+
         if (string.IsNullOrEmpty(message.Content) &&
             string.IsNullOrEmpty(message.EmbedData) &&
             string.IsNullOrEmpty(message.AttachmentsData))
@@ -367,16 +377,14 @@ public class PlanetChatChannelApi
         if (message.Content is null)
             message.Content = "";
 
-        // Handle URL content
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            message.Content = await ProxyHandler.HandleUrls(message.Content, client, db);
-
         message.Id = IdManager.Generate();
 
+        List<Valour.Api.Models.MessageAttachment> attachments = null;
+        
         // Handle attachments
         if (message.AttachmentsData is not null)
         {
-            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
+            attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)
@@ -386,6 +394,37 @@ public class PlanetChatChannelApi
                         return Results.BadRequest(result.Message);
                 }
             }
+        }
+
+        var inlineChange = false;
+        
+        // Handle new inline attachments
+        if (!string.IsNullOrWhiteSpace(message.Content))
+        {
+	        // Prevent markdown bypassing inline, e.g. [](https://example.com)
+	        // This is because a direct image link is not proxied and can steal ip addresses
+	        message.Content = message.Content.Replace("[](", "(");
+	        
+	        var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(message.Content, db, client);
+	        if (inlineAttachments is not null)
+	        {
+		        if (attachments is null)
+		        {
+			        attachments = inlineAttachments;
+		        }
+		        else
+		        {
+			        attachments.AddRange(inlineAttachments);
+		        }
+
+		        inlineChange = true;
+	        }
+        }
+        
+        // If there was a change, serialize the new attachments data back to the message
+        if (inlineChange)
+        {
+	        message.AttachmentsData = JsonSerializer.Serialize(attachments);
         }
 
         if (message.MentionsData is not null)
@@ -509,14 +548,13 @@ public class PlanetChatChannelApi
 	    if (!await memberService.HasPermissionAsync(member, channel, ChatChannelPermissions.PostMessages))
 		    return ValourResult.LacksPermission(ChatChannelPermissions.PostMessages);
 	    
-	    // Handle URL content
-	    if (!string.IsNullOrWhiteSpace(editedMessage.Content))
-		    editedMessage.Content = await ProxyHandler.HandleUrls(editedMessage.Content, client, db);
+	    List<Valour.Api.Models.MessageAttachment> attachments = null;
+	    bool inlineChange = false;
 
 	    // Handle attachments
         if (editedMessage.AttachmentsData is not null)
         {
-            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(editedMessage.AttachmentsData);
+            attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(editedMessage.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)
@@ -525,7 +563,31 @@ public class PlanetChatChannelApi
 	                if (!result.Success)
 		                return Results.BadRequest(result.Message);
                 }
+                
+                // Remove old inline attachments
+                var n = attachments.RemoveAll(x => x.Inline);
+                if (n > 0)
+	                inlineChange = true;
             }
+        }
+        
+        // Handle new inline attachments
+        if (!string.IsNullOrWhiteSpace(editedMessage.Content))
+        {
+	        var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(editedMessage.Content, db, client);
+	        if (inlineAttachments is not null)
+	        {
+		        if (attachments is null)
+		        {
+			        attachments = inlineAttachments;
+		        }
+		        else
+		        {
+			        attachments.AddRange(inlineAttachments);
+		        }
+                
+		        inlineChange = true;
+	        }
         }
         
         // yeah ok so there's a chance the message has not yet hit the database which makes this painful

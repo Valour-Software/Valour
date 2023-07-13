@@ -231,7 +231,6 @@
 ::deep .content img {
     object-fit: contain;
     object-position: left;
-    margin: 5px;
     margin-left: 0px;
     margin-right: 0px;
     cursor: pointer;
@@ -342,7 +341,9 @@
 .attachment-wrapper {
     position: relative;
     width: fit-content;
+    max-width: 100%;
     height: fit-content;
+    max-height: 80vh;
     margin: 0;
 }
 
