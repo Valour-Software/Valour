@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
-using Valour.Server.Workers.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
@@ -16,17 +15,19 @@ public class EcoService
     private readonly ValourDB _db;
     private readonly ILogger<EcoService> _logger;
     private readonly CoreHubService _coreHub;
+    private readonly NodeService _nodeService;
 
     /// <summary>
     /// Cache for currency definitions
     /// </summary>
     private readonly ConcurrentDictionary<long, Currency> _currencyCache = new();
 
-    public EcoService(ValourDB db, ILogger<EcoService> logger, CoreHubService coreHub)
+    public EcoService(ValourDB db, ILogger<EcoService> logger, CoreHubService coreHub, NodeService nodeService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
+        _nodeService = nodeService;
     }
 
     ////////////////
@@ -344,48 +345,22 @@ public class EcoService
         if (!issuing && transaction.AccountFromId == transaction.AccountToId)
             return new TaskResult<Transaction>(false, "Cannot send to self");
         
-        if (transaction.Amount <= 0)
-            return new TaskResult<Transaction>(false, "Amount must be positive");
-
-        var fromAccount = await _db.EcoAccounts.FindAsync(transaction.AccountFromId);
-        if (fromAccount is null)
-            return new TaskResult<Transaction>(false, "Could not find from account");
-        
-        var currency = await GetCurrencyAsync(fromAccount.CurrencyId);
-        if (currency is null)
-            return new TaskResult<Transaction>(false, "Critical error: Currency not found");
-        
-        // Round per the currency's decimal places
-        transaction.Amount = Math.Round(transaction.Amount, currency.DecimalPlaces);
-        
-        if (!issuing && fromAccount.BalanceValue < transaction.Amount)
-            return new TaskResult<Transaction>(false, "Insufficient funds");
-        
-        var toAccount = await _db.EcoAccounts.FindAsync(transaction.AccountToId);
-        if (toAccount is null)
-            return new TaskResult<Transaction>(false, "Could not find to account");
-
-        if (fromAccount.CurrencyId != toAccount.CurrencyId)
-            return new TaskResult<Transaction>(false, "Account currencies do not match. Use Exchange API instead.");
-
         // Set id before processing
         transaction.Id = Guid.NewGuid().ToString();
 
         // Post transaction to queue
-        TransactionWorker.AddToQueue(transaction);
-
-        return new TaskResult<Transaction>(true, "Transaction has been queued.", transaction);
+        var result = await ProcessTransactionAsync(transaction);
+        if (!result.Success)
+            return new TaskResult<Transaction>(false, result.Message);
+        
+        return new TaskResult<Transaction>(true, result.Message);
     }
-
-    /// <summary>
-    /// This method should really only be called by the TransactionWorker within nodes.
-    /// Manually calling this can break transaction ordering!
-    /// </summary>
-    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, CoreHubService injectedHub, NodeService nodeService)
+    
+    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction)
     {
         // Fun case for those who wish to break the system
         // Throwbacks to SV1
-        if (transaction.Amount < 0)
+        if (transaction.Amount <= 0)
             return new TaskResult(false, "Amount must be positive");
 
         // Global Valour Credits transaction
@@ -440,6 +415,9 @@ public class EcoService
             {
                 currency.Issued += (long)transaction.Amount;
                 var dbCurrency = await _db.Currencies.FindAsync(currency.Id);
+                if (dbCurrency is null)
+                    return new TaskResult(false, "Could not find currency");
+                
                 dbCurrency.Issued += (long) transaction.Amount;
             }
 
@@ -460,13 +438,13 @@ public class EcoService
 
         if (isGlobal)
         {
-            await injectedHub.RelayTransaction(transaction, nodeService);
+            await _coreHub.RelayTransaction(transaction, _nodeService);
         }
         else
         {
-            injectedHub.NotifyPlanetTransactionProcessed(transaction);
+            _coreHub.NotifyPlanetTransactionProcessed(transaction);
         }
 
-        return TaskResult.SuccessResult;
+        return new TaskResult(true, "Transaction processed successfully");
     }
 }
