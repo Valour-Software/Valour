@@ -4,6 +4,7 @@ using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Economy;
 
 namespace Valour.Server.Services;
 
@@ -143,6 +144,16 @@ public class RegisterService
             };
 
             _db.Credentials.Add(cred);
+
+            Valour.Database.Economy.EcoAccount globalAccount = new()
+            {
+                Id = IdManager.Generate(),
+                UserId = user.Id,
+                CurrencyId = ISharedCurrency.ValourCreditsId,
+                PlanetId = ISharedPlanet.ValourCentralId,
+            };
+
+            _db.EcoAccounts.Add(globalAccount);
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()

@@ -1,0 +1,62 @@
+﻿@using Valour.Api.Models.Economy
+
+@if (!string.IsNullOrWhiteSpace(_errorSpan))
+{
+    <div>
+        <h6>An error occured.</h6>
+        <hr/>
+        <span style="color: red">@_errorSpan</span>
+    </div>
+
+    return;
+}
+
+<TabContainerComponent Titles="@_tabTitles">
+    <TabOne>
+        @if (_planetAccount is null)
+        {
+            <h6 class="p-4">You don't have an eco account in this planet.</h6>
+            
+            <button class="v-btn" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
+        }
+    </TabOne>
+    <TabTwo>
+        
+    </TabTwo>
+</TabContainerComponent>
+
+
+
+@code {
+    
+    private static string[] _tabTitles = new [] { "Planet Pay", "Global Pay" };
+    
+    private Planet _focusedPlanet;
+    private EcoAccount _globalAccount;
+    private EcoAccount _planetAccount;
+
+    private string _errorSpan = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Get planet that was focused when the modal was loaded
+        _focusedPlanet = WindowManager.Instance.FocusedPlanet;
+
+        var accResult = await ValourClient.GetEcoAccountsAsync();
+        if (!accResult.Success)
+        {
+            _errorSpan = accResult.Message;
+            return;
+        }
+        
+        var accounts = accResult.Data;
+        _globalAccount = accounts.FirstOrDefault(x => x.PlanetId == ISharedPlanet.ValourCentralId);
+        _planetAccount = accounts.FirstOrDefault(x => x.PlanetId == _focusedPlanet.Id);
+    }
+
+    private async Task OnClickCreatePlanetAccount()
+    {
+        
+    }
+
+}

@@ -367,6 +367,22 @@ public class EcoApi
     //////////////////
     
     // Careful now, this is what gets Jacob VERY excited
+
+    [ValourRoute(HttpVerbs.Get, "api/eco/transactions/{id}")]
+    [UserRequired]
+    public static async Task<IResult> GetTransactionAsync(
+        string id,
+        EcoService ecoService)
+    {
+        // We don't need to really verify anything because the GUID is impossible to guess.
+        // Only someone involved in the transaction can get it.
+        var transaction = await ecoService.GetTransactionAsync(id);
+        if (transaction is null)
+            return ValourResult.NotFound("Transaction not found");
+        
+        return Results.Json(transaction);
+    }
+    
     
     [ValourRoute(HttpVerbs.Post, "api/eco/transactions")]
     [UserRequired]

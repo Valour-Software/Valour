@@ -1,3 +1,5 @@
+@inherits AttachmentComponent
+
 <div class="twitch-container">
     <iframe
         class="twitch-embed"
@@ -7,11 +9,3 @@
         allowfullscreen>
     </iframe>
 </div>
-
-@code {
-    [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
-    [Parameter]
-    public MessageComponent MessageComponent { get; set; }
-}

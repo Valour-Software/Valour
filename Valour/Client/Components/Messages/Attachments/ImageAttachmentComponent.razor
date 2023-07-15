@@ -1,4 +1,6 @@
-﻿<div class="image-attachment-wrapper" style="aspect-ratio: @_width / @_height; @(_widthLarger ? $"width: {_width}px" : $"height: {_height}px")">
+﻿@inherits AttachmentComponent
+
+<div class="image-attachment-wrapper" style="aspect-ratio: @_width / @_height; @(_widthLarger ? $"width: {_width}px" : $"height: {_height}px")">
     @if (Clickable)
     {
         <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location" @onclick="OnClick" />
@@ -17,12 +19,6 @@
 </div>
 
 @code {
-    [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
-    [Parameter]
-    public MessageComponent MessageComponent { get; set; }
-    
     private int _width;
     private int _height;
     private bool _widthLarger;

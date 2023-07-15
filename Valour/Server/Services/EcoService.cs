@@ -321,7 +321,7 @@ public class EcoService
     /// <summary>
     /// Returns the transaction with the given id
     /// </summary>
-    public async ValueTask<Transaction> GetTransactionAsync(long id) =>
+    public async ValueTask<Transaction> GetTransactionAsync(string id) =>
         (await _db.Transactions.FindAsync(id)).ToModel();
 
     /// <summary>
@@ -445,6 +445,6 @@ public class EcoService
             _coreHub.NotifyPlanetTransactionProcessed(transaction);
         }
 
-        return new TaskResult(true, "Transaction processed successfully");
+        return new TaskResult(true, "api/eco/transactions/" + transaction.Id);
     }
 }

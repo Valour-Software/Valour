@@ -6,6 +6,7 @@ using Valour.Api.Extensions;
 using Valour.Api.Models;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models;
+using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
@@ -312,6 +313,11 @@ public static class ValourClient
         };
 
         return taskResult;
+    }
+    
+    public static async Task<TaskResult<List<EcoAccount>>> GetEcoAccountsAsync()
+    {
+        return await PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
     }
 
 

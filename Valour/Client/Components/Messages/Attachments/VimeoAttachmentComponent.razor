@@ -1,3 +1,5 @@
+@inherits AttachmentComponent
+
 <div class="vimeo-container">
     <iframe
         class="vimeo-embed"
@@ -9,11 +11,3 @@
         allowfullscreen>
     </iframe>
 </div>
-
-@code {
-    [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
-    [Parameter]
-    public MessageComponent MessageComponent { get; set; }
-}

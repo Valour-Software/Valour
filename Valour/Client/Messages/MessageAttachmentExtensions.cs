@@ -6,24 +6,30 @@ namespace Valour.Client.Messages;
 
 public static class MessageAttachmentExtensions
 {
+    public static readonly Type[] ComponentLookup = new[]
+    {
+        typeof(ImageAttachmentComponent), // Image
+        typeof(VideoAttachmentComponent), // Video
+        typeof(AudioAttachmentComponent), // Audio
+        typeof(FileAttachmentComponent), // File
+        null, // ValourMessage
+        null, // ValourInvite
+        null, // ValourPlanet
+        null, // ValourChannel
+        null, // ValourItem
+        null, // ValourEcoAccount
+        null, // ValourEcoTrade
+        null, // ValourEcoTransaction
+        null, // ValourBot
+        null, // SitePreview
+        typeof(YoutubeAttachmentComponent), // YouTube
+        typeof(VimeoAttachmentComponent), // Vimeo
+        typeof(TwitchAttachmentComponent), // Twitch
+    };
+
+
     public static Type GetComponentType(this MessageAttachment attachment)
     {
-        switch (attachment.Type)
-        {
-            case MessageAttachmentType.Image:
-                return typeof(ImageAttachmentComponent);
-            case MessageAttachmentType.Video:
-                return typeof(VideoAttachmentComponent);
-            case MessageAttachmentType.Audio:
-                return typeof(AudioAttachmentComponent);
-            case MessageAttachmentType.YouTube:
-                return typeof(YoutubeAttachmentComponent);
-            case MessageAttachmentType.Vimeo:
-                return typeof(VimeoAttachmentComponent);
-            case MessageAttachmentType.Twitch:
-                return typeof(TwitchAttachmentComponent);
-            default:
-                return typeof(FileAttachmentComponent);
-        }
+        return ComponentLookup[(int)attachment.Type];
     }
 }

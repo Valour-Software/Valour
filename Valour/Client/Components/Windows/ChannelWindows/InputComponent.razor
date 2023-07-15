@@ -18,8 +18,7 @@
             <TenorMenuComponent @key="@("tenor-menu-" + Window.Id)" @ref="TenorMenu" ChannelWindow="Window"></TenorMenuComponent>
         </div>
         <MentionSelectComponent @ref="MentionSelector" InputComponent="this"></MentionSelectComponent>
-
-                    <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
+        <EmojiMart @ref="@_emojis" EmojiSet="twitter" OnClickOutside="@CloseEmojis" OnEmojiClick="@OnEmojiSelectedAsync" CssClass="emoji-mart-wrapper-custom"></EmojiMart>
         
         <div class="textbox" @ref="DropZoneElement">
             <InputFile id="@("upload-core-" + Window.Id)" @ref="InputFile_Ref" style="width: 0; height: 0; display: none;" OnChange="LoadFiles"></InputFile>
@@ -39,6 +38,9 @@
                     </button>
                     <button class="button tenor" @onmousedown="@ShowTenorMenu">
                         Gifs via Tenor
+                    </button>
+                    <button class="button" @onmousedown="@OnClickSendCurrency">
+                        Send Currency
                     </button>
                 </div>
                 <div class="carrot"></div>
@@ -184,6 +186,11 @@
     {
         CanRenderFlag = true;
         StateHasChanged();
+    }
+
+    private void OnClickSendCurrency()
+    {
+        Modal.Show<EcoPayModal>();
     }
 
     public async Task ShowTenorMenu()
