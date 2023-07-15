@@ -8,104 +8,102 @@
 }
 
 <div class="message-outer">
-    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
-        <div @onpointerdown='OnPointerDown' @oncontextmenu='OnPointerDown'>
-            <div id="@Id" class="@_class" tabindex='0'>
-                <div class="left-info">
-                    @if (!Minimal)
-                    {
-                        <img alt="@name's profile picture" loading="lazy" class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
-                    }
-                    <div class="time-container">
-                        <p class="time" title="@_timeTitle">
-                            @_timeText
+    <div @onpointerdown='OnPointerDown' @oncontextmenu='@OnPointerDown'>
+        <div id="@Id" class="@_class" tabindex='0'>
+            <div class="left-info">
+                @if (!Minimal)
+                {
+                    <img alt="@name's profile picture" loading="lazy" class="author-pfp" src="@pfpurl" @onerror="OnPfpError" />
+                }
+                <div class="time-container">
+                    <p class="time" title="@_timeTitle">
+                        @_timeText
+                    </p>
+                </div>
+            </div>
+            <div class="content-holder">
+
+                @if (!Minimal)
+                {
+                    <div class="name-role-holder">
+                        <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
+                            <p class="author-name" style="color: @nameColor;">
+                                @name
+                            </p>
+                        </ContextMenuTrigger>
+
+                        <p class="role-name">
+                            &nbsp;- @nameTag
                         </p>
                     </div>
-                </div>
-                <div class="content-holder">
-
-                    @if (!Minimal)
-                    {
-                        <div class="name-role-holder">
-                            <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
-                                <p class="author-name" style="color: @nameColor;">
-                                    @name
-                                </p>
-                            </ContextMenuTrigger>
-
-                            <p class="role-name">
-                                &nbsp;- @nameTag
-                            </p>
-                        </div>
-                    }
-
-                    @if (MessageData.Reply is not null && !IsInnerReply)
-                    {
-                        Dictionary<string, object> replyParams = new()
-                        {
-                            { "MessageData", MessageData.Reply },
-                            { "IsInnerReply", true },
-                            { "LastMessage", null },
-                            { "Ghost", Ghost }
-                        };
-
-                        <DynamicComponent @key='$"reply-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}"' Type="@MessageData.Reply.GetComponentType()" Parameters="replyParams"></DynamicComponent>
-                    }
-
-                    <div class="content" @ref="InnerRef">
-
-                        @if (MessageData.Message.Attachments != null)
-                        {
-                            @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
-                            {
-                                var id = i;
-                                var attachment = MessageData.Message.Attachments[id];
-                                var par = new Dictionary<string, object>(){ 
-                                    { "Attachment", attachment },
-                                    { "MessageComponent", this }
-                                };
-
-                                <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
-                                    @if (Ghost)
-                                    {
-                                        <div class="attachment-x">x</div>
-                                    }
-                                    <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
-                                </div>
-                            }
-                        }
-
-                        @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
-                        {
-                            <EmbedComponent MessageWrapper="MessageData" MessageComponent="@this"></EmbedComponent>
-                        }
-                        else
-                        {
-                            <MessageContentComponent @key="MessageData.Message.Content" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
-                            
-                            @if (Edit)
-                            {
-                                <p class="edit-flag">(Editing)</p>
-                            }
-                            
-                            @if (MessageData.Message.EditedTime != null)
-                            {
-                                <p class="edited-flag"> (Edited)</p>
-                            }
-                        }
-                    </div>
-                </div>
-
-                @if (IsInnerReply)
-                {
-                    <div class="reply-x">x</div>
                 }
-                
-                
 
+                @if (MessageData.Reply is not null && !IsInnerReply)
+                {
+                    Dictionary<string, object> replyParams = new()
+                    {
+                        { "MessageData", MessageData.Reply },
+                        { "IsInnerReply", true },
+                        { "LastMessage", null },
+                        { "Ghost", Ghost }
+                    };
+
+                    <DynamicComponent @key='$"reply-{MessageData.Message.Id}-{MessageData.Reply.Message.Id}"' Type="@MessageData.Reply.GetComponentType()" Parameters="replyParams"></DynamicComponent>
+                }
+
+                <div class="content" @ref="InnerRef">
+
+                    @if (MessageData.Message.Attachments != null)
+                    {
+                        @for (int i = 0; i < MessageData.Message.Attachments.Count; i++)
+                        {
+                            var id = i;
+                            var attachment = MessageData.Message.Attachments[id];
+                            var par = new Dictionary<string, object>(){ 
+                                { "Attachment", attachment },
+                                { "MessageComponent", this }
+                            };
+
+                            <div class="attachment-wrapper" @onclick="async () => await OnClickAttachment(id)">
+                                @if (Ghost)
+                                {
+                                    <div class="attachment-x">x</div>
+                                }
+                                <DynamicComponent Type="attachment.GetComponentType()" Parameters="par"></DynamicComponent>
+                            </div>
+                        }
+                    }
+
+                    @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
+                    {
+                        <EmbedComponent MessageWrapper="MessageData" MessageComponent="@this"></EmbedComponent>
+                    }
+                    else
+                    {
+                        <MessageContentComponent @key="MessageData.Message.Content" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
+                        
+                        @if (Edit)
+                        {
+                            <p class="edit-flag">(Editing)</p>
+                        }
+                        
+                        @if (MessageData.Message.EditedTime != null)
+                        {
+                            <p class="edited-flag"> (Edited)</p>
+                        }
+                    }
+                </div>
             </div>
+
+            @if (IsInnerReply)
+            {
+                <div class="reply-x">x</div>
+            }
+            
+            
+
         </div>
-    </ContextMenuTrigger>
+    </div>
 </div>
 
 @code {

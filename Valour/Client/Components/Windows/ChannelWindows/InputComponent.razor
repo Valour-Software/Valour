@@ -345,12 +345,14 @@
         // Determine if audio or video or image
 
         var mime = file.ContentType;
+        string uploadPath = "file";
         
         // We only actually need to check the first letter,
         // since only 'image/' starts with i
         if (mime[0] == 'i')
         {
             type = MessageAttachmentType.Image;
+            uploadPath = "image";
         }
         // Same thing here - only 'video/' starts with v
         else if (mime[0] == 'v')
@@ -374,7 +376,7 @@
         modalParams.Add("Attachment", newAttachment);
         modalParams.Add("OnConfirm", 
             async () => {
-                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{type}", content);
+                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{uploadPath}", content);
 
                 if (result.Success)
                 {
