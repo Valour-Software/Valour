@@ -79,7 +79,7 @@
                 }
                 else
                 {
-                    <MessageContentComponent @key="MessageData.Message.Content" @ref="ContentComponent" Message="MessageData"></MessageContentComponent>
+                    @MessageContent
                     
                     @if (Edit)
                     {
@@ -101,7 +101,24 @@
     </div>
 </div>
 
-@code {
+ @code {
+     
+     private RenderFragment RenderContent(ClientMessageWrapper message) => builder =>
+     {
+         var fragments = message.GetMessageFragments();
+         int stage = 0;
+
+         builder.OpenElement(0, "div");
+
+         foreach (var frag in fragments)
+         {
+             stage++;
+             frag.BuildRenderTree(builder, ref stage);
+         }
+
+         builder.CloseElement();
+     };
+     
     [CascadingParameter]
     public MessageHolderComponent Holder { get; set; }
 
@@ -119,6 +136,8 @@
 
     [Parameter]
     public bool IsInnerReply { get; set; }
+     
+     private RenderFragment MessageContent { get; set; }
 
     public User User { get; set; }
 
@@ -322,6 +341,9 @@
 
         CalculateClass();
         CalculateTime();
+        
+        // Build actual message content
+        MessageContent = RenderContent(MessageData);
         
         if (Minimal)
         {
