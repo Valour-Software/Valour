@@ -168,8 +168,8 @@ public class EcoApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
         var accounts = await ecoService.GetPlanetPlanetAccountsAsync(planetId);
         return Results.Json(accounts);
@@ -187,20 +187,40 @@ public class EcoApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
         var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId);
+        return Results.Json(accounts);
+    }
+    
+    // Returns all accounts of the planet the given user can send to
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/canSend")]
+    [UserRequired]
+    public static async Task<IResult> GetPlanetAccountsCanSendAsync(
+        long planetId, 
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        
+        var accounts = await ecoService.GetPlanetAccountsCanSendAsync(planetId, member.UserId);
         return Results.Json(accounts);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self")]
     [UserRequired]
     public static async Task<IResult> GetSelfAccountsAsync(
-        long userId,
         EcoService ecoService, 
         TokenService tokenService)
     {
+        var userId = (await tokenService.GetCurrentToken()).UserId;
+        
         var authToken = await tokenService.GetCurrentToken();
         var accounts = await ecoService.GetAccountsAsync(userId);
 

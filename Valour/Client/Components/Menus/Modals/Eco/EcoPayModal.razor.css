@@ -1,0 +1,51 @@
+﻿.eco-pay-container {
+    min-width: 350px;
+    max-width: 600px;
+}
+
+.tab-contents {
+    min-height: 200px;
+    padding: 8px
+}
+
+.account-selected {
+    margin-bottom: 4px;
+}
+
+.account-selected {
+    text-align: center;
+}
+
+.select-title {
+    margin-top: 0.5em;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.account-select {
+    text-align: left;
+}
+
+.account-select:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.input-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.recipient-dropdown-content {
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 12px;
+}
+
+.selected-preview {
+    margin-top: 1em; 
+    padding: 0.5em; 
+    border-radius: 0.5em; 
+    background-color: var(--main-4);
+}

@@ -39,6 +39,9 @@
     [Parameter]
     public User User { get; set; }
     
+    [Parameter]
+    public long UserId { get; set; }
+    
     // You can additionally supply the PlanetMember object 
     // for role color and syncing
     [Parameter]
@@ -76,7 +79,17 @@
         
         if (User is not null)
         {
+            UserId = User.Id;
             User.OnUpdated += OnUserUpdate;
+        }
+        else
+        {
+            // Id given, but no user supplied
+            if (UserId != 0)
+            {
+                User = await User.FindAsync(UserId);
+                User.OnUpdated += OnUserUpdate;
+            }
         }
 
         if (Member is not null)

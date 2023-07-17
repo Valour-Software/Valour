@@ -1,39 +1,129 @@
 ﻿@using Valour.Api.Models.Economy
+@using Valour.Shared.Models.Economy
 
-@if (!string.IsNullOrWhiteSpace(_errorSpan))
-{
-    <div>
-        <h6>An error occured.</h6>
-        <hr/>
-        <span style="color: red">@_errorSpan</span>
-    </div>
+<div class="eco-pay-container">
+    @if (!string.IsNullOrWhiteSpace(_errorSpan))
+    {
+        <div>
+            <h6>An error occured.</h6>
+            <hr/>
+            <span style="color: red">@_errorSpan</span>
+        </div>
 
-    return;
-}
+        return;
+    }
 
-<TabContainerComponent Titles="@_tabTitles">
-    <TabOne>
-        @if (_planetAccount is null)
-        {
-            <h6 class="p-4">You don't have an eco account in this planet.</h6>
-            
-            <button class="v-btn" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
-        }
-    </TabOne>
-    <TabTwo>
-        
-    </TabTwo>
-</TabContainerComponent>
+    <TabContainerComponent Titles="@_tabTitles" ContentStyle="overflow: visible;">
+        <TabOne>
+            <div class="tab-contents">
+                @if (_myPlanetAccounts is null)
+                {
+                    <h6 class="p-4">You don't have an eco account in this planet.</h6>
 
+                    <button class="v-btn" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
+                }
+                else
+                {
+
+                    @* Selected account *@
+                    <p class="select-title">Select Account From</p>
+
+                    @* Account selection *@
+                    <DropdownComponent @ref="@_accountDropdown" Title="Select Account" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
+                        @foreach (var account in _myPlanetAccounts)
+                        {
+                            <div class="account-select" @onmousedown="() => OnSelectAccount(account)">
+                                @_accountFrag((account, _planetCurrency))
+                            </div>
+                        }
+                    </DropdownComponent>
+                    
+                    @if (_selectedPlanetAccount is not null)
+                    {
+                        <div class="selected-preview">
+                            @_accountFrag((_selectedPlanetAccount, _planetCurrency))
+                        </div>
+                    }
+                    
+                    @* Amount selection *@
+                    @if (_selectedPlanetAccount is not null)
+                    {
+                        <p class="select-title">Select Amount</p>
+                        <div class="input-row">
+                            <input style="width: 90%" class="v-input" placeholder="Amount" type="number" />
+                            <span> @_planetCurrency.ShortCode</span>
+                        </div>
+                        
+                        @* Recipient selection *@
+                        <p class="select-title">Select Recipient</p>
+
+                        <DropdownComponent @ref="@_recipientDropdown" Title="Select Recipient" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%" ContentStyle="width: 100%;">
+                            <div class="recipient-dropdown-content">
+                                <input style="width: 90%" class="v-input" placeholder="Search..." type="text"/>
+                                @foreach (var account in _otherPlanetAccounts)
+                                {
+                                    <div class="account-select" @onmousedown="() => OnSelectRecipient(account)">
+                                        @if (account.AccountType == AccountType.User)
+                                        {
+                                            <UserInfoComponent UserId="@account.UserId"/>
+                                        }
+                                        else
+                                        {
+                                            <p>@account.Name</p>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </DropdownComponent>
+                        @if (_selectedRecipientAccount is not null)
+                        {
+                            <div class="selected-preview">
+                                @if (_selectedRecipientAccount.AccountType == AccountType.User)
+                                {
+                                    <UserInfoComponent @key="@_selectedRecipientAccount.UserId" UserId="@_selectedRecipientAccount.UserId"/>
+                                }
+                                else
+                                {
+                                    <p>@_selectedRecipientAccount.Name</p>
+                                }
+                                
+                            </div>
+                        }
+                    }
+                }
+            </div>
+        </TabOne>
+        <TabTwo>
+            <div class="tab-contents">
+            </div>
+        </TabTwo>
+    </TabContainerComponent>
+</div>
 
 
 @code {
+
+    private readonly RenderFragment<(EcoAccount account, Currency currency)> _accountFrag = data =>
+        @<div>
+            <p style="margin: 0"><b>@data.account.Name:</b> @data.currency.Format(data.account.BalanceValue)</p>
+        </div>;
+    
     
     private static string[] _tabTitles = new [] { "Planet Pay", "Global Pay" };
     
     private Planet _focusedPlanet;
+    
+    private Currency _globalCurrency;
+    private Currency _planetCurrency;
+    
     private EcoAccount _globalAccount;
-    private EcoAccount _planetAccount;
+    private List<EcoAccount> _myPlanetAccounts;
+    private List<EcoAccount> _otherPlanetAccounts;
+    private EcoAccount _selectedPlanetAccount;
+    private EcoAccount _selectedRecipientAccount;
+    
+    private DropdownComponent _accountDropdown;
+    private DropdownComponent _recipientDropdown;
 
     private string _errorSpan = null;
 
@@ -48,10 +138,28 @@
             _errorSpan = accResult.Message;
             return;
         }
+
+        _globalCurrency = await Currency.FindByPlanetAsync(ISharedPlanet.ValourCentralId);
+        _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
         
         var accounts = accResult.Data;
         _globalAccount = accounts.FirstOrDefault(x => x.PlanetId == ISharedPlanet.ValourCentralId);
-        _planetAccount = accounts.FirstOrDefault(x => x.PlanetId == _focusedPlanet.Id);
+        _myPlanetAccounts = accounts.Where(x => x.PlanetId == _focusedPlanet.Id).ToList();
+        _otherPlanetAccounts = await EcoAccount.GetPlanetAccountsCanSendAsync(_focusedPlanet.Id);
+    }
+
+    private void OnSelectAccount(EcoAccount account)
+    {
+        _selectedPlanetAccount = account;
+        _accountDropdown.SetVisible(false);
+        StateHasChanged();
+    }
+    
+    private void OnSelectRecipient(EcoAccount account)
+    {
+        _selectedRecipientAccount = account;
+        _recipientDropdown.SetVisible(false);
+        StateHasChanged();
     }
 
     private async Task OnClickCreatePlanetAccount()

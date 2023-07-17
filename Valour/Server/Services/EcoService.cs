@@ -212,6 +212,15 @@ public class EcoService
         await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
     
     /// <summary>
+    /// Returns the planet accounts the given user can send to
+    /// </summary>
+    public async ValueTask<List<EcoAccount>> GetPlanetAccountsCanSendAsync(long planetId, long userId) =>
+        await _db.EcoAccounts.Where(x => x.UserId != userId && x.PlanetId == planetId)
+                             .OrderByDescending(x => x.BalanceValue)
+                             .Select(x => x.ToModel())
+                             .ToListAsync();
+    
+    /// <summary>
     /// Returns all accounts associated with a user id
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetAccountsAsync(long userId) =>

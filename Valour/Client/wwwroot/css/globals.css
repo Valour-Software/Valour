@@ -74,7 +74,7 @@
 /* Inputs and Buttons */
 .v-input {
     display: block;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--main-4);
     border: 1px solid #1d1d1d;
     border-radius: 8px;
     color: #ffffff;
@@ -89,7 +89,7 @@
 
 .v-btn {
     color: var(--font-color);
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--main-4);
     border: none;
     border-radius: 0.5em;
     font-size: 1em;
@@ -100,11 +100,11 @@
 }
 
 .v-btn:hover {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: var(--main-5);
 }
 
 .v-btn:active {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--active);
 }
 
 /* Sections */

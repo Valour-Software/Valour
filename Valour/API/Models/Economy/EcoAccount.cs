@@ -111,4 +111,23 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
 
         return accounts;
     }
+
+    /// <summary>
+    /// Returns all accounts the user can send to for a given planet id
+    /// </summary>
+    public static async Task<List<EcoAccount>> GetPlanetAccountsCanSendAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/canSend")).Data;
+
+        if (accounts is not null)
+        {
+            foreach (var account in accounts)
+            {
+                await account.AddToCache();
+            }
+        }
+
+        return accounts;
+    }
 }
