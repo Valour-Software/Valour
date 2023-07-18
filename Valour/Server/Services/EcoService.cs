@@ -226,6 +226,13 @@ public class EcoService
     public async ValueTask<List<EcoAccount>> GetAccountsAsync(long userId) =>
         await _db.EcoAccounts.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
     
+    /// <summary>
+    /// Returns the global account associated with a user id
+    /// </summary>
+    public async ValueTask<EcoAccount> GetGlobalAccountAsync(long userId) =>
+        (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.CurrencyId == ISharedCurrency.ValourCreditsId)).ToModel();
+    
+    
     public async ValueTask<TaskResult<EcoAccount>> CreateEcoAccountAsync(EcoAccount account)
     {
         if (account is null)
@@ -356,13 +363,14 @@ public class EcoService
         
         // Set id before processing
         transaction.Id = Guid.NewGuid().ToString();
+        transaction.TimeStamp = DateTime.UtcNow;
 
         // Post transaction to queue
         var result = await ProcessTransactionAsync(transaction);
         if (!result.Success)
             return new TaskResult<Transaction>(false, result.Message);
         
-        return new TaskResult<Transaction>(true, result.Message);
+        return new TaskResult<Transaction>(true, result.Message, transaction);
     }
     
     public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction)
@@ -436,7 +444,6 @@ public class EcoService
         catch (DbUpdateConcurrencyException e)
         {
             await trans.RollbackAsync();
-
             return new TaskResult(false, "Another transaction modified your account before processing finished. Please try again.");
         }
         catch(Exception e)

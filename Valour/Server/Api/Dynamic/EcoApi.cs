@@ -219,10 +219,8 @@ public class EcoApi
         EcoService ecoService, 
         TokenService tokenService)
     {
-        var userId = (await tokenService.GetCurrentToken()).UserId;
-        
         var authToken = await tokenService.GetCurrentToken();
-        var accounts = await ecoService.GetAccountsAsync(userId);
+        var accounts = await ecoService.GetAccountsAsync(authToken.UserId);
 
         List<EcoAccount> results = new();
         
@@ -244,6 +242,25 @@ public class EcoApi
         }
 
         return Results.Json(results);
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self/global")]
+    [UserRequired]
+    public static async Task<IResult> GetSelfGlobalAccountAsync(
+        EcoService ecoService, 
+        TokenService tokenService)
+    {
+        var authToken = await tokenService.GetCurrentToken();
+        var account = await ecoService.GetGlobalAccountAsync(authToken.UserId);
+        if (account is null)
+            return ValourResult.NotFound("Account not found");
+        
+        if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
+        {
+            return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
+        }
+
+        return Results.Json(account);
     }
 
     [ValourRoute(HttpVerbs.Post, "api/eco/accounts")]

@@ -190,7 +190,9 @@
 
     private void OnClickSendCurrency()
     {
-        Modal.Show<EcoPayModal>();
+        ModalParameters p = new();
+        p.Add("Input", this);
+        Modal.Show<EcoPayModal>("Send Currency", p);
     }
 
     public async Task ShowTenorMenu()
@@ -421,6 +423,16 @@
 
     #endregion
 
+    public async Task AddReceipt(string transactionId)
+    {
+        var attachment = new MessageAttachment(MessageAttachmentType.ValourReceipt)
+        {
+            Location = $"https://app.valour.gg/api/eco/transactions/{transactionId}",
+        };
+
+        await AddMessageAttachment(attachment);
+    }
+    
     public async Task AddTenor(Media media)
     {
         var format = media.GetFormat(MediaFormatType.gif);

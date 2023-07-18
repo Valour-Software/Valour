@@ -3,6 +3,7 @@
     flex-direction: row;
     max-width: 100%;
     justify-content: space-between;
+    word-break: initial;
 }
 
 .left-block {
@@ -49,6 +50,7 @@
 .name-status {
     display: flex;
     flex-direction: column;
+    line-height: normal;
 }
 
 .name-tag {
@@ -92,8 +94,9 @@
     border-radius: 2px;
     font-size: 7px;
     color: black;
-    margin-left: 4px;
-    margin-right: 4px;
+    line-height: 9px;
+    font-weight: 900;
+    margin: 0 0 0 3px;
 }
 
 .user-badge.staff {

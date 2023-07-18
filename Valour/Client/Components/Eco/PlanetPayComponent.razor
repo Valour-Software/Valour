@@ -1,0 +1,280 @@
+@if (!string.IsNullOrWhiteSpace(_majorError))
+{
+    <p style="color: red; text-align: center; margin-top: 1em">@_majorError</p>
+    return;
+}
+
+@if (!string.IsNullOrWhiteSpace(_transactionId))
+{
+    <h5>Success!</h5>
+    <br />
+    
+    <div class="selected-preview">
+        <p>Transaction ID:</p>
+        <p>@_transactionId</p>
+    </div>
+    
+    @if (Input is not null)
+    {
+        <button @onclick="OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
+    }
+
+    return;
+}
+
+@if (_myPlanetAccounts is null)
+{
+    <h6 class="p-4">You don't have an eco account in this planet.</h6>
+
+    <button class="v-btn" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
+}
+else
+{
+
+    @* Selected account *@
+    <p class="select-title">Select Account From</p>
+
+    @* Account selection *@
+    <DropdownComponent @ref="@_accountDropdown" Title="Select Account" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
+        @foreach (var account in _myPlanetAccounts)
+        {
+            <div class="account-select" @onmousedown="() => OnSelectAccount(account)">
+                @_accountFrag((account, _planetCurrency))
+            </div>
+        }
+    </DropdownComponent>
+    
+    @if (_selectedPlanetAccount is not null)
+    {
+        <div class="selected-preview">
+            @_accountFrag((_selectedPlanetAccount, _planetCurrency))
+        </div>
+    }
+    
+    @* Amount selection *@
+    @if (_selectedPlanetAccount is not null)
+    {
+        <p class="select-title">Select Amount</p>
+        <div class="input-row">
+            <input @oninput="PlanetAmountChanged" style="width: 90%" class="v-input" placeholder="Enter Amount" />
+            <span> @_planetCurrency.ShortCode</span>
+        </div>
+        
+        @* Recipient selection *@
+        <p class="select-title">Select Recipient</p>
+
+        <DropdownComponent @ref="@_recipientDropdown" Title="Select Recipient" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%" ContentStyle="width: 100%;">
+            <div class="recipient-dropdown-content">
+                <input @oninput="@OnOtherSearch" style="width: 90%" class="v-input" placeholder="Search..." type="text"/>
+                @foreach (var data in _otherSearchResults)
+                {
+                    <div class="account-select" @onmousedown:stopPropagation="true" @onclick="() => OnSelectRecipient(data.Account)">
+                        @if (data.Account.AccountType == AccountType.User)
+                        {
+                            <UserInfoComponent User="@data.User"/>
+                        }
+                        else
+                        {
+                            <p>@data.Name</p>
+                        }
+                    </div>
+                }
+            </div>
+        </DropdownComponent>
+        @if (_selectedRecipientAccount is not null)
+        {
+            <div class="selected-preview">
+                @if (_selectedRecipientAccount.AccountType == AccountType.User)
+                {
+                    <UserInfoComponent @key="@_selectedRecipientAccount.UserId" UserId="@_selectedRecipientAccount.UserId"/>
+                }
+                else
+                {
+                    <p>@_selectedRecipientAccount.Name</p>
+                }
+                
+            </div>
+            
+            if (string.IsNullOrWhiteSpace(_errorSpan))
+            {
+                <button @onclick="OnClickSend" class="v-btn" style="width: 100%; margin-top: 1em">Send @_planetCurrency.Format(_amount)</button>
+            }
+            else
+            {
+                <p style="color: red; text-align: center; margin-top: 1em">@_errorSpan</p>
+            }
+        }
+    }
+}
+
+@code {
+    
+    [Parameter]
+    public InputComponent Input { get; set; }
+    
+    private readonly RenderFragment<(EcoAccount account, Currency currency)> _accountFrag = data =>
+        @<div>
+            <p style="margin: 0"><b>@data.account.Name:</b> @data.currency.Format(data.account.BalanceValue)</p>
+        </div>;
+    
+    private Planet _focusedPlanet;
+    private Currency _planetCurrency;
+    
+    private List<EcoAccount> _myPlanetAccounts;
+    private List<AccountSearchData> _otherPlanetAccounts;
+    private IEnumerable<AccountSearchData> _otherSearchResults;
+    private EcoAccount _selectedPlanetAccount;
+    private EcoAccount _selectedRecipientAccount;
+    
+    private DropdownComponent _accountDropdown;
+    private DropdownComponent _recipientDropdown;
+
+    private string _errorSpan;
+    private string _majorError;
+    private decimal _amount = 0;
+
+    private string _transactionId = null;
+
+    public struct AccountSearchData
+    {
+        public EcoAccount Account { get; set; }
+        public User User { get; set; }
+        public string Name { get; set; }
+    }
+
+    private async Task OnClickReceipt()
+    {
+        await Input.AddReceipt(_transactionId);
+    }
+
+    private async Task OnClickSend()
+    {
+        Transaction transaction = new()
+        {
+            PlanetId = _focusedPlanet.Id,
+            UserFromId = ValourClient.Self.Id,
+            AccountFromId = _selectedPlanetAccount.Id,
+            UserToId = _selectedRecipientAccount.UserId,
+            AccountToId = _selectedRecipientAccount.Id,
+            Amount = _amount,
+            Fingerprint = Guid.NewGuid().ToString(),
+            Description = "Sent via Valour App",
+        };
+        
+        var result = await Transaction.SendTransaction(transaction);
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+        }
+        else
+        {
+            _transactionId = result.Data.Id;
+        }
+        
+        StateHasChanged();
+    }
+    
+    private void PlanetAmountChanged(ChangeEventArgs e)
+    {
+        bool valid = Decimal.TryParse(e.Value.ToString(), out var amount);
+        if (!valid)
+        {
+            _errorSpan = "Invalid amount.";
+            _amount = 0;
+        }
+        else
+        {
+            _amount = Math.Round(amount, _planetCurrency.DecimalPlaces);
+            if (_amount > _selectedPlanetAccount.BalanceValue)
+            {
+                _errorSpan = "Insufficient funds.";
+            }
+            else
+            {
+                _errorSpan = null;
+            }
+        }
+        
+        StateHasChanged();
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Get planet that was focused when the modal was loaded
+        _focusedPlanet = WindowManager.Instance.FocusedPlanet;
+
+        var accResult = await ValourClient.GetEcoAccountsAsync();
+        if (!accResult.Success)
+        {
+            _majorError = accResult.Message;
+            return;
+        }
+        
+        _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
+        
+        var accounts = accResult.Data;
+        _myPlanetAccounts = accounts.Where(x => x.PlanetId == _focusedPlanet.Id).ToList();
+        var otherAccounts = await EcoAccount.GetPlanetAccountsCanSendAsync(_focusedPlanet.Id);
+
+        _otherPlanetAccounts = new List<AccountSearchData>();
+        foreach (var acc in otherAccounts)
+        {
+            var user = await User.FindAsync(acc.UserId);
+
+            AccountSearchData data = new()
+            {
+                Account = acc,
+                User = user,
+            };
+
+            if (acc.AccountType == AccountType.User)
+            {
+                data.Name = user?.Name ?? "Not found.";
+            }
+            else
+            {
+                data.Name = acc.Name;
+            }
+            
+            _otherPlanetAccounts.Add(data);
+        }
+        
+        _otherSearchResults = _otherPlanetAccounts;
+    }
+
+    private void OnOtherSearch(ChangeEventArgs e)
+    {
+        var search = e.Value.ToString();
+        
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            _otherSearchResults = _otherPlanetAccounts;
+        }
+        else
+        {
+            _otherSearchResults = _otherPlanetAccounts.Where(x => x.Name.ToLower().Contains(search.ToLower()))
+                .OrderByDescending(x => x.Name.ToLower().StartsWith(search.ToLower()));
+        }
+        
+        StateHasChanged();
+    }
+
+    private void OnSelectAccount(EcoAccount account)
+    {
+        _selectedPlanetAccount = account;
+        _accountDropdown.SetVisible(false);
+        StateHasChanged();
+    }
+    
+    private void OnSelectRecipient(EcoAccount account)
+    {
+        _selectedRecipientAccount = account;
+        _recipientDropdown.SetVisible(false);
+        StateHasChanged();
+    }
+
+    private async Task OnClickCreatePlanetAccount()
+    {
+        
+    }
+}

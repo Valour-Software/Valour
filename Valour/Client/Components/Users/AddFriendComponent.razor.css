@@ -38,6 +38,7 @@
     margin-top: 2px;
     min-width: 200px;
     display: inline-block;
+    word-break: initial;
 }
 
 .options {

@@ -19,7 +19,7 @@ public static class MessageAttachmentExtensions
         null, // ValourItem
         null, // ValourEcoAccount
         null, // ValourEcoTrade
-        null, // ValourEcoTransaction
+        typeof(ReceiptAttachmentComponent), // ValourReceipt
         null, // ValourBot
         null, // SitePreview
         typeof(YoutubeAttachmentComponent), // YouTube

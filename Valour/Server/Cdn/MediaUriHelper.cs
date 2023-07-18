@@ -10,9 +10,10 @@ public class MediaUriHelper
     public static TaskResult ScanMediaUri(MessageAttachment attachment)
     {
         if (!attachment.Location.StartsWith("https://cdn.valour.gg") &&
-                        !attachment.Location.StartsWith("https://media.tenor.com"))
+            !attachment.Location.StartsWith("https://media.tenor.com") &&
+            !attachment.Location.StartsWith("https://app.valour.gg"))
         {
-            return new(false, "Attachments must be from https://cdn.valour.gg...");
+            return new(false, "Attachments must be from an allowed source...");
         }
         if (AttachmentRejectRegex.IsMatch(attachment.Location))
         {

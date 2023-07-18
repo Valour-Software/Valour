@@ -15,7 +15,7 @@ public enum MessageAttachmentType : long
     ValourItem,
     ValourEcoAccount,
     ValourEcoTrade,
-    ValourEcoTransaction,
+    ValourReceipt,
     ValourBot,
     
     SitePreview,

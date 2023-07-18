@@ -1,5 +1,6 @@
 using Valour.Api.Client;
 using Valour.Api.Nodes;
+using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Api.Models.Economy;
@@ -129,5 +130,16 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         }
 
         return accounts;
+    }
+
+    public static async Task<EcoAccount> GetSelfGlobalAccountAsync()
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
+        var account = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
+        
+        if (account is not null)
+            await account.AddToCache();
+
+        return account;
     }
 }

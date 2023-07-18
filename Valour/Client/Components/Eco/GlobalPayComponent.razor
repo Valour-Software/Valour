@@ -1,0 +1,13 @@
+<h3>GlobalPayComponent</h3>
+
+@code {
+    private Currency _globalCurrency;
+    private EcoAccount _globalAccount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _globalCurrency = await Currency.FindByPlanetAsync(ISharedPlanet.ValourCentralId);
+        _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+    }
+
+}
