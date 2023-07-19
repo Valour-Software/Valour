@@ -8,6 +8,12 @@
     background: linear-gradient(51deg, rgba(6,6,74,1) 10%, rgba(0,0,0,1) 50%, rgba(49,5,66,1) 90%);
 }
 
+.sent {
+    margin: 0; 
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
 .accounts {
     
 }
@@ -30,10 +36,17 @@
     margin: 0;
 }
 
+.receipt-container .time {
+    font-size: 16px;
+    line-height: normal;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    white-space: nowrap;
+}
+
 .receipt-container .trans-info {
     font-size: 10px;
     line-height: normal;
     color: rgba(255, 255, 255, 0.5);
     margin: 0;
-    text-align: right;
 }

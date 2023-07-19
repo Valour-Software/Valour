@@ -29,9 +29,8 @@
                 <p class="account-number" style="font-size: 10px">000000000000</p>
             </div>
         </div>
-        <p style="margin: 0; margin-top: 8px; color: var(--font-color)">Sent ???</p>
+        <p class="sent" style="color: var(--font-color)">Sent ??? <span class="time">@@ -:-:- -/-/-</span></p>
         <p class="trans-info">0000-0000-0000-0000</p>
-        <p class="trans-info">@@ -:-:- -/-/-</p>
     </div>
     return;
 }
@@ -71,9 +70,8 @@
             }
         </div>
     </div>
-    <p style="margin: 0; margin-top: 8px; color: @(ISharedCurrency.ValourCreditsId == _receipt.Currency.Id ? "var(--v-purple)" : "var(--font-color)")">Sent @_receipt.Currency.Format(_receipt.Amount)</p>
+    <p class="sent" style="color: @(ISharedCurrency.ValourCreditsId == _receipt.Currency.Id ? "var(--v-purple)" : "var(--font-color)")">Sent @_receipt.Currency.Format(_receipt.Amount) <span class="time">@@ @_receipt.TimeStamp.ToLocalTime().ToShortTimeString() @_receipt.TimeStamp.ToLocalTime().ToShortDateString()</span></p>
     <p class="trans-info">@_receipt.TransactionId</p>
-    <p class="trans-info">@@ @_receipt.TimeStamp.ToLocalTime().ToShortTimeString() @_receipt.TimeStamp.ToLocalTime().ToShortDateString()</p>
 </div>
 
 @code {
