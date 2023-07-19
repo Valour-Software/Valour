@@ -38,7 +38,7 @@ else
     <DropdownComponent @ref="@_accountDropdown" Title="Select Account" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
         @foreach (var account in _myPlanetAccounts)
         {
-            <div class="account-select" @onmousedown="() => OnSelectAccount(account)">
+            <div class="account-select" @onmousedown="@(async () => await OnSelectAccount(account))">
                 @_accountFrag((account, _planetCurrency))
             </div>
         }
@@ -66,18 +66,21 @@ else
         <DropdownComponent @ref="@_recipientDropdown" Title="Select Recipient" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%" ContentStyle="width: 100%;">
             <div class="recipient-dropdown-content">
                 <input @oninput="@OnOtherSearch" style="width: 90%" class="v-input" placeholder="Search..." type="text"/>
-                @foreach (var data in _otherSearchResults)
+                @if (_otherSearchResults is not null)
                 {
-                    <div class="account-select" @onmousedown:stopPropagation="true" @onclick="() => OnSelectRecipient(data.Account)">
-                        @if (data.Account.AccountType == AccountType.User)
-                        {
-                            <UserInfoComponent User="@data.User"/>
-                        }
-                        else
-                        {
-                            <p>@data.Name</p>
-                        }
-                    </div>
+                    foreach (var searchResult in _otherSearchResults)
+                    {
+                        <div class="account-select" @onmousedown:stopPropagation="true" @onclick="() => OnSelectRecipient(searchResult.Data.Account)">
+                            @if (searchResult.Data.Account.AccountType == AccountType.User)
+                            {
+                                <UserInfoComponent User="@searchResult.User"/>
+                            }
+                            else
+                            {
+                                <p>@searchResult.Data.Name</p>
+                            }
+                        </div>
+                    }
                 }
             </div>
         </DropdownComponent>
@@ -133,13 +136,14 @@ else
     private string _majorError;
     private decimal _amount = 0;
 
+    private string _search;
+
     private string _transactionId = null;
 
     public struct AccountSearchData
     {
-        public EcoAccount Account { get; set; }
+        public EcoAccountSearchResult Data { get; set; }
         public User User { get; set; }
-        public string Name { get; set; }
     }
 
     private async Task OnClickReceipt()
@@ -214,56 +218,63 @@ else
         
         var accounts = accResult.Data;
         _myPlanetAccounts = accounts.Where(x => x.PlanetId == _focusedPlanet.Id).ToList();
-        var otherAccounts = await EcoAccount.GetPlanetAccountsCanSendAsync(_focusedPlanet.Id);
-
-        _otherPlanetAccounts = new List<AccountSearchData>();
-        foreach (var acc in otherAccounts)
-        {
-            var user = await User.FindAsync(acc.UserId);
-
-            AccountSearchData data = new()
-            {
-                Account = acc,
-                User = user,
-            };
-
-            if (acc.AccountType == AccountType.User)
-            {
-                data.Name = user?.Name ?? "Not found.";
-            }
-            else
-            {
-                data.Name = acc.Name;
-            }
-            
-            _otherPlanetAccounts.Add(data);
-        }
-        
-        _otherSearchResults = _otherPlanetAccounts;
     }
 
-    private void OnOtherSearch(ChangeEventArgs e)
+    private bool _searchLoading = false;
+    private bool _searchQueued = false;
+    private async Task OnOtherSearch(ChangeEventArgs e)
     {
-        var search = e.Value.ToString();
+        _search = e.Value.ToString();
         
-        if (string.IsNullOrWhiteSpace(search))
+        // Debounce thanks to 
+        // https://blog.jeremylikness.com/blog/an-easier-blazor-debounce/
+        if (_searchLoading)
         {
-            _otherSearchResults = _otherPlanetAccounts;
+            _searchQueued = true;
+            return;
         }
-        else
+
+        do
         {
-            _otherSearchResults = _otherPlanetAccounts.Where(x => x.Name.ToLower().Contains(search.ToLower()))
-                .OrderByDescending(x => x.Name.ToLower().StartsWith(search.ToLower()));
-        }
-        
-        StateHasChanged();
+            _searchLoading = true;
+            _searchQueued = false;
+            await GetSendableAccounts();
+            StateHasChanged();
+            await Task.Delay(100); // Require at least 200ms between searches
+            _searchLoading = false;
+        } while (_searchQueued);
     }
 
-    private void OnSelectAccount(EcoAccount account)
+    private async Task OnSelectAccount(EcoAccount account)
     {
         _selectedPlanetAccount = account;
         _accountDropdown.SetVisible(false);
+
+        await GetSendableAccounts();
+        
         StateHasChanged();
+    }
+
+    private async Task GetSendableAccounts()
+    {
+        var otherAccounts = await EcoAccount.GetPlanetAccountsCanSendAsync(_focusedPlanet.Id, _selectedPlanetAccount.Id, _search);
+        _otherPlanetAccounts = new List<AccountSearchData>();
+        foreach (var searchData in otherAccounts)
+        {
+            AccountSearchData accountData = new()
+            {
+                Data = searchData,
+            };
+
+            if (accountData.Data.Account.AccountType == AccountType.User)
+            {
+                accountData.User = await User.FindAsync(searchData.Account.UserId);
+            }
+            
+            _otherPlanetAccounts.Add(accountData);
+        }
+        
+        _otherSearchResults = _otherPlanetAccounts;
     }
     
     private void OnSelectRecipient(EcoAccount account)

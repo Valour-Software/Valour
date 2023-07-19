@@ -116,20 +116,28 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all accounts the user can send to for a given planet id
     /// </summary>
-    public static async Task<List<EcoAccount>> GetPlanetAccountsCanSendAsync(long planetId)
+    public static async Task<List<EcoAccountSearchResult>> GetPlanetAccountsCanSendAsync(long planetId, long accountId, string filter = "")
     {
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/canSend")).Data;
 
-        if (accounts is not null)
+        var request = new EcoPlanetAccountSearchRequest()
         {
-            foreach (var account in accounts)
+            PlanetId = planetId,
+            AccountId = accountId,
+            Filter = filter
+        };
+        
+        var response = (await node.PostAsyncWithResponse<List<EcoAccountSearchResult>>($"api/eco/accounts/planet/canSend", request)).Data;
+        
+        if (response is not null)
+        {
+            foreach (var accountData in response)
             {
-                await account.AddToCache();
+                await accountData.Account.AddToCache();
             }
         }
 
-        return accounts;
+        return response;
     }
 
     public static async Task<EcoAccount> GetSelfGlobalAccountAsync()

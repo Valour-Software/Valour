@@ -210,16 +210,29 @@ public class EcoService
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId) =>
         await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
-    
+
     /// <summary>
     /// Returns the planet accounts the given user can send to
     /// </summary>
-    public async ValueTask<List<EcoAccount>> GetPlanetAccountsCanSendAsync(long planetId, long userId) =>
-        await _db.EcoAccounts.Where(x => x.UserId != userId && x.PlanetId == planetId)
-                             .OrderByDescending(x => x.BalanceValue)
-                             .Select(x => x.ToModel())
-                             .ToListAsync();
-    
+    public async ValueTask<List<EcoAccountSearchResult>> GetPlanetAccountsCanSendAsync(long planetId, long accountId,
+        string filter = "")
+    {
+        filter = filter?.ToLower() ?? "";
+
+        IQueryable<Valour.Database.Economy.EcoAccount> query = _db.EcoAccounts.Where(x => x.PlanetId == planetId && x.Id != accountId)
+            .Include(x => x.User);
+        
+        if (!string.IsNullOrEmpty(filter))
+            query = query.Where(x => x.Name.ToLower().Contains(filter) || 
+                               (x.AccountType == AccountType.User && x.User.Name.ToLower().Contains(filter)));
+        
+        return await query.Take(50).Select(x => new EcoAccountSearchResult()
+        {
+            Account = x.ToModel(),
+            Name = x.AccountType == AccountType.User ? x.User.Name : x.Name
+        }).ToListAsync();
+    }
+
     /// <summary>
     /// Returns all accounts associated with a user id
     /// </summary>

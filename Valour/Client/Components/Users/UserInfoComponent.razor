@@ -1,8 +1,24 @@
 ﻿@implements IDisposable
 
+@* Placeholder *@
 @if (User is null)
 {
-    return; // Don't bother rendering if user is null
+    <div class="user-info" style="@Style">
+        <div class="left-block">
+            <img alt="user not found" class="pfp" src="_content/Valour.Client/media/logo/logo-256.png">
+            <div class="name-status">
+                <div class="name-tag">
+                    <p class="username" style="color: @_roleColor">Not Found</p>
+                    <p class="tag">#????</p>
+                </div>
+                <p class="status">
+                    -------------
+                </p>
+            </div>
+            <div class="state-circle offline" />
+        </div>
+    </div>
+    return;
 }
 
 <ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline'>

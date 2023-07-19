@@ -195,21 +195,21 @@ public class EcoApi
     }
     
     // Returns all accounts of the planet the given user can send to
-    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/canSend")]
+    [ValourRoute(HttpVerbs.Post, "api/eco/accounts/planet/canSend")]
     [UserRequired]
     public static async Task<IResult> GetPlanetAccountsCanSendAsync(
-        long planetId, 
+        [FromBody] EcoPlanetAccountSearchRequest request,
         EcoService ecoService,
         PlanetMemberService memberService)
     {
-        var member = await memberService.GetCurrentAsync(planetId);
+        var member = await memberService.GetCurrentAsync(request.PlanetId);
         if (member is null)
             return ValourResult.NotPlanetMember();
 
         if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
             return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
-        var accounts = await ecoService.GetPlanetAccountsCanSendAsync(planetId, member.UserId);
+        var accounts = await ecoService.GetPlanetAccountsCanSendAsync(request.PlanetId, request.AccountId, request.Filter);
         return Results.Json(accounts);
     }
 

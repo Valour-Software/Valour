@@ -12,7 +12,26 @@
 @if (_loading)
 {
     <div class="receipt-container">
-        <span>Loading receipt...</span>
+        <div class="accounts">
+            <div class="account-from">
+                <div class="inner">
+                    <UserInfoComponent />
+                    <p class="account-number">**********</p>
+                    <p class="account-number" style="font-size: 10px">000000000000</p>
+                </div>
+                <svg style="margin-bottom: 22px; margin-right: 6px" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="rgba(255, 255, 255, 0.5)" class="bi bi-caret-right-fill" viewBox="0 0 16 16">
+                    <path d="m12.14 8.753-5.482 4.796c-.646.566-1.658.106-1.658-.753V3.204a1 1 0 0 1 1.659-.753l5.48 4.796a1 1 0 0 1 0 1.506z"/>
+                </svg>
+            </div>
+            <div class="account-to">
+                <UserInfoComponent />
+                <p class="account-number">**********</p>
+                <p class="account-number" style="font-size: 10px">000000000000</p>
+            </div>
+        </div>
+        <p style="margin: 0; margin-top: 8px; color: var(--font-color)">Sent ???</p>
+        <p class="trans-info">0000-0000-0000-0000</p>
+        <p class="trans-info">@@ -:-:- -/-/-</p>
     </div>
     return;
 }
@@ -52,7 +71,7 @@
             }
         </div>
     </div>
-    <p style="margin: 0; margin-top: 8px">Sent @_receipt.Currency.Format(_receipt.Amount)</p>
+    <p style="margin: 0; margin-top: 8px; color: @(ISharedCurrency.ValourCreditsId == _receipt.Currency.Id ? "var(--v-purple)" : "var(--font-color)")">Sent @_receipt.Currency.Format(_receipt.Amount)</p>
     <p class="trans-info">@_receipt.TransactionId</p>
     <p class="trans-info">@@ @_receipt.TimeStamp.ToLocalTime().ToShortTimeString() @_receipt.TimeStamp.ToLocalTime().ToShortDateString()</p>
 </div>
