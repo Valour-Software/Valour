@@ -310,7 +310,7 @@
                     UserToId = account.UserId,
                 };
 
-                var result = await Transaction.SendTransaction(issueTrans);
+                var result = await Transaction.SendTransactionAsync(issueTrans);
                 
                 if (!result.Success)
                 {

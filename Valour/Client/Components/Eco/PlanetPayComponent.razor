@@ -161,7 +161,7 @@ else
             Description = "Sent via Valour App",
         };
         
-        var result = await Transaction.SendTransaction(transaction);
+        var result = await Transaction.SendTransactionAsync(transaction);
         if (!result.Success)
         {
             _errorSpan = result.Message;

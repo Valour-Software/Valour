@@ -405,6 +405,20 @@ public class EcoApi
     
     // Careful now, this is what gets Jacob VERY excited
 
+    // Returns data required to render a receipt
+    [ValourRoute(HttpVerbs.Get, "api/eco/transactions/{id}/receipt")]
+    [UserRequired]
+    public static async Task<IResult> GetTransactionReceiptAsync(
+        string id, 
+        EcoService ecoService)
+    {
+        var receipt = await ecoService.GetReceiptAsync(id);
+        if (receipt is null)
+            return ValourResult.NotFound("Transaction not found");
+        
+        return Results.Json(receipt);
+    }
+
     [ValourRoute(HttpVerbs.Get, "api/eco/transactions/{id}")]
     [UserRequired]
     public static async Task<IResult> GetTransactionAsync(

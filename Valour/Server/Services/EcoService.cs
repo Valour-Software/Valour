@@ -339,6 +339,62 @@ public class EcoService
     /// </summary>
     public async ValueTask<Transaction> GetTransactionAsync(string id) =>
         (await _db.Transactions.FindAsync(id)).ToModel();
+    
+    
+    /// <summary>
+    /// Receipts do not change so we cache them aggressively
+    /// </summary>
+    private static ConcurrentDictionary<string, EcoReceipt> _receiptCache = new();
+
+    public async ValueTask<EcoReceipt> GetReceiptAsync(string transactionId)
+    {
+        if (!_receiptCache.TryGetValue(transactionId, out var cached))
+        {
+
+            var transaction = await _db.Transactions
+                .Include(x => x.UserFrom)
+                .Include(x => x.UserTo)
+                .Include(x => x.AccountFrom)
+                .Include(x => x.AccountTo)
+                .FirstOrDefaultAsync(x => x.Id == transactionId);
+
+            if (transaction is null)
+                return null;
+
+            var currency = await GetCurrencyAsync(transaction.AccountFrom.CurrencyId);
+
+            var receipt = new EcoReceipt()
+            {
+                UserFromId = transaction.UserFromId,
+                UserToId = transaction.UserToId,
+                Currency = currency,
+                Amount = transaction.Amount,
+                TimeStamp = transaction.TimeStamp,
+                AccountFromId = transaction.AccountFromId,
+                AccountToId = transaction.AccountToId,
+                TransactionId = transactionId,
+                AccountFromName = transaction.AccountFrom.Name,
+                AccountToName = transaction.AccountTo.Name,
+            };
+
+            if (transaction.AccountFrom.AccountType == AccountType.User)
+            {
+                receipt.AccountFromName = transaction.UserFrom.Name;
+            }
+
+            if (transaction.AccountTo.AccountType == AccountType.User)
+            {
+                receipt.AccountToName = transaction.UserTo.Name;
+            }
+            
+            _receiptCache[transactionId] = receipt;
+            return receipt;
+        }
+        else
+        {
+            return cached;
+        }
+    }
 
     /// <summary>
     /// Returns the last (count) transactions for the given account id

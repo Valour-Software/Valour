@@ -27,6 +27,7 @@
 
 .receipt-container .account-number {
     color: rgba(255, 255, 255, 0.5);
+    margin: 0;
 }
 
 .receipt-container .trans-info {
