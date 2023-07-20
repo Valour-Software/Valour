@@ -30,7 +30,7 @@
     return;
 }
 
-@if (_myPlanetAccounts is null)
+@if (_myPlanetAccounts is null || _myPlanetAccounts.Count == 0)
 {
     <h6 class="p-4">You don't have an eco account in this planet.</h6>
 
@@ -39,7 +39,7 @@
         <p style="color: red; text-align: center;">@_errorSpan</p>
     }
     
-    <button class="v-btn" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
+    <button class="v-btn" style="width: 100%" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
     
     <p style="margin-top: 1em">By creating an eco account, you agree to follow the <a href="https://github.com/Valour-Software/Valour/blob/main/PLATFORM_RULES.md">Platform Eco Rules</a></p>
 }
