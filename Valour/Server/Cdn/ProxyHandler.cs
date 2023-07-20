@@ -92,7 +92,7 @@ public static class ProxyHandler
                     // channel
                     else
                     {
-                        attachment.Location = $"channel={uri.AbsolutePath.Substring(1)}";
+                        attachment.Location = $"https://player.twitch.tv/?channel={uri.AbsolutePath.Substring(1)}";
                     }
 
                     break;
