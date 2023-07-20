@@ -53,7 +53,7 @@ else
     <DropdownComponent @ref="@_accountDropdown" Title="Select Account" Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
         @foreach (var account in _myPlanetAccounts)
         {
-            <div class="account-select" @onmousedown="@(async () => await OnSelectAccount(account))">
+            <div class="account-select" @onclick="@(async () => await OnSelectAccount(account))">
                 @if (account.AccountType == AccountType.User)
                 {
                     <UserInfoComponent User="@ValourClient.Self" />
