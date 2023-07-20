@@ -27,6 +27,23 @@ Valour is not accountable for economic actions within communities (planets); how
 
 Valour does not explicitly ban the use of the Economic systems for integration with external systems. We strive to support API use and integrations to the best of our ability. However, please note that any transaction that interacts with a third-party system is entirely beyond the purview of Valour Support. Valour does not endorse any associated systems. These connected systems and third-party applications bear full responsibility for their extensions of the Valour Economic and Trading systems and must abide by these rules.
 
+## Account Disablement and Deletion
+
+In the event that a user requests an account deletion or if the account is suspended or terminated by Valour Staff for any reason, all associated virtual currencies and items may be forfeited without any obligation for compensation or reimbursement on the part of Valour. Users are urged to ensure that they fully understand this policy before creating an account or participating in the economic or trading roleplay systems.
+
+## Currency and Item Guidelines
+
+Any virtual currencies or items found to be in violation of the Valour Platform Rules are subject to removal from the platform at Valour's sole discretion. Valour is under no obligation to provide any form of compensation or restitution for the removed currencies or items. By participating in the Valour economic and trading systems, users acknowledge and accept the risk of potential loss due to violation of platform rules.
+
+This also applies to community deletion due to infringement of the Platform Rules, under which the associated currency and items will also be removed from the platform.
+
+## Termination of Services
+Valour reserves the right to suspend, discontinue, or terminate any aspect of its services at any time, without prior notice, at its sole discretion. This includes but is not limited to, the Valour economic and trading systems, and any associated APIs.
+
+In the event of such termination, Valour will not be held liable to users or any third party for any consequences resulting from such actions, including but not limited to any loss of virtual currencies, items, or other user-generated content.
+
+By participating in the Valour economic and trading systems, users acknowledge and accept this term and agree not to hold Valour, its affiliates, officers, directors, employees, or partners liable for any claims, damages, losses, liabilities, costs or expenses of any kind, as a result of or related to such discontinuation or termination of services.
+
 ## Platform Rules
 
 The Valour Economic and Trading systems must be utilized in a manner that adheres to the PLATFORM RULES, which can be accessed at [](https://github.com/Valour-Software/Valour/blob/main/PLATFORM_RULES.md)
