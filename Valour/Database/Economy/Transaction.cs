@@ -9,6 +9,21 @@ namespace Valour.Database.Economy;
 [Table("transactions")]
 public class Transaction : ISharedTransaction
 {
+    [ForeignKey("PlanetId")]
+    public virtual Planet Planet { get; set; }
+    
+    [ForeignKey("UserFromId")]
+    public virtual User UserFrom { get; set; }
+    
+    [ForeignKey("UserToId")]
+    public virtual User UserTo { get; set; }
+    
+    [ForeignKey("AccountFromId")]
+    public virtual EcoAccount AccountFrom { get; set; }
+    
+    [ForeignKey("AccountToId")]
+    public virtual EcoAccount AccountTo { get; set; }
+
     /// <summary>
     /// Unlike most ids in Valour, transactions do not use a snowflake.
     /// We anticipate some rapid transactions via market botting, which

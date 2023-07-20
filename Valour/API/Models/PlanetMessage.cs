@@ -78,7 +78,7 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
 
         if (item is not null)
         {
-            await ValourCache.Put(id, item);
+            await item.AddToCache();
         }
 
         return item;

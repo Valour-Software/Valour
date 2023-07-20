@@ -39,3 +39,13 @@
 .v-dropdown .align-left {
     right: 0;
 }
+
+.dropdown-close {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: -1;
+    cursor: default;
+}

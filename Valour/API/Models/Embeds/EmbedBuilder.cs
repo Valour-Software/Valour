@@ -9,6 +9,7 @@ using Valour.Api.Models.Messages.Embeds.Styles.Basic;
 using Valour.Api.Models.Messages.Embeds.Styles.Flex;
 using Valour.Api.Models.Messages.Embeds.Styles.Bootstrap;
 using System.Collections.Concurrent;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Models.Messages.Embeds;
 
@@ -280,17 +281,17 @@ public class EmbedBuilder
 	/// <param name="filename"></param>
 	/// <param name="location">Must be either from https://media.tenor.com or https://cdn.valour.gg</param>
 	/// <returns></returns>
-	public EmbedBuilder AddMedia(int width, int height, string mimetype, string filename, string location)
+	public EmbedBuilder AddMedia(MessageAttachmentType type, int width, int height, string mimetype, string filename, string location)
     {
         var item = new EmbedMediaItem()
         {
-            Attachment = new()
+            Attachment = new(type)
             {
                 Width = width,
                 Height = height,
                 MimeType = mimetype,
                 FileName = filename,
-                Location = location
+                Location = location,
             }
         };
 

@@ -7,6 +7,9 @@ namespace Valour.Database.Economy;
 [Table("eco_accounts")]
 public class EcoAccount : ISharedEcoAccount
 {
+    [ForeignKey("UserId")]
+    public virtual User User { get; set; }
+    
     /// <summary>
     /// The database id of this economy account
     /// </summary>

@@ -204,60 +204,34 @@
 
 /* Message content styles */
 
-::deep .content p {
+::deep .message .fragments p {
     margin: 0px;
     word-break: break-word;
 }
 
-::deep .content code {
+::deep .message .fragments code {
     margin: 0px;
     word-break: break-word;
     background: #242424;
 }
 
-::deep .content pre {
+::deep .message .fragments pre {
     margin: 0px;
     word-break: break-word;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-::deep .content img:before {
-    display: normal;
-    content: attr(href);
-    visibility: visible;
-}
-
-::deep .content img {
-    object-fit: contain;
-    object-position: left;
-    margin: 5px;
-    margin-left: 0px;
-    margin-right: 0px;
-    cursor: pointer;
-    height: max-content;
-    width: max-content;
-    max-width: min(400px, 100%);
-    max-height: min(400px, 80vh);
-}
-
-::deep .content img::before {
-    background-color: grey;
-    border: none;
-    display: none;
-    overflow: hidden;
-}
-
-::deep .content .enlarged {
+::deep .message .fragments .enlarged {
     max-width: 900px !important;
     max-height: 900px !important;
 }
 
-::deep .content a:not(.nohide) {
+::deep .message .fragments a:not(.nohide) {
     font-size: 0px;
 }
 
-::deep .content a:not(.nohide):after {
+::deep .message .fragments a:not(.nohide):after {
     font-size: 16px;
     line-height: 0px;
     content: attr(href);
@@ -266,23 +240,23 @@
     vertical-align: central;
 }
 
-::deep .content .youtube {
+::deep .message .fragments .youtube {
     max-width: 90%;
     display: block;
 }
 
-::deep .content video {
+::deep .message .fragments video {
     max-width: 90%;
     max-height: 300px;
     display: block;
 }
 
-::deep .content .table {
+::deep .message .fragments .table {
     max-width: 90%;
     display: block;
 }
 
-::deep .content > p > strong {
+::deep .message .fragments > p > strong {
     font-weight: bold
 }
 
@@ -342,7 +316,9 @@
 .attachment-wrapper {
     position: relative;
     width: fit-content;
+    max-width: 100%;
     height: fit-content;
+    max-height: 80vh;
     margin: 0;
 }
 

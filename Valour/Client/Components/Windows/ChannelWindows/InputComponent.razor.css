@@ -32,6 +32,11 @@
     width: calc(100% - 90px);
 }
 
+.textbox-inner span {
+    text-wrap: wrap; /* older browser support */
+    text-wrap: balance;
+}
+
 .no-perms .textbox-inner {
     width: calc(100% - 22px);
     color: rgba(120, 120, 120);
@@ -190,4 +195,38 @@
     border-right: 10px solid transparent;
     border-top: 10px solid var(--main-1);
     margin-left: 14px;
+}
+
+.emoji-button {
+    background: transparent;
+    border: none;
+    position: absolute;
+    right: 6px;
+    top: 8px;
+    outline: none;
+    filter: grayscale(1);
+}
+
+.mobile .emoji-button {
+    right: 38px;
+}
+
+.emoji-button:hover {
+    filter: grayscale(0);
+    animation: spin 1s infinite ease-in-out;
+}
+
+@keyframes spin {
+    from {
+        transform:rotate(0deg);
+    }
+    to {
+        transform:rotate(360deg);
+    }
+}
+
+.emoji-button img {
+    pointer-events: none;
+    width: 24px;
+    height: 24px;
 }

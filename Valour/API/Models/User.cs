@@ -89,6 +89,9 @@ public class User : LiveModel, ISharedUser
     /// This should only ever be false on legacy or testing accounts.
     /// </summary>
     public bool Compliance { get; set; }
+    
+    [JsonIgnore]
+    public string NameAndTag => $"{Name}#{Tag}";
 
     public TimeSpan LastActiveSpan =>
         ISharedUser.GetLastActiveSpan(this);

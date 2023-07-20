@@ -47,4 +47,10 @@ public class Currency : ISharedCurrency
     /// The number of decimal places this currency supports
     /// </summary>
     public int DecimalPlaces { get; set; }
+    
+    public string Format(decimal amount)
+    {
+        return $"{Symbol}{Math.Round(amount, DecimalPlaces)} {ShortCode}";
+    }
+    
 }

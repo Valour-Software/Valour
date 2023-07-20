@@ -4,6 +4,7 @@ using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Shared;
 using Valour.Shared.Models;
+using Valour.Shared.Models.Economy;
 
 namespace Valour.Server.Services;
 
@@ -83,7 +84,7 @@ public class RegisterService
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             request.Referrer = request.Referrer.Trim();
-            var referUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
+            var referUser = await _userService.GetByNameAsync(request.Referrer);
             if (referUser is null)
                 return new(false, "Referrer not found");
 
@@ -143,6 +144,19 @@ public class RegisterService
             };
 
             _db.Credentials.Add(cred);
+
+            /* Decided to make this step explicit in order to agree to eco terms
+             
+            Valour.Database.Economy.EcoAccount globalAccount = new()
+            {
+                Id = IdManager.Generate(),
+                UserId = user.Id,
+                CurrencyId = ISharedCurrency.ValourCreditsId,
+                PlanetId = ISharedPlanet.ValourCentralId,
+            };
+        
+            _db.EcoAccounts.Add(globalAccount);
+            */
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()

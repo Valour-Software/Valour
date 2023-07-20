@@ -19,7 +19,7 @@
             </div>
         }
     </div>
-    <div class="tab-content" style="max-height: @MaxHeight">
+    <div class="tab-content" style="max-height: @MaxHeight; @ContentStyle">
         @switch (_active)
         {
             case 0:
@@ -41,6 +41,9 @@
     {
         return index == _active ? "active" : "";
     }
+    
+    [Parameter]
+    public string ContentStyle { get; set; }
 
     [Parameter]
     public string[] Titles { get; set; }

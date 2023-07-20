@@ -23,7 +23,6 @@ using WebPush;
 using Valour.Database.Config;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Valour.Server.Api.Dynamic;
-using Valour.Server.Workers.Economy;
 
 namespace Valour.Server
 {
@@ -319,7 +318,6 @@ namespace Valour.Server
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
             services.AddHostedService<NodeStateWorker>();
-            services.AddHostedService<TransactionWorker>();
 
             services.AddEndpointsApiExplorer();
 

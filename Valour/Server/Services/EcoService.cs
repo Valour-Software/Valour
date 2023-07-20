@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using Valour.Server.Database;
-using Valour.Server.Workers.Economy;
 using Valour.Shared;
 using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
@@ -16,17 +15,26 @@ public class EcoService
     private readonly ValourDB _db;
     private readonly ILogger<EcoService> _logger;
     private readonly CoreHubService _coreHub;
+    private readonly NodeService _nodeService;
+    private readonly NotificationService _notificationService;
 
     /// <summary>
     /// Cache for currency definitions
     /// </summary>
     private readonly ConcurrentDictionary<long, Currency> _currencyCache = new();
 
-    public EcoService(ValourDB db, ILogger<EcoService> logger, CoreHubService coreHub)
+    public EcoService(
+        ValourDB db, 
+        ILogger<EcoService> logger, 
+        CoreHubService coreHub, 
+        NodeService nodeService, 
+        NotificationService notificationService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
+        _nodeService = nodeService;
+        _notificationService = notificationService;
     }
 
     ////////////////
@@ -209,12 +217,41 @@ public class EcoService
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId) =>
         await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
-    
+
+    /// <summary>
+    /// Returns the planet accounts the given user can send to
+    /// </summary>
+    public async ValueTask<List<EcoAccountSearchResult>> GetPlanetAccountsCanSendAsync(long planetId, long accountId,
+        string filter = "")
+    {
+        filter = filter?.ToLower() ?? "";
+
+        IQueryable<Valour.Database.Economy.EcoAccount> query = _db.EcoAccounts.Where(x => x.PlanetId == planetId && x.Id != accountId)
+            .Include(x => x.User);
+        
+        if (!string.IsNullOrEmpty(filter))
+            query = query.Where(x => x.Name.ToLower().Contains(filter) || 
+                               (x.AccountType == AccountType.User && x.User.Name.ToLower().Contains(filter)));
+        
+        return await query.Take(50).Select(x => new EcoAccountSearchResult()
+        {
+            Account = x.ToModel(),
+            Name = x.AccountType == AccountType.User ? x.User.Name : x.Name
+        }).ToListAsync();
+    }
+
     /// <summary>
     /// Returns all accounts associated with a user id
     /// </summary>
     public async ValueTask<List<EcoAccount>> GetAccountsAsync(long userId) =>
         await _db.EcoAccounts.Where(x => x.UserId == userId).Select(x => x.ToModel()).ToListAsync();
+    
+    /// <summary>
+    /// Returns the global account associated with a user id
+    /// </summary>
+    public async ValueTask<EcoAccount> GetGlobalAccountAsync(long userId) =>
+        (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User)).ToModel();
+    
     
     public async ValueTask<TaskResult<EcoAccount>> CreateEcoAccountAsync(EcoAccount account)
     {
@@ -320,8 +357,64 @@ public class EcoService
     /// <summary>
     /// Returns the transaction with the given id
     /// </summary>
-    public async ValueTask<Transaction> GetTransactionAsync(long id) =>
+    public async ValueTask<Transaction> GetTransactionAsync(string id) =>
         (await _db.Transactions.FindAsync(id)).ToModel();
+    
+    
+    /// <summary>
+    /// Receipts do not change so we cache them aggressively
+    /// </summary>
+    private static ConcurrentDictionary<string, EcoReceipt> _receiptCache = new();
+
+    public async ValueTask<EcoReceipt> GetReceiptAsync(string transactionId)
+    {
+        if (!_receiptCache.TryGetValue(transactionId, out var cached))
+        {
+
+            var transaction = await _db.Transactions
+                .Include(x => x.UserFrom)
+                .Include(x => x.UserTo)
+                .Include(x => x.AccountFrom)
+                .Include(x => x.AccountTo)
+                .FirstOrDefaultAsync(x => x.Id == transactionId);
+
+            if (transaction is null)
+                return null;
+
+            var currency = await GetCurrencyAsync(transaction.AccountFrom.CurrencyId);
+
+            var receipt = new EcoReceipt()
+            {
+                UserFromId = transaction.UserFromId,
+                UserToId = transaction.UserToId,
+                Currency = currency,
+                Amount = transaction.Amount,
+                TimeStamp = transaction.TimeStamp,
+                AccountFromId = transaction.AccountFromId,
+                AccountToId = transaction.AccountToId,
+                TransactionId = transactionId,
+                AccountFromName = transaction.AccountFrom.Name,
+                AccountToName = transaction.AccountTo.Name,
+            };
+
+            if (transaction.AccountFrom.AccountType == AccountType.User)
+            {
+                receipt.AccountFromName = transaction.UserFrom.Name;
+            }
+
+            if (transaction.AccountTo.AccountType == AccountType.User)
+            {
+                receipt.AccountToName = transaction.UserTo.Name;
+            }
+            
+            _receiptCache[transactionId] = receipt;
+            return receipt;
+        }
+        else
+        {
+            return cached;
+        }
+    }
 
     /// <summary>
     /// Returns the last (count) transactions for the given account id
@@ -344,53 +437,31 @@ public class EcoService
         if (!issuing && transaction.AccountFromId == transaction.AccountToId)
             return new TaskResult<Transaction>(false, "Cannot send to self");
         
-        if (transaction.Amount <= 0)
-            return new TaskResult<Transaction>(false, "Amount must be positive");
-
-        var fromAccount = await _db.EcoAccounts.FindAsync(transaction.AccountFromId);
-        if (fromAccount is null)
-            return new TaskResult<Transaction>(false, "Could not find from account");
-        
-        var currency = await GetCurrencyAsync(fromAccount.CurrencyId);
-        if (currency is null)
-            return new TaskResult<Transaction>(false, "Critical error: Currency not found");
-        
-        // Round per the currency's decimal places
-        transaction.Amount = Math.Round(transaction.Amount, currency.DecimalPlaces);
-        
-        if (!issuing && fromAccount.BalanceValue < transaction.Amount)
-            return new TaskResult<Transaction>(false, "Insufficient funds");
-        
-        var toAccount = await _db.EcoAccounts.FindAsync(transaction.AccountToId);
-        if (toAccount is null)
-            return new TaskResult<Transaction>(false, "Could not find to account");
-
-        if (fromAccount.CurrencyId != toAccount.CurrencyId)
-            return new TaskResult<Transaction>(false, "Account currencies do not match. Use Exchange API instead.");
-
         // Set id before processing
         transaction.Id = Guid.NewGuid().ToString();
+        transaction.TimeStamp = DateTime.UtcNow;
 
         // Post transaction to queue
-        TransactionWorker.AddToQueue(transaction);
-
-        return new TaskResult<Transaction>(true, "Transaction has been queued.", transaction);
+        var result = await ProcessTransactionAsync(transaction, issuing);
+        if (!result.Success)
+            return new TaskResult<Transaction>(false, result.Message);
+        
+        return new TaskResult<Transaction>(true, result.Message, transaction);
     }
-
-    /// <summary>
-    /// This method should really only be called by the TransactionWorker within nodes.
-    /// Manually calling this can break transaction ordering!
-    /// </summary>
-    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, CoreHubService injectedHub, NodeService nodeService)
+    
+    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, bool issuing = false)
     {
         // Fun case for those who wish to break the system
         // Throwbacks to SV1
-        if (transaction.Amount < 0)
+        if (transaction.Amount <= 0)
             return new TaskResult(false, "Amount must be positive");
 
         // Global Valour Credits transaction
         var isGlobal = (transaction.PlanetId == ISharedPlanet.ValourCentralId);
 
+        if (!issuing && (transaction.AccountFromId == transaction.AccountToId))
+            return new TaskResult(false, "Cannot send to self");
+        
         var fromAcc = await _db.EcoAccounts.FindAsync(transaction.AccountFromId);
         if (fromAcc is null)
             return new TaskResult(false, "Could not find sending account");
@@ -407,12 +478,10 @@ public class EcoService
 
         // Get amount rounded to decimals allowed by currency
         transaction.Amount = Math.Round(transaction.Amount, currency.DecimalPlaces);
-
-        bool issuance = (fromAcc.Id == toAcc.Id);
-
+        
         // Make sure sender isn't too broke
-        // First check is for issuance, second is for normal transactions
-        if (!issuance && transaction.Amount > fromAcc.BalanceValue)
+        // First check is for issuing, second is for normal transactions
+        if (!issuing && transaction.Amount > fromAcc.BalanceValue)
             return new TaskResult(false, "Sender cannot afford this transaction");
 
         await using var trans = await _db.Database.BeginTransactionAsync();
@@ -423,7 +492,7 @@ public class EcoService
         }
 
         // Do not remove funds from sender if issuing
-        if (!issuance)
+        if (!issuing)
         {
             fromAcc.BalanceValue -= transaction.Amount;
         }
@@ -436,10 +505,13 @@ public class EcoService
             var dbTrans = transaction.ToDatabase();
             _db.Transactions.Add(dbTrans);
 
-            if (issuance)
+            if (issuing)
             {
                 currency.Issued += (long)transaction.Amount;
                 var dbCurrency = await _db.Currencies.FindAsync(currency.Id);
+                if (dbCurrency is null)
+                    return new TaskResult(false, "Could not find currency");
+                
                 dbCurrency.Issued += (long) transaction.Amount;
             }
 
@@ -449,7 +521,6 @@ public class EcoService
         catch (DbUpdateConcurrencyException e)
         {
             await trans.RollbackAsync();
-
             return new TaskResult(false, "Another transaction modified your account before processing finished. Please try again.");
         }
         catch(Exception e)
@@ -460,13 +531,28 @@ public class EcoService
 
         if (isGlobal)
         {
-            await injectedHub.RelayTransaction(transaction, nodeService);
+            await _coreHub.RelayTransaction(transaction, _nodeService);
         }
         else
         {
-            injectedHub.NotifyPlanetTransactionProcessed(transaction);
+            _coreHub.NotifyPlanetTransactionProcessed(transaction);
         }
+        
+        var userFrom = await _db.Users.FindAsync(transaction.UserFromId);
 
-        return TaskResult.SuccessResult;
+        // Send notification
+        await _notificationService.AddNotificationAsync(new Notification()
+        {
+            UserId = transaction.UserToId,
+            Title = $"{userFrom.Name} sent you {currency.Format(transaction.Amount)}!",
+            PlanetId = transaction.PlanetId,
+            SourceId = transaction.UserFromId,
+            Source = NotificationSource.TransactionReceived,
+            Body = transaction.Description,
+            ImageUrl = userFrom.PfpUrl,
+            ClickUrl = $"/receipt/{transaction.Id}"
+        });
+
+        return new TaskResult(true, "api/eco/transactions/" + transaction.Id);
     }
 }

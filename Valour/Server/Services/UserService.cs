@@ -245,8 +245,26 @@ public class UserService
     }
 
     public async Task<User> GetUserAsync(string username, string tag)
-        => (await _db.Users.FirstOrDefaultAsync(x => x.Name == username.ToLower() && x.Tag == tag.ToUpper())).ToModel();
+        => (await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower() && x.Tag == tag.ToUpper())).ToModel();
 
+    
+    /// <summary>
+    /// Returns a user given the full name and tag: SpikeViper#0000
+    /// </summary>
+    /// <param name="username"></param>
+    /// <returns></returns>
+    public async Task<User> GetByNameAsync(string username)
+    {
+        var split = username.Split('#');
+        if (split.Length < 2)
+        {
+            return null;
+        }
+        
+        // Users are searched by lowercase name, but the tags are uppercase
+        return await GetUserAsync(split[0], split[1]);
+    }
+    
     public async Task<TaskResult<User>> UpdateAsync(User updatedUser)
     {
         var old = await _db.Users.FindAsync(updatedUser.Id);

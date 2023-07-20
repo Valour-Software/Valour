@@ -1,4 +1,30 @@
 ﻿.image-attachment-wrapper {
-    max-width: 100%;
-    max-height: min(100%, 500px);
+    max-width: min(400px, 100%);
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.image-attachment-wrapper img:before {
+    display: normal;
+    content: attr(href);
+    visibility: visible;
+}
+
+.image-attachment-wrapper img {
+    object-fit: contain;
+    object-position: left;
+    margin-left: 0px;
+    margin-right: 0px;
+    cursor: pointer;
+    height: max-content;
+    width: max-content;
+    max-width: min(400px, 100%);
+    max-height: min(400px, 80vh);
+}
+
+.image-attachment-wrapper img::before {
+    background-color: grey;
+    border: none;
+    display: none;
+    overflow: hidden;
 }

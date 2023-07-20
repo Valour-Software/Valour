@@ -1,13 +1,9 @@
-﻿<video controls loop preload="metadata" playsinline src="@Attachment.Location#t=0.001" type="@Attachment.MimeType"></video>
+﻿@inherits AttachmentComponent
+
+<video controls loop preload="metadata" playsinline src="@Attachment.Location#t=0.001" type="@Attachment.MimeType"></video>
 
 @code {
     [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
-    [Parameter]
-    public MessageComponent MessageComponent { get; set; }
-
-    [Parameter]
-    public string? CustomStyle { get; set; }
+    public string CustomStyle { get; set; }
 }
 

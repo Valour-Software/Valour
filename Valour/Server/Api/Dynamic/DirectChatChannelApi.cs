@@ -123,12 +123,23 @@ public class DirectChatChannelApi
     public static async Task<IResult> PostMessageRouteAsync(
         [FromBody] DirectMessage message,
         DirectChatChannelService directService,
-        UserService userService)
+        UserService userService,
+        ValourDB db)
     {
         var requesterUserId = await userService.GetCurrentUserIdAsync();
 
         if (message is null)
             return Results.BadRequest("Include message in body.");
+        
+        if (message.ReplyToId is not null)
+        {
+            var replyTo = await db.PlanetMessages.FindAsync(message.ReplyToId);
+            if (replyTo is null)
+                return ValourResult.NotFound("ReplyTo message not found.");
+			
+            if (replyTo.ChannelId != message.ChannelId)
+                return ValourResult.BadRequest("Cannot reply to message in another channel.");
+        }
 
         if (string.IsNullOrEmpty(message.Content) &&
             string.IsNullOrEmpty(message.EmbedData) &&

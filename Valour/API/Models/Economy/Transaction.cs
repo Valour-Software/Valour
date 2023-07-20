@@ -76,15 +76,21 @@ public class Transaction : ISharedTransaction
     /// </summary>
     public long? ForcedBy { get; set; }
     
-    public static async ValueTask<Transaction> FindAsync(string id, bool refresh = false)
+    public static async ValueTask<Transaction> FindAsync(string id)
     {
         var item = (await ValourClient.PrimaryNode.GetJsonAsync<Transaction>($"api/eco/transactions/{id}")).Data;
         return item;
     }
 
-    public static async ValueTask<TaskResult<Transaction>> SendTransaction(Transaction trans)
+    public static async ValueTask<TaskResult<Transaction>> SendTransactionAsync(Transaction trans)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(trans.PlanetId);
         return await node.PostAsyncWithResponse<Transaction>("api/eco/transactions", trans);
     } 
+    
+    public static async ValueTask<EcoReceipt> GetReceiptAsync(string id)
+    {
+        var item = (await ValourClient.PrimaryNode.GetJsonAsync<EcoReceipt>($"api/eco/transactions/{id}/receipt")).Data;
+        return item;
+    }
 }

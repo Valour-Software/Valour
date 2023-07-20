@@ -111,7 +111,7 @@
 	{
 		addedYouError = "";
 
-		var result = await ValourClient.AddFriendAsync(user.Name);
+		var result = await ValourClient.AddFriendAsync(user.NameAndTag);
 		if (!result.Success){
 			addedYouError = result.Message;
 		}
@@ -123,7 +123,7 @@
 	{
 		addedYouError = "";
 
-		var result = await ValourClient.DeclineFriendAsync(user.Name);
+		var result = await ValourClient.DeclineFriendAsync(user.NameAndTag);
 		if (!result.Success)
 		{
 			addedYouError = result.Message;
@@ -136,7 +136,7 @@
 	{
 		addedError = "";
 
-		var result = await ValourClient.CancelFriendAsync(user.Name);
+		var result = await ValourClient.CancelFriendAsync(user.NameAndTag);
 		if (!result.Success)
 		{
 			addedError = result.Message;

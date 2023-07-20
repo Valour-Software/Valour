@@ -1,6 +1,8 @@
-<button class="v-dropdown v-btn" style="@Style" @onmousedown="@OnClick" @onblur="@OnBlur">
-    ▼
-    <div class="content @GetHidden() @("align-" + Alignment.ToString().ToLower())">
+<button class="v-dropdown v-btn" style="@Style" @onmousedown="@OnClick">
+    <span style="float: left">@Title</span> ▼
+    <div class="content @GetHidden() @("align-" + Alignment.ToString().ToLower())" style="@ContentStyle" @onmousedown:stopPropagation="true">
+        <div class="dropdown-close" @onmousedown="@Close" @onmousedown:stopPropagation="true">
+        </div>
         @ChildContent
     </div>
 </button>
@@ -14,10 +16,16 @@
     }
     
     [Parameter]
+    public string Title { get; set; }
+    
+    [Parameter]
     public RenderFragment ChildContent { get; set; }
     
     [Parameter]
     public string Style { get; set; }
+    
+    [Parameter]
+    public string ContentStyle { get; set; }
     
     [Parameter]
     public DropdownAlignment Alignment { get; set; } = DropdownAlignment.Right;
@@ -27,6 +35,18 @@
     private string GetHidden()
     {
         return _isHidden ? "hidden" : string.Empty;
+    }
+
+    public void SetVisible(bool value)
+    {
+        _isHidden = !value;
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        _isHidden = true;
+        StateHasChanged();
     }
     
     private void OnClick()

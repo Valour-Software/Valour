@@ -28,6 +28,15 @@ public class UserApi
         var user = await userService.GetAsync(id);
         return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
     }
+    
+    [ValourRoute(HttpVerbs.Get, "api/users/byName/{name}")]
+    public static async Task<IResult> GetUserByNameRouteAsync(
+        string name, 
+        UserService userService)
+    {
+        var user = await userService.GetByNameAsync(name);
+        return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
+    }
 
     [ValourRoute(HttpVerbs.Put, "api/users/{id}")]
     [UserRequired(UserPermissionsEnum.FullControl)]

@@ -8,6 +8,7 @@
             }
         }
 
+        /*
         var images = innerContent.getElementsByTagName('img');
         if (images != null) {
             for (let image of images) {
@@ -18,6 +19,7 @@
                 }
             }
         }
+        */
 
         twemoji.parse(innerContent, {
             folder: 'svg',
