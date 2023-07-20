@@ -2,15 +2,6 @@
 
 namespace Valour.Api.Models;
 
-public enum AttachmentType
-{
-    None,
-    Image,
-    Video,
-    Audio,
-    File
-}
-
 public class MessageAttachment : ISharedMessageAttachment
 {
     public string Location { get; set; }
@@ -18,9 +9,22 @@ public class MessageAttachment : ISharedMessageAttachment
     public string FileName { get; set; }
 
     // Image attributes
-    public int Width { get; set; } = 1000;
-    public int Height { get; set; } = 1000;
+    public int Width { get; set; } = 0;
+    public int Height { get; set; } = 0;
 
+    public MessageAttachmentType Type { get; set; }
+    
+    /// <summary>
+    /// True if this was an inline attachment - aka, it was generated using urls within the message
+    /// </summary>
+    public bool Inline { get; set; } = false;
+
+    public MessageAttachment(MessageAttachmentType type)
+    {
+        Type = type;
+    }
+    
+    /*
     public AttachmentType GetAttachmentType()
     {
         // Malformed
@@ -36,5 +40,6 @@ public class MessageAttachment : ISharedMessageAttachment
 
         return AttachmentType.File;
     }
+    */
 }
 

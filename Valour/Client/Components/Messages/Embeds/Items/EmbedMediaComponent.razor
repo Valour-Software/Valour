@@ -13,7 +13,7 @@
 		if (item.Styles.Any(x => x.StyleType == StyleType.Width || x.StyleType == StyleType.Height))
 		{
 			par.Add("CustomStyle", item.GetStyle());
-			if (item.Attachment.GetAttachmentType() == AttachmentType.Image)
+			if (item.Attachment.Type == MessageAttachmentType.Image)
 			{
 				par.Add("Clickable", false);
 			}

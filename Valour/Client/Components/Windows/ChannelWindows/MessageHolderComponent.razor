@@ -4,55 +4,57 @@
 @using System.Reflection.Metadata
 
 <div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
-    <CascadingValue Value="this" IsFixed="true">
-        @{
-            ClientMessageWrapper last;    
+    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
+        <CascadingValue Value="this" IsFixed="true">
+            @{
+                ClientMessageWrapper last;    
 
-            if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
-            {
-                last = null;
-
-                foreach (ClientMessageWrapper messageData in DisplayedMessageData)
+                if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
                 {
-                    Dictionary<string, object> messageParams = new()
+                    last = null;
+
+                    foreach (ClientMessageWrapper messageData in DisplayedMessageData)
                     {
-                        { "MessageData", messageData },
-                        { "IsInnerReply", false },
-                        { "LastMessage", last },
-                    };
+                        Dictionary<string, object> messageParams = new()
+                        {
+                            { "MessageData", messageData },
+                            { "IsInnerReply", false },
+                            { "LastMessage", last },
+                        };
 
-                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
+                        <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
 
-                    last = messageData;
+                        last = messageData;
+                    }
+                }
+
+                if (QueuedMessageData != null && QueuedMessageData.Count > 0){
+
+                    last = null;
+
+                    if (DisplayedMessageData != null)
+                    {
+                        last = DisplayedMessageData.Last();
+                    }
+
+                    foreach (ClientMessageWrapper messageData in QueuedMessageData)
+                    {
+                        Dictionary<string, object> messageParams = new()
+                        {
+                            { "MessageData", messageData },
+                            { "IsInnerReply", false },
+                            { "LastMessage", last },
+                            { "Ghost", true }
+                        };
+
+                        <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
+
+                        last = messageData;
+                    }
                 }
             }
-
-            if (QueuedMessageData != null && QueuedMessageData.Count > 0){
-
-                last = null;
-
-                if (DisplayedMessageData != null)
-                {
-                    last = DisplayedMessageData.Last();
-                }
-
-                foreach (ClientMessageWrapper messageData in QueuedMessageData)
-                {
-                    Dictionary<string, object> messageParams = new()
-                    {
-                        { "MessageData", messageData },
-                        { "IsInnerReply", false },
-                        { "LastMessage", last },
-                        { "Ghost", true }
-                    };
-
-                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
-
-                    last = messageData;
-                }
-            }
-        }
-    </CascadingValue>
+        </CascadingValue>
+    </ContextMenuTrigger>
 </div>
 
 @code {

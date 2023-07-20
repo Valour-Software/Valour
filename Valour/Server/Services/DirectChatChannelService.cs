@@ -208,30 +208,54 @@ public class DirectChatChannelService
         if (message.Content is null)
             message.Content = "";
 
-        // Handle URL content
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            message.Content = await ProxyHandler.HandleUrls(message.Content, _httpClient, _cdnDB);
-
         message.Id = IdManager.Generate();
 
+        List<Valour.Api.Models.MessageAttachment> attachments = null;
+        
         // Handle attachments
         if (message.AttachmentsData is not null)
         {
-            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
+            attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)
                 {
-                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
-                    {
-                        return new(false, "Attachments must be from https://cdn.valour.gg...");
-                    }
-                    if (_attachmentRejectRegex.IsMatch(at.Location))
-                    {
-                        return new(false, "Attachment location contains invalid characters");
-                    }
+                    var result = MediaUriHelper.ScanMediaUri(at);
+                    if (!result.Success)
+                        return new TaskResult(false, result.Message);
                 }
             }
+        }
+
+        var inlineChange = false;
+        
+        // Handle new inline attachments
+        if (!string.IsNullOrWhiteSpace(message.Content))
+        {
+            // Prevent markdown bypassing inline, e.g. [](https://example.com)
+            // This is because a direct image link is not proxied and can steal ip addresses
+            message.Content = message.Content.Replace("[](", "(");
+            
+            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(message.Content, _cdnDB, _httpClient);
+            if (inlineAttachments is not null)
+            {
+                if (attachments is null)
+                {
+                    attachments = inlineAttachments;
+                }
+                else
+                {
+                    attachments.AddRange(inlineAttachments);
+                }
+
+                inlineChange = true;
+            }
+        }
+        
+        // If there was a change, serialize the new attachments data back to the message
+        if (inlineChange)
+        {
+            message.AttachmentsData = JsonSerializer.Serialize(attachments);
         }
 
         if (message.MentionsData is not null)
@@ -313,31 +337,59 @@ public class DirectChatChannelService
         if (message.Content is null)
             message.Content = "";
 
-        // Handle URL content
-        if (!string.IsNullOrWhiteSpace(message.Content))
-            message.Content = await ProxyHandler.HandleUrls(message.Content, _httpClient, _cdnDB);
+        List<Valour.Api.Models.MessageAttachment> attachments = null;
 
+        bool inlineChange = false;
+        
         // Handle attachments
         if (message.AttachmentsData is not null)
         {
-            var attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
+            attachments = JsonSerializer.Deserialize<List<Valour.Api.Models.MessageAttachment>>(message.AttachmentsData);
             if (attachments is not null)
             {
                 foreach (var at in attachments)
                 {
-                    if (!at.Location.StartsWith("https://cdn.valour.gg"))
-                    {
-                        return new(false, "Attachments must be from https://cdn.valour.gg...");
-                    }
-                    if (_attachmentRejectRegex.IsMatch(at.Location))
-                    {
-                        return new(false, "Attachment location contains invalid characters");
-                    }
+                    var result = MediaUriHelper.ScanMediaUri(at);
+                    if (!result.Success)
+                        return new TaskResult(false, result.Message);
                 }
+                
+                // Remove old inline attachments
+                var n = attachments.RemoveAll(x => x.Inline);
+                if (n > 0)
+                    inlineChange = true;
+            }
+        }
+        
+        // Handle new inline attachments
+        if (!string.IsNullOrWhiteSpace(message.Content))
+        {
+            var inlineAttachments = await ProxyHandler.GetUrlAttachmentsFromContent(message.Content, _cdnDB, _httpClient);
+            if (inlineAttachments is not null)
+            {
+                if (attachments is null)
+                {
+                    attachments = inlineAttachments;
+                }
+                else
+                {
+                    attachments.AddRange(inlineAttachments);
+                }
+                
+                inlineChange = true;
             }
         }
 
+        // If there was a change, serialize the new attachments data back to the message
+        if (inlineChange)
+        {
+            message.AttachmentsData = JsonSerializer.Serialize(attachments);
+        }
+
         var old = await _db.DirectMessages.FindAsync(message.Id);
+        if (old is null)
+            return new TaskResult(false, "Message not found");
+        
         old.Content = message.Content;
         old.AttachmentsData = message.AttachmentsData;
         old.MentionsData = message.MentionsData;

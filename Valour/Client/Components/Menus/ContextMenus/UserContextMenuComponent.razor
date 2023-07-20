@@ -69,7 +69,7 @@
 	}
 
 	public async Task OnClickCopyUsername(){
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", User.Name);
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", User.NameAndTag); 
 	}
 
 	public async Task OnClickCopyUserId(){

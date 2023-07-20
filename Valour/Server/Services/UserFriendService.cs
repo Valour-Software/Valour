@@ -8,14 +8,17 @@ namespace Valour.Server.Services;
 public class UserFriendService
 {
     private readonly ValourDB _db;
+    private readonly UserService _userService;
     private readonly ILogger<UserFriendService> _logger;
 
     public UserFriendService(
         ValourDB db,
+        UserService userService,
         ILogger<UserFriendService> logger)
     {
         _db = db;
         _logger = logger;
+        _userService = userService;
     }
 
     public async Task<UserFriend> GetAsync(long userId, long friendId) =>
@@ -24,7 +27,7 @@ public class UserFriendService
 
     public async Task<TaskResult> RemoveFriendAsync(string friendUsername, long userId)
     {
-        var friendUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == friendUsername.ToLower());
+        var friendUser = await _userService.GetByNameAsync(friendUsername);
         if (friendUser is null)
             return new(false, $"User {friendUsername} was not found.");
 
@@ -60,7 +63,7 @@ public class UserFriendService
 
     public async Task<TaskResult<UserFriend>> AddFriendAsync(string friendUsername, long userId)
     {
-        var friendUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == friendUsername.ToLower());
+        var friendUser = await _userService.GetByNameAsync(friendUsername);
         if (friendUser is null)
             return new(false, $"User {friendUsername} was not found.");
 
@@ -69,7 +72,7 @@ public class UserFriendService
 
     public async Task<TaskResult> DeclineRequestAsync(string username, long userId)
     {
-        var requestUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower());
+        var requestUser = await _userService.GetByNameAsync(username);
         if (requestUser is null)
             return new(false, $"User {username} was not found.");
 
@@ -88,7 +91,7 @@ public class UserFriendService
 
     public async Task<TaskResult> CancelRequestAsync(string username, long userId)
     {
-        var targetUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == username.ToLower());
+        var targetUser = await _userService.GetByNameAsync(username);
         if (targetUser is null)
             return new(false, $"User {username} was not found.");
 

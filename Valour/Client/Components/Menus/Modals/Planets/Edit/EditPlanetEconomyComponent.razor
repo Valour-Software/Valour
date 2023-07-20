@@ -26,7 +26,7 @@
 
     if (_hasCurrencyPermission)
     {
-        <section class="v-section v-inline v-bg-light">
+        <section class="v-section v-inline v-bg-dark">
             <h4>Currency:</h4>
             <span class="v-span m-1">Name</span>
             <input class="v-input" placeholder="Dollar" @bind="Currency.Name"/>
@@ -310,7 +310,7 @@
                     UserToId = account.UserId,
                 };
 
-                var result = await Transaction.SendTransaction(issueTrans);
+                var result = await Transaction.SendTransactionAsync(issueTrans);
                 
                 if (!result.Success)
                 {

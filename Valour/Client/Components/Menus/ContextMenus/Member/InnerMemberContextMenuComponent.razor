@@ -126,7 +126,7 @@ else
 
 	public async Task OnClickCopyUsername(){
 		var user = await Member.GetUserAsync();
-		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.Name);
+		await JS.InvokeVoidAsync("clipboardCopy.copyText", user.NameAndTag);
 	}
 
 	public async Task OnClickCopyMemberId(){

@@ -1,0 +1,36 @@
+﻿<div class="eco-pay-container">
+    @if (Input.WindowComponent is PlanetChatChannelWindowComponent)
+    {
+        <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
+            <TabOne>
+                <div class="tab-contents">
+                    <PlanetPayComponent Input="@Input" />
+                </div>
+            </TabOne>
+            <TabTwo>
+                <div class="tab-contents">
+                    <GlobalPayComponent Input="@Input" />
+                </div>
+            </TabTwo>
+        </TabContainerComponent>
+    }
+    else
+    {
+        <TabContainerComponent Titles="@TabTitles" ContentStyle="overflow: visible;">
+            <TabOne>
+                <div class="tab-contents">
+                    <GlobalPayComponent Input="@Input" />
+                </div>
+            </TabOne>
+        </TabContainerComponent>
+    }
+</div>
+
+
+@code {
+    
+    [Parameter]
+    public InputComponent Input { get; set; }
+    
+    private static readonly string[] TabTitles = new [] { "Planet Pay", "Global Pay" };
+}

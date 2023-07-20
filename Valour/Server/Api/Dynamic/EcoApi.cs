@@ -168,8 +168,8 @@ public class EcoApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
         var accounts = await ecoService.GetPlanetPlanetAccountsAsync(planetId);
         return Results.Json(accounts);
@@ -187,22 +187,40 @@ public class EcoApi
         if (member is null)
             return ValourResult.NotPlanetMember();
 
-        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ManageEcoAccounts))
-            return ValourResult.LacksPermission(PlanetPermissions.ManageEcoAccounts);
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
         
         var accounts = await ecoService.GetPlanetUserAccountsAsync(planetId);
+        return Results.Json(accounts);
+    }
+    
+    // Returns all accounts of the planet the given user can send to
+    [ValourRoute(HttpVerbs.Post, "api/eco/accounts/planet/canSend")]
+    [UserRequired]
+    public static async Task<IResult> GetPlanetAccountsCanSendAsync(
+        [FromBody] EcoPlanetAccountSearchRequest request,
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        var member = await memberService.GetCurrentAsync(request.PlanetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        
+        var accounts = await ecoService.GetPlanetAccountsCanSendAsync(request.PlanetId, request.AccountId, request.Filter);
         return Results.Json(accounts);
     }
 
     [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self")]
     [UserRequired]
     public static async Task<IResult> GetSelfAccountsAsync(
-        long userId,
         EcoService ecoService, 
         TokenService tokenService)
     {
         var authToken = await tokenService.GetCurrentToken();
-        var accounts = await ecoService.GetAccountsAsync(userId);
+        var accounts = await ecoService.GetAccountsAsync(authToken.UserId);
 
         List<EcoAccount> results = new();
         
@@ -224,6 +242,51 @@ public class EcoApi
         }
 
         return Results.Json(results);
+    }
+    
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/self/global")]
+    [UserRequired]
+    public static async Task<IResult> GetSelfGlobalAccountAsync(
+        EcoService ecoService, 
+        TokenService tokenService)
+    {
+        var authToken = await tokenService.GetCurrentToken();
+        var account = await ecoService.GetGlobalAccountAsync(authToken.UserId);
+        if (account is null)
+            return ValourResult.NotFound("Account not found");
+        
+        if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
+        {
+            return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
+        }
+
+        return Results.Json(account);
+    }
+
+    /// <summary>
+    /// This only returns the account's id - just because someone has your username does not
+    /// mean they should be able to see your balance or details
+    /// </summary>
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/byname/{username}")]
+    [UserRequired]
+    public static async Task<IResult> GetGlobalAccountByNameAsync(
+        string username,
+        EcoService ecoService,
+        UserService userService)
+    {
+        var user = await userService.GetByNameAsync(username);
+        if (user is null)
+            return ValourResult.NotFound("Account not found");
+        
+        var account = await ecoService.GetGlobalAccountAsync(user.Id);
+        if (account is null)
+            return ValourResult.NotFound("Account not found");
+        
+        return Results.Json(new EcoGlobalAccountSearchResult()
+        {
+            AccountId = account.Id,
+            UserId = user.Id,
+        });
     }
 
     [ValourRoute(HttpVerbs.Post, "api/eco/accounts")]
@@ -367,6 +430,36 @@ public class EcoApi
     //////////////////
     
     // Careful now, this is what gets Jacob VERY excited
+
+    // Returns data required to render a receipt
+    [ValourRoute(HttpVerbs.Get, "api/eco/transactions/{id}/receipt")]
+    [UserRequired]
+    public static async Task<IResult> GetTransactionReceiptAsync(
+        string id, 
+        EcoService ecoService)
+    {
+        var receipt = await ecoService.GetReceiptAsync(id);
+        if (receipt is null)
+            return ValourResult.NotFound("Transaction not found");
+        
+        return Results.Json(receipt);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/eco/transactions/{id}")]
+    [UserRequired]
+    public static async Task<IResult> GetTransactionAsync(
+        string id,
+        EcoService ecoService)
+    {
+        // We don't need to really verify anything because the GUID is impossible to guess.
+        // Only someone involved in the transaction can get it.
+        var transaction = await ecoService.GetTransactionAsync(id);
+        if (transaction is null)
+            return ValourResult.NotFound("Transaction not found");
+        
+        return Results.Json(transaction);
+    }
+    
     
     [ValourRoute(HttpVerbs.Post, "api/eco/transactions")]
     [UserRequired]

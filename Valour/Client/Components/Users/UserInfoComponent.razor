@@ -1,8 +1,24 @@
 ﻿@implements IDisposable
 
+@* Placeholder *@
 @if (User is null)
 {
-    return; // Don't bother rendering if user is null
+    <div class="user-info" style="@Style">
+        <div class="left-block">
+            <img alt="user not found" class="pfp" src="_content/Valour.Client/media/logo/logo-256.png">
+            <div class="name-status">
+                <div class="name-tag">
+                    <p class="username" style="color: @_roleColor">Not Found</p>
+                    <p class="tag">#????</p>
+                </div>
+                <p class="status">
+                    -------------
+                </p>
+            </div>
+            <div class="state-circle offline" />
+        </div>
+    </div>
+    return;
 }
 
 <ContextMenuTrigger MenuId="@_contextMenu" @onpointerdown='OnContextMenu' style='display:inline'>
@@ -15,15 +31,11 @@
                     <p class="tag">#@_userTag</p>
                     @if (User.Bot)
                     {
-                        <div class="user-badge bot">
-                            <p>BOT</p>
-                        </div>
+                        <p class="user-badge bot">BOT</p>
                     }
                     @if (User.ValourStaff)
                     {
-                        <div class="user-badge staff">
-                            <p>STAFF</p>
-                        </div>
+                        <p class="user-badge staff">STAFF</p>
                     }
                 </div>
                 <p class="status">
@@ -38,6 +50,9 @@
 @code {
     [Parameter]
     public User User { get; set; }
+    
+    [Parameter]
+    public long UserId { get; set; }
     
     // You can additionally supply the PlanetMember object 
     // for role color and syncing
@@ -76,7 +91,17 @@
         
         if (User is not null)
         {
+            UserId = User.Id;
             User.OnUpdated += OnUserUpdate;
+        }
+        else
+        {
+            // Id given, but no user supplied
+            if (UserId != 0)
+            {
+                User = await User.FindAsync(UserId);
+                User.OnUpdated += OnUserUpdate;
+            }
         }
 
         if (Member is not null)

@@ -13,10 +13,10 @@ public class UserFriendApi
 	    UserFriendService userFriendService,
         UserService userService)
     {
-        var requesteruserid = await userService.GetCurrentUserIdAsync();
+        var requestUserId = await userService.GetCurrentUserIdAsync();
 
         /* TODO: In the future, allow users to enable other users seeing their friends */
-        if (requesteruserid != userId)
+        if (requestUserId != userId)
             return ValourResult.Forbid("You cannot currently view another user's friends.");
 
         var friend = await userFriendService.GetAsync(userId, friendId);

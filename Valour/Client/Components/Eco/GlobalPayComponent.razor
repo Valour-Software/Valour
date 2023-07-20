@@ -1,0 +1,229 @@
+@if (!string.IsNullOrWhiteSpace(_transactionId))
+{
+    <h5>Success!</h5>
+    <br />
+    
+    <div class="selected-preview">
+        <p>Transaction ID:</p>
+        <p>@_transactionId</p>
+    </div>
+    
+    @if (Input is not null)
+    {
+        <button @onclick="OnClickReceipt" class="v-btn" style="width: 100%; margin-top: 1em">Send Receipt in Chat</button>
+    }
+
+    return;
+}
+
+@if (_globalAccount is not null)
+{
+    <h5 style="text-align: center">You have <span class="valour-credits-text">@_globalCurrency.Format(_globalAccount.BalanceValue)</span></h5>
+                                                                                                                                         
+    <p class="select-title">Select Amount</p>
+    <div class="input-row">
+        <input @oninput="@AmountChanged" style="width: 90%" class="v-input" placeholder="Enter Amount" />
+        <span class="valour-credits-text">VC</span>
+    </div>
+    
+    <input @oninput="@OnEnterUsername" style="width: 90%" class="v-input" placeholder="Enter Name#TAG" type="text"/>
+    if (_targetAccountData is null)
+    {
+        if (string.IsNullOrWhiteSpace(_errorSpan))
+        {
+            @_errorFragment("Enter recipient");
+        }
+        else
+        {
+            @_errorFragment(_errorSpan);
+        }
+    }
+    else
+    {
+        <div class="selected-preview">
+            <UserInfoComponent UserId="@_targetAccountData.UserId" />
+        </div>
+        
+        if (string.IsNullOrWhiteSpace(_errorSpan))
+        {
+            <button @onclick="OnClickSend" class="v-btn" style="width: 100%; margin-top: 1em">Send <span class="valour-credits-text">@_globalCurrency.Format(_amount)</span></button>
+        }
+        else
+        {
+            @_errorFragment(_errorSpan);
+        }
+    }
+}
+else
+{
+    <h6 class="p-4">You don't have a global eco account.</h6>
+    
+    @if (!string.IsNullOrWhiteSpace(_errorSpan))
+    {
+        @_errorFragment(_errorSpan);
+    }
+    
+    <button class="v-btn" style="width: 100%" @onclick="@OnClickCreateAccount">Create Account</button>
+    
+    <p style="margin-top: 1em">By creating an eco account, you agree to follow the <a href="https://github.com/Valour-Software/Valour/blob/main/PLATFORM_RULES.md">Platform Eco Rules</a></p>
+}
+
+@code {
+
+    private RenderFragment<string> _errorFragment = (string error) =>
+        @<p style="color: red; text-align: center; margin-top: 1em">@error</p>;
+
+    [CascadingParameter]
+    public BlazoredModalInstance Modal { get; set; }
+    
+    [Parameter]
+    public InputComponent Input { get; set; }
+    
+    private Currency _globalCurrency;
+    private EcoAccount _globalAccount;
+
+    private EcoGlobalAccountSearchResult _targetAccountData = null;
+    
+    private string _targetName;
+    private decimal _amount = 0;
+
+    private string _transactionId = null;
+    
+    private string _errorSpan;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _globalCurrency = await Currency.FindByPlanetAsync(ISharedPlanet.ValourCentralId);
+        _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+    }
+
+    private void AmountChanged(ChangeEventArgs e)
+    {
+        bool valid = Decimal.TryParse(e.Value.ToString(), out var amount);
+        if (!valid)
+        {
+            _errorSpan = "Invalid amount.";
+            _amount = 0;
+        }
+        else
+        {
+            _amount = Math.Round(amount, _globalCurrency.DecimalPlaces);
+            
+            if (_amount <= 0)
+            {
+                _errorSpan = "Amount must be positive.";
+                return;
+            }
+            
+            if (_amount > _globalAccount.BalanceValue)
+            {
+                _errorSpan = "Insufficient funds.";
+            }
+            else
+            {
+                _errorSpan = null;
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OnClickCreateAccount()
+    {
+        _errorSpan = null;
+        
+        var result = await LiveModel.CreateAsync(new EcoAccount()
+        {
+            PlanetId = ISharedPlanet.ValourCentralId,
+            UserId = ValourClient.Self.Id,
+            AccountType = AccountType.User,
+            CurrencyId = ISharedCurrency.ValourCreditsId,
+        });
+        
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+        }
+
+        _globalAccount = result.Data;
+        
+        StateHasChanged();
+    }
+
+    private async Task OnClickSend()
+    {
+        if (_targetAccountData is null)
+        {
+            _errorSpan = "Invalid recipient";
+            return;
+        }
+        
+        Transaction transaction = new()
+        {
+            PlanetId = ISharedPlanet.ValourCentralId,
+            UserFromId = ValourClient.Self.Id,
+            AccountFromId = _globalAccount.Id,
+            UserToId = _targetAccountData.UserId,
+            AccountToId = _targetAccountData.AccountId,
+            Amount = _amount,
+            Fingerprint = Guid.NewGuid().ToString(),
+            Description = "Sent via Valour App (Global)",
+        };
+        
+        var result = await Transaction.SendTransactionAsync(transaction);
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+        }
+        else
+        {
+            _transactionId = result.Data.Id;
+        }
+        
+        StateHasChanged();
+    }
+    
+    private bool _searchLoading = false;
+    private bool _searchQueued = false;
+    private async Task OnEnterUsername(ChangeEventArgs e)
+    {
+        _errorSpan = null;
+        
+        _targetName = e.Value.ToString();
+        if (!_targetName.Contains('#'))
+        {
+            _errorSpan = "Invalid username: Must be Name#TAG";
+            return;
+        }
+        
+        // Debounce thanks to 
+        // https://blog.jeremylikness.com/blog/an-easier-blazor-debounce/
+        if (_searchLoading)
+        {
+            _searchQueued = true;
+            return;
+        }
+
+        do
+        {
+            _searchLoading = true;
+            _searchQueued = false;
+            await GetTargetAccount();
+            StateHasChanged();
+            await Task.Delay(100); // Require at least 200ms between searches
+            _searchLoading = false;
+        } while (_searchQueued);
+    }
+
+    private async Task GetTargetAccount()
+    {
+        _targetAccountData = await EcoAccount.FindGlobalIdByNameAsync(_targetName);
+    }
+    
+    private async Task OnClickReceipt()
+    {
+        await Input.AddReceipt(_transactionId);
+        if (Modal is not null)
+            await Modal.CloseAsync();
+    }
+}

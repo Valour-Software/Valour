@@ -1,0 +1,52 @@
+.receipt-container {
+    background-color: var(--main-1);
+    border-radius: 1em;
+    padding: 1em;
+    max-width: 100%;
+    display: inline-block;
+    background: rgb(6,6,74);
+    background: linear-gradient(51deg, rgba(6,6,74,1) 10%, rgba(0,0,0,1) 50%, rgba(49,5,66,1) 90%);
+}
+
+.sent {
+    margin: 0; 
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.accounts {
+    
+}
+
+.receipt-container .account-from {
+    display: inline-block;
+}
+
+.receipt-container .account-from .inner {
+    display: inline-block;
+}
+
+.receipt-container .account-to {
+    display: inline-block;
+}
+
+
+.receipt-container .account-number {
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}
+
+.receipt-container .time {
+    font-size: 16px;
+    line-height: normal;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    white-space: nowrap;
+}
+
+.receipt-container .trans-info {
+    font-size: 10px;
+    line-height: normal;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+}

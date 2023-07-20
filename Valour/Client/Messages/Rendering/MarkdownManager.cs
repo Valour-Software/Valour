@@ -16,6 +16,7 @@ namespace Valour.Client.Messages;
 public static class MarkdownManager
 {
     public static MarkdownPipeline pipeline;
+    private static readonly MediaOptions MediaOptions = new();
 
     public static MarkdownPipelineBuilder UseVooperMediaLinks(this MarkdownPipelineBuilder pipeline,
         MediaOptions? options = null)
@@ -36,7 +37,7 @@ public static class MarkdownManager
     public static void RegenPipeline()
     {
         pipeline = new MarkdownPipelineBuilder().DisableHtml()
-            .UseVooperMediaLinks()
+            //.UseVooperMediaLinks()
             .UseAutoLinks()
             .UseMathematics()
             .UseAbbreviations()

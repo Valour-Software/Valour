@@ -1,5 +1,7 @@
+using System.Web;
 using Valour.Api.Client;
 using Valour.Api.Nodes;
+using Valour.Shared.Models;
 using Valour.Shared.Models.Economy;
 
 namespace Valour.Api.Models.Economy;
@@ -73,6 +75,12 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
 
         return item;
     }
+    
+    public static async ValueTask<EcoGlobalAccountSearchResult> FindGlobalIdByNameAsync(string name)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
+        return (await node.GetJsonAsync<EcoGlobalAccountSearchResult>($"api/eco/accounts/byname/{HttpUtility.UrlEncode(name)}", true)).Data;
+    }
 
     /// <summary>
     /// Returns all planet accounts for the given planet id
@@ -110,5 +118,43 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         }
 
         return accounts;
+    }
+
+    /// <summary>
+    /// Returns all accounts the user can send to for a given planet id
+    /// </summary>
+    public static async Task<List<EcoAccountSearchResult>> GetPlanetAccountsCanSendAsync(long planetId, long accountId, string filter = "")
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+
+        var request = new EcoPlanetAccountSearchRequest()
+        {
+            PlanetId = planetId,
+            AccountId = accountId,
+            Filter = filter
+        };
+        
+        var response = (await node.PostAsyncWithResponse<List<EcoAccountSearchResult>>($"api/eco/accounts/planet/canSend", request)).Data;
+        
+        if (response is not null)
+        {
+            foreach (var accountData in response)
+            {
+                await accountData.Account.AddToCache();
+            }
+        }
+
+        return response;
+    }
+
+    public static async Task<EcoAccount> GetSelfGlobalAccountAsync()
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
+        var account = (await node.GetJsonAsync<EcoAccount>($"api/eco/accounts/self/global")).Data;
+        
+        if (account is not null)
+            await account.AddToCache();
+
+        return account;
     }
 }

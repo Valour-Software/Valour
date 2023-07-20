@@ -164,10 +164,10 @@ export function getCurrentWord(off) {
     let text = '';
 
     if (range.endContainer.lastChild != null) {
-        text = range.endContainer.lastChild.textContent.substring(0, range.startOffset + 1 - off);
+        text = range.endContainer.lastChild.textContent.substring(0, range.startOffset - off);
     }
     else {
-        text = range.startContainer.textContent.substring(0, range.startOffset + 1 - off);
+        text = range.startContainer.textContent.substring(0, range.startOffset - off);
     }
 
     return text.split(/\s+/g).pop();
@@ -268,6 +268,49 @@ export function injectElement(text, covertext, classlist, stylelist, id) {
         document.selection.createRange().text = text;
     }
     
+    input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
+}
+
+export function injectEmoji(text, native, id) {
+    const input = inputs[id];
+    
+    if (document.activeElement != input.element) {
+        input.element.focus();
+    }
+    
+    var sel, range;
+    if (window.getSelection) {
+        sel = window.getSelection();
+        if (sel.getRangeAt && sel.rangeCount) {
+            range = sel.getRangeAt(0);
+            range.deleteContents();
+            const dummySpan = document.createElement('span');
+            const outerSpan = document.createElement('span');
+            dummySpan.innerHTML =  native;
+            twemoji.parse(dummySpan, {
+                folder: 'svg',
+                ext: '.svg'
+            })
+            
+            //outerSpan.style.marginRight = '-1em';
+            //outerSpan.style.color = 'transparent';
+            
+            outerSpan.innerHTML = native;
+            outerSpan.style.color = 'transparent';
+            outerSpan.style.caretColor = 'white';
+            outerSpan.style.display = 'inline-block';
+            outerSpan.style.lineHeight = '16px';
+            outerSpan.contentEditable = 'false';
+            outerSpan.style.backgroundImage = 'url(' + dummySpan.querySelector('img').src + ')';
+            outerSpan.style.backgroundRepeat = 'round';
+            
+            range.insertNode(outerSpan);
+            range.setStartAfter(outerSpan);
+        }
+    } else if (document.selection && document.selection.createRange) {
+        document.selection.createRange().text = text;
+    }
+
     input.dotnet.invokeMethodAsync('OnChatboxUpdate', input.element.innerText, '');
 }
 

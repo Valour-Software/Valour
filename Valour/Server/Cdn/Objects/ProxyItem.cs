@@ -29,6 +29,18 @@ public class ProxyItem
     /// </summary>
     [Column("mime_type")]
     public string MimeType { get; set; }
+    
+    /// <summary>
+    /// The width (if this is an image)
+    /// </summary>
+    [Column("width")]
+    public int? Width { get; set; }
+    
+    /// <summary>
+    /// The height (if this is an image)
+    /// </summary>
+    [Column("height")]
+    public int? Height { get; set; }
 
     /// <summary>
     /// The url for the proxied item

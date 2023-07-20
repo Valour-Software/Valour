@@ -1,6 +1,6 @@
 ﻿.full-container {
     border-radius: 1em;
-    background-color: rgba(255, 255, 255, 0.05);
+    /* background-color: rgba(255, 255, 255, 0.05); */
     margin-bottom: 2em;
 }
 
@@ -29,11 +29,11 @@
 }
 
 .tab.left {
-    border-radius: 1em 0 0 0;
+    border-top-left-radius: 1em;
 }
 
 .tab.right {
-    border-radius: 0 1em 0 0;
+    border-top-right-radius: 1em;
 }
 
 .tab.center {

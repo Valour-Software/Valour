@@ -12,14 +12,14 @@
 	<h6>Upload?</h6>
 
     <div class="attachment-holder">
-        @switch (Attachment.GetAttachmentType()){
-            case AttachmentType.Image:
+        @switch (Attachment.Type){
+            case MessageAttachmentType.Image:
                 <ImageAttachmentComponent Attachment="Attachment"/>
                 break;
-            case AttachmentType.Video:
+            case MessageAttachmentType.Video:
                 <VideoAttachmentComponent Attachment="Attachment" />
                 break;
-            case AttachmentType.Audio:
+            case MessageAttachmentType.Audio:
                 <AudioAttachmentComponent Attachment="Attachment" />
                 break;
             default:
@@ -60,7 +60,7 @@
         // Build attachment object
         Attachment.Location = blobUrl;
 
-        if (Attachment.GetAttachmentType() == AttachmentType.Image)
+        if (Attachment.Type == MessageAttachmentType.Image)
         {
             await JS.InvokeVoidAsync("getImageSize", blobUrl, objRef);
         }

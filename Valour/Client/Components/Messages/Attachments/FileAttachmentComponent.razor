@@ -1,4 +1,6 @@
-﻿<div class="container">
+﻿@inherits AttachmentComponent
+
+<div class="container">
     <div class="file-icon">
         <h4 class="extension">@extension</h4>
     </div>
@@ -9,13 +11,7 @@
 
 @code {
     [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
-    [Parameter]
-    public MessageComponent MessageComponent { get; set; }
-
-    [Parameter]
-    public string? CustomStyle { get; set; }
+    public string CustomStyle { get; set; }
 
     private string extension = "?";
 

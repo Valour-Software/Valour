@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Web;
 using Valour.Api.Extensions;
 using Valour.Api.Models;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Models;
+using Valour.Api.Models.Economy;
 using Valour.Api.Nodes;
 using Valour.Shared;
 using Valour.Shared.Channels;
@@ -313,6 +315,11 @@ public static class ValourClient
 
         return taskResult;
     }
+    
+    public static async Task<TaskResult<List<EcoAccount>>> GetEcoAccountsAsync()
+    {
+        return await PrimaryNode.GetJsonAsync<List<EcoAccount>>("api/eco/accounts/self");
+    }
 
 
     public static async Task<List<TenorFavorite>> GetTenorFavoritesAsync()
@@ -445,7 +452,7 @@ public static class ValourClient
     /// </summary>
     public static async Task<TaskResult<UserFriend>> AddFriendAsync(string username)
     {
-        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{username}");
+        var result = await PrimaryNode.PostAsyncWithResponse<UserFriend>($"api/userfriends/add/{HttpUtility.UrlEncode(username)}");
 
         if (result.Success)
         {
@@ -478,7 +485,7 @@ public static class ValourClient
 	/// </summary>
 	public static async Task<TaskResult> DeclineFriendAsync(string username)
 	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{username}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/decline/{HttpUtility.UrlEncode(username)}", null);
 
         if (result.Success)
         {
@@ -495,7 +502,7 @@ public static class ValourClient
 	/// </summary>
 	public static async Task<TaskResult> RemoveFriendAsync(string username)
     {
-        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{username}", null);
+        var result = await PrimaryNode.PostAsync($"api/userfriends/remove/{HttpUtility.UrlEncode(username)}", null);
 
         if (result.Success)
         {
@@ -520,7 +527,7 @@ public static class ValourClient
 	/// </summary>
 	public static async Task<TaskResult> CancelFriendAsync(string username)
 	{
-		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{username}", null);
+		var result = await PrimaryNode.PostAsync($"api/userfriends/cancel/{HttpUtility.UrlEncode(username)}", null);
 
 		if (result.Success)
 		{

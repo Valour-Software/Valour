@@ -1,15 +1,11 @@
-﻿<audio controls preload="auto" playsinline>
+﻿@inherits AttachmentComponent
+
+<audio controls preload="auto" playsinline>
     <source src="@Attachment.Location" type="@Attachment.MimeType" />
 </audio>
 
 @code {
     [Parameter]
-    public MessageAttachment Attachment { get; set; }
-
-    [Parameter]
-    public MessageComponent MessageComponent { get; set; }
-
-    [Parameter]
-    public string? CustomStyle { get; set; }
+    public string CustomStyle { get; set; }
 }
 

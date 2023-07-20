@@ -1,23 +1,35 @@
 ﻿using Valour.Api.Models;
 using Valour.Client.Components.Messages.Attachments;
+using Valour.Shared.Models;
 
 namespace Valour.Client.Messages;
 
 public static class MessageAttachmentExtensions
 {
+    public static readonly Type[] ComponentLookup = new[]
+    {
+        typeof(ImageAttachmentComponent), // Image
+        typeof(VideoAttachmentComponent), // Video
+        typeof(AudioAttachmentComponent), // Audio
+        typeof(FileAttachmentComponent), // File
+        null, // ValourMessage
+        null, // ValourInvite
+        null, // ValourPlanet
+        null, // ValourChannel
+        null, // ValourItem
+        null, // ValourEcoAccount
+        null, // ValourEcoTrade
+        typeof(ReceiptAttachmentComponent), // ValourReceipt
+        null, // ValourBot
+        null, // SitePreview
+        typeof(YoutubeAttachmentComponent), // YouTube
+        typeof(VimeoAttachmentComponent), // Vimeo
+        typeof(TwitchAttachmentComponent), // Twitch
+    };
+
+
     public static Type GetComponentType(this MessageAttachment attachment)
     {
-        var type = attachment.GetAttachmentType();
-        switch (type)
-        {
-            case AttachmentType.Image:
-                return typeof(ImageAttachmentComponent);
-            case AttachmentType.Video:
-                return typeof(VideoAttachmentComponent);
-            case AttachmentType.Audio:
-                return typeof(AudioAttachmentComponent);
-            default:
-                return typeof(FileAttachmentComponent);
-        }
+        return ComponentLookup[(int)attachment.Type];
     }
 }
