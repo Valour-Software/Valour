@@ -263,6 +263,32 @@ public class EcoApi
         return Results.Json(account);
     }
 
+    /// <summary>
+    /// This only returns the account's id - just because someone has your username does not
+    /// mean they should be able to see your balance or details
+    /// </summary>
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/byname/{username}")]
+    [UserRequired]
+    public static async Task<IResult> GetGlobalAccountByNameAsync(
+        string username,
+        EcoService ecoService,
+        UserService userService)
+    {
+        var user = await userService.GetByNameAsync(username);
+        if (user is null)
+            return ValourResult.NotFound("Account not found");
+        
+        var account = await ecoService.GetGlobalAccountAsync(user.Id);
+        if (account is null)
+            return ValourResult.NotFound("Account not found");
+        
+        return Results.Json(new EcoGlobalAccountSearchResult()
+        {
+            AccountId = account.Id,
+            UserId = user.Id,
+        });
+    }
+
     [ValourRoute(HttpVerbs.Post, "api/eco/accounts")]
     [UserRequired]
     public static async Task<IResult> CreateAccountAsync(

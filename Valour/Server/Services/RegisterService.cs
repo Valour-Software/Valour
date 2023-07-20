@@ -145,6 +145,8 @@ public class RegisterService
 
             _db.Credentials.Add(cred);
 
+            /* Decided to make this step explicit in order to agree to eco terms
+             
             Valour.Database.Economy.EcoAccount globalAccount = new()
             {
                 Id = IdManager.Generate(),
@@ -152,8 +154,9 @@ public class RegisterService
                 CurrencyId = ISharedCurrency.ValourCreditsId,
                 PlanetId = ISharedPlanet.ValourCentralId,
             };
-
+        
             _db.EcoAccounts.Add(globalAccount);
+            */
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()

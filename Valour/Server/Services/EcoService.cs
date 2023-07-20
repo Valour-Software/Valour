@@ -250,7 +250,7 @@ public class EcoService
     /// Returns the global account associated with a user id
     /// </summary>
     public async ValueTask<EcoAccount> GetGlobalAccountAsync(long userId) =>
-        (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.CurrencyId == ISharedCurrency.ValourCreditsId)).ToModel();
+        (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User)).ToModel();
     
     
     public async ValueTask<TaskResult<EcoAccount>> CreateEcoAccountAsync(EcoAccount account)
@@ -442,14 +442,14 @@ public class EcoService
         transaction.TimeStamp = DateTime.UtcNow;
 
         // Post transaction to queue
-        var result = await ProcessTransactionAsync(transaction);
+        var result = await ProcessTransactionAsync(transaction, issuing);
         if (!result.Success)
             return new TaskResult<Transaction>(false, result.Message);
         
         return new TaskResult<Transaction>(true, result.Message, transaction);
     }
     
-    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction)
+    public async Task<TaskResult> ProcessTransactionAsync(Transaction transaction, bool issuing = false)
     {
         // Fun case for those who wish to break the system
         // Throwbacks to SV1
@@ -459,6 +459,9 @@ public class EcoService
         // Global Valour Credits transaction
         var isGlobal = (transaction.PlanetId == ISharedPlanet.ValourCentralId);
 
+        if (!issuing && (transaction.AccountFromId == transaction.AccountToId))
+            return new TaskResult(false, "Cannot send to self");
+        
         var fromAcc = await _db.EcoAccounts.FindAsync(transaction.AccountFromId);
         if (fromAcc is null)
             return new TaskResult(false, "Could not find sending account");
@@ -475,12 +478,10 @@ public class EcoService
 
         // Get amount rounded to decimals allowed by currency
         transaction.Amount = Math.Round(transaction.Amount, currency.DecimalPlaces);
-
-        bool issuance = (fromAcc.Id == toAcc.Id);
-
+        
         // Make sure sender isn't too broke
-        // First check is for issuance, second is for normal transactions
-        if (!issuance && transaction.Amount > fromAcc.BalanceValue)
+        // First check is for issuing, second is for normal transactions
+        if (!issuing && transaction.Amount > fromAcc.BalanceValue)
             return new TaskResult(false, "Sender cannot afford this transaction");
 
         await using var trans = await _db.Database.BeginTransactionAsync();
@@ -491,7 +492,7 @@ public class EcoService
         }
 
         // Do not remove funds from sender if issuing
-        if (!issuance)
+        if (!issuing)
         {
             fromAcc.BalanceValue -= transaction.Amount;
         }
@@ -504,7 +505,7 @@ public class EcoService
             var dbTrans = transaction.ToDatabase();
             _db.Transactions.Add(dbTrans);
 
-            if (issuance)
+            if (issuing)
             {
                 currency.Issued += (long)transaction.Amount;
                 var dbCurrency = await _db.Currencies.FindAsync(currency.Id);

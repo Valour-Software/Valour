@@ -1,6 +1,14 @@
+
+
 @if (!string.IsNullOrWhiteSpace(_majorError))
 {
     <p style="color: red; text-align: center; margin-top: 1em">@_majorError</p>
+    return;
+}
+
+@if (_planetCurrency is null)
+{
+    <p>This planet does not have community economy features enabled. Consider asking an administrator to set it up!</p>
     return;
 }
 
@@ -26,7 +34,14 @@
 {
     <h6 class="p-4">You don't have an eco account in this planet.</h6>
 
+    if (!string.IsNullOrWhiteSpace(_errorSpan))
+    {
+        <p style="color: red; text-align: center;">@_errorSpan</p>
+    }
+    
     <button class="v-btn" @onclick="@OnClickCreatePlanetAccount">Create Account</button>
+    
+    <p style="margin-top: 1em">By creating an eco account, you agree to follow the <a href="https://github.com/Valour-Software/Valour/blob/main/PLATFORM_RULES.md">Platform Eco Rules</a></p>
 }
 else
 {
@@ -95,7 +110,6 @@ else
                 {
                     <p>@_selectedRecipientAccount.Name</p>
                 }
-                
             </div>
             
             if (string.IsNullOrWhiteSpace(_errorSpan))
@@ -189,6 +203,13 @@ else
         else
         {
             _amount = Math.Round(amount, _planetCurrency.DecimalPlaces);
+            
+            if (_amount <= 0)
+            {
+                _errorSpan = "Amount must be positive.";
+                return;
+            }
+            
             if (_amount > _selectedPlanetAccount.BalanceValue)
             {
                 _errorSpan = "Insufficient funds.";
@@ -207,15 +228,17 @@ else
         // Get planet that was focused when the modal was loaded
         _focusedPlanet = WindowManager.Instance.FocusedPlanet;
 
+        _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
+        if (_planetCurrency is null)
+            return;
+        
         var accResult = await ValourClient.GetEcoAccountsAsync();
         if (!accResult.Success)
         {
             _majorError = accResult.Message;
             return;
         }
-        
-        _planetCurrency = await Currency.FindByPlanetAsync(_focusedPlanet.Id);
-        
+
         var accounts = accResult.Data;
         _myPlanetAccounts = accounts.Where(x => x.PlanetId == _focusedPlanet.Id).ToList();
     }
@@ -286,6 +309,23 @@ else
 
     private async Task OnClickCreatePlanetAccount()
     {
+        _errorSpan = null;
         
+        var result = await LiveModel.CreateAsync(new EcoAccount()
+        {
+            PlanetId = _focusedPlanet.Id,
+            UserId = ValourClient.Self.Id,
+            AccountType = AccountType.User,
+            CurrencyId = _planetCurrency.Id,
+        });
+        
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+        }
+
+        _selectedPlanetAccount = result.Data;
+        
+        StateHasChanged();
     }
 }

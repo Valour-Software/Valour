@@ -1,3 +1,4 @@
+using System.Web;
 using Valour.Api.Client;
 using Valour.Api.Nodes;
 using Valour.Shared.Models;
@@ -73,6 +74,12 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
             await item.AddToCache();
 
         return item;
+    }
+    
+    public static async ValueTask<EcoGlobalAccountSearchResult> FindGlobalIdByNameAsync(string name)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(ISharedPlanet.ValourCentralId);
+        return (await node.GetJsonAsync<EcoGlobalAccountSearchResult>($"api/eco/accounts/byname/{HttpUtility.UrlEncode(name)}", true)).Data;
     }
 
     /// <summary>

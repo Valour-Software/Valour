@@ -73,7 +73,7 @@ public class Currency : LiveModel, ISharedCurrency
     public static async ValueTask<Currency> FindByPlanetAsync(long planetId)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planetId}")).Data;
+        var item = (await node.GetJsonAsync<Currency>($"api/eco/currencies/byPlanet/{planetId}", true)).Data;
 
         if (item is not null)
             await item.AddToCache();
