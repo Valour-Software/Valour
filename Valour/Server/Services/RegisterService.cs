@@ -84,7 +84,7 @@ public class RegisterService
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             request.Referrer = request.Referrer.Trim();
-            var referUser = await _db.Users.FirstOrDefaultAsync(x => x.Name.ToLower() == request.Referrer.ToLower());
+            var referUser = await _userService.GetByNameAsync(request.Referrer);
             if (referUser is null)
                 return new(false, "Referrer not found");
 

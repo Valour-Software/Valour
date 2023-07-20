@@ -16,18 +16,25 @@ public class EcoService
     private readonly ILogger<EcoService> _logger;
     private readonly CoreHubService _coreHub;
     private readonly NodeService _nodeService;
+    private readonly NotificationService _notificationService;
 
     /// <summary>
     /// Cache for currency definitions
     /// </summary>
     private readonly ConcurrentDictionary<long, Currency> _currencyCache = new();
 
-    public EcoService(ValourDB db, ILogger<EcoService> logger, CoreHubService coreHub, NodeService nodeService)
+    public EcoService(
+        ValourDB db, 
+        ILogger<EcoService> logger, 
+        CoreHubService coreHub, 
+        NodeService nodeService, 
+        NotificationService notificationService)
     {
         _db = db;
         _logger = logger;
         _coreHub = coreHub;
         _nodeService = nodeService;
+        _notificationService = notificationService;
     }
 
     ////////////////
@@ -529,6 +536,21 @@ public class EcoService
         {
             _coreHub.NotifyPlanetTransactionProcessed(transaction);
         }
+        
+        var userFrom = await _db.Users.FindAsync(transaction.UserFromId);
+
+        // Send notification
+        await _notificationService.AddNotificationAsync(new Notification()
+        {
+            UserId = transaction.UserToId,
+            Title = $"{userFrom.Name} sent you {currency.Format(transaction.Amount)}!",
+            PlanetId = transaction.PlanetId,
+            SourceId = transaction.UserFromId,
+            Source = NotificationSource.TransactionReceived,
+            Body = transaction.Description,
+            ImageUrl = userFrom.PfpUrl,
+            ClickUrl = $"/receipt/{transaction.Id}"
+        });
 
         return new TaskResult(true, "api/eco/transactions/" + transaction.Id);
     }
