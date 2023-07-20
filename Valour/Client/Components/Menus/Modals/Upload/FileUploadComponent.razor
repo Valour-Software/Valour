@@ -14,8 +14,13 @@
     <div class="attachment-holder">
         @switch (Attachment.Type){
             case MessageAttachmentType.Image:
-                <ImageAttachmentComponent Attachment="Attachment"/>
+            {
+                if (_imageReady)
+                {
+                    <ImageAttachmentComponent Attachment="Attachment"/>
+                }
                 break;
+            }
             case MessageAttachmentType.Video:
                 <VideoAttachmentComponent Attachment="Attachment" />
                 break;
@@ -50,6 +55,8 @@
 
     public DotNetObjectReference<FileUploadComponent>? objRef;
 
+    private bool _imageReady = false;
+
     protected override async Task OnInitializedAsync(){
 
         objRef = DotNetObjectReference.Create(this);
@@ -62,6 +69,7 @@
 
         if (Attachment.Type == MessageAttachmentType.Image)
         {
+            _imageReady = false;
             await JS.InvokeVoidAsync("getImageSize", blobUrl, objRef);
         }
     }
@@ -73,6 +81,10 @@
         Attachment.Height = height;
 
         Console.WriteLine($"Set image size to {width},{height}");
+
+        _imageReady = true;
+        
+        StateHasChanged();
     }
 
     public async Task OnKeyDown(KeyboardEventArgs e){
