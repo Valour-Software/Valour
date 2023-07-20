@@ -54,7 +54,15 @@ else
         @foreach (var account in _myPlanetAccounts)
         {
             <div class="account-select" @onmousedown="@(async () => await OnSelectAccount(account))">
-                @_accountFrag((account, _planetCurrency))
+                @if (account.AccountType == AccountType.User)
+                {
+                    <UserInfoComponent User="@ValourClient.Self" />
+                    <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(account.BalanceValue)</p>
+                }
+                else
+                {
+                    @_accountFrag((account, _planetCurrency))
+                }
             </div>
         }
     </DropdownComponent>
@@ -62,7 +70,15 @@ else
     @if (_selectedPlanetAccount is not null)
     {
         <div class="selected-preview">
-            @_accountFrag((_selectedPlanetAccount, _planetCurrency))
+            @if (_selectedPlanetAccount.AccountType == AccountType.User)
+            {
+                <UserInfoComponent User="@ValourClient.Self" />
+                <p style="margin-left: 6px; margin-bottom: 0">@_planetCurrency.Format(_selectedPlanetAccount.BalanceValue)</p>
+            }
+            else
+            {
+                @_accountFrag((_selectedPlanetAccount, _planetCurrency))
+            }
         </div>
     }
     
@@ -126,6 +142,9 @@ else
 
 @code {
     
+    [CascadingParameter]
+    public BlazoredModalInstance Modal { get; set; }
+    
     [Parameter]
     public InputComponent Input { get; set; }
     
@@ -163,6 +182,9 @@ else
     private async Task OnClickReceipt()
     {
         await Input.AddReceipt(_transactionId);
+        
+        if (Modal is not null)
+            await Modal.CloseAsync();
     }
 
     private async Task OnClickSend()

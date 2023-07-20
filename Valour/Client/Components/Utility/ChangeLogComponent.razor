@@ -6,52 +6,48 @@
 }
 
 <div class="change-log" @onclick="OnClose">
-    <h4>Valour 0.2.1.0 Changelog (Click to close)</h4>
+    <h4>Valour 0.2.2.0 Changelog (Click to close)</h4>
     
-    <img alt="Valour logo for version 0.2.1.0 changelog" style="width: 95%; margin-bottom: 18px" src="_content/Valour.Client/media/0.2.1.0.jpg" />
+    <img alt="Valour logo for version 0.2.2.0 changelog" style="width: 95%; margin-bottom: 18px" src="_content/Valour.Client/media/0.2.2.0.jpg" />
     
-    <p style="color: #00ffff">Wow, we're doing these now! That's exciting - and it means we're growing up. This version is packed with bug fixes, improvements, and more.</p>
+    <p style="color: #00ffff">THE ECONOMY IS HERE! Ok, but there's more as well!</p>
     <ul>
-        <li style="color: #ff00ff">Added full notification system</li>
+        <li style="color: #ff00ff">Add the base Community Economy systems!</li>
         <ul>
-            <li>Quick notifications can be seen up top on desktop (left click to go to, right click to dismiss)</li>
-            <li>Notification tab added to sidebars</li>
-            <li>You can now be notified from non-opened channels and planets</li>
-            <li>Notifications show on planet list</li>
-            <li>You can now mention roles</li>
-            <li>Note that iOS does not allow WPA push notifications</li>
+            <li>Upload button now has a 'send currency' tab</li>
+            <li>You can send community currencies or global Valour Credits</li>
+            <li>Sent transactions provide a receipt which can be added to chat</li>
+            <li>Notifications are sent out for transactions</li>
+            <li>Transaction receipts look pretty hot</li>
+            <li>Make sure to read the new <a target="_blank" href="https://github.com/Valour-Software/Valour/blob/main/PLATFORM_ECO_RULES.md">Platform Eco Rules</a></li>
         </ul>
-        <li>Improved channel list system</li>
+        <li>Improved tag system</li>
         <ul>
-            <li>Channels can now be at root level</li>
-            <li>Moving channels and categories is much smoother</li>
-            <li>Reduced rendering complexity</li>
-            <li>Channel list now shows notifications</li>
+            <li>Referrals now use tags</li>
+            <li>Friend requests now use tags</li>
+            <li>API routes now use tags, along with useful routes to get users via Name#TAG</li>
         </ul>
-        <li style="color: #ff00ff">Messages can now be edited</li>
+        <li style="color: #ff00ff">New attachments system</li>
         <ul>
-            <li>Edits are live</li>
-            <li>Edits show (Edited) tag</li>
-            <li>Up arrow edits last message sent for convenience</li>
+            <li>Pasted links now use the normal attachment system under the hood</li>
+            <li>Better YouTube support</li>
+            <li>Better Vimeo support</li>
+            <li>Twitch support(?)</li>
+            <li>Images now size properly and don't jumble chat around as much</li>
+            <li>Jumbling needs work on videos</li>
+            <li>New attachment system adds a ton of future feature abilities</li>
         </ul>
-        <li>Leaving planets is fixed</li>
-        <li>Deleting planets is fixed</li>
-        <li>Context menu 'add friend' visual bug is fixed</li>
-        <li>Work on GDPR/COPPA compliance</li>
-        <li>Login/register flow improvement</li>
-        <li>Fix logging out</li>
-        <li>Make password requirements more clear and less annoying</li>
-        <li>Make mention selector not as gross</li>
-        <li>Make reply loading efficient</li>
-        <li>Fix bug where loaded channels would not be scrolled to bottom</li>
-        <li>Make it impossible to delete default channels</li>
-        <li>Add admin permission to roles</li>
-        <li>Use hex for role colors</li>
-        <li>Add planet info window (this will be made pretty soon)</li>
-        <li>Make watching bubble draggable</li>
-        <li>Fix channel highlighting</li>
+        <li>Improve password recovery</li>
+        <ul>
+            <li>Fix background</li>
+            <li>Make it clear when an email has been sent</li>
+            <li>Generally smoother experience</li>
+        </ul>
+        
+        <li>Upload menu improvements</li>
+        <li>Status messages no longer overflow (you know who you are)</li>
     </ul>
-    <p>Thank you for using Valour, and I am already working on the next update! - Spike</p>
+    <p>Thank you for using Valour! This update was especially exciting, and the eco features will keep coming! - Spike</p>
 </div>
 
 @code {

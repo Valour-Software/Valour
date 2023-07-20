@@ -73,6 +73,9 @@ else
     private RenderFragment<string> _errorFragment = (string error) =>
         @<p style="color: red; text-align: center; margin-top: 1em">@error</p>;
 
+    [CascadingParameter]
+    public BlazoredModalInstance Modal { get; set; }
+    
     [Parameter]
     public InputComponent Input { get; set; }
     
@@ -220,5 +223,7 @@ else
     private async Task OnClickReceipt()
     {
         await Input.AddReceipt(_transactionId);
+        if (Modal is not null)
+            await Modal.CloseAsync();
     }
 }
