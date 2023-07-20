@@ -32,6 +32,12 @@
     width: calc(100% - 90px);
 }
 
+.mobile .textbox-inner {
+    margin-left: 41px;
+    margin-right: 0;
+    width: calc(100% - 116px);
+}
+
 .textbox-inner span {
     text-wrap: wrap; /* older browser support */
     text-wrap: balance;
@@ -202,7 +208,7 @@
     border: none;
     position: absolute;
     right: 6px;
-    top: 8px;
+    bottom: 7px;
     outline: none;
     filter: grayscale(1);
 }
