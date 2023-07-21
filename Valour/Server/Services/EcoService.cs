@@ -267,7 +267,7 @@ public class EcoService
 
         if (string.IsNullOrWhiteSpace(account.Name))
         {
-            account.Name = $"{planet.Name.Truncate(15)}-{Guid.NewGuid().ToString().Truncate(5)}";
+            account.Name = Guid.NewGuid().ToString();
         }
         
         if (account.Name.Length > 20)
