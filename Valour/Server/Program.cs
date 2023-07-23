@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text.Json;
+using EFCoreSecondLevelCacheInterceptor;
+using MessagePack;
+using MessagePack.Formatters;
+using MessagePack.Resolvers;
 using StackExchange.Redis;
 using Valour.Server.API;
 using Valour.Server.Cdn;
@@ -257,13 +261,45 @@ namespace Valour.Server
                 options.UseNpgsql(CdnDb.ConnectionString);
             });
 
-            services.AddDbContext<ValourDB>(options =>
-            {
-                options.UseNpgsql(ValourDB.ConnectionString);
-            });
-            
             services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(RedisConfig.Current.ConnectionString));
 
+            // Add EFCoreSecondLevelCache Interceptor
+            services.AddEFSecondLevelCache(options =>
+            {
+                // Use EasyCachingCoreProvider as cache provider
+                options.UseEasyCachingCoreProvider("Redis", isHybridCache: false)
+                    .DisableLogging(false) // Set it to true for maximum performance
+                    .UseCacheKeyPrefix("EF_"); // Redis cache key prefix
+
+                // Puts the whole system in cache. In this case calling the 'Cacheable()' methods won't be necessary.
+                // If you specify the 'Cacheable()' method, its setting will override this global setting.
+                // If you want to exclude some queries from this global cache, apply the 'NotCacheable()' method to them.
+                // https://github.com/VahidN/EFCoreSecondLevelCacheInterceptor
+                var timeOutMs = 60000;
+                options.CacheAllQueries(CacheExpirationMode.Sliding, TimeSpan.FromMilliseconds(timeOutMs));
+            });
+            
+            services.AddEasyCaching(option =>
+            {
+                option.UseRedis(config =>
+                {
+                    config.DBConfig.AllowAdmin = true;
+                    config.DBConfig.SyncTimeout = 10000;
+                    config.DBConfig.AsyncTimeout = 10000;
+                    //config.DBConfig.Endpoints.Add(new EasyCaching.Core.Configurations.ServerEndPoint("127.0.0.1", 6379));
+                    //config.DBConfig.Configuration = RedisConfig.Current.ConnectionString;
+                    config.EnableLogging = true;
+                    config.SerializerName = "Pack";
+                    config.DBConfig.ConnectionTimeout = 10000;
+                }, "Redis");
+            });
+            
+            services.AddDbContext<ValourDB>((provider, options) =>
+            {
+                options.UseNpgsql(ValourDB.ConnectionString);
+                options.AddInterceptors(provider.GetRequiredService<SecondLevelCacheInterceptor>());
+            });
+            
             // This probably needs to be customized further but the documentation changed
             services.AddAuthentication().AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
 
