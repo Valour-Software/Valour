@@ -135,6 +135,7 @@
     margin: 0px;
     margin-top: 0px;
     vertical-align: top;
+    cursor: pointer;
 }
 
 .message .role-name {

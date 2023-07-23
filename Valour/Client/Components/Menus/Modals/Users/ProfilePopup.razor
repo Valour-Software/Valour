@@ -1,0 +1,141 @@
+@inject IJSRuntime JsRuntime
+
+@if (_hidden)
+{
+    return;
+}
+
+@* Holds the entire component *@
+<div
+    @onclick="Close"
+    class="profile-outer">
+    <div id="@_id" class="card-wrapper">
+        <div class="card-glow">
+        </div>
+        <div
+            @onclick:stopPropagation="true"
+            class="profile-card">
+            <span class="card-bg"></span>
+            <div class="inner-card">
+                <div class="top-section">
+                    <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl"/>
+                    <div class="online-bubble"></div>
+                    <div class="names">
+                        <p class="nickname">@_name</p>
+                        <p class="name-and-tag">@_nameAndTag</p>
+                        <div class="status-bubble">
+                            <div class="arrow"></div>
+                            <p class="status-text">"@(_status)"</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="headline">I build Valour - He / Him / His</p>
+                <div class="mid-section">
+                    <b class="card-subtitle">Bio</b>
+                    <hr/>
+                    <div class="mid-inner">
+                        <p class="body-text">Hello, my name is Kobe and I am the founder of Valour! My favorite game is Minecraft and you can find me in all sorts of communities.</p>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    public static ProfilePopup Instance { get; private set; }
+
+    private string _id = Guid.NewGuid().ToString();
+    
+    private User _user;
+    private PlanetMember _member;
+
+    private bool _hidden = true;
+    private int _posX;
+    private int _posY;
+    private string _corner = "bottomLeft";
+
+    private bool _needsPositioning = false;
+
+    /* Values used to actually render the profile */
+    private string _name;
+    private string _nameAndTag;
+    private string _status;
+    private string _pfpUrl;
+    private string _statusClass = "offline";
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_needsPositioning && !_hidden)
+        {
+            await JsRuntime.InvokeVoidAsync("positionRelativeTo", _id, _posX, _posY, _corner);
+            _needsPositioning = false;
+        }
+    }
+
+    public async Task OpenAsync(User user, int x, int y, string corner = "bottomLeft")
+    {
+        _posX = x;
+        _posY = y;
+        _corner = corner;
+        
+        _member = null;
+        _user = user;
+        _hidden = false;
+
+        await LoadDetailsAsync();
+
+        _needsPositioning = true;
+        
+        StateHasChanged();
+    }
+
+    public async Task OpenAsync(PlanetMember member, int x, int y, string corner = "bottomLeft")
+    {
+        _posX = x;
+        _posY = y;
+        _corner = corner;
+        
+        _member = member;
+        _user = null;
+        _hidden = false;
+        _user = await member.GetUserAsync();
+
+        await LoadDetailsAsync();
+        
+        _needsPositioning = true;
+
+        StateHasChanged();
+    }
+
+    private async Task LoadDetailsAsync()
+    {
+        _name = _user.Name;
+        _nameAndTag = _user.NameAndTag;
+        _status = _user.Status;
+        _statusClass = _user.UserState.CssClassName;
+
+        if (_member is not null)
+        {
+            _pfpUrl = await _member.GetPfpUrlAsync();
+        }
+        else
+        {
+            _pfpUrl = _user.PfpUrl;
+        }
+    }
+
+    private void Close()
+    {
+        _hidden = true;
+        StateHasChanged();
+    }
+
+}

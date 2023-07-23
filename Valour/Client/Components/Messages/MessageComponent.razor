@@ -26,7 +26,7 @@
             {
                 <div class="name-role-holder">
                     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
-                        <p class="author-name" style="color: @nameColor;">
+                        <p @onclick="OnClickName" class="author-name" style="color: @nameColor;">
                             @name
                         </p>
                     </ContextMenuTrigger>
@@ -231,6 +231,11 @@
     {
 
     }
+
+     public virtual async Task OnClickName(MouseEventArgs e)
+     {
+         await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+     }
     
     private async Task OnEditReceived(ModelUpdateEvent eventData)
     {
