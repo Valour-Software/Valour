@@ -128,14 +128,17 @@
 
 .message .author-name {
     display: inline-block;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-size: 16px;
     line-height: 25px;
-    margin: 0px;
-    margin-top: 0px;
+    margin: 0;
     vertical-align: top;
     cursor: pointer;
+}
+
+.message .author-name:hover {
+    text-decoration: underline;
 }
 
 .message .role-name {

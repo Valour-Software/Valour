@@ -6,7 +6,7 @@
 }
 
 .profile-card {
-    position: absolute;
+    position: relative;
     width: 300px;
     height: 400px;
     border-radius: 20px;

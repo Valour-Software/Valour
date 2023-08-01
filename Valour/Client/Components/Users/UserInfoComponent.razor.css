@@ -66,6 +66,11 @@
     overflow: hidden;
     margin: 0;
     vertical-align: top;
+    cursor: pointer;
+}
+
+.username:hover {
+    text-decoration: underline;
 }
 
 .user-info:hover .tag {
