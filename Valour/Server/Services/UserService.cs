@@ -48,6 +48,9 @@ public class UserService
     public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
         (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
 
+    public async Task<UserProfile> GetUserProfileAsync(long userId) =>
+        (await _db.UserProfiles.FirstOrDefaultAsync(x => x.UserId == userId)).ToModel();
+    
     public async Task<List<Planet>> GetPlanetsUserIn(long userId)
     {
         var planets = await _db.PlanetMembers

@@ -34,6 +34,17 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT user_tag_unique UNIQUE (name, tag)
 );
 
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id BIGINT NOT NULL PRIMARY KEY,
+    headline TEXT,
+    bio TEXT,
+    border_color VARCHAR(6),
+    adv_border_bg TEXT,
+    anim_border BOOLEAN,
+    
+    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)  
+);
+
 CREATE TABLE IF NOT EXISTS user_friends (
     id BIGINT NOT NULL PRIMARY KEY,
     user_id BIGINT NOT NULL,

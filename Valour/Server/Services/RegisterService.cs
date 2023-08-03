@@ -145,6 +145,17 @@ public class RegisterService
 
             _db.Credentials.Add(cred);
 
+            Valour.Database.UserProfile profile = new()
+            {
+                UserId = user.Id,
+                Headline = "New to Valour!",
+                Bio = "I'm new to Valour. Please show me around!",
+                BorderColor = "#fff",
+                AnimatedBorder = false,
+            };
+
+            _db.UserProfiles.Add(profile);
+
             /* Decided to make this step explicit in order to agree to eco terms
              
             Valour.Database.Economy.EcoAccount globalAccount = new()
