@@ -9,50 +9,18 @@
 <div
     @onclick="Close"
     class="profile-outer">
-    <div id="@_id" class="card-wrapper">
-        <TiltCard ShineCssStyle="border-radius: 20px">
-            <div class="card-glow">
-            </div>
-            <div
-                @onclick:stopPropagation="true"
-                class="profile-card">
-                <span class="card-bg"></span>
-                <div class="inner-card">
-                    <div class="top-section">
-                        <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl"/>
-                        <div class="online-bubble"></div>
-                        <div class="names">
-                            <p class="nickname">@_name</p>
-                            <p class="name-and-tag">@_nameAndTag</p>
-                            <div class="status-bubble">
-                                <div class="arrow"></div>
-                                <p class="status-text">"@(_status)"</p>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="headline">I build Valour - He / Him / His</p>
-                    <div class="mid-section">
-                        <b class="card-subtitle">Bio</b>
-                        <hr/>
-                        <div class="mid-inner">
-                            <p class="body-text">Hello, my name is Kobe and I am the founder of Valour! My favorite game is Minecraft and you can find me in all sorts of communities.</p>
-                        </div>
-                    </div>
-
-
-                </div>
-            </div>
-        </TiltCard>
-    </div>
+    @* Holds the actual profile *@
+    <ProfileCard @ref="@_profileCard" User="@_user" Member="@_member" Profile="@_profile"></ProfileCard>
 </div>
 
 @code {
+    private ProfileCard _profileCard;
+    
     public static ProfilePopup Instance { get; private set; }
 
-    private string _id = Guid.NewGuid().ToString();
-    
-    private User _user;
     private PlanetMember _member;
+    private User _user;
+    private UserProfile _profile;
 
     private bool _hidden = true;
     private int _posX;
@@ -60,13 +28,6 @@
     private string _corner = "bottomLeft";
 
     private bool _needsPositioning = false;
-
-    /* Values used to actually render the profile */
-    private string _name;
-    private string _nameAndTag;
-    private string _status;
-    private string _pfpUrl;
-    private string _statusClass = "offline";
 
     protected override void OnInitialized()
     {
@@ -77,7 +38,7 @@
     {
         if (_needsPositioning && !_hidden)
         {
-            await JsRuntime.InvokeVoidAsync("positionRelativeTo", _id, _posX, _posY, _corner);
+            await JsRuntime.InvokeVoidAsync("positionRelativeTo", _profileCard.Id, _posX, _posY, _corner);
             _needsPositioning = false;
         }
     }
@@ -90,13 +51,20 @@
         
         _member = null;
         _user = user;
+        
+        var profileResponse = await _user.GetProfileAsync();
+        if (!profileResponse.Success)
+            return;
+        
+        _profile = profileResponse.Data;
+        
         _hidden = false;
-
-        await LoadDetailsAsync();
 
         _needsPositioning = true;
         
         StateHasChanged();
+        
+        await _profileCard.LoadDetailsAsync();
     }
 
     public async Task OpenAsync(PlanetMember member, int x, int y, string corner = "bottomLeft")
@@ -109,30 +77,21 @@
         _user = null;
         _hidden = false;
         _user = await member.GetUserAsync();
-
-        await LoadDetailsAsync();
         
+        var profileResponse = await _user.GetProfileAsync();
+        if (!profileResponse.Success)
+            return;
+        
+        _profile = profileResponse.Data;
+
         _needsPositioning = true;
 
         StateHasChanged();
+        
+        await _profileCard.LoadDetailsAsync();
     }
 
-    private async Task LoadDetailsAsync()
-    {
-        _name = _user.Name;
-        _nameAndTag = _user.NameAndTag;
-        _status = _user.Status;
-        _statusClass = _user.UserState.CssClassName;
-
-        if (_member is not null)
-        {
-            _pfpUrl = await _member.GetPfpUrlAsync();
-        }
-        else
-        {
-            _pfpUrl = _user.PfpUrl;
-        }
-    }
+    
 
     private void Close()
     {

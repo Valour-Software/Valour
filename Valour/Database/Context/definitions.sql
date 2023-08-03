@@ -38,10 +38,12 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     user_id BIGINT NOT NULL PRIMARY KEY,
     headline TEXT,
     bio TEXT,
-    border_color VARCHAR(6),
-    adv_border_bg TEXT,
+    border_color VARCHAR(7),
+    glow_color VARCHAR(7),
+    primary_color VARCHAR(7),
+    secondary_color VARCHAR(7),
+    tertiary_color VARCHAR(7),
     anim_border BOOLEAN,
-    
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)  
 );
 

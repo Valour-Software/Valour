@@ -13,7 +13,10 @@ public static class UserProfileMapper
             Headline = profile.Headline,
             Bio = profile.Bio,
             BorderColor = profile.BorderColor,
-            AdvancedBorderBackground = profile.AdvancedBorderBackground,
+            GlowColor = profile.GlowColor,
+            PrimaryColor = profile.PrimaryColor,
+            SecondaryColor = profile.SecondaryColor,
+            TertiaryColor = profile.TertiaryColor,
             AnimatedBorder = profile.AnimatedBorder
         };
     }
@@ -29,7 +32,10 @@ public static class UserProfileMapper
             Headline = profile.Headline,
             Bio = profile.Bio,
             BorderColor = profile.BorderColor,
-            AdvancedBorderBackground = profile.AdvancedBorderBackground,
+            GlowColor = profile.GlowColor,
+            PrimaryColor = profile.PrimaryColor,
+            SecondaryColor = profile.SecondaryColor,
+            TertiaryColor = profile.TertiaryColor,
             AnimatedBorder = profile.AnimatedBorder
         };
     }

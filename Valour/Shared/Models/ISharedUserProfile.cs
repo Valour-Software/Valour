@@ -23,11 +23,24 @@ public interface ISharedUserProfile
     string BorderColor { get; set; }
     
     /// <summary>
-    /// The advanced CSS style of the border background of the profile.
-    /// If the user has access, this will override the simple border color.
-    /// Can be solid color or gradient (may support images in the future).
+    /// The background glow color of the profile.
     /// </summary>
-    string AdvancedBorderBackground { get; set; }
+    string GlowColor { get; set; }
+    
+    /// <summary>
+    /// Primary color, used in border and other details
+    /// </summary>
+    string PrimaryColor { get; set; }
+    
+    /// <summary>
+    /// Secondary color, used in border and other details
+    /// </summary>
+    string SecondaryColor { get; set; }
+    
+    /// <summary>
+    /// Tertiary color, used in border and other details
+    /// </summary>
+    string TertiaryColor { get; set; }
     
     /// <summary>
     /// True if the border should be animated

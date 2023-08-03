@@ -23,11 +23,24 @@ public class UserProfile
     public string BorderColor { get; set; }
     
     /// <summary>
-    /// The advanced CSS style of the border background of the profile.
-    /// If the user has access, this will override the simple border color.
-    /// Can be solid color or gradient (may support images in the future).
+    /// The glow color of the profile
     /// </summary>
-    public string AdvancedBorderBackground { get; set; }
+    public string GlowColor { get; set; }
+    
+    /// <summary>
+    /// Primary color, used in border and other details
+    /// </summary>
+    public string PrimaryColor { get; set; }
+    
+    /// <summary>
+    /// Secondary color, used in border and other details
+    /// </summary>
+    public string SecondaryColor { get; set; }
+    
+    /// <summary>
+    /// Tertiary color, used in border and other details
+    /// </summary>
+    public string TertiaryColor { get; set; }
     
     /// <summary>
     /// True if the border should be animated

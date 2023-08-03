@@ -1,10 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Valour.Shared.Models;
 
 namespace Valour.Database;
 
 [Table("user_profiles")]
-public class UserProfile
+public class UserProfile : ISharedUserProfile
 {
     /// <summary>
     /// The user the profile belongs to
@@ -32,13 +33,29 @@ public class UserProfile
     public string BorderColor { get; set; }
     
     /// <summary>
-    /// The advanced CSS style of the border background of the profile.
-    /// If the user has access, this will override the simple border color.
-    /// Can be solid color or gradient (may support images in the future).
+    /// The glow color of the profile
     /// </summary>
-    [Column("adv_border_bg")]
-    public string AdvancedBorderBackground { get; set; }
+    [Column("glow_color")]
+    public string GlowColor { get; set; }
     
+    /// <summary>
+    /// Primary color, used in border and other details
+    /// </summary>
+    [Column("primary_color")]
+    public string PrimaryColor { get; set; }
+    
+    /// <summary>
+    /// Secondary color, used in border and other details
+    /// </summary>
+    [Column("secondary_color")]
+    public string SecondaryColor { get; set; }
+    
+    /// <summary>
+    /// Tertiary color, used in border and other details
+    /// </summary>
+    [Column("tertiary_color")]
+    public string TertiaryColor { get; set; }
+
     /// <summary>
     /// True if the border should be animated
     /// </summary>
