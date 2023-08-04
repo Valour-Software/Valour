@@ -125,7 +125,7 @@ public class User : LiveModel, ISharedUser
     }
     
     public async Task<TaskResult<UserProfile>> GetProfileAsync() =>
-        await ValourClient.PrimaryNode.GetJsonAsync<UserProfile>($"api/users/{Id}/profile");
+        await ValourClient.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
 
     public async Task<TaskResult<List<User>>> GetFriendsAsync()
         => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/users/{Id}/friends");

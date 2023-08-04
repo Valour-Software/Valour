@@ -147,7 +147,7 @@ public class RegisterService
 
             Valour.Database.UserProfile profile = new()
             {
-                UserId = user.Id,
+                Id = user.Id,
                 Headline = "New to Valour!",
                 Bio = "I'm new to Valour. Please show me around!",
                 BorderColor = "#fff",

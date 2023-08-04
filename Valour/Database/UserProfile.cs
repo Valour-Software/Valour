@@ -11,8 +11,8 @@ public class UserProfile : ISharedUserProfile
     /// The user the profile belongs to
     /// </summary>
     [Key]
-    [Column("user_id")]
-    public long UserId { get; set; }
+    [Column("id")]
+    public long Id { get; set; }
     
     /// <summary>
     /// The 'headline' is the short top text in the profile

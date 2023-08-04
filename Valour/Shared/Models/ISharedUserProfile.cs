@@ -5,7 +5,7 @@ public interface ISharedUserProfile
     /// <summary>
     /// The user the profile belongs to
     /// </summary>
-    long UserId { get; set; }
+    long Id { get; set; }
     
     /// <summary>
     /// The 'headline' is the short top text in the profile

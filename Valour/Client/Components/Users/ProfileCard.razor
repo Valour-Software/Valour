@@ -53,11 +53,11 @@
         get
         {
             var bg = string.IsNullOrWhiteSpace(Profile.PrimaryColor) ?
-                $"background-position: center center; background: {Profile.BorderColor}" :
+                $"background-position: center center; background: {Profile.BorderColor};" :
                 $"background-position: center center; background: linear-gradient(117deg, {Profile.PrimaryColor} 10%, {Profile.SecondaryColor} 50%, {Profile.TertiaryColor} 90%);";
 
             if (Profile.AnimatedBorder)
-                bg += "animation: spin 5s linear infinite;";
+                bg += "animation: border-spin 5s linear infinite;";
 
             return bg;
         }

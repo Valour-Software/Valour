@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS user_profiles (
-    user_id BIGINT NOT NULL PRIMARY KEY,
+    id BIGINT NOT NULL PRIMARY KEY,
     headline TEXT,
     bio TEXT,
     border_color VARCHAR(7),
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     secondary_color VARCHAR(7),
     tertiary_color VARCHAR(7),
     anim_border BOOLEAN,
-    CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)  
+    CONSTRAINT fk_user FOREIGN KEY(id) REFERENCES users(id)  
 );
 
 CREATE TABLE IF NOT EXISTS user_friends (

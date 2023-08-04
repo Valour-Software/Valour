@@ -159,12 +159,3 @@
     color: #7A7A7A;
     margin: 0;
 }
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg) scale(2);
-    }
-    to {
-        transform: rotate(360deg) scale(2);
-    }
-}

@@ -26,7 +26,7 @@
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username" style="color: @_roleColor">@_name</p>
+                    <p class="username" style="color: @_roleColor" @onclick="ShowProfileAsync">@_name</p>
                     @if (User.Bot)
                     {
                         <p class="user-badge bot">BOT</p>
@@ -261,5 +261,15 @@
     {
         _pfpUrl = DefaultPfp;
         StateHasChanged();
+    }
+    
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (Member is not null){
+            await ProfilePopup.Instance.OpenAsync(Member, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        }
+        else{
+            await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        }
     }
 }

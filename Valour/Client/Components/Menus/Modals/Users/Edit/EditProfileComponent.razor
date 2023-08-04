@@ -28,6 +28,24 @@
         </div>
     </div>
     
+    @if (_isGradientEnabled)
+    {
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                Animate gradient borders
+            </div>
+            <div type="button" style="float:right">
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="perm-list-desc mt-1">
+                Animate the gradient border.
+            </div>
+        </div>
+    }
+    
     <div>
         @if (_isGradientEnabled)
         {
@@ -67,7 +85,16 @@
         </div>
     </div>
     
-    <button class="v-btn m-1">Save Changes</button>
+    <button class="v-btn m-1" @onclick="OnClickSaveAsync">Save Changes</button>
+    
+    @if (!string.IsNullOrWhiteSpace(_errorSpan))
+    {
+        <span class="m-1 v-text-red">@_errorSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(_successSpan))
+    {
+        <span class="m-1 v-text-cyan">@_successSpan</span>
+    }
 </section>
 
 <ProfileCard
@@ -84,6 +111,12 @@
     private bool _isGradientEnabled;
     private bool _isGradientBlocked;
     
+    private bool _isAnimEnabled;
+    private bool _isAnimBlocked;
+
+    private string _errorSpan;
+    private string _successSpan;
+    
     protected override async Task OnInitializedAsync()
     {
         var profileResult = await ValourClient.Self.GetProfileAsync();
@@ -93,6 +126,7 @@
         }
 
         _isGradientEnabled = !string.IsNullOrWhiteSpace(_profile.PrimaryColor);
+        _isAnimEnabled = _profile.AnimatedBorder;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -120,5 +154,30 @@
         
         StateHasChanged();
     }
+    
+    private void OnAnimClick()
+    {
+        _isAnimEnabled = !_isAnimEnabled;
+        _profile.AnimatedBorder = _isAnimEnabled;
+        StateHasChanged();
+    }
 
+    private async Task OnClickSaveAsync()
+    {
+        _errorSpan = null;
+        _successSpan = null;
+        
+        var result = await UserProfile.UpdateAsync(_profile);
+
+        if (result.Success)
+        {
+            _successSpan = "Saved successfully.";
+        }
+        else
+        {
+            _errorSpan = "An error occured. Sorry! Refresh and try again?";
+        }
+        
+        StateHasChanged();
+    }
 }

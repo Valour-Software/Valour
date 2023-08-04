@@ -433,6 +433,10 @@ function positionRelativeTo(id, x, y, corner) {
         element.style.top = `${y - height}px`;
         element.style.left = `${x}px`;
     }
+    else if (corner === "bottomRight") {
+        element.style.top = `${y - height}px`;
+        element.style.left = `${x - width}px`;
+    }
     
     // Prevent escaping screen
     const rect = element.getBoundingClientRect();

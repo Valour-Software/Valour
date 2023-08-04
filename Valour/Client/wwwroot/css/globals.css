@@ -187,3 +187,14 @@
     color: var(--v-purple);
     font-weight: 700;
 }
+
+/* Global animations */
+
+@keyframes border-spin {
+    from {
+        transform: rotate(0deg) scale(2);
+    }
+    to {
+        transform: rotate(360deg) scale(2);
+    }
+}

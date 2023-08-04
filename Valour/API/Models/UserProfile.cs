@@ -2,13 +2,10 @@ using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
-public class UserProfile : ISharedUserProfile
+public class UserProfile : LiveModel, ISharedUserProfile
 {
-    /// <summary>
-    /// The user the profile belongs to
-    /// </summary>
-    public long UserId { get; set; }
-    
+    public override string BaseRoute => "api/userProfiles";
+
     /// <summary>
     /// The 'headline' is the short top text in the profile
     /// </summary>

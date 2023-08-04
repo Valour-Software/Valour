@@ -1,11 +1,13 @@
+using Valour.Shared.Models;
+
 namespace Valour.Server.Models;
 
-public class UserProfile
+public class UserProfile : ISharedUserProfile
 {
     /// <summary>
     /// The user the profile belongs to
     /// </summary>
-    public long UserId { get; set; }
+    public long Id { get; set; }
     
     /// <summary>
     /// The 'headline' is the short top text in the profile

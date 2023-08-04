@@ -9,7 +9,7 @@ public static class UserProfileMapper
         
         return new UserProfile()
         {
-            UserId = profile.UserId,
+            Id = profile.Id,
             Headline = profile.Headline,
             Bio = profile.Bio,
             BorderColor = profile.BorderColor,
@@ -28,7 +28,7 @@ public static class UserProfileMapper
         
         return new Valour.Database.UserProfile()
         {
-            UserId = profile.UserId,
+            Id = profile.Id,
             Headline = profile.Headline,
             Bio = profile.Bio,
             BorderColor = profile.BorderColor,
