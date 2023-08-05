@@ -238,19 +238,19 @@
 									EmbedRootItemComponents[item.Id].Refresh();
 								}
 								else
-									Console.WriteLine($"Could not find embed item with id of {item.Id}");
+									Console.WriteLine($"Could not find embed item with id of {item.Id} (1st case)");
 							}
 							else if (i == 1 && item.ItemType == EmbedItemType.Form && item.ItemType != EmbedItemType.EmbedRow) {
 								if (EmbedFormComponents.ContainsKey(item.Id))
 									EmbedFormComponents[item.Id].Refresh();
 								else
-									Console.WriteLine($"Could not find embed form with id of {item.Id}");
+									Console.WriteLine($"Could not find embed form with id of {item.Id} (2nd case)");
 							}
 							else if (i == 2 && item.ItemType != EmbedItemType.EmbedRow && item.ItemType != EmbedItemType.Form) {
 								if (ItemComponents.ContainsKey(item.Id))
 									ItemComponents[item.Id].Refresh();
 								else
-									Console.WriteLine($"Could not find embed item with id of {item.Id}");
+									Console.WriteLine($"Could not find embed item with id of {item.Id} (3rd case)");
 							}
 						}
 					}
