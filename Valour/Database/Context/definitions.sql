@@ -451,5 +451,17 @@ CREATE TABLE IF NOT EXISTS reports (
   CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
 );
 
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+  id TEXT NOT NULL PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  type TEXT NOT NULL,
+  created TIMESTAMP NOT NULL,
+  last_charged TIMESTAMP NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  renewals INT NOT NULL DEFAULT 0,
+  
+  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
 COMMIT;
 

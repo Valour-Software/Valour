@@ -42,12 +42,18 @@ public static class SubscriptionTypes
     };
 }
 
-public class ISharedUserSubscription
+public interface ISharedUserSubscription
 {
     /// <summary>
     /// The id of the subscription
     /// </summary>
     public string Id { get; set; }
+    
+    /// <summary>
+    /// The id of the user who owns this subscription
+    /// </summary>
+    public long UserId { get; set; }
+
     
     /// <summary>
     /// The type of subscription this represents
@@ -70,4 +76,9 @@ public class ISharedUserSubscription
     /// subscription lengths to be tracked.
     /// </summary>
     public bool Active { get; set; }
+    
+    /// <summary>
+    /// How many times this subscription has been renewed
+    /// </summary>
+    public int Renewals { get; set; }
 }
