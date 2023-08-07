@@ -312,13 +312,15 @@ namespace Valour.Server
             services.AddScoped<NotificationService>();
             services.AddScoped<ReportService>();
             services.AddScoped<RegisterService>();
-            
+            services.AddScoped<SubscriptionService>();
+
             services.AddSingleton<NodeService>();
 
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
             services.AddHostedService<NodeStateWorker>();
+            services.AddHostedService<SubscriptionWorker>();
 
             services.AddEndpointsApiExplorer();
 

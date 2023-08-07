@@ -111,7 +111,7 @@ public interface ISharedUser : ISharedItem
     /// </summary>
     public static UserSubscriptionType GetSubscription(ISharedUser user)
     {
-        return user.SubscriptionType == null ? null: SubscriptionTypes.TypeMap[user.SubscriptionType];
+        return user.SubscriptionType == null ? null: UserSubscriptionTypes.TypeMap[user.SubscriptionType];
     }
     
     /// <summary>

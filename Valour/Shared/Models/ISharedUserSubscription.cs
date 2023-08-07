@@ -18,7 +18,7 @@ public class UserSubscriptionType
     public decimal Price { get; set; }
 }
 
-public static class SubscriptionTypes
+public static class UserSubscriptionTypes
 {
     public static readonly UserSubscriptionType Stargazer = new()
     {
