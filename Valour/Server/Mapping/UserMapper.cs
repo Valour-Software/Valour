@@ -22,6 +22,7 @@ public static class UserMapper
             TimeLastActive = user.TimeLastActive,
             IsMobile = user.IsMobile,
             Compliance = user.Compliance,
+            SubscriptionType = user.SubscriptionType
         };
     }
     
@@ -44,7 +45,8 @@ public static class UserMapper
             UserStateCode = user.UserStateCode,
             TimeLastActive = user.TimeLastActive,
             IsMobile = user.IsMobile,
-            Compliance = user.Compliance
+            Compliance = user.Compliance,
+            SubscriptionType = user.SubscriptionType
         };
     }
 }

@@ -1,6 +1,6 @@
 namespace Valour.Shared.Models;
 
-public class SubscriptionType
+public class UserSubscriptionType
 {
     /// <summary>
     /// The name of the subscription type
@@ -20,25 +20,32 @@ public class SubscriptionType
 
 public static class SubscriptionTypes
 {
-    public static readonly SubscriptionType Stargazer = new()
+    public static readonly UserSubscriptionType Stargazer = new()
     {
         Name = "Stargazer",
         Description = "Looking above, curious yet confident. Stargazers support Valour and get access to perks like advanced profile styles.",
         Price = 400
     };
     
-    public static readonly SubscriptionType Pioneer = new()
+    public static readonly UserSubscriptionType Pioneer = new()
     {
         Name = "Pioneer",
         Description = "The next step, exploring the stars and learning. <PLACEHOLDER>",
         Price = 800
     };
     
-    public static readonly SubscriptionType Guardian = new()
+    public static readonly UserSubscriptionType Guardian = new()
     {
         Name = "Guardian",
         Description = "Respected, defending the frontier for those who follow. <PLACEHOLDER>",
         Price = 1500
+    };
+    
+    public static Dictionary<string, UserSubscriptionType> TypeMap = new Dictionary<string, UserSubscriptionType>()
+    {
+        { "Stargazer", Stargazer },
+        { "Pioneer", Pioneer },
+        { "Guardian", Guardian }
     };
 }
 
