@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_state_code INT NOT NULL DEFAULT 0,
     time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     is_mobile BOOLEAN NOT NULL DEFAULT false,
+    subscription_type TEXT NOT NULL,
 
     CONSTRAINT user_tag_unique UNIQUE (name, tag)
 );

@@ -27,6 +27,14 @@ public class SubscriptionService
             // skip if user is null (should not happen)
             return new TaskResult(false, "User not found");
         }
+
+        var currentSub = await _db.UserSubscriptions
+            .FirstOrDefaultAsync(x => x.Active && x.UserId == userId);
+
+        if (currentSub is not null && currentSub.Type == subType)
+        {
+            return new TaskResult(false, "You already have this subscription.");
+        }
             
         // check VC balance of user
         var userAccount = await _db.EcoAccounts
@@ -43,6 +51,19 @@ public class SubscriptionService
         // get subscription type
         var subTypeObj = UserSubscriptionTypes.TypeMap[subType];
         
+        // account for upgrading from a current tier
+        var cost = subTypeObj.Price;
+
+        if (currentSub is not null)
+        {
+            // Make cost the difference
+            cost -= UserSubscriptionTypes.TypeMap[currentSub.Type].Price;
+        }
+
+        // No refunds
+        if (cost < 0)
+            cost = 0;
+        
         // check if user has enough balance for subscription
         if (userAccount.BalanceValue < subTypeObj.Price)
         {
@@ -50,9 +71,20 @@ public class SubscriptionService
         }
         
         await using var transaction = await _db.Database.BeginTransactionAsync();
+
+        // disable active subscription
+        // why don't we just change the type?
+        // because we want to keep track of the history of subscriptions
+        // and we wouldn't know the total sub value if the type is just changed
+        if (currentSub is not null)
+        {
+            currentSub.Active = false;
+        }
         
         // remove balance from user
-        userAccount.BalanceValue -= subTypeObj.Price;
+        userAccount.BalanceValue -= cost;
+
+        user.SubscriptionType = subType;
         
         // create subscription
         Valour.Database.UserSubscription newSub = new()

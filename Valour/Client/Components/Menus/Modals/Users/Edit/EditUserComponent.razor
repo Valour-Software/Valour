@@ -18,6 +18,7 @@
                 <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
                     <BigMenuSubMenuComponent Icon="info-circle-fill.svg" Name="Info"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="Person-Icon.svg" Name="Profile"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="rocket-takeoff-fill.svg" Name="Subscriptions"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="sign-stop-lights-fill.svg" Name="Permissions"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="phone-fill.svg" Name="Device Preferences"></BigMenuSubMenuComponent>
                     <BigMenuSubMenuComponent Icon="x-octagon-fill.svg" Name="Log Out"></BigMenuSubMenuComponent>
@@ -43,6 +44,10 @@
                     case "Device Preferences":
                         <EditDevicePreferencesComponent></EditDevicePreferencesComponent>
                         break;
+                    case "Subscriptions":
+                        <EditSubscriptionsComponent></EditSubscriptionsComponent>
+                        break;
+                        
                 }
                 break;
         }
