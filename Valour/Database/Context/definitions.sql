@@ -459,6 +459,7 @@ CREATE TABLE IF NOT EXISTS user_subscriptions (
   created TIMESTAMP NOT NULL,
   last_charged TIMESTAMP NOT NULL,
   active BOOLEAN NOT NULL DEFAULT true,
+  cancelled BOOLEAN NOT NULL DEFAULT false,
   renewals INT NOT NULL DEFAULT 0,
   
   CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)

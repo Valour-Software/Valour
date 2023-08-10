@@ -15,10 +15,28 @@ public class SubscriptionService
         _logger = logger;
     }
 
+    public async Task<decimal> GetSubscriptionPriceAsync(long userId, string subType)
+    {
+        var currentSub = await _db.UserSubscriptions
+            .FirstOrDefaultAsync(x => x.Active && x.UserId == userId);
+        
+        // get subscription type
+        var subTypeObj = UserSubscriptionTypes.TypeMap[subType];
+
+        if (currentSub is null)
+        {
+            return subTypeObj.Price;
+        }
+        else
+        {
+            return Math.Max(subTypeObj.Price - UserSubscriptionTypes.TypeMap[currentSub.Type].Price, 0);
+        }
+    }
+
     /// <summary>
     /// Starts a subscription with the given user and subscription type
     /// </summary>
-    public async Task<TaskResult> StartSubscription(long userId, string subType)
+    public async Task<TaskResult> StartSubscriptionAsync(long userId, string subType)
     {
         // get user
         var user = await _db.Users.FirstOrDefaultAsync(x => x.Id == userId);
@@ -31,7 +49,7 @@ public class SubscriptionService
         var currentSub = await _db.UserSubscriptions
             .FirstOrDefaultAsync(x => x.Active && x.UserId == userId);
 
-        if (currentSub is not null && currentSub.Type == subType)
+        if (currentSub is not null && currentSub.Type == subType && !currentSub.Cancelled)
         {
             return new TaskResult(false, "You already have this subscription.");
         }
@@ -76,9 +94,22 @@ public class SubscriptionService
         // why don't we just change the type?
         // because we want to keep track of the history of subscriptions
         // and we wouldn't know the total sub value if the type is just changed
+
+        bool createSub = true;
+        
         if (currentSub is not null)
         {
-            currentSub.Active = false;
+            // Un-cancel
+            if (currentSub.Type == subType)
+            {
+                currentSub.Cancelled = false;
+                createSub = false;
+            }
+            // need entirely new sub for new type
+            else
+            {
+                currentSub.Active = false;
+            }
         }
         
         // remove balance from user
@@ -87,20 +118,31 @@ public class SubscriptionService
         user.SubscriptionType = subType;
         
         // create subscription
-        Valour.Database.UserSubscription newSub = new()
-        {
-            Id = Guid.NewGuid().ToString(),
-            UserId = userId,
-            Type = subType,
-            Active = true,
-            LastCharged = DateTime.UtcNow,
-            Renewals = 0
-        };
         
+        Valour.Database.UserSubscription newSub = null;
+
+        if (createSub)
+        {
+            newSub = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = userId,
+                Type = subType,
+                Active = true,
+                LastCharged = DateTime.UtcNow,
+                Renewals = 0,
+                Created = DateTime.UtcNow,
+            };
+        }
+
         // add to database
         try
         {
-            await _db.UserSubscriptions.AddAsync(newSub);
+            if (createSub)
+            {
+                await _db.UserSubscriptions.AddAsync(newSub);
+            }
+
             await _db.SaveChangesAsync();
 
             await transaction.CommitAsync();
@@ -114,6 +156,37 @@ public class SubscriptionService
         }
         
         return TaskResult.SuccessResult;
+    }
+
+    public async Task<TaskResult> EndSubscriptionAsync(long userId)
+    {
+        var currentSub = await _db.UserSubscriptions
+            .FirstOrDefaultAsync(x => x.Active && x.UserId == userId);
+
+        if (currentSub is null)
+            return new TaskResult(false, "Could not find any active subscriptions.");
+
+        var user = await _db.Users.FindAsync(userId);
+        if (user is null)
+            return new TaskResult(false, "Could not find user.");
+        
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            currentSub.Cancelled = true;
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (System.Exception e)
+        {
+            await transaction.RollbackAsync();
+            
+            _logger.LogError(e, "Failed to remove subscription from database");
+            return new TaskResult(false, "Failed to remove subscription from database");
+        }
+
+        return new TaskResult(true, "Successfully removed subscription");
     }
 
     /// <summary>
@@ -159,7 +232,8 @@ public class SubscriptionService
             try
             {
                 // check if user has enough balance for subscription
-                if (userAccount is null || userAccount.BalanceValue < subType.Price)
+                // also disable if marked as cancelled
+                if (userAccount is null || userAccount.BalanceValue < subType.Price || sub.Cancelled)
                 {
                     // cancel subscription
                     sub.Active = false;

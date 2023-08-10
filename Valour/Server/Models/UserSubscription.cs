@@ -40,4 +40,9 @@ public class UserSubscription : ISharedUserSubscription
     /// How many times this subscription has been renewed
     /// </summary>
     public int Renewals { get; set; }
+    
+    /// <summary>
+    /// If a subscription is set to cancelled, it will not be rebilled
+    /// </summary>
+    public bool Cancelled { get; set; }
 }

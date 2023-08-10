@@ -734,6 +734,40 @@ public static class ValourClient
         await ClosePlanetConnection(planet);
     }
 
+    /// <summary>
+    /// Subscribe to Valour Plus! (...or Premium? What are we even calling it???)
+    /// </summary>
+    public static async Task<TaskResult> SubscribeAsync(string type)
+    {
+        var result = await PostAsyncWithResponse<TaskResult>($"api/subscriptions/{type}/start");
+        if (!result.Success)
+        {
+            return new TaskResult(false, result.Message);
+        }
+
+        return result.Data;
+    }
+    
+    /// <summary>
+    /// Unsubscribe (sobs quietly in the corner)
+    /// </summary>
+    public static async Task<TaskResult> UnsubscribeAsync()
+    {
+        var result = await PostAsyncWithResponse<TaskResult>($"api/subscriptions/end");
+        if (!result.Success)
+        {
+            return new TaskResult(false, result.Message);
+        }
+
+        return result.Data;
+    }
+    
+    public static async Task<decimal> GetSubscriptionPriceAsync(string type)
+    {
+        var result = await GetJsonAsync<decimal>($"api/subscriptions/{type}/price");
+        return result.Data;
+    }
+
     #endregion
 
     #region SignalR Events

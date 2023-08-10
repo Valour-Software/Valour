@@ -89,7 +89,7 @@
 
 .v-btn {
     color: var(--font-color);
-    background-color: var(--main-4);
+    background-color: #ffffff20;
     border: none;
     border-radius: 0.5em;
     font-size: 1em;
@@ -100,11 +100,11 @@
 }
 
 .v-btn:hover {
-    background-color: var(--main-5);
+    background-color: #ffffff30;
 }
 
 .v-btn:active {
-    background-color: var(--active);
+    background-color: #ffffff40;
 }
 
 /* Sections */
@@ -197,4 +197,43 @@
     to {
         transform: rotate(360deg) scale(2);
     }
+}
+
+/* Confetti CSS */
+
+.confetti {
+    position: absolute;
+    z-index: 1;
+    top: -10px;
+    border-radius: 0;
+}
+
+.confetti--animation-slow {
+    animation: confetti-slow 2.25s linear 1 forwards;
+}
+
+.confetti--animation-medium {
+    animation: confetti-medium 1.75s linear 1 forwards;
+}
+
+.confetti--animation-fast {
+    animation: confetti-fast 1.25s linear 1 forwards;
+}
+
+@keyframes confetti-slow {
+    0% { transform: translate3d(0, 0, 0) rotateX(0) rotateY(0); }
+
+    100% { transform: translate3d(25px, 105vh, 0) rotateX(360deg) rotateY(180deg); }
+}
+
+@keyframes confetti-medium {
+    0% { transform: translate3d(0, 0, 0) rotateX(0) rotateY(0); }
+
+    100% { transform: translate3d(100px, 105vh, 0) rotateX(100deg) rotateY(360deg); }
+}
+
+@keyframes confetti-fast {
+    0% { transform: translate3d(0, 0, 0) rotateX(0) rotateY(0); }
+
+    100% { transform: translate3d(-50px, 105vh, 0) rotateX(10deg) rotateY(250deg); }
 }

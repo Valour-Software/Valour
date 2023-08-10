@@ -45,6 +45,12 @@ public class UserSubscription : ISharedUserSubscription
     public bool Active { get; set; }
     
     /// <summary>
+    /// If a subscription is set to cancelled, it will not be rebilled
+    /// </summary>
+    [Column("cancelled")]
+    public bool Cancelled { get; set; }
+    
+    /// <summary>
     /// How many times this subscription has been renewed
     /// </summary>
     [Column("renewals")]

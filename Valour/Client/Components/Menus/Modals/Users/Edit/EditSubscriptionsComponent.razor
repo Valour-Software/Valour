@@ -1,5 +1,152 @@
+@inject IJSRuntime JsRuntime
+
+<h4 class="title">Subscriptions</h4>
+<h5 class="subtitle">SUPPORT VALOUR AND GET PERKS!</h5>
+
+<section class="mt-4">
+    @if (_selected is null)
+    {
+        <div class="outer-sub-card" @onclick="() => SetSelected(UserSubscriptionTypes.Stargazer)">
+            <div class="upper">
+                <img alt="Stargazer package logo" class="sub-card-img" src="_content/Valour.Client/media/subscriptions/stargazer-128.jpg"/>
+                <div class="sub-card-info">
+                    <div class="title-bar">
+                        <p class="subtitle">
+                            STARGAZER
+                        </p>
+                        <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
+                            @(ValourClient.Self.SubscriptionType == "STARGAZER" ? "You Have This!" : "400VC / mo")
+                        </p>
+                    </div>
+                    <p class="sub-card-desc">
+                        Support Valour! Base package with amazing perks and value!
+                    </p>
+                </div>
+            </div>
+            <div class="lower">
+                <p>Perks include:</p>
+                <div class="lower-split">
+                    <ul>
+                        <li>Profile gradient borders!</li>
+                        <li>Profile animations!</li>
+                        <li>Stargazer badge!</li>
+                    </ul>
+                    <ul>
+                        <li>Raised file limits!</li>
+                        <li>More coming soon!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (ValourClient.Self.SubscriptionType == _selected.Name)
+        {
+            <h6>You already have this! Congrats!</h6>
+            <button class="v-btn mt-4" @onclick="OnClickUnsubscribe">Cancel Subscription</button>
+            <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+        }
+        else
+        {
+            <h6>Subscribe to @(_selected.Name)?</h6>
+            <p>Your Valour account will be charged <span class="credits">@(_selected.Price)VC</span> per month. Based on your current subscriptions, this will charge you <span class="credits">@(_dueNow)VC initially.</span></p>
+                                                                                                
+            @if (_globalAccount.BalanceValue < _selected.Price)
+            {
+                <h6>Your balance is too low! You have <span class="credits">@(_globalAccount.BalanceValue)VC</span></h6>
+                <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+            }
+            else
+            {
+                <button class="v-btn sub-button mt-4" @onclick="() => OnClickSubscribe(_selected)">Subscribe Now</button>
+            }
+        }
+        
+        @if (!string.IsNullOrWhiteSpace(_errorSpan))
+        {
+            <span class="v-text-red mt-4">@_errorSpan</span>
+        }
+    }
+</section>
+
+<div class="page-wrapper">
+    <div class="top-confetti-container"></div>
+</div>
 
 
 @code {
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
     
+    private UserSubscriptionType _selected = null;
+    private EcoAccount _globalAccount = null;
+
+    private string _errorSpan = null;
+    private decimal _dueNow = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+    }
+
+    public async Task SetSelected(UserSubscriptionType type)
+    {
+        _selected = type;
+        _dueNow = type.Price;
+
+        _dueNow = await ValourClient.GetSubscriptionPriceAsync(type.Name);
+        
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Modals/Users/Edit/EditSubscriptionsComponent.razor.js");
+        }
+    }
+
+    private async Task OnClickSubscribe(UserSubscriptionType type)
+    {
+        _errorSpan = null;
+
+        var result = await ValourClient.SubscribeAsync(type.Name);
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+            StateHasChanged();
+            return;
+        }
+        
+        // after success
+        ValourClient.Self.SubscriptionType = type.Name;
+        await _jsModule.InvokeVoidAsync("init");
+    }
+
+    private async Task OnClickUnsubscribe()
+    {
+        _errorSpan = null;
+        
+        var result = await ValourClient.UnsubscribeAsync();
+        if (!result.Success)
+        {
+            _errorSpan = result.Message;
+            StateHasChanged();
+            return;
+        }
+
+        ValourClient.Self.SubscriptionType = null;
+        
+        StateHasChanged();
+    }
+
+    private void OnClickBack()
+    {
+        _selected = null;
+        StateHasChanged();
+    }
 }

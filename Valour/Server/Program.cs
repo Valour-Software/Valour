@@ -111,7 +111,8 @@ namespace Valour.Server
                 new DynamicAPI<EcoApi>()                      .RegisterRoutes(app),
                 new DynamicAPI<NotificationApi>()             .RegisterRoutes(app),
                 new DynamicAPI<ReportApi>()                   .RegisterRoutes(app),
-                new DynamicAPI<UserProfileApi>()              .RegisterRoutes(app)
+                new DynamicAPI<UserProfileApi>()              .RegisterRoutes(app),
+                new DynamicAPI<SubscriptionApi>()             .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI();
