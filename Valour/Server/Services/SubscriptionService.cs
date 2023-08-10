@@ -15,6 +15,11 @@ public class SubscriptionService
         _logger = logger;
     }
 
+    public async Task<UserSubscription> GetActiveSubscriptionAsync(long userId)
+    {
+        return (await _db.UserSubscriptions.FirstOrDefaultAsync(x => x.Active && x.UserId == userId)).ToModel();
+    }
+
     public async Task<decimal> GetSubscriptionPriceAsync(long userId, string subType)
     {
         var currentSub = await _db.UserSubscriptions

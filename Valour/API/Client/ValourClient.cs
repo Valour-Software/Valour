@@ -768,6 +768,12 @@ public static class ValourClient
         return result.Data;
     }
 
+    public static async Task<UserSubscription> GetActiveSubscriptionAsync()
+    {
+        var result = await GetJsonAsync<UserSubscription>($"api/subscriptions/active/{Self.Id}");
+        return result.Data;
+    }
+
     #endregion
 
     #region SignalR Events

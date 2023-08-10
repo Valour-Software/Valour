@@ -41,11 +41,21 @@
     }
     else
     {
-        @if (ValourClient.Self.SubscriptionType == _selected.Name)
+        @if (_activeSub.Type == _selected.Name)
         {
-            <h6>You already have this! Congrats!</h6>
-            <button class="v-btn mt-4" @onclick="OnClickUnsubscribe">Cancel Subscription</button>
-            <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+            if (_activeSub.Cancelled)
+            {
+                <h6>You have cancelled this subscription!</h6>
+                <p>Would you like to un-cancel it?</p>
+                <button class="v-btn sub-button mt-4" @onclick="() => OnClickSubscribe(_selected)">Subscribe Now</button>
+                <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+            }
+            else
+            {
+                <h6>You already have this! Congrats!</h6>
+                <button class="v-btn mt-4" @onclick="OnClickUnsubscribe">Cancel Subscription</button>
+                <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+            }
         }
         else
         {
@@ -83,6 +93,7 @@
     
     private UserSubscriptionType _selected = null;
     private EcoAccount _globalAccount = null;
+    private UserSubscription _activeSub = null;
 
     private string _errorSpan = null;
     private decimal _dueNow = 0;
@@ -90,6 +101,7 @@
     protected override async Task OnInitializedAsync()
     {
         _globalAccount = await EcoAccount.GetSelfGlobalAccountAsync();
+        _activeSub = await ValourClient.GetActiveSubscriptionAsync();
     }
 
     public async Task SetSelected(UserSubscriptionType type)
@@ -125,6 +137,9 @@
         // after success
         ValourClient.Self.SubscriptionType = type.Name;
         await _jsModule.InvokeVoidAsync("init");
+
+        _activeSub = await ValourClient.GetActiveSubscriptionAsync();
+        StateHasChanged();
     }
 
     private async Task OnClickUnsubscribe()

@@ -4,6 +4,18 @@ namespace Valour.Server.Api.Dynamic;
 
 public class SubscriptionApi
 {
+    [ValourRoute(HttpVerbs.Get, "api/subscriptions/active/{userId}")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> GetActiveAsync(
+        UserService userService, 
+        SubscriptionService subService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        var result = await subService.GetActiveSubscriptionAsync(userId);
+
+        return Results.Json(result);
+    }
+    
     [ValourRoute(HttpVerbs.Get, "api/subscriptions/{subType}/price")]
     [UserRequired(UserPermissionsEnum.FullControl)]
     public static async Task<IResult> GetPriceAsync(

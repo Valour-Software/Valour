@@ -15,6 +15,7 @@ public static class UserSubscriptionMapper
             Created = userSubscription.Created,
             LastCharged = userSubscription.LastCharged,
             Active = userSubscription.Active,
+            Cancelled = userSubscription.Cancelled,
             Renewals = userSubscription.Renewals
         };
     }
@@ -32,6 +33,7 @@ public static class UserSubscriptionMapper
             Created = userSubscription.Created,
             LastCharged = userSubscription.LastCharged,
             Active = userSubscription.Active,
+            Cancelled = userSubscription.Cancelled,
             Renewals = userSubscription.Renewals
         };
     }
