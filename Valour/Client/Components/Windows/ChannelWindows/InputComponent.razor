@@ -326,14 +326,41 @@
 
         var file = e.File;
 
-        if (file == null)
+        if (ValourClient.Self.SubscriptionType is null)
         {
-            Console.WriteLine("Could not load file as an image.");
+            if (file.Size > 10240000)
+            {
+                InfoModalData imodalData = 
+                    new($"File too large!",
+                        "The max upload size is 10MB. To raise this limit, consider subscribing to Plus!",
+                        "Okay",
+                        null
+                );
+                
+                ModalParameters imodParams = new();
+                imodParams.Add("Data", imodalData);
+                
+                Modal.Show<InfoModalComponent>("Info", imodParams);
+                return;
+            }
         }
-
-        if (file.Size > 10240000)
+        else
         {
-            Console.WriteLine("Max upload size is 10mb.");
+            if (file.Size > 20480000)
+            {
+                InfoModalData imodalData = 
+                    new($"File too large!",
+                        "The max upload size is 20MB for Plus members.",
+                        "Okay",
+                        null
+                        );
+                
+                ModalParameters imodParams = new();
+                imodParams.Add("Data", imodalData);
+                
+                Modal.Show<InfoModalComponent>("Info", imodParams);
+                return;
+            }
         }
 
         byte[] data = new byte[file.Size];
@@ -380,12 +407,14 @@
             FileName = file.Name,
         };
 
+        var plusRoute = ValourClient.Self.SubscriptionType == null ? "" : "/plus";
+
         ModalParameters modalParams = new();
         modalParams.Add("Data", data);
         modalParams.Add("Attachment", newAttachment);
         modalParams.Add("OnConfirm", 
             async () => {
-                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{uploadPath}", content);
+                var result = await ValourClient.PrimaryNode.PostAsyncWithResponse<string>($"upload/{uploadPath}{plusRoute}", content);
 
                 if (result.Success)
                 {
