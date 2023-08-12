@@ -205,6 +205,20 @@
     margin-right: 8px;
 }
 
+.message .dot-badge-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: -2px;
+}
+
+.message .dot-badge-holder .dot-badge {
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+    border-radius: 50%;
+}
+
 
 /* Message content styles */
 

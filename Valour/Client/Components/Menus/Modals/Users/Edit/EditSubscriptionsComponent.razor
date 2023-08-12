@@ -41,7 +41,7 @@
     }
     else
     {
-        @if (_activeSub.Type == _selected.Name)
+        @if (_activeSub is not null && _activeSub.Type == _selected.Name)
         {
             if (_activeSub.Cancelled)
             {
@@ -136,6 +136,7 @@
         
         // after success
         ValourClient.Self.SubscriptionType = type.Name;
+
         await _jsModule.InvokeVoidAsync("init");
 
         _activeSub = await ValourClient.GetActiveSubscriptionAsync();
@@ -154,7 +155,7 @@
             return;
         }
 
-        ValourClient.Self.SubscriptionType = null;
+        _activeSub.Cancelled = true;
         
         StateHasChanged();
     }

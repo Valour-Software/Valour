@@ -13,41 +13,61 @@
     <span class="v-span m-1">Bio</span>
     <textarea class="v-input" cols="3" placeholder="A little bit about me..." @bind="@_profile.Bio"></textarea>
     
-    <div class="perm-list-item">
-        <div class="perm-list-name mb-1">
-            Use gradient borders
-        </div>
-        <div type="button" style="float:right">
-            <label class="switch">
-                <input type="checkbox" @onclick="OnGradientClick" checked="@_isGradientEnabled" disabled="@_isGradientBlocked">
-                <span class="slider round"></span>
-            </label>
-        </div>
-        <div class="perm-list-desc mt-1">
-            Use three colors in a gradient as the border.
-        </div>
-    </div>
-    
-    @if (_isGradientEnabled)
+    @if (ValourClient.Self.Subscription is null)
     {
         <div class="perm-list-item">
             <div class="perm-list-name mb-1">
-                Animate gradient borders
+                Use gradient borders
             </div>
             <div type="button" style="float:right">
                 <label class="switch">
-                    <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
+                    <input type="checkbox" @onclick="OnGradientClick" disabled>
                     <span class="slider round"></span>
                 </label>
             </div>
             <div class="perm-list-desc mt-1">
-                Animate the gradient border.
+                You need a Valour Plus subscription to use this feature.
             </div>
         </div>
     }
+    else
+    {
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                Use gradient borders
+            </div>
+            <div type="button" style="float:right">
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnGradientClick" checked="@_isGradientEnabled" disabled="@_isGradientBlocked">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="perm-list-desc mt-1">
+                Use three colors in a gradient as the border.
+            </div>
+        </div>
     
-    <div>
         @if (_isGradientEnabled)
+        {
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    Animate gradient borders
+                </div>
+                <div type="button" style="float:right">
+                    <label class="switch">
+                        <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    Animate the gradient border.
+                </div>
+            </div>
+        }
+    }
+
+    <div>
+        @if (ValourClient.Self.Subscription != null && _isGradientEnabled)
         {
             <div class="d-inline-block m-1">
                 <span class="v-span">Primary color</span>

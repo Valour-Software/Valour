@@ -27,6 +27,14 @@
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor" @onclick="ShowProfileAsync">@_name</p>
+                    <div class="dot-badge-holder">
+                        @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                        {
+                            <BasicTooltipComponent Title="Stargazer" Placement="top">
+                                <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
+                            </BasicTooltipComponent>
+                        }
+                    </div>
                     @if (User.Bot)
                     {
                         <p class="user-badge bot">BOT</p>

@@ -770,7 +770,7 @@ public static class ValourClient
 
     public static async Task<UserSubscription> GetActiveSubscriptionAsync()
     {
-        var result = await GetJsonAsync<UserSubscription>($"api/subscriptions/active/{Self.Id}");
+        var result = await GetJsonAsync<UserSubscription>($"api/subscriptions/active/{Self.Id}", true);
         return result.Data;
     }
 

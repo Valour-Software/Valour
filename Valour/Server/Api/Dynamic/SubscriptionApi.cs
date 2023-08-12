@@ -12,6 +12,8 @@ public class SubscriptionApi
     {
         var userId = await userService.GetCurrentUserIdAsync();
         var result = await subService.GetActiveSubscriptionAsync(userId);
+        if (result is null)
+            return ValourResult.NotFound("No active subscription found.");
 
         return Results.Json(result);
     }

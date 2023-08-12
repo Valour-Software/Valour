@@ -155,9 +155,7 @@ public class RegisterService
             };
 
             _db.UserProfiles.Add(profile);
-
-            /* Decided to make this step explicit in order to agree to eco terms
-             
+            
             Valour.Database.Economy.EcoAccount globalAccount = new()
             {
                 Id = IdManager.Generate(),
@@ -167,7 +165,6 @@ public class RegisterService
             };
         
             _db.EcoAccounts.Add(globalAccount);
-            */
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()

@@ -46,6 +46,10 @@
 - Any terrorist content or content promoting terrorist activites are not permitted on the platform and will be reported to appropriate authorities as required by international law
 - Any violent extremist content will be regarded as terrorist content for the safety of the platform, regardless of international designation
 
+# Economy API Usage
+- You agree to the terms outlaid in the PLATFORM ECO RULES, which are found [here](https://github.com/Valour-Software/Valour/blob/main/PLATFORM_ECO_RULES.md)
+
+
 # Bots and API Usage
 
 ## API Usage

@@ -30,6 +30,15 @@
                             @name
                         </p>
                     </ContextMenuTrigger>
+                    
+                    <div class="dot-badge-holder">
+                        @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                        {
+                            <BasicTooltipComponent Title="Stargazer" Placement="top">
+                                <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
+                            </BasicTooltipComponent>
+                        }
+                    </div>
 
                     <p class="role-name">
                         &nbsp;- @nameTag
