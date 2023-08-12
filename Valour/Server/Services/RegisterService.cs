@@ -88,9 +88,18 @@ public class RegisterService
             if (referUser is null)
                 return new(false, "Referrer not found");
 
+            var month_refers = await _db.Referrals.CountAsync(x => x.Created > DateTime.UtcNow.AddDays(-30) && x.ReferrerId == referUser.Id);
+            
+            // Calculate referral reward
+            // reward is halved every 5 referrals in the month
+            // to prevent a streamer from wrecking the economy
+            var reward = 50.0m / (1 + (month_refers / 5));
+            
             refer = new Referral()
             {
-                ReferrerId = referUser.Id
+                ReferrerId = referUser.Id,
+                Created = DateTime.UtcNow,
+                Reward = reward,
             };
         }
 
@@ -120,6 +129,11 @@ public class RegisterService
             {
                 refer.UserId = user.Id;
                 await _db.Referrals.AddAsync(refer.ToDatabase());
+                
+                var referAccount = await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == refer.ReferrerId && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User);
+                referAccount.BalanceValue += refer.Reward;
+
+                _db.EcoAccounts.Update(referAccount);
             }
 
             UserPrivateInfo userPrivateInfo = new()
@@ -145,18 +159,29 @@ public class RegisterService
 
             _db.Credentials.Add(cred);
 
-            /* Decided to make this step explicit in order to agree to eco terms
-             
+            Valour.Database.UserProfile profile = new()
+            {
+                Id = user.Id,
+                Headline = "New to Valour!",
+                Bio = "I'm new to Valour. Please show me around!",
+                BorderColor = "#fff",
+                AnimatedBorder = false,
+            };
+
+            _db.UserProfiles.Add(profile);
+            
             Valour.Database.Economy.EcoAccount globalAccount = new()
             {
                 Id = IdManager.Generate(),
                 UserId = user.Id,
                 CurrencyId = ISharedCurrency.ValourCreditsId,
                 PlanetId = ISharedPlanet.ValourCentralId,
+                AccountType = AccountType.User,
+                BalanceValue = 0,
+                Name = "User Global Account"
             };
         
             _db.EcoAccounts.Add(globalAccount);
-            */
 
             var emailCode = Guid.NewGuid().ToString();
             EmailConfirmCode confirmCode = new()

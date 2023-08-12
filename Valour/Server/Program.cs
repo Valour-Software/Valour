@@ -111,6 +111,8 @@ namespace Valour.Server
                 new DynamicAPI<EcoApi>()                      .RegisterRoutes(app),
                 new DynamicAPI<NotificationApi>()             .RegisterRoutes(app),
                 new DynamicAPI<ReportApi>()                   .RegisterRoutes(app),
+                new DynamicAPI<UserProfileApi>()              .RegisterRoutes(app),
+                new DynamicAPI<SubscriptionApi>()             .RegisterRoutes(app),
             };
 
             NodeAPI = new NodeAPI();
@@ -311,13 +313,15 @@ namespace Valour.Server
             services.AddScoped<NotificationService>();
             services.AddScoped<ReportService>();
             services.AddScoped<RegisterService>();
-            
+            services.AddScoped<SubscriptionService>();
+
             services.AddSingleton<NodeService>();
 
             services.AddHostedService<PlanetMessageWorker>();
             services.AddHostedService<StatWorker>();
             services.AddHostedService<ChannelWatchingWorker>();
             services.AddHostedService<NodeStateWorker>();
+            services.AddHostedService<SubscriptionWorker>();
 
             services.AddEndpointsApiExplorer();
 

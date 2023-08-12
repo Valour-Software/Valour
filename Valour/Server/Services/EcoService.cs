@@ -267,7 +267,7 @@ public class EcoService
 
         if (string.IsNullOrWhiteSpace(account.Name))
         {
-            account.Name = Guid.NewGuid().ToString().Substring(0, 19);
+            account.Name = account.Id.ToString();
         }
         
         if (account.Name.Length > 20)

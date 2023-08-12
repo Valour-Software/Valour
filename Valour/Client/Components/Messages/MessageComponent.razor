@@ -26,10 +26,19 @@
             {
                 <div class="name-role-holder">
                     <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" MenuId="@ContextMenuId" @onpointerdown='InitializeContextMenu' style='display:inline'>
-                        <p class="author-name" style="color: @nameColor;">
+                        <p @onclick="OnClickName" class="author-name" style="color: @nameColor;">
                             @name
                         </p>
                     </ContextMenuTrigger>
+                    
+                    <div class="dot-badge-holder">
+                        @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                        {
+                            <BasicTooltipComponent Title="Stargazer" Placement="top">
+                                <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
+                            </BasicTooltipComponent>
+                        }
+                    </div>
 
                     <p class="role-name">
                         &nbsp;- @nameTag
@@ -231,6 +240,11 @@
     {
 
     }
+
+     public virtual async Task OnClickName(MouseEventArgs e)
+     {
+         await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+     }
     
     private async Task OnEditReceived(ModelUpdateEvent eventData)
     {

@@ -9,7 +9,6 @@
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor">Not Found</p>
-                    <p class="tag">#????</p>
                 </div>
                 <p class="status">
                     -------------
@@ -27,8 +26,15 @@
             <img alt="@_name's profile picture" class="pfp" src="@_pfpUrl" @onerror="OnPfpError">
             <div class="name-status">
                 <div class="name-tag">
-                    <p class="username" style="color: @_roleColor">@_name</p>
-                    <p class="tag">#@_userTag</p>
+                    <p class="username" style="color: @_roleColor" @onclick="ShowProfileAsync">@_name</p>
+                    <div class="dot-badge-holder">
+                        @if (User.SubscriptionType == UserSubscriptionTypes.Stargazer.Name)
+                        {
+                            <BasicTooltipComponent Title="Stargazer" Placement="top">
+                                <img title="Stargazer" alt="Stargazer badge" class="dot-badge" src="_content/Valour.Client/media/stargazer-badge.svg"/>
+                            </BasicTooltipComponent>
+                        }
+                    </div>
                     @if (User.Bot)
                     {
                         <p class="user-badge bot">BOT</p>
@@ -61,7 +67,7 @@
     
     [Parameter]
     public string Style { get; set; }
-    
+
     // The type, either "user" or "member"
     private string _type = "user";
     private string _contextMenu = "user-context";
@@ -263,5 +269,15 @@
     {
         _pfpUrl = DefaultPfp;
         StateHasChanged();
+    }
+    
+    private async Task ShowProfileAsync(MouseEventArgs e)
+    {
+        if (Member is not null){
+            await ProfilePopup.Instance.OpenAsync(Member, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        }
+        else{
+            await ProfilePopup.Instance.OpenAsync(User, (int)e.ClientX, (int)e.ClientY, "bottomRight");
+        }
     }
 }

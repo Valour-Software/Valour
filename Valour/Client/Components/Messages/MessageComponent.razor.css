@@ -128,13 +128,17 @@
 
 .message .author-name {
     display: inline-block;
-    font-family: Ubuntu;
+    font-family: Ubuntu, sans-serif;
     font-style: normal;
     font-size: 16px;
     line-height: 25px;
-    margin: 0px;
-    margin-top: 0px;
+    margin: 0;
     vertical-align: top;
+    cursor: pointer;
+}
+
+.message .author-name:hover {
+    text-decoration: underline;
 }
 
 .message .role-name {
@@ -199,6 +203,20 @@
     height: 30px;
     margin-left: 8px;
     margin-right: 8px;
+}
+
+.message .dot-badge-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: -2px;
+}
+
+.message .dot-badge-holder .dot-badge {
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+    border-radius: 50%;
 }
 
 

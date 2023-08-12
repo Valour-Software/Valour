@@ -91,5 +91,12 @@ public class User : Item, ISharedUser
     /// </summary>
     [Column("compliance")]
     public bool Compliance { get; set; }
+    
+    /// <summary>
+    /// If not null, the type of UserSubscription the user currently
+    /// is subscribed to
+    /// </summary>
+    [Column("subscription_type")]
+    public string SubscriptionType { get; set; }
 }
 

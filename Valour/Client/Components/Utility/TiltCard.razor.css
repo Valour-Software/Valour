@@ -1,0 +1,27 @@
+.tilt-card {
+    position: relative;
+    transition-duration: 300ms;
+    transition-property: transform, box-shadow, margin;
+    transition-timing-function: ease-out;
+    transform: rotate3d(0, 0, 0, 0);
+    box-shadow: 0 0 4px #00000099;
+}
+
+.tilt-card:hover {
+    transition-duration: 150ms;
+    box-shadow: 0 0 8px #00000044;
+}
+
+.tilt-card .shine {
+    opacity: 0;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+}
+
+.tilt-card:hover .shine {
+    opacity: 1;
+    pointer-events: none;
+}

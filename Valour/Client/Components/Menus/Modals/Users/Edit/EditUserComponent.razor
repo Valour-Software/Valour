@@ -16,10 +16,12 @@
 
             <div class="menu">
                 <BigMenuTopLevelMenuComponent Icon="Settings-Icon.svg" Name="General Settings">
-                    <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Info"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Permissions"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Icon="Settings-Icon.svg" Name="Device Preferences"></BigMenuSubMenuComponent>
-                    <BigMenuSubMenuComponent Name="Log Out" Color="EF3A3A"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="info-circle-fill.svg" Name="Info"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="Person-Icon.svg" Name="Profile"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="rocket-takeoff-fill.svg" Name="Subscriptions"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="sign-stop-lights-fill.svg" Name="Permissions"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="phone-fill.svg" Name="Device Preferences"></BigMenuSubMenuComponent>
+                    <BigMenuSubMenuComponent Icon="x-octagon-fill.svg" Name="Log Out"></BigMenuSubMenuComponent>
                 </BigMenuTopLevelMenuComponent>
             </div>
         </section>
@@ -33,12 +35,22 @@
                     case "Info":
                         <EditUserInfoComponent User="User"></EditUserInfoComponent>
                         break;
+                    case "Profile":
+                        <EditProfileComponent></EditProfileComponent>
+                        break;
                     case "Permissions":
                         <EditUserNotificationsComponent></EditUserNotificationsComponent>
                         break;
                     case "Device Preferences":
                         <EditDevicePreferencesComponent></EditDevicePreferencesComponent>
                         break;
+                    case "Subscriptions":
+                        <EditSubscriptionsComponent></EditSubscriptionsComponent>
+                        break;
+                    case "Log Out":
+                        LogOut();
+                        break;
+                        
                 }
                 break;
         }

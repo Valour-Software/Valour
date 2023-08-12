@@ -90,6 +90,19 @@ public class User : LiveModel, ISharedUser
     /// </summary>
     public bool Compliance { get; set; }
     
+    /// <summary>
+    /// If not null, the type of UserSubscription the user currently
+    /// is subscribed to
+    /// </summary>
+    public string SubscriptionType { get; set; }
+    
+    /// <summary>
+    /// The subscription the user currently has
+    /// </summary>
+    [JsonIgnore]
+    public UserSubscriptionType Subscription =>
+        ISharedUser.GetSubscription(this);
+    
     [JsonIgnore]
     public string NameAndTag => $"{Name}#{Tag}";
 
@@ -123,6 +136,9 @@ public class User : LiveModel, ISharedUser
 
         return item;
     }
+    
+    public async Task<TaskResult<UserProfile>> GetProfileAsync() =>
+        await ValourClient.PrimaryNode.GetJsonAsync<UserProfile>($"api/userProfiles/{Id}");
 
     public async Task<TaskResult<List<User>>> GetFriendsAsync()
         => await ValourClient.PrimaryNode.GetJsonAsync<List<User>>($"api/users/{Id}/friends");
