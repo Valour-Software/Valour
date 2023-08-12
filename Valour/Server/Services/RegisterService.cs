@@ -88,9 +88,18 @@ public class RegisterService
             if (referUser is null)
                 return new(false, "Referrer not found");
 
+            var month_refers = await _db.Referrals.CountAsync(x => x.Created > DateTime.UtcNow.AddDays(-30) && x.ReferrerId == referUser.Id);
+            
+            // Calculate referral reward
+            // reward is halved every 5 referrals in the month
+            // to prevent a streamer from wrecking the economy
+            var reward = 50.0m / (1 + (month_refers / 5));
+            
             refer = new Referral()
             {
-                ReferrerId = referUser.Id
+                ReferrerId = referUser.Id,
+                Created = DateTime.UtcNow,
+                Reward = reward,
             };
         }
 
@@ -120,6 +129,11 @@ public class RegisterService
             {
                 refer.UserId = user.Id;
                 await _db.Referrals.AddAsync(refer.ToDatabase());
+                
+                var referAccount = await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == refer.ReferrerId && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User);
+                referAccount.BalanceValue += refer.Reward;
+
+                _db.EcoAccounts.Update(referAccount);
             }
 
             UserPrivateInfo userPrivateInfo = new()

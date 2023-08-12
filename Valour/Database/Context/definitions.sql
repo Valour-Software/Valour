@@ -329,6 +329,8 @@ CREATE TABLE IF NOT EXISTS permissions_nodes (
 CREATE TABLE IF NOT EXISTS referrals (
     user_id BIGINT NOT NULL PRIMARY KEY,
     referrer_id BIGINT NOT NULL,
+    created, TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    reward DECIMAL NOT NULL DEFAULT 0,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
     CONSTRAINT fk_referrer FOREIGN KEY(referrer_id) REFERENCES users(id)
