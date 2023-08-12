@@ -176,6 +176,9 @@ public class RegisterService
                 UserId = user.Id,
                 CurrencyId = ISharedCurrency.ValourCreditsId,
                 PlanetId = ISharedPlanet.ValourCentralId,
+                AccountType = AccountType.User,
+                BalanceValue = 0,
+                Name = "User Global Account"
             };
         
             _db.EcoAccounts.Add(globalAccount);
