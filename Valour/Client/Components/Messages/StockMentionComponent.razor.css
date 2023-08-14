@@ -1,0 +1,9 @@
+.stock-mention {
+    color: var(--v-purple);
+    font-weight: 800;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.stock-chart {
+}

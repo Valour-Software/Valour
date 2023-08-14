@@ -14,7 +14,8 @@ public enum MentionType
     Channel,
     Category,
     Role,
-    User
+    User,
+    Stock
 }
 
 /// <summary>
@@ -49,5 +50,11 @@ public class Mention
     /// </summary>
     [JsonPropertyName("Length")]
     public ushort Length { get; set; }
+    
+    /// <summary>
+    /// Additional data used for some mentions
+    /// </summary>
+    [JsonPropertyName("Data")]
+    public string Data { get; set; }
 }
 

@@ -2,7 +2,7 @@
 @implements IAsyncDisposable
 
 <div class="sidebar-container @ActiveClass @FlipClass">
-	<div class="sidebar-menu">
+	<div id="@_id" class="sidebar-menu">
 		<SidebarOpenTab OnClicked="OnOpenTabClicked" Open="@_active" Flip="Flip"></SidebarOpenTab>
 		<div class="sidebar-2" id="sidebar2">
 			<div class="sidebar-content">
@@ -55,6 +55,8 @@
 	private bool _active = !DeviceInfo.IsMobile;
 	
 	private string ActiveClass => _active ? "sidebar-active" : "";
+
+	private string _id = "sidebar-" + Guid.NewGuid();
 	
 	/// <summary>
 	/// Dotnet object reference for use in Javascript
@@ -94,7 +96,7 @@
 		{
 			_thisRef = DotNetObjectReference.Create(this);
 			_jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Sidebar/Sidebar.razor.js");
-			await _jsModule.InvokeVoidAsync("init", _thisRef);
+			await _jsModule.InvokeVoidAsync("init", _thisRef, _id);
 		}
 	}
 

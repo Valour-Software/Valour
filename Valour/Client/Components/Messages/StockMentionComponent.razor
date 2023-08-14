@@ -1,0 +1,35 @@
+@inject IJSRuntime JsRuntime
+
+<div class="stock-mention" @onclick="OnClick">
+    $@Mention.Data
+</div>
+<div class="stock-chart" id="@_id" style="@(_open ? "" : "display: none" )">
+        
+</div>
+
+@code {
+    [Parameter]
+    public Mention Mention { get; set; }
+    
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+
+    private string _id = "chart-" + Guid.NewGuid().ToString();
+    
+    private bool _open = false;
+    private bool _initChart = false;
+    
+    private async Task OnClick()
+    {
+        _open = !_open;
+
+        if (_open && !_initChart)
+        {
+            _initChart = true;
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Messages/StockMentionComponent.razor.js");
+            await _jsModule.InvokeVoidAsync("setupChart", _id, Mention.Data);
+        }
+    }
+}

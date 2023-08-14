@@ -150,20 +150,21 @@ public class ClientMessageWrapper
     {
         Message.ClearMentions();
 
-        int pos = 0;
+        var pos = 0;
 
-        string text = MarkdownContent;
+        var text = MarkdownContent;
 
-        PlanetMessage planetMessage = Message as PlanetMessage;
-        DirectMessage directMessage = Message as DirectMessage;
+        var planetMessage = Message as PlanetMessage;
+        var directMessage = Message as DirectMessage;
 
         while (pos < text.Length)
         {
             if (text[pos] == '«')
             {
-                int s_len = text.Length - pos;
+                var remainingLength = text.Length - pos;
+                
                 // Must be at least this long ( «@x-x» )
-                if (s_len < 6)
+                if (remainingLength < 6)
                 {
                     pos++;
                     continue;
@@ -179,7 +180,7 @@ public class ClientMessageWrapper
                         char c = ' ';
                         int offset = 4;
                         string id_chars = "";
-                        while (offset < s_len &&
+                        while (offset < remainingLength &&
                                (c = text[pos + offset]).IsDigit())
                         {
                             id_chars += c;
@@ -220,7 +221,7 @@ public class ClientMessageWrapper
                         char c = ' ';
                         int offset = 4;
                         string id_chars = "";
-                        while (offset < s_len &&
+                        while (offset < remainingLength &&
                                (c = text[pos + offset]).IsDigit())
                         {
                             id_chars += c;
@@ -262,7 +263,7 @@ public class ClientMessageWrapper
                         char c = ' ';
                         int offset = 4;
                         string id_chars = "";
-                        while (offset < s_len &&
+                        while (offset < remainingLength &&
                                (c = text[pos + offset]).IsDigit())
                         {
                             id_chars += c;
@@ -313,7 +314,7 @@ public class ClientMessageWrapper
                         char c = ' ';
                         int offset = 4;
                         string id_chars = "";
-                        while (offset < s_len &&
+                        while (offset < remainingLength &&
                                (c = text[pos + offset]).IsDigit())
                         {
                             id_chars += c;
@@ -361,6 +362,44 @@ public class ClientMessageWrapper
                     pos++;
                     continue;
                 }
+            }
+            // Stock ticker handler
+            else if (text[pos] == '$')
+            {
+                var remainingLength = text.Length - pos;
+                if (remainingLength == 0 || !char.IsLetter(text[pos + 1])
+                    )
+                {
+                    pos++;
+                    continue;
+                }
+
+                string ticker = "";
+
+                var i = 1;
+                
+                // Extract ticker
+                // Ensure that character is a letter
+                while (i < remainingLength && char.IsLetter(text[pos + i]))
+                {
+                    ticker += text[pos + i];
+                    i++;
+
+                    if (i > 6)
+                    {
+                        break;
+                    }
+                }
+                
+                var stock = new Mention()
+                {
+                    Type = MentionType.Stock,
+                    Data = ticker,
+                    Position = (ushort)pos,
+                    Length = (ushort)(2 + ticker.Length)
+                };
+                    
+                Message.Mentions.Add(stock);
             }
 
             pos++;
@@ -530,6 +569,16 @@ public class ClientMessageWrapper
                     case MentionType.Role:
                     {
                         fragment = new RoleMentionFragment()
+                        {
+                            Mention = mention,
+                            Position = mention.Position,
+                            Length = mention.Length
+                        };
+                        break;
+                    }
+                    case MentionType.Stock:
+                    {
+                        fragment = new StockMentionFragment()
                         {
                             Mention = mention,
                             Position = mention.Position,

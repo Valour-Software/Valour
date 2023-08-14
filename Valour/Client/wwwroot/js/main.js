@@ -78,8 +78,6 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
     visibilityChange = "webkitvisibilitychange";
 }
 
-var videoElement = document.getElementById("videoElement");
-
 // Visbility change handler
 if (document.addEventListener) {
     document.addEventListener("visibilitychange", function () {
