@@ -28,5 +28,11 @@ public class Referral : ISharedReferral
 
     [Column("referrer_id")]
     public long ReferrerId { get; set; }
+    
+    [Column("created")]
+    public DateTime Created { get; set; }
+    
+    [Column("reward")]
+    public decimal Reward { get; set; }
 }
 

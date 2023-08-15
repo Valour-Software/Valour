@@ -1,0 +1,47 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
+
+<div id="@_id" class="tilt-card" style="@CssStyle">
+  @ChildContent
+  <div class="shine" style="@ShineCssStyle"></div>
+</div>
+
+@code {
+  
+  [Parameter]
+  public RenderFragment ChildContent { get; set; }
+
+  [Parameter]
+  public string HoverMargin { get; set; } = "0px";
+
+  [Parameter]
+  public string CssStyle { get; set; }
+  
+  [Parameter]
+  public string ShineCssStyle { get; set; }
+  
+  /// <summary>
+  /// The ID of the element
+  /// </summary>
+  private readonly string _id = Guid.NewGuid().ToString();
+  
+  /// <summary>
+  /// Module for calling Javascript functions
+  /// </summary>
+  private IJSInProcessObjectReference _jsModule;
+  
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/TiltCard.razor.js");
+      await _jsModule.InvokeVoidAsync("init", _id, HoverMargin);
+    }
+  }
+  
+  async ValueTask IAsyncDisposable.DisposeAsync()
+  {
+    if (_jsModule is not null)
+      await _jsModule.DisposeAsync();
+  }
+}

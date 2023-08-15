@@ -32,6 +32,11 @@
         await InnerMemberContextMenuComponent.Initialize(_author, Window);
     }
 
+    public override async Task OnClickName(MouseEventArgs e)
+    {
+        await ProfilePopup.Instance.OpenAsync(_author, (int)e.ClientX, (int)e.ClientY, "bottomLeft");
+    }
+
     public async Task OnAuthorRoleChange(MemberRoleEvent roleEvent)
     {
         await UpdateForRoleChange();

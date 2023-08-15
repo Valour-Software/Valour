@@ -1,6 +1,6 @@
 ﻿@inherits AttachmentComponent
 
-<div class="image-attachment-wrapper" style="aspect-ratio: @_width / @_height; @(_widthLarger ? $"width: {_width}px" : $"height: {_height}px")">
+<div class="image-attachment-wrapper" style="aspect-ratio: @_width / @_height; width: @(_width)px">
     @if (Clickable)
     {
         <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location" @onclick="OnClick" />

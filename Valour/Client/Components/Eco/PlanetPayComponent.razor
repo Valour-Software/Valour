@@ -101,7 +101,7 @@ else
                 {
                     foreach (var searchResult in _otherSearchResults)
                     {
-                        <div class="account-select" @onmousedown:stopPropagation="true" @onclick="() => OnSelectRecipient(searchResult.Data.Account)">
+                        <div @key="@searchResult.Data.Account.Id" class="account-select" @onmousedown:stopPropagation="true" @onclick="() => OnSelectRecipient(searchResult.Data.Account)">
                             @if (searchResult.Data.Account.AccountType == AccountType.User)
                             {
                                 <UserInfoComponent User="@searchResult.User"/>

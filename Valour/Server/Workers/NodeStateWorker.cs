@@ -1,4 +1,7 @@
 ﻿using StackExchange.Redis;
+using Valour.Server.Database;
+using Valour.Shared.Models;
+using Valour.Shared.Models.Economy;
 
 namespace Valour.Server.Workers;
 
@@ -27,7 +30,9 @@ public class NodeStateWorker : IHostedService, IDisposable
     {
         using var scope = _serviceProvider.CreateScope();
         _longNodeService = scope.ServiceProvider.GetRequiredService<NodeService>();
-        
+
+        //var db = scope.ServiceProvider.GetRequiredService<ValourDB>();
+
         await _longNodeService.AnnounceNode();
         
         _timer = new Timer(UpdateNodeState, null, TimeSpan.Zero,

@@ -28,7 +28,7 @@ public class UserApi
         var user = await userService.GetAsync(id);
         return user is null ? ValourResult.NotFound<User>() : Results.Json(user);
     }
-    
+
     [ValourRoute(HttpVerbs.Get, "api/users/byName/{name}")]
     public static async Task<IResult> GetUserByNameRouteAsync(
         string name, 

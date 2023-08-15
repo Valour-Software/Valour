@@ -417,3 +417,37 @@ const EU_TIMEZONES = [
 function isEuropeanUnion(){
     return EU_TIMEZONES.includes(dayjs.tz.guess());
 }
+
+function positionRelativeTo(id, x, y, corner) {
+    const element = document.getElementById(id);
+    if (!element)
+        return;
+    
+    const viewRect = element.getBoundingClientRect();
+    const width = viewRect.width;
+    const height = viewRect.height;
+    
+    if (corner === "bottomLeft") {
+        element.style.top = `${y - height}px`;
+        element.style.left = `${x}px`;
+    }
+    else if (corner === "bottomRight") {
+        element.style.top = `${y - height}px`;
+        element.style.left = `${x - width}px`;
+    }
+    
+    // Prevent escaping screen
+    const rect = element.getBoundingClientRect();
+    if (rect.left < 16) {
+        element.style.left = `16px`;
+    }
+    if (rect.top < 16) {
+        element.style.top = `16px`;
+    }
+    if (rect.right > window.innerWidth - 16) {
+        element.style.left = `${window.innerWidth - width - 16}px`;
+    }
+    if (rect.bottom > window.innerHeight - 16) {
+        element.style.top = `${window.innerHeight - height - 16}px`;
+    }
+}

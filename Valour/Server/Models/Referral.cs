@@ -13,4 +13,14 @@ public class Referral : ISharedReferral
     /// The id of the user that made the referral
     /// </summary>
     public long ReferrerId { get; set; }
+    
+    /// <summary>
+    /// The time and date that the referral was made
+    /// </summary>
+    public DateTime Created { get; set; }
+    
+    /// <summary>
+    /// The reward given to the referrer for making the referral
+    /// </summary>
+    public decimal Reward { get; set; }
 }
