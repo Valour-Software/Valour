@@ -1,9 +1,37 @@
 .stock-mention {
-    color: var(--v-purple);
+    display: flex;
+    gap: 4px;
+    color: #6ed25a;
     font-weight: 800;
-    display: inline-block;
     cursor: pointer;
+    margin-bottom: 2px;
 }
 
 .stock-chart {
+}
+
+.tradingview-widget-container {
+    max-width: 300px;
+}
+
+.tradingview-widget-container a {
+    font-size: unset !important;
+}
+
+.stock-buttons {
+    display: flex;
+}
+
+.stock-buttons .v-btn {
+    padding: 0.2em;
+    line-height: 0;
+    display: inline-block;
+}
+
+.stock-buttons .v-btn.btn-left {
+    border-radius: 4px 0 0 4px;
+}
+
+.stock-buttons .v-btn.btn-right {
+    border-radius: 0 4px 4px 0;
 }

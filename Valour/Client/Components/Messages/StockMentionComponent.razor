@@ -1,9 +1,26 @@
 @inject IJSRuntime JsRuntime
 
-<div class="stock-mention" @onclick="OnClick">
+<div class="stock-mention">
     $@Mention.Data
+    
+    <div class="stock-buttons">
+        <button class="v-btn btn-left" @onclick="OnClickClose">
+            <i class="bi bi-card-heading" style="@(_open ? "" : "color: #6ed25a;")"></i>
+        </button>
+        <button class="v-btn btn-right" @onclick="OnClickOpen">
+            <i class="bi bi-bar-chart-line-fill" style="@(_open ? "color: #6ed25a;" : "")"></i>
+        </button>
+    </div>
 </div>
-<div class="stock-chart" id="@_id" style="@(_open ? "" : "display: none" )">
+
+<!-- TradingView Widget BEGIN -->
+<div @key="@Mention.Data" id="@_summaryId" class="tradingview-widget-container" style="@(_open ? "display: none" : "")">
+    <div class="tradingview-widget-container__widget"></div>
+    <div class="tradingview-widget-copyright"><a class="nohide" href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank"><span class="blue-text">Track all markets on TradingView</span></a></div>
+</div>
+<!-- TradingView Widget END -->
+
+<div class="stock-chart" id="@_chartId" style="@(_open ? "" : "display: none" )">
         
 </div>
 
@@ -16,20 +33,54 @@
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
 
-    private string _id = "chart-" + Guid.NewGuid().ToString();
+    private string _summaryId = "summary-" + Guid.NewGuid().ToString();
+    private string _chartId = "chart-" + Guid.NewGuid().ToString();
     
     private bool _open = false;
     private bool _initChart = false;
-    
-    private async Task OnClick()
+
+    private string _lastTicker;
+
+    protected override void OnInitialized()
     {
-        _open = !_open;
+        _lastTicker = Mention.Data;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Messages/StockMentionComponent.razor.js");
+            await _jsModule.InvokeVoidAsync("setupSummary", _summaryId, Mention.Data);
+        }
+        else
+        {
+            if (Mention.Data != _lastTicker)
+            {
+                _lastTicker = Mention.Data;
+                await _jsModule.InvokeVoidAsync("setupSummary", _summaryId, Mention.Data);
+            }
+        }
+    }
+
+    private async Task OnClickOpen()
+    {
+        await OnClick(true);
+    }
+    
+    private async Task OnClickClose()
+    {
+        await OnClick(false);
+    }
+
+    private async Task OnClick(bool value)
+    {
+        _open = value;
 
         if (_open && !_initChart)
         {
             _initChart = true;
-            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Messages/StockMentionComponent.razor.js");
-            await _jsModule.InvokeVoidAsync("setupChart", _id, Mention.Data);
+            await _jsModule.InvokeVoidAsync("setupChart", _chartId, Mention.Data);
         }
     }
 }

@@ -16,3 +16,20 @@ export function setupChart(id, ticker) {
         }
     );
 }
+
+export function setupSummary(id, ticker) {
+    const script = document.createElement('script');
+    script.attributes['async'] = true
+    script.src = `https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js`
+    script.innerHTML = `
+        {
+          "symbol": "${ticker}",
+          "width": "100%",
+          "colorTheme": "dark",
+          "isTransparent": false,
+          "locale": "en"
+        }
+    `;
+    
+    document.getElementById(id).appendChild(script);
+}
