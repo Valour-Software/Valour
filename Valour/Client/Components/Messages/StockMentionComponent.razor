@@ -1,0 +1,139 @@
+@inject IJSRuntime JsRuntime
+
+<div class="stock-mention" style="@(_state == "closed" ? "display: inline-block;" : "")">
+    $@Mention.Data
+    
+    <div class="stock-buttons">
+        <button class="v-btn btn-left" @onclick="OnClickClose">
+            <i class="bi bi-card-heading" style="@(_state == "card" ? "color: #6ed25a;" : "")"></i>
+        </button>
+        <button class="v-btn btn-right" @onclick="OnClickOpen">
+            <i class="bi bi-bar-chart-line-fill" style="@(_state == "chart" ? "color: #6ed25a;" : "")"></i>
+        </button>
+    </div>
+</div>
+
+@if (_state != "closed")
+{
+    <!-- TradingView Widget BEGIN -->
+    <div @key="@Mention.Data" id="@_summaryId" class="tradingview-widget-container" style="@(_state == "chart" ? "display: none" : "")">
+        <div class="tradingview-widget-container__widget"></div>
+        <div class="tradingview-widget-copyright">
+            <a class="nohide" href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
+                <span class="blue-text">Track all markets on TradingView</span>
+            </a>
+        </div>
+    </div>
+    <!-- TradingView Widget END -->
+
+    <div class="stock-chart" id="@_chartId" style="@(_state == "chart" ? "" : "display: none")">
+
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Mention Mention { get; set; }
+    
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+
+    private string _summaryId = "summary-" + Guid.NewGuid().ToString();
+    private string _chartId = "chart-" + Guid.NewGuid().ToString();
+
+    private string _state = "closed";
+
+    private bool _initChart;
+    private bool _initCard;
+
+    private bool _doLoadCard;
+    private bool _doLoadChart;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Messages/StockMentionComponent.razor.js");
+        }
+        else
+        {
+            if (_doLoadCard)
+            {
+                await LoadCard();
+            }
+            else if (_doLoadChart)
+            {
+                await LoadChart();
+            }
+        }
+    }
+
+    private async Task OnClickOpen()
+    {
+        await OnClick(true);
+    }
+    
+    private async Task OnClickClose()
+    {
+        await OnClick(false);
+    }
+
+    private async Task LoadCard()
+    {
+        if (_initCard)
+            return;
+        
+        _initCard = true;
+        await _jsModule.InvokeVoidAsync("setupSummary", _summaryId, Mention.Data);
+    }
+
+    private async Task LoadChart()
+    {
+        if (_initChart)
+            return;
+        
+        _initChart = true;
+        await _jsModule.InvokeVoidAsync("setupChart", _chartId, Mention.Data);
+    }
+
+    private async Task OnClick(bool value)
+    {
+        if (_state == "closed")
+        {
+            if (value)
+            {
+                _state = "chart";
+                _doLoadChart = true;
+                StateHasChanged();
+                return;
+            }
+            else
+            {
+                _state = "card";
+                _doLoadCard = true;
+                StateHasChanged();
+                return;
+            }
+        }
+        
+        if (value)
+        {
+            _state = "chart";
+        }
+        else
+        {
+            _state = "card";
+        }
+
+        if (_state == "chart" && !_initChart)
+        {
+            await LoadChart();
+        }
+        else if (_state == "card" && !_initCard)
+        {
+            await LoadCard();
+        }
+    }
+}

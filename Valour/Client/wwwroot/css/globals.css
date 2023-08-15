@@ -89,7 +89,7 @@
 
 .v-btn {
     color: var(--font-color);
-    background-color: #ffffff20;
+    background-color: #ffffff22;
     border: none;
     border-radius: 0.5em;
     font-size: 1em;
@@ -100,11 +100,11 @@
 }
 
 .v-btn:hover {
-    background-color: #ffffff30;
+    background-color: #ffffff33;
 }
 
 .v-btn:active {
-    background-color: #ffffff40;
+    background-color: #ffffff44;
 }
 
 /* Sections */
