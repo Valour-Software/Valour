@@ -119,12 +119,14 @@
                             @for (int i = 0; i < UserAccounts.Count; i++)
                             {
                                 var account = UserAccounts[i];
-                                var member = UserAccountMembers[i];
-                                
-                                <tr>
-                                    <td><UserInfoComponent Member="@member" /></td>
-                                    <td>@Currency.Format(account.BalanceValue)</td>
-                                </tr>
+
+                                if (UserAccountMembers.TryGetValue(account.Id, out var member))
+                                {
+                                    <tr>
+                                        <td><UserInfoComponent Member="@member" /></td>
+                                        <td>@Currency.Format(account.BalanceValue)</td>
+                                    </tr>
+                                }
                             }
                         </tbody>
                     </table>
@@ -155,7 +157,7 @@
     public List<EcoAccount> PlanetAccounts { get; set; }
     public List<EcoAccount> UserAccounts { get; set; }
     
-    public List<PlanetMember> UserAccountMembers { get; set; }
+    public Dictionary<long, PlanetMember> UserAccountMembers { get; set; }
 
     private bool _hasCurrencyPermission = false;
     
@@ -185,11 +187,15 @@
 
             if (UserAccounts is not null && UserAccounts.Count > 0)
             {
-                UserAccountMembers = new List<PlanetMember>();
+                UserAccountMembers = new();
                 
                 foreach (var account in UserAccounts)
                 {
-                    UserAccountMembers.Add(await PlanetMember.FindAsyncByUser(account.UserId, account.PlanetId));
+                    var member = await PlanetMember.FindAsyncByUser(account.UserId, account.PlanetId);
+                    if (member is not null)
+                    {
+                        UserAccountMembers.Add(account.Id, member);
+                    }
                 }
             }
         }

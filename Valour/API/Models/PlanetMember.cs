@@ -103,7 +103,7 @@ public class PlanetMember : LiveModel, IPlanetModel, ISharedPlanetMember
         }
 
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/byuser/{planetId}/{userId}")).Data;
+        var member = (await node.GetJsonAsync<PlanetMember>($"api/members/byuser/{planetId}/{userId}", true)).Data;
 
         if (member is not null)
         {
