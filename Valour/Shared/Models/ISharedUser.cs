@@ -99,7 +99,21 @@ public interface ISharedUser : ISharedItem
     /// </summary>
     TimeSpan LastActiveSpan =>
         GetLastActiveSpan(this);
+    
+    /// <summary>
+    /// If not null, the type of UserSubscription the user currently
+    /// is subscribed to
+    /// </summary>
+    string SubscriptionType { get; set; }
 
+    /// <summary>
+    /// The subscription the user currently has
+    /// </summary>
+    public static UserSubscriptionType GetSubscription(ISharedUser user)
+    {
+        return user.SubscriptionType == null ? null: UserSubscriptionTypes.TypeMap[user.SubscriptionType];
+    }
+    
     /// <summary>
     /// The current activity state of the user
     /// </summary>

@@ -1,0 +1,102 @@
+@inject IJSRuntime JsRuntime
+
+@if (_hidden)
+{
+    return;
+}
+
+@* Holds the entire component *@
+<div
+    @onclick="Close"
+    class="profile-outer">
+    @* Holds the actual profile *@
+    <ProfileCard @ref="@_profileCard" User="@_user" Member="@_member" Profile="@_profile"></ProfileCard>
+</div>
+
+@code {
+    private ProfileCard _profileCard;
+    
+    public static ProfilePopup Instance { get; private set; }
+
+    private PlanetMember _member;
+    private User _user;
+    private UserProfile _profile;
+
+    private bool _hidden = true;
+    private int _posX;
+    private int _posY;
+    private string _corner = "bottomLeft";
+
+    private bool _needsPositioning = false;
+
+    protected override void OnInitialized()
+    {
+        Instance = this;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_needsPositioning && !_hidden)
+        {
+            await JsRuntime.InvokeVoidAsync("positionRelativeTo", _profileCard.Id, _posX, _posY, _corner);
+            _needsPositioning = false;
+        }
+    }
+
+    public async Task OpenAsync(User user, int x, int y, string corner = "bottomLeft")
+    {
+        _posX = x;
+        _posY = y;
+        _corner = corner;
+        
+        _member = null;
+        _user = user;
+        
+        var profileResponse = await _user.GetProfileAsync();
+        if (!profileResponse.Success)
+            return;
+        
+        _profile = profileResponse.Data;
+        
+        _hidden = false;
+
+        _needsPositioning = true;
+        
+        StateHasChanged();
+        
+        await _profileCard.LoadDetailsAsync();
+    }
+
+    public async Task OpenAsync(PlanetMember member, int x, int y, string corner = "bottomLeft")
+    {
+        _posX = x;
+        _posY = y;
+        _corner = corner;
+        
+        _member = member;
+        _user = null;
+        _hidden = false;
+        _user = await member.GetUserAsync();
+        
+        var profileResponse = await _user.GetProfileAsync();
+        if (!profileResponse.Success)
+            return;
+        
+        _profile = profileResponse.Data;
+
+        _needsPositioning = true;
+
+        StateHasChanged();
+        
+        await _profileCard.LoadDetailsAsync();
+    }
+
+    
+
+    private void Close()
+    {
+        _hidden = true;
+        StateHasChanged();
+    }
+
+}

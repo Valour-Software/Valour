@@ -2,11 +2,10 @@
 
 <div class="col-md-12">
     <section style="text-align: center; padding: 30px">
-        <h2>@Data.title_text</h2>
-        <h4>@Data.desc_text</h4>
+        <h2 class="subtitle">@Data.title_text</h2>
+        <p>@Data.desc_text</p>
         <br />
-        <br />
-        <div @onclick="OnClick" class="btn btn-primary d-inline-block">@Data.button_text</div>
+        <div @onclick="OnClick" class="v-btn d-inline-block">@Data.button_text</div>
     </section>
 </div>
 
@@ -20,7 +19,9 @@
 
     public async Task OnClick()
 	{
-		await Data.ButtonEvent.Invoke();
+	    if (Data.ButtonEvent is not null)
+			await Data.ButtonEvent.Invoke();
+	    
 		await ModalInstance.CloseAsync();
 	}
 }

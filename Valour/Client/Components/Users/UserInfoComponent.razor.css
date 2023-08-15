@@ -31,6 +31,20 @@
     border: 2px solid var(--main-1);
 }
 
+.dot-badge-holder {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: -2px;
+}
+
+.dot-badge-holder .dot-badge {
+    width: 12px;
+    height: 12px;
+    margin-left: 2px;
+    border-radius: 50%;
+}
+
 .state-circle.online {
     background: #05FF00;
 }
@@ -66,6 +80,11 @@
     overflow: hidden;
     margin: 0;
     vertical-align: top;
+    cursor: pointer;
+}
+
+.username:hover {
+    text-decoration: underline;
 }
 
 .user-info:hover .tag {

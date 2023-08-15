@@ -48,6 +48,70 @@ public class UserService
     public async Task<EmailConfirmCode> GetEmailConfirmCode(string code) =>
         (await _db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code)).ToModel();
 
+    public async Task<UserProfile> GetUserProfileAsync(long userId) =>
+        (await _db.UserProfiles.FirstOrDefaultAsync(x => x.Id == userId)).ToModel();
+
+    public async Task<TaskResult<UserProfile>> UpdateUserProfileAsync(UserProfile updated)
+    {
+        var old = await _db.UserProfiles.FindAsync(updated.Id);
+        if (old is null)
+            return new TaskResult<UserProfile>(false, "Profile not found");
+        
+        // Color validation
+        var colorsValid = 
+            ValidateColorCode(updated.BorderColor) && 
+            ValidateColorCode(updated.GlowColor) &&
+            ValidateColorCode(updated.PrimaryColor) &&
+            ValidateColorCode(updated.SecondaryColor) &&
+            ValidateColorCode(updated.TertiaryColor);
+        
+        if (!colorsValid)
+            return new TaskResult<UserProfile>(false, "Invalid color code. Must be Hex and start with #.");
+        
+        // Headline validation
+        if (updated.Headline is not null)
+        {
+            if (updated.Headline.Length > 40)
+                return new TaskResult<UserProfile>(false, "Headline must be less than 40 characters.");
+        }
+        
+        // Bio validation
+        if (updated.Bio is not null)
+        {
+            if (updated.Bio.Length > 500)
+                return new TaskResult<UserProfile>(false, "Bio must be less than 500 characters.");
+        }
+
+        try
+        {
+            _db.Entry(old).CurrentValues.SetValues(updated);
+            _db.UserProfiles.Update(old);
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error updating user profile");
+            return new TaskResult<UserProfile>(false, "Error updating user profile");
+        }
+        
+        return new TaskResult<UserProfile>(true, "Profile updated", updated);
+    }
+
+    private bool ValidateColorCode(string code)
+    {
+        // Null is valid
+        if (code is null)
+            return true;
+        
+        if (!code.StartsWith('#'))
+            return false;
+
+        if (code.Length > 7 || code.Length < 3)
+            return false;
+        
+        return true;
+    }
+    
     public async Task<List<Planet>> GetPlanetsUserIn(long userId)
     {
         var planets = await _db.PlanetMembers

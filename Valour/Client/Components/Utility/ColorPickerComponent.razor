@@ -1,13 +1,46 @@
-﻿@inject IJSRuntime JS
+﻿@implements IAsyncDisposable
+@inject IJSRuntime JsRuntime
 
-<div class="color-picker"></div>
+<div id="@_id" class="color-picker"></div>
 
 @code{
+
+    [Parameter] 
+    public Func<string, Task> OnColorChange { get; set; }
+    
+    [Parameter]
+    public string StartColor { get; set; }
+    
+    /// <summary>
+    /// Module for calling Javascript functions
+    /// </summary>
+    private IJSInProcessObjectReference _jsModule;
+
+    private DotNetObjectReference<ColorPickerComponent> _dotnetRef;
+
+    private string _id = "pickr-" + Guid.NewGuid().ToString();
+    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("SetupColorPicker");
+            _dotnetRef = DotNetObjectReference.Create(this);
+            _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Utility/ColorPickerComponent.razor.js?version=$(SHORTHASH)");
+            await _jsModule.InvokeVoidAsync("init", _id, _dotnetRef, StartColor);
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _jsModule.InvokeVoidAsync("destroy", _id);
+        _dotnetRef.Dispose();
+        await _jsModule.DisposeAsync();
+    }
+
+    [JSInvokable]
+    public async Task ColorChange(string newColor)
+    {
+        if (OnColorChange is not null)
+            await OnColorChange.Invoke(newColor);
     }
 }

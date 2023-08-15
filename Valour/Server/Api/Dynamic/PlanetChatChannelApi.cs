@@ -528,6 +528,9 @@ public class PlanetChatChannelApi
 	        string.IsNullOrEmpty(editedMessage.EmbedData) &&
 	        string.IsNullOrEmpty(editedMessage.AttachmentsData))
 		    return Results.BadRequest("Message content cannot be null");
+
+        if (editedMessage.EmbedData != null && editedMessage.EmbedData.Length > 65535)
+            return Results.BadRequest("EmbedData must be under 65535 chars");
         
 	    if (editedMessage.Content != null && editedMessage.Content.Length > 2048)
 		    return Results.BadRequest("Content must be under 2048 chars");
@@ -605,6 +608,7 @@ public class PlanetChatChannelApi
 	        dbMessage.AttachmentsData = editedMessage.AttachmentsData;
 	        dbMessage.MentionsData = editedMessage.MentionsData;
 	        dbMessage.EditedTime = DateTime.UtcNow;
+            dbMessage.EmbedData = editedMessage.EmbedData;
 
 	        try
 	        {
@@ -628,6 +632,7 @@ public class PlanetChatChannelApi
 	        stagedMessage.AttachmentsData = editedMessage.AttachmentsData;
 	        stagedMessage.MentionsData = editedMessage.MentionsData;
 	        stagedMessage.EditedTime = DateTime.UtcNow;
+            stagedMessage.EmbedData = editedMessage.EmbedData;
 
 	        coreHub.RelayMessageEdit(stagedMessage);
         }

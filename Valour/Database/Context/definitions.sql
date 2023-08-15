@@ -30,8 +30,22 @@ CREATE TABLE IF NOT EXISTS users (
     user_state_code INT NOT NULL DEFAULT 0,
     time_last_active TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     is_mobile BOOLEAN NOT NULL DEFAULT false,
+    subscription_type TEXT NOT NULL,
 
     CONSTRAINT user_tag_unique UNIQUE (name, tag)
+);
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id BIGINT NOT NULL PRIMARY KEY,
+    headline TEXT,
+    bio TEXT,
+    border_color VARCHAR(7),
+    glow_color VARCHAR(7),
+    primary_color VARCHAR(7),
+    secondary_color VARCHAR(7),
+    tertiary_color VARCHAR(7),
+    anim_border BOOLEAN,
+    CONSTRAINT fk_user FOREIGN KEY(id) REFERENCES users(id)  
 );
 
 CREATE TABLE IF NOT EXISTS user_friends (
@@ -315,6 +329,8 @@ CREATE TABLE IF NOT EXISTS permissions_nodes (
 CREATE TABLE IF NOT EXISTS referrals (
     user_id BIGINT NOT NULL PRIMARY KEY,
     referrer_id BIGINT NOT NULL,
+    created, TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
+    reward DECIMAL NOT NULL DEFAULT 0,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
     CONSTRAINT fk_referrer FOREIGN KEY(referrer_id) REFERENCES users(id)
@@ -436,6 +452,19 @@ CREATE TABLE IF NOT EXISTS reports (
   CONSTRAINT fk_user FOREIGN KEY(reporting_user_id) REFERENCES users(id),
   CONSTRAINT fk_channel FOREIGN KEY(channel_id) REFERENCES channels(id),
   CONSTRAINT fk_planet FOREIGN KEY(planet_id) REFERENCES planets(id)
+);
+
+CREATE TABLE IF NOT EXISTS user_subscriptions (
+  id TEXT NOT NULL PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  type TEXT NOT NULL,
+  created TIMESTAMP NOT NULL,
+  last_charged TIMESTAMP NOT NULL,
+  active BOOLEAN NOT NULL DEFAULT true,
+  cancelled BOOLEAN NOT NULL DEFAULT false,
+  renewals INT NOT NULL DEFAULT 0,
+  
+  CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );
 
 COMMIT;

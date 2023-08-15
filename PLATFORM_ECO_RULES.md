@@ -46,7 +46,7 @@ By participating in the Valour economic and trading systems, users acknowledge a
 
 ## Platform Rules
 
-The Valour Economic and Trading systems must be utilized in a manner that adheres to the PLATFORM RULES, which can be accessed at [](https://github.com/Valour-Software/Valour/blob/main/PLATFORM_RULES.md)
+The Valour Economic and Trading systems must be utilized in a manner that adheres to the PLATFORM RULES, which can be accessed [here](https://github.com/Valour-Software/Valour/blob/main/PLATFORM_RULES.md)
 
 Remember, the act of creating an eco account signifies your acceptance of these terms. If you disagree with any part of these terms and conditions, please do not use our services.
 

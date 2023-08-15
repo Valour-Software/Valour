@@ -67,6 +67,19 @@ public class User : Item, ISharedUser
     /// This should only ever be false on legacy or testing accounts.
     /// </summary>
     public bool Compliance { get; set; }
+    
+    /// <summary>
+    /// If not null, the type of UserSubscription the user currently
+    /// is subscribed to
+    /// </summary>
+    public string SubscriptionType { get; set; }
+    
+    /// <summary>
+    /// The subscription the user currently has
+    /// </summary>
+    [JsonIgnore]
+    public UserSubscriptionType Subscription =>
+        ISharedUser.GetSubscription(this);
 
     /// <summary>
     /// The span of time from which the user was last active

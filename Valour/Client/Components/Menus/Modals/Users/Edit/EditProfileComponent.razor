@@ -1,0 +1,203 @@
+@if (_profile is null)
+{
+    <h4>Error loading profile.</h4>
+    <br/>
+    <p>Try again later?</p>
+
+    return;
+}
+
+<section class="v-section v-inline v-bg-dark">
+    <span class="v-span m-1">Headline</span>
+    <input class="v-input" placeholder="A short blurb" @bind="@_profile.Headline"/>
+    <span class="v-span m-1">Bio</span>
+    <textarea class="v-input" cols="3" placeholder="A little bit about me..." @bind="@_profile.Bio"></textarea>
+    
+    @if (ValourClient.Self.Subscription is null)
+    {
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                Use gradient borders
+            </div>
+            <div type="button" style="float:right">
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnGradientClick" disabled>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="perm-list-desc mt-1">
+                You need a Valour Plus subscription to use this feature.
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="perm-list-item">
+            <div class="perm-list-name mb-1">
+                Use gradient borders
+            </div>
+            <div type="button" style="float:right">
+                <label class="switch">
+                    <input type="checkbox" @onclick="OnGradientClick" checked="@_isGradientEnabled" disabled="@_isGradientBlocked">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <div class="perm-list-desc mt-1">
+                Use three colors in a gradient as the border.
+            </div>
+        </div>
+    
+        @if (_isGradientEnabled)
+        {
+            <div class="perm-list-item">
+                <div class="perm-list-name mb-1">
+                    Animate gradient borders
+                </div>
+                <div type="button" style="float:right">
+                    <label class="switch">
+                        <input type="checkbox" @onclick="OnAnimClick" checked="@_isAnimEnabled" disabled="@_isAnimBlocked">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="perm-list-desc mt-1">
+                    Animate the gradient border.
+                </div>
+            </div>
+        }
+    }
+
+    <div>
+        @if (ValourClient.Self.Subscription != null && _isGradientEnabled)
+        {
+            <div class="d-inline-block m-1">
+                <span class="v-span">Primary color</span>
+                <div class="m-1">
+                    <ColorPickerComponent StartColor="@_profile.PrimaryColor" OnColorChange="@(async (color) => { _profile.PrimaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+            </div>
+            <div class="d-inline-block m-1">
+                <span class="v-span">Secondary color</span>
+                <div class="m-1">
+                    <ColorPickerComponent StartColor="@_profile.SecondaryColor" OnColorChange="@(async (color) => { _profile.SecondaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+            </div>
+            <div class="d-inline-block m-1">
+                <span class="v-span">Tertiary color</span>
+                <div class="m-1">
+                    <ColorPickerComponent StartColor="@_profile.TertiaryColor" OnColorChange="@(async (color) => { _profile.TertiaryColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="d-inline-block m-1">
+                <span class="v-span">Border color</span>
+                <div class="m-1">
+                    <ColorPickerComponent StartColor="@_profile.BorderColor" OnColorChange="@(async (color) => { _profile.BorderColor = color; StateHasChanged(); })"></ColorPickerComponent>
+                </div>
+            </div>
+        }
+        <div class="d-inline-block m-1">
+            <span class="v-span">Glow color</span>
+            <div class="m-1">
+                <ColorPickerComponent StartColor="@_profile.GlowColor" OnColorChange="@(async (color) => { _profile.GlowColor = color; StateHasChanged(); })"></ColorPickerComponent>
+            </div>
+        </div>
+    </div>
+    
+    <button class="v-btn m-1" @onclick="OnClickSaveAsync">Save Changes</button>
+    
+    @if (!string.IsNullOrWhiteSpace(_errorSpan))
+    {
+        <span class="m-1 v-text-red">@_errorSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(_successSpan))
+    {
+        <span class="m-1 v-text-cyan">@_successSpan</span>
+    }
+</section>
+
+<ProfileCard
+    @ref="@_profileCard"
+    User="@ValourClient.Self"
+    Profile="@_profile"
+    CssStyle="position: unset; margin-left: auto; margin-right: auto; padding-top: 20px; margin-bottom: 100px;">
+</ProfileCard>
+
+@code {
+    private ProfileCard _profileCard;
+    private UserProfile _profile;
+
+    private bool _isGradientEnabled;
+    private bool _isGradientBlocked;
+    
+    private bool _isAnimEnabled;
+    private bool _isAnimBlocked;
+
+    private string _errorSpan;
+    private string _successSpan;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        var profileResult = await ValourClient.Self.GetProfileAsync();
+        if (profileResult.Success)
+        {
+            _profile = profileResult.Data;
+        }
+
+        _isGradientEnabled = !string.IsNullOrWhiteSpace(_profile.PrimaryColor);
+        _isAnimEnabled = _profile.AnimatedBorder;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_profileCard is not null)
+            await _profileCard.LoadDetailsAsync();
+    }
+
+    private void OnGradientClick()
+    {
+        _isGradientEnabled = !_isGradientEnabled;
+        
+        if (_isGradientEnabled)
+        {
+            _profile.PrimaryColor = "#fff";
+            _profile.SecondaryColor = "#fff";
+            _profile.TertiaryColor = "#fff";
+        }
+        else
+        {
+            _profile.PrimaryColor = null;
+            _profile.SecondaryColor = null;
+            _profile.TertiaryColor = null;
+        }
+        
+        StateHasChanged();
+    }
+    
+    private void OnAnimClick()
+    {
+        _isAnimEnabled = !_isAnimEnabled;
+        _profile.AnimatedBorder = _isAnimEnabled;
+        StateHasChanged();
+    }
+
+    private async Task OnClickSaveAsync()
+    {
+        _errorSpan = null;
+        _successSpan = null;
+        
+        var result = await UserProfile.UpdateAsync(_profile);
+
+        if (result.Success)
+        {
+            _successSpan = "Saved successfully.";
+        }
+        else
+        {
+            _errorSpan = "An error occured. Sorry! Refresh and try again?";
+        }
+        
+        StateHasChanged();
+    }
+}
