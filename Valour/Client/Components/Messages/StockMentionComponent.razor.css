@@ -19,7 +19,7 @@
 }
 
 .stock-buttons {
-    display: flex;
+    display: inline-flex;
 }
 
 .stock-buttons .v-btn {
