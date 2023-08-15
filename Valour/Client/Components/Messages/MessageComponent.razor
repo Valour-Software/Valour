@@ -76,6 +76,10 @@
                 @if (MessageData.Message.Embed != null && MessageData.Message.Embed.Pages.Count > 0)
                 {
                     <EmbedComponent MessageWrapper="MessageData" MessageComponent="@this"></EmbedComponent>
+                    @if (MessageData.Message.EditedTime != null)
+                    {
+                        <p class="edited-flag"> (Edited)</p>
+                    }
                 }
                 else
                 {
