@@ -169,7 +169,7 @@ namespace Valour.Server.Workers
                     message.ReplyTo = replyTo;
                 }
                 
-                hubService.RelayMessage(message);
+                await hubService.RelayMessage(message);
 
                 // Add message to message staging
                 StagedMessages[message.Id] = message;

@@ -64,6 +64,11 @@ export function init(ref, id) {
     }
     
     const onTouchEnd = function (e) {
+        
+        if (!dragging) {
+            return;
+        }
+        
         if (Math.abs(slideDistance) < width / 2) {
             sidebar.style.transform = `translateX(0px)`;
             open = true;

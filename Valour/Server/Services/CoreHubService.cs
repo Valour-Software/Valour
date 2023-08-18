@@ -28,7 +28,7 @@ public class CoreHubService
         _redis = redis;
     }
     
-    public async void RelayMessage(PlanetMessage message)
+    public async Task RelayMessage(PlanetMessage message)
     {
         var groupId = $"c-{message.ChannelId}";
 
