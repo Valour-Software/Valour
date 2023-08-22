@@ -1,6 +1,6 @@
 ﻿@inherits AttachmentComponent
 
-<video controls loop preload="metadata" playsinline src="@Attachment.Location#t=0.001" type="@Attachment.MimeType"></video>
+<video class="video-attachment" controls loop preload="metadata" playsinline src="@Attachment.Location#t=0.001" type="@Attachment.MimeType"></video>
 
 @code {
     [Parameter]

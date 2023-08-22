@@ -1,4 +1,8 @@
-﻿.textbox {
+﻿.channel-footer {
+    
+}
+
+.textbox {
     background: rgba(255, 255, 255, 0.12);
     border-radius: 10px;
     color: white;
@@ -60,7 +64,7 @@
 }
 
 .mobile .upload-btn {
-    bottom: 8px;
+    bottom: 9px;
     left: 9px;
     padding: 0;
 }
@@ -90,12 +94,8 @@
 
 .send-wrapper {
     position: absolute;
-    height: 50px;
-    width: 50px;
-    line-height: 45px;
-    text-align: center;
-    right: -2px;
-    bottom: -6px;
+    right: 8px;
+    bottom: 9px;
 }
 
 .send-button {
@@ -207,14 +207,15 @@
     background: transparent;
     border: none;
     position: absolute;
-    right: 6px;
-    bottom: 7px;
+    bottom: 9px;
     outline: none;
     filter: grayscale(1);
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .mobile .emoji-button {
-    right: 38px;
+    right: 34px;
 }
 
 .emoji-button:hover {

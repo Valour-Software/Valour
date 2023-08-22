@@ -1,0 +1,4 @@
+.video-attachment {
+    max-width: 100%;
+    max-height: min(400px, 80vh);
+}
