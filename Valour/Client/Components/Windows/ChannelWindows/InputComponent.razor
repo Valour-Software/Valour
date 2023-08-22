@@ -6,7 +6,7 @@
 @using Valour.TenorTwo.Models
 @using Media = Valour.TenorTwo.Models.Media
 
-<div class='@(CanUserPost ? string.Empty : "no-perms")'>
+<div class='channel-footer @(CanUserPost ? string.Empty : "no-perms")'>
     <div class="preview-message">
         <MessageComponent @key="@(Window.Id + "-preview-message")" @ref="PreviewMessageComponent" MessageData="PreviewMessage" Ghost="true" LastMessage="WindowComponent.MessageHolder.GetLastMessage()" ></MessageComponent>
     </div>
