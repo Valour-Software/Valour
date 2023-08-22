@@ -194,6 +194,26 @@ public class EcoApi
         return Results.Json(accounts);
     }
     
+    // Returns the user account in a planet with the given id
+    [ValourRoute(HttpVerbs.Get, "api/eco/accounts/planet/{planetId}/byuser/{userId}")]
+    [UserRequired]
+    public static async Task<IResult> GetUserAccountAsync(
+        long planetId,
+        long userId,
+        EcoService ecoService,
+        PlanetMemberService memberService)
+    {
+        var member = await memberService.GetCurrentAsync(planetId);
+        if (member is null)
+            return ValourResult.NotPlanetMember();
+
+        if (!await memberService.HasPermissionAsync(member, PlanetPermissions.UseEconomy))
+            return ValourResult.LacksPermission(PlanetPermissions.UseEconomy);
+        
+        var account = await ecoService.GetUserAccountAsync(userId, planetId);
+        return Results.Json(account);
+    }
+    
     // Returns all accounts of the planet the given user can send to
     [ValourRoute(HttpVerbs.Post, "api/eco/accounts/planet/canSend")]
     [UserRequired]
