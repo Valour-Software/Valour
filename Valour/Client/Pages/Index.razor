@@ -102,11 +102,12 @@
 
 	protected override async void OnAfterRender(bool firstRender)
 	{
-		await JS.InvokeVoidAsync("FixClip");
-		await JS.InvokeVoidAsync("FitMobile");
-		
 		if (firstRender)
+		{
+			await JS.InvokeVoidAsync("FixClip");
+			await JS.InvokeVoidAsync("FitMobile");
 			StateHasChanged();
+		}
 	}
 
 	public async Task OnPlanetChange(Planet planet)
