@@ -1,4 +1,5 @@
-﻿using Valour.Shared.Models;
+﻿using System.Text.Json.Serialization;
+using Valour.Shared.Models;
 
 namespace Valour.Api.Models;
 
@@ -18,6 +19,9 @@ public class MessageAttachment : ISharedMessageAttachment
     /// True if this was an inline attachment - aka, it was generated using urls within the message
     /// </summary>
     public bool Inline { get; set; } = false;
+    
+    /* Oembed Attributes */
+    public string Html { get; set; }
 
     public MessageAttachment(MessageAttachmentType type)
     {

@@ -7,4 +7,5 @@ public interface ISharedMessageAttachment
 
     public int Width { get; set; }
     public int Height { get; set; }
+    public string Html { get; set; }
 }
