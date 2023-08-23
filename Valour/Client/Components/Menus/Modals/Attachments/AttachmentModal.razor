@@ -1,0 +1,60 @@
+@inject IJSRuntime JsRuntime
+
+@if (Attachment is null)
+{
+    <h5>Loading content...</h5>
+    return;
+}
+
+<div class="preview-container">
+	<h6>Upload?</h6>
+    <div class="attachment-holder">
+        @switch (Attachment.Type){
+            case MessageAttachmentType.Image:
+                <ImageAttachmentComponent Attachment="Attachment" Clickable="false" MaxSize="1000" />
+                break;
+            case MessageAttachmentType.Video:
+                <VideoAttachmentComponent Attachment="Attachment" />
+                break;
+            case MessageAttachmentType.Audio:
+                <AudioAttachmentComponent Attachment="Attachment" />
+                break;
+            default:
+                <FileAttachmentComponent Attachment="Attachment" />
+                break;
+        }
+    </div>
+    
+    <div class="d-flex flex-row justify-content-between">
+        <button class='v-btn' style="float: right" @onclick='OnClickClose'>Close</button>
+        <button class='v-btn' style="float: right" @onclick='OnClickCopyLink'>Copy Link</button>
+        <button class='v-btn danger' @onclick='OnClickDownload'>Download</button>
+    </div>
+</div>
+
+@code {
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
+
+    [CascadingParameter]
+    public BlazoredModalInstance ModalInstance { get; set; }
+    
+    [Parameter]
+    public MessageAttachment Attachment { get; set; }
+  
+    private Task OnClickClose()
+    {
+        return ModalInstance.CloseAsync();
+    }
+    
+    private async Task OnClickCopyLink()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", Attachment.Location);
+    }
+
+    private async Task OnClickDownload()
+    {
+        await JsRuntime.InvokeVoidAsync("open", Attachment.Location, "_blank");
+    }
+}

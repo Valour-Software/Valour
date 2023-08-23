@@ -1,29 +1,30 @@
-﻿@inherits AttachmentComponent
+﻿@using Valour.Client.Components.Menus.Modals.Attachments
+@inherits AttachmentComponent
 
-<div class="image-attachment-wrapper" style="aspect-ratio: @_width / @_height; width: @(_width)px">
-    @if (Clickable)
-    {
-        <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location" @onclick="OnClick" />
-    }
-    else
-    {
-        @if (CustomStyle is not null)
-        {
-            <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location">
-        }
-        else
-        {
-            <img class="attached-image" alt="@Attachment.FileName" src="@Attachment.Location"/>
-        }
-    }
+<div class="image-attachment-wrapper" style="@GetWrapperStyle()" @onclick="OnClick">
+    <img class="attached-image" style="@GetImageStyle()" alt="@Attachment.FileName" src="@Attachment.Location" />
 </div>
 
 @code {
     private int _width;
     private int _height;
     private bool _widthLarger;
-        
-    const float MaxSize = 400f;
+
+    private string GetWrapperStyle()
+    {
+        return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%);";
+    }
+
+    private string GetImageStyle()
+    {
+        return $"max-width: min({MaxSize}px, 100%); max-height: min({MaxSize}px, 80vh);";
+    }
+
+    [Parameter]
+    public float MaxSize { get; set; } = 400f;
+    
+    [CascadingParameter]
+    public IModalService Modal { get; set; }
 
     [Parameter]
     public bool Clickable { get; set; } = true;
@@ -63,8 +64,12 @@
         base.OnInitialized();
     }
 
-    public void OnClick()
+    private void OnClick()
     {
-        //StateHasChanged();
+        if (!Clickable) return;
+        
+        ModalParameters modalParams = new();
+        modalParams.Add("Attachment", Attachment);
+        Modal.Show<AttachmentModal>(Attachment.FileName, modalParams);
     }
 }
