@@ -207,7 +207,8 @@
     background: transparent;
     border: none;
     position: absolute;
-    bottom: 9px;
+    bottom: 7px;
+    right: 4px;
     outline: none;
     filter: grayscale(1);
     padding-left: 8px;
@@ -216,6 +217,7 @@
 
 .mobile .emoji-button {
     right: 34px;
+    bottom: 9px;
 }
 
 .emoji-button:hover {
