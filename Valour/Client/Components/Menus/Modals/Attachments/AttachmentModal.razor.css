@@ -1,0 +1,44 @@
+.preview-container {
+    max-width: 95vw;
+    max-height: 95vh;
+    padding: 20px;
+}
+
+.preview-container .image-attachment-wrapper {
+    max-width: min(50vw, 500px);
+    max-height: min(50vh, 500px);
+    border-radius: 20px;
+}
+
+.preview-container button {
+    width: 48%;
+}
+
+::deep img {
+    object-fit: contain;
+    object-position: left;
+    margin: 5px;
+    margin-left: 0px;
+    margin-right: 0px;
+    cursor: pointer;
+    height: max-content;
+    width: max-content;
+    max-width: min(400px, 100%);
+    max-height: min(400px, 80vh);
+}
+
+::deep video {
+    max-height: 80vh;
+    max-width: 80vw;
+}
+
+::deep audio {
+    max-height: 80vh;
+    max-width: 80vw;
+}
+
+.attachment-holder {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}

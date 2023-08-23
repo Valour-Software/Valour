@@ -1,5 +1,4 @@
 ﻿.image-attachment-wrapper {
-    max-width: min(400px, 100%);
     margin-top: 5px;
     margin-bottom: 5px;
 }
@@ -18,8 +17,6 @@
     cursor: pointer;
     height: max-content;
     width: max-content;
-    max-width: min(400px, 100%);
-    max-height: min(400px, 80vh);
 }
 
 .image-attachment-wrapper img::before {
