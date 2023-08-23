@@ -524,6 +524,11 @@ public class EcoApi
                 // Trying to send for someone else
                 if (transaction.UserFromId != member.UserId || account.UserId != authToken.UserId)
                 {
+                    if (transaction.ForcedBy != authToken.UserId)
+                    {
+                        return ValourResult.Forbid("You must mark a transaction as forced if you are not the sender");    
+                    }
+                    
                     if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ForceTransactions))
                     {
                         return ValourResult.Forbid("You do not have permission to create transactions for other users");
