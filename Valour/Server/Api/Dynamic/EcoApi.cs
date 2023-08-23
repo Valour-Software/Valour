@@ -515,17 +515,14 @@ public class EcoApi
             if (!authToken.HasScope(UserPermissions.EconomySendGlobal))
                 return ValourResult.LacksPermission(UserPermissions.EconomySendGlobal);
             
-            if (account.UserId != authToken.UserId)
-                return ValourResult.Forbid("You cannot access this account");
-            
-            if (transaction.UserFromId != authToken.UserId)
+            if (transaction.UserFromId != authToken.UserId || account.UserId != authToken.UserId)
             {
                 var member = await memberService.GetCurrentAsync(account.PlanetId);
                 if (member is null)
                     return ValourResult.NotPlanetMember();
                 
                 // Trying to send for someone else
-                if (transaction.UserFromId != member.UserId)
+                if (transaction.UserFromId != member.UserId || account.UserId != authToken.UserId)
                 {
                     if (!await memberService.HasPermissionAsync(member, PlanetPermissions.ForceTransactions))
                     {
