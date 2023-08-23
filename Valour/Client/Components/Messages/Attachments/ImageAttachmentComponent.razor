@@ -12,12 +12,12 @@
 
     private string GetWrapperStyle()
     {
-        return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%);";
+        return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%); width: {_width}px";
     }
 
     private string GetImageStyle()
     {
-        return $"max-width: min({MaxSize}px, 100%); max-height: min({MaxSize}px, 80vh);";
+        return $"max-width: min({MaxSize}px, 100%); max-height: min({MaxSize}px, 80vh); ";
     }
 
     [Parameter]
