@@ -451,3 +451,18 @@ function positionRelativeTo(id, x, y, corner) {
         element.style.top = `${window.innerHeight - height - 16}px`;
     }
 }
+
+async function injectTwitter(id, data) {
+    const container = document.getElementById(id);
+    if (!container) {
+        return;
+    }
+    
+    container.innerHTML = data;
+    
+    let twitterScript = document.createElement('script');
+    twitterScript.src = "https://platform.twitter.com/widgets.js";
+    twitterScript.async = true;
+    twitterScript.charset = "utf-8";
+    container.appendChild(twitterScript);
+}

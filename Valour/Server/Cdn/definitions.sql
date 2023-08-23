@@ -14,4 +14,19 @@ CREATE TABLE bucket_items (
     category TEXT NOT NULL
 );
 
+CREATE TABLE embeds (
+    id TEXT NOT NULL PRIMARY KEY,
+    type TEXT,
+    version TEXT,
+    width INTEGER,
+    height INTEGER,
+    title TEXT,
+    url TEXT,
+    author_name TEXT,
+    author_url TEXT,
+    provider_name TEXT,
+    provider_url TEXT
+);  
+
+
 COMMIT;

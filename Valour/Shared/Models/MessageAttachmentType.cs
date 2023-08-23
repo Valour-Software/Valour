@@ -23,4 +23,5 @@ public enum MessageAttachmentType : long
     YouTube,
     Vimeo,
     Twitch,
+    Twitter,
 }

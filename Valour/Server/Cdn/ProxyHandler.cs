@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Web;
 using Markdig.Extensions.MediaLinks;
 using Valour.Api.Models;
@@ -13,6 +14,7 @@ namespace Valour.Server.Cdn;
 public static class ProxyHandler
 {
     private static readonly SHA256 Sha256 = SHA256.Create();
+    private static readonly HttpClient Http = new HttpClient();
 
     public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, CdnDb db, HttpClient client)
     {
@@ -52,6 +54,24 @@ public static class ProxyHandler
             var attachment = new MessageAttachment(virtualType);
             switch (virtualType)
             {
+                case MessageAttachmentType.Twitter:
+                {
+                    try
+                    {
+                        // Get oembed data from twitter
+                        var oembedData =
+                            await Http.GetFromJsonAsync<OembedData>("https://publish.twitter.com/oembed?url=" + url + 
+                                                                    "&theme=dark&dnt=true&omit_script=true&maxwidth=400&maxheight=400&limit=1&hide_thread=true");
+                        attachment.Location = url;
+                        attachment.Html = oembedData.Html;
+                    }
+                    catch (System.Exception ex)
+                    {
+                        return null;
+                    }
+
+                    break;
+                }
                 case MessageAttachmentType.YouTube:
                 {
                     // Youtube uses ?v= or /embed/

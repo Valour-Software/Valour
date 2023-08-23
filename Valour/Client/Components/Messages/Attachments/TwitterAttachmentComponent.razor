@@ -1,0 +1,17 @@
+@inherits AttachmentComponent
+@inject IJSRuntime JsRuntime
+
+<div class="twitter-embed" id="@_id">
+</div>
+
+@code {
+    private string _id = "twitter-embed-" + Guid.NewGuid().ToString();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JsRuntime.InvokeVoidAsync("injectTwitter", _id, Attachment.Html);
+        }
+    }
+}

@@ -23,6 +23,8 @@ namespace Valour.Shared.Cdn
             { "youtu.be", MessageAttachmentType.YouTube },
             { "vimeo.com", MessageAttachmentType.Vimeo },
             { "twitch.tv", MessageAttachmentType.Twitch },
+            { "twitter.com", MessageAttachmentType.Twitter },
+            { "x.com", MessageAttachmentType.Twitter },
         };
 
         /// <summary>
