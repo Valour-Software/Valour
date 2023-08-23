@@ -132,10 +132,14 @@ public class EcoApi
         {
             if (!authToken.HasScope(UserPermissions.EconomyViewGlobal))
                 return ValourResult.LacksPermission(UserPermissions.EconomyViewGlobal);
-
+            
             // Only the owner of a global account can view it
+            /*
             if (account.UserId != authToken.UserId)
                 return ValourResult.Forbid("You cannot access this account");
+                */
+            // We are going to allow this so integrations can be built. You need the id anyways.
+            
         }
         else
         {
