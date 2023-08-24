@@ -25,6 +25,7 @@ namespace Valour.Shared.Cdn
             { "twitch.tv", MessageAttachmentType.Twitch },
             { "twitter.com", MessageAttachmentType.Twitter },
             { "x.com", MessageAttachmentType.Twitter },
+            { "reddit.com", MessageAttachmentType.Reddit },
         };
 
         /// <summary>

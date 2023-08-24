@@ -26,6 +26,7 @@ public static class MessageAttachmentExtensions
         typeof(VimeoAttachmentComponent), // Vimeo
         typeof(TwitchAttachmentComponent), // Twitch
         typeof(TwitterAttachmentComponent), // Twitter
+        typeof(RedditAttachmentComponent), // Reddit
     };
 
 
