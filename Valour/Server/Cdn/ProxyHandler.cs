@@ -16,6 +16,11 @@ public static class ProxyHandler
     private static readonly SHA256 Sha256 = SHA256.Create();
     private static readonly HttpClient Http = new HttpClient();
 
+    static ProxyHandler()
+    {
+        Http.DefaultRequestHeaders.UserAgent.ParseAdd("ValourCDN/1.0");
+    }
+
     public static async Task<List<MessageAttachment>> GetUrlAttachmentsFromContent(string url, CdnDb db, HttpClient client)
     {
         var urls = CdnUtils.UrlRegex.Matches(url);
@@ -54,6 +59,24 @@ public static class ProxyHandler
             var attachment = new MessageAttachment(virtualType);
             switch (virtualType)
             {
+                case MessageAttachmentType.Reddit:
+                {
+                    try
+                    {
+                        // Get oembed data from reddit
+                        var route = "https://www.reddit.com/oembed?url=" + HttpUtility.UrlEncode(url);
+                        var oembedData =
+                            await Http.GetFromJsonAsync<OembedData>(route);
+
+                        attachment.Html = oembedData.Html;
+
+                        return attachment;
+                    }
+                    catch (Exception ex)
+                    {
+                        return null;
+                    }
+                }
                 case MessageAttachmentType.Twitter:
                 {
                     try

@@ -191,6 +191,11 @@ body {
 
 .chat-holder {
     padding-right: 0.5rem;
+    overflow-y: auto;
+}
+
+.chat-holder * {
+    overflow-anchor: none;
 }
 
 .topline {

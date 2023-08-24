@@ -466,3 +466,19 @@ async function injectTwitter(id, data) {
     twitterScript.charset = "utf-8";
     container.appendChild(twitterScript);
 }
+
+async function injectReddit(id, data) {
+    const container = document.getElementById(id);
+    if (!container) {
+        return;
+    }
+
+    container.setAttribute('data-embed-theme', 'dark');
+    container.innerHTML = data;
+
+    let redditScript = document.createElement('script');
+    redditScript.src = "https://embed.reddit.com/widgets.js";
+    redditScript.async = true;
+    redditScript.charset = "utf-8";
+    container.appendChild(redditScript);
+}

@@ -2,60 +2,59 @@
 @implements IAsyncDisposable
 @using Valour.Api.Models.Messages
 @using System.Reflection.Metadata
+<ContextMenuTrigger @key="@_id" Id="@_id" CssClass="chat-holder mt-auto"  MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
+    <CascadingValue Value="this" IsFixed="true">
+        @{
+            ClientMessageWrapper last;    
 
-<div @key='"holder-" + Window.Id' id="innerwindow-@Window.Id" class="chat-holder mt-auto" style="overflow-y: scroll;">
-    <ContextMenuTrigger MouseButtonTrigger="MouseButtonTrigger.ContextOrHold" @onpointerdown:stopPropagation="true" MenuId="message-context">
-        <CascadingValue Value="this" IsFixed="true">
-            @{
-                ClientMessageWrapper last;    
-
-                if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
+            if (DisplayedMessageData != null && DisplayedMessageData.Count > 0)
+            {
+                last = null;
+                
+                foreach (ClientMessageWrapper messageData in DisplayedMessageData)
                 {
-                    last = null;
-
-                    foreach (ClientMessageWrapper messageData in DisplayedMessageData)
+                    Dictionary<string, object> messageParams = new()
                     {
-                        Dictionary<string, object> messageParams = new()
-                        {
-                            { "MessageData", messageData },
-                            { "IsInnerReply", false },
-                            { "LastMessage", last },
-                        };
+                        { "MessageData", messageData },
+                        { "IsInnerReply", false },
+                        { "LastMessage", last },
+                    };
 
-                        <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
+                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
 
-                        last = messageData;
-                    }
-                }
-
-                if (QueuedMessageData != null && QueuedMessageData.Count > 0){
-
-                    last = null;
-
-                    if (DisplayedMessageData != null)
-                    {
-                        last = DisplayedMessageData.Last();
-                    }
-
-                    foreach (ClientMessageWrapper messageData in QueuedMessageData)
-                    {
-                        Dictionary<string, object> messageParams = new()
-                        {
-                            { "MessageData", messageData },
-                            { "IsInnerReply", false },
-                            { "LastMessage", last },
-                            { "Ghost", true }
-                        };
-
-                        <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
-
-                        last = messageData;
-                    }
+                    last = messageData;
                 }
             }
-        </CascadingValue>
-    </ContextMenuTrigger>
-</div>
+
+            if (QueuedMessageData != null && QueuedMessageData.Count > 0){
+
+                last = null;
+
+                if (DisplayedMessageData != null)
+                {
+                    last = DisplayedMessageData.Last();
+                }
+
+                foreach (ClientMessageWrapper messageData in QueuedMessageData)
+                {
+                    Dictionary<string, object> messageParams = new()
+                    {
+                        { "MessageData", messageData },
+                        { "IsInnerReply", false },
+                        { "LastMessage", last },
+                        { "Ghost", true }
+                    };
+
+                    <DynamicComponent Type="@messageData.GetComponentType()" Parameters="messageParams" @key='messageData'></DynamicComponent>
+
+                    last = messageData;
+                }
+            }
+        }
+    </CascadingValue>
+    
+    <div id="anchor" style="overflow-anchor: auto; height: 1px;"></div>
+</ContextMenuTrigger>
 
 @code {
     [CascadingParameter]
@@ -74,8 +73,12 @@
 
     public string state = "none";
 
+    private string _id;
+
     protected override void OnInitialized()
     {
+        _id = "innerwindow-" + Window.Id;
+        
         RenderedMessages = new List<MessageComponent>();
         DisplayedMessageData = new List<ClientMessageWrapper>();
         QueuedMessageData = new List<ClientMessageWrapper>();
