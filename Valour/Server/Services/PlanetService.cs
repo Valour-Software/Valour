@@ -85,7 +85,8 @@ public class PlanetService
     /// Returns discoverable planets
     /// </summary>
     public async Task<List<Planet>> GetDiscoverablesAsync() =>
-        await _db.Planets.Where(x => x.Discoverable && x.Public)
+        await _db.Planets.Where(x => x.Discoverable && x.Public 
+                                                    && (!x.Nsfw)) // do not allow weirdos in discovery
                          .OrderByDescending(x => x.Members.Count())
                          .Select(x => x.ToModel())       
                          .ToListAsync();

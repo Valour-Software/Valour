@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS planets (
     discoverable BOOLEAN NOT NULL DEFAULT true,
     default_role_id BIGINT,
     primary_channel_id BIGINT,
+    nsfw BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT fk_default_role FOREIGN KEY(default_role_id) REFERENCES planet_roles(id),
     CONSTRAINT fk_primary_channel FOREIGN KEY(primary_channel_id) REFERENCES planet_chat_channels(id)

@@ -66,6 +66,10 @@
                     @(_notificationCount > 9 ? "+" : _notificationCount)
                 </div>
             }
+            @if (Planet.Nsfw)
+            {
+                <div class="noti nsfw">NSFW</div>
+            }
             <div class="rect-slide">
                 <div class="text-wrapper">
                     <div class="text-flex">

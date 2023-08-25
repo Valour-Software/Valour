@@ -63,6 +63,11 @@ public class Planet : LiveModel, ISharedPlanet
     /// If this and public are true, a planet will appear on the discovery tab
     /// </summary>
     public bool Discoverable { get; set; }
+    
+    /// <summary>
+    /// True if you probably shouldn't be on this server at work owo
+    /// </summary>
+    public bool Nsfw { get; set; }
 
     public Planet()
     {

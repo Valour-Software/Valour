@@ -47,5 +47,10 @@ public interface ISharedPlanet : ISharedItem
     /// If this and public are true, a planet will appear on the discovery tab
     /// </summary>
     bool Discoverable { get; set; }
+    
+    /// <summary>
+    /// True if you probably shouldn't be on this server at work owo
+    /// </summary>
+    bool Nsfw { get; set; }
 }
 

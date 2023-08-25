@@ -39,4 +39,9 @@ public class Planet : Item, ISharedPlanet
     /// If the server should show up on the discovery tab
     /// </summary>
     public bool Discoverable { get; set; }
+    
+    /// <summary>
+    /// True if you probably shouldn't be on this server at work owo
+    /// </summary>
+    public bool Nsfw { get; set; }
 }

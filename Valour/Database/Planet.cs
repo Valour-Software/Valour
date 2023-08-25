@@ -74,6 +74,12 @@ public class Planet : Item, ISharedPlanet
     /// </summary>
     [Column("is_deleted")]
     public bool IsDeleted { get; set; }
+    
+    /// <summary>
+    /// True if you probably shouldn't be on this server at work owo
+    /// </summary>
+    [Column("nsfw")]
+    public bool Nsfw { get; set; }
 
     // Only to fulfill contract
     [NotMapped]
