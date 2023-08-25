@@ -1,11 +1,13 @@
 @inherits AttachmentComponent
 @inject IJSRuntime JsRuntime
 
-<div class="reddit-embed" id="@_id">
-</div>
+<span style="display: block; height: @(Attachment.Height)px; max-height: @(Attachment.Height)px; min-height: @(Attachment.Height)px; overflow:  hidden;">
+    <div class="reddit-embed" id="@_id">
+    </div>
+</span>
 
 @code {
-    private string _id = "reddit-embed-" + Guid.NewGuid().ToString();
+    private readonly string _id = "reddit-embed-" + Guid.NewGuid().ToString();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

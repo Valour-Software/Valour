@@ -68,7 +68,9 @@ public static class ProxyHandler
                         var oembedData =
                             await Http.GetFromJsonAsync<OembedData>(route);
 
+                        attachment.Location = url;
                         attachment.Html = oembedData.Html;
+                        attachment.Height = oembedData.Height ?? 240;
 
                         return attachment;
                     }
