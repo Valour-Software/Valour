@@ -31,8 +31,7 @@ export function inputPasteHandler(e, input) {
     let text = (e.originalEvent || e).clipboardData.getData('text/plain');
 
     // We need to put the pasted text in a span to keep the newlines
-    text = `<span>`+text+`</span>`
-    document.execCommand("insertHTML", false, text);
+    document.execCommand("insertText", false, text);
 
     input.currentWord = getCurrentWord(0);
 }

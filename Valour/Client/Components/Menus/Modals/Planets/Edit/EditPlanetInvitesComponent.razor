@@ -32,6 +32,20 @@
     {
         <span class="text-info mb-4">@discoverableInfoSpan</span>
     }
+    
+    <p>Not Safe For Work</p>
+    <p>
+        <input type="checkbox" @oninput="OnCheckNsfw" checked="@discoverableValue" /> &nbsp; Servers containing mature content are required to be marked as NSFW. These servers will not show on discovery.
+    </p>
+    @if (!string.IsNullOrWhiteSpace(nsfwErrorSpan))
+    {
+        <span class="text-danger mb-4">@nsfwErrorSpan</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(nsfwInfoSpan))
+    {
+        <span class="text-info mb-4">@nsfwInfoSpan</span>
+    }
+    
     <div class="invite-table">
         <div class="invite-tab-holder mt-4">
             <div class="@linksButtonStyle" @onclick="(async () => await OnSwitchTab(true))">Invite Links</div>
@@ -74,6 +88,11 @@
 
     public string discoverableInfoSpan;
     public string discoverableErrorSpan;
+    
+    public bool nsfwValue;
+    
+    public string nsfwInfoSpan;
+    public string nsfwErrorSpan;
 
     public bool linksChosen = true;
 
@@ -105,6 +124,7 @@
     {
         publicValue = Planet.Public;
         discoverableValue = Planet.Discoverable;
+        nsfwValue = Planet.Nsfw;
 
         StateHasChanged();
 
@@ -165,6 +185,26 @@
         {
             discoverableValue = !Planet.Discoverable;
             discoverableErrorSpan = "Failed to update. Try again?";
+        }
+
+        StateHasChanged();
+    }
+    
+    public async Task OnCheckNsfw()
+    {
+        nsfwValue = !nsfwValue;
+
+        Planet.Nsfw = nsfwValue;
+        var result = await Planet.UpdateAsync(Planet);
+
+        if (result.Success)
+        {
+            nsfwInfoSpan = "Updated successfully.";
+        }
+        else
+        {
+            nsfwValue = !Planet.Nsfw;
+            nsfwErrorSpan = "Failed to update. Try again?";
         }
 
         StateHasChanged();

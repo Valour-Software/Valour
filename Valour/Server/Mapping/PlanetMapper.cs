@@ -16,6 +16,7 @@ public static class PlanetMapper
             Description = planet.Description,
             Public = planet.Public,
             Discoverable = planet.Discoverable,
+            Nsfw = planet.Nsfw,
         };
     }
     
@@ -33,6 +34,7 @@ public static class PlanetMapper
             Description = planet.Description,
             Public = planet.Public,
             Discoverable = planet.Discoverable,
+            Nsfw = planet.Nsfw,
         };
     }
 }

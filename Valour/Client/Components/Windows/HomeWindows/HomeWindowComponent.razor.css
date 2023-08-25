@@ -119,6 +119,21 @@
     z-index: 4;
 }
 
+::deep .noti.nsfw {
+    background-color: red;
+    width: auto;
+    border-radius: 14px;
+    padding-left: 4px;
+    padding-right: 4px;
+    font-size: 12px;
+    line-height: 19px;
+    top: auto;
+    bottom: 0;
+    left: 0px;
+    top: 0;
+}
+
+
 ::deep .rect-slide {
     position: absolute;
     width: 100%;
