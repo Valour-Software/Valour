@@ -10,18 +10,10 @@
 }
 
 .image-attachment-wrapper img {
-    object-fit: contain;
-    object-position: left;
-    margin-left: 0px;
-    margin-right: 0px;
-    cursor: pointer;
-    height: max-content;
-    width: max-content;
 }
 
 .image-attachment-wrapper img::before {
-    background-color: grey;
-    border: none;
-    display: none;
-    overflow: hidden;
+}
+
+.attached-image {
 }

@@ -10,7 +10,7 @@
     <div class="attachment-holder">
         @switch (Attachment.Type){
             case MessageAttachmentType.Image:
-                <ImageAttachmentComponent Attachment="Attachment" Clickable="false" MaxSize="1000" />
+                <ImageAttachmentComponent Attachment="Attachment" Clickable="false" MaxSize="1000" DoAspect="false" />
                 break;
             case MessageAttachmentType.Video:
                 <VideoAttachmentComponent Attachment="Attachment" />
