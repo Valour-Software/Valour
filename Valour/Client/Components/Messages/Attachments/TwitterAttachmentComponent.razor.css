@@ -1,2 +1,4 @@
 .twitter-embed {
+    height: 400px;
+    overflow-y: auto;
 }

@@ -6,13 +6,20 @@
 </div>
 
 @code {
+    
+    [Parameter]
+    public bool DoAspect { get; set; } = true;
+    
     private int _width;
     private int _height;
     private bool _widthLarger;
 
     private string GetWrapperStyle()
     {
-        return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%); width: {_width}px";
+        if (DoAspect)
+            return $"aspect-ratio: {_width} / {_height}; max-width: min({MaxSize}px, 100%); width: {_width}px";
+
+        return $"max-width: min({MaxSize}px, 100%); width: {_width}px";
     }
 
     private string GetImageStyle()

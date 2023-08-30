@@ -105,9 +105,13 @@ public static class ProxyHandler
                         var query = HttpUtility.ParseQueryString(uri.Query);
                         attachment.Location = $"https://www.youtube.com/embed/{query["v"]}";
                     }
-                    else
+                    else if (url.Contains("/embed/"))
                     {
                         attachment.Location = $"https://www.youtube.com/embed/{uri.Segments.Last()}";
+                    }
+                    else // Not a video
+                    {
+                        return null;
                     }
 
                     break;
