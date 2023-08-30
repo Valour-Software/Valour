@@ -39,6 +39,18 @@ public class UserService
         _nodeService = nodeService;
     }
 
+    public Task<int> GetUserCountAsync()
+        => _db.Users.CountAsync();
+
+    public async Task<IEnumerable<string>> GetNewUsersAsync(int count)
+    {
+        if (count > 50)
+            count = 50;
+        
+        var users = await _db.Users.OrderByDescending(x => x.Id).Take(count).Select(x => x.Name).ToListAsync();
+        return users;
+    }
+    
     /// <summary>
     /// Returns the user for the given id
     /// </summary>

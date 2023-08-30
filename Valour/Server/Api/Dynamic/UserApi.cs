@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using Valour.Server.Services;
@@ -9,6 +10,19 @@ namespace Valour.Server.Api.Dynamic;
 
 public class UserApi
 {
+    [ValourRoute(HttpVerbs.Get, "api/users/count")]
+    public static async Task<IResult> GetCountRouteAsync(
+        UserService userService)
+    {
+        return Results.Json(await userService.GetUserCountAsync());
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/users/new/{count}")]
+    public static async Task<IResult> GetNewAsync(int count, UserService userService)
+    {
+        return Results.Json(await userService.GetNewUsersAsync(count));
+    }
+    
     [ValourRoute(HttpVerbs.Get, "api/users/ping")]
     [UserRequired]
     public static async Task PingOnlineAsync(
