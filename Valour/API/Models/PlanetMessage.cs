@@ -11,6 +11,7 @@ using Valour.Shared.Models;
 using System.ComponentModel.DataAnnotations.Schema;
 using Valour.Api.Models.Messages.Embeds;
 using Valour.Api.Nodes;
+using Valour.Api.Utility;
 
 namespace Valour.Api.Models;
 
@@ -146,7 +147,9 @@ public class PlanetMessage : Message, IPlanetModel, ISharedPlanetMessage
         => await (await GetAuthorMemberAsync()).GetRoleColorAsync();
 
     public override async ValueTask<string> GetAuthorImageUrlAsync()
-        => await (await GetAuthorMemberAsync()).GetPfpUrlAsync();
+    {
+        return PfpUtility.GetPfpUrl(await GetAuthorUserAsync(), await GetAuthorMemberAsync());
+    }
 
     public override async ValueTask<Message> GetReplyMessageAsync()
     {

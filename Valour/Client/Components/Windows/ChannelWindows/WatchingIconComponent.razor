@@ -1,25 +1,22 @@
-﻿<BasicTooltipComponent Title="@Name">
-    <img id="watching-icon-@Name" style="@style" class="watching-icon" src='@IconUrl' @onerror="OnIconError" />
+﻿<BasicTooltipComponent Title="@User.Name">
+    <img alt="@User.Name is watching" id="watching-icon-@User.Name" class="watching-icon" src='@_pfpUrl' @onerror="OnIconError" />
 </BasicTooltipComponent>
 
 @code {
-
+    
     [Parameter]
-    public string IconUrl { get; set; }
+    public User User { get; set; }
 
-    [Parameter]
-    public string Name { get; set; }
+    private string _pfpUrl;
 
-    public string style;
-
-    protected void OnIconError()
+    protected override void OnInitialized()
     {
-        IconUrl = "_content/Valour.Client/icon-512.png";
+        _pfpUrl = PfpUtility.GetPfpUrl(User);
+    }
 
-        int r = Random.Shared.Next(24) * 15;
-
-        style = $"filter: hue-rotate({r}deg) saturate(2)";
-
+    private void OnIconError()
+    {
+        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
         StateHasChanged();
     }
 }

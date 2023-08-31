@@ -173,7 +173,7 @@
 
     public string nameTag = "Default";
 
-    public string pfpurl = "_content/Valour.Client/icon-512.png";
+    public string pfpurl = "";
 
     public string name = "User not Found";
 
@@ -469,12 +469,9 @@
         }
     }
 
-    protected async Task OnPfpError()
+    private void OnPfpError()
     {
-        pfpurl = "_content/Valour.Client/icon-512.png";
-
-        Console.WriteLine("pfp error caught");
-
+        pfpurl = PfpUtility.GetFailedPfpUrl(User);
         ReRender();
     }
 

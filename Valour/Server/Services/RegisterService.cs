@@ -122,6 +122,8 @@ public class RegisterService
                 Compliance = true, // All new users should be compliant
             };
 
+            user.PfpUrl = $"_content/Valour.Client/media/user-icons/icon-{user.Id % 5}.png";
+
             _db.Users.Add(user.ToDatabase());
             await _db.SaveChangesAsync();
 

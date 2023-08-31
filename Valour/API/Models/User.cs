@@ -145,5 +145,11 @@ public class User : LiveModel, ISharedUser
 
     public async Task<TaskResult<UserFriendData>> GetFriendDataAsync()
         => await ValourClient.PrimaryNode.GetJsonAsync<UserFriendData>($"api/users/{Id}/frienddata");
+
+    public string GetFailedPfpUrl()
+    {
+        int var = (int)(Id % 5);
+        return "_content/Valour.Client/media/user-icons/icon-" + var + ".png";
+    }
 }
 

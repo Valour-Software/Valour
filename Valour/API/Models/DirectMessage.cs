@@ -1,5 +1,6 @@
 ﻿using Valour.Api.Client;
 using Valour.Api.Nodes;
+using Valour.Api.Utility;
 using Valour.Shared;
 using Valour.Shared.Models;
 
@@ -54,8 +55,11 @@ public class DirectMessage : Message, ISharedDirectMessage
 
         return "#ffffff";
     }
-    public override async ValueTask<string> GetAuthorImageUrlAsync() =>
-        (await GetAuthorUserAsync()).PfpUrl;
+
+    public override async ValueTask<string> GetAuthorImageUrlAsync()
+    {
+        return PfpUtility.GetPfpUrl(await GetAuthorUserAsync());
+    }
 
     public override async ValueTask<string> GetAuthorNameAsync() =>
         (await GetAuthorUserAsync()).Name;

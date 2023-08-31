@@ -5,7 +5,7 @@
 {
     <div class="user-info" style="@Style">
         <div class="left-block">
-            <img alt="user not found" class="pfp" src="_content/Valour.Client/media/logo/logo-256.png">
+            <img alt="user not found" class="pfp" src="@_pfpUrl">
             <div class="name-status">
                 <div class="name-tag">
                     <p class="username" style="color: @_roleColor">Not Found</p>
@@ -76,13 +76,12 @@
     private string _name = DefaultName;
     private string _userTag;
     private string _roleColor = DefaultRoleColor;
-    private string _pfpUrl = DefaultPfp;
+    private string _pfpUrl;
 
     private string _statusClass = "offline";
     private string _statusText = "";
 
     // Defaults
-    const string DefaultPfp = "_content/Valour.Client/icon-512.png";
     const string DefaultRoleColor = "#fff";
     const string DefaultName = "Unknown User";
 
@@ -167,7 +166,7 @@
 
     private void CalculatePfp()
     {
-        _pfpUrl = Member?.MemberPfp ?? User?.PfpUrl ?? DefaultPfp;
+        _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
     }
 
     private void CalculateStatus()
@@ -267,7 +266,7 @@
 
     private void OnPfpError()
     {
-        _pfpUrl = DefaultPfp;
+        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
         StateHasChanged();
     }
     

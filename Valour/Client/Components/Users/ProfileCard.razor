@@ -8,7 +8,7 @@
                 <span class="card-bg" style="@CardBackground"></span>
                 <div class="inner-card">
                     <div class="top-section">
-                        <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl"/>
+                        <img class="pfp" alt="@_name's profile picture" src="@_pfpUrl" @onerror="OnPfpError"/>
                         <div class="online-bubble @_statusClass"></div>
                         <div class="names">
                             <p class="nickname">@_name</p>
@@ -79,15 +79,14 @@
         _status = User.Status;
         _statusClass = User.UserState.CssClassName;
 
-        if (Member is not null)
-        {
-            _pfpUrl = await Member.GetPfpUrlAsync();
-        }
-        else
-        {
-            _pfpUrl = User.PfpUrl;
-        }
+        _pfpUrl = PfpUtility.GetPfpUrl(User, Member);
         
+        StateHasChanged();
+    }
+
+    private void OnPfpError()
+    {
+        _pfpUrl = PfpUtility.GetFailedPfpUrl(User);
         StateHasChanged();
     }
 }
