@@ -7,13 +7,9 @@
         <p class="watching-title">Watching:</p>
         
         <div class="icons">
-            @for (int i = 0; i < DisplayData.Count(); i++)
+            @foreach (var user in DisplayData)
             {
-                var ii = i;
-                var icon = DisplayData[ii].icon;
-                var name = DisplayData[ii].name;
-
-                <WatchingIconComponent @key='name' IconUrl="@icon" Name="@name" />
+                <WatchingIconComponent @key='@user.Id' User="@user" />
             }
 
             @{
@@ -42,7 +38,7 @@
     /// <summary>
     /// Icons to be displayed
     /// </summary>
-    public List<(string icon, string name)> DisplayData { get; set; }
+    public List<User> DisplayData { get; set; }
 
     /// <summary>
     /// The total number of watching users
@@ -90,7 +86,10 @@
         foreach (var userId in update.UserIds.Take(10))
         {
             var user = await User.FindAsync(userId);
-            DisplayData.Add((user.PfpUrl, user.Name));
+            if (user is not null)
+            {
+                DisplayData.Add(user);
+            }
         }
 
         TotalCount = update.UserIds.Count();
