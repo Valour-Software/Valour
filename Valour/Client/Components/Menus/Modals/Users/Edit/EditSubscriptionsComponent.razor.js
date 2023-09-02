@@ -1,3 +1,8 @@
+// TESTING
+// const clientId = 'AX0dNbrYT13_oxTH9_AkrKVvz8JOy3bgQdjeBXIl0kXFyuSZOVsh1LYDZyNS_-kc_m-z4gKBBJvywooh';
+// LIVE
+const clientId = 'Abz1FE0IdJu6zeioiad3EozUUnX31zjeEOl5SXJ6vck59Q_bRMffJdSG55aZHpNUFivVwDpLu3ZKuDPp';
+
 let paypalScript = null;
 let purchaseChoice = null;
 let baseUrl = null;
@@ -23,7 +28,7 @@ export function setupPaypal(dn, url, id, t, n) {
         if (!paypalScript) {
             paypalScript = document.createElement('script');
             paypalScript.id = 'paypal-script';
-            paypalScript.src = 'https://www.paypal.com/sdk/js?client-id=AX0dNbrYT13_oxTH9_AkrKVvz8JOy3bgQdjeBXIl0kXFyuSZOVsh1LYDZyNS_-kc_m-z4gKBBJvywooh&currency=USD';
+            paypalScript.src = 'https://www.paypal.com/sdk/js?client-id=' + clientId + '&currency=USD';
             
             const parent = document.getElementById(id);
             parent.appendChild(paypalScript);
