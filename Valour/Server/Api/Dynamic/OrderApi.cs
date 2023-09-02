@@ -397,7 +397,7 @@ public class OrderApi
             }
         }
 
-        return ValourResult.Ok("Success! Transaction id: " + idObj.Id);
+        return ValourResult.Ok("Success! Transaction id: " + captureId);
     }
 
 }
