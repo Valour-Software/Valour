@@ -4,81 +4,205 @@
 <h5 class="subtitle">SUPPORT VALOUR AND GET PERKS!</h5>
 
 <section class="mt-4">
-    @if (_selected is null)
+    
+    @if (_page == "VCPLANS")
     {
-        <div class="outer-sub-card" @onclick="() => SetSelected(UserSubscriptionTypes.Stargazer)">
-            <div class="upper">
-                <img alt="Stargazer package logo" class="sub-card-img" src="_content/Valour.Client/media/subscriptions/stargazer-128.jpg"/>
+        <div class="outer-sub-card" @onclick="async () => await OnClickBuyCredits(500)">
+            <div class="upper small">
+                <img alt="Stargazer package logo" class="sub-card-img small" src="_content/Valour.Client/media/subscriptions/500-coins-256.jpg"/>
                 <div class="sub-card-info">
                     <div class="title-bar">
                         <p class="subtitle">
-                            STARGAZER
+                            500 VC
                         </p>
                         <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
-                            @(ValourClient.Self.SubscriptionType == "STARGAZER" ? "You Have This!" : "400VC / mo")
+                            ONLY $5!
                         </p>
                     </div>
                     <p class="sub-card-desc">
-                        Support Valour! Base package with amazing perks and value!
+                        $1 / 100VC! Enough for Stargazer, plus a bit extra!
                     </p>
                 </div>
             </div>
-            <div class="lower">
-                <p>Perks include:</p>
-                <div class="lower-split">
-                    <ul>
-                        <li>Profile gradient borders!</li>
-                        <li>Profile animations!</li>
-                        <li>Stargazer badge!</li>
-                    </ul>
-                    <ul>
-                        <li>Raised file limits!</li>
-                        <li>More coming soon!</li>
-                    </ul>
+        </div>
+        
+        <br/>
+        
+        <div class="outer-sub-card" @onclick="async () => await OnClickBuyCredits(1000)">
+            <div class="upper small">
+                <img alt="Stargazer package logo" class="sub-card-img small" src="_content/Valour.Client/media/subscriptions/1000-coins-256.jpg"/>
+                <div class="sub-card-info">
+                    <div class="title-bar">
+                        <p class="subtitle">
+                            1000 VC
+                        </p>
+                        <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
+                            JUST $9!
+                        </p>
+                    </div>
+                    <p class="sub-card-desc">
+                        $0.90 / 100VC! Feel like a king with a nice chunk of VC! Get a nice 10% off.
+                    </p>
                 </div>
             </div>
         </div>
+        
+        <br/>
+        
+        <div class="outer-sub-card" @onclick="async () => await OnClickBuyCredits(2000)">
+            <div class="upper small">
+                <img alt="Stargazer package logo" class="sub-card-img small" src="_content/Valour.Client/media/subscriptions/2000-coins-256.jpg"/>
+                <div class="sub-card-info">
+                    <div class="title-bar">
+                        <p class="subtitle">
+                            2000 VC
+                        </p>
+                        <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
+                            MAX SAVINGS: $15!
+                        </p>
+                    </div>
+                    <p class="sub-card-desc">
+                        $0.75 / 100VC! Use Valour in style! Get an awesome 25% off.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <button class="v-btn mt-4" @onclick="@(() => SetPage("SUBSCRIPTIONS"))">Go back</button>
+    }
+    else if (_page == "VCBUY")
+    {
+        <h3 style="color: var(--v-purple);">Buying: @_buyingAmount Valour Credits</h3>
+        <br />
+        <div id="paypal-button-container"></div>
+        
+        <button class="v-btn mt-4" @onclick="@(() => SetPage("VCPLANS"))">Go back</button>
+    }
+    else if (_page == "PAYPALRESULT")
+    {
+        <h3 style="color: var(--v-purple);">@_paypalResultTitle</h3>
+        <br />
+        <p>@_paypalResultMessage</p>
+        
+        <button class="v-btn mt-4" @onclick="@(() => SetPage("SUBSCRIPTIONS"))">Back to Subscriptions</button>
     }
     else
     {
-        @if (_activeSub is not null && _activeSub.Type == _selected.Name)
+        if (_selected is null)
         {
-            if (_activeSub.Cancelled)
-            {
-                <h6>You have cancelled this subscription!</h6>
-                <p>Would you like to un-cancel it?</p>
-                <button class="v-btn sub-button mt-4" @onclick="() => OnClickSubscribe(_selected)">Subscribe Now</button>
-                <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
-            }
-            else
-            {
-                <h6>You already have this! Congrats!</h6>
-                <button class="v-btn mt-4" @onclick="OnClickUnsubscribe">Cancel Subscription</button>
-                <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
-            }
+            <div class="outer-sub-card" @onclick="() => SetSelected(UserSubscriptionTypes.Stargazer)">
+                <div class="upper">
+                    <img alt="Stargazer package logo" class="sub-card-img" src="_content/Valour.Client/media/subscriptions/stargazer-128.jpg"/>
+                    <div class="sub-card-info">
+                        <div class="title-bar">
+                            <p class="subtitle">
+                                STARGAZER
+                            </p>
+                            <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
+                                @(ValourClient.Self.SubscriptionType == "STARGAZER" ? "You Have This!" : "400VC / mo")
+                            </p>
+                        </div>
+                        <p class="sub-card-desc">
+                            Support Valour! Base package with amazing perks and value!
+                        </p>
+                    </div>
+                </div>
+                <div class="lower">
+                    <p>Perks include:</p>
+                    <div class="lower-split">
+                        <ul>
+                            <li>Profile gradient borders!</li>
+                            <li>Profile animations!</li>
+                            <li>Stargazer badge!</li>
+                        </ul>
+                        <ul>
+                            <li>Raised file limits!</li>
+                            <li>More coming soon!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <br/>
+
+            <div class="outer-sub-card" @onclick="OnSelectVC">
+                <div class="upper">
+                    <img alt="Stargazer package logo" class="sub-card-img" src="_content/Valour.Client/media/subscriptions/coins-128.jpg"/>
+                    <div class="sub-card-info">
+                        <div class="title-bar">
+                            <p class="subtitle">
+                                BUY VALOUR CREDITS
+                            </p>
+                            <p class="subtitle" style="color: var(--v-purple); opacity: 1;">
+                                Use, share, trade!
+                            </p>
+                        </div>
+                        <p class="sub-card-desc">
+                            Valour Credits can be used to support your favorite communities, get subscription perks, and more!
+                        </p>
+                    </div>
+                </div>
+                <div class="lower">
+                    <p>Perks include:</p>
+                    <div class="lower-split">
+                        <ul>
+                            <li>Get subscriptions!</li>
+                            <li>Send to your friends!</li>
+                            <li>Stargazer badge!</li>
+                        </ul>
+                        <ul>
+                            <li>Use in your communities!</li>
+                            <li>API integrations!</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <br/>
         }
         else
         {
-            <h6>Subscribe to @(_selected.Name)?</h6>
-            <p>Your Valour account will be charged <span class="credits">@(_selected.Price)VC</span> per month. Based on your current subscriptions, this will charge you <span class="credits">@(_dueNow)VC initially.</span></p>
-                                                                                                
-            @if (_globalAccount.BalanceValue < _selected.Price)
+            @if (_activeSub is not null && _activeSub.Type == _selected.Name)
             {
-                <h6>Your balance is too low! You have <span class="credits">@(_globalAccount.BalanceValue)VC</span></h6>
-                <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+                if (_activeSub.Cancelled)
+                {
+                    <h6>You have cancelled this subscription!</h6>
+                    <p>Would you like to un-cancel it?</p>
+                    <button class="v-btn sub-button mt-4" @onclick="() => OnClickSubscribe(_selected)">Subscribe Now</button>
+                    <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+                }
+                else
+                {
+                    <h6>You already have this! Congrats!</h6>
+                    <button class="v-btn mt-4" @onclick="OnClickUnsubscribe">Cancel Subscription</button>
+                    <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+                }
             }
             else
             {
-                <button class="v-btn sub-button mt-4" @onclick="() => OnClickSubscribe(_selected)">Subscribe Now</button>
+                <h6>Subscribe to @(_selected.Name)?</h6>
+                <p>Your Valour account will be charged <span class="credits">@(_selected.Price)VC</span> per month. Based on your current subscriptions, this will charge you <span class="credits">@(_dueNow)VC initially.</span></p>
+
+                @if (_globalAccount.BalanceValue < _selected.Price)
+                {
+                    <h6>Your balance is too low! You have <span class="credits">@(_globalAccount.BalanceValue)VC</span></h6>
+                    <button class="v-btn mt-4" @onclick="OnClickBack">Go back</button>
+                }
+                else
+                {
+                    <button class="v-btn sub-button mt-4" @onclick="() => OnClickSubscribe(_selected)">Subscribe Now</button>
+                }
             }
-        }
-        
-        @if (!string.IsNullOrWhiteSpace(_errorSpan))
-        {
-            <span class="v-text-red mt-4">@_errorSpan</span>
+
+            @if (!string.IsNullOrWhiteSpace(_errorSpan))
+            {
+                <span class="v-text-red mt-4">@_errorSpan</span>
+            }
         }
     }
 </section>
+
+<div id="@_paypalElementId"></div>
 
 <div class="page-wrapper">
     <div class="top-confetti-container"></div>
@@ -91,12 +215,23 @@
     /// </summary>
     private IJSInProcessObjectReference _jsModule;
     
+    private DotNetObjectReference<EditSubscriptionsComponent> _dotNetRef;
+
     private UserSubscriptionType _selected = null;
     private EcoAccount _globalAccount = null;
     private UserSubscription _activeSub = null;
 
     private string _errorSpan = null;
     private decimal _dueNow = 0;
+
+    private bool _flagInitPaypal = false;
+    private string _paypalElementId = Guid.NewGuid().ToString();
+    private int _buyingAmount = 0;
+
+    private string _page = "SUBSCRIPTIONS";
+
+    private string _paypalResultTitle;
+    private string _paypalResultMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -118,7 +253,15 @@
     {
         if (firstRender)
         {
+            _dotNetRef = DotNetObjectReference.Create(this);
             _jsModule = await JsRuntime.InvokeAsync<IJSInProcessObjectReference>("import", "./_content/Valour.Client/Components/Menus/Modals/Users/Edit/EditSubscriptionsComponent.razor.js");
+            await _jsModule.InvokeVoidAsync("setupPaypal", _dotNetRef, ValourClient.BaseAddress, _paypalElementId, ValourClient.Token, ValourClient.PrimaryNode.Name);
+        }
+
+        if (_flagInitPaypal)
+        {
+            _flagInitPaypal = false;
+            await _jsModule.InvokeVoidAsync("showPaypal");
         }
     }
 
@@ -163,6 +306,49 @@
     private void OnClickBack()
     {
         _selected = null;
+        StateHasChanged();
+    }
+
+    private void OnSelectVC()
+    {
+        _page = "VCPLANS";
+        StateHasChanged();
+    }
+    
+    private async Task OnClickBuyCredits(int plan)
+    {
+        _page = "VCBUY";
+        _flagInitPaypal = true;
+        _buyingAmount = plan;
+        
+        await _jsModule.InvokeVoidAsync("setPurchaseChoice", "VC" + plan);
+        
+        StateHasChanged();
+    }
+
+    private void SetPage(string page)
+    {
+        _page = page;
+        StateHasChanged();
+    }
+
+    [JSInvokable("OnPaypalSuccess")]
+    public async Task OnPaypalSuccess(string details)
+    {
+        _page = "PAYPALRESULT";
+        _paypalResultTitle = "Thank you for your purchase!";
+        _paypalResultMessage = $"Your Valour Credits will be sent to your account promptly! {details}.";
+        
+        StateHasChanged();
+    }
+
+    [JSInvokable("OnPaypalFailure")]
+    public async Task OnPaypalFailure(string error)
+    {
+        _page = "PAYPALRESULT";
+        _paypalResultTitle = "Whoops! An error occurred!";
+        _paypalResultMessage = error;
+        
         StateHasChanged();
     }
 }

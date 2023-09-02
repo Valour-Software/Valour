@@ -113,6 +113,7 @@ namespace Valour.Server
                 new DynamicAPI<ReportApi>()                   .RegisterRoutes(app),
                 new DynamicAPI<UserProfileApi>()              .RegisterRoutes(app),
                 new DynamicAPI<SubscriptionApi>()             .RegisterRoutes(app),
+                new DynamicAPI<OrderApi>()                    .RegisterRoutes(app)
             };
 
             NodeAPI = new NodeAPI();
@@ -355,6 +356,7 @@ namespace Valour.Server
             builder.Configuration.GetSection("Vapid").Get<VapidConfig>();
             builder.Configuration.GetSection("Node").Get<NodeConfig>();
             builder.Configuration.GetSection("Redis").Get<RedisConfig>();
+            builder.Configuration.GetSection("Paypal").Get<PaypalConfig>();
             
             // Override with Kubernetes node details
             var nodeName = Environment.GetEnvironmentVariable("NODE_NAME");

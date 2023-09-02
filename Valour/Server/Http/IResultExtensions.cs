@@ -19,6 +19,23 @@ namespace Valour.Server.Http
                 await httpContext.Response.WriteAsync(_message);
             }
         }
+        
+        private struct RawJsonResult : IResult
+        {
+            private readonly string _data;
+
+            public RawJsonResult(string data)
+            {
+                _data = data;
+            }
+
+            public async Task ExecuteAsync(HttpContext httpContext)
+            {
+                httpContext.Response.StatusCode = 200;
+                httpContext.Response.Headers.ContentType = "application/json";
+                await httpContext.Response.WriteAsync(_data);
+            }
+        }
 
         private readonly struct NoTokenResult : IResult
         {
@@ -136,6 +153,7 @@ namespace Valour.Server.Http
             }
         }
 
+        public static IResult RawJson(string data) => new RawJsonResult(data);
         public static IResult Ok(string message) => new OkResult(message);
         public static IResult BadRequest(string reason) => new BadRequestResult(reason);
         public static IResult Problem(string reason) => new ProblemResult(reason);
