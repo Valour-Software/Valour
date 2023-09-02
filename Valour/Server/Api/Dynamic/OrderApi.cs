@@ -52,12 +52,51 @@ public class OrderApi
         
         [JsonPropertyName("reference_id")]
         public string ReferenceId { get; set; }
+        
+        [JsonPropertyName("application_context")]
+        public AppContext AppContext { get; set; }
     }
     
     public class PaypalPurchaseUnit
     {
         [JsonPropertyName("amount")]
         public PaypalAmount Amount { get; set; }
+        
+        [JsonPropertyName("items")]
+        public List<PaypalItem> Items { get; set; }
+    }
+    
+    public class PaypalItem
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+        
+        [JsonPropertyName("quantity")]
+        public string Quantity { get; set; }
+        
+        [JsonPropertyName("category")]
+        public string Category { get; set; }
+        
+        [JsonPropertyName("description")]
+        public string Description { get; set; }
+        
+        [JsonPropertyName("unit_amount")]
+        public PaypalBreakdownAmount UnitAmount { get; set; }
+    }
+    
+    public class PaypalBreakdown
+    {
+        [JsonPropertyName("item_total")]
+        public PaypalBreakdownAmount ItemTotal { get; set; }
+    }
+    
+    public class PaypalBreakdownAmount
+    {
+        [JsonPropertyName("currency_code")]
+        public string CurrencyCode { get; set; }
+        
+        [JsonPropertyName("value")]
+        public string Value { get; set; }
     }
     
     public class PaypalAmount
@@ -67,6 +106,9 @@ public class OrderApi
         
         [JsonPropertyName("value")]
         public string Value { get; set; }
+        
+        [JsonPropertyName("breakdown")]
+        public PaypalBreakdown Breakdown { get; set; }
     }
 
     public class IdObject
@@ -142,6 +184,12 @@ public class OrderApi
         public PaypalAmount Amount { get; set; }
     }
 
+    public class AppContext
+    {
+        [JsonPropertyName("shipping_preference")]
+        public string ShippingPreference { get; set; }
+    }
+
     public static class ValourOrderTypes
     {
         public static readonly PaypalPurchaseUnit VC500 = new()
@@ -149,7 +197,30 @@ public class OrderApi
             Amount = new PaypalAmount
             {
                 CurrencyCode = "USD",
-                Value = "5.00"
+                Value = "5.00",
+                Breakdown = new PaypalBreakdown()
+                {
+                    ItemTotal = new PaypalBreakdownAmount()
+                    {
+                        CurrencyCode = "USD",
+                        Value = "5.00"
+                    }
+                }
+            },
+            Items = new List<PaypalItem>()
+            {
+                new()
+                {
+                    Name = "500 Valour Credits",
+                    Quantity = "1",
+                    Category = "DIGITAL_GOODS",
+                    Description = "500 Valour Credits, for use on valour.gg",
+                    UnitAmount = new PaypalBreakdownAmount()
+                    {
+                        CurrencyCode = "USD",
+                        Value = "5.00"
+                    }
+                }
             }
         };
 
@@ -158,7 +229,30 @@ public class OrderApi
             Amount = new PaypalAmount
             {
                 CurrencyCode = "USD",
-                Value = "9.00"
+                Value = "9.00",
+                Breakdown = new PaypalBreakdown()
+                {
+                    ItemTotal = new PaypalBreakdownAmount()
+                    {
+                        CurrencyCode = "USD",
+                        Value = "9.00"
+                    }
+                }
+            },
+            Items = new List<PaypalItem>()
+            {
+                new()
+                {
+                    Name = "1000 Valour Credits",
+                    Quantity = "1",
+                    Category = "DIGITAL_GOODS",
+                    Description = "1000 Valour Credits, for use on valour.gg",
+                    UnitAmount =  new PaypalBreakdownAmount()
+                    {
+                        CurrencyCode = "USD",
+                        Value = "9.00"
+                    }
+                }
             }
         };
 
@@ -167,7 +261,30 @@ public class OrderApi
             Amount = new PaypalAmount
             {
                 CurrencyCode = "USD",
-                Value = "15.00"
+                Value = "15.00",
+                Breakdown = new PaypalBreakdown()
+                {
+                    ItemTotal = new PaypalBreakdownAmount()
+                    {
+                        CurrencyCode = "USD",
+                        Value = "15.00"
+                    }
+                }
+            },
+            Items = new List<PaypalItem>()
+            {
+                new()
+                {
+                    Name = "2000 Valour Credits",
+                    Quantity = "1",
+                    Category = "DIGITAL_GOODS",
+                    Description = "2000 Valour Credits, for use on valour.gg",
+                    UnitAmount = new PaypalBreakdownAmount()
+                    {
+                        CurrencyCode = "USD",
+                        Value = "15.00"
+                    }
+                }
             }
         };
     }   
@@ -266,6 +383,10 @@ public class OrderApi
             },
             ReferenceId = $"{userId}-{productId}-{DateTime.UtcNow}",
             SoftDescriptor = $"VALOUR - {productId}",
+            AppContext = new AppContext()
+            {
+                ShippingPreference = "NO_SHIPPING"
+            }
         };
         
         
@@ -275,12 +396,13 @@ public class OrderApi
         
         var response = await Http.SendAsync(request);
         
+        var stringContent = await response.Content.ReadAsStringAsync();
+        
         if (!response.IsSuccessStatusCode)
         {
             return ValourResult.Problem("An unexpected error occurred.");
         }
-
-        var stringContent = await response.Content.ReadAsStringAsync();
+        
         var idObj = JsonSerializer.Deserialize<IdObject>(stringContent);
         
         OrderIdsToType.Add(idObj.Id, productId);
