@@ -16,6 +16,10 @@
     border-radius: 16px 16px 0 0;
 }
 
+.upper.small {
+    border-radius: 16px;
+}
+
 .outer-sub-card .lower {
     padding: 16px;
 }
@@ -26,9 +30,14 @@
     border-radius: 16px 0 0 0;
 }
 
+.sub-card-img.small {
+    border-radius: 16px 0 0 16px;
+}
+
 .sub-card-info {
     padding: 16px;
     max-height: 128px;
+    width: 100%;
 }
 
 .sub-card-info .title-bar {
