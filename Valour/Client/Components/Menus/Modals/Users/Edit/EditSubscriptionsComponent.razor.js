@@ -46,7 +46,7 @@ export function showPaypal(){
     const FUNDING_SOURCES = [
         // EDIT FUNDING SOURCES
         paypal.FUNDING.PAYPAL,
-        paypal.FUNDING.VENMO,
+        // paypal.FUNDING.VENMO,
         paypal.FUNDING.CARD
     ];
     FUNDING_SOURCES.forEach(fundingSource => {
