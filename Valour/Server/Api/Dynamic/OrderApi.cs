@@ -11,7 +11,11 @@ namespace Valour.Server.Api.Dynamic;
 public class OrderApi
 {
     private static readonly HttpClient Http = new();
-    const string BaseUrl = "https://api-m.sandbox.paypal.com";
+    
+    // SANDBOX
+    //const string BaseUrl = "https://api-m.sandbox.paypal.com";
+    // LIVE
+    const string BaseUrl = "https://api-m.paypal.com";
 
     // json binding for paypal oauth response
     public class PaypalAccessToken
