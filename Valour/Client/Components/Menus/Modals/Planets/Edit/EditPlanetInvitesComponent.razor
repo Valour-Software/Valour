@@ -35,7 +35,7 @@
     
     <p>Not Safe For Work</p>
     <p>
-        <input type="checkbox" @oninput="OnCheckNsfw" checked="@discoverableValue" /> &nbsp; Servers containing mature content are required to be marked as NSFW. These servers will not show on discovery.
+        <input type="checkbox" @oninput="OnCheckNsfw" checked="@nsfwValue" /> &nbsp; Servers containing mature content are required to be marked as NSFW. These servers will not show on discovery.
     </p>
     @if (!string.IsNullOrWhiteSpace(nsfwErrorSpan))
     {
