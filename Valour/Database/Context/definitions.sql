@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS user_emails (
     email TEXT NOT NULL PRIMARY KEY,
     verified BOOLEAN NOT NULL DEFAULT false,
     user_id BIGINT NOT NULL,
+    birth_date TIMESTAMP NOT NULL,
+    locality INTEGER NOT NULL,
+    join_invite_code TEXT,
+    join_source TEXT,
 
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id)
 );

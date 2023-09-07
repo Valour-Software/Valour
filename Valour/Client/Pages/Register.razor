@@ -1,6 +1,9 @@
 ﻿@page "/Register"
+@page "/Register/I/{InviteCode}"
 
 @inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+@using Microsoft.AspNetCore.WebUtilities
 
 <body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
     <div class="popup-box">
@@ -65,6 +68,9 @@
 </body>
 
 @code {
+    
+    [Parameter]
+    public string InviteCode { get; set; }
 
     private bool _completed;
     
@@ -150,7 +156,8 @@
             Password = _password,
             Referrer = _referral,
             DateOfBirth = _dob,
-            Locality = locale
+            Locality = locale,
+            InviteCode = InviteCode,
         };
 
         var result = await ValourClient.PostAsync("api/users/register", _regRequest);

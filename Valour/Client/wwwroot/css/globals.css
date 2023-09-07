@@ -99,6 +99,21 @@
     cursor: pointer;
 }
 
+.v-btn.large {
+    display: block;
+    width: 100%;
+    padding: 8px;
+}
+
+.v-btn.blue {
+    background-color: #0d6efd;
+}
+
+.v-btn.center {
+    margin-left: auto;
+    margin-right: auto;
+}
+
 .v-btn:hover {
     background-color: #ffffff33;
 }

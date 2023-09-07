@@ -143,8 +143,9 @@ public class RegisterService
                 Email = request.Email,
                 Verified = false,
                 UserId = user.Id,
-                BirthDate = request.DateOfBirth,
-                Locality = request.Locality
+                BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
+                Locality = request.Locality,
+                JoinInviteCode = request.InviteCode,
             };
 
             _db.UserEmails.Add(userPrivateInfo.ToDatabase());

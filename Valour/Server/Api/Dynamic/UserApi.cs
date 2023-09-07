@@ -84,13 +84,29 @@ public class UserApi
     [ValourRoute(HttpVerbs.Get, "api/users/verify/{code}")]
     public static async Task<IResult> VerifyEmailRouteAsync(
         string code,
-        UserService userService)
+        UserService userService,
+        ValourDB db)
     {
+        var confirmCode = await db.EmailConfirmCodes.FirstOrDefaultAsync(x => x.Code == code);
+        if (confirmCode is null)
+            return ValourResult.NotFound("Invalid code.");
+        
+        
         var result = await userService.VerifyAsync(code);
         if (!result.Success)
             return ValourResult.Problem(result.Message);
+        
+        // Check for invite code
 
-        return Results.LocalRedirect("/FromVerify", true, false);
+        var query = "";
+
+        var userInfo = await db.UserEmails.FirstOrDefaultAsync(x => x.UserId == confirmCode.UserId);
+        if (!string.IsNullOrWhiteSpace(userInfo.JoinInviteCode))
+        {
+            query = $"?redirect=/i/{userInfo.JoinInviteCode}";
+        }
+        
+        return Results.LocalRedirect("/FromVerify" + query, true, false);
     }
 
     [ValourRoute(HttpVerbs.Post, "api/users/self/compliance/{birthDate}/{locality}")]

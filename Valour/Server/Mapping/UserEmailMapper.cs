@@ -11,7 +11,11 @@ public static class UserEmailMapper
         {
             Email = email.Email,
             Verified = email.Verified,
-            UserId = email.UserId
+            UserId = email.UserId,
+            BirthDate = email.BirthDate,
+            Locality = email.Locality,
+            JoinInviteCode = email.JoinInviteCode,
+            JoinSource = email.JoinSource
         };
     }
     
@@ -24,7 +28,11 @@ public static class UserEmailMapper
         {
             Email = privateInfo.Email,
             Verified = privateInfo.Verified,
-            UserId = privateInfo.UserId
+            UserId = privateInfo.UserId,
+            BirthDate = privateInfo.BirthDate,
+            Locality = privateInfo.Locality,
+            JoinInviteCode = privateInfo.JoinInviteCode,
+            JoinSource = privateInfo.JoinSource
         };
     }
 }

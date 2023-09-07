@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using Valour.Api.Client;
 using Valour.Api.Models;
 using Valour.Api.Models.Messages;
@@ -60,7 +61,7 @@ public class PlanetInvite : LiveModel, IPlanetModel, ISharedPlanetInvite
             if (cached is not null)
                 return cached;
         }
-
+        
         var invResult = (await ValourClient.PrimaryNode.GetJsonAsync<PlanetInvite>($"api/invites/{code}")).Data;
 
         if (invResult is not null)
@@ -87,5 +88,8 @@ public class PlanetInvite : LiveModel, IPlanetModel, ISharedPlanetInvite
     /// </summary>
     public async Task<string> GetPlanetIconUrl() =>
         (await Node.GetJsonAsync<string>($"{IdRoute}/planeticon")).Data ?? "";
+
+    public static async Task<InviteScreenModel> GetInviteScreenData(string code) =>
+        (await (await ValourClient.Http.GetAsync($"{ValourClient.BaseAddress}api/invites/{code}/screen")).Content.ReadFromJsonAsync<InviteScreenModel>());
 }
 

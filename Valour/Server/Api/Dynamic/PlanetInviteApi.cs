@@ -5,6 +5,7 @@ using Valour.Client.Pages;
 using Valour.Server.Database;
 using Valour.Server.Services;
 using Valour.Shared.Authorization;
+using Valour.Shared.Models;
 
 namespace Valour.Server.Api.Dynamic;
 
@@ -120,5 +121,26 @@ public class PlanetInviteApi
         var invite = await inviteService.GetAsync(inviteCode);
 
         return invite is null ? ValourResult.NotFound<PlanetInvite>() : Results.Json((await planetService.GetAsync(invite.PlanetId)).IconUrl);
+    }
+
+    [ValourRoute(HttpVerbs.Get, "api/invites/{inviteCode}/screen")]
+    public static async Task<IResult> GetInviteScreenData(
+        string inviteCode,
+        PlanetInviteService inviteService,
+        PlanetService planetService)
+    {
+        var invite = await inviteService.GetAsync(inviteCode);
+        if (invite is null)
+            return ValourResult.NotFound("Invite not found");
+
+        var planet = await planetService.GetAsync(invite.PlanetId);
+
+        return Results.Json(new InviteScreenModel()
+        {
+            PlanetId = planet.Id,
+            PlanetName = planet.Name,
+            PlanetImageUrl = planet.IconUrl,
+            Expired = invite.TimeExpires < DateTime.UtcNow
+        });
     }
 }

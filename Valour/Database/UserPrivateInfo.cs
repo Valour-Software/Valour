@@ -50,5 +50,19 @@ public class UserPrivateInfo : ISharedUserPrivateInfo
     /// </summary>
     [Column("locality")]
     public Locality? Locality { get; set; }
+    
+    /// <summary>
+    /// If the user joined valour from a specific invite code, it is stored here
+    /// </summary>
+    [Column("join_invite_code")]
+    public string JoinInviteCode { get; set; }
+    
+    /// <summary>
+    /// Used to identify where a user may have joined from - YouTube, Twitter, etc.
+    /// We need this because we don't use GA or any other tracking software to get
+    /// some idea of where our users are coming from.
+    /// </summary>
+    [Column("join_source")]
+    public string JoinSource { get; set; }
 }
 
