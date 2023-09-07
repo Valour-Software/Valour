@@ -31,8 +31,12 @@
                 </div>
                 <span id="result-span" class="text-info">@_resultSpan</span>
                 <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
-                <button class="v-btn blue large mt-4" @onclick="OnClickLogin">Log in</button>
-                <button class="v-btn blue large mt-2" @onclick="OnClickRegister">Register</button>
+                <button class="v-btn blue half mt-4" @onclick="OnClickLogin">Log in</button>
+                <div role="button" aria-describedby="register button" class="v-btn-grad-wrapper half mt-2" @onclick="OnClickRegister">
+                    <div class="v-btn half gradient">
+                        <p>Register</p>
+                    </div>
+                </div>
             </section>
         </div>
     </div>

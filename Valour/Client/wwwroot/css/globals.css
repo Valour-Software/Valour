@@ -105,6 +105,60 @@
     padding: 8px;
 }
 
+.v-btn.half {
+    display: inline-block;
+    width: 50%;
+    padding: 8px;
+}
+
+.v-btn-grad-wrapper {
+    width: 100%;
+    display: inline-block;
+    border-radius: 0.5em;
+    font-size: 1em;
+    padding: 0.2em;
+    background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
+    cursor: pointer;
+}
+
+.v-btn-grad-wrapper.half {
+    width: calc(50% - 4px);
+}
+
+.v-btn.gradient {
+    color: #fff;
+    border: none;
+    background-color: #111122;
+    transition: all 0.3s ease-in-out;
+    border-radius: 0.35em;
+    width: 100%;
+}
+
+.v-btn.gradient.large,
+.v-btn.gradient.half {
+    padding: 5px !important;
+}
+
+.v-btn-grad-wrapper:hover .v-btn.gradient {
+    background-color: transparent;
+}
+
+.v-btn-grad-wrapper p {
+    color: #111122;
+    text-decoration: none;
+    background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: all 0.3s ease-in-out;
+    margin: 0;
+    text-align: center;
+}
+
+.v-btn-grad-wrapper:hover p {
+    color: #111122;
+    -webkit-text-fill-color: #111122;
+}
+
 .v-btn.blue {
     background-color: #0d6efd;
 }
