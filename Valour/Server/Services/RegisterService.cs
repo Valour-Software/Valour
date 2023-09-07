@@ -146,6 +146,7 @@ public class RegisterService
                 BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
                 Locality = request.Locality,
                 JoinInviteCode = request.InviteCode,
+                JoinSource = request.Source
             };
 
             _db.UserEmails.Add(userPrivateInfo.ToDatabase());

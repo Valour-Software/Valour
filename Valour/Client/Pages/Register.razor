@@ -1,5 +1,6 @@
 ﻿@page "/Register"
 @page "/Register/I/{InviteCode}"
+@page "/Register/from/{Source}"
 
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavManager
@@ -71,6 +72,9 @@
     
     [Parameter]
     public string InviteCode { get; set; }
+    
+    [Parameter]
+    public string Source { get; set; }
 
     private bool _completed;
     
@@ -158,6 +162,7 @@
             DateOfBirth = _dob,
             Locality = locale,
             InviteCode = InviteCode,
+            Source = Source,
         };
 
         var result = await ValourClient.PostAsync("api/users/register", _regRequest);

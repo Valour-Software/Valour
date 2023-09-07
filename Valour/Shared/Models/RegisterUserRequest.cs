@@ -21,4 +21,5 @@ public class RegisterUserRequest
     public DateTime DateOfBirth { get; set; }
     public Locality Locality { get; set; }
     public string InviteCode { get; set; }
+    public string Source { get; set; }
 }
