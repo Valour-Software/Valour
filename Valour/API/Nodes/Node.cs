@@ -124,6 +124,7 @@ public class Node
         .WithUrl(address, options =>
         {
             options.Headers.Add("X-Server-Select", Name);
+            options.UseAcks = true;
         })
         .Build();
 

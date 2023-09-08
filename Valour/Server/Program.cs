@@ -213,7 +213,7 @@ namespace Valour.Server
 
             app.MapFallbackToFile("_content/Valour.Client/index.html");
 
-            app.MapHub<CoreHub>(CoreHub.HubUrl);
+            app.MapHub<CoreHub>(CoreHub.HubUrl, options => { options.AllowAcks = true; });
         }
 
         public static void ConfigureServices(WebApplicationBuilder builder)
