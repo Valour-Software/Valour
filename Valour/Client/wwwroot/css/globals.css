@@ -113,6 +113,12 @@
     padding: 8px;
 }
 
+.v-btn-wrapper {
+    display: flex;
+    flex-direction: row;
+    gap: 5px;
+}
+
 .v-btn-grad-wrapper {
     width: 100%;
     display: inline-block;
@@ -125,7 +131,8 @@
 }
 
 .v-btn-grad-wrapper.half {
-    width: calc(50% - 4px);
+    flex: 1;
+    width: unset;
 }
 
 .v-btn.gradient {

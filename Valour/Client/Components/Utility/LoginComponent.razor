@@ -31,13 +31,15 @@
                 </div>
                 <span id="result-span" class="text-info">@_resultSpan</span>
                 <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
-                <button class="v-btn blue half mt-4" @onclick="OnClickLogin">Log in</button>
-                <div role="button" aria-describedby="register button" class="v-btn-grad-wrapper half mt-2" @onclick="OnClickRegister">
-                    <div class="v-btn half gradient">
-                        <p>Register</p>
+                <div class="v-btn-wrapper mt-4">
+                    <button class="v-btn blue half" @onclick="OnClickLogin">Log in</button>
+                    <div role="button" aria-describedby="register button" class="v-btn-grad-wrapper half" @onclick="OnClickRegister">
+                        <div class="v-btn half gradient">
+                            <p>Register</p>
+                        </div>
+                        
+                        <img alt="hidden victor" class="hidden-victor" src="_content/Valour.Client/media/victor.svg" />
                     </div>
-                    
-                    <img alt="hidden victor" class="hidden-victor" src="_content/Valour.Client/media/victor.svg" />
                 </div>
             </section>
         </div>
