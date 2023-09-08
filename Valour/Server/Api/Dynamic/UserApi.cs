@@ -382,4 +382,12 @@ public class UserApi
 
         return Results.Json(await userService.GetTenorFavoritesAsync(userId));
     }
+
+    [ValourRoute(HttpVerbs.Get, "api/users/self/referrals")]
+    [UserRequired(UserPermissionsEnum.FullControl)]
+    public static async Task<IResult> GetReferralsAsync(UserService userService)
+    {
+        var userId = await userService.GetCurrentUserIdAsync();
+        return Results.Json(await userService.GetReferralDataAsync(userId));
+    }
 }

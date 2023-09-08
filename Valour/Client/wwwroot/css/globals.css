@@ -97,6 +97,8 @@
     display: block;
     outline: none !important;
     cursor: pointer;
+    
+    transition: background-color 0.2s ease-in-out;
 }
 
 .v-btn.large {
@@ -162,6 +164,10 @@
 
 .v-btn.blue {
     background-color: #0d6efd;
+}
+
+.v-btn:hover.blue {
+    background-color: #b386eb;
 }
 
 .v-btn.center {
