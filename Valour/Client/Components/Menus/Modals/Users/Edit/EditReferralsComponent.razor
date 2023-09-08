@@ -1,0 +1,35 @@
+@using System.Web
+
+<h3>Referrals</h3>
+<p class="subtitle">HELP GROW VALOUR</p>
+
+<br/>
+<h4>Your Referral Link:</h4>
+<a class="mt-2" href="@_link">@_link</a>
+<button class="v-btn mt-2">Copy Link</button>
+
+<table class="v-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Time</th>
+            <th>Reward</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var referral in _referrals)
+    {
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>   
+    }
+    </tbody>
+</table>
+
+
+@code {
+    private readonly string _link = "https://app.valour.gg/register/referral/" + HttpUtility.UrlEncode(ValourClient.Self.NameAndTag);
+    private List<Referral> _referrals;
+}

@@ -1,6 +1,6 @@
 ﻿<div class="toplevel-menu">
     <div class="toplevel-menu-top">
-        <img class="icon" src="@IconUrl"/>
+        <i class="bi bi-@Icon" />
         <p>@Name</p>
     </div>
     <CascadingValue Value="this">
@@ -34,13 +34,5 @@
     {
         bigMenuComponent.Update();
         StateHasChanged();
-    }
-
-    public string IconUrl
-    {
-        get
-        {
-            return "_content/Valour.Client/media/" + Icon;
-        }
     }
 }

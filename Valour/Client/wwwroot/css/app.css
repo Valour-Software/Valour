@@ -653,6 +653,26 @@ app {
     cursor: pointer;
 }
 
+.hidden-victor {
+    position: absolute;
+    z-index: -1;
+    top: -33px;
+    scale: 0.4;
+    left: 45px;
+    width: 100px;
+    height: 100px;
+    transition: all 0.2s ease-in-out;
+}
+
+.v-btn-grad-wrapper:hover .hidden-victor {
+    scale: 0.6;
+    top: -67px;
+    left: 66px;
+    rotate: 12deg;
+    width: 100px;
+    height: 100px;
+}
+
 #window-0:focus {
     outline: 2px solid var(--main5);
 }

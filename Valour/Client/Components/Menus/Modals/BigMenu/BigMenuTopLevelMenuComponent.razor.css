@@ -3,6 +3,8 @@
     border-radius: 5px;
     display: flex;
     height: 33px;
+    align-items: baseline;
+    padding-left: 8px;
 }
 
 .toplevel-menu-top .icon {

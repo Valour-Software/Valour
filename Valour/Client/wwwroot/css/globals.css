@@ -119,6 +119,7 @@
     padding: 0.2em;
     background: linear-gradient(to right, #00FFEE -31%, #FF00EE 192%);
     cursor: pointer;
+    position: relative;
 }
 
 .v-btn-grad-wrapper.half {

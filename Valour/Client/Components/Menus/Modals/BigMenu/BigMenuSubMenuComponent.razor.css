@@ -6,6 +6,8 @@
     margin-right: auto;
     display: flex;
     cursor: pointer;
+    align-items: baseline;
+    padding-left: 8px;
 }
 
 .sub-menu .icon {
