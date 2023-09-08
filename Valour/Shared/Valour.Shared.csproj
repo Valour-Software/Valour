@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <Company>Vooper Media LLC</Company>
+    <Company>Valour Software Inc.</Company>
     <Product>Valour Shared Library</Product>
     <Authors>The Valour Team</Authors>
     <Description>The Valour Shared Library contains shared resources for Valour and related projects, including object definitions and more.</Description>
@@ -11,7 +11,7 @@
     <PackageIcon>logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.2.3.0</Version>
+    <Version>0.2.4.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>
