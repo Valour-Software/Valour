@@ -10,7 +10,9 @@ public static class ReferralMapper
         return new Referral()
         {
             UserId = referral.UserId,
-            ReferrerId = referral.ReferrerId
+            ReferrerId = referral.ReferrerId,
+            Created = referral.Created,
+            Reward = referral.Reward
         };
     }
     
@@ -22,7 +24,9 @@ public static class ReferralMapper
         return new Valour.Database.Referral()
         {
             UserId = referral.UserId,
-            ReferrerId = referral.ReferrerId
+            ReferrerId = referral.ReferrerId,
+            Created = referral.Created,
+            Reward = referral.Reward
         };
     }
 }

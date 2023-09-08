@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>preview</LangVersion>
-    <Company>Vooper Media LLC</Company>
+    <Company>Valour Software Inc.</Company>
     <Product>Valour Api</Product>
     <Authors>The Valour Team</Authors>
     <Description>The Valour API contains the tools needed to run a client or bot on the Valour platform.</Description>
@@ -12,7 +12,7 @@
     <PackageIcon>logo.png</PackageIcon>
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
-    <Version>0.2.3.0</Version>
+    <Version>0.2.4.0</Version>
   </PropertyGroup>
 
   <PropertyGroup>

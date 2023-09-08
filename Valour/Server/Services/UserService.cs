@@ -1,8 +1,3 @@
-using IdGen;
-using Newtonsoft.Json.Linq;
-using SendGrid;
-using Valour.Database.Context;
-using Valour.Server.Database;
 using Valour.Server.Email;
 using Valour.Server.Users;
 using Valour.Shared;
@@ -641,5 +636,14 @@ public class UserService
             .ToListAsync();
         
         return channelIds;
+    }
+
+    public async Task<List<ReferralDataModel>> GetReferralDataAsync(long userId)
+    {
+        return await _db.Referrals.Include(x => x.User)
+            .OrderByDescending(x => x.Created)
+            .Where(x => x.ReferrerId == userId)
+            .Select(x => new ReferralDataModel(){ Name = $"{x.User.Name}#{x.User.Tag}", Time = x.Created, Reward = x.Reward })
+            .ToListAsync();
     }
 }

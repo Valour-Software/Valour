@@ -2,6 +2,7 @@
 @inject NavigationManager NavManager
 @inject ILocalStorageService LocalStorage
 @inject IJSRuntime JsRuntime
+@using Microsoft.AspNetCore.WebUtilities
 
 <body class="login-background">
     <div class="popup-box">
@@ -30,9 +31,13 @@
                 </div>
                 <span id="result-span" class="text-info">@_resultSpan</span>
                 <a class="mt-1 forgot-password" href="/ForgotPassword">Forgot my password</a>
-                <div class="form-group mt-4" style="display:inline-block">
-                    <button class="btn btn-primary mt-2" @onclick="OnClickLogin">Log in</button>
-                    <button class="btn btn-outline-primary mt-2" @onclick="OnClickRegister">Register</button>
+                <button class="v-btn blue half mt-4" @onclick="OnClickLogin">Log in</button>
+                <div role="button" aria-describedby="register button" class="v-btn-grad-wrapper half mt-2" @onclick="OnClickRegister">
+                    <div class="v-btn half gradient">
+                        <p>Register</p>
+                    </div>
+                    
+                    <img alt="hidden victor" class="hidden-victor" src="_content/Valour.Client/media/victor.svg" />
                 </div>
             </section>
         </div>
@@ -107,8 +112,17 @@
             _resultSpan = result.Message;
             await JsRuntime.SetCookieAsync("token", tokenResult.Data);
 
+            if (QueryHelpers.ParseQuery(NavManager.ToAbsoluteUri(NavManager.Uri).Query).TryGetValue("redirect", out var redirect))
+            {
+                NavManager.NavigateTo(redirect, true);
+                return;
+            }
+            
             if (FromVerified)
+            {
                 NavManager.NavigateTo("/", true);
+                return;
+            }
         }
         else {
             _passwordSpan = result.Message;

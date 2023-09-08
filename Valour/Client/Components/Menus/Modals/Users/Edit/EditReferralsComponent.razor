@@ -1,0 +1,58 @@
+@using System.Web
+@inject IJSRuntime JsRuntime
+
+<h3>Referrals</h3>
+<p class="subtitle">HELP GROW VALOUR</p>
+
+<br/>
+<h4>Your Referral Link:</h4>
+<a class="mt-2" href="@_link">@_link</a>
+<button class="v-btn mt-2" @onclick="@OnClickCopyLink">Copy Link</button>
+
+@if (_referrals is null)
+{
+    <p class="mt-4">Loading referrals...</p>
+}
+else
+{
+    <div style="max-height: 300px; overflow-y: auto; margin-bottom: 80px; margin-top: 24px">
+        <table class="v-table">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Time</th>
+                <th>Reward</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var referral in _referrals)
+            {
+                <tr>
+                    <td>@referral.Name</td>
+                    <td>@referral.Time.ToShortDateString() @referral.Time.ToShortTimeString()</td>
+                    <td>@referral.Reward</td>
+                </tr>   
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+
+@code {
+    private readonly string _link = "https://app.valour.gg/register/referral/" + HttpUtility.UrlEncode(ValourClient.Self.NameAndTag);
+    private List<ReferralDataModel> _referrals;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await ValourClient.GetReferralsAsync();
+        _referrals = result.Data;
+        StateHasChanged();
+    }
+    
+    private async Task OnClickCopyLink()
+    {
+        await JsRuntime.InvokeVoidAsync("clipboardCopy.copyText", _link);
+    }
+
+}
