@@ -80,7 +80,7 @@ public class RegisterService
         if (!passwordValid.Success)
             return new(false, passwordValid.Message);
 
-        Referral refer = null;
+        Valour.Database.Referral refer = null;
         if (request.Referrer != null && !string.IsNullOrWhiteSpace(request.Referrer))
         {
             request.Referrer = request.Referrer.Trim();
@@ -95,7 +95,7 @@ public class RegisterService
             // to prevent a streamer from wrecking the economy
             var reward = 50.0m / (1 + (month_refers / 5));
             
-            refer = new Referral()
+            refer = new Valour.Database.Referral()
             {
                 ReferrerId = referUser.Id,
                 Created = DateTime.UtcNow,
@@ -130,7 +130,7 @@ public class RegisterService
             if (refer != null)
             {
                 refer.UserId = user.Id;
-                await _db.Referrals.AddAsync(refer.ToDatabase());
+                await _db.Referrals.AddAsync(refer);
                 
                 var referAccount = await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == refer.ReferrerId && x.CurrencyId == ISharedCurrency.ValourCreditsId && x.AccountType == AccountType.User);
                 referAccount.BalanceValue += refer.Reward;
@@ -143,8 +143,10 @@ public class RegisterService
                 Email = request.Email,
                 Verified = false,
                 UserId = user.Id,
-                BirthDate = request.DateOfBirth,
-                Locality = request.Locality
+                BirthDate = DateTime.SpecifyKind(request.DateOfBirth, DateTimeKind.Utc),
+                Locality = request.Locality,
+                JoinInviteCode = request.InviteCode,
+                JoinSource = request.Source
             };
 
             _db.UserEmails.Add(userPrivateInfo.ToDatabase());

@@ -1,7 +1,7 @@
 ﻿<div class="@Class" @onclick="OnClick">
-    @if (IconUrl is not null)
+    @if (Icon is not null)
     {
-        <img class="icon" src="@IconUrl" style="@TextStyle" />
+        <i class="bi bi-@Icon" style="@TextStyle" />
     }
     <p style="@TextStyle">@Name</p>
 </div>
@@ -50,13 +50,5 @@
         bigMenuTopLevelMenuComponent.bigMenuComponent.ShowRightSide = true;
         bigMenuTopLevelMenuComponent.bigMenuComponent.ShowLeftSide = false;
         bigMenuTopLevelMenuComponent.Refresh();
-    }
-
-    public string IconUrl
-    {
-        get
-        {
-            return "_content/Valour.Client/media/" + Icon;
-        }
     }
 }

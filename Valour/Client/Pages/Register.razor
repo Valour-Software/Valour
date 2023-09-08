@@ -1,6 +1,11 @@
 ﻿@page "/Register"
+@page "/Register/I/{InviteCode}"
+@page "/Register/from/{Source}"
+@page "/Register/referral/{Referral}"
 
 @inject IJSRuntime JsRuntime
+@inject NavigationManager NavManager
+@using Microsoft.AspNetCore.WebUtilities
 
 <body class="login-background" style="background-image: url(_content/Valour.Client/media/Abstract-Background.png)">
     <div class="popup-box">
@@ -37,7 +42,7 @@
                     </div>
                     <div class="form-group mt-2">
                         <label>Referral (Optional)</label>
-                        <input type="text" class="form-control" @bind-value="@_referral" />
+                        <input type="text" class="form-control" @bind-value="@_referral" disabled="@_lockReferral" />
                         <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour! (ie SpikeViper#0000)</span>
                     </div>
                     <div class="form-group mt-4">
@@ -66,6 +71,15 @@
 
 @code {
 
+    [Parameter]
+    public string InviteCode { get; set; }
+    
+    [Parameter]
+    public string Source { get; set; }
+    
+    [Parameter]
+    public string Referral { get; set; }
+
     private bool _completed;
     
     private RegisterUserRequest _regRequest;
@@ -76,6 +90,7 @@
     private string _passwordConf;
     private string _username;
     private string _referral;
+    private bool _lockReferral;
     private DateTime _dob = DateTime.Today;
     private bool _termsAgreed;
 
@@ -83,6 +98,15 @@
     private string _errorSpan;
     private string _successSpan;
     private string _dobSpan;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Referral))
+        {
+            _referral = Referral;
+            _lockReferral = true;
+        }
+    }
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
@@ -150,7 +174,9 @@
             Password = _password,
             Referrer = _referral,
             DateOfBirth = _dob,
-            Locality = locale
+            Locality = locale,
+            InviteCode = InviteCode,
+            Source = Source,
         };
 
         var result = await ValourClient.PostAsync("api/users/register", _regRequest);

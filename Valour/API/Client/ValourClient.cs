@@ -422,6 +422,11 @@ public static class ValourClient
         return lastRead < lastUpdate.LastUpdateTime;
     }
 
+    public static async Task<TaskResult<List<ReferralDataModel>>> GetReferralsAsync()
+    {
+        return await PrimaryNode.GetJsonAsync<List<ReferralDataModel>>("api/users/self/referrals");
+    }
+
     /// <summary>
     /// Tries to add the given Tenor favorite
     /// </summary>

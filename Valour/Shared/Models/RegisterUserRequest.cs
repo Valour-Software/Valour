@@ -20,4 +20,6 @@ public class RegisterUserRequest
     public string Referrer { get; set; }
     public DateTime DateOfBirth { get; set; }
     public Locality Locality { get; set; }
+    public string InviteCode { get; set; }
+    public string Source { get; set; }
 }
