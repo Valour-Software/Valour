@@ -123,7 +123,8 @@ public class Node
         HubConnection = new HubConnectionBuilder()
         .WithUrl(address, options =>
         {
-            options.Headers.Add("X-Server-Select", Name);
+            options.Headers.Add("X-Server-Select", Name); 
+            options.UseAcks = true;
         })
         .Build();
 
