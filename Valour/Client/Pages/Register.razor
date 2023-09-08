@@ -1,6 +1,7 @@
 ﻿@page "/Register"
 @page "/Register/I/{InviteCode}"
 @page "/Register/from/{Source}"
+@page "/Register/referral/{Referral}"
 
 @inject IJSRuntime JsRuntime
 @inject NavigationManager NavManager
@@ -41,7 +42,7 @@
                     </div>
                     <div class="form-group mt-2">
                         <label>Referral (Optional)</label>
-                        <input type="text" class="form-control" @bind-value="@_referral" />
+                        <input type="text" class="form-control" @bind-value="@_referral" disabled="@_lockReferral" />
                         <span id="referral-info-span" class="text-info">This is the username of a user who sent you to Valour! (ie SpikeViper#0000)</span>
                     </div>
                     <div class="form-group mt-4">
@@ -69,12 +70,15 @@
 </body>
 
 @code {
-    
+
     [Parameter]
     public string InviteCode { get; set; }
     
     [Parameter]
     public string Source { get; set; }
+    
+    [Parameter]
+    public string Referral { get; set; }
 
     private bool _completed;
     
@@ -86,6 +90,7 @@
     private string _passwordConf;
     private string _username;
     private string _referral;
+    private bool _lockReferral;
     private DateTime _dob = DateTime.Today;
     private bool _termsAgreed;
 
@@ -93,6 +98,15 @@
     private string _errorSpan;
     private string _successSpan;
     private string _dobSpan;
+
+    protected override void OnInitialized()
+    {
+        if (!string.IsNullOrWhiteSpace(Referral))
+        {
+            _referral = Referral;
+            _lockReferral = true;
+        }
+    }
 
     private async Task OnClickSubmit(MouseEventArgs e)
     {
