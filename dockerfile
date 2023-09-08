@@ -16,7 +16,7 @@ RUN dotnet restore
 RUN dotnet publish -c Release -o out
 
 # Start with a smaller runtime image for the final image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0.0-preview
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-preview
 
 # Set the working directory to the app's output directory
 WORKDIR /app
