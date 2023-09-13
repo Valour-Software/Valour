@@ -1,4 +1,4 @@
-![Valour logo](Valour/Web/wwwroot/media/logo/wide/logo_wide_blue_black_trans.png)
+![Valour logo](Valour/Client/wwwroot/media/logo/wide/logo_wide_blue_black_trans.png)
 
 # Valour
 
@@ -6,7 +6,7 @@
 ## Try it at: [https://valour.gg/](https://valour.gg/)
 <br/>
 
-![Open Planet Platform View](Valour/Web/wwwroot/media/images/in-planet.png)
+![Open Planet Platform View](Valour/Client/wwwroot/media/images/overview.png)
 
 ## Design
 
@@ -24,7 +24,7 @@ Valour's client allows you to open multiple chats at once - even across several 
 
 Planets are the communities of Valour, allowing you to build your ideas and foster strong interactions. With role management and per-channel permissions, you can ensure that your community is managed how you see fit.
 
-![Open Planet Platform View](Valour/Web/wwwroot/media/images/home-screen.png)
+![Open Planet Platform View](Valour/Client/wwwroot/media/images/homescreen.png)
 
 <br/>
 
