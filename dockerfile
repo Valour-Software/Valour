@@ -8,6 +8,7 @@ WORKDIR /app
 
 # We need python for some reason
 RUN apt-get update && apt-get install -y python3
+RUN apt-get install libatomic1
 
 # Copy the app's source code to the container image
 COPY . .
