@@ -30,7 +30,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 8.0.100
+        dotnet-version: 8.0.x
         include-prerelease: true
     - name: Restore workload
       run: dotnet workload restore
