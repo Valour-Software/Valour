@@ -9,6 +9,9 @@ WORKDIR /app
 # Copy the app's source code to the container image
 COPY . .
 
+# Restore workloads
+RUN dotnet workload restore
+
 # Restore the app's dependencies
 RUN dotnet restore
 
