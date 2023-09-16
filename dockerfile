@@ -1,7 +1,7 @@
 # ChatGPT made the first version of this, hopefully it works!
 
 # Start with the official .NET Core 8.0 SDK image
-FROM mcr.microsoft.com/dotnet/sdk:8.0-preview AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 
 # Set the working directory to the app's source code directory
 WORKDIR /app
@@ -23,7 +23,7 @@ RUN dotnet restore
 RUN dotnet publish -c Release -o out
 
 # Start with a smaller runtime image for the final image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-preview
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
 # Set the working directory to the app's output directory
 WORKDIR /app
