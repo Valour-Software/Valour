@@ -28,7 +28,7 @@ jobs:
         encoding: 'utf8'            # Optional, defaults to 'utf8'
         path: '.'                   # Optional, defaults to '.'
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 8.0.x
         include-prerelease: true
