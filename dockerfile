@@ -6,6 +6,9 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-preview AS build-env
 # Set the working directory to the app's source code directory
 WORKDIR /app
 
+# Python repo
+RUN add-apt-repository ppa:deadsnakes/ppa
+
 # We need python for some reason
 RUN apt-get update && apt-get install -y python3.9 python3.9-dev
 
