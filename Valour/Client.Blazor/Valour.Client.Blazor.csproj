@@ -5,6 +5,8 @@
     <ImplicitUsings>true</ImplicitUsings>
     <DebugType>portable</DebugType>
     <SelfContained>true</SelfContained>
+    <WasmEnableSIMD>false</WasmEnableSIMD>
+    <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
