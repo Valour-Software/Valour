@@ -32,6 +32,8 @@ jobs:
       with:
         dotnet-version: 8.0.x
         include-prerelease: true
+    - name: Restore workload
+      run: dotnet workload restore
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
