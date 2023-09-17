@@ -280,7 +280,7 @@ public class DirectChatChannelService
 
                         Notification notif = new()
                         {
-                            Title = sendingUser.Name + " in DMs",
+                            Title = sendingUser.Name + " mentioned you in DMs",
                             Body = content,
                             ImageUrl = sendingUser.PfpUrl,
                             ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
@@ -295,6 +295,7 @@ public class DirectChatChannelService
             }
         }
 
+        var sender = await _db.Users.FindAsync(sendingUserId);
         User targetUser;
 
         // Get the user that is NOT the token user
@@ -309,6 +310,31 @@ public class DirectChatChannelService
 
         if (targetUser is null)
             return new(false, "Target user not found.");
+
+        // Only notify if there's not already a ping in the message for the target user
+        if (string.IsNullOrWhiteSpace(message.MentionsData) || !message.MentionsData.Contains(targetUser.Id.ToString()))
+        {
+            // Check if a non-mention notification has been sent in this channel in the last minute
+            if (!await _db.Notifications.AnyAsync(x =>
+                    x.ChannelId == channel.Id && x.UserId == targetUser.Id &&
+                    x.Source == NotificationSource.DirectReply))
+            {
+                
+                Notification notif = new()
+                {
+                    Title = sender.Name + " sent a message in DMs",
+                    Body = message.Content,
+                    ImageUrl = sender.PfpUrl,
+                    ClickUrl = $"/directchannels/{channel.Id}/{message.Id}",
+                    ChannelId = channel.Id,
+                    Source = NotificationSource.DirectReply,
+                    SourceId = message.Id,
+                    UserId = targetUser.Id,
+                };
+                
+                await _notificationService.AddNotificationAsync(notif);
+            }
+        }
 
         if (message.ReplyToId is not null)
         {

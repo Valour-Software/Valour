@@ -12,10 +12,10 @@
     <PackageReference Include="Blazored.LocalStorage" Version="4.4.0" />
     <PackageReference Include="Blazored.Modal" Version="7.1.0" />
     <PackageReference Include="Markdig" Version="0.33.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-preview.7.23375.9" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-preview.7.23375.9" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0-preview.7.23375.9" />
-    <PackageReference Include="System.Net.Http.Json" Version="8.0.0-preview.7.23375.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0-rc.1.23421.29" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0-rc.1.23421.29" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0-rc.1.23421.29" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.0-rc.1.23419.4" />
   </ItemGroup>
 
   <ItemGroup>

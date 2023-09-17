@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Markdig.Extensions.TaskLists;
 using Valour.Server.Config;
 using Valour.Server.Database;
 using Valour.Shared;
@@ -16,17 +17,20 @@ public class NotificationService
     private readonly UserService _userService;
     private readonly CoreHubService _coreHub;
     private readonly NodeService _nodeService;
+    private readonly IServiceScopeFactory _scopeFactory;
     
     public NotificationService(
         ValourDB db, 
         UserService userService, 
         CoreHubService coreHub,
-        NodeService nodeService)
+        NodeService nodeService,
+        IServiceScopeFactory scopeFactory)
     {
         _db = db;
         _userService = userService;
         _coreHub = coreHub;
         _nodeService = nodeService;
+        _scopeFactory = scopeFactory;
         
         if (_vapidDetails is null)
             _vapidDetails = new VapidDetails(VapidConfig.Current.Subject, VapidConfig.Current.PublicKey, VapidConfig.Current.PrivateKey);
@@ -116,30 +120,39 @@ public class NotificationService
         );
     }
     
-    public async Task AddRoleNotificationAsync(Notification baseNotification, long roleId)
+    public Task AddRoleNotificationAsync(Notification baseNotification, long roleId)
     {
-        var notifications = await _db.PlanetRoleMembers.Where(x => x.RoleId == roleId).Select(x => new Notification()
+        // Do not block entire thread on this
+        Task.Run(async () =>
         {
-            Id = IdManager.Generate(),
-            Title = baseNotification.Title,
-            Body = baseNotification.Body,
-            ImageUrl = baseNotification.ImageUrl,
-            ClickUrl = baseNotification.ClickUrl,
-            PlanetId = baseNotification.PlanetId,
-            ChannelId = baseNotification.ChannelId,
-            Source = NotificationSource.PlanetRoleMention,
-            SourceId = baseNotification.SourceId,
-            UserId = x.UserId,
-            TimeSent = DateTime.UtcNow,
-        }).ToListAsync();
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            await using var db = scope.ServiceProvider.GetService<ValourDB>();
+        
+            var notifications = await db.PlanetRoleMembers.Where(x => x.RoleId == roleId).Select(x => new Notification()
+            {
+                Id = IdManager.Generate(),
+                Title = baseNotification.Title,
+                Body = baseNotification.Body,
+                ImageUrl = baseNotification.ImageUrl,
+                ClickUrl = baseNotification.ClickUrl,
+                PlanetId = baseNotification.PlanetId,
+                ChannelId = baseNotification.ChannelId,
+                Source = NotificationSource.PlanetRoleMention,
+                SourceId = baseNotification.SourceId,
+                UserId = x.UserId,
+                TimeSent = DateTime.UtcNow,
+            }).ToListAsync();
 
-        foreach (var notification in notifications)
-        {
-            await AddNotificationAsync(notification, false);
-        }
+            foreach (var notification in notifications)
+            {
+                await AddNotificationAsync(notification, false);
+            }
 
-        await _db.Notifications.AddRangeAsync(notifications.Select(x => x.ToDatabase()));
-        await _db.SaveChangesAsync();
+            await _db.Notifications.AddRangeAsync(notifications.Select(x => x.ToDatabase()));
+            await _db.SaveChangesAsync();
+        });
+
+        return Task.CompletedTask;
     }
 
     public async Task SendPushNotificationAsync(long userId, string iconUrl, string title, string message, string clickUrl)
