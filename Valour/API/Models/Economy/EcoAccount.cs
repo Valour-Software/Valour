@@ -45,6 +45,11 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// This will always be set
     /// </summary>
     public long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The member id of the planet member this account belongs to
+    /// </summary>
+    public long? PlanetMemberId { get; set; }
 
     /// <summary>
     /// The id of the currency this account is using
@@ -118,6 +123,26 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
         }
 
         return accounts;
+    }
+    
+    /// <summary>
+    /// Returns all user accounts for the given planet id
+    /// </summary>
+    public static async Task<List<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
+    {
+        var node = await NodeManager.GetNodeForPlanetAsync(planetId);
+        var results = (await node.GetJsonAsync<List<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
+
+        if (results is not null)
+        {
+            foreach (var account in results)
+            {
+                await account.Account.AddToCache();
+                await account.Member.AddToCache();
+            }
+        }
+
+        return results;
     }
 
     /// <summary>

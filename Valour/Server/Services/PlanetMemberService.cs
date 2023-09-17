@@ -394,7 +394,7 @@ public class PlanetMemberService
                 UserId = user.Id
             };
         }
-
+        
         var defaultRoleId = await _db.PlanetRoles.Where(x => x.PlanetId == planet.Id && x.IsDefault)
             .Select(x => x.Id)
             .FirstOrDefaultAsync();
@@ -426,6 +426,18 @@ public class PlanetMemberService
             }
             
             await _db.PlanetRoleMembers.AddAsync(roleMember);
+            await _db.SaveChangesAsync();
+            
+            // Restore old eco accounts
+            var accounts = await _db.EcoAccounts.IgnoreQueryFilters()
+                .Where(x => x.PlanetId == planet.Id && x.UserId == user.Id)
+                .ToListAsync();
+
+            foreach (var account in accounts)
+            {
+                account.PlanetMemberId = member.Id;
+            }
+
             await _db.SaveChangesAsync();
         }
         catch (Exception e)

@@ -28,6 +28,11 @@ public interface ISharedEcoAccount
     /// This will always be set
     /// </summary>
     long PlanetId { get; set; }
+    
+    /// <summary>
+    /// The member id of the planet member this account belongs to
+    /// </summary>
+    long? PlanetMemberId { get; set; }
 
     /// <summary>
     /// The id of the currency this account is using

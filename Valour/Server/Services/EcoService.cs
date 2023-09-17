@@ -209,14 +209,41 @@ public class EcoService
     /// <summary>
     /// Returns the planet accounts for the given planet id
     /// </summary>
-    public async ValueTask<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
+    public async ValueTask<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50) =>
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId)
+            .OrderByDescending(x => x.BalanceValue)
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
     
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId).OrderByDescending(x => x.BalanceValue).Select(x => x.ToModel()).ToListAsync();
+    public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50) =>
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
+            .OrderByDescending(x => x.BalanceValue)
+            .Skip(skip)
+            .Take(take)
+            .Select(x => x.ToModel())
+            .ToListAsync();
+    
+    /// <summary>
+    /// Returns the user accounts for the given planet id
+    /// </summary>
+    public async ValueTask<List<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId, int skip = 0, int take = 50) =>
+        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
+                                         x.PlanetMemberId != null)
+            .Include(x => x.PlanetMember)
+            .OrderByDescending(x => x.BalanceValue)
+            .Skip(skip)
+            .Take(take)
+            .Select(x => new EcoAccountPlanetMember()
+            {
+                Account = x.ToModel(),
+                Member = x.PlanetMember.ToModel()
+            })
+            .ToListAsync();
 
     /// <summary>
     /// Returns the planet accounts the given user can send to

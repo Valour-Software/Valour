@@ -5,7 +5,7 @@ using Valour.Api.Nodes;
 
 namespace Valour.Client.Utility;
 
-public class ModelListProvider<T> where T : LiveModel
+public class ModelListProvider<T>
 {
     private readonly string _route;
     private readonly long? _planetId;

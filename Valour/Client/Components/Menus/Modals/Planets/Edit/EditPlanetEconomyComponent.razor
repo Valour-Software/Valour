@@ -69,22 +69,21 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var account in PlanetAccounts)
-                            {
+                            <Virtualize TItem="EcoAccount" ItemsProvider="@_planetAccountProvider.GetItemsAsync">
                                 <tr>
-                                    <td><input class="v-input" @bind="account.Name"/></td>
-                                    <td>@Currency.Format(account.BalanceValue)</td>
+                                    <td><input class="v-input" @bind="@context.Name"/></td>
+                                    <td>@Currency.Format(@context.BalanceValue)</td>
 
                                     <td>
                                         <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
-                                            <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(account))">Save</a>
-                                            <a class="v-drop-model" @onclick="@(async () => await OnClickIssue(account))">Issue Currency</a>
-                                            <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(account))">Delete</a>
+                                            <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(@context))">Save</a>
+                                            <a class="v-drop-model" @onclick="@(async () => await OnClickIssue(@context))">Issue Currency</a>
+                                            <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(@context))">Delete</a>
                                         </DropdownComponent>
                                     </td>
-                                    
                                 </tr>
-                            }
+                            </Virtualize>
+                        
                         </tbody>
                     </table>
                 }
@@ -116,18 +115,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for (int i = 0; i < UserAccounts.Count; i++)
-                            {
-                                var account = UserAccounts[i];
-
-                                if (UserAccountMembers.TryGetValue(account.Id, out var member))
-                                {
-                                    <tr>
-                                        <td><UserInfoComponent Member="@member" /></td>
-                                        <td>@Currency.Format(account.BalanceValue)</td>
-                                    </tr>
-                                }
-                            }
+                        
+                        <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetItemsAsync">
+                            <tr>
+                                <td><UserInfoComponent Member="@context.Member"/></td>
+                                <td>@Currency.Format(@context.Account.BalanceValue)</td>
+                            </tr>
+                        </Virtualize>
                         </tbody>
                     </table>
                 }
@@ -172,9 +166,14 @@
     private string _accountError = null;
     private string _accountInfo = null;
 
-    
+    private ModelListProvider<EcoAccount> _planetAccountProvider;
+    private ModelListProvider<EcoAccountPlanetMember> _userAccountProvider;
+
     protected override async Task OnInitializedAsync()
     {
+        _planetAccountProvider = new ModelListProvider<EcoAccount>($"api/eco/accounts/planet/{Planet.Id}/planet", Planet.Id);
+        _userAccountProvider = new ModelListProvider<EcoAccountPlanetMember>($"api/eco/accounts/planet/{Planet.Id}/member", Planet.Id);
+        
         var self = await ValourClient.GetSelfMember(Planet);
         _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
 
