@@ -317,7 +317,7 @@ public class DirectChatChannelService
             // Check if a non-mention notification has been sent in this channel in the last minute
             if (!await _db.Notifications.AnyAsync(x =>
                     x.ChannelId == channel.Id && x.UserId == targetUser.Id &&
-                    x.Source == NotificationSource.DirectReply))
+                    x.Source == NotificationSource.DirectReply && x.TimeSent > DateTime.UtcNow.AddMinutes(-1)))
             {
                 
                 Notification notif = new()
