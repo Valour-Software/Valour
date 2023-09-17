@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Valour.Api.Client;
 using Valour.Api.Items;
 using Valour.Api.Nodes;
+using Valour.Shared.Models;
 
 namespace Valour.Client.Utility;
 
@@ -21,11 +22,11 @@ public class ModelListProvider<T>
     {
         var node = _planetId is null ? ValourClient.PrimaryNode : await NodeManager.GetNodeForPlanetAsync(_planetId.Value);
 
-        var result = await node.GetJsonAsync<List<T>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
+        var result = await node.GetJsonAsync<PagedModelResponse<T>>($"{_route}?skip={request.StartIndex}&take={request.Count}");
 
-        if (!result.Success || result.Data is null)
+        if (!result.Success || result.Data.Items is null)
             return new ItemsProviderResult<T>(new List<T>(), 0);
         
-        return new ItemsProviderResult<T>(result.Data, result.Data.Count);
+        return new ItemsProviderResult<T>(result.Data.Items, result.Data.TotalCount);
     } 
 }

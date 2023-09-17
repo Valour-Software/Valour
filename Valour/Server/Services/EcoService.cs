@@ -205,37 +205,69 @@ public class EcoService
     /// </summary>
     public async ValueTask<EcoAccount> GetUserAccountAsync(long userId, long planetId) =>
         (await _db.EcoAccounts.FirstOrDefaultAsync(x => x.UserId == userId && x.PlanetId == planetId && x.AccountType == AccountType.User)).ToModel();
-    
+
     /// <summary>
     /// Returns the planet accounts for the given planet id
     /// </summary>
-    public async ValueTask<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId)
-            .OrderByDescending(x => x.BalanceValue)
+    public async ValueTask<PagedModelResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0,
+        int take = 50)
+    {
+        var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.Planet && x.PlanetId == planetId)
+            .OrderByDescending(x => x.BalanceValue);
+
+        var total = await baseQuery.CountAsync();
+        
+        var items = await baseQuery
             .Skip(skip)
             .Take(take)
             .Select(x => x.ToModel())
             .ToListAsync();
-    
+
+        return new PagedModelResponse<EcoAccount>()
+        {
+            TotalCount = total,
+            Items = items
+        };
+    }
+
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
-            .OrderByDescending(x => x.BalanceValue)
+    public async ValueTask<PagedModelResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
+    {
+        var baseQuery = _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId)
+            .OrderByDescending(x => x.BalanceValue);
+            
+        var total = await baseQuery.CountAsync();
+        
+        var items = await baseQuery
             .Skip(skip)
             .Take(take)
             .Select(x => x.ToModel())
             .ToListAsync();
-    
+
+        return new PagedModelResponse<EcoAccount>()
+        {
+            TotalCount = total,
+            Items = items
+        };
+    }
+
     /// <summary>
     /// Returns the user accounts for the given planet id
     /// </summary>
-    public async ValueTask<List<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId, int skip = 0, int take = 50) =>
-        await _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
-                                         x.PlanetMemberId != null)
+    public async ValueTask<PagedModelResponse<EcoAccountPlanetMember>> GetPlanetUserAccountMembersAsync(long planetId,
+        int skip = 0, int take = 50)
+    {
+        var baseQuery = 
+            _db.EcoAccounts.Where(x => x.AccountType == AccountType.User && x.PlanetId == planetId &&
+                                                         x.PlanetMemberId != null)
             .Include(x => x.PlanetMember)
-            .OrderByDescending(x => x.BalanceValue)
+            .OrderByDescending(x => x.BalanceValue);
+        
+        var total = await baseQuery.CountAsync();
+        
+        var items = await baseQuery
             .Skip(skip)
             .Take(take)
             .Select(x => new EcoAccountPlanetMember()
@@ -244,6 +276,13 @@ public class EcoService
                 Member = x.PlanetMember.ToModel()
             })
             .ToListAsync();
+
+        return new PagedModelResponse<EcoAccountPlanetMember>()
+        {
+            TotalCount = total,
+            Items = items
+        };
+    }
 
     /// <summary>
     /// Returns the planet accounts the given user can send to

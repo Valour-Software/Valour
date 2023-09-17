@@ -54,39 +54,33 @@
        
         <TabContainerComponent Titles="@_tabTitles">
             <TabOne>
-                @if (PlanetAccounts is null || PlanetAccounts.Count == 0)
-                {
-                    <h6 class="p-4">There are no planet accounts.</h6>
-                }
-                else
-                {
-                    <table class="v-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Balance</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <Virtualize TItem="EcoAccount" ItemsProvider="@_planetAccountProvider.GetItemsAsync">
-                                <tr>
-                                    <td><input class="v-input" @bind="@context.Name"/></td>
-                                    <td>@Currency.Format(@context.BalanceValue)</td>
+                <table class="v-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <Virtualize @ref="_planetVirtualize" TItem="EcoAccount" ItemsProvider="@_planetAccountProvider.GetItemsAsync" OverscanCount="20">
+                            <tr @key="@context.Id">
+                                <td><input class="v-input" @bind="@context.Name"/></td>
+                                <td>@Currency.Format(@context.BalanceValue)</td>
 
-                                    <td>
-                                        <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
-                                            <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(@context))">Save</a>
-                                            <a class="v-drop-model" @onclick="@(async () => await OnClickIssue(@context))">Issue Currency</a>
-                                            <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(@context))">Delete</a>
-                                        </DropdownComponent>
-                                    </td>
-                                </tr>
-                            </Virtualize>
-                        
-                        </tbody>
-                    </table>
-                }
+                                <td>
+                                    <DropdownComponent Alignment="DropdownComponent.DropdownAlignment.Right" Style="width: 100%">
+                                        <a class="v-drop-model" @onclick="@(async () => await OnClickSaveAccount(@context))">Save</a>
+                                        <a class="v-drop-model" @onclick="@(async () => await OnClickIssue(@context))">Issue Currency</a>
+                                        <a class="v-drop-model v-text-red" @onclick="@(async ()  => await OnClickDeleteAccount(@context))">Delete</a>
+                                    </DropdownComponent>
+                                </td>
+                            </tr>
+                        </Virtualize>
+                    
+                    </tbody>
+                </table>
+                
                 
                 <button class="v-btn m-2" @onclick="@OnClickAddAccount">Add Account</button>
                 
@@ -101,31 +95,23 @@
                 
             </TabOne>
             <TabTwo>
-                @if (UserAccounts is null || UserAccounts.Count == 0)
-                {
-                    <h6 class="p-4">There are no user accounts.</h6>
-                }
-                else
-                {
-                    <table class="v-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Balance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        
-                        <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetItemsAsync">
-                            <tr>
-                                <td><UserInfoComponent Member="@context.Member"/></td>
-                                <td>@Currency.Format(@context.Account.BalanceValue)</td>
-                            </tr>
-                        </Virtualize>
-                        </tbody>
-                    </table>
-                }
-                                
+                <table class="v-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    
+                    <Virtualize TItem="EcoAccountPlanetMember" ItemsProvider="@_userAccountProvider.GetItemsAsync" OverscanCount="20">
+                        <tr @key="@context.Account.Id">
+                            <td><UserInfoComponent Member="@context.Member"/></td>
+                            <td>@Currency.Format(@context.Account.BalanceValue)</td>
+                        </tr>
+                    </Virtualize>
+                    </tbody>
+                </table>
             </TabTwo>
         </TabContainerComponent>
     } 
@@ -138,7 +124,9 @@
 
 
 @code {
-    
+
+    private Virtualize<EcoAccount> _planetVirtualize;
+
     private static string[] _tabTitles = new [] { "Planet Accounts", "User Accounts" };
     
     [CascadingParameter]
@@ -148,10 +136,6 @@
     public Planet Planet { get; set; }
     
     public Currency Currency { get; set; }
-    public List<EcoAccount> PlanetAccounts { get; set; }
-    public List<EcoAccount> UserAccounts { get; set; }
-    
-    public Dictionary<long, PlanetMember> UserAccountMembers { get; set; }
 
     private bool _hasCurrencyPermission = false;
     
@@ -178,26 +162,6 @@
         _hasCurrencyPermission = await self.HasPermissionAsync(PlanetPermissions.ManageCurrency);
 
         Currency = await Currency.FindByPlanetAsync(Planet.Id);
-        
-        if (Currency is not null)
-        {
-            PlanetAccounts = await EcoAccount.GetPlanetPlanetAccountsAsync(Planet.Id);
-            UserAccounts = await EcoAccount.GetPlanetUserAccountsAsync(Planet.Id);
-
-            if (UserAccounts is not null && UserAccounts.Count > 0)
-            {
-                UserAccountMembers = new();
-                
-                foreach (var account in UserAccounts)
-                {
-                    var member = await PlanetMember.FindAsyncByUser(account.UserId, account.PlanetId);
-                    if (member is not null)
-                    {
-                        UserAccountMembers.Add(account.Id, member);
-                    }
-                }
-            }
-        }
 
         _loading = false;
     }
@@ -255,7 +219,7 @@
         else
         {
             _accountInfo = result.Message;
-            PlanetAccounts.Add(result.Data);
+            await _planetVirtualize.RefreshDataAsync();
         }
     }
 
@@ -284,7 +248,7 @@
         else
         {
             _accountInfo = result.Message;
-            PlanetAccounts.Remove(account);
+            await _planetVirtualize.RefreshDataAsync();
         }
         
         StateHasChanged();

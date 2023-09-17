@@ -90,14 +90,17 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all planet accounts for the given planet id
     /// </summary>
-    public static async Task<List<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId)
+    public static async Task<PagedModelResponse<EcoAccount>> GetPlanetPlanetAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
+        if (take > 50)
+            take = 50;
+        
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet")).Data;
+        var accounts = (await node.GetJsonAsync<PagedModelResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/planet?skip={skip}&take={take}")).Data;
 
-        if (accounts is not null)
+        if (accounts.Items is not null)
         {
-            foreach (var account in accounts)
+            foreach (var account in accounts.Items)
             {
                 await account.AddToCache();
             }
@@ -109,14 +112,17 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<List<EcoAccount>> GetPlanetUserAccountsAsync(long planetId)
+    public static async Task<PagedModelResponse<EcoAccount>> GetPlanetUserAccountsAsync(long planetId, int skip = 0, int take = 50)
     {
+        if (take > 50)
+            take = 50;
+        
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var accounts = (await node.GetJsonAsync<List<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user")).Data;
+        var accounts = (await node.GetJsonAsync<PagedModelResponse<EcoAccount>>($"api/eco/accounts/planet/{planetId}/user?skip=")).Data;
 
-        if (accounts is not null)
+        if (accounts.Items is not null)
         {
-            foreach (var account in accounts)
+            foreach (var account in accounts.Items)
             {
                 await account.AddToCache();
             }
@@ -128,14 +134,14 @@ public class EcoAccount : LiveModel, ISharedEcoAccount
     /// <summary>
     /// Returns all user accounts for the given planet id
     /// </summary>
-    public static async Task<List<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
+    public static async Task<PagedModelResponse<EcoAccountPlanetMember>> GetPlanetUserAccountsWithMemberAsync(long planetId)
     {
         var node = await NodeManager.GetNodeForPlanetAsync(planetId);
-        var results = (await node.GetJsonAsync<List<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
+        var results = (await node.GetJsonAsync<PagedModelResponse<EcoAccountPlanetMember>>($"api/eco/accounts/planet/{planetId}/member")).Data;
 
-        if (results is not null)
+        if (results.Items is not null)
         {
-            foreach (var account in results)
+            foreach (var account in results.Items)
             {
                 await account.Account.AddToCache();
                 await account.Member.AddToCache();
